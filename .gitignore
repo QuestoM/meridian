@@ -2,7 +2,7 @@
 *.pyc
 
 # Byte-compiled
-_pycache__/
+__pycache__/
 .cache/
 
 # Poetry, setuptools, PyPI distribution artifacts.
@@ -26,3 +26,17 @@ poetry.lock
 
 # pyenv, virtualenv artifacts.
 .python-version
+
+# Virtual environments
+venv/
+env/
+.env
+
+# VSCode settings
+.vscode/
+
+# Mypy cache
+.mypy_cache/
+
+# Pip metadata
+pip-wheel-metadata/

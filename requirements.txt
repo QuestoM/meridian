@@ -1,0 +1,14 @@
+numpy>=2.0.2,<3
+pandas>=2.2.2,<3
+tensorflow>=2.18,<2.19
+tensorflow-probability>=0.25,<0.26
+xarray>=0.20.0
+arviz>=0.12.0
+matplotlib>=3.5.0
+openpyxl>=3.0.9
+scikit-learn>=1.0.0
+joblib>=1.1.0
+jinja2>=3.0.0
+altair>=4.2.0
+immutabledict
+tf-keras>=2.18,<2.19

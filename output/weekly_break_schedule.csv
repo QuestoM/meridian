@@ -1,0 +1,17 @@
+program_type,position,break_type,break_length,num_breaks,total_break_time,viewing_points,base_rate,program_duration,prime_time_ratio,predicted_retention,predicted_revenue,day
+News,middle,medium,90,6,540,1.5,1000.0,60.0,0.0,1.0,13500.0,Monday
+Other,middle,long,180,3,540,2.25,1250.0,30.0,0.5,1.0,25312.5,Monday
+Promo,middle,medium,90,2,180,1.0,1000.0,30.0,0.0,1.0,3000.0,Monday
+News,middle,medium,90,3,270,3.0,1500.0,60.0,1.0,1.0,20250.0,Tuesday
+Promo,middle,medium,90,3,270,2.0,1250.0,30.0,0.5,1.0,11250.0,Tuesday
+News,middle,medium,90,3,270,1.5,1000.0,60.0,0.0,1.0,6750.0,Wednesday
+Other,middle,long,180,3,540,2.0,1250.0,30.0,0.5,1.0,22500.0,Wednesday
+Promo,middle,medium,90,4,360,1.1666666666666667,1000.0,30.0,0.0,1.0,7000.0,Wednesday
+News,middle,medium,90,15,1350,1.9,1200.0,60.0,0.4,1.0,51300.0,Thursday
+Other,middle,long,180,3,540,2.0,1250.0,30.0,0.5,1.0,22500.0,Thursday
+Promo,middle,medium,90,3,270,1.25,1000.0,30.0,0.0,1.0,5625.0,Thursday
+Other,middle,long,180,4,720,2.0,1166.6666666666667,30.0,0.3333333333333333,1.0,28000.0,Friday
+Promo,middle,medium,90,4,360,1.5,1000.0,30.0,0.0,1.0,9000.0,Friday
+News,middle,medium,90,6,540,1.5999999999999999,1000.0,60.0,0.0,1.0,14399.999999999996,Saturday
+Other,middle,long,180,2,360,2.4,1250.0,30.0,0.5,1.0,18000.0,Saturday
+News,middle,medium,90,2,180,1.7999999999999998,1000.0,60.0,0.0,1.0,5399.999999999999,Sunday
