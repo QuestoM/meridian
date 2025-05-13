@@ -1,0 +1,130 @@
+{
+  "plan_type": "daily",
+  "status": "error",
+  "message": "GroupBy.sum() got an unexpected keyword argument 'skipna'",
+  "break_schedule": [],
+  "program_schedule": [
+    {
+      "Title": "החדשות המרכזיות",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "20:00",
+      "End time": "21:00",
+      "Duration": 60,
+      "viewing_points": 4.5,
+      "program_type": "News",
+      "prime_time": 1
+    },
+    {
+      "Title": "מאסטר שף",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "21:00",
+      "End time": "22:30",
+      "Duration": 90,
+      "viewing_points": 5.2,
+      "program_type": "Reality",
+      "prime_time": 1
+    },
+    {
+      "Title": "סדרה מקורית",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "22:30",
+      "End time": "23:30",
+      "Duration": 60,
+      "viewing_points": 3.8,
+      "program_type": "Drama",
+      "prime_time": 1
+    },
+    {
+      "Title": "תוכנית בוקר",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "08:00",
+      "End time": "10:00",
+      "Duration": 120,
+      "viewing_points": 1.2,
+      "program_type": "Other",
+      "prime_time": 0
+    },
+    {
+      "Title": "תוכנית צהריים",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "12:00",
+      "End time": "14:00",
+      "Duration": 120,
+      "viewing_points": 1.5,
+      "program_type": "Comedy",
+      "prime_time": 0
+    },
+    {
+      "Title": "סרט",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "16:00",
+      "End time": "18:00",
+      "Duration": 120,
+      "viewing_points": 2.0,
+      "program_type": "Other",
+      "prime_time": 0
+    },
+    {
+      "Title": "חדשות הערב",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "18:00",
+      "End time": "19:00",
+      "Duration": 60,
+      "viewing_points": 3.0,
+      "program_type": "News",
+      "prime_time": 1
+    },
+    {
+      "Title": "תוכנית אירוח",
+      "Channel": "קשת 12",
+      "Date": "2023-11-01",
+      "Start time": "19:00",
+      "End time": "20:00",
+      "Duration": 60,
+      "viewing_points": 3.5,
+      "program_type": "Reality",
+      "prime_time": 1
+    },
+    {
+      "Title": "מבזקים",
+      "Channel": "רשת 13",
+      "Date": "2023-11-01",
+      "Start time": "19:30",
+      "End time": "19:35",
+      "Duration": 5,
+      "viewing_points": 2.0,
+      "program_type": "News",
+      "prime_time": 1
+    },
+    {
+      "Title": "סדרה זרה",
+      "Channel": "רשת 13",
+      "Date": "2023-11-01",
+      "Start time": "21:30",
+      "End time": "22:30",
+      "Duration": 60,
+      "viewing_points": 2.5,
+      "program_type": "Drama",
+      "prime_time": 1
+    },
+    {
+      "Title": "חדשות",
+      "Channel": "כאן 11",
+      "Date": "2023-11-01",
+      "Start time": "20:00",
+      "End time": "21:00",
+      "Duration": 60,
+      "viewing_points": 1.8,
+      "program_type": "News",
+      "prime_time": 1
+    }
+  ],
+  "summary": {}
+}

@@ -16,7 +16,7 @@
 
 from pathlib import Path
 import sass
-from setuptools import Command, setup
+from setuptools import Command, setup, find_packages
 from setuptools.command.build import build
 
 
@@ -65,4 +65,19 @@ class CustomBuild(build):
 
 
 if __name__ == '__main__':
-  setup(cmdclass={'build': CustomBuild, 'compile_scss': ScssCompileCommand})
+  setup(
+      name='meridian_tv_break',
+      version='0.1.0',
+      packages=find_packages(),
+      package_data={
+          'meridian_tv_break': ['config.yml', 'cli/*.bat'],
+      },
+      install_requires=[
+          'pandas>=1.4.0',
+          'numpy>=1.22.0',
+          'xarray>=2022.3.0',
+          'pydantic>=1.9.0',
+          'openpyxl>=3.0.0',
+      ],
+      cmdclass={'build': CustomBuild, 'compile_scss': ScssCompileCommand}
+  )

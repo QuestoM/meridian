@@ -1,0 +1,101 @@
+import argparse
+import logging
+from pathlib import Path
+import time
+
+import pandas as pd
+
+from tv_break_data_transformer import TVBreakDataTransformer
+from tv_break_model import TVBreakModel, TVBreakModelSpec
+
+# Meridian utils
+from meridian.model.model import save_mmm
+
+logger = logging.getLogger(__name__)
+
+
+def build_and_train(dayparts_csv: Path, programmes_csv: Path, spots_csv: Path, output_dir: Path, seed: int = 42,
+                    n_prior: int = 500, n_chains: int = 4, n_adapt: int = 500, n_burnin: int = 500, n_keep: int = 1000):
+    """Load enriched CSVs, create InputData via legacy transformer (fast), fit TVBreakModel and save posterior."""
+
+    logger.info(f"PARAMETERS: n_prior={n_prior}, n_chains={n_chains}, n_adapt={n_adapt}, n_burnin={n_burnin}, n_keep={n_keep}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # The legacy TVBreakDataTransformer expects Excel; patch read_excel so it can read CSV too
+    original_read_excel = pd.read_excel
+
+    def adaptive_read_excel(path, *args, **kwargs):  # type: ignore[override]
+        path = Path(path)
+        if path.suffix.lower() == ".csv":
+            return pd.read_csv(path, *args, **kwargs)
+        return original_read_excel(path, *args, **kwargs)
+
+    pd.read_excel = adaptive_read_excel  # type: ignore
+
+    try:
+        transformer = TVBreakDataTransformer(dayparts_csv, programmes_csv, spots_csv)
+        data_result = transformer.transform_data()
+    finally:
+        # Always restore original pandas read_excel
+        pd.read_excel = original_read_excel
+
+    if data_result is None or data_result.get("meridian_data") is None:
+        raise RuntimeError("Data transformation failed – cannot proceed with training")
+
+    meridian_data = data_result["meridian_data"]
+
+    # Use fewer knots if data has few time periods
+    num_times = len(meridian_data.kpi.coords['time'])
+    knots = min(3, max(1, num_times - 1))  # Ensure knots is at least 1 but less than num_times
+    logger.info("Using %d knots for %d time periods", knots, num_times)
+    model_spec = TVBreakModelSpec(knots=knots)
+    mmm = TVBreakModel(meridian_data, model_spec)
+
+    logger.info("Sampling prior draws=%d", n_prior)
+    start_time = time.time()
+    mmm.sample_prior(n_prior, seed=seed)
+    logger.info(f"Prior sampling completed in {time.time() - start_time:.2f} seconds")
+
+    logger.info(f"Starting posterior sampling with: n_chains={n_chains}, n_adapt={n_adapt}, n_burnin={n_burnin}, n_keep={n_keep}")
+    start_time = time.time()
+    try:
+        mmm.sample_posterior(n_chains=n_chains, n_adapt=n_adapt, n_burnin=n_burnin, n_keep=n_keep, seed=seed)
+        logger.info(f"Posterior sampling completed in {time.time() - start_time:.2f} seconds")
+    except Exception as exc:
+        logger.error(f"Posterior sampling failed after {time.time() - start_time:.2f} seconds: {exc}")
+        logger.info("Continuing with model containing prior & partial posterior")
+
+    model_path = output_dir / "tv_break_posterior.pkl"
+    save_mmm(mmm, model_path)
+    logger.info("Model saved to %s", model_path)
+
+
+def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s – %(message)s")
+    parser = argparse.ArgumentParser(description="Train TVBreakModel and save frozen posterior")
+    parser.add_argument("--enriched_dir", type=Path, default=Path("data/enriched"))
+    parser.add_argument("--output_dir", type=Path, default=Path("models"))
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--n_prior", type=int, default=5000, help="Number of prior samples")
+    parser.add_argument("--n_keep", type=int, default=1000, help="Number of posterior samples to keep")
+    parser.add_argument("--n_chains", type=int, default=8, help="Number of MCMC chains")
+    parser.add_argument("--n_adapt", type=int, default=2000, help="Number of adaptation steps")
+    parser.add_argument("--n_burnin", type=int, default=2000, help="Number of burn-in steps")
+    args = parser.parse_args()
+
+    dayparts_csv = args.enriched_dir / "Dayparts.csv"
+    programmes_csv = args.enriched_dir / "Programmes.csv"
+    spots_csv = args.enriched_dir / "Spots.csv"
+
+    build_and_train(dayparts_csv, programmes_csv, spots_csv, args.output_dir,
+                   seed=args.seed,
+                   n_prior=args.n_prior,
+                   n_chains=args.n_chains,
+                   n_adapt=args.n_adapt,
+                   n_burnin=args.n_burnin,
+                   n_keep=args.n_keep)
+
+
+if __name__ == "__main__":
+    main()

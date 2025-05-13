@@ -1,0 +1,10 @@
+rate_card_premiums_path: data/rate_card_premiums.csv
+advertiser_rules_path: data/advertiser_rules.csv
+enriched_output_dir: data/enriched
+keshet_channel_name: קשת 12
+competitor_channels:
+  - רשת 13
+  - כאן 11
+  - עכשיו 14
+viewer_retention_threshold: 0.75
+max_breaks_per_hour: 3
