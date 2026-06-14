@@ -15,16 +15,30 @@ from kairos.optimize.objective import (
     retention_adjusted_revenue,
     weighted_objective,
 )
+from kairos.optimize.optimizer import (
+    BreakPlacement,
+    Decision,
+    OptimizationResult,
+    ProgramSegment,
+    SegmentPlan,
+    optimize_breaks,
+)
 
 __all__ = [
     "Break",
+    "BreakPlacement",
+    "Decision",
     "Guardrails",
+    "OptimizationResult",
+    "ProgramSegment",
+    "SegmentPlan",
     "Violation",
     "break_revenue",
     "clamp",
     "evaluate",
     "fixed_revenue",
     "is_compliant",
+    "optimize_breaks",
     "predicted_retention",
     "retention_adjusted_revenue",
     "weighted_objective",
