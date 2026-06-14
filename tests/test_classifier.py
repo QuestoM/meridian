@@ -52,7 +52,7 @@ def test_rerun_marker_detected_without_changing_genre(clf: ProgramClassifier) ->
 
 
 def test_unknown_title_is_honest_other(clf: ProgramClassifier) -> None:
-    result = clf.classify("פתחי את שי")
+    result = clf.classify("כותרת דמיונית שאינה קיימת בלוח")
     assert result.category == "Other"
     assert result.confidence == 0.0
     assert result.rule in {"fallback", "empty"}
