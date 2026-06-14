@@ -23,13 +23,25 @@ from kairos.optimize.optimizer import (
     SegmentPlan,
     optimize_breaks,
 )
+from kairos.optimize.agreements import (
+    AdvertiserAgreement,
+    AgreementConstraint,
+    AgreementViolation,
+    agreement_violations,
+    load_agreements,
+)
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 
 __all__ = [
+    "AdvertiserAgreement",
+    "AgreementConstraint",
+    "AgreementViolation",
     "Break",
     "BreakPlacement",
     "Decision",
     "Guardrails",
+    "agreement_violations",
+    "load_agreements",
     "OptimizationResult",
     "OptimizerAssumptions",
     "PricingModel",
