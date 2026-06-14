@@ -640,18 +640,22 @@ function PlanningCanvas({ rows, copy, locale }) {
           <span key={day}>{dayLabels[index]}</span>
         ))}
       </div>
-      {rows.map((row) => (
-        <div className="channel-row" key={row.channel}>
+      {rows.map((row, rowIndex) => {
+        const programs = Array.isArray(row.programs) ? row.programs : [];
+        const channelName = String(row.channel || 'Channel');
+        return (
+        <div className="channel-row" key={channelName || `channel-${rowIndex}`}>
           <div className="channel-name">
-            <span>{row.channel.replace('ערוץ', 'K')}</span>
-            <small>{row.programs?.[0]?.program_type || 'Mixed'}</small>
+            <span>{channelName.replace('ערוץ', 'K')}</span>
+            <small>{programs[0]?.program_type || 'Mixed'}</small>
           </div>
           {days.map((day) => {
-            const program = row.programs?.find((item) => item.day === day) || row.programs?.[days.indexOf(day) % row.programs.length];
-            return <ProgramCell key={`${row.channel}-${day}`} program={program} locale={locale} />;
+            const program = programs.find((item) => item.day === day) || programs[days.indexOf(day) % Math.max(programs.length, 1)];
+            return <ProgramCell key={`${channelName}-${day}`} program={program} locale={locale} />;
           })}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
