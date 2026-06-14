@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
@@ -83,7 +84,16 @@ def _safe_path(relative_path: str) -> Path:
 def _read_csv(path: Path, **kwargs: Any) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
+    if not kwargs:
+        stat = path.stat()
+        return _read_csv_cached(str(path), stat.st_mtime_ns, stat.st_size).copy()
     return pd.read_csv(path, encoding="utf-8-sig", **kwargs)
+
+
+@lru_cache(maxsize=64)
+def _read_csv_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    del mtime_ns, size
+    return pd.read_csv(Path(path), encoding="utf-8-sig")
 
 
 def _safe_number(value: Any, default: float = 0.0) -> float:
@@ -397,6 +407,217 @@ def _build_compliance(schedule: pd.DataFrame, settings: KairosSettings) -> dict[
     }
 
 
+def _records(frame: pd.DataFrame, limit: int = 200) -> list[dict[str, Any]]:
+    if frame.empty:
+        return []
+    cleaned = frame.head(limit).replace({pd.NA: None}).where(pd.notna(frame.head(limit)), None)
+    return cleaned.to_dict("records")
+
+
+def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
+    if spots.empty:
+        return {"summary": {"spots": 0, "revenue": 0, "seconds": 0}, "by_channel": [], "by_hour": []}
+
+    frame = spots.copy()
+    frame["revenue_ils"] = pd.to_numeric(frame.get("revenue_ils", 0), errors="coerce").fillna(0)
+    frame["Duration"] = pd.to_numeric(frame.get("Duration", 0), errors="coerce").fillna(0)
+    frame["hour_of_day"] = pd.to_numeric(frame.get("hour_of_day", 0), errors="coerce").fillna(0).astype(int)
+    frame["target"] = frame.get("is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
+    valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
+
+    by_channel = (
+        frame.groupby("Channel", dropna=False)
+        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"), target_spots=("target", "sum"))
+        .reset_index()
+        .sort_values("revenue", ascending=False)
+        .head(12)
+    )
+    by_hour = (
+        valid_hours.groupby("hour_of_day", dropna=False)
+        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"))
+        .reset_index()
+        .sort_values("hour_of_day")
+    )
+
+    return {
+        "summary": {
+            "spots": int(len(frame)),
+            "revenue": _money(frame["revenue_ils"].sum()),
+            "seconds": int(frame["Duration"].sum()),
+        },
+        "by_channel": _records(by_channel),
+        "by_hour": _records(by_hour, 24),
+    }
+
+
+def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
+    if spots.empty:
+        return {"campaigns": []}
+
+    frame = spots.copy()
+    frame["revenue_ils"] = pd.to_numeric(frame.get("revenue_ils", 0), errors="coerce").fillna(0)
+    frame["Duration"] = pd.to_numeric(frame.get("Duration", 0), errors="coerce").fillna(0)
+    grouped = (
+        frame.groupby(["Campaign", "advertiser_id"], dropna=False)
+        .agg(
+            spots=("Campaign", "count"),
+            seconds=("Duration", "sum"),
+            revenue=("revenue_ils", "sum"),
+            channels=("Channel", "nunique"),
+            last_airing=("Date", "max"),
+        )
+        .reset_index()
+        .sort_values("revenue", ascending=False)
+        .head(50)
+    )
+    return {"campaigns": _records(grouped)}
+
+
+def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
+    if schedule.empty:
+        return {"breaks": []}
+
+    frame = schedule.copy()
+    frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
+    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
+    frame["total_break_time"] = pd.to_numeric(frame.get("total_break_time", 0), errors="coerce").fillna(0)
+    frame["priority"] = frame["predicted_revenue"] * frame["predicted_retention"].clip(lower=0.1)
+    frame = frame.sort_values("priority", ascending=False).head(80)
+    frame["status"] = frame["predicted_retention"].map(lambda value: "at_risk" if _percent(value) < 72 else "ready")
+    return {"breaks": _records(frame)}
+
+
+def _build_forecasts(schedule: pd.DataFrame) -> dict[str, Any]:
+    if schedule.empty:
+        return {"by_day": [], "scenarios": []}
+
+    frame = schedule.copy()
+    frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
+    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
+    by_day = (
+        frame.groupby("day", dropna=False)
+        .agg(revenue=("predicted_revenue", "sum"), retention=("predicted_retention", "mean"), breaks=("num_breaks", "sum"))
+        .reset_index()
+    )
+    summary = _summarize_schedule(schedule)
+    scenarios = [
+        {"name": "Retention guardrail", "revenue": round(summary["projected_revenue"] * 0.94, 2), "retention": max(summary["average_retention"], 74.0)},
+        {"name": "Balanced", "revenue": summary["projected_revenue"], "retention": summary["average_retention"]},
+        {"name": "Revenue priority", "revenue": round(summary["projected_revenue"] * 1.08, 2), "retention": max(0, summary["average_retention"] - 1.6)},
+    ]
+    return {"by_day": _records(by_day), "scenarios": scenarios}
+
+
+def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
+    summary = _summarize_schedule(schedule)
+    compliance = _build_compliance(schedule, settings)
+    return {
+        "reports": [
+            {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready", "rows": int(len(schedule)), "owner": "Traffic"},
+            {"id": "compliance", "title": "Compliance and guardrails", "status": compliance["status"], "rows": len(compliance["checks"]), "owner": "Legal / Ops"},
+            {"id": "revenue", "title": "Revenue forecast", "status": "ready", "rows": summary["total_breaks"], "owner": "Revenue"},
+            {"id": "data-quality", "title": "Source file audit", "status": "ready", "rows": 8, "owner": "Data"},
+        ]
+    }
+
+
+def _signature(paths: list[Path]) -> tuple[tuple[str, int, int], ...]:
+    result = []
+    for path in paths:
+        if path.exists():
+            stat = path.stat()
+            result.append((str(path), stat.st_mtime_ns, stat.st_size))
+        else:
+            result.append((str(path), 0, 0))
+    return tuple(result)
+
+
+@lru_cache(maxsize=16)
+def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    schedule = _load_break_schedule()
+    programmes = _load_programmes()
+    spots = _load_spots()
+    summary = _summarize_schedule(schedule)
+    settings = _load_settings()
+    return {
+        "brand": "Kairos",
+        "workspace": "KAI Network",
+        "data_freshness": datetime.fromtimestamp(
+            max(
+                [
+                    path.stat().st_mtime
+                    for path in [OUTPUT_DIR / "weekly_break_schedule.csv", DATA_DIR / "Programmes.csv", DATA_DIR / "Spots.csv"]
+                    if path.exists()
+                ]
+                or [time.time()]
+            ),
+            tz=timezone.utc,
+        ).isoformat(),
+        "summary": summary,
+        "source_counts": {
+            "programmes": int(len(programmes)),
+            "spots": int(len(spots)),
+            "planned_break_rows": int(len(schedule)),
+        },
+        "recommendations": _build_recommendations(schedule),
+        "frontier": _build_frontier(summary),
+        "settings": _model_dump(settings),
+        "compliance": _build_compliance(schedule, settings),
+    }
+
+
+@lru_cache(maxsize=16)
+def _schedule_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    programmes = _load_programmes()
+    break_schedule = _load_break_schedule()
+    return {
+        "rows": _build_schedule_canvas(programmes, break_schedule),
+        "break_schedule": break_schedule.head(200).replace({pd.NA: None}).where(pd.notna(break_schedule.head(200)), None).to_dict("records"),
+    }
+
+
+@lru_cache(maxsize=16)
+def _inventory_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_inventory(_load_spots())
+
+
+@lru_cache(maxsize=16)
+def _break_library_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_break_library(_load_break_schedule())
+
+
+@lru_cache(maxsize=16)
+def _campaigns_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_campaigns(_load_spots())
+
+
+@lru_cache(maxsize=16)
+def _forecasts_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_forecasts(_load_break_schedule())
+
+
+@lru_cache(maxsize=16)
+def _reports_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_reports(_load_break_schedule(), _load_settings())
+
+
+@lru_cache(maxsize=16)
+def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return {
+        "program_type_impacts": _load_impact(OUTPUT_DIR / "program_type_impacts.csv"),
+        "position_impacts": _load_impact(OUTPUT_DIR / "position_impacts.csv"),
+        "length_impacts": _load_impact(OUTPUT_DIR / "length_impacts.csv"),
+    }
+
+
 app = FastAPI(
     title="Kairos API",
     version="0.1.0",
@@ -446,55 +667,46 @@ def compliance() -> dict[str, Any]:
 
 @app.get("/api/overview")
 def overview() -> dict[str, Any]:
-    schedule = _load_break_schedule()
-    programmes = _load_programmes()
-    spots = _load_spots()
-    summary = _summarize_schedule(schedule)
-    settings = _load_settings()
-    return {
-        "brand": "Kairos",
-        "workspace": "KAI Network",
-        "data_freshness": datetime.fromtimestamp(
-            max(
-                [
-                    path.stat().st_mtime
-                    for path in [OUTPUT_DIR / "weekly_break_schedule.csv", DATA_DIR / "Programmes.csv", DATA_DIR / "Spots.csv"]
-                    if path.exists()
-                ]
-                or [time.time()]
-            ),
-            tz=timezone.utc,
-        ).isoformat(),
-        "summary": summary,
-        "source_counts": {
-            "programmes": int(len(programmes)),
-            "spots": int(len(spots)),
-            "planned_break_rows": int(len(schedule)),
-        },
-        "recommendations": _build_recommendations(schedule),
-        "frontier": _build_frontier(summary),
-        "settings": _model_dump(settings),
-        "compliance": _build_compliance(schedule, settings),
-    }
+    return _overview_cached(
+        _signature([OUTPUT_DIR / "weekly_break_schedule.csv", DATA_DIR / "Programmes.csv", DATA_DIR / "Spots.csv", SETTINGS_PATH])
+    )
 
 
 @app.get("/api/schedule")
 def schedule() -> dict[str, Any]:
-    programmes = _load_programmes()
-    break_schedule = _load_break_schedule()
-    return {
-        "rows": _build_schedule_canvas(programmes, break_schedule),
-        "break_schedule": break_schedule.head(200).replace({pd.NA: None}).where(pd.notna(break_schedule.head(200)), None).to_dict("records"),
-    }
+    return _schedule_cached(_signature([DATA_DIR / "Programmes.csv", OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
 
 
 @app.get("/api/impact")
 def impact() -> dict[str, Any]:
-    return {
-        "program_type_impacts": _load_impact(OUTPUT_DIR / "program_type_impacts.csv"),
-        "position_impacts": _load_impact(OUTPUT_DIR / "position_impacts.csv"),
-        "length_impacts": _load_impact(OUTPUT_DIR / "length_impacts.csv"),
-    }
+    return _impact_cached(
+        _signature([OUTPUT_DIR / "program_type_impacts.csv", OUTPUT_DIR / "position_impacts.csv", OUTPUT_DIR / "length_impacts.csv"])
+    )
+
+
+@app.get("/api/inventory")
+def inventory() -> dict[str, Any]:
+    return _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))
+
+
+@app.get("/api/break-library")
+def break_library() -> dict[str, Any]:
+    return _break_library_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+
+
+@app.get("/api/campaigns")
+def campaigns() -> dict[str, Any]:
+    return _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))
+
+
+@app.get("/api/forecasts")
+def forecasts() -> dict[str, Any]:
+    return _forecasts_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+
+
+@app.get("/api/reports")
+def reports() -> dict[str, Any]:
+    return _reports_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", SETTINGS_PATH]))
 
 
 @app.get("/api/files")
