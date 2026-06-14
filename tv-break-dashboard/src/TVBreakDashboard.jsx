@@ -2636,15 +2636,23 @@ function ComplianceLedger({ compliance, copy, locale }) {
         <span>{checks.length} {copy.activeRules}</span>
       </div>
       <div className="ledger-list">
-        {checks.map((check) => (
-          <div className="ledger-row" key={check.id}>
-            <span>{locale === 'he' ? check.label_he : check.label_en}</span>
-            <strong className={check.status === 'at_risk' ? 'at-risk' : ''}>
-              {check.status === 'at_risk' ? copy.atRisk : copy.compliant}
-            </strong>
-            <small>{Number(check.observed).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')} / {Number(check.limit).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')}</small>
-          </div>
-        ))}
+        {checks.map((check) => {
+          const formatValue = (value) => Number(value).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
+          const violationCount = Number(check.violations || 0);
+          const unit = check.unit ? ` ${check.unit}` : '';
+          return (
+            <div className="ledger-row" key={check.id}>
+              <span>{locale === 'he' ? check.label_he : check.label_en}</span>
+              <strong className={check.status === 'at_risk' ? 'at-risk' : ''}>
+                {check.status === 'at_risk' ? copy.atRisk : copy.compliant}
+              </strong>
+              <small>
+                {formatValue(check.observed)} / {formatValue(check.limit)}{unit}
+                {violationCount > 0 ? ` - ${formatValue(violationCount)} ${pageText(locale, 'violations', 'חריגות')}` : ''}
+              </small>
+            </div>
+          );
+        })}
         <p className="ledger-note">{compliance?.disclaimer}</p>
       </div>
     </div>

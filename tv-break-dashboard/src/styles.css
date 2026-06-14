@@ -1384,8 +1384,10 @@ button {
 }
 
 .ledger-row small {
-  min-width: 52px;
-  text-align: right;
+  min-width: 120px;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
   color: var(--muted);
 }
 

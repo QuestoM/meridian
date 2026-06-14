@@ -18,6 +18,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from kairos.optimize.guardrails import Break as GuardrailBreak
+from kairos.optimize.guardrails import Guardrails, evaluate as evaluate_guardrails
+from kairos.optimize.objective import break_revenue as cpp_break_revenue
+from kairos.optimize.objective import retention_adjusted_revenue
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "output"
@@ -141,6 +146,19 @@ def _save_settings(settings: KairosSettings) -> KairosSettings:
     return settings
 
 
+def _settings_to_guardrails(settings: KairosSettings) -> Guardrails:
+    return Guardrails(
+        max_ad_seconds_per_hour=settings.max_ad_minutes_per_hour * 60,
+        max_breaks_per_hour=settings.max_breaks_per_hour,
+        min_break_spacing_seconds=settings.min_break_spacing_minutes * 60,
+        min_retention_floor=settings.min_retention_floor,
+        max_daily_ad_seconds=settings.max_daily_ad_minutes * 60,
+        protected_program_types=tuple(settings.protected_program_types),
+        protected_max_ad_seconds_per_hour=settings.protected_program_max_ad_minutes_per_hour * 60,
+        gold_breaks_max_per_day=settings.gold_breaks_max_per_day,
+    )
+
+
 def _percent(value: Any) -> float:
     numeric = _safe_number(value, 0.0)
     if numeric <= 1.5:
@@ -148,8 +166,36 @@ def _percent(value: Any) -> float:
     return numeric
 
 
+def _ratio(value: Any) -> float:
+    numeric = _safe_number(value, 0.0)
+    if numeric > 1.5:
+        return numeric / 100
+    return numeric
+
+
 def _money(value: Any) -> float:
     return round(_safe_number(value, 0.0), 2)
+
+
+def _time_to_seconds(value: Any) -> float:
+    text = str(value or "").strip()
+    if not text:
+        return 0.0
+    try:
+        parts = [int(float(part)) for part in text.split(":")[:3]]
+    except ValueError:
+        parsed = pd.to_datetime(text, errors="coerce")
+        if pd.isna(parsed):
+            return 0.0
+        return float(parsed.hour * 3600 + parsed.minute * 60 + parsed.second)
+    if len(parts) == 1:
+        return float(parts[0] * 3600)
+    if len(parts) == 2:
+        hour, minute = parts
+        second = 0
+    else:
+        hour, minute, second = parts
+    return float(hour * 3600 + minute * 60 + second)
 
 
 def _day_key(value: Any) -> str:
@@ -404,7 +450,15 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
             break_end = candidate + pd.Timedelta(seconds=break_seconds)
             is_prime = 20 <= int(candidate.hour) <= 23
             is_gold = bool(is_prime and break_index == 1 and revenue_total >= 20_000)
-            break_revenue = _money(revenue_total / max(break_count, 1))
+            reference_revenue = _money(revenue_total / max(break_count, 1))
+            rating_points = _safe_number(row.get("viewing_points"), 1.0)
+            cpp = _safe_number(schedule_row.get("base_rate"), 1000)
+            premium = 1.25 if is_gold else 1.0
+            try:
+                cpp_revenue = cpp_break_revenue(rating_points, break_seconds, cpp, premium=premium)
+                break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention / 100))
+            except ValueError:
+                break_revenue = reference_revenue
             breaks.append(
                 {
                     "id": f"{program_key}-br-{break_index}",
@@ -428,6 +482,8 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     "source": "Model",
                     "rating_predicted": round(_safe_number(row.get("viewing_points"), 1.0), 2),
                     "cpp": _money(_safe_number(schedule_row.get("base_rate"), 1000)),
+                    "revenue_reference": reference_revenue,
+                    "revenue_premium": premium,
                     "revenue_calculated": break_revenue,
                     "retention": retention,
                     "status": "at_risk" if retention < 72 else "ready",
@@ -531,7 +587,196 @@ def _infer_hourly_break_counts(schedule: pd.DataFrame) -> pd.Series:
     return frame.groupby(group_columns)["break_count"].sum()
 
 
-def _build_compliance(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
+def _guardrail_breaks_from_operations(operations: dict[str, Any]) -> list[GuardrailBreak]:
+    out: list[GuardrailBreak] = []
+    for item in operations.get("breaks", []):
+        start_seconds = _time_to_seconds(item.get("start_time"))
+        duration_seconds = _safe_number(item.get("duration_sec"), 0)
+        if duration_seconds <= 0:
+            continue
+        out.append(
+            GuardrailBreak(
+                channel=str(item.get("channel") or "Channel"),
+                day=str(item.get("day") or ""),
+                hour=int(start_seconds // 3600),
+                start_seconds=start_seconds,
+                duration_seconds=duration_seconds,
+                program_type=str(item.get("program_type") or "Other"),
+                retention=_ratio(item.get("retention")),
+                is_gold=bool(item.get("is_gold")),
+            )
+        )
+    return out
+
+
+def _max_group_sum(items: list[GuardrailBreak], key_fn: Any, value_fn: Any) -> float:
+    grouped: dict[Any, float] = {}
+    for item in items:
+        key = key_fn(item)
+        grouped[key] = grouped.get(key, 0.0) + float(value_fn(item))
+    return max(grouped.values(), default=0.0)
+
+
+def _max_group_count(items: list[GuardrailBreak], key_fn: Any) -> int:
+    grouped: dict[Any, int] = {}
+    for item in items:
+        key = key_fn(item)
+        grouped[key] = grouped.get(key, 0) + 1
+    return max(grouped.values(), default=0)
+
+
+def _min_break_spacing_seconds(items: list[GuardrailBreak]) -> float | None:
+    grouped: dict[tuple[str, str], list[GuardrailBreak]] = {}
+    for item in items:
+        grouped.setdefault((item.channel, item.day), []).append(item)
+    gaps: list[float] = []
+    for breaks in grouped.values():
+        ordered = sorted(breaks, key=lambda item: item.start_seconds)
+        for previous, current in zip(ordered, ordered[1:]):
+            gaps.append(current.start_seconds - (previous.start_seconds + previous.duration_seconds))
+    return min(gaps) if gaps else None
+
+
+def _guardrail_compliance_from_breaks(items: list[GuardrailBreak], settings: KairosSettings) -> dict[str, Any] | None:
+    if not items:
+        return None
+
+    guardrails = _settings_to_guardrails(settings)
+    violations = evaluate_guardrails(items, guardrails)
+    violation_counts: dict[str, int] = {}
+    for violation in violations:
+        violation_counts[violation.code] = violation_counts.get(violation.code, 0) + 1
+
+    protected_types = {item.lower() for item in settings.protected_program_types}
+    protected_items = [item for item in items if item.program_type.lower() in protected_types]
+    max_hourly_seconds = _max_group_sum(items, lambda item: (item.channel, item.day, item.hour), lambda item: item.duration_seconds)
+    max_protected_seconds = _max_group_sum(
+        protected_items,
+        lambda item: (item.channel, item.day, item.hour),
+        lambda item: item.duration_seconds,
+    )
+    min_spacing = _min_break_spacing_seconds(items)
+    observed_spacing = min_spacing if min_spacing is not None else settings.min_break_spacing_minutes * 60
+    max_daily_seconds = _max_group_sum(items, lambda item: (item.channel, item.day), lambda item: item.duration_seconds)
+    max_gold_breaks = _max_group_count(
+        [item for item in items if item.is_gold],
+        lambda item: (item.channel, item.day),
+    )
+    min_retention = min((item.retention for item in items), default=0.0)
+
+    checks = [
+        {
+            "id": "hourly_ad_load",
+            "violation_code": "hourly_ad_load",
+            "label_en": "Ad minutes per broadcast hour",
+            "label_he": "דקות פרסום לשעת שידור",
+            "observed": round(max_hourly_seconds / 60, 2),
+            "limit": settings.max_ad_minutes_per_hour,
+            "unit": "minutes/hour",
+        },
+        {
+            "id": "break_density",
+            "violation_code": "breaks_per_hour",
+            "label_en": "Breaks per hour",
+            "label_he": "מספר ברייקים בשעה",
+            "observed": _max_group_count(items, lambda item: (item.channel, item.day, item.hour)),
+            "limit": settings.max_breaks_per_hour,
+            "unit": "breaks/hour",
+        },
+        {
+            "id": "retention_floor",
+            "violation_code": "retention_floor",
+            "label_en": "Viewer retention floor",
+            "label_he": "רף שימור צפייה",
+            "observed": round(min_retention * 100, 1),
+            "limit": round(settings.min_retention_floor * 100, 1),
+            "unit": "%",
+        },
+        {
+            "id": "protected_programs",
+            "violation_code": "hourly_ad_load",
+            "label_en": "Protected programme ad load",
+            "label_he": "עומס פרסום בתוכן מוגן",
+            "observed": round(max_protected_seconds / 60, 2),
+            "limit": settings.protected_program_max_ad_minutes_per_hour,
+            "unit": "minutes/hour",
+        },
+        {
+            "id": "break_spacing",
+            "violation_code": "break_spacing",
+            "label_en": "Minimum break spacing",
+            "label_he": "מרווח מינימלי בין ברייקים",
+            "observed": round(observed_spacing / 60, 2),
+            "limit": settings.min_break_spacing_minutes,
+            "unit": "minutes",
+        },
+        {
+            "id": "daily_ad_load",
+            "violation_code": "daily_ad_load",
+            "label_en": "Daily ad load",
+            "label_he": "עומס פרסום יומי",
+            "observed": round(max_daily_seconds / 60, 2),
+            "limit": settings.max_daily_ad_minutes,
+            "unit": "minutes/day",
+        },
+        {
+            "id": "gold_breaks",
+            "violation_code": "gold_breaks",
+            "label_en": "Gold breaks per day",
+            "label_he": "ברייקי זהב ביום",
+            "observed": max_gold_breaks,
+            "limit": settings.gold_breaks_max_per_day,
+            "unit": "breaks/day",
+        },
+    ]
+
+    for check in checks:
+        count = violation_counts.get(check["violation_code"], 0)
+        if check["id"] == "protected_programs":
+            count = sum(
+                1
+                for violation in violations
+                if violation.code == "hourly_ad_load" and "protected programme" in violation.detail
+            )
+        check["status"] = "at_risk" if count else "compliant"
+        check["violations"] = count
+
+    return {
+        "checks": checks,
+        "violations": [
+            {
+                "code": violation.code,
+                "scope": violation.scope,
+                "observed": violation.observed,
+                "limit": violation.limit,
+                "detail": violation.detail,
+            }
+            for violation in violations[:200]
+        ],
+        "status": "at_risk" if violations else "compliant",
+    }
+
+
+def _build_compliance(
+    schedule: pd.DataFrame,
+    settings: KairosSettings,
+    operations: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if operations is None:
+        operations = _build_break_operations(_load_programmes(), schedule)
+    guardrail_items = _guardrail_breaks_from_operations(operations)
+    break_level = _guardrail_compliance_from_breaks(guardrail_items, settings)
+    if break_level is not None:
+        return {
+            "profile": settings.profile_name,
+            "effective_date": settings.effective_date,
+            "source_url": settings.regulatory_source_url,
+            "checks": break_level["checks"],
+            "violations": break_level["violations"],
+            "status": break_level["status"],
+            "disclaimer": settings.notes,
+        }
+
     summary = _summarize_schedule(schedule)
     hourly_seconds = _infer_hourly_ad_seconds(schedule)
     hourly_breaks = _infer_hourly_break_counts(schedule)
@@ -595,6 +840,7 @@ def _build_compliance(schedule: pd.DataFrame, settings: KairosSettings) -> dict[
         "effective_date": settings.effective_date,
         "source_url": settings.regulatory_source_url,
         "checks": checks,
+        "violations": [],
         "status": "at_risk" if any(check["status"] == "at_risk" for check in checks) else "compliant",
         "disclaimer": settings.notes,
     }
@@ -733,6 +979,7 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
     spots = _load_spots()
     summary = _summarize_schedule(schedule)
     settings = _load_settings()
+    break_operations = _build_break_operations(programmes, schedule)
     return {
         "brand": "Kairos",
         "workspace": "KAI Network",
@@ -756,7 +1003,7 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
         "recommendations": _build_recommendations(schedule),
         "frontier": _build_frontier(summary),
         "settings": _model_dump(settings),
-        "compliance": _build_compliance(schedule, settings),
+        "compliance": _build_compliance(schedule, settings, break_operations),
     }
 
 
@@ -897,6 +1144,11 @@ def compliance() -> dict[str, Any]:
     return _build_compliance(_load_break_schedule(), _load_settings())
 
 
+@app.get("/api/guardrails")
+def guardrails() -> dict[str, Any]:
+    return compliance()
+
+
 @app.get("/api/overview")
 def overview() -> dict[str, Any]:
     return _overview_cached(
@@ -953,7 +1205,9 @@ def forecasts() -> dict[str, Any]:
 
 @app.get("/api/reports")
 def reports() -> dict[str, Any]:
-    return _reports_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", SETTINGS_PATH]))
+    return _reports_cached(
+        _signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", DATA_DIR / "Programmes.csv", SETTINGS_PATH])
+    )
 
 
 @app.get("/api/files")
