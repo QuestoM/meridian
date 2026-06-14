@@ -1405,7 +1405,7 @@ function PageHeader({ locale, titleEn, titleHe, bodyEn, bodyHe, action }) {
   );
 }
 
-function StatusBadge({ status, locale }) {
+function StatusBadge({ status, locale, mode = 'inline' }) {
   const normalized = String(status || 'ready').toLowerCase();
   const labelMap = {
     ready: pageText(locale, 'Ready', 'מוכן'),
@@ -1413,7 +1413,7 @@ function StatusBadge({ status, locale }) {
     at_risk: pageText(locale, 'Needs review', 'דורש בדיקה'),
     error: pageText(locale, 'Error', 'שגיאה'),
   };
-  return <span className={`status-badge ${normalized}`}>{labelMap[normalized] || status}</span>;
+  return <span className={`status-badge ${mode} ${normalized}`}>{labelMap[normalized] || status}</span>;
 }
 
 function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
@@ -1443,12 +1443,18 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
     flex: column.flex || 1,
     minWidth: column.minWidth || 120,
     sortable: column.sortable !== false,
+    cellClassName: column.status ? 'status-data-grid-cell' : undefined,
     renderCell: (params) => {
       const isNumeric = column.numeric || numericKeys.has(column.key);
       const value = column.render
         ? column.render(params.row, params.api.getRowIndexRelativeToVisibleRows?.(params.id) || 0)
         : params.value ?? '';
-      return <span className={isNumeric ? 'grid-cell-content numeric-cell' : 'grid-cell-content'}>{value}</span>;
+      const className = [
+        'grid-cell-content',
+        isNumeric ? 'numeric-cell' : '',
+        column.status ? 'status-grid-content' : '',
+      ].filter(Boolean).join(' ');
+      return <span className={className}>{value}</span>;
     },
     align: column.align || (column.numeric || numericKeys.has(column.key) ? 'right' : locale === 'he' ? 'right' : 'left'),
     headerAlign:
@@ -1742,7 +1748,7 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
           emptyLabel={pageText(locale, 'No break candidates were found.', 'לא נמצאו ברייקים מועמדים.')}
           rows={rows}
           columns={[
-            { key: 'status', label: pageText(locale, 'Status', 'סטטוס'), render: (row) => <StatusBadge status={row.status} locale={locale} /> },
+            { key: 'status', label: pageText(locale, 'Status', 'סטטוס'), status: true, minWidth: 104, flex: 0.55, render: (row) => <StatusBadge status={row.status} locale={locale} mode="cell" /> },
             { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית') },
             { key: 'position', label: pageText(locale, 'Position', 'מיקום') },
             { key: 'break_type', label: pageText(locale, 'Type', 'סוג') },
@@ -1888,7 +1894,7 @@ function ReportsPage({ reports, files, copy, locale }) {
           rows={fileRows}
           columns={[
             { key: 'path', label: pageText(locale, 'File', 'קובץ') },
-            { key: 'exists', label: pageText(locale, 'State', 'מצב'), render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} /> },
+            { key: 'exists', label: pageText(locale, 'State', 'מצב'), status: true, minWidth: 104, flex: 0.45, render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} mode="cell" /> },
             { key: 'size', label: pageText(locale, 'Size', 'גודל'), render: (row) => `${formatNumber(Number(row.size || 0) / 1024, locale)} KB` },
             { key: 'modified', label: pageText(locale, 'Modified', 'עודכן'), render: (row) => (row.modified ? new Date(row.modified).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US') : '-') },
           ]}
@@ -1930,7 +1936,7 @@ function DataHubPage({ files, impact, overview, copy, locale }) {
             rows={fileRows}
             columns={[
               { key: 'path', label: pageText(locale, 'Path', 'נתיב') },
-              { key: 'exists', label: pageText(locale, 'State', 'מצב'), render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} /> },
+              { key: 'exists', label: pageText(locale, 'State', 'מצב'), status: true, minWidth: 104, flex: 0.45, render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} mode="cell" /> },
               { key: 'size', label: pageText(locale, 'Size', 'גודל'), render: (row) => `${formatNumber(Number(row.size || 0) / 1024, locale)} KB` },
             ]}
           />

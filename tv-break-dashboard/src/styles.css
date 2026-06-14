@@ -354,20 +354,18 @@ button {
 }
 
 .api-state {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 4px 9px;
+  border-radius: 4px;
+  padding: 5px 9px;
+  background: #f0f2f5;
 }
 
 .api-state.online {
   color: var(--teal);
-  border-color: #a8d7d0;
   background: var(--teal-soft);
 }
 
 .api-state.offline {
   color: var(--amber);
-  border-color: #f2d39a;
   background: var(--amber-soft);
 }
 
@@ -1155,10 +1153,10 @@ button {
 }
 
 .approval {
-  border-radius: 999px;
+  border-radius: 4px;
   background: #f2f4f7;
   color: var(--muted);
-  padding: 5px 8px;
+  padding: 5px 9px;
   font-size: 11px;
   font-weight: 620;
 }
@@ -1566,6 +1564,15 @@ button {
   white-space: nowrap;
 }
 
+.status-data-grid-cell {
+  padding: 0 !important;
+}
+
+.status-data-grid-cell .status-grid-content {
+  height: 100%;
+  align-items: stretch;
+}
+
 .numeric-cell {
   justify-content: flex-end;
   text-align: right;
@@ -1624,32 +1631,41 @@ button {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
+  justify-content: flex-start;
+  min-height: 26px;
+  border-radius: 4px;
   color: var(--muted);
-  padding: 0 8px;
+  padding: 0 9px;
   font-size: 11px;
   font-weight: 650;
 }
 
+.status-badge.cell {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border-radius: 0;
+  padding: 0 12px;
+}
+
+.kairos-shell.rtl .status-badge {
+  justify-content: flex-end;
+}
+
 .status-badge.ready,
 .status-badge.compliant {
-  color: var(--teal);
-  border-color: #a8d7d0;
-  background: var(--teal-soft);
+  color: #075f56;
+  background: #e5f2f0;
 }
 
 .status-badge.at_risk {
-  color: var(--amber);
-  border-color: #f2d39a;
-  background: var(--amber-soft);
+  color: #8a5200;
+  background: #fff0d6;
 }
 
 .status-badge.error {
-  color: var(--red);
-  border-color: #f0b4b4;
-  background: #fff1f1;
+  color: #9f2f2f;
+  background: #fde9e9;
 }
 
 .bar-list,
