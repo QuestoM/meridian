@@ -1,0 +1,69 @@
+# Meridian Bayesian MMM model specification and hyperparameters
+model_spec:
+  media_effects_dist: "log_normal"        # Distribution for media random effects across geos (options: "log_normal" or "normal"; default log_normal):contentReference[oaicite:4]{index=4}  
+  hill_before_adstock: false             # Whether to apply Hill saturation before Adstock (default false):contentReference[oaicite:5]{index=5}  
+  max_lag: 8                             # Maximum lag periods for adstock (integer ≥0, or null for infinite; default 8):contentReference[oaicite:6]{index=6}  
+  unique_sigma_for_each_geo: false       # If true, use a separate noise σ per geo; false uses a single σ for all geos (default false):contentReference[oaicite:7]{index=7}  
+  media_prior_type: "roi"                # Prior type for paid **media** channels ("roi", "mroi", "contribution", or "coefficient"; default "roi"):contentReference[oaicite:8]{index=8}  
+  rf_prior_type: "roi"                   # Prior type for paid **RF** (reach & freq) channels (same options; default "roi"):contentReference[oaicite:9]{index=9}  
+  organic_media_prior_type: "contribution"    # Prior type for organic media channels (allowed: "contribution" or "coefficient"; default "contribution"):contentReference[oaicite:10]{index=10}  
+  organic_rf_prior_type: "contribution"       # Prior type for organic RF channels (allowed: "contribution" or "coefficient"; default "contribution"):contentReference[oaicite:11]{index=11}  
+  non_media_treatments_prior_type: "contribution"  # Prior type for non-media treatment channels (allowed: "contribution" or "coefficient"; default "contribution"):contentReference[oaicite:12]{index=12}  
+  non_media_baseline_values: null        # List of baseline values for non-media channels (each float or "min"/"max"; if null, each uses min value by default):contentReference[oaicite:13]{index=13}  
+  knots: null                            # Knots for time effects (int for evenly spaced knots, list of time indices for specific knots, or null for default; null uses full time or 1 for national):contentReference[oaicite:14]{index=14}:contentReference[oaicite:15]{index=15}  
+  baseline_geo: null                     # Baseline geo (index or geo name) for dummy-encoding geos (if null, automatically the largest geo by population):contentReference[oaicite:16]{index=16}  
+  holdout_id: null                       # Boolean tensor (geo x time) marking holdout test periods (KPI excluded from training):contentReference[oaicite:17]{index=17}  
+  control_population_scaling_id: null    # Boolean vector of length n_controls indicating which controls to scale by population (default none):contentReference[oaicite:18]{index=18}  
+  non_media_population_scaling_id: null  # Boolean vector of length n_non_media_channels for scaling non-media channels by population (default none):contentReference[oaicite:19]{index=19}  
+
+  # Prior distributions for all model parameters (defaults from Meridian)
+  prior:
+    knot_values:         "Normal(0.0, 5.0)"            # Prior for time effect knots (Normal mean=0.0, sd=5.0):contentReference[oaicite:20]{index=20}:contentReference[oaicite:21]{index=21}  
+    tau_g_excl_baseline: "Normal(0.0, 5.0)"            # Prior for geo baseline adjustments (Normal 0.0, 5.0):contentReference[oaicite:22]{index=22}  
+    beta_m:              "HalfNormal(5.0)"             # Prior for hier. mean of media channel effects (HalfNormal scale=5.0):contentReference[oaicite:23]{index=23}  
+    beta_rf:             "HalfNormal(5.0)"             # Prior for hier. mean of RF channel effects (HalfNormal 5.0):contentReference[oaicite:24]{index=24}  
+    beta_om:             "HalfNormal(5.0)"             # Prior for hier. mean of organic media effects (HalfNormal 5.0):contentReference[oaicite:25]{index=25}  
+    beta_orf:            "HalfNormal(5.0)"             # Prior for hier. mean of organic RF effects (HalfNormal 5.0):contentReference[oaicite:26]{index=26}  
+    eta_m:               "HalfNormal(1.0)"             # Prior for hier. stddev of media effects (HalfNormal 1.0):contentReference[oaicite:27]{index=27}  
+    eta_rf:              "HalfNormal(1.0)"             # Prior for hier. stddev of RF effects (HalfNormal 1.0):contentReference[oaicite:28]{index=28}  
+    eta_om:              "HalfNormal(1.0)"             # Prior for hier. stddev of organic media effects (HalfNormal 1.0):contentReference[oaicite:29]{index=29}  
+    eta_orf:             "HalfNormal(1.0)"             # Prior for hier. stddev of organic RF effects (HalfNormal 1.0):contentReference[oaicite:30]{index=30}  
+    gamma_c:             "Normal(0.0, 5.0)"            # Prior for control variable coefficients (Normal 0.0, 5.0):contentReference[oaicite:31]{index=31}  
+    gamma_n:             "Normal(0.0, 5.0)"            # Prior for non-media treatment coefficients (Normal 0.0, 5.0):contentReference[oaicite:32]{index=32}  
+    xi_c:                "HalfNormal(5.0)"             # Prior for stddev of control coefficients (HalfNormal 5.0):contentReference[oaicite:33]{index=33}  
+    xi_n:                "HalfNormal(5.0)"             # Prior for stddev of non-media coefficients (HalfNormal 5.0):contentReference[oaicite:34]{index=34}  
+    alpha_m:             "Uniform(0.0, 1.0)"           # Prior for adstock decay for media channels (Uniform 0 to 1):contentReference[oaicite:35]{index=35}  
+    alpha_rf:            "Uniform(0.0, 1.0)"           # Prior for adstock decay for RF channels (Uniform 0 to 1):contentReference[oaicite:36]{index=36}  
+    alpha_om:            "Uniform(0.0, 1.0)"           # Prior for adstock decay for organic media (Uniform 0 to 1):contentReference[oaicite:37]{index=37}  
+    alpha_orf:           "Uniform(0.0, 1.0)"           # Prior for adstock decay for organic RF (Uniform 0 to 1):contentReference[oaicite:38]{index=38}  
+    ec_m:                "TruncatedNormal(0.8, 0.8, 0.1, 10)"   # Prior for Hill half-saturation for media (TruncatedNormal mean=0.8, sd=0.8, low=0.1, high=10):contentReference[oaicite:39]{index=39}  
+    ec_rf:               "TransformedDistribution(LogNormal(0.7, 0.4), +0.1)"   # Prior for Hill half-saturation for RF (LogNormal(0.7,0.4) shifted by +0.1):contentReference[oaicite:40]{index=40}  
+    ec_om:               "TruncatedNormal(0.8, 0.8, 0.1, 10)"   # Prior for half-saturation for organic media (TruncatedNormal 0.8,0.8 bounded [0.1,10]):contentReference[oaicite:41]{index=41}  
+    ec_orf:              "TransformedDistribution(LogNormal(0.7, 0.4), +0.1)"   # Prior for half-saturation for organic RF (LogNormal(0.7,0.4) +0.1 shift):contentReference[oaicite:42]{index=42}  
+    slope_m:             "Deterministic(1.0)"          # Prior for Hill slope for media (Deterministic 1.0):contentReference[oaicite:43]{index=43}  
+    slope_rf:            "LogNormal(0.7, 0.4)"         # Prior for Hill slope for RF (LogNormal mean=0.7, sd=0.4):contentReference[oaicite:44]{index=44}  
+    slope_om:            "Deterministic(1.0)"          # Prior for Hill slope for organic media (Deterministic 1.0):contentReference[oaicite:45]{index=45}  
+    slope_orf:           "LogNormal(0.7, 0.4)"         # Prior for Hill slope for organic RF (LogNormal 0.7, 0.4):contentReference[oaicite:46]{index=46}  
+    sigma:               "HalfNormal(5.0)"             # Prior for noise standard deviation (HalfNormal scale=5.0):contentReference[oaicite:47]{index=47}  
+    roi_m:               "LogNormal(0.2, 0.9)"         # Prior for ROI of each paid media channel (LogNormal mean=0.2, sd=0.9):contentReference[oaicite:48]{index=48}  
+    roi_rf:              "LogNormal(0.2, 0.9)"         # Prior for ROI of each paid RF channel (LogNormal 0.2, 0.9):contentReference[oaicite:49]{index=49}  
+    mroi_m:              "LogNormal(0.0, 0.5)"         # Prior for marginal ROI of each media channel (LogNormal mean=0.0, sd=0.5):contentReference[oaicite:50]{index=50} (note: user must specify if media_prior_type = "mroi")  
+    mroi_rf:             "LogNormal(0.0, 0.5)"         # Prior for marginal ROI of each RF channel (LogNormal 0.0, 0.5):contentReference[oaicite:51]{index=51} (user must specify if rf_prior_type = "mroi")  
+    contribution_m:      "Beta(1.0, 99.0)"             # Prior for contribution share of each media channel (Beta α=1.0, β=99.0):contentReference[oaicite:52]{index=52}  
+    contribution_rf:     "Beta(1.0, 99.0)"             # Prior for contribution share of each RF channel (Beta 1.0, 99.0):contentReference[oaicite:53]{index=53}  
+    contribution_om:     "Beta(1.0, 99.0)"             # Prior for contribution share of each organic media channel (Beta 1.0, 99.0):contentReference[oaicite:54]{index=54}  
+    contribution_orf:    "Beta(1.0, 99.0)"             # Prior for contribution share of each organic RF channel (Beta 1.0, 99.0):contentReference[oaicite:55]{index=55}  
+    contribution_n:      "TruncatedNormal(0.0, 0.1, -1.0, 1.0)"   # Prior for contribution share of each non-media treatment (TruncatedNormal mean=0.0, sd=0.1, bounded [-1.0,1.0]):contentReference[oaicite:56]{index=56}  
+
+# MCMC sampling hyperparameters for posterior inference
+sampling:
+  n_chains: 4                 # Number of MCMC chains (can also be a list of chain counts to run sequentially if needed)  
+  n_adapt: 2000               # Number of adaptation (step-size tuning) draws per chain:contentReference[oaicite:57]{index=57}  
+  n_burnin: 500               # Number of burn-in draws per chain (after adaptation, before sampling):contentReference[oaicite:58]{index=58}  
+  n_keep: 1000                # Number of posterior draws to keep per chain for inference (after burn-in):contentReference[oaicite:59]{index=59}  
+  init_step_size: null        # Initial step size for NUTS (if null, defaults based on log-density dimension):contentReference[oaicite:60]{index=60}  
+  max_tree_depth: 10          # NUTS max tree depth (controls max leapfrog steps, default 10):contentReference[oaicite:61]{index=61}  
+  max_energy_diff: 1000.0     # Energy threshold for divergent transitions (default ~1000)  
+  target_accept_prob: 0.85    # Target accept rate for dual averaging adaptation (default 0.85):contentReference[oaicite:62]{index=62}  
+  parallel_iterations: 10     # How many sampling iterations to run in parallel (TensorFlow parallelization setting):contentReference[oaicite:63]{index=63}  
+  seed: 1                     # RNG seed for reproducibility (can be int or pair of ints for stateless seed)  

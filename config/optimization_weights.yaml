@@ -1,0 +1,70 @@
+# Kairos Optimization Weights, Premiums, and Constraints
+
+# --- Base Pricing ---
+# Base value for calculating ad revenue.
+# E.g., ILS 60 per second for an ad achieving 1.0 TVR point.
+base_price_per_second_per_tvr_point: 60.0
+
+# --- Premium Multipliers (applied to base price/value) ---
+premiums:
+  program_type: # Multiplier based on the type of program the break is in
+    News: 1.15       # e.g., News breaks command a 15% higher value
+    PrimeShow1: 1.10 # First main show after news
+    PrimeShow2: 1.00 # Second main show (baseline or slightly lower if fatigue sets in)
+    Other: 0.80      # Non-prime or other content
+
+  ad_type: # Multiplier based on the type of ad
+    פרסומת: 1.00    # Standard commercial spot
+    חסות: 1.05       # Sponsorship (often shorter, may have different perceived value)
+    פרומו: 0.00       # Channel promo (typically no direct revenue, but can have placement goals)
+    # Gold Break ads might be priced differently or fall under a special 'Ad_Type'
+
+  position_in_break: # Multiplier for ad position within a break
+    # Values are for position index (1-based)
+    1: 1.30          # 30% premium for First in Break
+    2: 1.15          # 15% premium for Second in Break
+    3: 1.05          # 5% premium for Third in Break
+    # For breaks longer than 3 ads, can define more or use a default for middle
+    default_middle: 1.00
+    last: 1.20       # 20% premium for Last in Break (if not 1, 2, or 3)
+
+  day_of_week: # Multiplier based on the day of the week (1=Monday, 7=Sunday)
+    1: 1.00 # Monday
+    2: 1.00 # Tuesday
+    3: 1.00 # Wednesday
+    4: 1.05 # Thursday
+    5: 1.15 # Friday (Weekend start)
+    6: 1.20 # Saturday (Prime weekend)
+    7: 1.00 # Sunday
+
+# --- Constraints ---
+constraints:
+  max_regular_breaks_per_hour: 4
+  max_gold_breaks_per_hour: 2 # "הפסקת זהב"
+  # min_time_between_breaks_seconds: 600 # e.g., at least 10 minutes between breaks
+  # max_total_ad_minutes_per_hour: 12 # Regulatory or policy limit
+
+# --- Campaign Flighting Models ---
+# Defines how an ad's value/priority changes over its campaign lifecycle.
+# 'weights' are pairs of [percentage_of_campaign_duration_elapsed, weight_multiplier]
+campaign_flighting_models:
+  - name: "StandardRegressive"
+    description: "Strong initial impact, then gradually declines. Default for most campaigns."
+    weights:
+      - [0.0, 1.20]  # Start of campaign (0% elapsed), 20% boost
+      - [0.2, 1.10]  # After 20% of duration, 10% boost
+      - [0.5, 1.00]  # Mid-campaign, baseline
+      - [0.8, 0.90]  # Towards end, 10% reduction
+      - [1.0, 0.80]  # End of campaign, 20% reduction
+  - name: "UniformImpact"
+    description: "Consistent weight throughout the campaign. For evergreen/awareness."
+    weights:
+      - [0.0, 1.00]
+      - [1.0, 1.00]
+  - name: "FrontLoadedBoost"
+    description: "Very strong impact at launch, then quickly normalizes. For new product launches."
+    weights:
+      - [0.0, 1.50]  # 50% boost at launch
+      - [0.1, 1.20]  # Quickly drops to 20% boost
+      - [0.3, 1.00]  # Baseline after 30% of campaign
+      - [1.0, 1.00]

@@ -1,0 +1,145 @@
+
+## 9. `data_schemas.yaml`
+```yaml
+# data_schemas.yaml - Kairos Data Model Overview
+
+datasets:
+  RawProgrammes:
+    description: "Historical TV program schedule. Filtered to target channel's prime-time programs."
+    source_file: data/reference/Programmes.xlsx
+    key_columns:
+      - {name: "Date", type: "string (parsable date)", description: "Broadcast date"}
+      - {name: "Channel", type: "string", description: "Channel name"}
+      - {name: "Title", type: "string", description: "Program title"}
+      - {name: "Start time", type: "string (parsable time)", description: "Start time"}
+      - {name: "End time", type: "string (parsable time)", description: "End time"}
+      - {name: "Duration", type: "integer", description: "Duration in seconds"}
+      - {name: "TVR", type: "float", description: "Average TV Rating"}
+    processed_columns_added: # By DataProcessor
+      - {name: "Date_dt", type: "date object", description: "Parsed date"}
+      - {name: "Start_Time_dt", type: "datetime", description: "Parsed start datetime"}
+      - {name: "End_Time_dt", type: "datetime", description: "Parsed end datetime"}
+      - {name: "Duration_seconds", type: "integer", description: "Calculated duration"}
+      - {name: "Program_Type", type: "string", enum: ["News", "PrimeShow1", "PrimeShow2", "Other"]}
+      - {name: "Is_Prime", type: "boolean", description: "True if a defined prime program"}
+
+  RawSpots:
+    description: "Historical log of aired ad spots. Filtered to target channel's prime-time programs."
+    source_file: data/reference/Spots.xlsx
+    key_columns:
+      - {name: "Date", type: "string (parsable date)"}
+      - {name: "Channel", type: "string"}
+      - {name: "Start time", type: "string (parsable time)"}
+      - {name: "Duration", type: "integer", description: "Ad duration in seconds"}
+      - {name: "Campaign", type: "string"}
+      - {name: "Spot_type", type: "string", description: "e.g., פרסומת, חסות, פרומו"}
+      - {name: "Advertiser", type: "string", description: "Advertiser name"}
+      - {name: "Title", type: "string", description: "Program title from spots log (original)"}
+      - {name: "TVR", type: "float", description: "Spot-specific TVR"}
+    processed_columns_added:
+      - {name: "Start_Time_dt", type: "datetime"}
+      - {name: "End_Time_dt", type: "datetime"}
+      - {name: "Program_Title_Matched", type: "string", description: "Matched prime program title"}
+      - {name: "Break_ID", type: "string", description: "Assigned ID for the ad break"}
+
+  RawDayparts:
+    description: "TV ratings by time. Filtered to target channel."
+    source_file: data/reference/Dayparts.xlsx
+    key_columns:
+      - {name: "Date", type: "string (parsable date)"}
+      - {name: "Time", type: "string (parsable time, e.g., HH:MM or 'Units >>')"}
+      - {name: "[TargetChannel_TVR_Column]", type: "float", description: "TVR for the target channel"}
+    processed_columns_added:
+      - {name: "datetime", type: "datetime", description: "Combined timestamp (index)"}
+      - {name: "TVR", type: "float", description: "TVR of target channel"}
+
+  PrimeTimeProgramsInput:
+    description: "Defines the 3 core prime-time programs daily per channel."
+    source_file: data/reference/prime_time_programs.csv
+    columns:
+      - {name: "Date", type: "date (YYYY-MM-DD)"}
+      - {name: "Channel", type: "string"}
+      - {name: "News_Title", type: "string"}
+      - {name: "News_Start_Time", type: "time (HH:MM)"}
+      - {name: "News_End_Time", type: "time (HH:MM)"}
+      - {name: "PrimeShow1_Title", type: "string"}
+      - {name: "PrimeShow1_Start_Time", type: "time (HH:MM)"}
+      - {name: "PrimeShow1_End_Time", type: "time (HH:MM)"}
+      - {name: "PrimeShow2_Title", type: "string"}
+      - {name: "PrimeShow2_Start_Time", type: "time (HH:MM)"}
+      - {name: "PrimeShow2_End_Time", type: "time (HH:MM)"}
+
+  AdvertiserAgreementsInput:
+    description: "Specific commercial agreements with advertisers."
+    source_file: data/reference/AdvertiserAgreements.csv
+    columns:
+      - {name: "AdvertiserName", type: "string"}
+      - {name: "CampaignName", type: "string", nullable: true}
+      - {name: "AgreementType", type: "string"}
+      - {name: "ProgramTitle", type: "string", nullable: true}
+      - {name: "Date_From", type: "date", nullable: true}
+      - {name: "Date_To", type: "date", nullable: true}
+      - {name: "DayOfWeek", type: "string", nullable: true, description: "e.g., 1-7 or comma-sep list"}
+      - {name: "PositionInBreak", type: "integer", nullable: true}
+      - {name: "Value1", type: "any", nullable: true, description: "Primary value for agreement"}
+      - {name: "Value2", type: "any", nullable: true, description: "Secondary value"}
+      - {name: "TrueProfitWeight", type: "float", nullable: true}
+      - {name: "PlacementIncentiveWeight", type: "float", nullable: true}
+
+  DailySpotScheduleInput:
+    description: "Daily input file listing ads to be scheduled (e.g., Wally format)."
+    source_file_example: data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv
+    key_columns_after_rename: # Standardized English names used by DataProcessor
+      - {name: "Date", type: "date object"}
+      - {name: "Channel", type: "string"}
+      - {name: "Program", type: "string", description: "Program Title for the break"}
+      - {name: "Break_Start_Time", type: "time object"}
+      - {name: "Ad_Campaign", type: "string"}
+      - {name: "Advertiser", type: "string"}
+      - {name: "Ad_Duration_Seconds", type: "integer"}
+      - {name: "Ad_Type", type: "string"}
+      - {name: "Pricing_Model", type: "string", enum: ["CPP", "FIX"], nullable: true}
+      - {name: "Planned_Break_Rating", type: "float", nullable: true}
+      - {name: "Agreed_Price", type: "float", nullable: true}
+      - {name: "Position_In_Break_Target", type: "integer", nullable: true}
+      - {name: "True_Profit_Weight", type: "float", nullable: true}
+      - {name: "Placement_Incentive_Weight", type: "float", nullable: true, default: 1.0}
+    note: "Original Hebrew column names are mapped to these English names in DataProcessor."
+
+  TrainingFeatures:
+    description: "Feature set (X) used for training the predictive model."
+    columns: # Example features
+      - {name: "program_type_News", type: "integer (0/1)"}
+      - {name: "program_type_PrimeShow1", type: "integer (0/1)"}
+      - {name: "program_type_PrimeShow2", type: "integer (0/1)"}
+      - {name: "day_of_week_encoded", type: "float/integer"}
+      - {name: "break_duration_seconds", type: "float"}
+      - {name: "num_ads_in_break", type: "integer"}
+      - {name: "avg_rating_qhour_start", type: "float", nullable: true}
+      # ... other engineered features
+
+  TrainingTarget:
+    description: "Target variable (y) for model training."
+    column: {name: "target", type: "float", description: "e.g., viewer_retention or profitability_proxy"}
+
+  OptimizedDailyScheduleOutput:
+    description: "Final optimized schedule produced by the daily query."
+    target_file_pattern: data/optimized_schedules/optimized_schedule_[channel]_[date].csv
+    columns:
+      - {name: "Date", type: "date"}
+      - {name: "Channel", type: "string"}
+      - {name: "Program_Title", type: "string"}
+      - {name: "Program_Type", type: "string"}
+      - {name: "Break_Start_Time_dt", type: "datetime"}
+      - {name: "Break_ID", type: "string"}
+      - {name: "Ad_Campaign", type: "string"}
+      - {name: "Advertiser", type: "string"}
+      - {name: "Ad_Duration_Seconds", type: "integer"}
+      - {name: "Ad_Type", type: "string"}
+      - {name: "Original_Position_In_Break", type: "integer", nullable: true}
+      - {name: "Optimized_Position_In_Break", type: "integer"}
+      - {name: "Predicted_Ad_Rating_Points", type: "float", nullable: true}
+      - {name: "Estimated_Ad_Revenue_ILS", type: "float", nullable: true}
+      - {name: "Placement_Weight_Used", type: "float", nullable: true}
+      - {name: "Profit_Weight_Used", type: "float", nullable: true}
+      - {name: "Is_Guaranteed_Placement", type: "boolean", nullable: true}

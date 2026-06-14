@@ -1,0 +1,29 @@
+# config/main_config.yaml
+
+target_channel: "קשת 12"
+prime_time_definition:
+  news_program_keywords: ["חדשות"]
+  num_main_shows_after_news: 2
+
+data_paths:
+  programmes: "data/reference/Programmes.xlsx"
+  spots: "data/reference/Spots.xlsx"
+  dayparts: "data/reference/Dayparts.xlsx"
+  prime_time_programs_def: "data/reference/prime_time_programs.csv"
+  advertiser_agreements: "data/reference/AdvertiserAgreements.csv"
+  daily_schedule_input_dir: "data/daily_input/" # For daily query
+  enriched_training_data_dir: "data/enriched_for_training/" # For training output
+  optimized_schedules_output_dir: "data/optimized_schedules/" # For daily query output
+
+model_artifact_path: "models/kairos_trained_model.pkl"
+
+logging:
+  level: "INFO" # Can be overridden to DEBUG for more verbose logs
+  # log_file: "kairos_system.log" # Optional: uncomment to also log to a file
+
+random_seed: 42
+
+# New section to point to other config files
+config_paths:
+  model_params_config: "config/model_params_config.yaml"
+  optimization_weights_config: "config/optimization_weights.yaml"
