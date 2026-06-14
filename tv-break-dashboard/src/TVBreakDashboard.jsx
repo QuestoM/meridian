@@ -788,6 +788,8 @@ function TVBreakDashboard() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [settings, setSettings] = useState(overview.settings || fallbackSettings);
   const [saveState, setSaveState] = useState('idle');
+  const [optimizationState, setOptimizationState] = useState('idle');
+  const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
   const toastTimer = useRef(null);
 
@@ -938,11 +940,38 @@ function TVBreakDashboard() {
     notify('Data refreshed from the Kairos API.', 'הנתונים רועננו מה־API של Kairos.');
   }
 
-  function handleRunOptimization() {
+  function scenarioControls() {
+    const revenueWeight = scenario === 'Revenue priority' ? 85 : scenario === 'Retention guardrail' ? 35 : 60;
+    return {
+      revenue_weight: revenueWeight,
+      retention_floor: settings.min_retention_floor,
+      max_breaks_per_hour: settings.max_breaks_per_hour,
+    };
+  }
+
+  async function handleRunOptimization() {
     setActiveView('Optimizer');
     setOptimizerView('grid');
     setInspectorOpen(true);
-    notify('Optimization run completed for the active scenario.', 'הרצת האופטימיזציה הושלמה לתרחיש הפעיל.');
+    setOptimizationState('running');
+    try {
+      const response = await fetch(`${API_BASE}/api/optimizer-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scenarioControls()),
+      });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const plan = await response.json();
+      setOptimizationPlan(plan);
+      notify(
+        `Optimization produced ${formatNumber(plan.summary?.total_breaks || 0, locale)} compliant breaks.`,
+        `האופטימיזציה יצרה ${formatNumber(plan.summary?.total_breaks || 0, locale)} ברייקים תקינים.`,
+      );
+    } catch {
+      notify('Optimizer API is unavailable. Keeping the current working plan.', 'מנוע האופטימיזציה לא זמין. התוכנית הנוכחית נשמרת.');
+    } finally {
+      setOptimizationState('idle');
+    }
   }
 
   async function persistSettings(nextSettings) {
@@ -985,6 +1014,7 @@ function TVBreakDashboard() {
           activeRec={activeRec}
           approved={approved}
           rejected={rejected}
+          optimizationPlan={optimizationPlan}
           onViewChange={(view) => setOptimizerView(view)}
           onGridAxisChange={(axis) => setGridAxis(axis)}
           onTogglePrograms={(checked) => setShowPrograms(checked)}
@@ -1168,9 +1198,9 @@ function TVBreakDashboard() {
               <Languages size={14} />
               {locale === 'he' ? copy.english : copy.hebrew}
             </Button>
-            <Button className="run-button" type="button" variant="contained" onClick={handleRunOptimization}>
+            <Button className="run-button" type="button" variant="contained" disabled={optimizationState === 'running'} onClick={handleRunOptimization}>
               <Play size={15} fill="currentColor" />
-              {copy.runOptimization}
+              {optimizationState === 'running' ? pageText(locale, 'Running', 'מריץ') : copy.runOptimization}
             </Button>
           </div>
         </header>
@@ -1240,6 +1270,31 @@ function SummaryMetrics({ overview, copy, locale }) {
   );
 }
 
+function OptimizationRunSummary({ plan, locale }) {
+  if (!plan?.summary) return null;
+  const summary = plan.summary;
+  return (
+    <section className="optimizer-run-summary">
+      <div>
+        <span>{pageText(locale, 'Optimized breaks', 'ברייקים באופטימום')}</span>
+        <strong><Numeric>{formatNumber(summary.total_breaks, locale)}</Numeric></strong>
+      </div>
+      <div>
+        <span>{pageText(locale, 'Projected revenue', 'הכנסה חזויה')}</span>
+        <strong><Numeric>{formatCurrency(summary.projected_revenue, locale)}</Numeric></strong>
+      </div>
+      <div>
+        <span>{pageText(locale, 'Retention', 'שימור')}</span>
+        <strong><Numeric>{formatPercent(summary.average_retention, locale)}</Numeric></strong>
+      </div>
+      <div>
+        <span>{pageText(locale, 'Guardrail status', 'מצב בקרות')}</span>
+        <strong>{summary.is_compliant ? pageText(locale, 'Compliant', 'תקין') : pageText(locale, 'Needs review', 'דורש בדיקה')}</strong>
+      </div>
+    </section>
+  );
+}
+
 function OptimizerWorkspace({
   overview,
   schedule,
@@ -1254,6 +1309,7 @@ function OptimizerWorkspace({
   activeRec,
   approved,
   rejected,
+  optimizationPlan,
   inspectorOpen,
   onViewChange,
   onGridAxisChange,
@@ -1279,6 +1335,7 @@ function OptimizerWorkspace({
   return (
     <>
       <SummaryMetrics overview={overview} copy={copy} locale={locale} />
+      <OptimizationRunSummary plan={optimizationPlan} locale={locale} />
 
       <div className="work-grid">
         <section className="planner-surface" aria-label={copy.canvas}>

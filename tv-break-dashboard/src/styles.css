@@ -450,6 +450,39 @@ button {
   line-height: inherit;
 }
 
+.optimizer-run-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.optimizer-run-summary div {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 24px;
+  border-inline-end: 1px solid var(--line);
+}
+
+.optimizer-run-summary div:last-child {
+  border-inline-end: 0;
+}
+
+.optimizer-run-summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.optimizer-run-summary strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
 .delta {
   flex: 0 0 auto;
   display: inline-flex;
@@ -2039,6 +2072,15 @@ button {
     grid-template-columns: 1fr 1fr;
     padding: 14px 16px;
     border-top: 1px solid var(--line);
+  }
+
+  .optimizer-run-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .optimizer-run-summary div {
+    min-height: 48px;
+    padding: 0 16px;
   }
 
   .metric {
