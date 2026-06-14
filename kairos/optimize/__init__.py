@@ -23,6 +23,7 @@ from kairos.optimize.optimizer import (
     SegmentPlan,
     optimize_breaks,
 )
+from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 
 __all__ = [
     "Break",
@@ -30,6 +31,8 @@ __all__ = [
     "Decision",
     "Guardrails",
     "OptimizationResult",
+    "OptimizerAssumptions",
+    "PricingModel",
     "ProgramSegment",
     "SegmentPlan",
     "Violation",
