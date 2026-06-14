@@ -349,8 +349,8 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
         programs = []
         for _, row in channel_df.head(18).iterrows():
             type_summary = schedule_by_type.get(str(row["program_type"]), {})
-            retention = type_summary.get("average_retention", 74 + (row["viewing_points"] % 5))
-            revenue = type_summary.get("projected_revenue", row["viewing_points"] * 45000)
+            retention = type_summary.get("average_retention", 0.0)
+            revenue = type_summary.get("projected_revenue", 0.0)
             break_count = max(1, min(8, int(type_summary.get("total_breaks", 2) / 4) or 2))
             programs.append(
                 {
@@ -380,7 +380,7 @@ def _schedule_lookup(schedule: pd.DataFrame) -> tuple[dict[tuple[str, str], dict
     frame["program_type"] = frame.get("program_type", "Other").fillna("Other").astype(str)
     frame["day_key"] = frame.get("day", "").map(_day_key) if "day" in frame.columns else ""
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
-    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.74), errors="coerce").fillna(0.74)
+    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.0), errors="coerce").fillna(0.0)
     frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 1), errors="coerce").fillna(1)
     frame["break_length"] = pd.to_numeric(frame.get("break_length", frame.get("total_break_time", 120)), errors="coerce").fillna(120)
 
@@ -425,8 +425,8 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
         planned_breaks = int(max(0, _safe_number(schedule_row.get("num_breaks"), 1 if duration_minutes >= 30 else 0)))
         capacity_breaks = int(max(0, duration_minutes // 18))
         break_count = max(0, min(5, planned_breaks, capacity_breaks if duration_minutes >= 18 else 0))
-        revenue_total = _money(schedule_row.get("predicted_revenue", row["viewing_points"] * 45000))
-        retention = round(_percent(schedule_row.get("predicted_retention", 0.74)), 1)
+        revenue_total = _money(schedule_row.get("predicted_revenue", 0.0))
+        retention = round(_percent(schedule_row.get("predicted_retention", 0.0)), 1)
         break_seconds = int(max(30, min(360, _safe_number(schedule_row.get("break_length"), 120))))
         lane = f"{channel} / {day}"
 
@@ -543,12 +543,12 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
 
     frame = schedule.copy()
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
-    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.74), errors="coerce").fillna(0.74)
+    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.0), errors="coerce").fillna(0.0)
     frame = frame.sort_values(["predicted_revenue", "predicted_retention"], ascending=[False, True])
 
     actions = []
     for idx, row in frame.head(5).iterrows():
-        retention = _percent(row.get("predicted_retention", 0.74))
+        retention = _percent(row.get("predicted_retention", 0.0))
         revenue = _money(row.get("predicted_revenue", 0))
         risk = "High" if retention < 70 else "Medium" if retention < 74 else "Low"
         actions.append(
