@@ -1,3 +1,53 @@
+# Kairos TV Break Revenue Optimizer
+
+Kairos is a production-oriented TV commercial break optimization product built
+on top of the Meridian modeling code in this repository. Its goal is to help a
+TV network maximize advertising revenue from break placement while protecting
+viewer retention and programme guardrails.
+
+Current product surfaces:
+
+- `kairos_api/server.py`: FastAPI operational API for dashboard data, source
+  file state, configurable market settings, compliance checks, scenario
+  simulation, and explicit optimization runs.
+- `tv-break-dashboard`: Vite + React dashboard with a broadcast planning canvas,
+  selected-break inspector, guardrails, recommendations, Hebrew/RTL support,
+  and export controls.
+- `tv_break_data_transformer.py`: source data transformer for Dayparts,
+  Programmes, and Spots into Meridian-compatible data.
+- `data/kairos_settings.json`: editable baseline for Israel-market operating
+  rules. Graphs stay LTR even when the application shell is RTL.
+- `docs/KAIROS_PRODUCTION_PLAN.md`: architecture, runbook, and remaining
+  production-readiness gaps.
+
+Quick local run:
+
+```powershell
+pip install -r requirements-api.txt
+cd tv-break-dashboard
+npm install
+cd ..
+python -m uvicorn kairos_api.server:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal:
+
+```powershell
+cd tv-break-dashboard
+npm run dev -- --port 3000
+```
+
+Open `http://127.0.0.1:3000/`.
+
+The API documentation is available at `http://127.0.0.1:8000/docs`.
+
+Note: model training and full Meridian optimization require `requirements.txt`
+in a Python 3.11/3.12 environment with TensorFlow/TFP installed. The dashboard
+API can use `requirements-api.txt` for normal browsing of existing output
+artifacts and settings without loading TensorFlow.
+
+---
+
 # About Meridian
 
 Marketing mix modeling (MMM) is a statistical analysis technique that measures

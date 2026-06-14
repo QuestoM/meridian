@@ -40,3 +40,12 @@ env/
 
 # Pip metadata
 pip-wheel-metadata/
+
+# Frontend dependencies and build output
+node_modules/
+tv-break-dashboard/node_modules/
+tv-break-dashboard/dist/
+qa/
+.tmp-api-deps/
+*.log
+*.err

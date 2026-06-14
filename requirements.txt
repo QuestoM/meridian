@@ -12,3 +12,5 @@ jinja2>=3.0.0
 altair>=4.2.0
 immutabledict
 tf-keras>=2.18,<2.19
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1

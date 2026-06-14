@@ -1,0 +1,22 @@
+{
+  "profile_name": "Israel commercial TV",
+  "locale": "he",
+  "direction": "rtl",
+  "chart_direction": "ltr",
+  "timezone": "Asia/Jerusalem",
+  "currency": "ILS",
+  "effective_date": "2026-06-14",
+  "regulatory_source_url": "https://www.rashut2.org.il/",
+  "max_ad_minutes_per_hour": 12,
+  "max_breaks_per_hour": 4,
+  "min_break_spacing_minutes": 7,
+  "min_retention_floor": 0.72,
+  "max_daily_ad_minutes": 160,
+  "protected_program_types": ["News", "Kids", "Children"],
+  "protected_program_max_ad_minutes_per_hour": 8,
+  "sponsorships_enabled": true,
+  "gold_breaks_enabled": true,
+  "gold_breaks_max_per_day": 3,
+  "require_manual_approval": true,
+  "notes": "Configurable baseline. Validate with current counsel and broadcaster policy before production use."
+}

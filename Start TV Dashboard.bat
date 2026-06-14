@@ -1,18 +1,20 @@
 @echo off
-echo Starting TV Commercial Break Dashboard...
+setlocal
+echo Starting Kairos Optimizer...
 echo.
 
-:: Navigate to the project directory
-cd /d C:\Intel\questo\projects\meridian\tv-break-dashboard
+cd /d "%~dp0"
 
-:: Start the React application
-echo Starting React development server...
-npm start
+echo Starting Kairos API on http://127.0.0.1:8000 ...
+start "Kairos API" cmd /k "python -m uvicorn kairos_api.server:app --host 127.0.0.1 --port 8000"
 
-:: If the server fails to start, keep the window open
+echo Starting Kairos dashboard on http://127.0.0.1:3000 ...
+cd /d "%~dp0tv-break-dashboard"
+npm run dev -- --port 3000
+
 if %ERRORLEVEL% NEQ 0 (
   echo.
-  echo Error starting development server.
-  echo Please check that you have all required packages installed.
+  echo Error starting Kairos dashboard.
+  echo Check Python and Node dependencies.
   pause
 )
