@@ -238,7 +238,7 @@ const copyByLocale = {
     apiUnavailable: 'API unavailable. Showing local snapshot.',
     metrics: ['Projected revenue', 'Viewer retention D7', 'Total ad minutes', 'Risk score'],
     risk: { High: 'High', Medium: 'Medium', Low: 'Low' },
-    toolbar: ['Grid View', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
+    toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
     channelProgram: 'Channel / Program',
     selectedBreak: 'Selected break',
@@ -314,7 +314,7 @@ const copyByLocale = {
     apiUnavailable: 'ה־API לא זמין. מוצגת תמונת מצב מקומית.',
     metrics: ['הכנסה צפויה', 'שימור צפייה D7', 'דקות פרסום', 'רמת סיכון'],
     risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה' },
-    toolbar: ['תצוגת גריד', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
+    toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
     channelProgram: 'ערוץ / תוכנית',
     selectedBreak: 'ברייק נבחר',
@@ -449,6 +449,20 @@ const fallbackSchedule = {
       ],
     },
   ],
+  break_operations: {
+    programs: [
+      { id: 'fallback-1', key: 'KAI 1-fallback-1-2000', lane: 'KAI 1 / Mon', channel: 'KAI 1', title: 'The Voice', program_type: 'Reality', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '22:00', duration_minutes: 120, revenue: 382000, retention: 74.1, break_markers: 5 },
+      { id: 'fallback-2', key: 'KAI 2-fallback-2-2000', lane: 'KAI 2 / Mon', channel: 'KAI 2', title: 'The Big Bang Theory', program_type: 'Comedy', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '20:30', duration_minutes: 30, revenue: 186000, retention: 77.2, break_markers: 2 },
+      { id: 'fallback-3', key: 'KAI News-fallback-3-2000', lane: 'KAI News / Mon', channel: 'KAI News', title: 'Kai News 8PM', program_type: 'News', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '20:30', duration_minutes: 30, revenue: 98000, retention: 81.3, break_markers: 2 },
+    ],
+    breaks: [
+      { id: 'fallback-1-br-1', program_key: 'KAI 1-fallback-1-2000', program_title: 'The Voice', lane: 'KAI 1 / Mon', channel: 'KAI 1', day: 'Mon', program_type: 'Reality', break_num_in_program: 1, breaks_in_program: 5, start_time: '20:20', end_time: '20:22', duration_sec: 120, sponsorships_count: 1, is_gold: true, source: 'Model', revenue_calculated: 76400, retention: 74.1, status: 'ready' },
+      { id: 'fallback-1-br-2', program_key: 'KAI 1-fallback-1-2000', program_title: 'The Voice', lane: 'KAI 1 / Mon', channel: 'KAI 1', day: 'Mon', program_type: 'Reality', break_num_in_program: 2, breaks_in_program: 5, start_time: '20:40', end_time: '20:42', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 76400, retention: 74.1, status: 'ready' },
+      { id: 'fallback-2-br-1', program_key: 'KAI 2-fallback-2-2000', program_title: 'The Big Bang Theory', lane: 'KAI 2 / Mon', channel: 'KAI 2', day: 'Mon', program_type: 'Comedy', break_num_in_program: 1, breaks_in_program: 2, start_time: '20:10', end_time: '20:12', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 93000, retention: 77.2, status: 'ready' },
+      { id: 'fallback-3-br-1', program_key: 'KAI News-fallback-3-2000', program_title: 'Kai News 8PM', lane: 'KAI News / Mon', channel: 'KAI News', day: 'Mon', program_type: 'News', break_num_in_program: 1, breaks_in_program: 2, start_time: '20:12', end_time: '20:14', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 49000, retention: 81.3, status: 'ready' },
+    ],
+    summary: { programs: 3, breaks: 4, ad_seconds: 480, revenue: 294800 },
+  },
   break_schedule: [],
 };
 
@@ -498,7 +512,7 @@ function gridAxisFromLocation() {
     return 'day';
   }
   const axis = new URLSearchParams(window.location.search).get('axis');
-  return ['day', 'daypart', 'hour'].includes(axis) ? axis : 'day';
+  return ['day', 'daypart', 'hour', 'type'].includes(axis) ? axis : 'day';
 }
 
 function formatCurrency(value, locale = 'en') {
@@ -593,6 +607,7 @@ function gridAxisLabel(axis, locale) {
     day: pageText(locale, 'Days', 'ימים'),
     daypart: pageText(locale, 'Dayparts', 'רצועות'),
     hour: pageText(locale, 'Hours', 'שעות'),
+    type: pageText(locale, 'Formats', 'סוגי תוכנית'),
   };
   return labels[axis] || labels.day;
 }
@@ -609,6 +624,14 @@ function buildPlannerColumns(rows, axis, locale) {
       label: `${String(hour).padStart(2, '0')}:00`,
     }));
   }
+  if (axis === 'type') {
+    const types = Array.from(new Set(flattenScheduleRows(rows).map((program) => program.program_type || 'Other'))).sort();
+    return (types.length ? types : ['Other']).map((programType) => ({
+      key: `type-${programType}`,
+      programType,
+      label: programType,
+    }));
+  }
   return dayKeys.map((day) => ({ key: day, label: dayLabel(day, locale) }));
 }
 
@@ -618,6 +641,9 @@ function programsForPlannerColumn(programs, column, axis) {
   }
   if (axis === 'hour') {
     return programs.filter((program) => hourFromTime(program.time) === column.hour);
+  }
+  if (axis === 'type') {
+    return programs.filter((program) => (program.program_type || 'Other') === column.programType);
   }
   return programs.filter((program) => program.day === column.key);
 }
@@ -647,6 +673,18 @@ async function fetchJson(path, fallback) {
   }
 }
 
+async function postBreakDecision(payload) {
+  try {
+    await fetch(`${API_BASE}/api/break-decisions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // The UI keeps the local decision state when the API is offline.
+  }
+}
+
 function useKairosData(refreshKey = 0) {
   const [state, setState] = useState({
     overview: fallbackOverview,
@@ -658,6 +696,7 @@ function useKairosData(refreshKey = 0) {
     reports: fallbackReports,
     files: fallbackFiles,
     impact: fallbackImpact,
+    breakOperations: fallbackSchedule.break_operations,
     online: false,
     loading: true,
     error: null,
@@ -676,6 +715,7 @@ function useKairosData(refreshKey = 0) {
         reportsResult,
         filesResult,
         impactResult,
+        breakOperationsResult,
       ] = await Promise.all([
         fetchJson('/api/overview', fallbackOverview),
         fetchJson('/api/schedule', fallbackSchedule),
@@ -686,6 +726,7 @@ function useKairosData(refreshKey = 0) {
         fetchJson('/api/reports', fallbackReports),
         fetchJson('/api/files', fallbackFiles),
         fetchJson('/api/impact', fallbackImpact),
+        fetchJson('/api/break-operations', fallbackSchedule.break_operations),
       ]);
       if (!active) return;
       const results = [
@@ -698,10 +739,15 @@ function useKairosData(refreshKey = 0) {
         reportsResult,
         filesResult,
         impactResult,
+        breakOperationsResult,
       ];
+      const schedulePayload = {
+        ...scheduleResult.data,
+        break_operations: scheduleResult.data?.break_operations || breakOperationsResult.data,
+      };
       setState({
         overview: overviewResult.data,
-        schedule: scheduleResult.data,
+        schedule: schedulePayload,
         inventory: inventoryResult.data,
         breakLibrary: breakLibraryResult.data,
         campaigns: campaignsResult.data,
@@ -709,6 +755,7 @@ function useKairosData(refreshKey = 0) {
         reports: reportsResult.data,
         files: filesResult.data,
         impact: impactResult.data,
+        breakOperations: breakOperationsResult.data,
         online: results.every((result) => result.online),
         loading: false,
         error: results.find((result) => result.error)?.error || null,
@@ -826,6 +873,13 @@ function TVBreakDashboard() {
       next.delete(id);
       return next;
     });
+    postBreakDecision({
+      action: 'approve',
+      recommendation_id: id,
+      break_id: selectedProgram?.selected_break?.id,
+      program_type: selectedProgram?.program_type || activeRec?.program_type,
+      scenario,
+    });
     notify('Decision state updated.', 'סטטוס ההחלטה עודכן.');
   }
 
@@ -835,6 +889,13 @@ function TVBreakDashboard() {
       const next = new Set(current);
       next.delete(id);
       return next;
+    });
+    postBreakDecision({
+      action: 'reject',
+      recommendation_id: id,
+      break_id: selectedProgram?.selected_break?.id,
+      program_type: selectedProgram?.program_type || activeRec?.program_type,
+      scenario,
     });
     notify('Recommendation rejected for this plan.', 'ההמלצה נדחתה עבור התוכנית הזו.');
   }
@@ -851,6 +912,13 @@ function TVBreakDashboard() {
       const next = new Set(current);
       matching.forEach((rec) => next.delete(rec.id));
       return next;
+    });
+    postBreakDecision({
+      action: 'apply_similar',
+      recommendation_id: activeRec?.id,
+      break_id: selectedProgram?.selected_break?.id,
+      program_type: targetType || selectedProgram?.program_type,
+      scenario,
     });
     notify('Similar recommendations were marked approved.', 'המלצות דומות סומנו כמאושרות.');
   }
@@ -1203,8 +1271,9 @@ function OptimizerWorkspace({
 }) {
   const modeButtons = [
     ['grid', copy.toolbar[0]],
-    ['daypart', copy.toolbar[1]],
-    ['inventory', copy.toolbar[2]],
+    ['timeline', copy.toolbar[1]],
+    ['daypart', copy.toolbar[2]],
+    ['inventory', copy.toolbar[3]],
   ];
 
   return (
@@ -1235,12 +1304,12 @@ function OptimizerWorkspace({
               <FormControlLabel
                 className="check-control"
                 control={<Checkbox checked={showPrograms} onChange={(event) => onTogglePrograms(event.target.checked)} size="small" />}
-                label={copy.toolbar[3]}
+                label={copy.toolbar[4]}
               />
               <FormControlLabel
                 className="check-control"
                 control={<Checkbox checked={showBreaks} onChange={(event) => onToggleBreaks(event.target.checked)} size="small" />}
-                label={copy.toolbar[4]}
+                label={copy.toolbar[5]}
               />
               <Button
                 className={showMetrics ? 'secondary-button compact active' : 'secondary-button compact'}
@@ -1250,7 +1319,7 @@ function OptimizerWorkspace({
                 onClick={onToggleMetrics}
               >
                 <SlidersHorizontal size={14} />
-                {copy.toolbar[5]}
+                {copy.toolbar[6]}
               </Button>
             </div>
           </div>
@@ -1263,6 +1332,15 @@ function OptimizerWorkspace({
               axis={gridAxis}
               showPrograms={showPrograms}
               showBreaks={showBreaks}
+              selectedProgramKey={selectedProgramKey}
+              onSelectProgram={onSelectProgram}
+            />
+          )}
+          {activeViewMode === 'timeline' && (
+            <TimelineView
+              timeline={schedule.break_operations}
+              rows={schedule.rows || []}
+              locale={locale}
               selectedProgramKey={selectedProgramKey}
               onSelectProgram={onSelectProgram}
             />
@@ -1507,6 +1585,15 @@ function SchedulePage({ schedule, copy, locale }) {
               aria-pressed={scheduleMode === 'daypart'}
               onClick={() => setScheduleMode('daypart')}
             >
+              {copy.toolbar[2]}
+            </Button>
+            <Button
+              className={scheduleMode === 'timeline' ? 'segmented active' : 'segmented'}
+              type="button"
+              variant="outlined"
+              aria-pressed={scheduleMode === 'timeline'}
+              onClick={() => setScheduleMode('timeline')}
+            >
               {copy.toolbar[1]}
             </Button>
           </div>
@@ -1531,6 +1618,14 @@ function SchedulePage({ schedule, copy, locale }) {
             copy={copy}
             locale={locale}
             axis={scheduleAxis}
+            selectedProgramKey={selectedProgramKey}
+            onSelectProgram={handleSelectProgram}
+          />
+        ) : scheduleMode === 'timeline' ? (
+          <TimelineView
+            timeline={schedule.break_operations}
+            rows={schedule.rows || []}
+            locale={locale}
             selectedProgramKey={selectedProgramKey}
             onSelectProgram={handleSelectProgram}
           />
@@ -1901,7 +1996,7 @@ function SelectionGuide({ selectedProgram, onOpen, copy, locale }) {
 }
 
 function GridAxisControl({ value, onChange, locale }) {
-  const options = ['day', 'daypart', 'hour'];
+  const options = ['day', 'daypart', 'hour', 'type'];
   return (
     <div className="axis-control" aria-label={pageText(locale, 'Grid split', 'חלוקת גריד')}>
       {options.map((axis) => (
@@ -1916,6 +2011,210 @@ function GridAxisControl({ value, onChange, locale }) {
           {gridAxisLabel(axis, locale)}
         </Button>
       ))}
+    </div>
+  );
+}
+
+function timeToMinutes(time) {
+  const [hour, minute] = String(time || '00:00').split(':').map((part) => Number(part));
+  const safeHour = Number.isFinite(hour) ? Math.max(0, Math.min(47, hour)) : 0;
+  const safeMinute = Number.isFinite(minute) ? Math.max(0, Math.min(59, minute)) : 0;
+  return safeHour * 60 + safeMinute;
+}
+
+function minutesToTime(minutes) {
+  const safe = Math.max(0, Math.min(47 * 60 + 59, Math.round(minutes)));
+  const hour = Math.floor(safe / 60) % 24;
+  const minute = safe % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function buildTimelineFallback(rows) {
+  const programs = flattenScheduleRows(rows).slice(0, 24).map((program, index) => {
+    const duration = Number(program.duration_minutes || 30);
+    const start = timeToMinutes(program.time);
+    return {
+      id: `fallback-program-${index}`,
+      key: program.key,
+      lane: `${program.channel} / ${program.day}`,
+      channel: program.channel,
+      title: program.title,
+      program_type: program.program_type || 'Other',
+      day: program.day,
+      start_time: minutesToTime(start),
+      end_time: minutesToTime(start + duration),
+      duration_minutes: duration,
+      revenue: Number(program.revenue || 0),
+      retention: Number(program.retention || 0),
+      break_markers: Number(program.break_markers || 0),
+    };
+  });
+  const breaks = programs.flatMap((program) => {
+    const count = Math.max(0, Math.min(5, Number(program.break_markers || 0)));
+    const duration = 120;
+    const start = timeToMinutes(program.start_time);
+    const programDuration = Number(program.duration_minutes || 30);
+    return Array.from({ length: count }).map((_, index) => {
+      const breakStart = start + ((programDuration * 60) / (count + 1) / 60) * (index + 1);
+      return {
+        id: `${program.key}-fallback-break-${index + 1}`,
+        program_key: program.key,
+        program_title: program.title,
+        lane: program.lane,
+        channel: program.channel,
+        day: program.day,
+        program_type: program.program_type,
+        break_num_in_program: index + 1,
+        breaks_in_program: count,
+        start_time: minutesToTime(breakStart),
+        end_time: minutesToTime(breakStart + duration / 60),
+        duration_sec: duration,
+        sponsorships_count: index === 0 && program.revenue > 250000 ? 1 : 0,
+        is_gold: index === 0 && program.revenue > 250000,
+        source: 'Model',
+        revenue_calculated: Number(program.revenue || 0) / Math.max(count, 1),
+        retention: program.retention,
+        status: Number(program.retention || 0) < 72 ? 'at_risk' : 'ready',
+      };
+    });
+  });
+  return {
+    programs,
+    breaks,
+    summary: {
+      programs: programs.length,
+      breaks: breaks.length,
+      ad_seconds: breaks.reduce((sum, item) => sum + Number(item.duration_sec || 0), 0),
+      revenue: breaks.reduce((sum, item) => sum + Number(item.revenue_calculated || 0), 0),
+    },
+  };
+}
+
+function normalizedTimeline(timeline, rows) {
+  const fallback = buildTimelineFallback(rows);
+  const programs = normalizeRows(timeline?.programs).length ? normalizeRows(timeline.programs) : fallback.programs;
+  const breaks = normalizeRows(timeline?.breaks).length ? normalizeRows(timeline.breaks) : fallback.breaks;
+  const summary = timeline?.summary || fallback.summary;
+  return { programs, breaks, summary };
+}
+
+function TimelineView({ timeline, rows, locale, selectedProgramKey, onSelectProgram }) {
+  const { programs, breaks, summary } = normalizedTimeline(timeline, rows);
+  const lanes = Array.from(new Set([...programs.map((item) => item.lane), ...breaks.map((item) => item.lane)].filter(Boolean)));
+  const allTimes = [
+    ...programs.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
+    ...breaks.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
+  ].filter((value) => Number.isFinite(value));
+  const startHour = Math.max(0, Math.floor((Math.min(...allTimes, 20 * 60) - 30) / 60));
+  const endHour = Math.min(24, Math.max(startHour + 4, Math.ceil((Math.max(...allTimes, 23 * 60) + 30) / 60)));
+  const totalMinutes = Math.max(60, (endHour - startHour) * 60);
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index);
+  const minWidth = 164 + Math.max(680, totalMinutes * 3.8);
+  const positionStyle = (startTime, endTime) => {
+    const start = timeToMinutes(startTime);
+    const end = Math.max(start + 5, timeToMinutes(endTime));
+    const left = ((start - startHour * 60) / totalMinutes) * 100;
+    const width = ((end - start) / totalMinutes) * 100;
+    return {
+      left: `${Math.max(0, Math.min(99, left))}%`,
+      width: `${Math.max(1.2, Math.min(100 - Math.max(0, left), width))}%`,
+    };
+  };
+
+  return (
+    <div className="timeline-view">
+      <div className="timeline-summary" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+        <div>
+          <strong>{formatNumber(summary.programs, locale)}</strong>
+          <span>{pageText(locale, 'programs on timeline', 'תוכניות בציר')}</span>
+        </div>
+        <div>
+          <strong>{formatNumber(summary.breaks, locale)}</strong>
+          <span>{pageText(locale, 'planned breaks', 'ברייקים מתוכננים')}</span>
+        </div>
+        <div>
+          <strong><Numeric>{formatMinutes(summary.ad_seconds, locale)}</Numeric></strong>
+          <span>{pageText(locale, 'commercial time', 'זמן פרסום')}</span>
+        </div>
+        <div>
+          <strong><Numeric>{formatCurrency(summary.revenue, locale)}</Numeric></strong>
+          <span>{pageText(locale, 'modelled revenue', 'הכנסה מחושבת')}</span>
+        </div>
+      </div>
+
+      <div className="timeline-scroll chart-ltr" dir="ltr">
+        <div className="timeline-ruler" style={{ minWidth }}>
+          <span />
+          <div className="timeline-hours">
+            {hours.map((hour) => (
+              <span key={hour} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }}>
+                {String(hour % 24).padStart(2, '0')}:00
+              </span>
+            ))}
+          </div>
+        </div>
+        {lanes.map((lane) => {
+          const lanePrograms = programs.filter((item) => item.lane === lane);
+          const laneBreaks = breaks.filter((item) => item.lane === lane);
+          const laneRevenue = laneBreaks.reduce((sum, item) => sum + Number(item.revenue_calculated || 0), 0);
+          return (
+            <div className="timeline-row" key={lane} style={{ minWidth }}>
+              <div className="timeline-lane" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+                <strong>{lane}</strong>
+                <span>{laneBreaks.length} {pageText(locale, 'breaks', 'ברייקים')} / <Numeric>{formatCurrency(laneRevenue, locale)}</Numeric></span>
+              </div>
+              <div className="timeline-track">
+                {hours.map((hour) => (
+                  <i key={`${lane}-${hour}`} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }} />
+                ))}
+                {lanePrograms.map((program) => (
+                  <div
+                    className="timeline-program-band"
+                    key={program.key || `${program.title}-${program.start_time}`}
+                    style={positionStyle(program.start_time, program.end_time)}
+                    title={`${program.title} / ${program.start_time}-${program.end_time}`}
+                  >
+                    <span>{program.title}</span>
+                  </div>
+                ))}
+                {laneBreaks.map((breakItem) => {
+                  const selected = selectedProgramKey === breakItem.program_key;
+                  const selectedProgram = {
+                    key: breakItem.program_key,
+                    title: breakItem.program_title,
+                    channel: breakItem.channel,
+                    day: breakItem.day,
+                    time: breakItem.start_time,
+                    duration_minutes: Math.round(Number(breakItem.duration_sec || 0) / 60),
+                    revenue: breakItem.revenue_calculated,
+                    retention: breakItem.retention,
+                    break_markers: breakItem.breaks_in_program,
+                    program_type: breakItem.program_type,
+                    selected_break: breakItem,
+                  };
+                  return (
+                    <Button
+                      className={selected ? 'timeline-break selected' : `timeline-break ${breakItem.status === 'at_risk' ? 'risk' : ''}`}
+                      key={breakItem.id}
+                      type="button"
+                      variant="contained"
+                      disableRipple
+                      style={positionStyle(breakItem.start_time, breakItem.end_time)}
+                      title={`${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`}
+                      aria-pressed={selected}
+                      onClick={() => onSelectProgram(selectedProgram)}
+                    >
+                      <span>{breakItem.start_time}</span>
+                      <strong>{breakItem.break_num_in_program}/{breakItem.breaks_in_program}</strong>
+                      {breakItem.is_gold && <em>Gold</em>}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2148,6 +2447,12 @@ function ProgramCell({
 function Inspector({ selectedProgram, recommendation, approved, rejected, onApprove, onReject, onApplySimilar, onExport, onClose, copy, locale }) {
   const approvalLabel = rejected ? pageText(locale, 'Rejected', 'נדחה') : approved ? copy.approved : copy.pending;
   const [exportScope, setExportScope] = useState('Break detail');
+  const selectedBreak = selectedProgram?.selected_break;
+  const durationSeconds = Number(selectedBreak?.duration_sec || selectedProgram?.duration_minutes * 60 || 120);
+  const breakNumber = selectedBreak?.break_num_in_program || 1;
+  const breakTotal = selectedBreak?.breaks_in_program || selectedProgram?.break_markers || 1;
+  const retentionValue = Number(selectedProgram?.retention ?? recommendation?.retention ?? 0);
+  const retentionAtRisk = retentionValue > 0 && retentionValue < 72;
   return (
     <aside className="inspector" aria-label="Selected break inspector">
       <div className="inspector-head">
@@ -2163,7 +2468,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
           <strong>{selectedProgram?.title || 'Selected program'}</strong>
           <small>
             {selectedProgram?.channel || 'KAI 1'} / {selectedProgram?.time || '20:00'} /{' '}
-            {locale === 'he' ? 'ברייק 2 מתוך 4' : 'break 2 of 4'}
+            {locale === 'he' ? `ברייק ${breakNumber} מתוך ${breakTotal}` : `break ${breakNumber} of ${breakTotal}`}
           </small>
         </div>
         <span className={rejected ? 'approval rejected' : approved ? 'approval approved' : 'approval'}>{approvalLabel}</span>
@@ -2171,9 +2476,9 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
 
       <dl className="detail-list">
         <div><dt>{copy.detail[0]}</dt><dd>{formatCurrency(selectedProgram?.revenue, locale)}</dd></div>
-        <div><dt>{copy.detail[1]}</dt><dd>{selectedProgram?.retention || 72.3}%</dd></div>
-        <div><dt>{copy.detail[2]}</dt><dd>2:00</dd></div>
-        <div><dt>{copy.detail[3]}</dt><dd>4</dd></div>
+        <div><dt>{copy.detail[1]}</dt><dd>{formatPercent(retentionValue || 72.3, locale)}</dd></div>
+        <div><dt>{copy.detail[2]}</dt><dd>{formatMinutes(durationSeconds, locale)}</dd></div>
+        <div><dt>{copy.detail[3]}</dt><dd>{formatNumber(selectedBreak?.sponsorships_count ?? selectedProgram?.break_markers ?? 0, locale)}</dd></div>
       </dl>
 
       <div className="guardrail-block">
@@ -2186,8 +2491,8 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
         ].map((item, index) => (
           <div className="guardrail-row" key={item}>
             <span>{item}</span>
-            <strong>{index === 3 ? copy.atRisk : copy.compliant}</strong>
-            {index === 3 ? <span className="guardrail-warning">-0.4pp</span> : <Check size={14} />}
+            <strong>{index === 3 && retentionAtRisk ? copy.atRisk : copy.compliant}</strong>
+            {index === 3 && retentionAtRisk ? <span className="guardrail-warning">{formatNumber(retentionValue - 72, locale)}pp</span> : <Check size={14} />}
           </div>
         ))}
       </div>

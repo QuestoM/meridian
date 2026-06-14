@@ -17,6 +17,7 @@ const requiredSourceFragments = [
   ['Optimizer page', 'function OptimizerWorkspace'],
   ['Grid axis control', 'function GridAxisControl'],
   ['Planner axis grouping', 'function buildPlannerColumns'],
+  ['Timeline view', 'function TimelineView'],
   ['Schedule page', 'function SchedulePage'],
   ['Inventory page', 'function InventoryPage'],
   ['Break library page', 'function BreakLibraryPage'],
@@ -29,12 +30,15 @@ const requiredSourceFragments = [
   ['Campaigns API', "/api/campaigns"],
   ['Forecasts API', "/api/forecasts"],
   ['Reports API', "/api/reports"],
+  ['Break operations API', "/api/break-operations"],
+  ['Break decisions API', "/api/break-decisions"],
 ];
 
 const requiredStyleFragments = [
   ['Kairos shell', 'kairos-shell'],
   ['MUI grid wrapper', 'mui-grid-wrap'],
   ['page workspace', 'page-workspace'],
+  ['Timeline styles', 'timeline-view'],
   ['LTR chart contract', 'chart-ltr'],
 ];
 

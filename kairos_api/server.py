@@ -45,6 +45,17 @@ class ScenarioRequest(BaseModel):
     max_breaks_per_hour: int = Field(default=3, ge=1, le=12)
 
 
+class BreakDecisionRequest(BaseModel):
+    """Operator decision captured from the dashboard command surface."""
+
+    action: Literal["approve", "reject", "apply_similar"]
+    recommendation_id: str | None = Field(default=None)
+    break_id: str | None = Field(default=None)
+    program_type: str | None = Field(default=None)
+    scenario: str | None = Field(default=None)
+    note: str | None = Field(default=None, max_length=500)
+
+
 class KairosSettings(BaseModel):
     """Operational controls for market, regulatory, and UX behavior.
 
@@ -141,6 +152,64 @@ def _money(value: Any) -> float:
     return round(_safe_number(value, 0.0), 2)
 
 
+def _day_key(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    aliases = {
+        "monday": "Mon",
+        "mon": "Mon",
+        "tuesday": "Tue",
+        "tue": "Tue",
+        "wednesday": "Wed",
+        "wed": "Wed",
+        "thursday": "Thu",
+        "thu": "Thu",
+        "friday": "Fri",
+        "fri": "Fri",
+        "saturday": "Sat",
+        "sat": "Sat",
+        "sunday": "Sun",
+        "sun": "Sun",
+    }
+    return aliases.get(text.lower(), text[:3].title())
+
+
+def _program_datetime_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize programme CSV date/time variants into start_dt and end_dt."""
+
+    result = frame.copy()
+    if "Start_datetime" in result.columns:
+        starts = pd.to_datetime(result["Start_datetime"], errors="coerce")
+    elif {"Date", "Start time"}.issubset(result.columns):
+        starts = pd.to_datetime(
+            result["Date"].astype(str) + " " + result["Start time"].astype(str),
+            errors="coerce",
+            dayfirst=True,
+        )
+    else:
+        starts = pd.to_datetime(result.get("Start time"), errors="coerce")
+
+    if "End_datetime" in result.columns:
+        ends = pd.to_datetime(result["End_datetime"], errors="coerce")
+    elif {"Date", "End time"}.issubset(result.columns):
+        ends = pd.to_datetime(
+            result["Date"].astype(str) + " " + result["End time"].astype(str),
+            errors="coerce",
+            dayfirst=True,
+        )
+    else:
+        ends = pd.to_datetime(result.get("End time"), errors="coerce")
+
+    result["start_dt"] = starts
+    duration = pd.to_numeric(result.get("Duration", 0), errors="coerce").fillna(0)
+    result["end_dt"] = ends.where(ends.notna(), result["start_dt"] + pd.to_timedelta(duration, unit="s"))
+    result.loc[result["end_dt"] <= result["start_dt"], "end_dt"] = (
+        result["start_dt"] + pd.to_timedelta(duration.clip(lower=1800), unit="s")
+    )
+    return result
+
+
 def _load_break_schedule() -> pd.DataFrame:
     candidates = [
         OUTPUT_DIR / "weekly_break_schedule.csv",
@@ -203,19 +272,7 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
     if programmes.empty:
         return []
 
-    frame = programmes.copy()
-    if "Start_datetime" in frame.columns:
-        starts = pd.to_datetime(frame["Start_datetime"], errors="coerce")
-    elif {"Date", "Start time"}.issubset(frame.columns):
-        starts = pd.to_datetime(
-            frame["Date"].astype(str) + " " + frame["Start time"].astype(str),
-            errors="coerce",
-            dayfirst=True,
-        )
-    else:
-        starts = pd.to_datetime(frame.get("Start time"), errors="coerce")
-
-    frame["start_dt"] = starts
+    frame = _program_datetime_columns(programmes)
     frame = frame.dropna(subset=["start_dt"])
     frame["day"] = frame["start_dt"].dt.strftime("%a")
     frame["hour"] = frame["start_dt"].dt.hour
@@ -251,6 +308,142 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
         rows.append({"channel": channel, "programs": programs})
 
     return rows[:6]
+
+
+def _schedule_lookup(schedule: pd.DataFrame) -> tuple[dict[tuple[str, str], dict[str, Any]], dict[str, dict[str, Any]]]:
+    by_type_day: dict[tuple[str, str], dict[str, Any]] = {}
+    by_type: dict[str, dict[str, Any]] = {}
+    if schedule.empty:
+        return by_type_day, by_type
+
+    frame = schedule.copy()
+    frame["program_type"] = frame.get("program_type", "Other").fillna("Other").astype(str)
+    frame["day_key"] = frame.get("day", "").map(_day_key) if "day" in frame.columns else ""
+    frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
+    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.74), errors="coerce").fillna(0.74)
+    frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 1), errors="coerce").fillna(1)
+    frame["break_length"] = pd.to_numeric(frame.get("break_length", frame.get("total_break_time", 120)), errors="coerce").fillna(120)
+
+    for _, row in frame.sort_values("predicted_revenue", ascending=False).iterrows():
+        key = str(row["program_type"]).lower()
+        record = row.to_dict()
+        by_type.setdefault(key, record)
+        if row.get("day_key"):
+            by_type_day.setdefault((key, str(row["day_key"])), record)
+
+    return by_type_day, by_type
+
+
+def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> dict[str, Any]:
+    if programmes.empty:
+        return {"programs": [], "breaks": [], "summary": {"programs": 0, "breaks": 0, "ad_seconds": 0, "revenue": 0}}
+
+    frame = _program_datetime_columns(programmes)
+    frame = frame.dropna(subset=["start_dt", "end_dt"]).copy()
+    if frame.empty:
+        return {"programs": [], "breaks": [], "summary": {"programs": 0, "breaks": 0, "ad_seconds": 0, "revenue": 0}}
+
+    frame["program_type"] = frame.get("program_type", frame.get("programme_type", "Other")).fillna("Other").astype(str)
+    frame["viewing_points"] = pd.to_numeric(frame.get("TVR", 1.0), errors="coerce").fillna(1.0)
+    frame["day_key"] = frame["start_dt"].dt.strftime("%a")
+    frame["duration_seconds"] = (frame["end_dt"] - frame["start_dt"]).dt.total_seconds().clip(lower=0)
+    frame = frame.sort_values("start_dt").groupby("Channel", dropna=False).head(12).reset_index(drop=True)
+
+    by_type_day, by_type = _schedule_lookup(schedule)
+    programs: list[dict[str, Any]] = []
+    breaks: list[dict[str, Any]] = []
+
+    for row_index, row in frame.iterrows():
+        channel = str(row.get("Channel") or row.get("channel") or "Channel")
+        program_type = str(row.get("program_type") or "Other")
+        day = str(row.get("day_key") or "")
+        program_id = str(row.get("programme_id") or row.get("id") or f"program-{row_index}")
+        program_key = f"{channel}-{program_id}-{row['start_dt'].strftime('%H%M')}"
+        duration_seconds = int(_safe_number(row.get("duration_seconds"), 0))
+        duration_minutes = round(duration_seconds / 60, 1)
+        schedule_row = by_type_day.get((program_type.lower(), day)) or by_type.get(program_type.lower()) or {}
+        planned_breaks = int(max(0, _safe_number(schedule_row.get("num_breaks"), 1 if duration_minutes >= 30 else 0)))
+        capacity_breaks = int(max(0, duration_minutes // 18))
+        break_count = max(0, min(5, planned_breaks, capacity_breaks if duration_minutes >= 18 else 0))
+        revenue_total = _money(schedule_row.get("predicted_revenue", row["viewing_points"] * 45000))
+        retention = round(_percent(schedule_row.get("predicted_retention", 0.74)), 1)
+        break_seconds = int(max(30, min(360, _safe_number(schedule_row.get("break_length"), 120))))
+        lane = f"{channel} / {day}"
+
+        programs.append(
+            {
+                "id": program_id,
+                "key": program_key,
+                "lane": lane,
+                "channel": channel,
+                "title": row.get("Title", "Untitled"),
+                "program_type": program_type,
+                "day": day,
+                "date": row["start_dt"].date().isoformat(),
+                "start_time": row["start_dt"].strftime("%H:%M"),
+                "end_time": row["end_dt"].strftime("%H:%M"),
+                "duration_minutes": duration_minutes,
+                "revenue": revenue_total,
+                "retention": retention,
+                "break_markers": break_count,
+            }
+        )
+
+        if break_count == 0:
+            continue
+
+        for break_index in range(1, break_count + 1):
+            candidate = row["start_dt"] + pd.Timedelta(seconds=int((duration_seconds / (break_count + 1)) * break_index))
+            min_start = row["start_dt"] + pd.Timedelta(minutes=2)
+            max_start = row["end_dt"] - pd.Timedelta(seconds=break_seconds + 60)
+            if max_start > min_start:
+                if candidate < min_start:
+                    candidate = min_start
+                if candidate > max_start:
+                    candidate = max_start
+            break_end = candidate + pd.Timedelta(seconds=break_seconds)
+            is_prime = 20 <= int(candidate.hour) <= 23
+            is_gold = bool(is_prime and break_index == 1 and revenue_total >= 20_000)
+            break_revenue = _money(revenue_total / max(break_count, 1))
+            breaks.append(
+                {
+                    "id": f"{program_key}-br-{break_index}",
+                    "program_id": program_id,
+                    "program_key": program_key,
+                    "program_title": row.get("Title", "Untitled"),
+                    "lane": lane,
+                    "channel": channel,
+                    "day": day,
+                    "date": row["start_dt"].date().isoformat(),
+                    "program_type": program_type,
+                    "position": schedule_row.get("position", "middle"),
+                    "break_type": schedule_row.get("break_type", "regular"),
+                    "break_num_in_program": break_index,
+                    "breaks_in_program": break_count,
+                    "start_time": candidate.strftime("%H:%M"),
+                    "end_time": break_end.strftime("%H:%M"),
+                    "duration_sec": break_seconds,
+                    "sponsorships_count": 1 if is_gold else 0,
+                    "is_gold": is_gold,
+                    "source": "Model",
+                    "rating_predicted": round(_safe_number(row.get("viewing_points"), 1.0), 2),
+                    "cpp": _money(_safe_number(schedule_row.get("base_rate"), 1000)),
+                    "revenue_calculated": break_revenue,
+                    "retention": retention,
+                    "status": "at_risk" if retention < 72 else "ready",
+                }
+            )
+
+    return {
+        "programs": programs,
+        "breaks": breaks,
+        "summary": {
+            "programs": len(programs),
+            "breaks": len(breaks),
+            "ad_seconds": int(sum(item["duration_sec"] for item in breaks)),
+            "revenue": _money(sum(item["revenue_calculated"] for item in breaks)),
+        },
+    }
 
 
 def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
@@ -574,6 +767,7 @@ def _schedule_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
     break_schedule = _load_break_schedule()
     return {
         "rows": _build_schedule_canvas(programmes, break_schedule),
+        "break_operations": _build_break_operations(programmes, break_schedule),
         "break_schedule": break_schedule.head(200).replace({pd.NA: None}).where(pd.notna(break_schedule.head(200)), None).to_dict("records"),
     }
 
@@ -609,6 +803,12 @@ def _reports_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, An
 
 
 @lru_cache(maxsize=16)
+def _break_operations_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_break_operations(_load_programmes(), _load_break_schedule())
+
+
+@lru_cache(maxsize=16)
 def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
     return {
@@ -616,6 +816,38 @@ def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any
         "position_impacts": _load_impact(OUTPUT_DIR / "position_impacts.csv"),
         "length_impacts": _load_impact(OUTPUT_DIR / "length_impacts.csv"),
     }
+
+
+def _decisions_path() -> Path:
+    return DATA_DIR / "kairos_decisions.json"
+
+
+def _load_decisions() -> list[dict[str, Any]]:
+    path = _decisions_path()
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, ValueError, TypeError):
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _save_decision(request: BreakDecisionRequest) -> dict[str, Any]:
+    decisions = _load_decisions()
+    record = {
+        "id": f"decision-{int(time.time() * 1000)}",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        **_model_dump(request),
+    }
+    decisions.insert(0, record)
+    path = _decisions_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(decisions[:500], handle, ensure_ascii=False, indent=2)
+        handle.write("\n")
+    return record
 
 
 app = FastAPI(
@@ -675,6 +907,21 @@ def overview() -> dict[str, Any]:
 @app.get("/api/schedule")
 def schedule() -> dict[str, Any]:
     return _schedule_cached(_signature([DATA_DIR / "Programmes.csv", OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+
+
+@app.get("/api/break-operations")
+def break_operations() -> dict[str, Any]:
+    return _break_operations_cached(_signature([DATA_DIR / "Programmes.csv", OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+
+
+@app.get("/api/break-decisions")
+def break_decisions() -> dict[str, Any]:
+    return {"decisions": _load_decisions()}
+
+
+@app.post("/api/break-decisions")
+def create_break_decision(request: BreakDecisionRequest) -> dict[str, Any]:
+    return {"decision": _save_decision(request)}
 
 
 @app.get("/api/impact")

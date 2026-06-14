@@ -149,6 +149,11 @@ button {
   flex-direction: column;
   gap: 4px;
   padding: 18px 10px;
+  scrollbar-width: none;
+}
+
+.primary-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .side-rail .nav-item.MuiListItemButton-root {
@@ -699,7 +704,8 @@ button {
 
 .cell-metrics {
   display: grid;
-  justify-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: start;
   gap: 3px;
   direction: ltr;
   font-variant-numeric: tabular-nums;
@@ -708,10 +714,12 @@ button {
 .cell-metrics span {
   min-width: 0;
   display: block;
+  text-align: start;
 }
 
 .daypart-view,
-.optimizer-inventory-view {
+.optimizer-inventory-view,
+.timeline-view {
   min-height: 502px;
   display: grid;
   gap: 14px;
@@ -725,6 +733,210 @@ button {
 
 .optimizer-inventory-view {
   grid-template-columns: repeat(3, minmax(240px, 1fr));
+}
+
+.timeline-view {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.timeline-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.timeline-summary div {
+  min-height: 62px;
+  padding: 12px 16px;
+  border-inline-end: 1px solid var(--line);
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.timeline-summary div:last-child {
+  border-inline-end: 0;
+}
+
+.timeline-summary strong {
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 680;
+}
+
+.timeline-summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.timeline-scroll {
+  overflow: auto;
+  min-height: 440px;
+  background: #ffffff;
+}
+
+.timeline-ruler,
+.timeline-row {
+  display: grid;
+  grid-template-columns: 164px minmax(680px, 1fr);
+}
+
+.timeline-ruler {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 38px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.timeline-hours {
+  position: relative;
+  height: 38px;
+}
+
+.timeline-hours span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  height: 38px;
+  display: grid;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.timeline-row {
+  min-height: 92px;
+  border-bottom: 1px solid var(--line);
+}
+
+.timeline-row:last-child {
+  border-bottom: 0;
+}
+
+.timeline-lane {
+  min-width: 0;
+  padding: 16px 14px;
+  border-inline-end: 1px solid var(--line);
+  background: #fbfcfd;
+}
+
+.timeline-lane strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 680;
+}
+
+.timeline-lane span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.timeline-track {
+  position: relative;
+  min-height: 92px;
+}
+
+.timeline-track > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #edf1f5;
+}
+
+.timeline-program-band {
+  position: absolute;
+  top: 14px;
+  height: 25px;
+  border: 1px solid #d6dde5;
+  border-radius: 5px;
+  background: #f6f8fa;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+.timeline-program-band span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.timeline-break.MuiButton-root {
+  position: absolute;
+  top: 48px;
+  min-width: 42px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: 5px;
+  padding: 0 7px;
+  background: #0d1b2a;
+  color: #ffffff;
+  box-shadow: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 6px;
+  align-items: center;
+  justify-content: stretch;
+  text-transform: none;
+  transition: background 140ms ease, outline-color 140ms ease, transform 140ms ease;
+}
+
+.timeline-break.MuiButton-root:hover {
+  background: #18304a;
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+
+.timeline-break.MuiButton-root.risk {
+  background: #7a4a00;
+}
+
+.timeline-break.MuiButton-root.selected {
+  outline: 2px solid #315d8c;
+  outline-offset: 2px;
+}
+
+.timeline-break span,
+.timeline-break strong,
+.timeline-break em {
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.timeline-break span {
+  font-weight: 560;
+}
+
+.timeline-break strong {
+  font-weight: 720;
+}
+
+.timeline-break em {
+  grid-column: 1 / -1;
+  font-style: normal;
+  color: #d7f2ee;
 }
 
 .daypart-card,
@@ -1715,8 +1927,10 @@ button {
   }
 
   .brand-lockup {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
     direction: ltr;
-    justify-content: space-between;
+    justify-content: stretch;
     height: 64px;
     padding: 0 18px;
     overflow: hidden;
@@ -1724,6 +1938,10 @@ button {
 
   .brand-lockup > div {
     min-width: 0;
+  }
+
+  .brand-lockup > div:last-child {
+    text-align: left;
   }
 
   .brand-lockup strong,
@@ -1826,6 +2044,15 @@ button {
     padding: 14px 16px;
   }
 
+  .work-grid > *,
+  .planner-surface,
+  .inspector,
+  .surface-toolbar,
+  .planning-canvas {
+    min-width: 0;
+    width: 100%;
+  }
+
   .surface-toolbar {
     height: auto;
     min-height: 54px;
@@ -1841,6 +2068,19 @@ button {
 
   .planning-canvas {
     min-height: 420px;
+  }
+
+  .timeline-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .timeline-ruler,
+  .timeline-row {
+    grid-template-columns: 138px minmax(620px, 1fr);
+  }
+
+  .timeline-lane {
+    padding: 14px 10px;
   }
 
   .inspector {

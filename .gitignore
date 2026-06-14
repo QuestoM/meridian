@@ -47,5 +47,7 @@ tv-break-dashboard/node_modules/
 tv-break-dashboard/dist/
 qa/
 .tmp-api-deps/
+.tmp-api-deps-local/
+data/kairos_decisions.json
 *.log
 *.err
