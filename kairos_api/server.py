@@ -22,7 +22,7 @@ from kairos.optimize.guardrails import Break as GuardrailBreak
 from kairos.optimize.guardrails import Guardrails, evaluate as evaluate_guardrails
 from kairos.optimize.objective import break_revenue as cpp_break_revenue
 from kairos.optimize.objective import retention_adjusted_revenue
-from kairos.optimize.optimizer import OptimizationResult, ProgramSegment, optimize_breaks
+from kairos.service import run_scenario
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -197,13 +197,6 @@ def _time_to_seconds(value: Any) -> float:
     else:
         hour, minute, second = parts
     return float(hour * 3600 + minute * 60 + second)
-
-
-def _seconds_to_time(value: Any) -> str:
-    seconds = int(round(_safe_number(value, 0))) % (24 * 3600)
-    hour = seconds // 3600
-    minute = (seconds % 3600) // 60
-    return f"{hour:02d}:{minute:02d}"
 
 
 def _day_key(value: Any) -> str:
@@ -510,141 +503,16 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
     }
 
 
-def _optimizer_segments_from_operations(
-    operations: dict[str, Any],
-    settings: KairosSettings,
-) -> list[ProgramSegment]:
-    breaks_by_program: dict[str, list[dict[str, Any]]] = {}
-    for item in operations.get("breaks", []):
-        breaks_by_program.setdefault(str(item.get("program_key") or item.get("program_id") or ""), []).append(item)
-
-    segments: list[ProgramSegment] = []
-    for program in operations.get("programs", []):
-        key = str(program.get("key") or program.get("id") or "")
-        start_seconds = _time_to_seconds(program.get("start_time"))
-        duration_seconds = max(0.0, _safe_number(program.get("duration_minutes"), 0) * 60)
-        if not key or duration_seconds <= 0:
-            continue
-        program_breaks = breaks_by_program.get(key, [])
-        baseline_tvr = max(
-            _safe_number(program_breaks[0].get("rating_predicted"), 1.0) if program_breaks else 1.0,
-            0.01,
-        )
-        cpp = max(
-            _safe_number(program_breaks[0].get("cpp"), 1000) if program_breaks else 1000,
-            0.0,
-        )
-        break_length = max(
-            _safe_number(program_breaks[0].get("duration_sec"), 120) if program_breaks else 120,
-            30.0,
-        )
-        max_breaks = int(max(0, min(8, _safe_number(program.get("break_markers"), settings.max_breaks_per_hour))))
-        if max_breaks == 0:
-            continue
-        is_gold = any(bool(item.get("is_gold")) for item in program_breaks)
-        premium = max((_safe_number(item.get("revenue_premium"), 1.0) for item in program_breaks), default=1.0)
-        segments.append(
-            ProgramSegment(
-                segment_id=key,
-                channel=str(program.get("channel") or "Channel"),
-                day=str(program.get("day") or ""),
-                start_seconds=start_seconds,
-                duration_seconds=duration_seconds,
-                program_type=str(program.get("program_type") or "Other"),
-                baseline_tvr=baseline_tvr,
-                cpp=cpp,
-                impact_coefficient=-0.025,
-                retention_baseline=max(_ratio(program.get("retention")), settings.min_retention_floor),
-                premium=premium,
-                is_gold=is_gold,
-                max_breaks=max_breaks,
-                break_length_seconds=break_length,
-            )
-        )
-    return segments
-
-
-def _optimizer_result_payload(result: OptimizationResult) -> dict[str, Any]:
-    return {
-        "summary": {
-            "total_breaks": result.total_breaks,
-            "projected_revenue": _money(result.total_revenue),
-            "average_retention": round(result.aggregate_retention * 100, 1),
-            "objective": round(result.objective, 4),
-            "is_compliant": result.is_compliant,
-            "revenue_weight": result.revenue_weight,
-            "revenue_scale": _money(result.revenue_scale),
-        },
-        "segments": [
-            {
-                "segment_id": segment.segment_id,
-                "num_breaks": segment.num_breaks,
-                "retention": round(segment.retention * 100, 1),
-                "revenue": _money(segment.revenue),
-            }
-            for segment in result.segments
-        ],
-        "placements": [
-            {
-                "segment_id": placement.segment_id,
-                "channel": placement.channel,
-                "day": placement.day,
-                "hour": placement.hour,
-                "start_time": _seconds_to_time(placement.start_seconds),
-                "duration_sec": int(round(placement.duration_seconds)),
-                "program_type": placement.program_type,
-                "position_in_segment": placement.position_in_segment,
-                "retention": round(placement.retention * 100, 1),
-                "revenue": _money(placement.revenue),
-                "is_gold": placement.is_gold,
-            }
-            for placement in result.placements
-        ],
-        "decisions": [
-            {
-                "segment_id": decision.segment_id,
-                "break_index": decision.break_index,
-                "marginal_objective_gain": round(decision.marginal_objective_gain, 6),
-                "marginal_revenue": _money(decision.marginal_revenue),
-                "retention_after": round(decision.retention_after * 100, 1),
-            }
-            for decision in result.decisions
-        ],
-        "violations": [
-            {
-                "code": violation.code,
-                "scope": violation.scope,
-                "observed": violation.observed,
-                "limit": violation.limit,
-                "detail": violation.detail,
-            }
-            for violation in result.violations
-        ],
-    }
-
-
 def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
     request = request or ScenarioRequest()
-    settings = _load_settings()
-    effective_settings = KairosSettings(
-        **{
-            **_model_dump(settings),
-            "min_retention_floor": request.retention_floor,
-            "max_breaks_per_hour": request.max_breaks_per_hour,
-        }
+    payload = run_scenario(
+        revenue_weight=request.revenue_weight,
+        retention_floor=request.retention_floor,
+        max_breaks_per_hour=request.max_breaks_per_hour,
     )
-    operations = _build_break_operations(_load_programmes(), _load_break_schedule())
-    segments = _optimizer_segments_from_operations(operations, effective_settings)
-    result = optimize_breaks(
-        segments,
-        _settings_to_guardrails(effective_settings),
-        revenue_weight=request.revenue_weight / 100,
-    )
-    return {
-        **_optimizer_result_payload(result),
-        "controls": _model_dump(request),
-        "source_summary": operations.get("summary", {}),
-    }
+    summary = payload.setdefault("summary", {})
+    summary["is_compliant"] = bool(summary.get("is_compliant", summary.get("compliant", False)))
+    return payload
 
 
 def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
