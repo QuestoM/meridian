@@ -147,6 +147,10 @@ def optimize_day_plan(
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
     if programmes is None:
         programmes = load_programmes(programmes_path)
+    # The real decision is per channel per day. With neither given, default to the
+    # first channel-day in the source so a plain call stays a single, fast day.
+    if channel is None and day is None:
+        channel, day = _first_channel_day(programmes)
 
     classifier = ProgramClassifier.from_yaml()
     segments = build_segments_from_programmes(

@@ -22,7 +22,20 @@ from kairos.optimize.guardrails import Break as GuardrailBreak
 from kairos.optimize.guardrails import Guardrails, evaluate as evaluate_guardrails
 from kairos.optimize.objective import break_revenue as cpp_break_revenue
 from kairos.optimize.objective import retention_adjusted_revenue
-from kairos.service import run_scenario
+
+# The real optimization engine is imported defensively: if its dependencies are
+# absent the rest of the API still boots, and the engine-backed endpoints report
+# that honestly instead of crashing.
+try:
+    from dataclasses import asdict as _asdict
+
+    from kairos.data.loaders import CHANNELS as KAIROS_CHANNELS
+    from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+    from kairos.service import guardrails_from_settings, optimize_day_plan, run_scenario
+
+    _ENGINE_AVAILABLE = True
+except Exception:  # pragma: no cover - engine optional at import time
+    _ENGINE_AVAILABLE = False
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -505,6 +518,15 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
 
 def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
     request = request or ScenarioRequest()
+    if not _ENGINE_AVAILABLE:
+        return {
+            "summary": {
+                **_summarize_schedule(_load_break_schedule()),
+                "is_compliant": False,
+            },
+            "controls": _model_dump(request),
+            "engine": "unavailable",
+        }
     payload = run_scenario(
         revenue_weight=request.revenue_weight,
         retention_floor=request.retention_floor,
@@ -1260,20 +1282,121 @@ def files() -> dict[str, Any]:
     }
 
 
-@app.post("/api/scenario")
-def scenario(request: ScenarioRequest) -> dict[str, Any]:
-    summary = _summarize_schedule(_load_break_schedule())
-    revenue_factor = 0.85 + request.revenue_weight / 100 * 0.3
-    retention_penalty = max(0, request.revenue_weight - 50) * 0.035
+def _risk_from_retention(average_retention_percent: float, total_breaks: int) -> float:
+    """A transparent risk score: lower retention and more breaks raise it."""
+    return round(max(0.0, min(100.0, (78 - average_retention_percent) * 2.2 + total_breaks * 0.8)), 1)
+
+
+@lru_cache(maxsize=128)
+def _scenario_cached(revenue_weight: int, retention_floor: float, max_breaks_per_hour: int) -> dict[str, Any]:
+    result = run_scenario(
+        revenue_weight=revenue_weight,
+        retention_floor=retention_floor,
+        max_breaks_per_hour=max_breaks_per_hour,
+    )
+    summary = result["summary"]
     return {
         "summary": {
-            **summary,
-            "projected_revenue": _money(summary["projected_revenue"] * revenue_factor),
-            "average_retention": round(max(request.retention_floor * 100, summary["average_retention"] - retention_penalty), 1),
-            "risk_score": round(min(100, summary["risk_score"] + retention_penalty * 4), 1),
+            "total_breaks": summary["total_breaks"],
+            "total_ad_seconds": summary["total_ad_seconds"],
+            "projected_revenue": summary["projected_revenue"],
+            "average_retention": summary["average_retention"],
+            "risk_score": _risk_from_retention(summary["average_retention"], summary["total_breaks"]),
         },
-        "controls": _model_dump(request),
+        "controls": result["controls"],
+        "guardrails": result["guardrails"],
+        "channel": result["channel"],
+        "day": result["day"],
+        "compliant": summary["compliant"],
+        "engine": "kairos",
     }
+
+
+@app.post("/api/scenario")
+def scenario(request: ScenarioRequest) -> dict[str, Any]:
+    """Run a real optimization for the scenario controls (no placeholder math).
+
+    Falls back to the stored schedule summary only if the engine or its data is
+    unavailable, reporting that honestly instead of inventing numbers.
+    """
+    if _ENGINE_AVAILABLE:
+        try:
+            return _scenario_cached(
+                request.revenue_weight, request.retention_floor, request.max_breaks_per_hour
+            )
+        except Exception as exc:  # pragma: no cover - data/environment dependent
+            return {
+                "summary": _summarize_schedule(_load_break_schedule()),
+                "controls": _model_dump(request),
+                "engine": "unavailable",
+                "detail": str(exc)[:300],
+            }
+    return {
+        "summary": _summarize_schedule(_load_break_schedule()),
+        "controls": _model_dump(request),
+        "engine": "unavailable",
+    }
+
+
+class OptimizePlanRequest(BaseModel):
+    """Controls for a real, in-process optimization of one channel-day."""
+
+    channel: str | None = Field(default=None)
+    day: str | None = Field(default=None)
+    revenue_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+@app.post("/api/optimize-plan")
+def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
+    """Serve a real optimal break plan, driven by the saved settings.
+
+    This is the engine-backed counterpart to /api/optimize (which shells out to
+    the trained Meridian model). It uses the live KairosSettings as guardrails,
+    so the dashboard's settings page controls the optimizer directly.
+    """
+    if not _ENGINE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Optimization engine is unavailable")
+    try:
+        return optimize_day_plan(
+            channel=request.channel,
+            day=request.day,
+            revenue_weight=request.revenue_weight,
+            settings=_model_dump(_load_settings()),
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")
+    except Exception as exc:  # pragma: no cover - data/environment dependent
+        raise HTTPException(status_code=503, detail=f"Optimization failed: {exc}")
+
+
+@app.get("/api/parameters")
+def parameters() -> dict[str, Any]:
+    """Every adjustable parameter the optimizer uses, in one place.
+
+    Surfaces the guardrails (derived from the saved settings), the declared
+    optimizer assumptions, the pricing model, and the known channels, so the
+    dashboard can show and edit each one.
+    """
+    settings = _load_settings()
+    payload: dict[str, Any] = {"settings": _model_dump(settings)}
+    if not _ENGINE_AVAILABLE:
+        payload["engine"] = "unavailable"
+        return payload
+    payload["guardrails"] = _asdict(guardrails_from_settings(_model_dump(settings)))
+    payload["assumptions"] = _asdict(OptimizerAssumptions())
+    payload["channels"] = list(KAIROS_CHANNELS)
+    try:
+        pricing = PricingModel.from_yaml()
+        payload["pricing"] = {
+            "base_price_per_second_per_tvr_point": pricing.base_price,
+            "program_type_premiums": pricing.program_type_premiums,
+            "ad_type_premiums": pricing.ad_type_premiums,
+            "position_premiums": {str(k): v for k, v in pricing.position_premiums.items()},
+            "day_of_week_premiums": {str(k): v for k, v in pricing.day_of_week_premiums.items()},
+        }
+    except Exception as exc:  # pragma: no cover - config dependent
+        payload["pricing"] = {"error": str(exc)[:200]}
+    return payload
 
 
 @app.post("/api/optimize")
