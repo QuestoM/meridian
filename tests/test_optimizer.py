@@ -159,6 +159,18 @@ def test_separate_channels_are_allocated_independently() -> None:
     assert result.is_compliant
 
 
+def test_unit_seconds_scales_revenue_per_second() -> None:
+    # With unit_seconds=1 and cpp as a per-second price, one 120s break at TVR 10
+    # earns cpp * tvr * duration: 60 * 10 * 120 = 72000.
+    segment = make_segment(
+        max_breaks=1, cpp=60.0, unit_seconds=1.0, baseline_tvr=10.0,
+        break_length_seconds=120.0, impact_coefficient=0.0, premium=1.0,
+    )
+    result = optimize_breaks([segment], GR, revenue_weight=1.0)
+    assert result.segments[0].num_breaks == 1
+    assert result.total_revenue == pytest.approx(60.0 * 10.0 * 120.0)
+
+
 def test_invalid_weight_is_rejected() -> None:
     with pytest.raises(ValueError):
         optimize_breaks([make_segment()], GR, revenue_weight=1.5)

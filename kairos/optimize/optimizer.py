@@ -33,6 +33,7 @@ from typing import Iterable, Optional
 
 from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, is_compliant
 from kairos.optimize.objective import (
+    STANDARD_UNIT_SECONDS,
     break_revenue,
     predicted_retention,
     weighted_objective,
@@ -67,6 +68,7 @@ class ProgramSegment:
     is_gold: bool = False
     max_breaks: int = 4
     break_length_seconds: float = DEFAULT_BREAK_LENGTH_SECONDS
+    unit_seconds: float = STANDARD_UNIT_SECONDS   # the duration ``cpp`` is quoted per
 
     @property
     def hour(self) -> int:
@@ -85,6 +87,8 @@ class ProgramSegment:
             raise ValueError(f"segment {self.segment_id}: max_breaks must be non-negative")
         if self.break_length_seconds <= 0:
             raise ValueError(f"segment {self.segment_id}: break_length_seconds must be positive")
+        if self.unit_seconds <= 0:
+            raise ValueError(f"segment {self.segment_id}: unit_seconds must be positive")
         if not 0.0 <= self.retention_baseline <= 1.0:
             raise ValueError(f"segment {self.segment_id}: retention_baseline must be in [0, 1]")
 
@@ -168,6 +172,7 @@ def _marginal_revenue(segment: ProgramSegment, k: int) -> float:
         effective_tvr,
         segment.break_length_seconds,
         segment.cpp,
+        unit_seconds=segment.unit_seconds,
         premium=segment.premium,
     )
 
