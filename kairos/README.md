@@ -128,3 +128,41 @@ PYTHONUTF8=1 .venv311/Scripts/python scripts/train_impact_model.py
 
 This builds the InputData from the real reference data, samples the posterior,
 and writes `models/tv_break_posterior.pkl`.
+
+## Driving the decision from the daily plan
+
+The optimizer decides break placement for one channel on one day. It can read
+that day from either source:
+
+- The **Programmes EPG** (the default): pass `channel` and `day`, or neither to
+  take the first channel-day in the reference data.
+- The **real daily plan** (the "Wally" csv under `data/daily_input/`): pass
+  `daily_input_path` to `service.optimize_day_plan`. The plan's per-spot rows are
+  collapsed to one segment per programme; `baseline_tvr` is the mean planned
+  break rating of that programme (a real value from the plan, never invented),
+  and the programme length is inferred from the gap to the next programme. The
+  channel and day come from the file. See `build_segments_from_daily_input` in
+  `kairos/data/transform.py`.
+
+## Classifying unknown programmes with AI
+
+The rule-based classifier (`kairos/data/classifier.py`) is honest about its
+unknowns: a title with no keyword evidence returns `category == "Other"`. That is
+the genuinely *unclassified* set, distinct from a known genre whose pricing class
+happens to be "Other". `scripts/classify_unclassified.py` scans the reference and
+daily-input titles, lists the unclassified ones, and (when an LLM is configured)
+routes them to a grounded classifier that searches the web and returns a category
+from the taxonomy, caching each verdict in
+`models/ai_program_classifications.json`.
+
+```
+cd kairos-build
+# optional: set GEMINI_API_KEY and install google-genai to enable the AI
+PYTHONUTF8=1 python scripts/classify_unclassified.py
+```
+
+With no key or client library present it still reports the unclassified titles
+and records them as `unavailable`, never inventing a genre. When trusted AI
+genres exist in the cache, `service.py` wraps the classifier with
+`CachedClassifier` so those genres reach pricing and the placement engine. See
+`kairos/data/ai_classifier.py`.

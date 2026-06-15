@@ -19,8 +19,12 @@ from typing import Any, Mapping, Optional
 import pandas as pd
 
 from kairos.data import ProgramClassifier
-from kairos.data.loaders import REFERENCE_DIR, load_programmes
-from kairos.data.transform import build_segments_from_programmes
+from kairos.data.ai_classifier import CachedClassifier, load_ai_overrides
+from kairos.data.loaders import REFERENCE_DIR, load_daily_input, load_programmes
+from kairos.data.transform import (
+    build_segments_from_daily_input,
+    build_segments_from_programmes,
+)
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.guardrails import Guardrails
@@ -35,6 +39,17 @@ ROOT = Path(__file__).resolve().parents[1]
 # The trained Meridian posterior, when present. load_impact_model falls back to
 # the declared assumption coefficient when this file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
+# Trusted AI genres for titles the rule-based classifier left as "Other",
+# written by scripts/classify_unclassified.py. Absent or empty means no AI
+# overrides, and classification stays purely rule-based (no fabrication).
+AI_CLASSIFICATIONS_PATH = ROOT / "models" / "ai_program_classifications.json"
+
+
+def _build_classifier() -> ProgramClassifier:
+    """The rule-based classifier, wrapped with any trusted AI genres on disk."""
+    classifier = ProgramClassifier.from_yaml()
+    overrides = load_ai_overrides(AI_CLASSIFICATIONS_PATH)
+    return CachedClassifier(classifier, overrides) if overrides else classifier
 
 
 def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
@@ -142,6 +157,7 @@ def optimize_day_plan(
     pricing: Optional[PricingModel] = None,
     programmes: Optional[pd.DataFrame] = None,
     programmes_path: Optional[str] = None,
+    daily_input_path: Optional[str] = None,
     impact_model: Optional[ImpactModel] = None,
     log_run: bool = True,
     run_id: Optional[str] = None,
@@ -165,18 +181,29 @@ def optimize_day_plan(
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
     if impact_model is None:
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
-    if programmes is None:
-        programmes = load_programmes(programmes_path)
-    # The real decision is per channel per day. With neither given, default to the
-    # first channel-day in the source so a plain call stays a single, fast day.
-    if channel is None and day is None:
-        channel, day = _first_channel_day(programmes)
+    classifier = _build_classifier()
 
-    classifier = ProgramClassifier.from_yaml()
-    segments = build_segments_from_programmes(
-        programmes, classifier, pricing,
-        assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
-    )
+    if daily_input_path is not None:
+        # Drive the decision from the real daily plan (the Wally csv): the
+        # optimizer places breaks on the day's actual programme lineup.
+        daily = load_daily_input(daily_input_path)
+        segments = build_segments_from_daily_input(
+            daily, classifier, pricing, assumptions=assumptions, impact_model=impact_model,
+        )
+        if segments:
+            channel = channel or segments[0].channel
+            day = day or segments[0].day
+    else:
+        if programmes is None:
+            programmes = load_programmes(programmes_path)
+        # The real decision is per channel per day. With neither given, default to
+        # the first channel-day in the source so a plain call stays a single day.
+        if channel is None and day is None:
+            channel, day = _first_channel_day(programmes)
+        segments = build_segments_from_programmes(
+            programmes, classifier, pricing,
+            assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
+        )
     result = optimize_breaks(segments, guardrails, revenue_weight=weight)
 
     payload = result_to_dict(result, channel=channel, day=day)
@@ -189,7 +216,7 @@ def optimize_day_plan(
         # Provenance: hash the programmes file when one fed the run. With a frame
         # passed directly there is no file, so the default reference path is the
         # honest source. run_id and created_at come from here, the app layer.
-        source = programmes_path or (REFERENCE_DIR / "Programmes.xlsx")
+        source = daily_input_path or programmes_path or (REFERENCE_DIR / "Programmes.xlsx")
         record = build_run_record(
             run_id=run_id or uuid.uuid4().hex,
             created_at=created_at or datetime.now(timezone.utc).isoformat(),
@@ -235,7 +262,7 @@ def run_scenario(
     pricing = PricingModel.from_yaml()
     assumptions = OptimizerAssumptions()
     impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
-    classifier = ProgramClassifier.from_yaml()
+    classifier = _build_classifier()
     segments = build_segments_from_programmes(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,

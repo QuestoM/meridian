@@ -1344,6 +1344,9 @@ class OptimizePlanRequest(BaseModel):
     channel: str | None = Field(default=None)
     day: str | None = Field(default=None)
     revenue_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    # When set, the day's real daily plan (the Wally csv) drives the decision
+    # instead of the Programmes EPG; channel and day are read from the file.
+    daily_input: str | None = Field(default=None)
 
 
 @app.post("/api/optimize-plan")
@@ -1361,6 +1364,7 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
             channel=request.channel,
             day=request.day,
             revenue_weight=request.revenue_weight,
+            daily_input_path=request.daily_input,
             settings=_model_dump(_load_settings()),
         )
     except FileNotFoundError as exc:
