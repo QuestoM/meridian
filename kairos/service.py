@@ -10,14 +10,19 @@ display and edit it instead of relying on placeholder math.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import pandas as pd
 
 from kairos.data import ProgramClassifier
-from kairos.data.loaders import load_programmes
+from kairos.data.loaders import REFERENCE_DIR, load_programmes
 from kairos.data.transform import build_segments_from_programmes
+from kairos.model.impact import ImpactModel, load_impact_model
+from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.objective import clamp
 from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
@@ -25,6 +30,11 @@ from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 
 SECONDS_PER_MINUTE = 60.0
 SECONDS_PER_HOUR = 3600.0
+
+ROOT = Path(__file__).resolve().parents[1]
+# The trained Meridian posterior, when present. load_impact_model falls back to
+# the declared assumption coefficient when this file or Meridian is absent.
+DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
 
 
 def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
@@ -132,19 +142,29 @@ def optimize_day_plan(
     pricing: Optional[PricingModel] = None,
     programmes: Optional[pd.DataFrame] = None,
     programmes_path: Optional[str] = None,
+    impact_model: Optional[ImpactModel] = None,
+    log_run: bool = True,
+    run_id: Optional[str] = None,
+    created_at: Optional[str] = None,
 ) -> dict[str, Any]:
     """Run the full real pipeline and return a serialisable plan.
 
     ``channel`` and ``day`` (``YYYY-MM-DD``) narrow the grid; omitting both
     optimises every channel-day in the source. ``settings`` is the dashboard's
     KairosSettings (used for guardrails); ``revenue_weight`` overrides the
-    assumptions default. The returned dict echoes the guardrails and assumptions
-    used, so every adjustable number is visible to the caller.
+    assumptions default. ``impact_model`` supplies the retention coefficient;
+    when omitted it is loaded from the trained posterior if present, else the
+    declared assumption. The returned dict echoes the guardrails and assumptions
+    used, so every adjustable number is visible to the caller. When ``log_run``
+    is set, the run is appended to ``output/run_log.jsonl`` for audit, stamped
+    with ``run_id`` and ``created_at`` (generated here when not supplied).
     """
     pricing = pricing or PricingModel.from_yaml()
     assumptions = assumptions or OptimizerAssumptions()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
+    if impact_model is None:
+        impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     if programmes is None:
         programmes = load_programmes(programmes_path)
     # The real decision is per channel per day. With neither given, default to the
@@ -154,7 +174,8 @@ def optimize_day_plan(
 
     classifier = ProgramClassifier.from_yaml()
     segments = build_segments_from_programmes(
-        programmes, classifier, pricing, assumptions=assumptions, channel=channel, day=day,
+        programmes, classifier, pricing,
+        assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
     result = optimize_breaks(segments, guardrails, revenue_weight=weight)
 
@@ -162,6 +183,25 @@ def optimize_day_plan(
     payload["guardrails"] = asdict(guardrails)
     payload["assumptions"] = asdict(assumptions)
     payload["segment_count"] = len(segments)
+    payload["impact_source"] = impact_model.source
+
+    if log_run:
+        # Provenance: hash the programmes file when one fed the run. With a frame
+        # passed directly there is no file, so the default reference path is the
+        # honest source. run_id and created_at come from here, the app layer.
+        source = programmes_path or (REFERENCE_DIR / "Programmes.xlsx")
+        record = build_run_record(
+            run_id=run_id or uuid.uuid4().hex,
+            created_at=created_at or datetime.now(timezone.utc).isoformat(),
+            channel=channel,
+            day=day,
+            source_paths={"programmes": source},
+            guardrails=asdict(guardrails),
+            assumptions=asdict(assumptions),
+            summary=payload["summary"],
+            segment_count=len(segments),
+        )
+        write_run_log(record)
     return payload
 
 
@@ -194,9 +234,11 @@ def run_scenario(
     )
     pricing = PricingModel.from_yaml()
     assumptions = OptimizerAssumptions()
+    impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     classifier = ProgramClassifier.from_yaml()
     segments = build_segments_from_programmes(
-        programmes, classifier, pricing, assumptions=assumptions, channel=channel, day=day,
+        programmes, classifier, pricing,
+        assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
     result = optimize_breaks(segments, guardrails, revenue_weight=weight)
 

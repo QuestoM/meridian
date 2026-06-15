@@ -29,6 +29,8 @@ from typing import Iterable
 import pandas as pd
 
 from kairos.data.classifier import ProgramClassifier
+from kairos.model.impact import ImpactModel
+from kairos.model.spec import DEFAULT_BREAK_POSITIONS
 from kairos.optimize.optimizer import ProgramSegment
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 
@@ -37,10 +39,45 @@ logger = logging.getLogger(__name__)
 SECONDS_PER_HOUR = 3600
 DEFAULT_NEWS_KEYWORDS = ("חדשות",)
 DEFAULT_NUM_MAIN_SHOWS = 2
+# Break-length buckets matching the trained model's break_length vocabulary
+# (kairos.model.spec.DEFAULT_BREAK_LENGTHS). A segment carries one representative
+# length, so its impact coefficient is read at this bucket.
+_SHORT_MAX_SECONDS = 90.0
+_STANDARD_MAX_SECONDS = 180.0
 
 
 def _seconds_from_midnight(timestamp: pd.Timestamp) -> float:
     return float(timestamp.hour * SECONDS_PER_HOUR + timestamp.minute * 60 + timestamp.second)
+
+
+def _length_bucket(break_length_seconds: float) -> str:
+    """Map a break length in seconds to the model's short/standard/long bucket."""
+    if break_length_seconds < _SHORT_MAX_SECONDS:
+        return "short"
+    if break_length_seconds < _STANDARD_MAX_SECONDS:
+        return "standard"
+    return "long"
+
+
+def _segment_impact_coefficient(
+    impact_model: ImpactModel,
+    pricing_class: str,
+    break_length_seconds: float,
+) -> float:
+    """Read one representative retention coefficient for a segment.
+
+    The optimizer applies a single per-break coefficient per segment, but the
+    trained model is keyed by break position too. We average the model's
+    coefficient across the position buckets at the segment's length, which is the
+    most faithful single-number summary. For the assumption fallback every
+    position returns the same declared number, so the average is that number.
+    """
+    length = _length_bucket(break_length_seconds)
+    coefficients = [
+        impact_model.coefficient_for(pricing_class, position, length)
+        for position in DEFAULT_BREAK_POSITIONS
+    ]
+    return sum(coefficients) / len(coefficients)
 
 
 def _is_news(title: str, category: str, news_keywords: Iterable[str]) -> bool:
@@ -78,6 +115,7 @@ def build_segments_from_programmes(
     pricing: PricingModel,
     *,
     assumptions: OptimizerAssumptions | None = None,
+    impact_model: ImpactModel | None = None,
     channel: str | None = None,
     day: str | None = None,
     news_keywords: Iterable[str] = DEFAULT_NEWS_KEYWORDS,
@@ -90,6 +128,13 @@ def build_segments_from_programmes(
     ``start_dt``, ``Duration``, ``TVR``). ``channel`` filters to one channel and
     ``day`` (``YYYY-MM-DD``) to one broadcast date; both default to the whole
     frame. Rows missing a start time or a positive duration are skipped.
+
+    ``impact_model`` supplies each segment's retention impact coefficient. When
+    omitted, the declared :attr:`OptimizerAssumptions.retention_impact_per_break`
+    is used (the honest assumption fallback); a trained
+    :class:`~kairos.model.impact.PosteriorImpactModel` makes the coefficient
+    per-channel and measured. Either way the segment carries one number, so the
+    output is identical in shape.
     """
     assumptions = assumptions or OptimizerAssumptions()
     frame = programmes
@@ -123,6 +168,12 @@ def build_segments_from_programmes(
         tvr = getattr(row, "TVR", 0.0)
         baseline_tvr = 0.0 if pd.isna(tvr) else max(0.0, float(tvr))
         segment_date = start.strftime("%Y-%m-%d")
+        if impact_model is None:
+            impact_coefficient = assumptions.retention_impact_per_break
+        else:
+            impact_coefficient = _segment_impact_coefficient(
+                impact_model, pricing_class, assumptions.default_break_length_seconds,
+            )
         segments.append(ProgramSegment(
             segment_id=f"{segment_date}|{getattr(row, 'Channel')}|{index:03d}",
             channel=str(getattr(row, "Channel")),
@@ -133,7 +184,7 @@ def build_segments_from_programmes(
             baseline_tvr=baseline_tvr,
             cpp=pricing.base_price,
             unit_seconds=1.0,                       # base price is quoted per second
-            impact_coefficient=assumptions.retention_impact_per_break,
+            impact_coefficient=impact_coefficient,
             retention_baseline=assumptions.retention_baseline,
             premium=pricing.segment_premium(
                 pricing_class=pricing_class,
