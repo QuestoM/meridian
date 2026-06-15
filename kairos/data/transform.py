@@ -80,6 +80,129 @@ def _segment_impact_coefficient(
     return sum(coefficients) / len(coefficients)
 
 
+SECONDS_PER_MINUTE = 60
+# Fallback programme length when the daily input gives no next programme to
+# bound the last one (the daily plan carries no explicit programme duration).
+_DEFAULT_PROGRAMME_SECONDS = 3600.0
+# The reference daily-input file is a single channel (Reshet 13); the canonical
+# daily csv carries no channel column, so the channel is supplied or defaulted.
+_DEFAULT_DAILY_CHANNEL = "רשת 13"
+
+
+def _hhmm_to_seconds(value: object) -> float | None:
+    """Parse a 'HH:MM' programme start into seconds from midnight, or None."""
+    text = str(value).strip()
+    if not text or ":" not in text:
+        return None
+    try:
+        hours, minutes = text.split(":")[:2]
+        return float(int(hours) * SECONDS_PER_HOUR + int(minutes) * SECONDS_PER_MINUTE)
+    except ValueError:
+        return None
+
+
+def build_segments_from_daily_input(
+    daily: pd.DataFrame,
+    classifier: ProgramClassifier,
+    pricing: PricingModel,
+    *,
+    assumptions: OptimizerAssumptions | None = None,
+    impact_model: ImpactModel | None = None,
+    channel: str = _DEFAULT_DAILY_CHANNEL,
+    news_keywords: Iterable[str] = DEFAULT_NEWS_KEYWORDS,
+    num_main_shows: int = DEFAULT_NUM_MAIN_SHOWS,
+) -> list[ProgramSegment]:
+    """Build optimizer segments from a real daily optimization input (Wally csv).
+
+    The daily input is the channel's plan for one day: one row per aired spot,
+    grouped into programmes by ``program`` and ``program_start``. This collapses
+    it to one :class:`~kairos.optimize.optimizer.ProgramSegment` per programme so
+    the optimizer decides break placement on the real day rather than on the
+    Programmes EPG. ``baseline_tvr`` is the mean planned break rating of the
+    programme (a real value from the plan, never invented; a programme with no
+    planned rating becomes a zero-value segment). Programme length is inferred
+    from the gap to the next programme, with a documented fallback for the last.
+    ``channel`` is supplied because the canonical daily csv carries no channel
+    column. ``impact_model`` supplies each segment's retention coefficient, as in
+    :func:`build_segments_from_programmes`.
+    """
+    assumptions = assumptions or OptimizerAssumptions()
+    frame = daily[daily["program"].notna() & daily["program_start"].notna()].copy()
+    if frame.empty:
+        return []
+    frame["planned_tvr"] = pd.to_numeric(frame.get("planned_tvr"), errors="coerce")
+    frame["_start_seconds"] = frame["program_start"].map(_hhmm_to_seconds)
+    frame = frame[frame["_start_seconds"].notna()]
+    if frame.empty:
+        return []
+
+    day = _daily_day(frame)
+    grouped = (
+        frame.groupby(["program", "program_start"], sort=False)
+        .agg(start_seconds=("_start_seconds", "first"), baseline_tvr=("planned_tvr", "mean"))
+        .reset_index()
+        .sort_values("start_seconds")
+        .reset_index(drop=True)
+    )
+
+    titles_categories = [
+        (str(title), classifier.classify(title).category) for title in grouped["program"]
+    ]
+    classes = _pricing_classes(
+        titles_categories, news_keywords=news_keywords, num_main_shows=num_main_shows,
+    )
+
+    starts = grouped["start_seconds"].tolist()
+    segments: list[ProgramSegment] = []
+    for index, (row, classification, pricing_class) in enumerate(
+        zip(grouped.itertuples(index=False), titles_categories, classes)
+    ):
+        start_seconds = float(getattr(row, "start_seconds"))
+        # Length runs to the next programme's start; the last keeps the fallback.
+        next_start = starts[index + 1] if index + 1 < len(starts) else None
+        duration = (next_start - start_seconds) if next_start and next_start > start_seconds else _DEFAULT_PROGRAMME_SECONDS
+        baseline = getattr(row, "baseline_tvr")
+        baseline_tvr = 0.0 if pd.isna(baseline) else max(0.0, float(baseline))
+        if impact_model is None:
+            impact_coefficient = assumptions.retention_impact_per_break
+        else:
+            impact_coefficient = _segment_impact_coefficient(
+                impact_model, pricing_class, assumptions.default_break_length_seconds,
+            )
+        segments.append(ProgramSegment(
+            segment_id=f"{day}|{channel}|{index:03d}",
+            channel=channel,
+            day=day,
+            start_seconds=start_seconds,
+            duration_seconds=duration,
+            program_type=classification[1],
+            baseline_tvr=baseline_tvr,
+            cpp=pricing.base_price,
+            unit_seconds=1.0,
+            impact_coefficient=impact_coefficient,
+            retention_baseline=assumptions.retention_baseline,
+            premium=pricing.segment_premium(pricing_class=pricing_class, weekday_iso=_daily_weekday(day)),
+            max_breaks=assumptions.default_max_breaks,
+            break_length_seconds=assumptions.default_break_length_seconds,
+        ))
+    return segments
+
+
+def _daily_day(frame: pd.DataFrame) -> str:
+    """Read the broadcast day (YYYY-MM-DD) from the daily input date column."""
+    if "date" in frame.columns:
+        dates = pd.to_datetime(frame["date"], errors="coerce").dropna()
+        if not dates.empty:
+            return dates.iloc[0].strftime("%Y-%m-%d")
+    return "unknown"
+
+
+def _daily_weekday(day: str) -> int:
+    """ISO weekday (1..7) for a YYYY-MM-DD string, defaulting to Sunday."""
+    stamp = pd.to_datetime(day, errors="coerce")
+    return int(stamp.isoweekday()) if pd.notna(stamp) else 7
+
+
 def _is_news(title: str, category: str, news_keywords: Iterable[str]) -> bool:
     if category == "News":
         return True
