@@ -229,7 +229,7 @@ const copyByLocale = {
     scenarios: ['Balanced', 'Revenue priority', 'Retention guardrail'],
     compare: 'Compare',
     liveApi: 'Live API',
-    snapshot: 'Snapshot',
+    snapshot: 'Demo data (API offline)',
     data: 'Data',
     refresh: 'Refresh',
     notifications: 'Notifications',
@@ -305,7 +305,7 @@ const copyByLocale = {
     scenarios: ['מאוזן', 'מקסום הכנסה', 'הגנת שימור'],
     compare: 'השוואה',
     liveApi: 'API חי',
-    snapshot: 'Snapshot',
+    snapshot: 'נתוני הדגמה (API מנותק)',
     data: 'נתונים',
     refresh: 'רענון',
     notifications: 'התראות',
@@ -1176,7 +1176,7 @@ function TVBreakDashboard() {
             <span className={online ? 'api-state online' : 'api-state offline'}>
               {online ? copy.liveApi : copy.snapshot}
             </span>
-            <span className="freshness">{copy.data} {new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="freshness">{online && overview.data_freshness ? `${copy.data} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.data} —`}</span>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />
             </IconButton>
