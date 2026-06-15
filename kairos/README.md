@@ -53,7 +53,11 @@ loaders -> contracts -> classifier -> transform -> objective + guardrails
   stubs.
 - `model/` is the env-gated seam to a trained Meridian posterior. It imports
   cleanly without Meridian or TensorFlow and falls back to the declared
-  assumption coefficient until the model is fitted.
+  assumption coefficient when no fitted model is present. `model/prepare.py`
+  shapes the real Spots, Programmes, and Dayparts into a Meridian `InputData`
+  keyed by the engine channels (program_type by break_position by break_length);
+  `scripts/train_impact_model.py` fits the posterior; `service.py` loads it and
+  threads the per-channel coefficient into each segment.
 - `observability/` records each run with input checksums, the engine version, the
   guardrails and assumptions used, and the headline metrics, for audit and
   reproducibility.
@@ -83,8 +87,22 @@ PYTHONUTF8=1 python scripts/export_schedule.py
 This is an offline batch (a few minutes over the full month). The dashboard reads
 the committed csv instantly.
 
-## Not yet wired
+## Training the impact model
 
-Full Meridian MCMC training stays owner-flagged. It needs Python 3.11 or 3.12
-with TensorFlow and google-meridian; `model/train.py` raises a clear error when
-those are absent.
+The Meridian impact model is trained offline on a Python 3.11 or 3.12
+environment with TensorFlow and google-meridian (the desktop default Python is
+3.13 and cannot train; `model/train.py` raises a clear error when the stack is
+absent). To fit it:
+
+```
+cd kairos-build
+py -3.11 -m venv .venv311
+.venv311/Scripts/python -m pip install -e . pyyaml openpyxl
+PYTHONUTF8=1 .venv311/Scripts/python scripts/train_impact_model.py
+```
+
+This builds the InputData from the real reference data, samples the posterior,
+and writes `models/tv_break_posterior.pkl`. Once that file exists, `service.py`
+loads it automatically and the optimizer uses the measured per-channel retention
+coefficients instead of the declared assumption. Without the file, the engine
+runs unchanged on the honest assumption fallback.

@@ -167,15 +167,16 @@ def load_impact_model(
         )
         return AssumptionImpactModel(assumptions)
 
-    # Both the file and Meridian are present: read the per-channel coefficients.
-    # Owner-flagged future work; never reached in the deps-absent environment.
-    coefficients = _extract_coefficients(model_path)  # pragma: no cover - needs meridian
-    if not coefficients:  # pragma: no cover - needs meridian
+    # Both the file and Meridian are present: read the raw posterior coefficients
+    # and map them into the optimizer's retention-delta units.
+    raw = _extract_coefficients(model_path)  # pragma: no cover - needs meridian
+    if not raw:  # pragma: no cover - needs meridian
         logger.info(
             "Posterior at %s carried no usable coefficients; using the declared assumption.",
             model_path,
         )
         return AssumptionImpactModel(assumptions)
+    coefficients = _to_retention_deltas(raw, anchor=assumptions.retention_impact_per_break)
     logger.info("Loaded trained impact coefficients for %d channels from %s.", len(coefficients), model_path)
     return PosteriorImpactModel(  # pragma: no cover - needs meridian
         coefficients, default=assumptions.retention_impact_per_break
@@ -183,12 +184,13 @@ def load_impact_model(
 
 
 def _extract_coefficients(model_path: Path) -> dict[str, float]:  # pragma: no cover - needs meridian
-    """Extract per-channel retention coefficients from a fitted posterior pkl.
+    """Extract the raw per-channel media coefficients from a fitted posterior.
 
-    This mirrors the legacy extraction: read the media coefficients from the
-    posterior, average across chains and draws, and key them by channel name.
-    Guarded behind :func:`load_impact_model` so it only runs with Meridian
-    present and a real posterior on disk; no value is fabricated here.
+    Reads Meridian's media coefficient (``beta_m``) from the posterior, averages
+    across chains and draws, and keys it by channel name. These are the model's
+    own units (a positive media-response scale), not the optimizer's retention
+    delta; :func:`_to_retention_deltas` performs that mapping. No value is
+    fabricated here. Guarded behind :func:`load_impact_model`.
     """
     from meridian.model.model import load_mmm  # type: ignore
 
@@ -201,3 +203,29 @@ def _extract_coefficients(model_path: Path) -> dict[str, float]:  # pragma: no c
     for channel in mean_coefs["media_channel"].values:
         coefficients[str(channel)] = float(mean_coefs.sel(media_channel=channel).values)
     return coefficients
+
+
+def _to_retention_deltas(raw: Mapping[str, float], *, anchor: float) -> dict[str, float]:
+    """Map raw Meridian media coefficients into the optimizer's retention deltas.
+
+    The optimizer consumes a per-break retention delta that is, by the engine's
+    own premise, negative (a break sheds audience, see
+    :func:`kairos.optimize.objective.predicted_retention`). Meridian's ``beta_m``
+    is on a different, positive media-response scale and cannot be used directly.
+    This applies a documented, principled normalization: each channel keeps the
+    relative impact the posterior measured, scaled so the average channel equals
+    the declared ``anchor`` magnitude and every channel takes the engine's
+    negative sign. So the trained model drives which break attributes shed more
+    or less retention, while the overall magnitude stays in the declared, sane
+    range. With a degenerate posterior (all zeros) the anchor is returned for
+    every channel, which is the honest assumption fallback.
+    """
+    magnitudes = {channel: abs(value) for channel, value in raw.items()}
+    mean_magnitude = (sum(magnitudes.values()) / len(magnitudes)) if magnitudes else 0.0
+    if mean_magnitude <= 0.0:
+        return {channel: anchor for channel in raw}
+    sign_anchor = -abs(anchor)
+    return {
+        channel: sign_anchor * (magnitude / mean_magnitude)
+        for channel, magnitude in magnitudes.items()
+    }

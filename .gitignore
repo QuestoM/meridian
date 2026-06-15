@@ -51,3 +51,9 @@ qa/
 data/kairos_decisions.json
 *.log
 *.err
+
+# Python 3.11 training venv (Meridian + TensorFlow)
+.venv311/
+
+# Runtime audit log written by the observability run logger
+output/run_log.jsonl
