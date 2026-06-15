@@ -87,12 +87,37 @@ PYTHONUTF8=1 python scripts/export_schedule.py
 This is an offline batch (a few minutes over the full month). The dashboard reads
 the committed csv instantly.
 
-## Training the impact model
+## The retention impact model
 
-The Meridian impact model is trained offline on a Python 3.11 or 3.12
-environment with TensorFlow and google-meridian (the desktop default Python is
-3.13 and cannot train; `model/train.py` raises a clear error when the stack is
-absent). To fit it:
+Each break carries a per-channel retention impact coefficient (how much audience
+that break sheds). The optimizer resolves it in this order, most authoritative
+first, all logged so the source is never hidden:
+
+1. **Measured coefficients** (`models/tv_break_coefficients.json`). The real,
+   detrended, pooled per-break effect computed from the minute-level audience
+   curve. This needs no TensorFlow or Meridian, so it runs on any Python. It is
+   the recommended source. `service.py` reports `impact_source="measured"`.
+2. **Trained Meridian posterior** (`models/tv_break_posterior.pkl`). A fitted
+   Bayesian MMM, mapped into retention deltas. `impact_source="trained"`.
+3. **Declared assumption**, the honest fallback when neither file is present.
+
+### Measuring the coefficients (fast, no heavy stack)
+
+```
+cd kairos-build
+PYTHONUTF8=1 python scripts/compute_measured_coefficients.py
+```
+
+For each real break this measures the mean audience just before it and just after
+content resumes, divides out the typical audience trajectory at that broadcast
+minute (so the prime-time ramp does not masquerade as a break benefit), pools
+thin channel cells toward the global mean, and writes the JSON. See
+`kairos/model/measure.py`.
+
+### Training the Meridian posterior (offline, Python 3.11/3.12 + TensorFlow)
+
+The desktop default Python is 3.13 and cannot train; `model/train.py` raises a
+clear error when the stack is absent. To fit it:
 
 ```
 cd kairos-build
@@ -102,7 +127,4 @@ PYTHONUTF8=1 .venv311/Scripts/python scripts/train_impact_model.py
 ```
 
 This builds the InputData from the real reference data, samples the posterior,
-and writes `models/tv_break_posterior.pkl`. Once that file exists, `service.py`
-loads it automatically and the optimizer uses the measured per-channel retention
-coefficients instead of the declared assumption. Without the file, the engine
-runs unchanged on the honest assumption fallback.
+and writes `models/tv_break_posterior.pkl`.

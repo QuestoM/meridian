@@ -47,7 +47,9 @@ class ImpactModel(ABC):
     retention multiplier and is normally <= 0.
     """
 
-    #: Honest label of where the coefficients come from ("assumption" or "trained").
+    #: Honest label of where the coefficients come from: "measured" (the real
+    #: detrended per-break effect), "trained" (a fitted Meridian posterior), or
+    #: "assumption" (the declared fallback).
     source: str = "unknown"
 
     @abstractmethod
@@ -62,8 +64,8 @@ class ImpactModel(ABC):
 
     @property
     def is_trained(self) -> bool:
-        """True only when the coefficients come from a fitted posterior."""
-        return self.source == "trained"
+        """True when the coefficients are a fitted or measured result, not the fallback."""
+        return self.source != "assumption"
 
 
 class AssumptionImpactModel(ImpactModel):
@@ -111,11 +113,18 @@ class PosteriorImpactModel(ImpactModel):
 
     source = "trained"
 
-    def __init__(self, coefficients: Mapping[str, float], *, default: float) -> None:
+    def __init__(
+        self,
+        coefficients: Mapping[str, float],
+        *,
+        default: float,
+        source: str = "trained",
+    ) -> None:
         if not coefficients:
             raise ValueError("PosteriorImpactModel needs at least one fitted coefficient")
         self._coefficients = dict(coefficients)
         self._default = float(default)
+        self.source = source
 
     @property
     def coefficients(self) -> dict[str, float]:
@@ -138,17 +147,40 @@ def load_impact_model(
     path: str | Path,
     *,
     assumptions: OptimizerAssumptions | None = None,
+    coefficients_path: str | Path | None = None,
 ) -> ImpactModel:
-    """Load a fitted impact model from ``path``, or fall back honestly.
+    """Load the best available impact model for ``path``, or fall back honestly.
 
-    Returns a :class:`PosteriorImpactModel` only when the pkl exists and Meridian
-    is available to interpret it. In every other case (missing file, or Meridian
-    not installed) it returns the :class:`AssumptionImpactModel` and logs which
-    path was taken, so a caller without a trained model still gets a working,
-    clearly-labelled model rather than an error.
+    Resolution order, most authoritative first:
+
+      1. Measured coefficients JSON (``models/tv_break_coefficients.json`` next to
+         the pkl, or ``coefficients_path``). These are the real detrended per-break
+         retention effects from :mod:`kairos.model.measure`, in the optimizer's
+         units. They need no Meridian, so they drive the optimizer even on a
+         desktop Python. ``source`` is "measured".
+      2. A fitted Meridian posterior pkl, interpreted into retention deltas, when
+         the pkl and Meridian are both present. ``source`` is "trained".
+      3. The declared assumption, labelled "assumption", otherwise.
+
+    Every path is logged, so a caller always gets a working, clearly-labelled
+    model rather than an error.
     """
     assumptions = assumptions or OptimizerAssumptions()
     model_path = Path(path)
+
+    # 1. Measured coefficients (preferred, no Meridian needed). Lazy import keeps
+    # the impact <-> measure <-> prepare <-> transform import cycle from forming.
+    from kairos.model.measure import read_coefficients_json
+
+    coeff_path = Path(coefficients_path) if coefficients_path else model_path.with_name(
+        "tv_break_coefficients.json"
+    )
+    measured = read_coefficients_json(coeff_path)
+    if measured:
+        logger.info("Loaded %d measured retention coefficients from %s.", len(measured), coeff_path)
+        return PosteriorImpactModel(
+            measured, default=assumptions.retention_impact_per_break, source="measured"
+        )
 
     if not model_path.exists():
         logger.info(

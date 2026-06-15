@@ -26,6 +26,7 @@ import pandas as pd
 from kairos.data import ProgramClassifier
 from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
+from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
@@ -33,6 +34,11 @@ from kairos.service import guardrails_from_settings
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_PATH = ROOT / "output" / "weekly_break_schedule.csv"
+# The trained Meridian posterior, when present. Loaded once and threaded into
+# every channel-day so the exported schedule uses the measured per-channel
+# coefficients, matching what the live service returns. Falls back honestly to
+# the declared assumption when the file or Meridian is absent.
+DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
 
 SECONDS_PER_MINUTE = 60
 
@@ -97,25 +103,32 @@ def build_weekly_schedule(
     settings: Optional[Mapping[str, Any]] = None,
     revenue_weight: Optional[float] = None,
     classifier: Optional[ProgramClassifier] = None,
+    impact_model: Optional[ImpactModel] = None,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
     ``settings`` are the dashboard's KairosSettings (mapped onto guardrails);
-    ``revenue_weight`` overrides the assumptions default. The frame is sorted by
-    day then channel so the output is deterministic.
+    ``revenue_weight`` overrides the assumptions default. ``impact_model`` supplies
+    the per-channel retention coefficient; when omitted it is loaded from the
+    trained posterior if present, else the declared assumption (so the exported
+    schedule matches the live service). The frame is sorted by day then channel so
+    the output is deterministic.
     """
     pricing = pricing or PricingModel.from_yaml()
     assumptions = assumptions or OptimizerAssumptions()
     classifier = classifier or ProgramClassifier.from_yaml()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
+    if impact_model is None:
+        impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     if programmes is None:
         programmes = load_programmes(programmes_path)
 
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
         segments = build_segments_from_programmes(
-            programmes, classifier, pricing, assumptions=assumptions, channel=channel, day=day,
+            programmes, classifier, pricing, assumptions=assumptions,
+            impact_model=impact_model, channel=channel, day=day,
         )
         if not segments:
             continue
