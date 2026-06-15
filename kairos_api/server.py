@@ -292,7 +292,114 @@ def _load_spots() -> pd.DataFrame:
 
 def _load_impact(path: Path) -> list[dict[str, Any]]:
     frame = _read_csv(path)
-    return frame.replace({pd.NA: None}).where(pd.notna(frame), None).to_dict("records")
+    records: list[dict[str, Any]] = []
+    for raw in frame.replace({pd.NA: None}).where(pd.notna(frame), None).to_dict("records"):
+        record: dict[str, Any] = {}
+        for key, value in raw.items():
+            if isinstance(value, float) and not math.isfinite(value):
+                record[key] = None
+            else:
+                record[key] = value
+        records.append(record)
+    return records
+
+
+def _segment_key(channel_name: str) -> tuple[str, str, str] | None:
+    parts = str(channel_name or "").split("_")
+    if len(parts) < 3:
+        return None
+    return "_".join(parts[:-2]), parts[-2], parts[-1]
+
+
+def _weighted_impact_rows(items: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        segment = str(item.get(key) or "")
+        coefficient = _safe_number(item.get("coefficient"), math.nan)
+        if not segment or not math.isfinite(coefficient):
+            continue
+        grouped.setdefault(segment, []).append(item)
+
+    rows: list[dict[str, Any]] = []
+    for segment, values in grouped.items():
+        total_weight = 0
+        weighted_coefficient = 0.0
+        weighted_raw = 0.0
+        ci_low: list[float] = []
+        ci_high: list[float] = []
+        for item in values:
+            sample_count = max(1, int(_safe_number(item.get("n"), 1)))
+            coefficient = _safe_number(item.get("coefficient"), 0.0)
+            raw_delta = _safe_number(item.get("raw_delta"), coefficient)
+            weighted_coefficient += coefficient * sample_count
+            weighted_raw += raw_delta * sample_count
+            total_weight += sample_count
+            low = _safe_number(item.get("ci_low"), math.nan)
+            high = _safe_number(item.get("ci_high"), math.nan)
+            if math.isfinite(low):
+                ci_low.append(low)
+            if math.isfinite(high):
+                ci_high.append(high)
+        if total_weight <= 0:
+            continue
+        rows.append(
+            {
+                "segment": segment,
+                "average_coefficient": round(weighted_coefficient / total_weight, 6),
+                "average_raw_delta": round(weighted_raw / total_weight, 6),
+                "sample_count": total_weight,
+                "channel_count": len(values),
+                "ci_low": round(min(ci_low), 6) if ci_low else None,
+                "ci_high": round(max(ci_high), 6) if ci_high else None,
+            }
+        )
+    return sorted(rows, key=lambda row: abs(float(row["average_coefficient"])), reverse=True)
+
+
+def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {
+            "source": "legacy_csv",
+            "program_type": [],
+            "position": [],
+            "length": [],
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {
+            "source": "legacy_csv",
+            "program_type": [],
+            "position": [],
+            "length": [],
+        }
+
+    details = payload.get("detail", {})
+    items: list[dict[str, Any]] = []
+    for name, raw in details.items():
+        if not isinstance(raw, dict):
+            continue
+        segment = _segment_key(str(raw.get("channel_name") or name))
+        if not segment:
+            continue
+        program_type, position, length = segment
+        items.append(
+            {
+                **raw,
+                "program_type": program_type,
+                "position": position,
+                "length": length,
+            }
+        )
+
+    metadata = payload.get("metadata", {}) if isinstance(payload.get("metadata"), dict) else {}
+    return {
+        "source": payload.get("method") or "measured_coefficients",
+        "metadata": metadata,
+        "program_type": _weighted_impact_rows(items, "program_type"),
+        "position": _weighted_impact_rows(items, "position"),
+        "length": _weighted_impact_rows(items, "length"),
+    }
 
 
 def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
@@ -1097,6 +1204,7 @@ def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any
         "program_type_impacts": _load_impact(OUTPUT_DIR / "program_type_impacts.csv"),
         "position_impacts": _load_impact(OUTPUT_DIR / "position_impacts.csv"),
         "length_impacts": _load_impact(OUTPUT_DIR / "length_impacts.csv"),
+        "coefficient_impacts": _load_measured_impact_summary(MODELS_DIR / "tv_break_coefficients.json"),
     }
 
 
@@ -1224,7 +1332,14 @@ def create_break_decision(request: BreakDecisionRequest) -> dict[str, Any]:
 @app.get("/api/impact")
 def impact() -> dict[str, Any]:
     return _impact_cached(
-        _signature([OUTPUT_DIR / "program_type_impacts.csv", OUTPUT_DIR / "position_impacts.csv", OUTPUT_DIR / "length_impacts.csv"])
+        _signature(
+            [
+                OUTPUT_DIR / "program_type_impacts.csv",
+                OUTPUT_DIR / "position_impacts.csv",
+                OUTPUT_DIR / "length_impacts.csv",
+                MODELS_DIR / "tv_break_coefficients.json",
+            ]
+        )
     )
 
 

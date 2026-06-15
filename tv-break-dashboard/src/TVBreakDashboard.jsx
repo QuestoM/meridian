@@ -481,6 +481,20 @@ const fallbackImpact = {
   program_type_impacts: [],
   position_impacts: [],
   length_impacts: [],
+  coefficient_impacts: {
+    source: 'unavailable',
+    metadata: {},
+    program_type: [],
+    position: [],
+    length: [],
+  },
+};
+
+const fallbackParameters = {
+  settings: fallbackSettings,
+  guardrails: {},
+  assumptions: {},
+  pricing: {},
 };
 
 const navItems = [
@@ -541,6 +555,24 @@ function formatPercent(value, locale = 'en') {
   return `${formatNumber(value, locale)}%`;
 }
 
+function finiteNumber(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatRetentionDelta(value, locale = 'en') {
+  const number = finiteNumber(value);
+  if (number === null) {
+    return pageText(locale, 'Insufficient data', 'אין מספיק מדידות');
+  }
+  const points = number * 100;
+  const sign = points > 0 ? '+' : '';
+  return `${sign}${formatNumber(points, locale)}pp`;
+}
+
 function Numeric({ children }) {
   return (
     <span className="numeric" dir="ltr">
@@ -555,6 +587,41 @@ function pageText(locale, en, he) {
 
 function normalizeRows(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function impactSegmentLabel(segment, locale) {
+  const labels = {
+    first: pageText(locale, 'First break', 'ברייק ראשון'),
+    early: pageText(locale, 'Early break', 'ברייק מוקדם'),
+    middle: pageText(locale, 'Middle break', 'ברייק אמצעי'),
+    last: pageText(locale, 'Last break', 'ברייק אחרון'),
+    late: pageText(locale, 'Late break', 'ברייק מאוחר'),
+    short: pageText(locale, 'Short', 'קצר'),
+    standard: pageText(locale, 'Standard', 'סטנדרטי'),
+    medium: pageText(locale, 'Medium', 'בינוני'),
+    long: pageText(locale, 'Long', 'ארוך'),
+  };
+  return labels[segment] || segment;
+}
+
+function normalizeImpactRows(rows, segmentKey) {
+  return normalizeRows(rows)
+    .map((row) => {
+      const coefficient =
+        finiteNumber(row.average_coefficient) ??
+        finiteNumber(row.average) ??
+        finiteNumber(row.coefficient) ??
+        finiteNumber(row.total_impact);
+      return {
+        segment: row.segment || row[segmentKey] || row.name || row.channel_name || '',
+        coefficient,
+        sampleCount: finiteNumber(row.sampleCount) ?? finiteNumber(row.sample_count) ?? finiteNumber(row.count),
+        channelCount: finiteNumber(row.channelCount) ?? finiteNumber(row.channel_count),
+        ciLow: finiteNumber(row.ciLow) ?? finiteNumber(row.ci_low),
+        ciHigh: finiteNumber(row.ciHigh) ?? finiteNumber(row.ci_high),
+      };
+    })
+    .filter((row) => row.segment);
 }
 
 function programKey(channel, program) {
@@ -696,6 +763,7 @@ function useKairosData(refreshKey = 0) {
     reports: fallbackReports,
     files: fallbackFiles,
     impact: fallbackImpact,
+    parameters: fallbackParameters,
     breakOperations: fallbackSchedule.break_operations,
     online: false,
     loading: true,
@@ -715,6 +783,7 @@ function useKairosData(refreshKey = 0) {
         reportsResult,
         filesResult,
         impactResult,
+        parametersResult,
         breakOperationsResult,
       ] = await Promise.all([
         fetchJson('/api/overview', fallbackOverview),
@@ -726,6 +795,7 @@ function useKairosData(refreshKey = 0) {
         fetchJson('/api/reports', fallbackReports),
         fetchJson('/api/files', fallbackFiles),
         fetchJson('/api/impact', fallbackImpact),
+        fetchJson('/api/parameters', fallbackParameters),
         fetchJson('/api/break-operations', fallbackSchedule.break_operations),
       ]);
       if (!active) return;
@@ -739,6 +809,7 @@ function useKairosData(refreshKey = 0) {
         reportsResult,
         filesResult,
         impactResult,
+        parametersResult,
         breakOperationsResult,
       ];
       const schedulePayload = {
@@ -755,6 +826,7 @@ function useKairosData(refreshKey = 0) {
         reports: reportsResult.data,
         files: filesResult.data,
         impact: impactResult.data,
+        parameters: parametersResult.data,
         breakOperations: breakOperationsResult.data,
         online: results.every((result) => result.online),
         loading: false,
@@ -772,7 +844,7 @@ function useKairosData(refreshKey = 0) {
 
 function TVBreakDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, online, loading, error } =
+  const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, parameters, online, loading, error } =
     useKairosData(refreshKey);
   const [activeRecommendation, setActiveRecommendation] = useState('rec-1');
   const [approved, setApproved] = useState(new Set(['rec-1']));
@@ -1061,7 +1133,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Data Hub') {
-      return <DataHubPage files={files} impact={impact} overview={overview} copy={copy} locale={locale} />;
+      return <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />;
     }
 
     return (
@@ -1961,11 +2033,22 @@ function ReportsPage({ reports, files, copy, locale }) {
   );
 }
 
-function DataHubPage({ files, impact, overview, copy, locale }) {
+function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
   const fileRows = normalizeRows(files.files);
-  const programImpacts = normalizeRows(impact.program_type_impacts);
-  const positionImpacts = normalizeRows(impact.position_impacts);
-  const lengthImpacts = normalizeRows(impact.length_impacts);
+  const measuredImpacts = impact.coefficient_impacts || {};
+  const programImpacts = normalizeImpactRows(
+    normalizeRows(measuredImpacts.program_type).length ? measuredImpacts.program_type : impact.program_type_impacts,
+    'program_type',
+  );
+  const positionImpacts = normalizeImpactRows(
+    normalizeRows(measuredImpacts.position).length ? measuredImpacts.position : impact.position_impacts,
+    'position',
+  );
+  const lengthImpacts = normalizeImpactRows(
+    normalizeRows(measuredImpacts.length).length ? measuredImpacts.length : impact.length_impacts,
+    'length',
+  );
+  const impactSource = measuredImpacts.source || pageText(locale, 'Legacy extract', 'קובץ legacy');
   return (
     <section className="page-workspace">
       <PageHeader
@@ -2001,7 +2084,7 @@ function DataHubPage({ files, impact, overview, copy, locale }) {
         <section className="page-panel">
           <div className="panel-head">
             <h2>{pageText(locale, 'Model explainability', 'הסבריות מודל')}</h2>
-            <span>{pageText(locale, 'Impact extracts', 'תוצרי השפעה')}</span>
+            <span>{impactSource}</span>
           </div>
           <div className="impact-stack">
             <ImpactPreview title={pageText(locale, 'Programme type impact', 'השפעת סוג תוכנית')} rows={programImpacts} locale={locale} />
@@ -2010,27 +2093,118 @@ function DataHubPage({ files, impact, overview, copy, locale }) {
           </div>
         </section>
       </div>
+      <section className="page-panel">
+        <div className="panel-head">
+          <h2>{pageText(locale, 'Optimizer parameters', 'פרמטרי אופטימיזציה')}</h2>
+          <span>{pageText(locale, 'Guardrails, assumptions, pricing', 'בקרות, הנחות ותמחור')}</span>
+        </div>
+        <ParameterLedger parameters={parameters} locale={locale} />
+      </section>
     </section>
   );
 }
 
 function ImpactPreview({ title, rows, locale }) {
-  const first = normalizeRows(rows).slice(0, 3);
+  const first = normalizeImpactRows(rows, 'segment').slice(0, 4);
+  const maxMagnitude = Math.max(...first.map((row) => Math.abs(row.coefficient || 0)), 0.01);
   return (
     <div className="impact-preview">
-      <strong>{title}</strong>
+      <header>
+        <strong>{title}</strong>
+        <small>{pageText(locale, 'Retention delta per break', 'שינוי שימור לכל ברייק')}</small>
+      </header>
       {first.length === 0 ? (
         <span>{pageText(locale, 'No extract', 'אין קובץ')}</span>
       ) : (
         first.map((row, index) => {
-          const entries = Object.entries(row).slice(0, 3);
+          const magnitude = row.coefficient === null ? 0 : Math.abs(row.coefficient);
+          const sample = row.sampleCount ? `n=${formatNumber(row.sampleCount, locale)}` : pageText(locale, 'sample pending', 'מדגם לא זמין');
+          const range = row.ciLow !== null && row.ciHigh !== null
+            ? `${formatRetentionDelta(row.ciLow, locale)} / ${formatRetentionDelta(row.ciHigh, locale)}`
+            : sample;
+          const coefficientLabel = formatRetentionDelta(row.coefficient, locale);
           return (
-            <span key={`${title}-${index}`}>
-              {entries.map(([key, value]) => `${key}: ${value}`).join(' / ')}
-            </span>
+            <div className="impact-row" key={`${title}-${row.segment}-${index}`}>
+              <span className="impact-label">{impactSegmentLabel(row.segment, locale)}</span>
+              <span className="impact-meter" aria-hidden="true">
+                <i style={{ '--impact-width': `${Math.max(8, (magnitude / maxMagnitude) * 100)}%` }} />
+              </span>
+              <strong>{row.coefficient === null ? coefficientLabel : <Numeric>{coefficientLabel}</Numeric>}</strong>
+              <small className={row.ciLow !== null && row.ciHigh !== null ? 'numeric' : undefined}>{range}</small>
+            </div>
           );
         })
       )}
+    </div>
+  );
+}
+
+function ParameterLedger({ parameters, locale }) {
+  const settings = parameters?.settings || fallbackSettings;
+  const guardrails = parameters?.guardrails || {};
+  const assumptions = parameters?.assumptions || {};
+  const pricing = parameters?.pricing || {};
+  const retentionAssumption = finiteNumber(assumptions.retention_impact_per_break);
+  const basePrice = finiteNumber(pricing.base_price_per_second_per_tvr_point);
+  const rows = [
+    {
+      label: pageText(locale, 'Ad minutes per hour', 'דקות פרסום לשעה'),
+      value: `${formatNumber(settings.max_ad_minutes_per_hour, locale)} ${pageText(locale, 'min', 'דק׳')}`,
+      detail: pageText(locale, 'Regulatory ceiling', 'תקרת רגולציה'),
+    },
+    {
+      label: pageText(locale, 'Breaks per hour', 'ברייקים לשעה'),
+      value: formatNumber(settings.max_breaks_per_hour, locale),
+      detail: pageText(locale, 'Operational guardrail', 'בקרה תפעולית'),
+    },
+    {
+      label: pageText(locale, 'Minimum spacing', 'מרווח מינימלי'),
+      value: `${formatNumber(settings.min_break_spacing_minutes, locale)} ${pageText(locale, 'min', 'דק׳')}`,
+      detail: pageText(locale, 'Between break starts', 'בין תחילות ברייקים'),
+    },
+    {
+      label: pageText(locale, 'Retention floor', 'רף שימור'),
+      value: formatPercent(Number(settings.min_retention_floor || 0) * 100, locale),
+      detail: guardrails.min_retention_floor ? pageText(locale, 'Engine guardrail', 'בקרת מנוע') : pageText(locale, 'Saved setting', 'הגדרה שמורה'),
+    },
+    {
+      label: pageText(locale, 'Retention assumption', 'הנחת שימור'),
+      value: retentionAssumption === null ? '-' : formatRetentionDelta(retentionAssumption, locale),
+      detail: pageText(locale, 'Fallback when a cell is unseen', 'fallback לסגמנט שלא נמדד'),
+    },
+    {
+      label: pageText(locale, 'Base price', 'מחיר בסיס'),
+      value: basePrice === null ? '-' : formatCurrency(basePrice, locale),
+      detail: pageText(locale, 'Per TVR-second', 'ל-TVR שנייה'),
+    },
+  ];
+  const premiumRows = Object.entries(pricing.program_type_premiums || {})
+    .slice(0, 6)
+    .map(([name, value]) => ({ name, value: finiteNumber(value) }));
+  return (
+    <div className="parameter-ledger">
+      <div className="parameter-grid">
+        {rows.map((row) => (
+          <div className="parameter-row" key={row.label}>
+            <span>{row.label}</span>
+            <strong><Numeric>{row.value}</Numeric></strong>
+            <small>{row.detail}</small>
+          </div>
+        ))}
+      </div>
+      <div className="premium-list">
+        <strong>{pageText(locale, 'Programme pricing premiums', 'פרמיות תמחור לפי סוג תוכנית')}</strong>
+        {premiumRows.length === 0 ? (
+          <span>{pageText(locale, 'No pricing model loaded', 'מודל תמחור לא נטען')}</span>
+        ) : (
+          premiumRows.map((row) => (
+            <span key={row.name}>
+              <b>{row.name}</b>
+              <Numeric>{row.value === null ? '-' : `${formatNumber(row.value, locale)}x`}</Numeric>
+            </span>
+          ))
+        )}
+      </div>
     </div>
   );
 }

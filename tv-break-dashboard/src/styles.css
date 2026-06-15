@@ -1439,11 +1439,17 @@ button {
 }
 
 .page-header {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   padding-bottom: 4px;
+}
+
+.page-header > div {
+  min-width: 0;
 }
 
 .page-header h1 {
@@ -1767,14 +1773,150 @@ button {
 
 .impact-preview {
   display: grid;
-  gap: 6px;
+  gap: 10px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
+  padding-bottom: 14px;
 }
 
 .impact-preview:last-child {
   border-bottom: 0;
   padding-bottom: 0;
+}
+
+.impact-preview header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.impact-preview header small {
+  color: var(--subtle);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.impact-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.9fr) minmax(72px, 1fr) 62px minmax(92px, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.impact-label {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.impact-meter {
+  height: 4px;
+  background: #edf0f3;
+  overflow: hidden;
+}
+
+.impact-meter i {
+  display: block;
+  width: var(--impact-width);
+  height: 100%;
+  background: var(--teal);
+}
+
+.impact-row strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: end;
+}
+
+.impact-row small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: end;
+}
+
+.parameter-ledger {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);
+  gap: 0;
+}
+
+.parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-inline-end: 1px solid var(--line);
+}
+
+.parameter-row {
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 14px 16px;
+  border-inline-end: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.parameter-row:nth-child(3n) {
+  border-inline-end: 0;
+}
+
+.parameter-row:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
+.parameter-row span,
+.parameter-row small,
+.premium-list span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.parameter-row strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.premium-list {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  padding: 12px 16px;
+}
+
+.premium-list > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.premium-list span {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.premium-list span:last-child {
+  border-bottom: 0;
+}
+
+.premium-list b {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 620;
 }
 
 .settings-workspace {
@@ -2139,6 +2281,41 @@ button {
     grid-template-columns: 138px minmax(620px, 1fr);
   }
 
+  .page-grid.two-one,
+  .page-grid.even,
+  .parameter-ledger,
+  .parameter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .parameter-grid,
+  .parameter-row,
+  .parameter-row:nth-child(3n),
+  .parameter-grid {
+    border-inline-end: 0;
+  }
+
+  .parameter-row:nth-last-child(-n + 3) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .parameter-row:last-child {
+    border-bottom: 0;
+  }
+
+  .premium-list {
+    border-top: 1px solid var(--line);
+  }
+
+  .impact-row {
+    grid-template-columns: minmax(76px, 1fr) minmax(74px, 1fr) 62px;
+  }
+
+  .impact-row small {
+    grid-column: 1 / -1;
+    text-align: start;
+  }
+
   .timeline-lane {
     padding: 14px 10px;
   }
@@ -2164,6 +2341,11 @@ button {
 
   .page-header,
   .settings-hero {
+    width: calc(100vw - 32px);
+    inline-size: calc(100vw - 32px);
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    justify-self: stretch;
     display: grid;
     gap: 14px;
   }
@@ -2179,6 +2361,12 @@ button {
     max-width: 100%;
     overflow-wrap: anywhere;
     font-size: 24px;
+  }
+
+  .page-header p,
+  .settings-hero p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .scenario-row {
