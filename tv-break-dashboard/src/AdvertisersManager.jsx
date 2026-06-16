@@ -169,18 +169,9 @@ function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
           <Save size={14} />
           {saving ? pageText(locale, 'Saving...', 'שומר...') : pageText(locale, 'Save', 'שמירה')}
         </Button>
-        {dirty && (
-          <Button
-            className="secondary-button compact"
-            type="button"
-            variant="outlined"
-            onClick={() => setDraft(row)}
-            aria-label={pageText(locale, 'Revert changes', 'ביטול שינויים')}
-          >
-            <RotateCcw size={14} />
-            {pageText(locale, 'Revert', 'שחזור')}
-          </Button>
-        )}
+        {/* Delete is the second fixed anchor: it keeps its place whether or not
+            the row is dirty. The optional Revert button is rendered last so it
+            never pushes Save or Delete out of position. */}
         {confirmDelete ? (
           <>
             <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => onDelete(row.advertiser_id)}>
@@ -201,6 +192,18 @@ function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
           >
             <Trash2 size={14} />
             {pageText(locale, 'Delete?', 'מחיקה?')}
+          </Button>
+        )}
+        {dirty && (
+          <Button
+            className="secondary-button compact adv-revert"
+            type="button"
+            variant="outlined"
+            onClick={() => setDraft(row)}
+            aria-label={pageText(locale, 'Revert changes', 'ביטול שינויים')}
+          >
+            <RotateCcw size={14} />
+            {pageText(locale, 'Revert', 'שחזור')}
           </Button>
         )}
       </div>
