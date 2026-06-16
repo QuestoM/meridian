@@ -1,0 +1,34 @@
+# Local one-command run for the whole Kairos system.
+#
+#   docker compose up --build
+#
+# This builds the multi-stage Dockerfile (dashboard + FastAPI), serves it on
+# http://localhost:8000, and mounts the data/models/output directories from the
+# host so the flat-file state (CSV inputs, the trained posterior, generated
+# schedules and the decisions/audit log) survives container restarts.
+
+services:
+  kairos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kairos:local
+    container_name: kairos
+    ports:
+      - "8000:8000"
+    environment:
+      # Read by kairos_api/server.py for the CORS allow-list. Include the
+      # origin the dashboard is actually served from.
+      KAIROS_CORS_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000"
+      # Consumed by the Vite dashboard build/runtime to point at the API.
+      # When FastAPI serves the dashboard from the same origin this can stay
+      # empty (relative /api calls). Set it when the dashboard is hosted apart
+      # from the API (for example S3 + CloudFront -> ALB).
+      VITE_KAIROS_API_URL: ""
+    volumes:
+      # Persist the engine's flat-file state. The app reads and writes these
+      # paths relative to the repo root inside the container (/app).
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./output:/app/output
+    restart: unless-stopped

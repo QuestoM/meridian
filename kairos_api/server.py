@@ -1259,6 +1259,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Operational capabilities live in focused modules to keep this file lean.
+from kairos_api.advertisers import router as advertisers_router  # noqa: E402
+from kairos_api.exporters import router as exporters_router  # noqa: E402
+from kairos_api.uploads import router as uploads_router  # noqa: E402
+
+app.include_router(uploads_router)
+app.include_router(advertisers_router)
+app.include_router(exporters_router)
+
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
@@ -1559,3 +1568,13 @@ def optimize(request: OptimizeRequest) -> dict[str, Any]:
         "stderr": completed.stderr[-4000:],
         "output_path": str(output_path.relative_to(ROOT)),
     }
+
+
+# Serve the built dashboard (Vite `dist/`) from the same container in production.
+# Mounted last so it never shadows the `/api/*` routes above; only active when a
+# build is present, so local API-only runs are unaffected.
+_DASHBOARD_DIST = ROOT / "tv-break-dashboard" / "dist"
+if _DASHBOARD_DIST.is_dir():
+    from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+    app.mount("/", StaticFiles(directory=str(_DASHBOARD_DIST), html=True), name="dashboard")

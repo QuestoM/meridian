@@ -1,0 +1,49 @@
+# Build context excludes for the Kairos image.
+# Keeps the context small and avoids leaking local state into the image.
+
+# Node / frontend
+**/node_modules
+tv-break-dashboard/node_modules
+tv-break-dashboard/dist
+
+# Python caches and build artifacts
+**/__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.eggs
+.pytest_cache
+.mypy_cache
+.pytype
+build
+dist
+*.egg
+
+# Virtual environments
+.venv*
+venv
+env
+.env
+
+# Git and editor metadata
+.git
+.gitignore
+.idea
+.vscode
+.cursorignore
+
+# Local logs and runtime audit output (regenerated at runtime)
+*.log
+*.err
+output/run_log.jsonl
+data/kairos_decisions.json
+
+# Local data backups / large binaries that should ride on a volume, not the image
+# (the container mounts ./data, ./models, ./output at runtime)
+**/*.bak
+.benchmarks
+
+# Docs and CI that the runtime image does not need
+docs
+demo
+tests

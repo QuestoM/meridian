@@ -2600,3 +2600,266 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Data Center (UploadCenter) */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.upload-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface, #ffffff);
+  padding: 14px;
+}
+
+.upload-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.upload-card-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.upload-filename {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.upload-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.upload-badge.valid {
+  background: rgba(15, 139, 126, 0.12);
+  color: var(--teal, #0f8b7e);
+}
+
+.upload-badge.invalid {
+  background: rgba(184, 110, 0, 0.12);
+  color: var(--warning, #b86e00);
+}
+
+.upload-card-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.upload-card-meta > div {
+  display: grid;
+  gap: 3px;
+}
+
+.upload-card-meta span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.upload-card-meta strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.upload-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.upload-warnings,
+.upload-errors {
+  margin: 0;
+  padding-inline-start: 18px;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.upload-warnings {
+  color: var(--warning, #b86e00);
+}
+
+.upload-errors {
+  color: #b3261e;
+}
+
+.upload-state {
+  margin: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface, #ffffff);
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.upload-state.error {
+  color: #b3261e;
+}
+
+.upload-spinner {
+  animation: kairos-spin 0.9s linear infinite;
+}
+
+@keyframes kairos-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Advertisers Manager */
+.advertiser-add-wrap,
+.advertiser-list {
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.advertiser-add {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.advertiser-row {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface, #ffffff);
+}
+
+.advertiser-key {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.advertiser-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.advertiser-switch {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.advertiser-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secondary-button.danger,
+.secondary-button.danger.MuiButton-root {
+  color: #b3261e;
+  border-color: rgba(179, 38, 30, 0.4);
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Accessible print layout for the Schedule page */
+@media print {
+  .side-rail,
+  .top-bar,
+  .surface-toolbar,
+  .toast,
+  .no-print,
+  .planner-surface {
+    display: none !important;
+  }
+
+  .kairos-shell,
+  .workspace,
+  .page-workspace {
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .schedule-printable {
+    padding: 12px !important;
+  }
+
+  .schedule-printable * {
+    color: #000000 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .schedule-printable .page-header p {
+    display: none;
+  }
+
+  .schedule-print-region {
+    border: 0 !important;
+    overflow: visible !important;
+  }
+
+  .schedule-print-region .data-table-wrap,
+  .schedule-print-region .mui-grid-wrap {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  .schedule-print-region table,
+  .schedule-print-region .MuiDataGrid-root {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .schedule-print-region .MuiDataGrid-cell,
+  .schedule-print-region .MuiDataGrid-columnHeader {
+    border: 1px solid #000000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .schedule-print-region .MuiDataGrid-footerContainer,
+  .schedule-print-region .MuiTablePagination-root {
+    display: none !important;
+  }
+
+  .kairos-shell.rtl .schedule-printable {
+    direction: rtl;
+  }
+}

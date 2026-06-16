@@ -45,15 +45,20 @@ import {
   ListChecks,
   Save,
   Play,
+  Printer,
   RefreshCcw,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
   TableProperties,
   Tv,
+  Upload,
   Users,
   X,
 } from 'lucide-react';
+
+import UploadCenter from './UploadCenter';
+import AdvertisersManager from './AdvertisersManager';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -219,6 +224,8 @@ const copyByLocale = {
       Forecasts: 'Forecasts',
       Reports: 'Reports',
       'Data Hub': 'Data Hub',
+      'Data Center': 'Data Center',
+      Advertisers: 'Advertisers',
       Settings: 'Settings',
     },
     workspace: 'Revenue operations',
@@ -295,6 +302,8 @@ const copyByLocale = {
       Forecasts: 'תחזיות',
       Reports: 'דוחות',
       'Data Hub': 'מרכז נתונים',
+      'Data Center': 'מרכז קלט נתונים',
+      Advertisers: 'מפרסמים',
       Settings: 'הגדרות',
     },
     workspace: 'ניהול הכנסות מפרסום',
@@ -507,6 +516,8 @@ const navItems = [
   ['Forecasts', Gauge],
   ['Reports', ListChecks],
   ['Data Hub', Database],
+  ['Data Center', Upload],
+  ['Advertisers', Users],
   ['Settings', Settings],
 ];
 
@@ -851,6 +862,40 @@ function downloadJson(filename, payload) {
   window.URL.revokeObjectURL(url);
 }
 
+async function downloadScheduleCsv(locale, notify) {
+  if (typeof window === 'undefined') return;
+  try {
+    const response = await fetch(`${API_BASE}/api/export/schedule.csv`);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match ? match[1] : 'kairos-weekly-schedule.csv';
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    if (notify) {
+      notify('Schedule exported as CSV.', 'הלוח יוצא כ־CSV.');
+    }
+  } catch (error) {
+    if (notify) {
+      const status = String(error.message || '');
+      if (status.startsWith('404')) {
+        notify('No schedule is available to export yet.', 'אין לוח זמין לייצוא עדיין.');
+      } else {
+        notify(`Schedule export failed (${error.message}).`, `ייצוא הלוח נכשל (${error.message}).`);
+      }
+    }
+  }
+}
+
 async function fetchJson(path, fallback) {
   try {
     const response = await fetch(`${API_BASE}${path}`);
@@ -1188,7 +1233,7 @@ function TVBreakDashboard() {
   }
 
   function renderActiveWorkspace() {
-    const common = { overview, schedule, copy, locale, compliance, loading };
+    const common = { overview, schedule, copy, locale, compliance, loading, notify };
 
     if (activeView === 'Overview') {
       return <OverviewPage {...common} files={files} setActiveView={setActiveView} />;
@@ -1257,6 +1302,14 @@ function TVBreakDashboard() {
 
     if (activeView === 'Data Hub') {
       return <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />;
+    }
+
+    if (activeView === 'Data Center') {
+      return <UploadCenter copy={copy} locale={locale} notify={notify} />;
+    }
+
+    if (activeView === 'Advertisers') {
+      return <AdvertisersManager copy={copy} locale={locale} notify={notify} />;
     }
 
     return (
@@ -1825,7 +1878,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
   );
 }
 
-function SchedulePage({ schedule, copy, locale }) {
+function SchedulePage({ schedule, copy, locale, notify }) {
   const rows = normalizeRows(schedule.break_schedule);
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
@@ -1834,15 +1887,37 @@ function SchedulePage({ schedule, copy, locale }) {
     setSelectedProgramKey(program.key);
   }
   return (
-    <section className="page-workspace">
+    <section className="page-workspace schedule-printable">
       <PageHeader
         locale={locale}
         titleEn="Schedule control"
         titleHe="בקרת לוח שידורים"
         bodyEn="Review the weekly break plan by programme type, day, length, expected revenue, and retention guardrail."
         bodyHe="בדיקת תוכנית הברייקים השבועית לפי סוג תוכנית, יום, אורך, הכנסה צפויה ושמירת צפייה."
+        action={
+          <div className="schedule-actions no-print">
+            <Button
+              className="secondary-button compact"
+              type="button"
+              variant="outlined"
+              onClick={() => downloadScheduleCsv(locale, notify)}
+            >
+              <Download size={14} />
+              {pageText(locale, 'Download CSV', 'הורדת CSV')}
+            </Button>
+            <Button
+              className="secondary-button compact"
+              type="button"
+              variant="outlined"
+              onClick={() => window.print()}
+            >
+              <Printer size={14} />
+              {pageText(locale, 'Print', 'הדפסה')}
+            </Button>
+          </div>
+        }
       />
-      <section className="planner-surface compact-surface">
+      <section className="planner-surface compact-surface no-print">
         <div className="surface-toolbar">
           <div className="toolbar-left">
             <Button
@@ -1914,7 +1989,7 @@ function SchedulePage({ schedule, copy, locale }) {
           />
         )}
       </section>
-      <section className="page-panel">
+      <section className="page-panel schedule-print-region">
         <div className="panel-head">
           <h2>{pageText(locale, 'Break plan rows', 'שורות תוכנית ברייקים')}</h2>
           <span>{rows.length} {pageText(locale, 'rows', 'שורות')}</span>
