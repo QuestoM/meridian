@@ -62,6 +62,9 @@ class ScenarioRequest(BaseModel):
     revenue_weight: int = Field(default=60, ge=0, le=100)
     retention_floor: float = Field(default=0.72, ge=0.0, le=1.0)
     max_breaks_per_hour: int = Field(default=3, ge=1, le=12)
+    # How conservatively to value an uncertain retention cost: 0 uses the point
+    # estimate (today's behavior), 1 uses the worst plausible cost in the interval.
+    risk_lambda: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class BreakDecisionRequest(BaseModel):
@@ -94,6 +97,7 @@ class KairosSettings(BaseModel):
     max_breaks_per_hour: int = Field(default=4, ge=1, le=20)
     min_break_spacing_minutes: int = Field(default=7, ge=0, le=120)
     min_retention_floor: float = Field(default=0.72, ge=0, le=1)
+    risk_lambda: float = Field(default=0.0, ge=0, le=1)
     max_daily_ad_minutes: int = Field(default=160, ge=0, le=1440)
     protected_program_types: list[str] = Field(default_factory=lambda: ["News", "Kids", "Children"])
     protected_program_max_ad_minutes_per_hour: float = Field(default=8.0, ge=0, le=60)
@@ -1416,11 +1420,14 @@ def _risk_from_retention(average_retention_percent: float, total_breaks: int) ->
 
 
 @lru_cache(maxsize=128)
-def _scenario_cached(revenue_weight: int, retention_floor: float, max_breaks_per_hour: int) -> dict[str, Any]:
+def _scenario_cached(
+    revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
+) -> dict[str, Any]:
     result = run_scenario(
         revenue_weight=revenue_weight,
         retention_floor=retention_floor,
         max_breaks_per_hour=max_breaks_per_hour,
+        risk_lambda=risk_lambda,
     )
     summary = result["summary"]
     return {
@@ -1450,7 +1457,8 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     if _ENGINE_AVAILABLE:
         try:
             return _scenario_cached(
-                request.revenue_weight, request.retention_floor, request.max_breaks_per_hour
+                request.revenue_weight, request.retention_floor, request.max_breaks_per_hour,
+                request.risk_lambda,
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
             return {
@@ -1472,6 +1480,9 @@ class OptimizePlanRequest(BaseModel):
     channel: str | None = Field(default=None)
     day: str | None = Field(default=None)
     revenue_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    # When None, the saved settings' risk_lambda applies; set it to override the
+    # uncertainty preference for this run only.
+    risk_lambda: float | None = Field(default=None, ge=0.0, le=1.0)
     # When set, the day's real daily plan (the Wally csv) drives the decision
     # instead of the Programmes EPG; channel and day are read from the file.
     daily_input: str | None = Field(default=None)
@@ -1487,13 +1498,16 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
     """
     if not _ENGINE_AVAILABLE:
         raise HTTPException(status_code=503, detail="Optimization engine is unavailable")
+    settings = _load_settings()
+    risk = request.risk_lambda if request.risk_lambda is not None else getattr(settings, "risk_lambda", 0.0)
     try:
         return optimize_day_plan(
             channel=request.channel,
             day=request.day,
             revenue_weight=request.revenue_weight,
+            risk_lambda=risk,
             daily_input_path=request.daily_input,
-            settings=_model_dump(_load_settings()),
+            settings=_model_dump(settings),
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")

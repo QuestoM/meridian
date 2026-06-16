@@ -49,5 +49,28 @@ def test_optimize_plan_returns_a_compliant_plan() -> None:
     assert "guardrails" in body and "assumptions" in body
 
 
+def test_risk_lambda_is_an_adjustable_knob_end_to_end() -> None:
+    # The uncertainty preference is exposed as a settings knob, accepted by both
+    # the scenario slider and the optimize endpoint, and echoed back so the
+    # dashboard can show what was actually applied.
+    params = client.get("/api/parameters").json()
+    assert "risk_lambda" in params["settings"]
+    assert "risk_lambda" in params["assumptions"]
+
+    scenario = client.post(
+        "/api/scenario",
+        json={"revenue_weight": 60, "retention_floor": 0.72, "max_breaks_per_hour": 4, "risk_lambda": 1.0},
+    ).json()
+    assert scenario["controls"]["risk_lambda"] == 1.0
+
+    plan = client.post("/api/optimize-plan", json={"revenue_weight": 0.6, "risk_lambda": 1.0}).json()
+    assert plan["weights"]["risk_lambda"] == 1.0
+    # Each segment carries the retention-cost provenance block for the dashboard.
+    for segment in plan["segments"]:
+        cost = segment["retention_cost"]
+        assert set(cost) == {"point", "used", "ci_low", "ci_high", "n", "confidence"}
+        assert cost["confidence"] in {"low", "medium", "high"}
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
