@@ -56,11 +56,27 @@ def _drop_index_column(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _combine_datetime(dates: pd.Series, times: pd.Series, *, dayfirst: bool) -> pd.Series:
-    return pd.to_datetime(
-        dates.astype(str).str.strip() + " " + times.astype(str).str.strip(),
-        errors="coerce",
-        dayfirst=dayfirst,
-    )
+    """Combine a date column and a time-of-day column into one air/start datetime.
+
+    The reference xlsx is inconsistent: some Start/End time cells arrive as plain
+    "HH:MM:SS" strings, others as Excel time serials that openpyxl surfaces as a
+    full "1900-01-01 HH:MM:SS" datetime. Naive string concatenation
+    ("01/11/2024 1900-01-01 00:19:48") fails to parse on the latter and silently
+    coerced the row to NaT, dropping it downstream (measured on the real data:
+    3,262 of 50,386 spots = 6.5%, plus ~10% of programme start/end times, all of
+    them real post-midnight airings). So parse the date and the time-of-day
+    independently and add them: the time-of-day is the offset of the parsed time
+    from its own midnight, which is identical whether the cell was a bare time
+    string or an Excel 1900-epoch datetime. A genuinely unparseable date or time
+    still yields NaT (no fabrication), it is only the spurious concatenation loss
+    that is recovered.
+    """
+    day = pd.to_datetime(
+        dates.astype(str).str.strip(), errors="coerce", dayfirst=dayfirst
+    ).dt.normalize()
+    moment = pd.to_datetime(times.astype(str).str.strip(), errors="coerce")
+    time_of_day = moment - moment.dt.normalize()
+    return day + time_of_day
 
 
 def load_programmes(path: str | Path | None = None) -> pd.DataFrame:
