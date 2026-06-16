@@ -1210,21 +1210,37 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
-.detail-list div,
-.guardrail-row,
-.ledger-row {
-  display: flex;
+.detail-list div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   min-height: 28px;
   gap: 12px;
 }
 
+.guardrail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(56px, max-content) 20px;
+  align-items: center;
+  min-height: 30px;
+  gap: 12px;
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, max-content) minmax(120px, max-content);
+  align-items: center;
+  min-height: 32px;
+  gap: 12px;
+}
+
 .detail-list dt,
-.guardrail-row span,
-.ledger-row span {
+.guardrail-row > span:first-child,
+.ledger-row > span:first-child {
+  min-width: 0;
   color: var(--muted);
   font-size: 12px;
+  text-align: start;
 }
 
 .detail-list dd,
@@ -1233,6 +1249,28 @@ button {
   margin: 0;
   font-size: 12px;
   font-weight: 650;
+}
+
+.detail-list dd {
+  text-align: end;
+}
+
+.guardrail-state,
+.ledger-row strong {
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.guardrail-state.at-risk {
+  color: var(--amber);
+}
+
+.guardrail-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
 }
 
 .guardrail-block,
@@ -1249,11 +1287,7 @@ button {
   text-transform: uppercase;
 }
 
-.guardrail-row svg {
-  color: var(--teal);
-}
-
-.guardrail-warning,
+.guardrail-indicator.at-risk,
 .ledger-row .at-risk {
   color: var(--amber);
 }

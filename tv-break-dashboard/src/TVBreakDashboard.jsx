@@ -604,6 +604,20 @@ function impactSegmentLabel(segment, locale) {
   return labels[segment] || segment;
 }
 
+function impactSourceLabel(source, metadata, locale) {
+  const measuredBreaks = finiteNumber(metadata?.total_breaks_measured);
+  const suffix = measuredBreaks
+    ? pageText(locale, ` · ${formatNumber(measuredBreaks, locale)} measured breaks`, ` · ${formatNumber(measuredBreaks, locale)} ברייקים נמדדו`)
+    : '';
+  const labels = {
+    measured_detrended_pooled: pageText(locale, 'Measured retention model', 'מודל שימור מדוד'),
+    measured_coefficients: pageText(locale, 'Measured retention model', 'מודל שימור מדוד'),
+    legacy_csv: pageText(locale, 'Legacy impact extract', 'תוצר השפעה קודם'),
+    unavailable: pageText(locale, 'Model source unavailable', 'מקור המודל לא זמין'),
+  };
+  return `${labels[source] || pageText(locale, 'Impact model', 'מודל השפעה')}${suffix}`;
+}
+
 function normalizeImpactRows(rows, segmentKey) {
   return normalizeRows(rows)
     .map((row) => {
@@ -2048,7 +2062,7 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
     normalizeRows(measuredImpacts.length).length ? measuredImpacts.length : impact.length_impacts,
     'length',
   );
-  const impactSource = measuredImpacts.source || pageText(locale, 'Legacy extract', 'קובץ legacy');
+  const impactSource = impactSourceLabel(measuredImpacts.source || 'legacy_csv', measuredImpacts.metadata, locale);
   return (
     <section className="page-workspace">
       <PageHeader
@@ -2725,13 +2739,18 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
           locale === 'he' ? 'אורך ברייק מינימלי' : 'Minimum break length',
           locale === 'he' ? 'הגנת תוכנית' : 'Program protection',
           locale === 'he' ? 'רף שימור' : 'Retention floor',
-        ].map((item, index) => (
-          <div className="guardrail-row" key={item}>
-            <span>{item}</span>
-            <strong>{index === 3 && retentionAtRisk ? copy.atRisk : copy.compliant}</strong>
-            {index === 3 && retentionAtRisk ? <span className="guardrail-warning">{formatNumber(retentionValue - 72, locale)}pp</span> : <Check size={14} />}
-          </div>
-        ))}
+        ].map((item, index) => {
+          const isAtRisk = index === 3 && retentionAtRisk;
+          return (
+            <div className="guardrail-row" key={item}>
+              <span>{item}</span>
+              <strong className={isAtRisk ? 'guardrail-state at-risk' : 'guardrail-state'}>{isAtRisk ? copy.atRisk : copy.compliant}</strong>
+              <span className={isAtRisk ? 'guardrail-indicator at-risk' : 'guardrail-indicator'}>
+                {isAtRisk ? <Numeric>{`${formatNumber(retentionValue - 72, locale)}pp`}</Numeric> : <Check size={14} />}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       <div className="recommendation-block">
