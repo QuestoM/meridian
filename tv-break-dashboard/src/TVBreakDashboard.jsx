@@ -1422,16 +1422,31 @@ function recommendationTitle(recommendation, locale) {
   if (locale !== 'he') {
     return recommendation?.title || 'Review placement';
   }
-  return localizedModelText(recommendation?.title_he || recommendation?.title || 'בדיקת מיקום ברייק', locale);
+  const title = recommendation?.title_he || recommendation?.title || '';
+  const fallbackTitles = {
+    'Increase selected primetime break by 1 spot': 'הוספת ספוט לברייק פריים נבחר',
+    'Shift a late break earlier in the hour': 'הקדמת ברייק מאוחר בתוך השעה',
+    'Hold break length in news block': 'שמירת אורך הברייק במהדורת חדשות',
+  };
+  return fallbackTitles[title] || localizedModelText(title || 'בדיקת מיקום ברייק', locale);
 }
 
 function recommendationRationale(recommendation, locale) {
   if (locale !== 'he') {
     return recommendation?.rationale || 'Recommendation rationale unavailable.';
   }
+  const rationale = recommendation?.rationale_he || recommendation?.rationale || '';
+  const fallbackRationales = {
+    'Demand is concentrated in the selected slot while retention guardrail remains compliant.':
+      'הביקוש מרוכז בסלוט הנבחר, ובקרת השימור עדיין תקינה.',
+    'Earlier placement improves sell-through with limited churn exposure.':
+      'הקדמת המיקום משפרת מכירה בלי להגדיל משמעותית את חשיפת השימור.',
+    'News retention is strong, but incremental minutes are below target yield.':
+      'שימור הצפייה בחדשות חזק, אך דקות נוספות אינן מגיעות לתשואת היעד.',
+  };
   return localizedModelText(
-    recommendation?.rationale_he ||
-      recommendation?.rationale ||
+    fallbackRationales[rationale] ||
+      rationale ||
       'המערכת מזהה הזדמנות הכנסה, אך ההחלטה נשמרת לבקרה אנושית מול מגבלות שימור ותאימות.',
     locale,
   );

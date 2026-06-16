@@ -1704,13 +1704,15 @@ button {
   padding: 12px 16px;
 }
 
-.decision-row {
+.decision-row,
+.decision-row.MuiButton-root {
   width: 100%;
   min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, max-content);
   gap: 14px;
   align-items: center;
+  justify-items: stretch;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: #ffffff;
@@ -1719,13 +1721,15 @@ button {
   padding: 10px 0;
   justify-content: stretch;
   text-transform: none;
+  border-radius: 0;
 }
 
 .decision-row:last-child {
   border-bottom: 0;
 }
 
-.decision-row:hover {
+.decision-row:hover,
+.decision-row.MuiButton-root:hover {
   background: #fbfcfd;
 }
 
@@ -1749,17 +1753,31 @@ button {
   font-size: 11px;
 }
 
-.decision-row > div:first-of-type {
+.decision-row > div:first-of-type,
+.decision-row.MuiButton-root > div:first-of-type {
   min-width: 0;
   text-align: start;
 }
 
-.decision-row > div:last-child {
+.decision-row > div:first-of-type strong,
+.decision-row.MuiButton-root > div:first-of-type strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.decision-row > div:last-child,
+.decision-row.MuiButton-root > div:last-child {
+  min-width: 92px;
+  display: grid;
+  justify-items: end;
   text-align: end;
 }
 
-.kairos-shell.rtl .decision-row > div:last-child {
+.kairos-shell.rtl .decision-row > div:last-child,
+.kairos-shell.rtl .decision-row.MuiButton-root > div:last-child {
   direction: ltr;
+  justify-self: start;
+  justify-items: start;
   text-align: left;
 }
 
