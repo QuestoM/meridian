@@ -3376,6 +3376,63 @@ button {
   outline: none;
 }
 
+/* Filter box for long scope lists (programmes, genres) */
+.adv-chip-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 0 8px;
+  height: 28px;
+  margin-bottom: 6px;
+  max-width: 220px;
+}
+
+.adv-chip-filter-icon {
+  color: var(--subtle);
+  flex-shrink: 0;
+}
+
+.adv-chip-filter-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+
+.adv-chip-filter-input::placeholder {
+  color: var(--subtle);
+}
+
+/* Scrollable chip row keeps long option lists from overrunning the row */
+.adv-chip-row-scroll {
+  max-height: 132px;
+  overflow-y: auto;
+  align-content: flex-start;
+  padding-right: 2px;
+}
+
+.adv-chip-empty {
+  font-size: 12px;
+  color: var(--subtle);
+  align-self: center;
+}
+
+/* Inline info affordance inside a field label (tooltip trigger) */
+.adv-field-info {
+  display: inline-block;
+  vertical-align: middle;
+  margin-inline-start: 4px;
+  color: var(--subtle);
+  cursor: help;
+}
+
 @media (max-width: 1080px) {
   .adv-cond-row {
     grid-template-columns: 1fr;

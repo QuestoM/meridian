@@ -87,7 +87,7 @@ function PremiumInput({ value, onChange, locale }) {
   );
 }
 
-function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft, onCreateCondition, onUpdateCondition, onDeleteCondition }) {
+function AdvertiserRow({ row, locale, scopeOptions, onSave, onDelete, registerDraft, onCreateCondition, onUpdateCondition, onDeleteCondition }) {
   const [draft, setDraft] = useState(row);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -216,6 +216,7 @@ function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft, onCreateC
         conditions={row.conditions}
         overlaps={row.overlaps}
         locale={locale}
+        scopeOptions={scopeOptions}
         onCreate={onCreateCondition}
         onUpdate={onUpdateCondition}
         onDelete={onDeleteCondition}
@@ -332,6 +333,28 @@ function AdvertisersManager({ copy, locale, notify }) {
   const [showLegend, setShowLegend] = useState(false);
   const [dirtyDrafts, setDirtyDrafts] = useState({});
   const [savingAll, setSavingAll] = useState(false);
+  const [scopeOptions, setScopeOptions] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/advertisers/options`);
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        if (!cancelled) {
+          setScopeOptions(payload || {});
+        }
+      } catch {
+        // Options are an enhancement: the chips fall back to local presets.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadAdvertisers = useCallback(async () => {
     setLoading(true);
@@ -727,6 +750,7 @@ function AdvertisersManager({ copy, locale, notify }) {
                 key={row.advertiser_id}
                 row={row}
                 locale={locale}
+                scopeOptions={scopeOptions}
                 onSave={handleSave}
                 onDelete={handleDelete}
                 registerDraft={registerDraft}

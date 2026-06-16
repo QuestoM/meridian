@@ -1,13 +1,24 @@
 // Pure helpers for the Advertisers management page.
 // Kept framework-free so they are trivially testable and reusable.
 
-export const POSITION_PRESETS = ['ANY', '1', '2', '3', 'last'];
-export const GENRE_PRESETS = ['ANY', 'News', 'PrimeShow1', 'PrimeShow2', 'Other'];
-// Dayparts have no fixed backend taxonomy: we offer ANY plus whatever tokens
-// already appear in the data, and preserve unknown tokens via free-text add.
-export const DAYPART_PRESETS = ['ANY'];
+// Fallback presets used only until the backend /api/advertisers/options list
+// loads. "gold" is the premium gold break (Hebrew: ברייק זהב). Real vocabularies
+// (genres, programmes, dayparts) come from the options endpoint at runtime.
+export const POSITION_PRESETS = ['ANY', 'first', 'middle', 'last', 'gold'];
+export const GENRE_PRESETS = ['ANY'];
+export const DAYPART_PRESETS = ['ANY', 'morning', 'noon', 'evening', 'prime', 'night'];
 
-export const CONDITION_EFFECTS = ['premium', 'require', 'forbid'];
+export const CONDITION_EFFECTS = ['premium', 'require', 'forbid', 'pressure'];
+
+// How a premium rule's value is read by the engine (mirrors advertiser_rules.py).
+export const PREMIUM_MODES = ['multiplier', 'percent', 'cpp_absolute', 'cpp_add', 'cpp_discount'];
+
+// Normalize a stored/incoming mode to one of PREMIUM_MODES; default 'multiplier'
+// so a legacy rule (no mode) reads exactly as before.
+export function normalizeMode(value) {
+  const text = String(value || '').trim().toLowerCase();
+  return PREMIUM_MODES.includes(text) ? text : 'multiplier';
+}
 
 export const EMPTY_ADVERTISER = {
   advertiser_id: '',
@@ -236,8 +247,10 @@ export function parseCondition(condition) {
     scope_positions: serializeTokens(parseTokens(source.scope_positions)),
     scope_genres: serializeTokens(parseTokens(source.scope_genres)),
     scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
+    scope_programmes: serializeTokens(parseTokens(source.scope_programmes)),
     effect,
-    // Keep value sane: only premium uses it, but we always carry a number.
+    mode: normalizeMode(source.mode),
+    // Keep value sane: premium and pressure use it, but we always carry a number.
     value: Number.isFinite(Number(source.value)) ? Number(source.value) : 1,
     notes: source.notes ?? '',
   };
@@ -248,30 +261,46 @@ export function parseCondition(condition) {
 export function toConditionPayload(draft) {
   const source = draft || {};
   const effect = CONDITION_EFFECTS.includes(source.effect) ? source.effect : 'premium';
+  // premium uses value+mode; pressure uses value (a percent); require/forbid send
+  // value 1 (ignored by the engine) so the body stays uniform.
+  const usesValue = effect === 'premium' || effect === 'pressure';
   return {
     scope_positions: serializeTokens(parseTokens(source.scope_positions)),
     scope_genres: serializeTokens(parseTokens(source.scope_genres)),
     scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
+    scope_programmes: serializeTokens(parseTokens(source.scope_programmes)),
     effect,
-    value: effect === 'premium' ? Number(source.value ?? 1) : 1,
+    mode: effect === 'premium' ? normalizeMode(source.mode) : 'multiplier',
+    value: usesValue ? Number(source.value ?? 1) : 1,
     notes: source.notes ?? '',
   };
 }
 
-const CONDITION_FIELDS = ['scope_positions', 'scope_genres', 'scope_dayparts', 'effect', 'value', 'notes'];
+const CONDITION_FIELDS = [
+  'scope_positions', 'scope_genres', 'scope_dayparts', 'scope_programmes',
+  'effect', 'mode', 'value', 'notes',
+];
 
 // True when a condition draft differs from its original (scope-normalized).
 export function isConditionDirty(original, draft) {
   if (!original || !draft) {
     return false;
   }
+  const valueEffect = (effect) => effect === 'premium' || effect === 'pressure';
   return CONDITION_FIELDS.some((field) => {
     if (field === 'value') {
-      // Value only matters for premium; for require/forbid it is inert.
-      if (draft.effect !== 'premium' && original.effect !== 'premium') {
+      // Value matters for premium and pressure; for require/forbid it is inert.
+      if (!valueEffect(draft.effect) && !valueEffect(original.effect)) {
         return false;
       }
       return Number(original.value ?? 1) !== Number(draft.value ?? 1);
+    }
+    if (field === 'mode') {
+      // Mode only matters for a premium rule.
+      if (draft.effect !== 'premium' && original.effect !== 'premium') {
+        return false;
+      }
+      return normalizeMode(original.mode) !== normalizeMode(draft.mode);
     }
     if (field === 'effect') {
       return String(original.effect ?? '') !== String(draft.effect ?? '');
@@ -284,16 +313,61 @@ export function isConditionDirty(original, draft) {
   });
 }
 
-// A blank condition draft for the "Add rule" affordance.
+// A blank condition draft for the "Add rule" affordance. Defaults to a +15%
+// percent premium, the friendliest coefficient mode for a new rule.
 export function emptyCondition() {
   return {
     rule_id: '',
     scope_positions: 'ANY',
     scope_genres: 'ANY',
     scope_dayparts: 'ANY',
+    scope_programmes: 'ANY',
     effect: 'premium',
-    value: 1.2,
+    mode: 'percent',
+    value: 15,
     notes: '',
+  };
+}
+
+// Live hint for the coefficient (premium) field, mode-aware. Returns
+// { text, tone } where tone is teal | amber | muted.
+export function coefficientHint(value, mode, locale) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return { text: '', tone: 'muted' };
+  }
+  const normalized = normalizeMode(mode);
+  if (normalized === 'percent') {
+    if (amount === 0) {
+      return { text: pageText(locale, 'rate card', 'מחיר מחירון'), tone: 'muted' };
+    }
+    const sign = amount > 0 ? '+' : '−';
+    return { text: `${sign}${Math.abs(amount)}%`, tone: amount > 0 ? 'teal' : 'amber' };
+  }
+  if (normalized === 'cpp_absolute') {
+    return { text: pageText(locale, `CPP set to ${amount}`, `נקודה = ${amount}`), tone: 'teal' };
+  }
+  if (normalized === 'cpp_add') {
+    return { text: pageText(locale, `CPP +${amount}`, `נקודה +${amount}`), tone: 'teal' };
+  }
+  if (normalized === 'cpp_discount') {
+    return { text: pageText(locale, `CPP −${amount}`, `נקודה −${amount}`), tone: 'amber' };
+  }
+  // multiplier
+  return premiumHint(amount, locale);
+}
+
+// Live hint for the pressure (placement preference) field. Pressure steers
+// placement without ever appearing in revenue, so it is always informational.
+export function pressureHint(value, locale) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount === 0) {
+    return { text: pageText(locale, 'no steer', 'ללא הטיה'), tone: 'muted' };
+  }
+  const sign = amount > 0 ? '+' : '−';
+  return {
+    text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `${sign}${Math.abs(amount)}% שיבוץ בלבד`),
+    tone: 'muted',
   };
 }
 
