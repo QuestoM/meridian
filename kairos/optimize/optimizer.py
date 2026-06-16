@@ -38,6 +38,7 @@ from kairos.optimize.objective import (
     predicted_retention,
     weighted_objective,
 )
+from kairos.optimize.overrides import OverrideSet
 
 SECONDS_PER_HOUR = 3600.0
 DEFAULT_BREAK_LENGTH_SECONDS = 120.0  # a two-minute break, a common unit
@@ -133,6 +134,23 @@ class Decision:
 
 
 @dataclass(frozen=True)
+class RejectedOverride:
+    """One operator override the optimizer could not honor, with why.
+
+    Honesty surface: an override is rejected (and kept OUT of the plan) when
+    obeying it would breach a hard guardrail, for example a force that exceeds the
+    segment's ``max_breaks`` or a pin that breaks the spacing guardrail. The
+    operator sees exactly which override was dropped and the reason, so nothing is
+    silently bent or silently ignored.
+    """
+
+    segment_id: str
+    kind: str                          # pin / force (forbid and gold cannot be infeasible)
+    requested: int                     # the break count the override asked for
+    reason: str
+
+
+@dataclass(frozen=True)
 class OptimizationResult:
     segments: tuple[SegmentPlan, ...]
     placements: tuple[BreakPlacement, ...]     # every break, flat
@@ -143,6 +161,7 @@ class OptimizationResult:
     revenue_weight: float
     revenue_scale: float
     decisions: tuple[Decision, ...]
+    rejected_overrides: tuple[RejectedOverride, ...] = ()
 
     @property
     def total_breaks(self) -> int:
@@ -181,18 +200,21 @@ def _segment_revenue(segment: ProgramSegment, k: int) -> float:
     return sum(_marginal_revenue(segment, j) for j in range(1, k + 1))
 
 
-def _segment_break_objects(segment: ProgramSegment, k: int) -> list[Break]:
+def _segment_break_objects(segment: ProgramSegment, k: int, *, is_gold: bool = False) -> list[Break]:
     """Lay k breaks evenly through the segment for guardrail evaluation.
 
     Even spacing of ``duration / (k + 1)`` means a short programme cannot hold
     many breaks without breaching the spacing guardrail, which is the real
     constraint. Every break carries the segment's realised (final) retention,
-    the value the retention floor must be checked against.
+    the value the retention floor must be checked against. ``is_gold`` lets a
+    caller mark the breaks gold without mutating the frozen segment, which is how
+    a gold override is honored.
     """
     if k <= 0:
         return []
     retention = _segment_retention(segment, k)
     spacing = segment.duration_seconds / (k + 1)
+    gold = segment.is_gold or is_gold
     breaks: list[Break] = []
     for j in range(1, k + 1):
         start = segment.start_seconds + spacing * j - segment.break_length_seconds / 2.0
@@ -205,15 +227,22 @@ def _segment_break_objects(segment: ProgramSegment, k: int) -> list[Break]:
             duration_seconds=segment.break_length_seconds,
             program_type=segment.program_type,
             retention=retention,
-            is_gold=segment.is_gold,
+            is_gold=gold,
         ))
     return breaks
 
 
-def _group_breaks(group: list[ProgramSegment], state: dict[str, int]) -> list[Break]:
+def _group_breaks(
+    group: list[ProgramSegment],
+    state: dict[str, int],
+    gold_by_id: Optional[dict[str, bool]] = None,
+) -> list[Break]:
+    gold_by_id = gold_by_id or {}
     breaks: list[Break] = []
     for segment in group:
-        breaks.extend(_segment_break_objects(segment, state[segment.segment_id]))
+        breaks.extend(_segment_break_objects(
+            segment, state[segment.segment_id], is_gold=gold_by_id.get(segment.segment_id, False),
+        ))
     return breaks
 
 
@@ -223,6 +252,7 @@ def optimize_breaks(
     *,
     revenue_weight: float = 0.5,
     revenue_scale: Optional[float] = None,
+    overrides: Optional[OverrideSet] = None,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -231,6 +261,15 @@ def optimize_breaks(
     places no breaks. ``revenue_scale`` normalises revenue so it is comparable to
     retention; when omitted it defaults to the revenue of loading every segment
     to ``max_breaks`` (the marketing-maximal reference), floored above zero.
+
+    ``overrides`` is an optional :class:`~kairos.optimize.overrides.OverrideSet`
+    of operator overrides honored as HARD constraints at the level the engine
+    genuinely supports (break COUNTS per segment): a pinned segment is fixed at
+    its count, a forced segment is floored at its minimum, a forbidden segment is
+    held at 0, and a gold segment emits is_gold placements. An override that would
+    breach a hard guardrail (for example a force above ``max_breaks`` or a pin
+    that breaks spacing) is kept OUT of the plan and reported in
+    ``result.rejected_overrides`` with a reason, never silently applied.
 
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
@@ -258,10 +297,15 @@ def optimize_breaks(
     elif revenue_scale <= 0:
         raise ValueError("revenue_scale must be positive")
 
+    constraints = overrides.segment_constraints() if overrides is not None else {}
+    floors, caps, gold_by_id, rejected = _apply_segment_overrides(
+        segs, groups, guardrails, constraints,
+    )
+
     total_tvr = sum(s.baseline_tvr for s in segs)
-    state: dict[str, int] = {s.segment_id: 0 for s in segs}
-    total_revenue = 0.0
-    retention_weighted = sum(s.baseline_tvr * _segment_retention(s, 0) for s in segs)
+    state: dict[str, int] = dict(floors)
+    total_revenue = sum(_segment_revenue(by_id[sid], k) for sid, k in state.items())
+    retention_weighted = sum(s.baseline_tvr * _segment_retention(s, state[s.segment_id]) for s in segs)
 
     def aggregate_retention() -> float:
         if total_tvr <= _EPSILON:
@@ -283,7 +327,7 @@ def optimize_breaks(
         best_id: Optional[str] = None
         for segment in segs:
             k = state[segment.segment_id]
-            if k >= segment.max_breaks:
+            if k >= caps[segment.segment_id]:
                 continue
             marginal_rev = _marginal_revenue(segment, k + 1)
             delta_retention = segment.baseline_tvr * (
@@ -299,7 +343,7 @@ def optimize_breaks(
                 continue
             group = groups[(segment.channel, segment.day)]
             state[segment.segment_id] = k + 1
-            feasible = is_compliant(_group_breaks(group, state), guardrails)
+            feasible = is_compliant(_group_breaks(group, state, gold_by_id), guardrails)
             state[segment.segment_id] = k
             if feasible:
                 best_gain = gain
@@ -326,8 +370,111 @@ def optimize_breaks(
     return _build_result(
         segs, state, total_revenue, aggregate_retention(),
         objective_of(total_revenue, aggregate_retention()),
-        guardrails, revenue_weight, revenue_scale, decisions,
+        guardrails, revenue_weight, revenue_scale, decisions, gold_by_id, rejected,
     )
+
+
+def _apply_segment_overrides(
+    segs: list[ProgramSegment],
+    groups: dict[tuple[str, str], list[ProgramSegment]],
+    guardrails: Guardrails,
+    constraints: dict[str, dict[str, object]],
+) -> tuple[dict[str, int], dict[str, int], dict[str, bool], list[RejectedOverride]]:
+    """Turn segment constraints into per-segment floors, caps, gold flags.
+
+    Returns ``(floors, caps, gold_by_id, rejected)``. A forbid pins the cap to 0.
+    A pin sets floor == cap == the pinned count. A force lifts the floor. Gold
+    tags the segment's breaks. Any pin or force that exceeds ``max_breaks`` or
+    that makes its channel-day infeasible at the requested floor is rejected and
+    left out (the segment falls back to a 0 floor and its normal cap), so an
+    infeasible override never breaches a hard guardrail.
+    """
+    floors: dict[str, int] = {s.segment_id: 0 for s in segs}
+    caps: dict[str, int] = {s.segment_id: s.max_breaks for s in segs}
+    gold_by_id: dict[str, bool] = {}
+    rejected: list[RejectedOverride] = []
+
+    for segment in segs:
+        entry = constraints.get(segment.segment_id)
+        if not entry:
+            continue
+        if entry.get("gold"):
+            gold_by_id[segment.segment_id] = True
+        if entry.get("forbid"):
+            floors[segment.segment_id] = 0
+            caps[segment.segment_id] = 0
+            continue
+        pin = entry.get("pin")
+        if pin is not None:
+            requested = int(pin)
+            if requested > segment.max_breaks:
+                rejected.append(RejectedOverride(
+                    segment_id=segment.segment_id, kind="pin", requested=requested,
+                    reason=f"pinned count {requested} exceeds max_breaks {segment.max_breaks}",
+                ))
+            else:
+                floors[segment.segment_id] = requested
+                caps[segment.segment_id] = requested
+            continue
+        minimum = entry.get("min")
+        if minimum is not None:
+            requested = int(minimum)
+            if requested > segment.max_breaks:
+                rejected.append(RejectedOverride(
+                    segment_id=segment.segment_id, kind="force", requested=requested,
+                    reason=f"forced minimum {requested} exceeds max_breaks {segment.max_breaks}",
+                ))
+            else:
+                floors[segment.segment_id] = requested
+
+    # Verify each channel-day is compliant at its floors. If a pinned or forced
+    # floor makes the group breach a guardrail (for example spacing), back that
+    # override out and report it, rather than ship an out-of-policy plan.
+    for group in groups.values():
+        _reject_infeasible_floors(group, floors, caps, gold_by_id, guardrails, constraints, rejected)
+
+    return floors, caps, gold_by_id, rejected
+
+
+def _reject_infeasible_floors(
+    group: list[ProgramSegment],
+    floors: dict[str, int],
+    caps: dict[str, int],
+    gold_by_id: dict[str, bool],
+    guardrails: Guardrails,
+    constraints: dict[str, dict[str, object]],
+    rejected: list[RejectedOverride],
+) -> None:
+    """Back out pin/force floors in a group until its floor state is compliant.
+
+    Removes the largest offending override-floored segment one at a time until
+    the group's floors are guardrail-compliant, recording each as rejected. A
+    forbid (cap 0) is never the cause and never backed out.
+    """
+    state = {s.segment_id: floors[s.segment_id] for s in group}
+    while not is_compliant(_group_breaks(group, state, gold_by_id), guardrails):
+        candidates = [
+            s for s in group
+            if state[s.segment_id] > 0 and _is_override_floored(s.segment_id, constraints)
+        ]
+        if not candidates:
+            break  # the infeasibility is not from an override; leave it for reporting
+        worst = max(candidates, key=lambda s: state[s.segment_id])
+        entry = constraints.get(worst.segment_id, {})
+        kind = "pin" if entry.get("pin") is not None else "force"
+        rejected.append(RejectedOverride(
+            segment_id=worst.segment_id, kind=kind, requested=state[worst.segment_id],
+            reason="override floor breaks a guardrail for its channel-day (spacing/load)",
+        ))
+        state[worst.segment_id] = 0
+        floors[worst.segment_id] = 0
+        if kind == "pin":
+            caps[worst.segment_id] = worst.max_breaks
+
+
+def _is_override_floored(segment_id: str, constraints: dict[str, dict[str, object]]) -> bool:
+    entry = constraints.get(segment_id, {})
+    return entry.get("pin") is not None or entry.get("min") is not None
 
 
 def _build_result(
@@ -340,13 +487,17 @@ def _build_result(
     revenue_weight: float,
     revenue_scale: float,
     decisions: list[Decision],
+    gold_by_id: Optional[dict[str, bool]] = None,
+    rejected: Optional[list[RejectedOverride]] = None,
 ) -> OptimizationResult:
+    gold_by_id = gold_by_id or {}
     placements: list[BreakPlacement] = []
     segment_plans: list[SegmentPlan] = []
     for segment in segs:
         k = state[segment.segment_id]
         retention = _segment_retention(segment, k)
-        breaks = _segment_break_objects(segment, k)
+        gold = segment.is_gold or gold_by_id.get(segment.segment_id, False)
+        breaks = _segment_break_objects(segment, k, is_gold=gold)
         segment_placements: list[BreakPlacement] = []
         for index, brk in enumerate(breaks, start=1):
             segment_placements.append(BreakPlacement(
@@ -360,7 +511,7 @@ def _build_result(
                 position_in_segment=index,
                 retention=retention,
                 revenue=_marginal_revenue(segment, index),
-                is_gold=segment.is_gold,
+                is_gold=gold,
             ))
         placements.extend(segment_placements)
         segment_plans.append(SegmentPlan(
@@ -389,4 +540,5 @@ def _build_result(
         revenue_weight=revenue_weight,
         revenue_scale=revenue_scale,
         decisions=tuple(decisions),
+        rejected_overrides=tuple(rejected or ()),
     )

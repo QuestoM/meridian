@@ -38,6 +38,7 @@ from kairos.data.classifier import ProgramClassifier
 from kairos.data.loaders import load_daily_input
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.objective import break_revenue, fixed_revenue
+from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import PricingModel
 
 # The daily Wally file is a single channel and carries no daypart column; we
@@ -103,6 +104,18 @@ class DroppedSpot:
     reason: str
 
 
+def _spot_id(advertiser: str, campaign: str, date: Any, position: Optional[int]) -> str:
+    """The daily spot identifier a spot-scope override targets.
+
+    The format is ``advertiser|campaign|date|position`` (position blank when
+    unknown), which is what :meth:`OverrideSet.spot_overrides` keys on. It is the
+    daily-level analogue of the segment id the weekly optimizer uses.
+    """
+    date_text = str(date or "").strip()[:10]
+    position_text = "" if position is None else str(position)
+    return f"{advertiser}|{campaign}|{date_text}|{position_text}"
+
+
 @dataclass(frozen=True)
 class DailyPricingResult:
     """The outcome of pricing one daily Wally file under the advertiser rules."""
@@ -156,6 +169,7 @@ def price_daily_spots(
     engine: Optional[AdvertiserRuleEngine] = None,
     pricing: Optional[PricingModel] = None,
     classifier: Optional[ProgramClassifier] = None,
+    overrides: Optional[OverrideSet] = None,
 ) -> DailyPricingResult:
     """Price every spot in a loaded daily Wally frame under the advertiser rules.
 
@@ -165,10 +179,22 @@ def price_daily_spots(
     spot is classified for its genre, assigned a coarse daypart from its clock,
     priced with CPP math times the advertiser's effective premium, and either
     kept (allowed) or dropped (forbidden by a rule), never both.
+
+    ``overrides`` honors operator spot overrides here, where they genuinely bite:
+
+      * a ``lock`` spot passes through untouched and is NEVER dropped by an
+        advertiser rule, so a hand-pinned spot keeps its placement and price.
+      * a ``move`` spot is re-tagged before pricing: its position (and, where
+        given, its coarse daypart) are set to the override's target, then the
+        advertiser rules are applied to the re-tagged spot. The daily path tags
+        position and daypart but cannot re-place a spot at a clock time it never
+        owned, so a move re-tags what it can and the rest is recorded honestly in
+        the spot's ``move`` intent rather than fabricated.
     """
     engine = engine or AdvertiserRuleEngine.from_files()
     pricing = pricing or PricingModel.from_yaml()
     classifier = classifier or ProgramClassifier.from_yaml()
+    spot_overrides = overrides.spot_overrides() if overrides is not None else {}
 
     priced: list[PricedSpot] = []
     dropped: list[DroppedSpot] = []
@@ -181,12 +207,27 @@ def price_daily_spots(
         genre = classifier.classify(program).category
         position = _coerce_int(getattr(row, "position_in_break", None))
         daypart = _daypart_for_hour(_hour_from_time(getattr(row, "spot_time", None)))
+        campaign = str(getattr(row, "campaign", "") or "")
+
+        override = spot_overrides.get(
+            _spot_id(advertiser, campaign, getattr(row, "date", None), position)
+        )
+        locked = bool(override and override.get("lock"))
+        move = override.get("move") if override else None
+        if move:
+            # Re-tag the spot to the move target before pricing. Only position and
+            # daypart can be re-tagged on the daily path; a clock-time move cannot
+            # be realized here and is left to the recorded intent.
+            new_position = _coerce_int(move.get("position"))
+            if new_position is not None:
+                position = new_position
+            if move.get("daypart"):
+                daypart = str(move["daypart"]).strip().lower()
 
         decision = engine.allow_decision(
             advertiser, position=position, genre=genre, daypart=daypart
         )
-        campaign = str(getattr(row, "campaign", "") or "")
-        if not decision.allowed:
+        if not decision.allowed and not locked:
             dropped.append(DroppedSpot(
                 advertiser=advertiser, campaign=campaign, program=program,
                 position=position, genre=genre, daypart=daypart, reason=decision.reason,
@@ -225,7 +266,10 @@ def price_daily_file(
     engine: Optional[AdvertiserRuleEngine] = None,
     pricing: Optional[PricingModel] = None,
     classifier: Optional[ProgramClassifier] = None,
+    overrides: Optional[OverrideSet] = None,
 ) -> DailyPricingResult:
     """Load a daily Wally csv from ``path`` and price it under the advertiser rules."""
     daily = load_daily_input(path)
-    return price_daily_spots(daily, engine=engine, pricing=pricing, classifier=classifier)
+    return price_daily_spots(
+        daily, engine=engine, pricing=pricing, classifier=classifier, overrides=overrides,
+    )
