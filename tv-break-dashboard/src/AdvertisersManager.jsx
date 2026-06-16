@@ -531,24 +531,38 @@ function AdvertisersManager({ copy, locale, notify }) {
 
         {showLegend && (
           <div className="adv-legend">
+            <p className="adv-legend-lead">
+              {pageText(
+                locale,
+                'One lever changes how much money a spot earns (premium). The other three only restrict where a spot may be placed - they do not make it more profitable.',
+                'שדה אחד משנה כמה כסף תשדיר מכניס (המקדם). שלושת האחרים רק מגבילים היכן מותר לשבץ תשדיר - הם לא הופכים אותו לרווחי יותר.',
+              )}
+            </p>
             <dl>
               <div>
-                <dt>{pageText(locale, 'Premium', 'מקדם')}</dt>
-                <dd>{pageText(locale, 'A multiplier on the rate card. 1.0 = rate card, 1.2 = +20%, 0.9 = -10%.', 'מקדם על המחירון. 1.0 = מחירון, 1.2 = ‎+20%‎, 0.9 = ‎-10%‎.')}</dd>
+                <dt>{pageText(locale, 'Premium (earns more)', 'מקדם (מכניס יותר)')}</dt>
+                <dd>{pageText(locale, 'A true multiplier on revenue: 1.0 = rate card, 1.2 = this advertiser pays +20% per spot, 0.9 = -10%. This is the only field that changes real profitability.', 'מכפיל אמיתי על ההכנסה: 1.0 = מחירון, 1.2 = המפרסם משלם ‎+20%‎ לתשדיר, 0.9 = ‎-10%‎. זה השדה היחיד שמשנה רווחיות אמיתית.')}</dd>
               </div>
               <div>
-                <dt>{pageText(locale, 'Positions', 'מיקומים')}</dt>
-                <dd>{pageText(locale, 'Which break positions the advertiser may take. "Any" = no limit.', 'אילו מיקומי הפסקה מותרים למפרסם. "הכול" = ללא הגבלה.')}</dd>
+                <dt>{pageText(locale, 'Positions (constraint)', 'מיקומים (אילוץ)')}</dt>
+                <dd>{pageText(locale, 'Limits WHERE the spot may sit in a break. A constraint, not a profit boost: pinning to position 1 restricts placement, it does not raise the price.', 'מגביל היכן בתוך ההפסקה התשדיר יכול לשבת. אילוץ, לא תוספת רווח: נעילה למיקום 1 מגבילה שיבוץ, היא לא מעלה את המחיר.')}</dd>
               </div>
               <div>
-                <dt>{pageText(locale, 'Genres', 'ז׳אנרים')}</dt>
-                <dd>{pageText(locale, 'Which programme types are allowed. "Any" = no limit.', 'אילו סוגי תוכניות מותרים. "הכול" = ללא הגבלה.')}</dd>
+                <dt>{pageText(locale, 'Genres (constraint)', 'ז׳אנרים (אילוץ)')}</dt>
+                <dd>{pageText(locale, 'Limits which programme types may carry the spot. A placement constraint, not a profit lever. "Any" = no limit.', 'מגביל באילו סוגי תוכניות מותר לשבץ את התשדיר. אילוץ שיבוץ, לא מנוף רווח. "הכול" = ללא הגבלה.')}</dd>
               </div>
               <div>
-                <dt>{pageText(locale, 'Prime-time only', 'פריים טיים בלבד')}</dt>
-                <dd>{pageText(locale, 'When on, the advertiser may only be placed in prime-time programmes.', 'כשמופעל, ניתן לשבץ את המפרסם רק בתוכניות פריים טיים.')}</dd>
+                <dt>{pageText(locale, 'Prime-time only (constraint)', 'פריים טיים בלבד (אילוץ)')}</dt>
+                <dd>{pageText(locale, 'Restricts the spot to prime-time programmes. A constraint. (Prime-time slots may already cost more in the rate card - that pricing is separate from this rule.)', 'מגביל את התשדיר לתוכניות פריים טיים. אילוץ. (משבצות פריים טיים כבר עשויות לעלות יותר במחירון - תמחור זה נפרד מהכלל הזה.)')}</dd>
               </div>
             </dl>
+            <p className="adv-legend-status">
+              {pageText(
+                locale,
+                'Status: these rules are saved to advertiser_rules.csv. The current optimizer chooses how many breaks each programme carries and prices them from the rate card (programme class x daypart x position); it does not yet read per-advertiser premium or constraints. Wiring them in is a pending engine decision.',
+                'מצב: הכללים נשמרים אל advertiser_rules.csv. המנוע הנוכחי קובע כמה הפסקות כל תוכנית נושאת ומתמחר אותן מהמחירון (סוג תוכנית × חלק יום × מיקום); הוא עדיין לא קורא מקדם או אילוצים פר-מפרסם. חיבורם הוא החלטת-מנוע ממתינה.',
+              )}
+            </p>
           </div>
         )}
 

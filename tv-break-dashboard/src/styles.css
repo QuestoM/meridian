@@ -2886,6 +2886,23 @@ button {
   color: var(--muted);
 }
 
+.adv-legend-lead {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.adv-legend-status {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
 .adv-toolbar {
   display: flex;
   align-items: center;
@@ -3063,7 +3080,7 @@ button {
   display: grid;
   grid-template-columns:
     minmax(110px, 0.7fr) minmax(150px, 0.9fr) minmax(150px, 1fr)
-    minmax(160px, 1fr) minmax(80px, 0.5fr) minmax(150px, 1fr) minmax(150px, auto);
+    minmax(160px, 1fr) minmax(80px, 0.5fr) minmax(150px, 1fr) 200px;
   gap: 14px;
   align-items: start;
   border: 1px solid var(--line);
@@ -3072,10 +3089,10 @@ button {
   background: var(--surface);
 }
 
-.adv-row.dirty {
-  border-color: var(--amber);
-  box-shadow: inset 3px 0 0 var(--amber);
-}
+/* The dirty state is signalled only by the small dot next to the id and by the
+   Save button becoming enabled. No coloured frame or edge strip: the action
+   column is a fixed 200px track so the Revert button wraps inside its own cell
+   when it appears, instead of widening the column and shrinking the rest. */
 
 .adv-head-row {
   position: sticky;
