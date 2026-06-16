@@ -397,3 +397,96 @@ def test_conditions_csv_round_trip_carries_programme_scope() -> None:
     condition = _condition_from_row(row)
     assert condition is not None
     assert condition.scope_programmes == frozenset({"חדשות הערב"})
+
+
+# --- coefficient modes (percent and cost-per-point) -------------------------
+
+
+def test_legacy_premium_value_is_a_bare_multiplier() -> None:
+    # A rule with no explicit mode keeps the original multiplier semantics: value
+    # 1.5 means a 1.5x premium, unchanged by the new mode column.
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=1.5)]},
+    )
+    assert engine.effective_premium("A") == pytest.approx(1.5)
+
+
+def test_percent_mode_reads_value_as_a_signed_percent() -> None:
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [
+            _condition("A", "up", "premium", value=15.0, mode="percent",
+                       scope_dayparts=frozenset({"prime"})),
+            _condition("A", "down", "premium", value=-20.0, mode="percent",
+                       scope_dayparts=frozenset({"night"})),
+        ]},
+    )
+    assert engine.effective_premium("A", daypart="prime") == pytest.approx(1.15)
+    assert engine.effective_premium("A", daypart="night") == pytest.approx(0.80)
+
+
+def test_cpp_absolute_sets_the_point_price() -> None:
+    # With base_cpp=100, a cpp_absolute rule of 130 prices the spot as if the CPP
+    # were 130, a 1.3x factor on the engine's base price.
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=130.0, mode="cpp_absolute")]},
+    )
+    assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(1.3)
+
+
+def test_cpp_add_raises_the_point_price() -> None:
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=20.0, mode="cpp_add")]},
+    )
+    # base 100 + 20 = 120 -> 1.2x
+    assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(1.2)
+
+
+def test_cpp_discount_lowers_the_point_price_and_floors_at_zero() -> None:
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=25.0, mode="cpp_discount")]},
+    )
+    # base 100 - 25 = 75 -> 0.75x
+    assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(0.75)
+    # A discount larger than the base never goes negative.
+    big = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=500.0, mode="cpp_discount")]},
+    )
+    assert big.effective_premium("A", base_cpp=100.0) == pytest.approx(0.0)
+
+
+def test_cpp_mode_without_base_cpp_leaves_premium_unchanged() -> None:
+    # No base price to convert a CPP delta into a factor: the rule is a no-op
+    # rather than a guess, so revenue is unchanged.
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [_condition("A", "r1", "premium", value=130.0, mode="cpp_absolute")]},
+    )
+    assert engine.effective_premium("A") == pytest.approx(1.0)
+
+
+def test_unknown_mode_falls_back_to_multiplier() -> None:
+    from kairos.optimize.advertiser_rules import _condition_from_row
+
+    row = {
+        "advertiser_id": "A", "rule_id": "r1", "effect": "premium", "value": "1.4",
+        "mode": "nonsense", "scope_positions": "ANY", "scope_genres": "ANY",
+        "scope_dayparts": "ANY", "scope_programmes": "ANY", "notes": "",
+    }
+    condition = _condition_from_row(row)
+    assert condition is not None
+    assert condition.mode == "multiplier"
+    engine = AdvertiserRuleEngine(conditions={"A": [condition]})
+    assert engine.effective_premium("A") == pytest.approx(1.4)
+
+
+def test_placement_multiplier_forwards_base_cpp_to_cpp_modes() -> None:
+    # A cpp_add premium plus a pressure lever: placement ranks on both, revenue on
+    # the premium only, and the cpp mode resolves with the forwarded base_cpp.
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [
+            _condition("A", "prem", "premium", value=20.0, mode="cpp_add"),
+            _condition("A", "press", "pressure", value=10.0),
+        ]},
+    )
+    # premium = 1.2 (120/100), pressure = 1.1 -> placement = 1.32
+    assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(1.2)
+    assert engine.placement_multiplier("A", base_cpp=100.0) == pytest.approx(1.32)

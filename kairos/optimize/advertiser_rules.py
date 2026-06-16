@@ -61,6 +61,25 @@ ANY = "ANY"
 # premium "gold break" (Hebrew: ברייק זהב) so it can be scoped like any position.
 GOLD_POSITION = "gold"
 
+# How a PREMIUM rule's value is interpreted. A premium rule turns into a single
+# multiplier on the spot's real revenue; the mode decides how its raw ``value``
+# becomes that multiplier:
+#   * MULTIPLIER (default, the original behaviour): value IS the multiplier, so 1.15
+#     means +15%. Every legacy row with no mode column keeps this meaning exactly.
+#   * PERCENT: value is a signed percent, so +15 -> 1.15 and -15 -> 0.85.
+#   * CPP_ABSOLUTE / CPP_ADD / CPP_DISCOUNT: value is a cost-per-point AMOUNT in the
+#     same units as the engine's configured point price (base_cpp). ABSOLUTE sets the
+#     spot's CPP to value; ADD raises it by value; DISCOUNT lowers it by value (never
+#     below zero). These need base_cpp to convert a price delta into a multiplier; with
+#     no base_cpp known they leave the premium unchanged rather than guess.
+MULTIPLIER = "multiplier"
+PERCENT = "percent"
+CPP_ABSOLUTE = "cpp_absolute"
+CPP_ADD = "cpp_add"
+CPP_DISCOUNT = "cpp_discount"
+_PREMIUM_MODES = (MULTIPLIER, PERCENT, CPP_ABSOLUTE, CPP_ADD, CPP_DISCOUNT)
+_CPP_MODES = (CPP_ABSOLUTE, CPP_ADD, CPP_DISCOUNT)
+
 
 def _tokens(raw: object) -> frozenset[str]:
     """Split a comma-joined scope string into a token set.
@@ -109,6 +128,41 @@ def _to_bool(raw: object) -> bool:
     return str(raw).strip().lower() in {"true", "1", "yes", "y"}
 
 
+def _normalize_mode(raw: object) -> str:
+    """Read a premium ``mode`` cell into one of :data:`_PREMIUM_MODES`.
+
+    An empty or unknown mode falls back to :data:`MULTIPLIER`, the original
+    behaviour where ``value`` is the multiplier itself, so every legacy
+    conditions row is priced exactly as before this column existed.
+    """
+    text = str(raw or "").strip().lower()
+    return text if text in _PREMIUM_MODES else MULTIPLIER
+
+
+def _premium_factor(value: float, mode: str, base_cpp: Optional[float]) -> float:
+    """Convert one premium rule's (value, mode) into a single revenue multiplier.
+
+    For the price-delta modes the multiplier is ``effective_cpp / base_cpp``, the
+    only honest way to express a cost-per-point change as a factor on the engine's
+    CPP math. With no positive ``base_cpp`` to convert against, a CPP-mode rule
+    returns 1.0 (leaves revenue unchanged) rather than invent a conversion.
+    """
+    if mode == PERCENT:
+        return 1.0 + value / 100.0
+    if mode in _CPP_MODES:
+        if base_cpp is None or base_cpp <= 0:
+            return 1.0
+        if mode == CPP_ABSOLUTE:
+            effective_cpp = value
+        elif mode == CPP_ADD:
+            effective_cpp = base_cpp + value
+        else:  # CPP_DISCOUNT
+            effective_cpp = base_cpp - value
+        return max(0.0, effective_cpp) / base_cpp
+    # MULTIPLIER (and any unknown mode normalized to it): value is the multiplier.
+    return value
+
+
 @dataclass(frozen=True)
 class Baseline:
     """The baseline rule for one advertiser, from advertiser_rules.csv."""
@@ -141,15 +195,20 @@ class Baseline:
 class Condition:
     """One scoped conditional rule for an advertiser.
 
-    ``effect`` is :data:`PREMIUM`, :data:`REQUIRE` or :data:`FORBID`. ``value``
-    is the multiplier for a premium rule and is ignored for the others. The
-    three scope sets are token sets (empty = ANY = matches everything).
+    ``effect`` is :data:`PREMIUM`, :data:`REQUIRE`, :data:`FORBID` or
+    :data:`PRESSURE`. ``value`` is the premium amount (a multiplier, a percent or a
+    cost-per-point amount depending on ``mode``) or the pressure percent, and is
+    ignored for require/forbid. ``mode`` is one of :data:`_PREMIUM_MODES` and only
+    matters for a premium rule (it says how to read ``value``); it defaults to
+    :data:`MULTIPLIER` so a legacy row behaves unchanged. The four scope sets are
+    token sets (empty = ANY = matches everything).
     """
 
     advertiser_id: str
     rule_id: str
     effect: str
     value: float = 1.0
+    mode: str = MULTIPLIER
     scope_positions: frozenset[str] = frozenset()
     scope_genres: frozenset[str] = frozenset()
     scope_dayparts: frozenset[str] = frozenset()
@@ -248,13 +307,18 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        base_cpp: Optional[float] = None,
     ) -> float:
         """The premium multiplier to apply to a spot's REAL revenue.
 
         It is the advertiser's baseline ``default_premium`` times the product of
-        every premium-effect rule whose scope matches the spot. An advertiser
-        with no baseline is treated as default_premium 1.0 (never zero), so an
-        unknown advertiser leaves revenue unchanged. Placement-pressure rules are
+        every premium-effect rule whose scope matches the spot, each turned into a
+        multiplier by its ``mode`` (percent, plain multiplier, or a cost-per-point
+        amount, see :func:`_premium_factor`). An advertiser with no baseline is
+        treated as default_premium 1.0 (never zero), so an unknown advertiser
+        leaves revenue unchanged. ``base_cpp`` is the engine's configured point
+        price, needed only for the cpp_* modes; without it a cpp_* rule leaves the
+        premium unchanged rather than guess. Placement-pressure rules are
         deliberately excluded here: they steer placement but are never charged, so
         they must not touch the real revenue (see :meth:`placement_multiplier`).
         """
@@ -264,7 +328,7 @@ class AdvertiserRuleEngine:
             if condition.effect == PREMIUM and condition.matches(
                 position=position, genre=genre, daypart=daypart, programme=programme
             ):
-                premium *= condition.value
+                premium *= _premium_factor(condition.value, condition.mode, base_cpp)
         return premium
 
     def pressure_multiplier(
@@ -299,16 +363,19 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        base_cpp: Optional[float] = None,
     ) -> float:
         """The value the optimizer should RANK on: real premium times pressure.
 
         This is ``effective_premium x pressure_multiplier``. The optimizer uses it to
         decide where a spot wants to go (a +10% pressure makes the slot rank as if it
         paid 10% more), while the revenue total uses only :meth:`effective_premium`.
-        Honest money, biased placement.
+        ``base_cpp`` is forwarded so cpp_* premium modes resolve the same way they do
+        when the spot is actually priced. Honest money, biased placement.
         """
         return self.effective_premium(
-            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
+            advertiser_id, position=position, genre=genre, daypart=daypart,
+            programme=programme, base_cpp=base_cpp,
         ) * self.pressure_multiplier(
             advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
         )
@@ -468,6 +535,7 @@ def _condition_from_row(row: dict[str, str]) -> Optional[Condition]:
         rule_id=rule_id,
         effect=effect,
         value=_to_float(row.get("value"), 1.0),
+        mode=_normalize_mode(row.get("mode")),
         scope_positions=_tokens(row.get("scope_positions")),
         scope_genres=_tokens(row.get("scope_genres")),
         scope_dayparts=_tokens(row.get("scope_dayparts")),

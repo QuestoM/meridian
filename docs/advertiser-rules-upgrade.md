@@ -90,13 +90,22 @@ without adding money to the real total.
 
 ## 4. Coefficient modes (percent or CPP, absolute / add / discount)
 
-The premium effect gains a `mode`:
+The premium effect gains a `mode` (column on `advertiser_conditions.csv`):
 
-- `percent` (default, today's behavior): value is a percent; multiplier = 1 + value/100
-  (so +15 or -15). Back-compatible: a bare multiplier is read as percent.
+- `multiplier` (default, the original behaviour): value IS the multiplier, so 1.15
+  means +15%. Every legacy row with no mode column keeps this meaning exactly, so
+  nothing already priced changes.
+- `percent`: value is a signed percent; multiplier = 1 + value/100 (so +15 -> 1.15,
+  -15 -> 0.85).
 - `cpp_absolute`: the spot's CPP is SET to `value` (an absolute cost-per-point).
 - `cpp_add`: CPP becomes `base_cpp + value`.
 - `cpp_discount`: CPP becomes `base_cpp - value` (floored at 0, never negative).
+
+The cpp_* amounts are in the same units as the engine's configured point price
+(`PricingModel.base_price`), which is the price the daily pricing path actually
+multiplies by. `effective_premium` and `placement_multiplier` take an optional
+`base_cpp`; the daily spot path passes `pricing.base_price`. With no base_cpp known,
+a cpp_* rule leaves the premium unchanged rather than guess a conversion.
 
 Because CPP modes need the base CPP, `effective_premium` gains an optional
 `base_cpp` and returns the effective CPP factor; the pricing path passes the

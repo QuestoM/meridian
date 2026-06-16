@@ -228,7 +228,8 @@ def price_daily_spots(
             continue
 
         premium = engine.effective_premium(
-            advertiser, position=position, genre=genre, daypart=daypart
+            advertiser, position=position, genre=genre, daypart=daypart,
+            base_cpp=pricing.base_price,
         )
         duration = _coerce_float(getattr(row, "duration_sec", None))
         planned_tvr = _coerce_float(getattr(row, "planned_tvr", None))
