@@ -1235,8 +1235,8 @@ button {
 }
 
 .detail-list dt,
-.guardrail-row > span:first-child,
-.ledger-row > span:first-child {
+.guardrail-row > span:first-of-type,
+.ledger-row > span:first-of-type {
   min-width: 0;
   color: var(--muted);
   font-size: 12px;
@@ -1350,14 +1350,31 @@ button {
 }
 
 .frontier-panel {
-  padding-bottom: 10px;
+  min-height: 318px;
+  padding-bottom: 12px;
+}
+
+.frontier-chart-frame,
+.frontier-skeleton {
+  width: calc(100% - 20px);
+  height: 204px;
+  margin: 8px 10px 0;
+}
+
+.frontier-skeleton {
+  border: 1px solid #e8edf2;
+  border-radius: 6px;
+  background:
+    linear-gradient(#e8edf2 1px, transparent 1px),
+    linear-gradient(90deg, #e8edf2 1px, transparent 1px),
+    #fbfcfd;
+  background-size: 100% 52px, 25% 100%, auto;
 }
 
 .frontier-svg {
   display: block;
-  width: calc(100% - 20px);
-  height: 214px;
-  margin: 8px 10px 0;
+  width: 100%;
+  height: 100%;
 }
 
 .frontier-svg line {
@@ -1395,6 +1412,37 @@ button {
   fill: var(--muted);
   font-size: 10px;
   font-weight: 520;
+}
+
+.frontier-readout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 10px 10px 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--line);
+}
+
+.frontier-readout div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.frontier-readout span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.frontier-readout strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 720;
 }
 
 .heatmap {
@@ -1452,9 +1500,32 @@ button {
 
 .ledger-row small {
   min-width: 120px;
+  unicode-bidi: isolate;
+  color: var(--muted);
+}
+
+.ledger-measure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.ledger-values {
   direction: ltr;
   unicode-bidi: isolate;
-  text-align: left;
+}
+
+.ledger-unit,
+.ledger-violations {
+  color: var(--muted);
+}
+
+.ledger-violations::before {
+  content: "-";
+  margin-inline: 2px;
   color: var(--muted);
 }
 

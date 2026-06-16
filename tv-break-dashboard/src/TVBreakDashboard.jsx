@@ -253,7 +253,7 @@ const copyByLocale = {
     export: 'Export',
     exportOptions: ['Break detail', 'Weekly traffic plan', 'Guardrail report'],
     frontier: 'Revenue vs retention frontier',
-    frontierMode: 'D7 model',
+    frontierMode: 'Measured retention model',
     heatmap: 'Daypart inventory heatmap',
     opportunity: 'Revenue opportunity',
     compliance: 'Compliance ledger',
@@ -329,7 +329,7 @@ const copyByLocale = {
     export: 'ייצוא',
     exportOptions: ['פרטי ברייק', 'תוכנית טראפיק שבועית', 'דוח בקרות'],
     frontier: 'חזית הכנסה מול שימור',
-    frontierMode: 'מודל D7',
+    frontierMode: 'מודל שימור מדוד',
     heatmap: 'מפת חום לפי רצועת שידור',
     opportunity: 'פוטנציאל הכנסה',
     compliance: 'יומן תאימות',
@@ -600,6 +600,13 @@ function impactSegmentLabel(segment, locale) {
     standard: pageText(locale, 'Standard', 'סטנדרטי'),
     medium: pageText(locale, 'Medium', 'בינוני'),
     long: pageText(locale, 'Long', 'ארוך'),
+    News: pageText(locale, 'News', 'חדשות'),
+    Reality: pageText(locale, 'Reality', 'ריאליטי'),
+    Drama: pageText(locale, 'Drama', 'דרמה'),
+    Sports: pageText(locale, 'Sports', 'ספורט'),
+    Comedy: pageText(locale, 'Comedy', 'קומדיה'),
+    Promo: pageText(locale, 'Promo', 'פרומו'),
+    Other: pageText(locale, 'Other', 'אחר'),
   };
   return labels[segment] || segment;
 }
@@ -616,6 +623,35 @@ function impactSourceLabel(source, metadata, locale) {
     unavailable: pageText(locale, 'Model source unavailable', 'מקור המודל לא זמין'),
   };
   return `${labels[source] || pageText(locale, 'Impact model', 'מודל השפעה')}${suffix}`;
+}
+
+function complianceUnitLabel(unit, locale = 'en') {
+  const labels = {
+    en: {
+      'minutes/hour': 'min/hour',
+      'breaks/hour': 'breaks/hour',
+      minutes: 'min',
+      'minutes/day': 'min/day',
+      'breaks/day': 'breaks/day',
+      '%': '%',
+    },
+    he: {
+      'minutes/hour': 'דק׳ לשעה',
+      'breaks/hour': 'ברייקים לשעה',
+      minutes: 'דק׳',
+      'minutes/day': 'דק׳ ביום',
+      'breaks/day': 'ברייקים ביום',
+      '%': '%',
+    },
+  };
+  return labels[locale === 'he' ? 'he' : 'en'][unit] || unit || '';
+}
+
+function complianceDisclaimer(disclaimer, locale = 'en') {
+  if (locale === 'he') {
+    return 'בסיס הבקרה ניתן להגדרה. יש לאמת מול ייעוץ משפטי ומדיניות הערוץ לפני שימוש בפרודקשן.';
+  }
+  return disclaimer || fallbackSettings.notes;
 }
 
 function normalizeImpactRows(rows, segmentKey) {
@@ -677,6 +713,78 @@ function daypartLabel(daypart, locale) {
   return locale === 'he' ? labels[daypart] || daypart : daypart;
 }
 
+function programTypeLabel(type, locale) {
+  const labels = {
+    News: 'חדשות',
+    Reality: 'ריאליטי',
+    Drama: 'דרמה',
+    Sports: 'ספורט',
+    Comedy: 'קומדיה',
+    Promo: 'פרומו',
+    Kids: 'ילדים',
+    Children: 'ילדים',
+    Other: 'אחר',
+    Mixed: 'מעורב',
+  };
+  return locale === 'he' ? labels[type] || type || '' : type || '';
+}
+
+function breakPositionLabel(position, locale) {
+  const labels = {
+    first: 'ראשון',
+    early: 'מוקדם',
+    middle: 'אמצעי',
+    late: 'מאוחר',
+    last: 'אחרון',
+  };
+  return locale === 'he' ? labels[position] || position || '' : position || '';
+}
+
+function breakLengthLabel(length, locale) {
+  const labels = {
+    short: 'קצר',
+    standard: 'סטנדרטי',
+    medium: 'בינוני',
+    long: 'ארוך',
+  };
+  return locale === 'he' ? labels[length] || length || '' : length || '';
+}
+
+function scenarioNameLabel(name, locale) {
+  const labels = {
+    Balanced: 'מאוזן',
+    'Revenue priority': 'מקסום הכנסה',
+    'Retention guardrail': 'הגנת שימור',
+  };
+  return locale === 'he' ? labels[name] || name || '' : name || '';
+}
+
+function localizedModelText(text, locale) {
+  if (locale !== 'he' || !text) {
+    return text || '';
+  }
+  return String(text)
+    .replace(/\bRevenue priority\b/g, 'מקסום הכנסה')
+    .replace(/\bRetention guardrail\b/g, 'הגנת שימור')
+    .replace(/\bBalanced\b/g, 'מאוזן')
+    .replace(/\bmedium\b/gi, 'בינוני')
+    .replace(/\bstandard\b/gi, 'סטנדרטי')
+    .replace(/\bshort\b/gi, 'קצר')
+    .replace(/\blong\b/gi, 'ארוך')
+    .replace(/\bmiddle\b/gi, 'אמצעי')
+    .replace(/\bearly\b/gi, 'מוקדם')
+    .replace(/\bfirst\b/gi, 'ראשון')
+    .replace(/\blast\b/gi, 'אחרון')
+    .replace(/\blate\b/gi, 'מאוחר')
+    .replace(/\bOther\b/g, 'אחר')
+    .replace(/\bNews\b/g, 'חדשות')
+    .replace(/\bReality\b/g, 'ריאליטי')
+    .replace(/\bDrama\b/g, 'דרמה')
+    .replace(/\bSports\b/g, 'ספורט')
+    .replace(/\bComedy\b/g, 'קומדיה')
+    .replace(/\bPromo\b/g, 'פרומו');
+}
+
 function dayLabel(day, locale) {
   const labels = locale === 'he' ? ['ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳', 'א׳'] : dayKeys;
   const index = dayKeys.indexOf(day);
@@ -710,7 +818,7 @@ function buildPlannerColumns(rows, axis, locale) {
     return (types.length ? types : ['Other']).map((programType) => ({
       key: `type-${programType}`,
       programType,
-      label: programType,
+      label: programTypeLabel(programType, locale),
     }));
   }
   return dayKeys.map((day) => ({ key: day, label: dayLabel(day, locale) }));
@@ -1079,7 +1187,7 @@ function TVBreakDashboard() {
   }
 
   function renderActiveWorkspace() {
-    const common = { overview, schedule, copy, locale, compliance };
+    const common = { overview, schedule, copy, locale, compliance, loading };
 
     if (activeView === 'Overview') {
       return <OverviewPage {...common} files={files} setActiveView={setActiveView} />;
@@ -1139,7 +1247,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Forecasts') {
-      return <ForecastsPage forecasts={forecasts} overview={overview} copy={copy} locale={locale} />;
+      return <ForecastsPage forecasts={forecasts} overview={overview} copy={copy} locale={locale} loading={loading} />;
     }
 
     if (activeView === 'Reports') {
@@ -1313,16 +1421,18 @@ function recommendationTitle(recommendation, locale) {
   if (locale !== 'he') {
     return recommendation?.title || 'Review placement';
   }
-  return recommendation?.title_he || 'בדיקת מיקום ברייק';
+  return localizedModelText(recommendation?.title_he || recommendation?.title || 'בדיקת מיקום ברייק', locale);
 }
 
 function recommendationRationale(recommendation, locale) {
   if (locale !== 'he') {
     return recommendation?.rationale || 'Recommendation rationale unavailable.';
   }
-  return (
+  return localizedModelText(
     recommendation?.rationale_he ||
-    'המערכת מזהה הזדמנות הכנסה, אך ההחלטה נשמרת לבקרה אנושית מול מגבלות שימור ותאימות.'
+      recommendation?.rationale ||
+      'המערכת מזהה הזדמנות הכנסה, אך ההחלטה נשמרת לבקרה אנושית מול מגבלות שימור ותאימות.',
+    locale,
   );
 }
 
@@ -1385,6 +1495,7 @@ function OptimizerWorkspace({
   overview,
   schedule,
   compliance,
+  loading,
   activeViewMode,
   gridAxis,
   showPrograms,
@@ -1527,7 +1638,7 @@ function OptimizerWorkspace({
 
       {showMetrics && (
         <section className="analytics-strip" aria-label="Analytics and constraint ledger">
-          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} />
+          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
           <InventoryHeatmap copy={copy} locale={locale} />
           <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
         </section>
@@ -1634,7 +1745,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -1667,7 +1778,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
               <Button className="decision-row" type="button" key={item.id || item.title} onClick={() => setActiveView('Optimizer')}>
                 <div>
                   <strong>{recommendationTitle(item, locale)}</strong>
-                  <span>{item.program_type || pageText(locale, 'Mixed', 'מעורב')}</span>
+                  <span>{programTypeLabel(item.program_type, locale) || pageText(locale, 'Mixed', 'מעורב')}</span>
                 </div>
                 <div>
                   <strong><Numeric>{formatCurrency(item.impact, locale)}</Numeric></strong>
@@ -1692,7 +1803,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
       </div>
       <div className="page-grid even">
         <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} />
+        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
       </div>
     </section>
   );
@@ -1797,10 +1908,10 @@ function SchedulePage({ schedule, copy, locale }) {
           emptyLabel={pageText(locale, 'No scheduled breaks were found.', 'לא נמצאו ברייקים מתוכננים.')}
           rows={rows}
           columns={[
-            { key: 'day', label: pageText(locale, 'Day', 'יום') },
-            { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית') },
-            { key: 'position', label: pageText(locale, 'Position', 'מיקום') },
-            { key: 'break_type', label: pageText(locale, 'Break type', 'סוג ברייק') },
+            { key: 'day', label: pageText(locale, 'Day', 'יום'), render: (row) => dayLabel(row.day, locale) },
+            { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית'), render: (row) => programTypeLabel(row.program_type, locale) },
+            { key: 'position', label: pageText(locale, 'Position', 'מיקום'), render: (row) => breakPositionLabel(row.position, locale) },
+            { key: 'break_type', label: pageText(locale, 'Break type', 'סוג ברייק'), render: (row) => breakLengthLabel(row.break_type, locale) },
             { key: 'num_breaks', label: pageText(locale, 'Breaks', 'ברייקים'), render: (row) => formatNumber(row.num_breaks, locale) },
             { key: 'total_break_time', label: pageText(locale, 'Ad minutes', 'דקות פרסום'), render: (row) => formatMinutes(row.total_break_time, locale) },
             { key: 'predicted_revenue', label: pageText(locale, 'Revenue', 'הכנסה'), render: (row) => formatCurrency(row.predicted_revenue, locale) },
@@ -1892,9 +2003,9 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
           rows={rows}
           columns={[
             { key: 'status', label: pageText(locale, 'Status', 'סטטוס'), status: true, minWidth: 104, flex: 0.55, render: (row) => <StatusBadge status={row.status} locale={locale} mode="cell" /> },
-            { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית') },
-            { key: 'position', label: pageText(locale, 'Position', 'מיקום') },
-            { key: 'break_type', label: pageText(locale, 'Type', 'סוג') },
+            { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית'), render: (row) => programTypeLabel(row.program_type, locale) },
+            { key: 'position', label: pageText(locale, 'Position', 'מיקום'), render: (row) => breakPositionLabel(row.position, locale) },
+            { key: 'break_type', label: pageText(locale, 'Type', 'סוג'), render: (row) => breakLengthLabel(row.break_type, locale) },
             { key: 'total_break_time', label: pageText(locale, 'Length', 'אורך'), render: (row) => formatMinutes(row.total_break_time, locale) },
             { key: 'predicted_revenue', label: pageText(locale, 'Revenue', 'הכנסה'), render: (row) => formatCurrency(row.predicted_revenue, locale) },
             { key: 'predicted_retention', label: pageText(locale, 'Retention', 'שימור'), render: (row) => formatPercent(Number(row.predicted_retention || 0) * 100, locale) },
@@ -1940,7 +2051,7 @@ function CampaignsPage({ campaigns, copy, locale }) {
   );
 }
 
-function ForecastsPage({ forecasts, overview, copy, locale }) {
+function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
   const days = normalizeRows(forecasts.by_day);
   const scenarios = normalizeRows(forecasts.scenarios);
   const maxRevenue = Math.max(...scenarios.map((item) => Number(item.revenue || 0)), 1);
@@ -1962,7 +2073,7 @@ function ForecastsPage({ forecasts, overview, copy, locale }) {
           <div className="scenario-bars chart-ltr" dir="ltr">
             {scenarios.map((item) => (
               <div className="scenario-row" key={item.name}>
-                <span>{item.name}</span>
+                <span>{scenarioNameLabel(item.name, locale)}</span>
                 <i style={{ '--bar': Number(item.revenue || 0) / maxRevenue }} />
                 <strong>{formatCurrency(item.revenue, locale)}</strong>
                 <small>{formatPercent(item.retention, locale)}</small>
@@ -1970,7 +2081,7 @@ function ForecastsPage({ forecasts, overview, copy, locale }) {
             ))}
           </div>
         </section>
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} />
+        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
       </div>
       <section className="page-panel">
         <div className="panel-head">
@@ -1982,7 +2093,7 @@ function ForecastsPage({ forecasts, overview, copy, locale }) {
           emptyLabel={pageText(locale, 'No forecast rows were found.', 'לא נמצאו שורות תחזית.')}
           rows={days}
           columns={[
-            { key: 'day', label: pageText(locale, 'Day', 'יום') },
+            { key: 'day', label: pageText(locale, 'Day', 'יום'), render: (row) => dayLabel(row.day, locale) },
             { key: 'breaks', label: pageText(locale, 'Breaks', 'ברייקים'), render: (row) => formatNumber(row.breaks, locale) },
             { key: 'revenue', label: pageText(locale, 'Revenue', 'הכנסה'), render: (row) => formatCurrency(row.revenue, locale) },
             { key: 'retention', label: pageText(locale, 'Retention', 'שימור'), render: (row) => formatPercent(Number(row.retention || 0) * 100, locale) },
@@ -2601,7 +2712,7 @@ function PlanningCanvas({ rows, copy, locale, axis = 'day', showPrograms = true,
         <div className="channel-row" key={channelName || `channel-${rowIndex}`} style={{ gridTemplateColumns, minWidth }}>
           <div className="channel-name">
             <span>{channelName.replace('ערוץ', 'K')}</span>
-            <small>{programs[0]?.program_type || 'Mixed'}</small>
+            <small>{programTypeLabel(programs[0]?.program_type, locale) || pageText(locale, 'Mixed', 'מעורב')}</small>
           </div>
           {columns.map((column) => {
             const cellPrograms = programsForPlannerColumn(programs, column, axis);
@@ -2663,7 +2774,7 @@ function ProgramCell({
   const retention = averageRetention ?? program.retention;
   const meta = programCount > 1
     ? `${formatNumber(programCount, locale)} ${pageText(locale, 'programs', 'תוכניות')} / ${timeRange}`
-    : `${program.time} / ${program.duration_minutes}m`;
+    : `${program.time} / ${formatMinutes(Number(program.duration_minutes || 0) * 60, locale)}`;
   return (
     <Button
       className={selected ? 'program-cell selected' : 'program-cell'}
@@ -2677,7 +2788,7 @@ function ProgramCell({
       {showPrograms ? (
         <span className="program-title">{program.title}</span>
       ) : (
-        <span className="program-title muted-title">{program.program_type || pageText(locale, 'Program hidden', 'תוכנית מוסתרת')}</span>
+        <span className="program-title muted-title">{programTypeLabel(program.program_type, locale) || pageText(locale, 'Program hidden', 'תוכנית מוסתרת')}</span>
       )}
       <span className="program-meta">{meta}</span>
       {showBreaks && (
@@ -2788,59 +2899,84 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
   );
 }
 
-function FrontierPanel({ data, copy, locale }) {
+function FrontierPanel({ data, copy, locale, loading = false }) {
   const width = 420;
   const height = 190;
-  const pad = 28;
-  const retentions = data.map((point) => point.retention);
-  const revenues = data.map((point) => point.revenue);
-  const minRetention = Math.min(...retentions, 65);
-  const maxRetention = Math.max(...retentions, 80);
-  const minRevenue = Math.min(...revenues, 0);
-  const maxRevenue = Math.max(...revenues, 1);
+  const pad = 30;
+  const points = normalizeRows(data)
+    .map((point) => ({
+      retention: finiteNumber(point.retention),
+      revenue: finiteNumber(point.revenue),
+      selected: Boolean(point.selected),
+    }))
+    .filter((point) => point.retention !== null && point.revenue !== null);
+  const selectedPoint = points.find((point) => point.selected) || points[points.length - 1];
+  const minRetention = 65;
+  const maxRetention = Math.max(102, Math.ceil(Math.max(...points.map((point) => point.retention), 100)));
+  const minRevenue = 0;
+  const observedMaxRevenue = Math.max(...points.map((point) => point.revenue), 1);
+  const maxRevenue = Math.max(1, Math.ceil(observedMaxRevenue / 1000000) * 1000000);
   const xFor = (retention) =>
     pad + ((retention - minRetention) / Math.max(maxRetention - minRetention, 1)) * (width - pad * 2);
   const yFor = (revenue) =>
     height - pad - ((revenue - minRevenue) / Math.max(maxRevenue - minRevenue, 1)) * (height - pad * 2);
-  const path = data
+  const path = points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xFor(point.retention).toFixed(1)} ${yFor(point.revenue).toFixed(1)}`)
     .join(' ');
+  const showSkeleton = loading || points.length < 2 || !selectedPoint;
 
   return (
-    <div className="analytics-panel frontier-panel chart-ltr" dir="ltr">
+    <div className="analytics-panel frontier-panel">
       <div className="panel-head">
         <h2>{copy.frontier}</h2>
         <span>{copy.frontierMode}</span>
       </div>
-      <svg className="frontier-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Revenue retention frontier">
-        {[0, 1, 2, 3].map((line) => {
-          const y = pad + line * ((height - pad * 2) / 3);
-          return <line key={`h-${line}`} x1={pad} x2={width - pad} y1={y} y2={y} />;
-        })}
-        {[0, 1, 2, 3, 4].map((line) => {
-          const x = pad + line * ((width - pad * 2) / 4);
-          return <line key={`v-${line}`} x1={x} x2={x} y1={pad} y2={height - pad} />;
-        })}
-        <path d={path} />
-        {data.map((point) => (
-          <g key={`${point.retention}-${point.revenue}`}>
-            <circle
-              className={point.selected ? 'selected-point' : ''}
-              cx={xFor(point.retention)}
-              cy={yFor(point.revenue)}
-              r={point.selected ? 6 : 4}
-            />
-            {point.selected && (
-              <text x={xFor(point.retention) + 10} y={yFor(point.revenue) - 8}>
-                {formatCurrency(point.revenue, locale)} / {point.retention}%
-              </text>
-            )}
-          </g>
-        ))}
-        <text className="axis-label" x={pad} y={height - 5}>{Math.round(minRetention)}%</text>
-        <text className="axis-label" x={width - pad - 24} y={height - 5}>{Math.round(maxRetention)}%</text>
-        <text className="axis-label" x={4} y={pad + 4}>{formatCurrency(maxRevenue, locale)}</text>
-      </svg>
+      {showSkeleton ? (
+        <div className="frontier-skeleton" aria-hidden="true" />
+      ) : (
+        <>
+          <div className="frontier-chart-frame chart-ltr" dir="ltr">
+            <svg
+              className="frontier-svg"
+              viewBox={`0 0 ${width} ${height}`}
+              role="img"
+              aria-label={pageText(locale, 'Revenue retention frontier', 'חזית הכנסה ושימור')}
+            >
+              {[0, 1, 2, 3].map((line) => {
+                const y = pad + line * ((height - pad * 2) / 3);
+                return <line key={`h-${line}`} x1={pad} x2={width - pad} y1={y} y2={y} />;
+              })}
+              {[0, 1, 2, 3, 4].map((line) => {
+                const x = pad + line * ((width - pad * 2) / 4);
+                return <line key={`v-${line}`} x1={x} x2={x} y1={pad} y2={height - pad} />;
+              })}
+              <path d={path} />
+              {points.map((point, index) => (
+                <circle
+                  key={`${point.retention}-${point.revenue}-${index}`}
+                  className={point.selected ? 'selected-point' : ''}
+                  cx={xFor(point.retention)}
+                  cy={yFor(point.revenue)}
+                  r={point.selected ? 6 : 4}
+                />
+              ))}
+              <text className="axis-label" x={pad} y={height - 6}>{Math.round(minRetention)}%</text>
+              <text className="axis-label" x={width - pad - 28} y={height - 6}>{Math.round(maxRetention)}%</text>
+              <text className="axis-label" x={4} y={pad + 4}>{formatCurrency(maxRevenue, locale)}</text>
+            </svg>
+          </div>
+          <div className="frontier-readout">
+            <div>
+              <span>{pageText(locale, 'Selected revenue', 'הכנסה בתוכנית')}</span>
+              <strong><Numeric>{formatCurrency(selectedPoint.revenue, locale)}</Numeric></strong>
+            </div>
+            <div>
+              <span>{pageText(locale, 'Projected retention', 'שימור צפוי')}</span>
+              <strong><Numeric>{formatPercent(selectedPoint.retention, locale)}</Numeric></strong>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -2889,21 +3025,29 @@ function ComplianceLedger({ compliance, copy, locale }) {
         {checks.map((check) => {
           const formatValue = (value) => Number(value).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
           const violationCount = Number(check.violations || 0);
-          const unit = check.unit ? ` ${check.unit}` : '';
+          const unitLabel = complianceUnitLabel(check.unit, locale);
+          const isPercent = check.unit === '%';
+          const observed = `${formatValue(check.observed)}${isPercent ? '%' : ''}`;
+          const limit = `${formatValue(check.limit)}${isPercent ? '%' : ''}`;
           return (
             <div className="ledger-row" key={check.id}>
               <span>{locale === 'he' ? check.label_he : check.label_en}</span>
               <strong className={check.status === 'at_risk' ? 'at-risk' : ''}>
                 {check.status === 'at_risk' ? copy.atRisk : copy.compliant}
               </strong>
-              <small>
-                {formatValue(check.observed)} / {formatValue(check.limit)}{unit}
-                {violationCount > 0 ? ` - ${formatValue(violationCount)} ${pageText(locale, 'violations', 'חריגות')}` : ''}
+              <small className="ledger-measure" dir="ltr">
+                <span className="ledger-values">{observed} / {limit}</span>
+                {!isPercent && unitLabel && <span className="ledger-unit" dir={locale === 'he' ? 'rtl' : 'ltr'}>{unitLabel}</span>}
+                {violationCount > 0 && (
+                  <span className="ledger-violations" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+                    {formatValue(violationCount)} {pageText(locale, 'violations', 'חריגות')}
+                  </span>
+                )}
               </small>
             </div>
           );
         })}
-        <p className="ledger-note">{compliance?.disclaimer}</p>
+        <p className="ledger-note">{complianceDisclaimer(compliance?.disclaimer, locale)}</p>
       </div>
     </div>
   );
