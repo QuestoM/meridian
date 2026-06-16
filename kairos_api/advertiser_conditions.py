@@ -28,7 +28,11 @@ from pydantic import BaseModel
 
 from kairos.optimize.advertiser_rules import (
     _EFFECTS,
+    _PREMIUM_MODES,
+    GOLD_POSITION,
+    MULTIPLIER,
     AdvertiserRuleEngine,
+    _normalize_mode,
     normalize_scope,
 )
 
@@ -43,8 +47,10 @@ COLUMNS = [
     "scope_positions",
     "scope_genres",
     "scope_dayparts",
+    "scope_programmes",
     "effect",
     "value",
+    "mode",
     "notes",
 ]
 
@@ -52,14 +58,22 @@ router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
 
 
 class ConditionCreate(BaseModel):
-    """A new scoped condition. effect must be premium / require / forbid."""
+    """A new scoped condition.
+
+    ``effect`` is premium / require / forbid / pressure. ``mode`` only matters for
+    a premium effect; it says how to read ``value`` (multiplier / percent /
+    cpp_absolute / cpp_add / cpp_discount, see the engine). ``scope_programmes``
+    scopes the rule to specific show titles, like the other scope dimensions.
+    """
 
     rule_id: str
     effect: str
     value: float = 1.0
+    mode: str = MULTIPLIER
     scope_positions: str = "ANY"
     scope_genres: str = "ANY"
     scope_dayparts: str = "ANY"
+    scope_programmes: str = "ANY"
     notes: str = ""
 
 
@@ -68,9 +82,11 @@ class ConditionUpdate(BaseModel):
 
     effect: str | None = None
     value: float | None = None
+    mode: str | None = None
     scope_positions: str | None = None
     scope_genres: str | None = None
     scope_dayparts: str | None = None
+    scope_programmes: str | None = None
     notes: str | None = None
 
 
@@ -111,9 +127,11 @@ def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "rule_id": str(row.get("rule_id", "")),
         "effect": str(row.get("effect", "")).strip().lower(),
         "value": round(_coerce_float(row.get("value")), 6),
+        "mode": _normalize_mode(row.get("mode")),
         "scope_positions": normalize_scope(row.get("scope_positions")),
         "scope_genres": normalize_scope(row.get("scope_genres")),
         "scope_dayparts": normalize_scope(row.get("scope_dayparts")),
+        "scope_programmes": normalize_scope(row.get("scope_programmes")),
         "notes": str(row.get("notes", "")),
     }
 
@@ -148,6 +166,83 @@ def list_all_overlaps() -> dict[str, Any]:
     return {"overlaps": findings}
 
 
+def _position_options() -> list[dict[str, str]]:
+    """The break-position tokens a rule can scope, including the gold break.
+
+    The model's break positions are first/middle/last (the daily path also tags an
+    integer position); the premium gold break (Hebrew: ברייק זהב) is offered as an
+    explicit token so an operator can scope a rule to it.
+    """
+    from kairos.model.spec import DEFAULT_BREAK_POSITIONS
+
+    labels_he = {"first": "ראשון", "middle": "אמצעי", "last": "אחרון"}
+    options = [
+        {"key": key, "he": labels_he.get(key, key), "en": key.capitalize()}
+        for key in DEFAULT_BREAK_POSITIONS
+    ]
+    options.append({"key": GOLD_POSITION, "he": "ברייק זהב", "en": "Gold break"})
+    return options
+
+
+def _genre_options() -> list[str]:
+    """The real genre vocabulary from the program classifier taxonomy."""
+    try:
+        from kairos.data.classifier import ProgramClassifier
+
+        categories = ProgramClassifier.from_yaml().categories
+        return list(categories() if callable(categories) else categories)
+    except Exception:
+        return []
+
+
+def _daypart_options() -> list[dict[str, Any]]:
+    """The canonical Israeli-TV daypart options (bilingual, with hour windows)."""
+    try:
+        from kairos.data.dayparts import daypart_options
+
+        return list(daypart_options())
+    except Exception:
+        return []
+
+
+def _programme_options() -> list[str]:
+    """Real programme titles, sorted and de-duplicated, for the multi-select.
+
+    Sourced from the reference EPG (``Title`` column). Returns an honest empty
+    list if the file is missing rather than inventing names.
+    """
+    try:
+        from kairos.data.loaders import load_programmes
+
+        frame = load_programmes()
+        if "Title" not in frame.columns:
+            return []
+        titles = {str(t).strip() for t in frame["Title"].dropna() if str(t).strip()}
+        return sorted(titles)
+    except Exception:
+        return []
+
+
+@router.get("/options")
+def scope_options() -> dict[str, Any]:
+    """Option lists the dashboard needs to build scoped advertiser rules.
+
+    Everything here is sourced from real engine config and reference data (genres
+    from the classifier taxonomy, dayparts from the canonical taxonomy, programmes
+    from the EPG, positions from the model's break-position vocabulary plus the
+    gold break). ``effects`` and ``modes`` come straight from the rule engine, so
+    the dashboard never invents a value the engine cannot consume.
+    """
+    return {
+        "positions": _position_options(),
+        "genres": _genre_options(),
+        "dayparts": _daypart_options(),
+        "programmes": _programme_options(),
+        "effects": sorted(_EFFECTS),
+        "modes": list(_PREMIUM_MODES),
+    }
+
+
 @router.get("/{advertiser_id}/conditions")
 def list_conditions(advertiser_id: str) -> dict[str, Any]:
     return {"conditions": conditions_for(advertiser_id), "overlaps": overlaps_for(advertiser_id)}
@@ -170,9 +265,11 @@ def create_condition(advertiser_id: str, payload: ConditionCreate) -> dict[str, 
         "rule_id": payload.rule_id,
         "effect": _validate_effect(payload.effect),
         "value": str(float(payload.value)),
+        "mode": _normalize_mode(payload.mode),
         "scope_positions": normalize_scope(payload.scope_positions),
         "scope_genres": normalize_scope(payload.scope_genres),
         "scope_dayparts": normalize_scope(payload.scope_dayparts),
+        "scope_programmes": normalize_scope(payload.scope_programmes),
         "notes": payload.notes,
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
@@ -201,12 +298,16 @@ def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate)
         frame.at[index, "effect"] = _validate_effect(payload.effect)
     if payload.value is not None:
         frame.at[index, "value"] = str(float(payload.value))
+    if payload.mode is not None:
+        frame.at[index, "mode"] = _normalize_mode(payload.mode)
     if payload.scope_positions is not None:
         frame.at[index, "scope_positions"] = normalize_scope(payload.scope_positions)
     if payload.scope_genres is not None:
         frame.at[index, "scope_genres"] = normalize_scope(payload.scope_genres)
     if payload.scope_dayparts is not None:
         frame.at[index, "scope_dayparts"] = normalize_scope(payload.scope_dayparts)
+    if payload.scope_programmes is not None:
+        frame.at[index, "scope_programmes"] = normalize_scope(payload.scope_programmes)
     if payload.notes is not None:
         frame.at[index, "notes"] = payload.notes
     _write_frame(frame)
