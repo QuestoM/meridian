@@ -3175,6 +3175,213 @@ button {
   }
 }
 
+/* Scoped rules (per-advertiser conditions), collapsible under each row. */
+.adv-row-group {
+  display: grid;
+  gap: 0;
+}
+
+.adv-scoped {
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--surface-muted);
+  margin-top: -8px;
+}
+
+.adv-scoped-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 14px;
+  color: var(--ink);
+  text-align: inherit;
+}
+
+.adv-scoped-toggle:hover {
+  background: #eef1f4;
+}
+
+.adv-scoped-toggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+
+.adv-scoped-caret {
+  flex: none;
+  transition: transform 0.15s ease;
+  color: var(--muted);
+}
+
+.adv-scoped.open .adv-scoped-caret {
+  transform: rotate(180deg);
+}
+
+.adv-scoped-title {
+  font-size: 12px;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.adv-scoped-badge {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.adv-scoped-badge.muted {
+  background: #eef1f4;
+  color: var(--subtle);
+  font-weight: 500;
+}
+
+.adv-scoped-badge.conflict {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+.adv-scoped-body {
+  padding: 4px 14px 14px;
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.adv-scoped-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.adv-scoped-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+/* Overlap / conflict findings, message text straight from the backend. */
+.adv-overlaps {
+  display: grid;
+  gap: 6px;
+}
+
+.adv-overlap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  border: 1px solid var(--line);
+}
+
+.adv-overlap-icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+.adv-overlap.conflict {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.adv-overlap.stacked {
+  border-color: rgba(180, 120, 0, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: #92600a;
+}
+
+.adv-overlap.overlap {
+  background: #ffffff;
+  color: var(--muted);
+}
+
+/* The list of inline-editable condition rows. */
+.adv-cond-list {
+  display: grid;
+  gap: 10px;
+}
+
+.adv-cond-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 0.9fr) minmax(140px, 0.8fr) 200px;
+  gap: 14px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface);
+}
+
+.adv-cond-add {
+  border-style: dashed;
+}
+
+.adv-cond-scopes {
+  display: grid;
+  gap: 8px;
+}
+
+.adv-cond-effect-block {
+  display: grid;
+  gap: 8px;
+}
+
+.adv-cond-effect select {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--ink);
+  height: 34px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  width: 100%;
+}
+
+.adv-cond-notes {
+  min-width: 0;
+}
+
+.adv-cond-actions {
+  justify-content: flex-start;
+}
+
+.adv-chip-add {
+  padding: 4px 9px;
+}
+
+.adv-chip-add-input {
+  border: 1px solid var(--teal);
+  border-radius: 999px;
+  height: 28px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  width: 90px;
+  outline: none;
+}
+
+@media (max-width: 1080px) {
+  .adv-cond-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .schedule-actions {
   display: flex;
   gap: 8px;

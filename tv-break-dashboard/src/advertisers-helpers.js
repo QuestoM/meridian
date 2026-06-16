@@ -3,6 +3,11 @@
 
 export const POSITION_PRESETS = ['ANY', '1', '2', '3', 'last'];
 export const GENRE_PRESETS = ['ANY', 'News', 'PrimeShow1', 'PrimeShow2', 'Other'];
+// Dayparts have no fixed backend taxonomy: we offer ANY plus whatever tokens
+// already appear in the data, and preserve unknown tokens via free-text add.
+export const DAYPART_PRESETS = ['ANY'];
+
+export const CONDITION_EFFECTS = ['premium', 'require', 'forbid'];
 
 export const EMPTY_ADVERTISER = {
   advertiser_id: '',
@@ -200,4 +205,154 @@ export function computeSummary(advertisers) {
       (row) => isRestricted(row.allow_positions) || isRestricted(row.allow_genres),
     ).length,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Scoped conditions (per-advertiser rules) helpers.
+//
+// A condition is one scoped rule on an advertiser:
+//   { rule_id, scope_positions, scope_genres, scope_dayparts, effect, value, notes }
+// scope_* are comma-joined tokens or "ANY"; effect in {premium, require, forbid};
+// value is a float multiplier used only when effect === "premium".
+// ---------------------------------------------------------------------------
+
+// Normalize the conditions array delivered with an advertiser row.
+export function normalizeConditions(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+// Normalize the overlaps/conflicts findings delivered with an advertiser row.
+export function normalizeOverlaps(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+// Build the editable client-side shape of a condition from the backend record.
+// Unknown scope tokens are preserved (we never invent or drop daypart tokens).
+export function parseCondition(condition) {
+  const source = condition || {};
+  const effect = CONDITION_EFFECTS.includes(source.effect) ? source.effect : 'premium';
+  return {
+    rule_id: source.rule_id ?? '',
+    scope_positions: serializeTokens(parseTokens(source.scope_positions)),
+    scope_genres: serializeTokens(parseTokens(source.scope_genres)),
+    scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
+    effect,
+    // Keep value sane: only premium uses it, but we always carry a number.
+    value: Number.isFinite(Number(source.value)) ? Number(source.value) : 1,
+    notes: source.notes ?? '',
+  };
+}
+
+// Build the POST/PUT body for a condition draft. effect=premium carries value;
+// require/forbid send value 1.0 (ignored by the engine) so the body stays uniform.
+export function toConditionPayload(draft) {
+  const source = draft || {};
+  const effect = CONDITION_EFFECTS.includes(source.effect) ? source.effect : 'premium';
+  return {
+    scope_positions: serializeTokens(parseTokens(source.scope_positions)),
+    scope_genres: serializeTokens(parseTokens(source.scope_genres)),
+    scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
+    effect,
+    value: effect === 'premium' ? Number(source.value ?? 1) : 1,
+    notes: source.notes ?? '',
+  };
+}
+
+const CONDITION_FIELDS = ['scope_positions', 'scope_genres', 'scope_dayparts', 'effect', 'value', 'notes'];
+
+// True when a condition draft differs from its original (scope-normalized).
+export function isConditionDirty(original, draft) {
+  if (!original || !draft) {
+    return false;
+  }
+  return CONDITION_FIELDS.some((field) => {
+    if (field === 'value') {
+      // Value only matters for premium; for require/forbid it is inert.
+      if (draft.effect !== 'premium' && original.effect !== 'premium') {
+        return false;
+      }
+      return Number(original.value ?? 1) !== Number(draft.value ?? 1);
+    }
+    if (field === 'effect') {
+      return String(original.effect ?? '') !== String(draft.effect ?? '');
+    }
+    if (field === 'notes') {
+      return String(original.notes ?? '') !== String(draft.notes ?? '');
+    }
+    // scope_* fields: compare normalized token form.
+    return serializeTokens(parseTokens(original[field])) !== serializeTokens(parseTokens(draft[field]));
+  });
+}
+
+// A blank condition draft for the "Add rule" affordance.
+export function emptyCondition() {
+  return {
+    rule_id: '',
+    scope_positions: 'ANY',
+    scope_genres: 'ANY',
+    scope_dayparts: 'ANY',
+    effect: 'premium',
+    value: 1.2,
+    notes: '',
+  };
+}
+
+// Collect every daypart token already present across an advertiser's conditions,
+// so the chip selector can offer real tokens (ANY + observed) without inventing
+// a fixed taxonomy. Unknown tokens are preserved and de-duplicated, ANY excluded.
+export function collectDaypartTokens(conditions) {
+  const seen = [];
+  normalizeConditions(conditions).forEach((condition) => {
+    parseTokens(condition && condition.scope_dayparts).forEach((token) => {
+      if (token.toUpperCase() !== 'ANY' && !seen.includes(token)) {
+        seen.push(token);
+      }
+    });
+  });
+  return seen;
+}
+
+// Map an overlap finding kind to a severity tone used for styling and ordering.
+// conflict = strong warning; stacked_premium = informational; overlap = mild.
+export function overlapTone(kind) {
+  if (kind === 'conflict') {
+    return 'conflict';
+  }
+  if (kind === 'stacked_premium') {
+    return 'stacked';
+  }
+  return 'overlap';
+}
+
+// Pull the human-readable message straight from a backend finding. We do NOT
+// recompute semantics on the client: prefer message, then detail, then a plain
+// fallback that just names the involved rule ids.
+export function overlapMessage(finding) {
+  const source = finding || {};
+  if (source.message) {
+    return String(source.message);
+  }
+  if (source.detail) {
+    return String(source.detail);
+  }
+  const ids = [source.rule_id_a, source.rule_id_b].filter(Boolean);
+  if (ids.length > 0) {
+    return ids.join(' / ');
+  }
+  return '';
+}
+
+// Count badge text for the collapsed scoped-rules header. Surfaces conflicts
+// first (the thing an operator most needs to see), then rule count.
+export function scopedRulesBadge(conditions, overlaps, locale) {
+  const ruleCount = normalizeConditions(conditions).length;
+  const conflictCount = normalizeOverlaps(overlaps).filter((finding) => finding && finding.kind === 'conflict').length;
+  const parts = [];
+  if (ruleCount > 0) {
+    parts.push(pageText(locale, `${ruleCount} scoped ${ruleCount === 1 ? 'rule' : 'rules'}`, `${ruleCount} ${ruleCount === 1 ? 'כלל ממוקד' : 'כללים ממוקדים'}`));
+  }
+  if (conflictCount > 0) {
+    parts.push(pageText(locale, `${conflictCount} ${conflictCount === 1 ? 'conflict' : 'conflicts'}`, `${conflictCount} ${conflictCount === 1 ? 'התנגשות' : 'התנגשויות'}`));
+  }
+  return parts;
 }

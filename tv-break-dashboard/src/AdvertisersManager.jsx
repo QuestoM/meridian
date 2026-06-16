@@ -28,9 +28,11 @@ import {
   serializeTokens,
   sortAdvertisers,
   suggestNextId,
+  toConditionPayload,
   toPayload,
   toggleToken,
 } from './advertisers-helpers';
+import AdvertiserConditions from './AdvertiserConditions';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
@@ -85,7 +87,7 @@ function PremiumInput({ value, onChange, locale }) {
   );
 }
 
-function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
+function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft, onCreateCondition, onUpdateCondition, onDeleteCondition }) {
   const [draft, setDraft] = useState(row);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -113,6 +115,7 @@ function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
   }
 
   return (
+    <div className="adv-row-group">
     <div className={`adv-row${dirty ? ' dirty' : ''}`}>
       <div className="adv-cell adv-cell-id">
         {dirty && <span className="adv-dirty-dot" title={pageText(locale, 'Unsaved changes', 'שינויים שלא נשמרו')} />}
@@ -207,6 +210,16 @@ function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
           </Button>
         )}
       </div>
+    </div>
+      <AdvertiserConditions
+        advertiserId={row.advertiser_id}
+        conditions={row.conditions}
+        overlaps={row.overlaps}
+        locale={locale}
+        onCreate={onCreateCondition}
+        onUpdate={onUpdateCondition}
+        onDelete={onDeleteCondition}
+      />
     </div>
   );
 }
@@ -457,6 +470,60 @@ function AdvertisersManager({ copy, locale, notify }) {
     }
   }
 
+  async function handleCreateCondition(advertiserId, draft) {
+    try {
+      const ruleId = `rule_${Date.now().toString(36)}`;
+      const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(advertiserId)}/conditions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rule_id: ruleId, ...toConditionPayload(draft) }),
+      });
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+      notify(`Scoped rule added to ${advertiserId}.`, `כלל ממוקד נוסף ל${advertiserId}.`);
+      await loadAdvertisers();
+      return true;
+    } catch (error) {
+      notify(`Add rule failed for ${advertiserId} (${error.message}).`, `הוספת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
+      return false;
+    }
+  }
+
+  async function handleUpdateCondition(advertiserId, ruleId, draft) {
+    try {
+      const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(advertiserId)}/conditions/${encodeURIComponent(ruleId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toConditionPayload(draft)),
+      });
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+      notify(`Scoped rule saved for ${advertiserId}.`, `כלל ממוקד נשמר עבור ${advertiserId}.`);
+      await loadAdvertisers();
+      return true;
+    } catch (error) {
+      notify(`Save rule failed for ${advertiserId} (${error.message}).`, `שמירת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
+      return false;
+    }
+  }
+
+  async function handleDeleteCondition(advertiserId, ruleId) {
+    try {
+      const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(advertiserId)}/conditions/${encodeURIComponent(ruleId)}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+      notify(`Scoped rule removed from ${advertiserId}.`, `כלל ממוקד הוסר מ${advertiserId}.`);
+      await loadAdvertisers();
+    } catch (error) {
+      notify(`Delete rule failed for ${advertiserId} (${error.message}).`, `מחיקת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
+    }
+  }
+
   function clearQuery() {
     setSearch('');
     setFilter('all');
@@ -663,6 +730,9 @@ function AdvertisersManager({ copy, locale, notify }) {
                 onSave={handleSave}
                 onDelete={handleDelete}
                 registerDraft={registerDraft}
+                onCreateCondition={handleCreateCondition}
+                onUpdateCondition={handleUpdateCondition}
+                onDeleteCondition={handleDeleteCondition}
               />
             ))}
           </div>
