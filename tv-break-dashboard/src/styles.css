@@ -3466,3 +3466,144 @@ button {
   font-weight: 500;
   max-width: 60ch;
 }
+
+.risk-lambda-control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 168px;
+  padding: 0 4px;
+}
+
+.risk-lambda-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.risk-lambda-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.risk-lambda-control .MuiSlider-root {
+  padding: 8px 0;
+  color: var(--blue);
+}
+
+.risk-lambda-help {
+  color: var(--subtle);
+  font-size: 10px;
+  line-height: 1.4;
+  max-width: 32ch;
+}
+
+.retention-cost-panel {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 16px 24px;
+}
+
+.retention-cost-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.retention-cost-panel-head h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 680;
+  color: var(--ink);
+}
+
+.retention-cost-panel-head p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 70ch;
+}
+
+.retention-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.retention-cost-row {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--surface-muted);
+}
+
+.retention-cost-row.assumption {
+  border-color: var(--line-strong);
+  background: var(--amber-soft);
+}
+
+.retention-cost-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.retention-cost-row-head strong {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.retention-cost-confidence {
+  font-size: 10px;
+  font-weight: 620;
+  border-radius: 4px;
+  padding: 2px 7px;
+  background: #f0f2f5;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.retention-cost-confidence.high {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.retention-cost-confidence.medium {
+  background: #eef2f8;
+  color: var(--blue);
+}
+
+.retention-cost-confidence.low {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.retention-cost-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retention-cost-row-body span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.retention-cost-row-body span .numeric {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.retention-cost-row-body span small {
+  color: var(--subtle);
+}

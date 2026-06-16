@@ -17,6 +17,7 @@ import {
   ListItemText,
   MenuItem,
   Select,
+  Slider,
   Switch,
   TextField,
   ThemeProvider,
@@ -188,6 +189,7 @@ const fallbackSettings = {
   max_breaks_per_hour: 4,
   min_break_spacing_minutes: 7,
   min_retention_floor: 0.72,
+  risk_lambda: 0.0,
   max_daily_ad_minutes: 160,
   protected_program_types: ['News', 'Kids', 'Children'],
   protected_program_max_ad_minutes_per_hour: 8,
@@ -290,6 +292,18 @@ const copyByLocale = {
     sponsorships: 'Sponsorships enabled',
     gold: 'Gold breaks enabled',
     approval: 'Manual approval required',
+    riskCaution: 'Uncertainty caution',
+    riskCautionHelp: '0 uses the point estimate. Higher values value an uncertain break at its worst plausible cost.',
+    riskCautionSetting: 'Default uncertainty caution',
+    retentionCostTitle: 'Retention cost confidence',
+    retentionCostIntro: 'How trustworthy the retention cost is behind each segment in this plan.',
+    retentionCostConfidence: { low: 'Low', medium: 'Medium', high: 'High' },
+    retentionCostAssumption: 'assumption',
+    retentionCostInterval: 'Interval',
+    retentionCostBreaks: 'real breaks',
+    retentionCostNoInterval: 'No interval known',
+    retentionCostPoint: 'Point estimate',
+    retentionCostUsed: 'Value used',
   },
   he: {
     nav: {
@@ -368,6 +382,18 @@ const copyByLocale = {
     sponsorships: 'חסויות פעילות',
     gold: 'ברייקי זהב פעילים',
     approval: 'נדרש אישור ידני',
+    riskCaution: 'זהירות מול אי-ודאות',
+    riskCautionHelp: '0 משתמש באומדן הנקודתי. ערכים גבוהים יותר מתמחרים ברייק לא ודאי לפי העלות הגרועה הסבירה שלו.',
+    riskCautionSetting: 'זהירות מול אי-ודאות כברירת מחדל',
+    retentionCostTitle: 'מהימנות עלות השימור',
+    retentionCostIntro: 'עד כמה אפשר לסמוך על עלות השימור שמאחורי כל סגמנט בתוכנית הזו.',
+    retentionCostConfidence: { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה' },
+    retentionCostAssumption: 'הנחה',
+    retentionCostInterval: 'טווח',
+    retentionCostBreaks: 'ברייקים אמיתיים',
+    retentionCostNoInterval: 'אין טווח ידוע',
+    retentionCostPoint: 'אומדן נקודתי',
+    retentionCostUsed: 'הערך שנעשה בו שימוש',
   },
 };
 
@@ -1018,6 +1044,8 @@ function TVBreakDashboard() {
   const [approved, setApproved] = useState(new Set(['rec-1']));
   const [rejected, setRejected] = useState(new Set());
   const [scenario, setScenario] = useState('Balanced');
+  const [riskLambda, setRiskLambda] = useState(0);
+  const riskLambdaTouched = useRef(false);
   const [activeView, setActiveViewState] = useState(viewFromLocation);
   const [optimizerView, setOptimizerView] = useState('grid');
   const [gridAxis, setGridAxisState] = useState(gridAxisFromLocation);
@@ -1070,6 +1098,14 @@ function TVBreakDashboard() {
     const nextSettings = overview.settings || fallbackSettings;
     setSettings((current) => ({ ...current, ...nextSettings }));
   }, [overview.settings]);
+
+  useEffect(() => {
+    if (riskLambdaTouched.current) return;
+    const saved = finiteNumber(settings.risk_lambda);
+    const fromParameters = finiteNumber(parameters?.settings?.risk_lambda);
+    const base = saved !== null ? saved : fromParameters !== null ? fromParameters : 0;
+    setRiskLambda(Math.round(Math.min(1, Math.max(0, base)) * 100));
+  }, [settings.risk_lambda, parameters]);
 
   const locale = settings.locale === 'en' ? 'en' : 'he';
   const isHebrew = locale === 'he';
@@ -1186,6 +1222,7 @@ function TVBreakDashboard() {
       revenue_weight: revenueWeight,
       retention_floor: settings.min_retention_floor,
       max_breaks_per_hour: settings.max_breaks_per_hour,
+      risk_lambda: Math.min(1, Math.max(0, riskLambda / 100)),
     };
   }
 
@@ -1406,6 +1443,26 @@ function TVBreakDashboard() {
                 <MenuItem value="Retention guardrail">{copy.scenarios[2]}</MenuItem>
               </Select>
             </FormControl>
+            <div className="risk-lambda-control">
+              <div className="risk-lambda-head">
+                <span className="risk-lambda-label">{copy.riskCaution}</span>
+                <Numeric>{`${formatNumber(Math.min(1, Math.max(0, riskLambda / 100)), locale)}`}</Numeric>
+              </div>
+              <Slider
+                size="small"
+                value={riskLambda}
+                min={0}
+                max={100}
+                step={5}
+                aria-label={copy.riskCaution}
+                valueLabelDisplay="off"
+                onChange={(event, value) => {
+                  riskLambdaTouched.current = true;
+                  setRiskLambda(Array.isArray(value) ? value[0] : value);
+                }}
+              />
+              <small className="risk-lambda-help">{copy.riskCautionHelp}</small>
+            </div>
             <Button
               className="secondary-button"
               type="button"
@@ -1560,6 +1617,92 @@ function OptimizationRunSummary({ plan, locale }) {
   );
 }
 
+function retentionCostConfidenceWord(confidence, copy) {
+  const key = String(confidence || '').toLowerCase();
+  return copy.retentionCostConfidence[key] || null;
+}
+
+function RetentionCostSegment({ segment, copy, locale }) {
+  const cost = segment?.retention_cost;
+  if (!cost || typeof cost !== 'object') return null;
+
+  const point = finiteNumber(cost.point);
+  const used = finiteNumber(cost.used);
+  const ciLow = finiteNumber(cost.ci_low);
+  const ciHigh = finiteNumber(cost.ci_high);
+  const count = finiteNumber(cost.n);
+  const confidenceWord = retentionCostConfidenceWord(cost.confidence, copy);
+  const isAssumption = count === 0 || String(cost.confidence || '').toLowerCase() === 'low';
+  const hasInterval = ciLow !== null && ciHigh !== null;
+
+  const name = impactSegmentLabel(segment.segment ?? segment.name ?? segment.program_type ?? '', locale) || segment.label || '';
+
+  return (
+    <div className={isAssumption ? 'retention-cost-row assumption' : 'retention-cost-row'}>
+      <div className="retention-cost-row-head">
+        <strong>{name}</strong>
+        <span className={`retention-cost-confidence ${String(cost.confidence || '').toLowerCase()}`}>
+          {isAssumption ? copy.retentionCostAssumption : confidenceWord || copy.retentionCostAssumption}
+        </span>
+      </div>
+      <div className="retention-cost-row-body">
+        {used !== null && (
+          <span>
+            {copy.retentionCostUsed}
+            <Numeric>{formatNumber(used, locale)}</Numeric>
+          </span>
+        )}
+        {point !== null && (
+          <span>
+            {copy.retentionCostPoint}
+            <Numeric>{formatNumber(point, locale)}</Numeric>
+          </span>
+        )}
+        <span>
+          {copy.retentionCostInterval}
+          {hasInterval ? (
+            <Numeric>{`[${formatNumber(ciLow, locale)}, ${formatNumber(ciHigh, locale)}]`}</Numeric>
+          ) : (
+            <small>{copy.retentionCostNoInterval}</small>
+          )}
+        </span>
+        {count !== null && (
+          <span>
+            <Numeric>{formatNumber(count, locale)}</Numeric>
+            <small>{copy.retentionCostBreaks}</small>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RetentionCostPanel({ plan, copy, locale }) {
+  const segments = normalizeRows(plan?.segments).filter(
+    (segment) => segment?.retention_cost && typeof segment.retention_cost === 'object',
+  );
+  if (segments.length === 0) return null;
+
+  return (
+    <section className="retention-cost-panel" aria-label={copy.retentionCostTitle}>
+      <div className="retention-cost-panel-head">
+        <h2>{copy.retentionCostTitle}</h2>
+        <p>{copy.retentionCostIntro}</p>
+      </div>
+      <div className="retention-cost-grid">
+        {segments.map((segment, index) => (
+          <RetentionCostSegment
+            key={segment.id || segment.segment || segment.name || index}
+            segment={segment}
+            copy={copy}
+            locale={locale}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function OptimizerWorkspace({
   overview,
   schedule,
@@ -1602,6 +1745,7 @@ function OptimizerWorkspace({
     <>
       <SummaryMetrics overview={overview} copy={copy} locale={locale} />
       <OptimizationRunSummary plan={optimizationPlan} locale={locale} />
+      <RetentionCostPanel plan={optimizationPlan} copy={copy} locale={locale} />
 
       <div className="work-grid">
         <section className="planner-surface" aria-label={copy.canvas}>
@@ -3350,6 +3494,12 @@ function SettingsPanel({ settings, copy, locale, saveState, onSave }) {
             <NumberControl label={copy.maxBreaks} value={draft.max_breaks_per_hour} onChange={(value) => updateNumber('max_breaks_per_hour', value)} suffix="/hr" />
             <NumberControl label={copy.spacing} value={draft.min_break_spacing_minutes} onChange={(value) => updateNumber('min_break_spacing_minutes', value)} suffix="min" />
             <NumberControl label={copy.retentionFloor} value={Math.round((draft.min_retention_floor || 0) * 100)} onChange={(value) => updateNumber('min_retention_floor', Number(value) / 100)} suffix="%" />
+            <NumberControl
+              label={copy.riskCautionSetting}
+              value={Math.round((finiteNumber(draft.risk_lambda) || 0) * 100)}
+              onChange={(value) => updateNumber('risk_lambda', Math.min(1, Math.max(0, Number(value) / 100)))}
+              suffix="/100"
+            />
           </div>
         </section>
 
