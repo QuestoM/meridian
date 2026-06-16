@@ -3159,11 +3159,11 @@ function ComplianceLedger({ compliance, copy, locale }) {
               <strong className={check.status === 'at_risk' ? 'at-risk' : ''}>
                 {check.status === 'at_risk' ? copy.atRisk : copy.compliant}
               </strong>
-              <small className="ledger-measure" dir="ltr">
-                <span className="ledger-values">{observed} / {limit}</span>
-                {!isPercent && unitLabel && <span className="ledger-unit" dir={locale === 'he' ? 'rtl' : 'ltr'}>{unitLabel}</span>}
+              <small className="ledger-measure" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+                <span className="ledger-values" dir="ltr">{observed} / {limit}</span>
+                {!isPercent && unitLabel && <span className="ledger-unit">{unitLabel}</span>}
                 {violationCount > 0 && (
-                  <span className="ledger-violations" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+                  <span className="ledger-violations">
                     {formatValue(violationCount)} {pageText(locale, 'violations', 'חריגות')}
                   </span>
                 )}

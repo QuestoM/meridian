@@ -1599,7 +1599,7 @@ button {
   justify-content: flex-start;
   gap: 4px;
   white-space: nowrap;
-  text-align: left;
+  text-align: start;
 }
 
 .ledger-values {
