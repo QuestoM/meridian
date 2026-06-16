@@ -29,7 +29,7 @@ from typing import Iterable
 import pandas as pd
 
 from kairos.data.classifier import ProgramClassifier
-from kairos.model.impact import ImpactModel
+from kairos.model.impact import ImpactModel, RetentionEstimate
 from kairos.model.spec import DEFAULT_BREAK_POSITIONS
 from kairos.optimize.optimizer import ProgramSegment
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
@@ -59,25 +59,81 @@ def _length_bucket(break_length_seconds: float) -> str:
     return "long"
 
 
+_CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
+_RANK_CONFIDENCE = {0: "low", 1: "medium", 2: "high"}
+
+
+def _lowest_confidence(labels: Iterable[str]) -> str:
+    """The most conservative confidence label among ``labels`` (low < medium < high)."""
+    ranks = [_CONFIDENCE_RANK.get(label, 0) for label in labels]
+    if not ranks:
+        return "low"
+    return _RANK_CONFIDENCE[min(ranks)]
+
+
+def _segment_impact_estimate(
+    impact_model: ImpactModel,
+    pricing_class: str,
+    break_length_seconds: float,
+) -> RetentionEstimate:
+    """Read one representative retention estimate (point + interval + n + confidence).
+
+    The optimizer applies a single per-break coefficient per segment, but the
+    trained model is keyed by break position too. We average the point coefficient
+    and the credible bounds across the position buckets at the segment's length,
+    take the rounded mean sample size, and the most conservative (lowest) confidence
+    label, so a segment never reports more certainty than its weakest constituent
+    cell. For the assumption fallback every position returns the same degenerate
+    estimate, so the average is that estimate.
+    """
+    length = _length_bucket(break_length_seconds)
+    estimates = [
+        impact_model.estimate_for(pricing_class, position, length)
+        for position in DEFAULT_BREAK_POSITIONS
+    ]
+    count = len(estimates)
+    return RetentionEstimate(
+        coefficient=sum(e.coefficient for e in estimates) / count,
+        ci_low=sum(e.ci_low for e in estimates) / count,
+        ci_high=sum(e.ci_high for e in estimates) / count,
+        n=round(sum(e.n for e in estimates) / count),
+        confidence=_lowest_confidence(e.confidence for e in estimates),
+    )
+
+
 def _segment_impact_coefficient(
     impact_model: ImpactModel,
     pricing_class: str,
     break_length_seconds: float,
 ) -> float:
-    """Read one representative retention coefficient for a segment.
+    """The representative point coefficient for a segment (see _segment_impact_estimate)."""
+    return _segment_impact_estimate(impact_model, pricing_class, break_length_seconds).coefficient
 
-    The optimizer applies a single per-break coefficient per segment, but the
-    trained model is keyed by break position too. We average the model's
-    coefficient across the position buckets at the segment's length, which is the
-    most faithful single-number summary. For the assumption fallback every
-    position returns the same declared number, so the average is that number.
+
+def _segment_impact_kwargs(
+    impact_model: ImpactModel | None,
+    pricing_class: str,
+    assumptions: OptimizerAssumptions,
+) -> tuple[float, dict[str, object]]:
+    """The segment's point coefficient and the optional uncertainty fields to pass on.
+
+    With no impact model the segment carries only the declared assumption point and
+    no interval, so the optimizer's risk preference correctly has nothing to bite on.
+    With a model the segment also carries the credible interval, sample size and
+    confidence so the decision can be uncertainty-aware and the plan can report how
+    trustworthy each segment's retention cost was.
     """
-    length = _length_bucket(break_length_seconds)
-    coefficients = [
-        impact_model.coefficient_for(pricing_class, position, length)
-        for position in DEFAULT_BREAK_POSITIONS
-    ]
-    return sum(coefficients) / len(coefficients)
+    if impact_model is None:
+        return assumptions.retention_impact_per_break, {}
+    estimate = _segment_impact_estimate(
+        impact_model, pricing_class, assumptions.default_break_length_seconds,
+    )
+    return estimate.coefficient, {
+        "impact_ci_low": estimate.ci_low,
+        "impact_ci_high": estimate.ci_high,
+        "impact_n": estimate.n,
+        "impact_confidence": estimate.confidence,
+    }
 
 
 SECONDS_PER_MINUTE = 60
@@ -163,12 +219,9 @@ def build_segments_from_daily_input(
         duration = (next_start - start_seconds) if next_start and next_start > start_seconds else _DEFAULT_PROGRAMME_SECONDS
         baseline = getattr(row, "baseline_tvr")
         baseline_tvr = 0.0 if pd.isna(baseline) else max(0.0, float(baseline))
-        if impact_model is None:
-            impact_coefficient = assumptions.retention_impact_per_break
-        else:
-            impact_coefficient = _segment_impact_coefficient(
-                impact_model, pricing_class, assumptions.default_break_length_seconds,
-            )
+        impact_coefficient, impact_fields = _segment_impact_kwargs(
+            impact_model, pricing_class, assumptions,
+        )
         segments.append(ProgramSegment(
             segment_id=f"{day}|{channel}|{index:03d}",
             channel=channel,
@@ -180,6 +233,7 @@ def build_segments_from_daily_input(
             cpp=pricing.base_price,
             unit_seconds=1.0,
             impact_coefficient=impact_coefficient,
+            **impact_fields,
             retention_baseline=assumptions.retention_baseline,
             premium=pricing.segment_premium(pricing_class=pricing_class, weekday_iso=_daily_weekday(day)),
             max_breaks=assumptions.default_max_breaks,
@@ -291,12 +345,9 @@ def build_segments_from_programmes(
         tvr = getattr(row, "TVR", 0.0)
         baseline_tvr = 0.0 if pd.isna(tvr) else max(0.0, float(tvr))
         segment_date = start.strftime("%Y-%m-%d")
-        if impact_model is None:
-            impact_coefficient = assumptions.retention_impact_per_break
-        else:
-            impact_coefficient = _segment_impact_coefficient(
-                impact_model, pricing_class, assumptions.default_break_length_seconds,
-            )
+        impact_coefficient, impact_fields = _segment_impact_kwargs(
+            impact_model, pricing_class, assumptions,
+        )
         segments.append(ProgramSegment(
             segment_id=f"{segment_date}|{getattr(row, 'Channel')}|{index:03d}",
             channel=str(getattr(row, "Channel")),
@@ -308,6 +359,7 @@ def build_segments_from_programmes(
             cpp=pricing.base_price,
             unit_seconds=1.0,                       # base price is quoted per second
             impact_coefficient=impact_coefficient,
+            **impact_fields,
             retention_baseline=assumptions.retention_baseline,
             premium=pricing.segment_premium(
                 pricing_class=pricing_class,
