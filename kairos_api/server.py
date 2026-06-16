@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -14,6 +15,8 @@ from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -679,18 +682,46 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
     return actions
 
 
-def _build_frontier(summary: dict[str, Any]) -> list[dict[str, float]]:
-    revenue = _safe_number(summary.get("projected_revenue"), 0)
-    retention = _safe_number(summary.get("average_retention"), 74)
-    points = []
-    for offset in range(-3, 4):
+def _build_frontier(settings: KairosSettings) -> list[dict[str, Any]]:
+    """The real revenue-vs-retention frontier, traced by sweeping the optimizer's
+    revenue weight on the operator's saved guardrails.
+
+    Each point is an ACTUAL optimization (:func:`kairos.service.run_scenario`),
+    not a synthetic offset off one summary: the curve is the genuine Pareto
+    trade-off the engine produces as it shifts from retention-first
+    (revenue_weight 0) to revenue-first (revenue_weight 100), under the saved
+    retention floor, hourly break cap and risk aversion. The point matching the
+    saved revenue_weight is marked ``selected``. If no plan can be computed the
+    list is empty (an honest empty state, never a fabricated curve).
+    """
+    saved_weight = int(round(OptimizerAssumptions().revenue_weight * 100))
+    weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
+    points: list[dict[str, Any]] = []
+    for weight in weights:
+        try:
+            payload = run_scenario(
+                revenue_weight=weight,
+                retention_floor=settings.min_retention_floor,
+                max_breaks_per_hour=settings.max_breaks_per_hour,
+                risk_lambda=settings.risk_lambda,
+            )
+        except Exception:
+            logger.exception("frontier scenario failed at revenue_weight=%s", weight)
+            continue
+        summary = payload.get("summary", {})
+        retention = summary.get("average_retention")
+        revenue = summary.get("projected_revenue")
+        if retention is None or revenue is None:
+            continue
         points.append(
             {
-                "retention": round(retention + offset * 1.15, 1),
-                "revenue": round(max(0, revenue * (1 - offset * 0.035)), 2),
-                "selected": offset == 0,
+                "retention": round(_safe_number(retention), 1),
+                "revenue": round(_safe_number(revenue), 2),
+                "revenue_weight": weight,
+                "selected": weight == saved_weight,
             }
         )
+    points.sort(key=lambda point: point["retention"])
     return points
 
 
@@ -1073,7 +1104,7 @@ def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
     return {"breaks": _records(frame)}
 
 
-def _build_forecasts(schedule: pd.DataFrame) -> dict[str, Any]:
+def _build_forecasts(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
     if schedule.empty:
         return {"by_day": [], "scenarios": []}
 
@@ -1085,13 +1116,48 @@ def _build_forecasts(schedule: pd.DataFrame) -> dict[str, Any]:
         .agg(revenue=("predicted_revenue", "sum"), retention=("predicted_retention", "mean"), breaks=("num_breaks", "sum"))
         .reset_index()
     )
-    summary = _summarize_schedule(schedule)
-    scenarios = [
-        {"name": "Retention guardrail", "revenue": round(summary["projected_revenue"] * 0.94, 2), "retention": max(summary["average_retention"], 74.0)},
-        {"name": "Balanced", "revenue": summary["projected_revenue"], "retention": summary["average_retention"]},
-        {"name": "Revenue priority", "revenue": round(summary["projected_revenue"] * 1.08, 2), "retention": max(0, summary["average_retention"] - 1.6)},
+    return {"by_day": _records(by_day), "scenarios": _build_forecast_scenarios(settings)}
+
+
+def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
+    """Three named what-if points, each a REAL optimization at a different revenue
+    weight under the operator's saved guardrails (not a percentage nudge off the
+    current plan). 'Retention guardrail' leans retention-first, 'Revenue priority'
+    leans revenue-first, 'Balanced' uses the saved weight; each value comes from
+    :func:`kairos.service.run_scenario`. Empty (honest) when no plan computes."""
+    saved_weight = int(round(OptimizerAssumptions().revenue_weight * 100))
+    named = [
+        ("Retention guardrail", "ריסון לטובת צפייה", 20),
+        ("Balanced", "מאוזן", saved_weight),
+        ("Revenue priority", "עדיפות להכנסה", 90),
     ]
-    return {"by_day": _records(by_day), "scenarios": scenarios}
+    scenarios: list[dict[str, Any]] = []
+    for name, name_he, weight in named:
+        try:
+            payload = run_scenario(
+                revenue_weight=weight,
+                retention_floor=settings.min_retention_floor,
+                max_breaks_per_hour=settings.max_breaks_per_hour,
+                risk_lambda=settings.risk_lambda,
+            )
+        except Exception:
+            logger.exception("forecast scenario '%s' failed at revenue_weight=%s", name, weight)
+            continue
+        summary = payload.get("summary", {})
+        revenue = summary.get("projected_revenue")
+        retention = summary.get("average_retention")
+        if revenue is None or retention is None:
+            continue
+        scenarios.append(
+            {
+                "name": name,
+                "name_he": name_he,
+                "revenue_weight": weight,
+                "revenue": round(_safe_number(revenue), 2),
+                "retention": round(_safe_number(retention), 1),
+            }
+        )
+    return scenarios
 
 
 def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
@@ -1148,7 +1214,7 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
             "planned_break_rows": int(len(schedule)),
         },
         "recommendations": _build_recommendations(schedule),
-        "frontier": _build_frontier(summary),
+        "frontier": _build_frontier(settings),
         "settings": _model_dump(settings),
         "compliance": _build_compliance(schedule, settings, break_operations),
     }
@@ -1187,7 +1253,7 @@ def _campaigns_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, 
 @lru_cache(maxsize=16)
 def _forecasts_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
-    return _build_forecasts(_load_break_schedule())
+    return _build_forecasts(_load_break_schedule(), _load_settings())
 
 
 @lru_cache(maxsize=16)
