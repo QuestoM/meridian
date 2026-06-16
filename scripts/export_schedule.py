@@ -12,8 +12,10 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -24,10 +26,31 @@ from kairos.export.schedule import (  # noqa: E402
     write_weekly_schedule,
 )
 
+# The dashboard persists the operator's controls here (same file the API reads);
+# the weekly CSV must be built with those controls so the risk-aware decision the
+# operator selected actually reaches the screens that render this schedule.
+SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
+
+
+def _load_settings() -> dict[str, Any]:
+    """Read the saved KairosSettings, falling back to {} (engine defaults)."""
+    if not SETTINGS_PATH.exists():
+        return {}
+    try:
+        with SETTINGS_PATH.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
 
 def main() -> int:
     print("Building the real weekly break schedule from the reference data ...")
-    frame = build_weekly_schedule()
+    settings = _load_settings()
+    risk_lambda = float(settings.get("risk_lambda", 0.0) or 0.0)
+    print(f"  using saved settings (risk_lambda={risk_lambda}, "
+          f"retention_floor={settings.get('min_retention_floor', 'default')})")
+    frame = build_weekly_schedule(settings=settings or None, risk_lambda=risk_lambda)
     if frame.empty:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")
         return 1

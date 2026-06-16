@@ -102,6 +102,7 @@ def build_weekly_schedule(
     assumptions: Optional[OptimizerAssumptions] = None,
     settings: Optional[Mapping[str, Any]] = None,
     revenue_weight: Optional[float] = None,
+    risk_lambda: float = 0.0,
     classifier: Optional[ProgramClassifier] = None,
     impact_model: Optional[ImpactModel] = None,
 ) -> pd.DataFrame:
@@ -132,7 +133,7 @@ def build_weekly_schedule(
         )
         if not segments:
             continue
-        result = optimize_breaks(segments, guardrails, revenue_weight=weight)
+        result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda)
         plans = {plan.segment_id: plan for plan in result.segments}
         for segment in segments:
             plan = plans.get(segment.segment_id)
