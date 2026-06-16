@@ -167,6 +167,10 @@ def break_effects(
     columns = [
         "channel_name", "program_type", "break_position", "break_length",
         "observed_ratio", "expected_ratio", "log_effect",
+        # The airing channel and break span travel with each measured break so the
+        # Stage 3 competitor-context extractor can join features without re-running
+        # break detection. Harmless to the pooling, which keys only on channel_name.
+        "channel", "break_start", "break_end",
     ]
     if breaks.empty:
         return pd.DataFrame(columns=columns)
@@ -208,6 +212,9 @@ def break_effects(
                 "observed_ratio": observed_ratio,
                 "expected_ratio": expected_ratio,
                 "log_effect": float(np.log(observed_ratio) - np.log(expected_ratio)),
+                "channel": channel,
+                "break_start": start,
+                "break_end": end,
             }
         )
 
