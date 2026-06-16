@@ -283,7 +283,9 @@ def read_coefficients_json(path: str | Path) -> dict[str, float]:
     """Read the flat channel -> retention-delta map from a coefficients JSON.
 
     Returns an empty dict when the file is missing or carries no coefficients, so
-    the caller can fall back honestly.
+    the caller can fall back honestly. Kept for back-compat: it deliberately
+    returns ONLY the point coefficient and discards the interval and count. Use
+    :func:`read_coefficients_detail` to carry the full posterior to the optimizer.
     """
     source = Path(path)
     if not source.exists():
@@ -295,3 +297,101 @@ def read_coefficients_json(path: str | Path) -> dict[str, float]:
         return {}
     raw = payload.get("coefficients", {})
     return {str(name): float(value) for name, value in raw.items()}
+
+
+# Confidence-label thresholds. A cell is trusted ("high") only when it carries
+# enough breaks AND its credible interval is tight; it is "low" when either the
+# count is small or the interval is wide. These are explicit, editable knobs, not
+# hidden constants, so the operator-facing label is auditable.
+_CONFIDENCE_HIGH_MIN_N = 50
+_CONFIDENCE_MEDIUM_MIN_N = 15
+_CONFIDENCE_HIGH_MAX_HALFWIDTH = 0.02
+_CONFIDENCE_MEDIUM_MAX_HALFWIDTH = 0.05
+
+
+def confidence_label(n: int, ci_low: float, ci_high: float) -> str:
+    """Label a cell's retention estimate ``high``/``medium``/``low``.
+
+    The label is the operator-facing "is the model sure here, or guessing"
+    signal. It is ``high`` only when the cell carries at least
+    :data:`_CONFIDENCE_HIGH_MIN_N` breaks AND the credible interval's half-width is
+    at most :data:`_CONFIDENCE_HIGH_MAX_HALFWIDTH`; ``medium`` for a looser bar;
+    ``low`` otherwise (a thin cell or a wide interval). Both n and width matter:
+    many breaks with a wide interval are still only ``medium``, and a tight
+    interval on a handful of breaks (which the fragile normal SE can produce, see
+    docs/model/retention-model.md a.3.2) is held to ``medium`` at best by the n
+    floor. A non-finite or inverted interval degrades to ``low``, never a false
+    ``high``.
+    """
+    half_width = abs(float(ci_high) - float(ci_low)) / 2.0
+    if not (half_width == half_width):  # NaN guard
+        return "low"
+    if n >= _CONFIDENCE_HIGH_MIN_N and half_width <= _CONFIDENCE_HIGH_MAX_HALFWIDTH:
+        return "high"
+    if n >= _CONFIDENCE_MEDIUM_MIN_N and half_width <= _CONFIDENCE_MEDIUM_MAX_HALFWIDTH:
+        return "medium"
+    return "low"
+
+
+@dataclass(frozen=True)
+class CoefficientDetail:
+    """The full per-cell retention estimate carried to the optimizer.
+
+    Unlike :func:`read_coefficients_json`, which returns only the point
+    ``coefficient``, this keeps the credible interval, the sample count ``n`` and a
+    derived ``confidence`` label so the decision can be uncertainty-aware and the
+    operator can see where the model is sure versus guessing.
+    """
+
+    coefficient: float
+    ci_low: float
+    ci_high: float
+    n: int
+    confidence: str
+
+
+def read_coefficients_detail(path: str | Path) -> dict[str, CoefficientDetail]:
+    """Read the full per-channel detail (coefficient + interval + n + confidence).
+
+    Reads the ``detail`` block that :func:`write_coefficients_json` persists, so
+    the optimizer can receive not just the point coefficient but its credible
+    interval, sample count and a confidence label. Falls back to the flat
+    ``coefficients`` map (with a zero-width interval, ``n`` 0 and ``low``
+    confidence) for any channel that has no detail, and returns an empty dict when
+    the file is missing or unreadable, so the caller can fall back honestly.
+    """
+    source = Path(path)
+    if not source.exists():
+        return {}
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Could not read measured coefficients at %s; ignoring.", source)
+        return {}
+
+    detail = payload.get("detail", {})
+    flat = payload.get("coefficients", {})
+    out: dict[str, CoefficientDetail] = {}
+    for name, raw in detail.items():
+        if not isinstance(raw, dict):
+            continue
+        coefficient = float(raw.get("coefficient", flat.get(name, 0.0)))
+        n = int(raw.get("n", 0))
+        ci_low = float(raw.get("ci_low", coefficient))
+        ci_high = float(raw.get("ci_high", coefficient))
+        out[str(name)] = CoefficientDetail(
+            coefficient=coefficient,
+            ci_low=ci_low,
+            ci_high=ci_high,
+            n=n,
+            confidence=confidence_label(n, ci_low, ci_high),
+        )
+    # Cells present only in the flat map (no detail block) degrade honestly to a
+    # point estimate with no interval and low confidence.
+    for name, value in flat.items():
+        if str(name) not in out:
+            point = float(value)
+            out[str(name)] = CoefficientDetail(
+                coefficient=point, ci_low=point, ci_high=point, n=0, confidence="low",
+            )
+    return out

@@ -51,6 +51,61 @@ def fixed_revenue(price: float) -> float:
     return float(price)
 
 
+def conservative_impact(
+    point: float,
+    ci_low: float,
+    ci_high: float,
+    *,
+    risk_lambda: float = 0.0,
+) -> float:
+    """Risk-adjust a per-break retention coefficient for an uncertainty-aware decision.
+
+    The optimizer is choosing whether a break's marginal revenue beats its
+    retention cost. When that cost is uncertain (a wide credible interval, a thin
+    cell), valuing the break at the bare point estimate ignores the chance the true
+    cost is far worse. This returns a conservative (more pessimistic) retention
+    coefficient so the decision is robust to estimation error.
+
+    Decision-theory rationale: with an interval ``[ci_low, ci_high]`` on the
+    retention delta (which is <= 0, so the MORE negative end is the worse, more
+    damaging case), the robust choice values the break at the worst plausible cost
+    in that band. ``risk_lambda`` scales how far toward that worst case we go:
+
+      * ``risk_lambda = 0.0`` returns the point estimate exactly. This is the
+        default, so nothing in the optimizer changes unless a risk preference is
+        opted into.
+      * ``risk_lambda = 1.0`` returns the lower credible bound (``min(ci_low,
+        ci_high, point)``) -- the full upper-quantile-of-the-damage robust value.
+      * ``0 < risk_lambda < 1`` returns ``point - risk_lambda * half_width``, a
+        partial variance penalty between the two, where ``half_width`` is half the
+        interval width.
+
+    The result is clamped non-positive (a break cannot be valued as raising
+    retention) and never returns a value more optimistic than the point estimate.
+    A non-finite interval degrades to the point estimate, never to a fabricated
+    cost.
+    """
+    if risk_lambda < 0:
+        raise ValueError("risk_lambda must be non-negative")
+    if risk_lambda == 0.0:
+        return min(0.0, point)
+    low = min(ci_low, ci_high)
+    if not (low == low) or not (point == point):  # NaN guard
+        return min(0.0, point)
+    # The worst plausible cost is the most damaging (most negative) of the two
+    # credible bounds and the point itself, so a point below its own interval is
+    # never ignored.
+    worst = min(low, point)
+    if risk_lambda >= 1.0:
+        return min(0.0, worst)
+    half_width = abs(ci_high - ci_low) / 2.0
+    penalized = point - risk_lambda * half_width
+    # Never more optimistic than the point estimate, never below the worst bound
+    # at full risk aversion, and never positive.
+    conservative = max(worst, min(point, penalized))
+    return min(0.0, conservative)
+
+
 def predicted_retention(
     baseline: float,
     impact_coefficient: float,

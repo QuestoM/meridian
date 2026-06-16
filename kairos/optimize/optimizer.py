@@ -35,6 +35,7 @@ from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, i
 from kairos.optimize.objective import (
     STANDARD_UNIT_SECONDS,
     break_revenue,
+    conservative_impact,
     predicted_retention,
     weighted_objective,
 )

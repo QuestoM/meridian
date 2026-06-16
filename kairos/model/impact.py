@@ -28,8 +28,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Optional
 
 from kairos.model.spec import ChannelDescriptor, meridian_available
 from kairos.optimize.pricing import OptimizerAssumptions
@@ -37,6 +38,25 @@ from kairos.optimize.pricing import OptimizerAssumptions
 logger = logging.getLogger(__name__)
 
 _CHANNEL_SEPARATOR = "_"
+
+
+@dataclass(frozen=True)
+class RetentionEstimate:
+    """A per-cell retention-impact estimate with its uncertainty.
+
+    ``coefficient`` is the point retention delta the optimizer consumes (<= 0).
+    ``ci_low``/``ci_high`` bound it (a measured credible interval, or the point
+    itself when no interval is known), ``n`` is the number of breaks behind it, and
+    ``confidence`` is the ``high``/``medium``/``low`` label from
+    :func:`kairos.model.measure.confidence_label`. This is the full posterior the
+    Stage 1 design carries end to end so the decision can be uncertainty-aware.
+    """
+
+    coefficient: float
+    ci_low: float
+    ci_high: float
+    n: int
+    confidence: str
 
 
 class ImpactModel(ABC):
@@ -61,6 +81,24 @@ class ImpactModel(ABC):
     ) -> float:
         """Return the retention impact coefficient for one break attribute cell."""
         raise NotImplementedError
+
+    def estimate_for(
+        self,
+        program_type: str,
+        break_position: str,
+        break_length: str,
+    ) -> RetentionEstimate:
+        """Return the full retention estimate (point + interval + n + confidence).
+
+        The default wraps :meth:`coefficient_for` into a degenerate estimate with
+        no interval (``ci_low == ci_high == coefficient``), ``n`` 0 and ``low``
+        confidence, so every model satisfies the richer contract even when it only
+        knows a point. Models that carry real uncertainty override this.
+        """
+        point = self.coefficient_for(program_type, break_position, break_length)
+        return RetentionEstimate(
+            coefficient=point, ci_low=point, ci_high=point, n=0, confidence="low",
+        )
 
     @property
     def is_trained(self) -> bool:
@@ -119,16 +157,26 @@ class PosteriorImpactModel(ImpactModel):
         *,
         default: float,
         source: str = "trained",
+        detail: Optional[Mapping[str, RetentionEstimate]] = None,
     ) -> None:
         if not coefficients:
             raise ValueError("PosteriorImpactModel needs at least one fitted coefficient")
         self._coefficients = dict(coefficients)
         self._default = float(default)
         self.source = source
+        # Optional per-cell uncertainty (interval + n + confidence). When present
+        # the model exposes the full posterior through estimate_for; when absent
+        # estimate_for degrades to the point coefficient with low confidence.
+        self._detail = dict(detail) if detail else {}
 
     @property
     def coefficients(self) -> dict[str, float]:
         return dict(self._coefficients)
+
+    @property
+    def has_detail(self) -> bool:
+        """True when this model carries per-cell credible intervals and counts."""
+        return bool(self._detail)
 
     def coefficient_for(
         self,
@@ -141,6 +189,28 @@ class PosteriorImpactModel(ImpactModel):
             return self._coefficients[name]
         logger.debug("No fitted coefficient for channel %s; using declared default", name)
         return self._default
+
+    def estimate_for(
+        self,
+        program_type: str,
+        break_position: str,
+        break_length: str,
+    ) -> RetentionEstimate:
+        """Return the full retention estimate, with interval and confidence when known.
+
+        When detail was loaded for this cell, the credible interval, sample count
+        and confidence label travel with the point coefficient. For a cell the
+        data did not estimate, this falls back to the declared default with no
+        interval and ``low`` confidence, so an unseen break attribute never raises
+        and never claims a confidence it does not have.
+        """
+        name = ChannelDescriptor.from_parts(program_type, break_position, break_length).name
+        if name in self._detail:
+            return self._detail[name]
+        point = self.coefficient_for(program_type, break_position, break_length)
+        return RetentionEstimate(
+            coefficient=point, ci_low=point, ci_high=point, n=0, confidence="low",
+        )
 
 
 def load_impact_model(
@@ -170,11 +240,41 @@ def load_impact_model(
 
     # 1. Measured coefficients (preferred, no Meridian needed). Lazy import keeps
     # the impact <-> measure <-> prepare <-> transform import cycle from forming.
-    from kairos.model.measure import read_coefficients_json
+    # We read the full per-cell detail (point + credible interval + n + confidence)
+    # so the uncertainty reaches the optimizer in a real run, not only in unit
+    # construction. ``read_coefficients_json`` stays the back-compat flat reader.
+    from kairos.model.measure import read_coefficients_detail, read_coefficients_json
 
     coeff_path = Path(coefficients_path) if coefficients_path else model_path.with_name(
         "tv_break_coefficients.json"
     )
+    detail = read_coefficients_detail(coeff_path)
+    if detail:
+        coefficients = {name: d.coefficient for name, d in detail.items()}
+        estimates = {
+            name: RetentionEstimate(
+                coefficient=d.coefficient,
+                ci_low=d.ci_low,
+                ci_high=d.ci_high,
+                n=d.n,
+                confidence=d.confidence,
+            )
+            for name, d in detail.items()
+        }
+        logger.info(
+            "Loaded %d measured retention coefficients (with uncertainty) from %s.",
+            len(coefficients),
+            coeff_path,
+        )
+        return PosteriorImpactModel(
+            coefficients,
+            default=assumptions.retention_impact_per_break,
+            source="measured",
+            detail=estimates,
+        )
+
+    # Back-compat fallback: a coefficients file that carries only the flat map and
+    # no detail block still loads as a point-estimate model.
     measured = read_coefficients_json(coeff_path)
     if measured:
         logger.info("Loaded %d measured retention coefficients from %s.", len(measured), coeff_path)
