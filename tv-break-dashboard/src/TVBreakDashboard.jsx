@@ -531,11 +531,12 @@ function gridAxisFromLocation() {
 
 function formatCurrency(value, locale = 'en') {
   const number = Number(value || 0);
+  const magnitude = Math.abs(number);
   const formatter = new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     style: 'currency',
     currency: 'ILS',
-    maximumFractionDigits: number >= 100000 ? 0 : 1,
-    notation: number >= 100000 ? 'compact' : 'standard',
+    maximumFractionDigits: magnitude >= 100000 ? 0 : 1,
+    notation: magnitude >= 100000 ? 'compact' : 'standard',
   });
   return formatter.format(number);
 }
@@ -2902,6 +2903,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
 function FrontierPanel({ data, copy, locale, loading = false }) {
   const chartFrameRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(760);
+  const [activePointIndex, setActivePointIndex] = useState(null);
   const height = 224;
   const padX = 46;
   const padY = 30;
@@ -2960,6 +2962,38 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
     .join(' ');
   const minRetentionLabel = formatPercent(minRetention, locale);
   const maxRetentionLabel = formatPercent(maxRetention, locale);
+  const safeActiveIndex =
+    activePointIndex !== null && points[activePointIndex] ? activePointIndex : null;
+  const activePoint = safeActiveIndex !== null ? points[safeActiveIndex] : selectedPoint;
+  const activeX = activePoint ? xFor(activePoint.retention) : 0;
+  const activeY = activePoint ? yFor(activePoint.revenue) : 0;
+  const revenueDelta = activePoint && selectedPoint ? activePoint.revenue - selectedPoint.revenue : 0;
+  const retentionDelta = activePoint && selectedPoint ? activePoint.retention - selectedPoint.retention : 0;
+  const tooltipClass = [
+    'frontier-tooltip',
+    activeX > width * 0.68 ? 'edge-right' : activeX < width * 0.32 ? 'edge-left' : '',
+    activeY < 96 ? 'below' : '',
+  ].filter(Boolean).join(' ');
+  const hoverLabel = activePoint?.selected
+    ? pageText(locale, 'Selected plan', 'תוכנית נבחרת')
+    : pageText(locale, `Alternative ${safeActiveIndex + 1}`, `חלופה ${safeActiveIndex + 1}`);
+
+  function handleChartPointerMove(event) {
+    const svg = event.currentTarget.ownerSVGElement;
+    const matrix = svg?.getScreenCTM();
+    if (!svg || !matrix) return;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const cursor = point.matrixTransform(matrix.inverse());
+    const nearestIndex = points.reduce((bestIndex, item, index) => {
+      const bestPoint = points[bestIndex];
+      const distance = Math.abs(xFor(item.retention) - cursor.x);
+      const bestDistance = Math.abs(xFor(bestPoint.retention) - cursor.x);
+      return distance < bestDistance ? index : bestIndex;
+    }, 0);
+    setActivePointIndex((current) => (current === nearestIndex ? current : nearestIndex));
+  }
 
   return (
     <div className="analytics-panel frontier-panel">
@@ -2987,28 +3021,67 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
                 return <line key={`v-${line}`} x1={x} x2={x} y1={padY} y2={height - padY} />;
               })}
               <path d={path} />
+              {safeActiveIndex !== null && activePoint && (
+                <g className="frontier-hover-guides" aria-hidden="true">
+                  <line x1={activeX} x2={activeX} y1={padY} y2={height - padY} />
+                  <line x1={padX} x2={width - padX} y1={activeY} y2={activeY} />
+                </g>
+              )}
               {points.map((point, index) => (
                 <circle
                   key={`${point.retention}-${point.revenue}-${index}`}
-                  className={point.selected ? 'selected-point' : ''}
+                  className={[
+                    point.selected ? 'selected-point' : '',
+                    safeActiveIndex === index ? 'active-point' : '',
+                  ].filter(Boolean).join(' ')}
                   cx={xFor(point.retention)}
                   cy={yFor(point.revenue)}
-                  r={point.selected ? 6 : 4}
+                  r={safeActiveIndex === index ? 7 : point.selected ? 6 : 4}
+                  tabIndex={0}
+                  aria-label={`${formatCurrency(point.revenue, locale)}, ${formatPercent(point.retention, locale)}`}
+                  onFocus={() => setActivePointIndex(index)}
+                  onBlur={() => setActivePointIndex(null)}
                 />
               ))}
+              <rect
+                className="frontier-hit-area"
+                x={padX}
+                y={padY}
+                width={width - padX * 2}
+                height={height - padY * 2}
+                onPointerMove={handleChartPointerMove}
+                onPointerLeave={() => setActivePointIndex(null)}
+              />
               <text className="axis-label" x={padX} y={height - 6}>{minRetentionLabel}</text>
               <text className="axis-label axis-label-end" x={width - padX} y={height - 6}>{maxRetentionLabel}</text>
               <text className="axis-label" x={4} y={padY + 4}>{formatCurrency(maxRevenue, locale)}</text>
             </svg>
+            {safeActiveIndex !== null && activePoint && (
+              <div
+                className={tooltipClass}
+                dir={locale === 'he' ? 'rtl' : 'ltr'}
+                style={{ left: `${(activeX / width) * 100}%`, top: `${(activeY / height) * 100}%` }}
+              >
+                <span>{hoverLabel}</span>
+                <strong><Numeric>{formatCurrency(activePoint.revenue, locale)}</Numeric></strong>
+                <small><Numeric>{formatPercent(activePoint.retention, locale)}</Numeric></small>
+                <div className="frontier-tooltip-deltas">
+                  <span>{pageText(locale, 'Revenue delta', 'פער הכנסה')}</span>
+                  <strong><Numeric>{revenueDelta > 0 ? '+' : ''}{formatCurrency(revenueDelta, locale)}</Numeric></strong>
+                  <span>{pageText(locale, 'Retention delta', 'פער שימור')}</span>
+                  <strong><Numeric>{retentionDelta > 0 ? '+' : ''}{formatNumber(retentionDelta, locale)}pp</Numeric></strong>
+                </div>
+              </div>
+            )}
           </div>
           <div className="frontier-readout">
             <div>
-              <span>{pageText(locale, 'Selected revenue', 'הכנסה בתוכנית')}</span>
-              <strong><Numeric>{formatCurrency(selectedPoint.revenue, locale)}</Numeric></strong>
+              <span>{safeActiveIndex !== null ? pageText(locale, 'Hovered revenue', 'הכנסה בחלופה') : pageText(locale, 'Selected revenue', 'הכנסה בתוכנית')}</span>
+              <strong><Numeric>{formatCurrency(activePoint.revenue, locale)}</Numeric></strong>
             </div>
             <div>
-              <span>{pageText(locale, 'Projected retention', 'שימור צפוי')}</span>
-              <strong><Numeric>{formatPercent(selectedPoint.retention, locale)}</Numeric></strong>
+              <span>{safeActiveIndex !== null ? pageText(locale, 'Hovered retention', 'שימור בחלופה') : pageText(locale, 'Projected retention', 'שימור צפוי')}</span>
+              <strong><Numeric>{formatPercent(activePoint.retention, locale)}</Numeric></strong>
             </div>
           </div>
         </>

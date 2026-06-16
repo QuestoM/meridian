@@ -1361,6 +1361,10 @@ button {
   margin: 8px 10px 0;
 }
 
+.frontier-chart-frame {
+  position: relative;
+}
+
 .frontier-skeleton {
   border: 1px solid #e8edf2;
   border-radius: 6px;
@@ -1400,6 +1404,25 @@ button {
   fill: var(--teal);
   stroke: #ffffff;
   stroke-width: 2.5;
+}
+
+.frontier-svg .active-point {
+  fill: var(--teal);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.frontier-svg .frontier-hover-guides line {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.22;
+}
+
+.frontier-hit-area {
+  fill: transparent;
+  cursor: crosshair;
+  pointer-events: all;
 }
 
 .frontier-svg text {
@@ -1447,6 +1470,68 @@ button {
   color: var(--ink);
   font-size: 13px;
   font-weight: 720;
+}
+
+.frontier-tooltip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 3px;
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid #d8e0e8;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.12);
+  color: var(--ink);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+.frontier-tooltip.below {
+  transform: translate(-50%, 10px);
+}
+
+.frontier-tooltip.edge-left {
+  transform: translate(-18px, calc(-100% - 10px));
+}
+
+.frontier-tooltip.edge-left.below {
+  transform: translate(-18px, 10px);
+}
+
+.frontier-tooltip.edge-right {
+  transform: translate(calc(-100% + 18px), calc(-100% - 10px));
+}
+
+.frontier-tooltip.edge-right.below {
+  transform: translate(calc(-100% + 18px), 10px);
+}
+
+.frontier-tooltip span,
+.frontier-tooltip small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.frontier-tooltip strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 730;
+}
+
+.frontier-tooltip-deltas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.frontier-tooltip-deltas strong {
+  font-size: 10px;
 }
 
 .heatmap {
