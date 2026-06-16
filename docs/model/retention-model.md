@@ -162,11 +162,17 @@ in the current code.
    retention estimate conditions only on the channel's own break attributes. Yet a
    break's true cost depends heavily on what a viewer can switch to: shedding into
    a competitor's strong programme is a real loss; shedding when every competitor
-   is also in break is nearly free. The dayparts data does carry all four channels'
-   minute-level TVR (`CHANNELS = ("קשת 12", "רשת 13", "כאן 11", "עכשיו 14")`), which
-   is the raw material a competitor feature could be built from, but no
-   programme-versus-programme signal is computed or consumed today. This is the
-   goal's distinctive signal and it is entirely absent.
+   is also in break is nearly free. What is missing is the COVARIATE, not the data:
+   verified on the reference set, all four channels are present in every source the
+   feature needs. `load_dayparts` carries each channel's minute-level TVR
+   (`CHANNELS = ("קשת 12", "רשת 13", "כאן 11", "עכשיו 14")`); `load_programmes` carries
+   all four channels' titles and slots (8704 rows across the four), so the rival EPG
+   (titles -> genre via the classifier) is available as a forward signal; and
+   `load_spots` carries all four channels' aired ads, the training-only signal for
+   `competitor_in_break`. So every Stage 3 input exists already and needs no data
+   acquisition: the programme-versus-programme signal is simply not computed or
+   consumed today. This is the goal's distinctive signal and the feature is absent,
+   but the raw material for it is fully present.
 
 ---
 
@@ -319,8 +325,12 @@ One-line summary: encode what competitors air against each slot as a forward-usa
 feature and let it modulate the retention cost, with a strict information boundary --
 competitor programmes are forward inputs, competitor breaks/ads are training-only.
 
-This is the goal's distinctive signal and it is **not yet built**. No competitor
-column exists today (see a.3.7).
+This is the goal's distinctive signal and it is **not yet built** as a feature, but
+it is feasible now: the raw data exists. Verified on the reference set, all four
+channels appear in `load_programmes` (the rival EPG, the forward signal),
+`load_dayparts` (rival minute-level audience curves) and `load_spots` (rival aired
+ads, the training-only signal) -- see a.3.7. No data acquisition is needed; what is
+missing is the feature-engineering and the betas, which is the build below.
 
 Encoding "what competitors air against this slot." For the slot a break sits in,
 build a competitor-context feature from the three rival channels' schedules at the
