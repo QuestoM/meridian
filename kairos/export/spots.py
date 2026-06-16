@@ -35,6 +35,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from kairos.data.classifier import ProgramClassifier
+from kairos.data.dayparts import daypart_for_hour
 from kairos.data.loaders import load_daily_input
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.objective import break_revenue, fixed_revenue
@@ -42,26 +43,18 @@ from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import PricingModel
 
 # The daily Wally file is a single channel and carries no daypart column; we
-# derive a coarse daypart from the spot clock so prime-time-only baselines and
-# daypart-scoped conditions have something real to match.
-_PRIME_START_HOUR = 20
-_PRIME_END_HOUR = 23  # inclusive
-
-
+# derive the daypart from the spot clock using the one canonical taxonomy
+# (kairos.data.dayparts) so a daypart-scoped rule means the same minutes here as
+# in the weekly plan and the training data. A None hour yields None (no guess).
 def _daypart_for_hour(hour: Optional[int]) -> Optional[str]:
-    """Map a spot's clock hour to a coarse daypart token, or None when unknown.
+    """Map a spot's clock hour to its canonical Israeli-TV daypart key, or None.
 
-    ``prime`` covers 20:00..23:59 (matching the prime-time pricing window used
-    elsewhere in the engine); ``daytime`` covers 06:00..19:59; ``overnight``
-    covers the rest. A None hour yields None so nothing is guessed.
+    Delegates to :func:`kairos.data.dayparts.daypart_for_hour`, the single source
+    of truth (morning/noon/evening/prime/night). ``prime_time_only`` baselines and
+    daypart-scoped conditions match these keys; a missing/invalid hour yields None
+    so nothing is guessed.
     """
-    if hour is None:
-        return None
-    if _PRIME_START_HOUR <= hour <= _PRIME_END_HOUR:
-        return "prime"
-    if 6 <= hour < _PRIME_START_HOUR:
-        return "daytime"
-    return "overnight"
+    return daypart_for_hour(hour)
 
 
 def _hour_from_time(value: Any) -> Optional[int]:

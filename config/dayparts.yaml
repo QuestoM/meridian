@@ -1,0 +1,17 @@
+# Canonical Israeli TV daypart taxonomy (the single source of truth).
+#
+# Every path (training, weekly plan, daily spot pricing) maps a clock time to one
+# of these dayparts via kairos.data.dayparts, so a rule scoped to "prime" means the
+# same minutes everywhere. start is inclusive, end is exclusive, both on the 0..24
+# clock. A daypart whose start > end wraps midnight (night below covers 23:00-06:00).
+#
+# Edit this file to retune the windows; kairos.data.dayparts reads it on import and
+# falls back to the built-in default if it is missing or malformed. "prime" is the
+# daypart the prime-time pricing and the prime_time_only baseline key on, so keep a
+# daypart named "prime".
+dayparts:
+  - { key: morning, he: "בוקר",        en: "Morning",    start: 6,  end: 12 }
+  - { key: noon,    he: "צהריים",      en: "Noon",       start: 12, end: 17 }
+  - { key: evening, he: "ערב",         en: "Evening",    start: 17, end: 20 }
+  - { key: prime,   he: "פריים טיים",  en: "Prime time", start: 20, end: 23 }
+  - { key: night,   he: "לילה",        en: "Night",      start: 23, end: 6  }
