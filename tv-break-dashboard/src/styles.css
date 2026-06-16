@@ -3471,7 +3471,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 168px;
+  min-width: 150px;
   padding: 0 4px;
 }
 

@@ -1,4 +1,4 @@
-# Advertiser rules upgrade: programmes, placement pressure, coefficient modes, real dayparts, gold break
+# Advertiser rules upgrade: programmes, placement preference, coefficient modes, real dayparts, gold break
 
 This is the characterization and build plan for the Advertisers-page upgrade. It
 traces where each piece of data comes from today and defines the changes, so the
@@ -69,11 +69,14 @@ dropdowns with search/filter:
   name. On the daily spot path a spot's programme is the `program` column
   (`DAILY_COLUMN_MAP`), matched against `scope_programmes`.
 
-## 3. Placement pressure (steers placement, never charged)
+## 3. Placement preference (steers placement, never charged)
 
-A second, parallel lever to the coefficient. Copy: "Placement pressure" (he: לחץ
-שיבוץ / מנוף שיבוץ). Distinct from the premium because it changes WHERE the model
-wants to place an ad without adding money to the real total.
+A second, parallel lever to the coefficient. Copy: "Placement preference" (he:
+העדפת שיבוץ). Earlier draft copy "לחץ שיבוץ" was dropped: with a kamatz the word
+לחץ reads as the imperative "press", which is confusing on a control label. The
+engine token stays `pressure` internally; only the customer-facing copy changes.
+Distinct from the premium because it changes WHERE the model wants to place an ad
+without adding money to the real total.
 
 - New effect `pressure` on `Condition`, value = a percent (e.g. +10 means the model
   behaves as if the slot pays 10% more).

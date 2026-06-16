@@ -21,6 +21,7 @@ import {
   Switch,
   TextField,
   ThemeProvider,
+  Tooltip,
   createTheme,
 } from '@mui/material';
 import {
@@ -41,6 +42,7 @@ import {
   FileBarChart,
   Gauge,
   GitCompare,
+  Info,
   Languages,
   LayoutGrid,
   ListChecks,
@@ -240,6 +242,7 @@ const copyByLocale = {
     liveApi: 'Live API',
     snapshot: 'Demo data (API offline)',
     data: 'Data',
+    dataUpdated: 'Updated',
     refresh: 'Refresh',
     notifications: 'Notifications',
     runOptimization: 'Run Optimization',
@@ -292,9 +295,9 @@ const copyByLocale = {
     sponsorships: 'Sponsorships enabled',
     gold: 'Gold breaks enabled',
     approval: 'Manual approval required',
-    riskCaution: 'Uncertainty caution',
-    riskCautionHelp: '0 uses the point estimate. Higher values value an uncertain break at its worst plausible cost.',
-    riskCautionSetting: 'Default uncertainty caution',
+    riskCaution: 'Caution level',
+    riskCautionHelp: 'How cautious to be when the retention estimate is uncertain. 0 uses the central estimate; higher values treat an uncertain break at its worst plausible cost, for a more conservative plan.',
+    riskCautionSetting: 'Default caution level',
     retentionCostTitle: 'Retention cost confidence',
     retentionCostIntro: 'How trustworthy the retention cost is behind each segment in this plan.',
     retentionCostConfidence: { low: 'Low', medium: 'Medium', high: 'High' },
@@ -330,6 +333,7 @@ const copyByLocale = {
     liveApi: 'API חי',
     snapshot: 'נתוני הדגמה (API מנותק)',
     data: 'נתונים',
+    dataUpdated: 'עודכן',
     refresh: 'רענון',
     notifications: 'התראות',
     runOptimization: 'הרצת אופטימיזציה',
@@ -382,9 +386,9 @@ const copyByLocale = {
     sponsorships: 'חסויות פעילות',
     gold: 'ברייקי זהב פעילים',
     approval: 'נדרש אישור ידני',
-    riskCaution: 'זהירות מול אי-ודאות',
-    riskCautionHelp: '0 משתמש באומדן הנקודתי. ערכים גבוהים יותר מתמחרים ברייק לא ודאי לפי העלות הגרועה הסבירה שלו.',
-    riskCautionSetting: 'זהירות מול אי-ודאות כברירת מחדל',
+    riskCaution: 'רמת זהירות',
+    riskCautionHelp: 'כמה להיזהר כשאומדן השימור אינו ודאי. 0 = שימוש באומדן המרכזי; ככל שעולה, ברייק עם חוסר ודאות מתומחר לפי העלות הגרועה הסבירה שלו, כלומר תוכנית שמרנית יותר.',
+    riskCautionSetting: 'רמת זהירות כברירת מחדל',
     retentionCostTitle: 'מהימנות עלות השימור',
     retentionCostIntro: 'עד כמה אפשר לסמוך על עלות השימור שמאחורי כל סגמנט בתוכנית הזו.',
     retentionCostConfidence: { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה' },
@@ -1446,7 +1450,10 @@ function TVBreakDashboard() {
             <div className="risk-lambda-control">
               <div className="risk-lambda-head">
                 <span className="risk-lambda-label">{copy.riskCaution}</span>
-                <Numeric>{`${formatNumber(Math.min(1, Math.max(0, riskLambda / 100)), locale)}`}</Numeric>
+                <Tooltip title={copy.riskCautionHelp} arrow placement="bottom">
+                  <Info size={13} className="risk-lambda-info" aria-label={copy.riskCautionHelp} />
+                </Tooltip>
+                <Numeric>{`${Math.round(Math.min(100, Math.max(0, riskLambda)))}%`}</Numeric>
               </div>
               <Slider
                 size="small"
@@ -1461,7 +1468,6 @@ function TVBreakDashboard() {
                   setRiskLambda(Array.isArray(value) ? value[0] : value);
                 }}
               />
-              <small className="risk-lambda-help">{copy.riskCautionHelp}</small>
             </div>
             <Button
               className="secondary-button"
@@ -1481,7 +1487,7 @@ function TVBreakDashboard() {
             <span className={online ? 'api-state online' : 'api-state offline'}>
               {online ? copy.liveApi : copy.snapshot}
             </span>
-            <span className="freshness">{online && overview.data_freshness ? `${copy.data} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.data} —`}</span>
+            <span className="freshness" title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'}>{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} —`}</span>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />
             </IconButton>
