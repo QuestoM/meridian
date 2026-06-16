@@ -13,12 +13,33 @@ function normalizeRows(value) {
 }
 
 const cadenceMeta = {
-  weekly: { en: 'Weekly (start of week)', he: 'שבועי (תחילת שבוע)' },
-  daily: { en: 'Daily (start of day)', he: 'יומי (תחילת יום)' },
-  reference: { en: 'Reference (base data)', he: 'נתוני בסיס' },
+  weekly: {
+    en: 'Weekly (start of week)',
+    he: 'שבועי (תחילת שבוע)',
+    noteEn: 'The channel programme lineup, refreshed at the start of each week.',
+    noteHe: 'לוח התוכניות של הערוץ, מתעדכן בתחילת כל שבוע.',
+  },
+  daily: {
+    en: 'Daily (start of day)',
+    he: 'יומי (תחילת יום)',
+    noteEn: "The day's booked ads (Wally), loaded each morning for the next broadcast day.",
+    noteHe: 'הפרסומות שהוזמנו ליום (Wally), נטענות בכל בוקר ליום השידור הבא.',
+  },
+  reference: {
+    en: 'Reference data (periodic refresh)',
+    he: 'נתוני רפרנס (רענון תקופתי)',
+    noteEn: 'Historical ratings the model is built on. Refreshed occasionally, not every day.',
+    noteHe: 'נתוני רייטינג היסטוריים שעליהם בנוי המודל. מתרעננים מדי פעם, לא מדי יום.',
+  },
+  config: {
+    en: 'Configuration',
+    he: 'תצורה',
+    noteEn: 'Not channel data: advertiser terms (also editable in the Advertisers screen) and the pricing rate card.',
+    noteHe: 'לא נתוני ערוץ: תנאי מפרסמים (ניתנים לעריכה גם במסך "מפרסמים") וכרטיס התעריפים.',
+  },
 };
 
-const cadenceOrder = ['weekly', 'daily', 'reference'];
+const cadenceOrder = ['weekly', 'daily', 'reference', 'config'];
 
 function formatTimestamp(value, locale) {
   if (!value) {
@@ -191,8 +212,8 @@ function UploadCenter({ copy, locale, notify }) {
           <p>
             {pageText(
               locale,
-              'Upload and validate the weekly, daily, and reference CSV inputs Kairos optimizes against.',
-              'העלאה ואימות של קבצי ה־CSV השבועיים, היומיים ונתוני הבסיס שעליהם Kairos מבצע אופטימיזציה.',
+              'Three source data files come from the channel (programme lineup, historical spots, dayparts) plus the daily Wally ad file. Advertiser terms and the rate card are configuration. Extra columns in any file are kept, never discarded.',
+              'שלושה קבצי נתונים מגיעים מהערוץ (לוח תוכניות, תשדירים היסטוריים, חלקי יום) ובנוסף קובץ הפרסומות היומי (Wally). תנאי המפרסמים וכרטיס התעריפים הם תצורה. עמודות נוספות בכל קובץ נשמרות, לא נמחקות.',
             )}
           </p>
         </div>
@@ -220,7 +241,12 @@ function UploadCenter({ copy, locale, notify }) {
       {!loading && online && groups.map((group) => (
         <section className="page-panel" key={group.cadence}>
           <div className="panel-head">
-            <h2>{pageText(locale, cadenceMeta[group.cadence].en, cadenceMeta[group.cadence].he)}</h2>
+            <div>
+              <h2>{pageText(locale, cadenceMeta[group.cadence].en, cadenceMeta[group.cadence].he)}</h2>
+              <small className="upload-group-note">
+                {pageText(locale, cadenceMeta[group.cadence].noteEn, cadenceMeta[group.cadence].noteHe)}
+              </small>
+            </div>
             <span>{group.inputs.length} {pageText(locale, 'inputs', 'קלטים')}</span>
           </div>
           <div className="upload-grid">

@@ -47,13 +47,19 @@ REQUIRED_COLUMNS: dict[str, list[str]] = {
 }
 
 # Per-kind presentation metadata for the dashboard.
+#
+# The channel provides THREE source data files (programmes, spots, dayparts);
+# the optimizer also takes ONE daily operational file (the Wally ad log). The
+# advertiser rules and the rate card are CONFIGURATION, not periodic data the
+# channel uploads, so they are grouped separately. Advertiser rules are also
+# editable directly in the Advertisers screen.
 INPUTS: list[dict[str, str]] = [
     {"kind": "programmes", "label_en": "Programme lineup", "label_he": "לוח תוכניות", "cadence": "weekly"},
     {"kind": "daily", "label_en": "Daily ad log (Wally)", "label_he": "קובץ פרסומות יומי", "cadence": "daily"},
     {"kind": "spots", "label_en": "Historical spots", "label_he": "תשדירים היסטוריים", "cadence": "reference"},
-    {"kind": "dayparts", "label_en": "Dayparts", "label_he": "חלקי יום", "cadence": "reference"},
-    {"kind": "advertiser_rules", "label_en": "Advertiser rules", "label_he": "כללי מפרסמים", "cadence": "reference"},
-    {"kind": "rate_card", "label_en": "Rate card", "label_he": "כרטיס תעריפים", "cadence": "reference"},
+    {"kind": "dayparts", "label_en": "Dayparts (ratings by time)", "label_he": "חלקי יום (רייטינג לפי שעה)", "cadence": "reference"},
+    {"kind": "advertiser_rules", "label_en": "Advertiser rules", "label_he": "כללי מפרסמים", "cadence": "config"},
+    {"kind": "rate_card", "label_en": "Rate card", "label_he": "כרטיס תעריפים", "cadence": "config"},
 ]
 
 
@@ -108,14 +114,19 @@ def _read_header_and_rows(path: Path) -> tuple[list[str], int, list[str]]:
     return columns, rows, warnings
 
 
-def _validate_columns(kind: str, columns: list[str]) -> tuple[list[str], list[str]]:
-    """Return (missing_required, extra_warnings) for the given header."""
+def _validate_columns(kind: str, columns: list[str]) -> list[str]:
+    """Return the required columns that are missing from the header.
+
+    Extra columns are always accepted: the loaders read the columns they need
+    and pass the rest through. The channel's enriched exports legitimately
+    carry many additional columns (TVR, computed premiums, per-channel ratings,
+    and so on), so they are never "ignored" and we never warn about them.
+    Only a genuinely MISSING required column is worth flagging, because that
+    would actually break the optimizer.
+    """
     required = REQUIRED_COLUMNS.get(kind, [])
     present = set(columns)
-    missing = [column for column in required if column not in present]
-    extras = [column for column in columns if column not in set(required) and not column.startswith("Unnamed")]
-    warnings = [f"Unexpected column ignored: {column}" for column in extras] if extras else []
-    return missing, warnings
+    return [column for column in required if column not in present]
 
 
 @router.get("/status")
@@ -142,12 +153,12 @@ def upload_status() -> dict[str, Any]:
         }
         if exists and path is not None:
             columns, rows, read_warnings = _read_header_and_rows(path)
-            missing, extra_warnings = _validate_columns(kind, columns)
+            missing = _validate_columns(kind, columns)
             entry["columns"] = columns
             entry["rows"] = rows
             entry["last_modified"] = datetime.fromtimestamp(path.stat().st_mtime).isoformat()
             entry["valid"] = not missing
-            warnings = list(read_warnings) + list(extra_warnings)
+            warnings = list(read_warnings)
             if missing:
                 warnings.insert(0, f"Missing required columns: {', '.join(missing)}")
             entry["warnings"] = warnings
@@ -191,7 +202,8 @@ async def upload_file(kind: str, file: UploadFile = File(...)) -> dict[str, Any]
         )
 
     columns = [str(column) for column in frame.columns]
-    missing, warnings = _validate_columns(kind, columns)
+    missing = _validate_columns(kind, columns)
+    warnings: list[str] = []
     if missing:
         # Reject without touching the live file.
         message = f"Missing required columns for '{kind}': {', '.join(missing)}"
