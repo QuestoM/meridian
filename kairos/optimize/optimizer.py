@@ -28,7 +28,7 @@ can be supplied per segment once the Meridian model is available.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Iterable, Optional
 
 from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, is_compliant
@@ -54,6 +54,13 @@ class ProgramSegment:
     ``start_seconds // 3600``. ``impact_coefficient`` is the retention change per
     break (normally negative) and defaults to zero so a caller without a fitted
     impact model still gets a revenue-only allocation.
+
+    ``impact_ci_low`` / ``impact_ci_high`` are the credible interval on that
+    per-break coefficient when the impact model supplies one (both ``None`` means
+    only the point is known, so the optimizer treats the cost as certain).
+    ``impact_n`` is how many real breaks the estimate rests on and
+    ``impact_confidence`` is its high / medium / low label, both carried purely so
+    the plan can report how trustworthy each segment's retention cost is.
     """
 
     segment_id: str
@@ -71,6 +78,10 @@ class ProgramSegment:
     max_breaks: int = 4
     break_length_seconds: float = DEFAULT_BREAK_LENGTH_SECONDS
     unit_seconds: float = STANDARD_UNIT_SECONDS   # the duration ``cpp`` is quoted per
+    impact_ci_low: Optional[float] = None         # credible interval on the coefficient
+    impact_ci_high: Optional[float] = None
+    impact_n: int = 0                             # real breaks behind the estimate
+    impact_confidence: str = "low"                # high / medium / low label
 
     @property
     def hour(self) -> int:
@@ -114,13 +125,30 @@ class BreakPlacement:
 
 @dataclass(frozen=True)
 class SegmentPlan:
-    """The optimizer's decision for one segment."""
+    """The optimizer's decision for one segment.
+
+    The ``retention_cost_*`` fields make the retention side of the decision
+    auditable: ``retention_cost_point`` is the impact model's point estimate of the
+    per-break retention drop, ``retention_cost_used`` is the (possibly more
+    conservative) value the optimizer actually decided with after applying
+    ``risk_lambda``, ``retention_cost_ci_low`` / ``retention_cost_ci_high`` is the
+    credible interval (``None`` when only a point is known), ``retention_cost_n`` is
+    the number of real breaks behind it, and ``retention_confidence`` is its
+    high / medium / low label. They let the dashboard show not just how many breaks
+    a segment carries but how trustworthy the cost driving that count was.
+    """
 
     segment_id: str
     num_breaks: int
     retention: float
     revenue: float
     placements: tuple[BreakPlacement, ...]
+    retention_cost_point: float = 0.0
+    retention_cost_used: float = 0.0
+    retention_cost_ci_low: Optional[float] = None
+    retention_cost_ci_high: Optional[float] = None
+    retention_cost_n: int = 0
+    retention_confidence: str = "low"
 
 
 @dataclass(frozen=True)
@@ -163,6 +191,7 @@ class OptimizationResult:
     revenue_scale: float
     decisions: tuple[Decision, ...]
     rejected_overrides: tuple[RejectedOverride, ...] = ()
+    risk_lambda: float = 0.0                    # uncertainty preference applied to costs
 
     @property
     def total_breaks(self) -> int:
@@ -171,6 +200,25 @@ class OptimizationResult:
     @property
     def is_compliant(self) -> bool:
         return not self.violations
+
+
+def _risk_adjusted_coefficient(segment: ProgramSegment, risk_lambda: float) -> float:
+    """The per-break retention coefficient the optimizer should decide with.
+
+    When the impact model supplies a credible interval on the coefficient, the
+    decision is made against a (possibly more pessimistic) value via
+    :func:`conservative_impact`, so an uncertain cost is not undervalued. With no
+    interval, or with ``risk_lambda == 0``, this is exactly the point coefficient,
+    so the default behavior is unchanged.
+    """
+    if segment.impact_ci_low is None or segment.impact_ci_high is None or risk_lambda <= 0.0:
+        return segment.impact_coefficient
+    return conservative_impact(
+        segment.impact_coefficient,
+        segment.impact_ci_low,
+        segment.impact_ci_high,
+        risk_lambda=risk_lambda,
+    )
 
 
 def _segment_retention(segment: ProgramSegment, k: int) -> float:
@@ -254,6 +302,7 @@ def optimize_breaks(
     revenue_weight: float = 0.5,
     revenue_scale: Optional[float] = None,
     overrides: Optional[OverrideSet] = None,
+    risk_lambda: float = 0.0,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -272,6 +321,14 @@ def optimize_breaks(
     that breaks spacing) is kept OUT of the plan and reported in
     ``result.rejected_overrides`` with a reason, never silently applied.
 
+    ``risk_lambda`` in [0, 1] is the uncertainty preference applied to each
+    segment's retention cost when the impact model gave that cost a credible
+    interval: 0.0 (the default) decides with the point estimate and changes nothing,
+    1.0 decides with the worst plausible cost in the interval, and values in between
+    apply a partial variance penalty (see
+    :func:`~kairos.optimize.objective.conservative_impact`). A segment with only a
+    point coefficient is unaffected at any ``risk_lambda``.
+
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
     which case it is reported rather than hidden.
@@ -279,14 +336,23 @@ def optimize_breaks(
     guardrails = guardrails or Guardrails()
     if not 0.0 <= revenue_weight <= 1.0:
         raise ValueError("revenue_weight must be in [0, 1]")
+    if not 0.0 <= risk_lambda <= 1.0:
+        raise ValueError("risk_lambda must be in [0, 1]")
 
     # Sort by id so the search is deterministic regardless of input order.
-    segs = sorted(segments, key=lambda s: s.segment_id)
-    for segment in segs:
+    originals = sorted(segments, key=lambda s: s.segment_id)
+    for segment in originals:
         segment.validate()
-    by_id = {s.segment_id: s for s in segs}
-    if len(by_id) != len(segs):
+    original_by_id = {s.segment_id: s for s in originals}
+    if len(original_by_id) != len(originals):
         raise ValueError("segment_id values must be unique")
+
+    # Decide against the risk-adjusted coefficient: a more conservative (more
+    # negative) retention cost where the estimate is uncertain, the point estimate
+    # otherwise. The originals are kept so the plan can still report the point, the
+    # interval and the confidence behind each segment's decision.
+    segs = [replace(s, impact_coefficient=_risk_adjusted_coefficient(s, risk_lambda)) for s in originals]
+    by_id = {s.segment_id: s for s in segs}
 
     groups: dict[tuple[str, str], list[ProgramSegment]] = defaultdict(list)
     for segment in segs:
@@ -372,6 +438,7 @@ def optimize_breaks(
         segs, state, total_revenue, aggregate_retention(),
         objective_of(total_revenue, aggregate_retention()),
         guardrails, revenue_weight, revenue_scale, decisions, gold_by_id, rejected,
+        original_by_id=original_by_id, risk_lambda=risk_lambda,
     )
 
 
@@ -490,8 +557,11 @@ def _build_result(
     decisions: list[Decision],
     gold_by_id: Optional[dict[str, bool]] = None,
     rejected: Optional[list[RejectedOverride]] = None,
+    original_by_id: Optional[dict[str, ProgramSegment]] = None,
+    risk_lambda: float = 0.0,
 ) -> OptimizationResult:
     gold_by_id = gold_by_id or {}
+    original_by_id = original_by_id or {}
     placements: list[BreakPlacement] = []
     segment_plans: list[SegmentPlan] = []
     for segment in segs:
@@ -515,12 +585,21 @@ def _build_result(
                 is_gold=gold,
             ))
         placements.extend(segment_placements)
+        # ``segment`` carries the risk-adjusted coefficient the decision used; the
+        # original carries the point estimate and the interval behind it.
+        original = original_by_id.get(segment.segment_id, segment)
         segment_plans.append(SegmentPlan(
             segment_id=segment.segment_id,
             num_breaks=k,
             retention=retention,
             revenue=_segment_revenue(segment, k),
             placements=tuple(segment_placements),
+            retention_cost_point=original.impact_coefficient,
+            retention_cost_used=segment.impact_coefficient,
+            retention_cost_ci_low=original.impact_ci_low,
+            retention_cost_ci_high=original.impact_ci_high,
+            retention_cost_n=original.impact_n,
+            retention_confidence=original.impact_confidence,
         ))
 
     all_breaks = [
@@ -542,4 +621,5 @@ def _build_result(
         revenue_scale=revenue_scale,
         decisions=tuple(decisions),
         rejected_overrides=tuple(rejected or ()),
+        risk_lambda=risk_lambda,
     )

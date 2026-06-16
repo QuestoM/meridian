@@ -40,7 +40,12 @@ class OptimizerAssumptions:
 
     Each is a declared default, overridable by the owner. ``revenue_weight`` is
     the revenue-versus-retention balance the optimizer maximises (1.0 = revenue
-    only, 0.0 = retention only).
+    only, 0.0 = retention only). ``risk_lambda`` is the uncertainty preference the
+    optimizer applies to a break's retention cost when that cost carries a credible
+    interval: 0.0 values the break at the point estimate (the default, no change in
+    behavior), 1.0 values it at the worst plausible cost in the interval, and values
+    in between apply a partial variance penalty. It only bites where the impact model
+    actually supplies an interval; a bare point estimate is unaffected.
     """
 
     retention_baseline: float = 1.0
@@ -48,6 +53,7 @@ class OptimizerAssumptions:
     default_break_length_seconds: float = 120.0
     default_max_breaks: int = 4
     revenue_weight: float = 0.5
+    risk_lambda: float = 0.0   # how conservatively to value an uncertain retention cost
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.retention_baseline <= 1.0:
@@ -60,6 +66,8 @@ class OptimizerAssumptions:
             raise ValueError("default_max_breaks must be non-negative")
         if not 0.0 <= self.revenue_weight <= 1.0:
             raise ValueError("revenue_weight must be in [0, 1]")
+        if not 0.0 <= self.risk_lambda <= 1.0:
+            raise ValueError("risk_lambda must be in [0, 1]")
 
 
 @dataclass(frozen=True)

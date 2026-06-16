@@ -184,3 +184,74 @@ def test_invalid_segment_is_rejected() -> None:
 def test_duplicate_segment_ids_are_rejected() -> None:
     with pytest.raises(ValueError):
         optimize_breaks([make_segment(segment_id="x"), make_segment(segment_id="x")], GR)
+
+
+# ---------------------------------------------------------------------------
+# risk_lambda: the optimizer decides against the uncertainty-adjusted cost.
+# ---------------------------------------------------------------------------
+
+
+def _breaks_at(risk_lambda: float, **seg_overrides) -> int:
+    result = optimize_breaks(
+        [make_segment(**seg_overrides)], GR, revenue_weight=0.5, risk_lambda=risk_lambda,
+    )
+    return result.total_breaks
+
+
+def test_risk_lambda_zero_matches_point_decision() -> None:
+    # With risk_lambda 0 the interval is ignored: the decision and the reported
+    # cost are exactly the point coefficient, identical to a segment with no
+    # interval at all.
+    with_interval = optimize_breaks(
+        [make_segment(impact_coefficient=-0.02, impact_ci_low=-0.30, impact_ci_high=-0.01)],
+        GR, revenue_weight=0.5, risk_lambda=0.0,
+    )
+    point_only = optimize_breaks(
+        [make_segment(impact_coefficient=-0.02)], GR, revenue_weight=0.5, risk_lambda=0.0,
+    )
+    assert with_interval.total_breaks == point_only.total_breaks
+    plan = with_interval.segments[0]
+    assert plan.retention_cost_point == pytest.approx(-0.02)
+    assert plan.retention_cost_used == pytest.approx(-0.02)
+    assert with_interval.risk_lambda == 0.0
+
+
+def test_risk_lambda_makes_uncertain_break_more_expensive() -> None:
+    # A nearly-free point cost (-0.005) but a wide, damaging interval down to
+    # -0.30. Risk-neutral fills breaks; full risk aversion decides against the
+    # worst plausible cost and places strictly fewer.
+    seg = dict(impact_coefficient=-0.005, impact_ci_low=-0.30, impact_ci_high=-0.005)
+    neutral = _breaks_at(0.0, **seg)
+    partial = _breaks_at(0.5, **seg)
+    averse = _breaks_at(1.0, **seg)
+    assert neutral >= partial >= averse
+    assert averse < neutral
+
+
+def test_risk_lambda_surfaces_cost_provenance_on_plan() -> None:
+    # The plan reports the point, the conservative value actually used, the
+    # interval, the sample size and the confidence, so the dashboard can show how
+    # trustworthy the cost behind the break count was.
+    result = optimize_breaks(
+        [make_segment(
+            impact_coefficient=-0.03, impact_ci_low=-0.08, impact_ci_high=-0.01,
+            impact_n=40, impact_confidence="medium",
+        )],
+        GR, revenue_weight=0.5, risk_lambda=1.0,
+    )
+    plan = result.segments[0]
+    assert plan.retention_cost_point == pytest.approx(-0.03)
+    # At full risk aversion the used cost is the worst bound of the interval.
+    assert plan.retention_cost_used == pytest.approx(-0.08)
+    assert plan.retention_cost_ci_low == pytest.approx(-0.08)
+    assert plan.retention_cost_ci_high == pytest.approx(-0.01)
+    assert plan.retention_cost_n == 40
+    assert plan.retention_confidence == "medium"
+    assert result.risk_lambda == 1.0
+
+
+def test_risk_lambda_out_of_range_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        optimize_breaks([make_segment()], GR, risk_lambda=1.5)
+    with pytest.raises(ValueError):
+        optimize_breaks([make_segment()], GR, risk_lambda=-0.1)
