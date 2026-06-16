@@ -1350,14 +1350,14 @@ button {
 }
 
 .frontier-panel {
-  min-height: 318px;
+  min-height: 338px;
   padding-bottom: 12px;
 }
 
 .frontier-chart-frame,
 .frontier-skeleton {
   width: calc(100% - 20px);
-  height: 204px;
+  height: 224px;
   margin: 8px 10px 0;
 }
 
@@ -1412,6 +1412,10 @@ button {
   fill: var(--muted);
   font-size: 10px;
   font-weight: 520;
+}
+
+.frontier-svg .axis-label-end {
+  text-anchor: end;
 }
 
 .frontier-readout {

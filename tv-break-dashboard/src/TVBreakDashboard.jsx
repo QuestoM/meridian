@@ -2900,9 +2900,11 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
 }
 
 function FrontierPanel({ data, copy, locale, loading = false }) {
-  const width = 420;
-  const height = 190;
-  const pad = 30;
+  const chartFrameRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(760);
+  const height = 224;
+  const padX = 46;
+  const padY = 30;
   const points = normalizeRows(data)
     .map((point) => ({
       retention: finiteNumber(point.retention),
@@ -2911,19 +2913,53 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
     }))
     .filter((point) => point.retention !== null && point.revenue !== null);
   const selectedPoint = points.find((point) => point.selected) || points[points.length - 1];
-  const minRetention = 65;
-  const maxRetention = Math.max(102, Math.ceil(Math.max(...points.map((point) => point.retention), 100)));
-  const minRevenue = 0;
-  const observedMaxRevenue = Math.max(...points.map((point) => point.revenue), 1);
-  const maxRevenue = Math.max(1, Math.ceil(observedMaxRevenue / 1000000) * 1000000);
+  const showSkeleton = loading || points.length < 2 || !selectedPoint;
+
+  useEffect(() => {
+    const frame = chartFrameRef.current;
+    if (!frame) return undefined;
+    const updateWidth = () => {
+      setChartWidth(Math.max(360, Math.round(frame.getBoundingClientRect().width)));
+    };
+    updateWidth();
+    if (typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [showSkeleton]);
+
+  function paddedDomain(values, minimumSpan, padRatio = 0.12) {
+    const finiteValues = values.filter((value) => Number.isFinite(value));
+    if (!finiteValues.length) {
+      return [0, minimumSpan];
+    }
+    const rawMin = Math.min(...finiteValues);
+    const rawMax = Math.max(...finiteValues);
+    const rawSpan = rawMax - rawMin;
+    const span = Math.max(rawSpan, minimumSpan);
+    const center = (rawMin + rawMax) / 2;
+    const padding = span * padRatio;
+    return [center - span / 2 - padding, center + span / 2 + padding];
+  }
+
+  const width = chartWidth;
+  const [retentionMin, retentionMax] = paddedDomain(points.map((point) => point.retention), 0.8);
+  const [revenueMin, revenueMax] = paddedDomain(points.map((point) => point.revenue), 1000000);
+  const minRetention = Math.max(0, retentionMin);
+  const maxRetention = Math.max(retentionMax, minRetention + 0.8);
+  const minRevenue = Math.max(0, revenueMin);
+  const maxRevenue = Math.max(revenueMax, minRevenue + 1);
   const xFor = (retention) =>
-    pad + ((retention - minRetention) / Math.max(maxRetention - minRetention, 1)) * (width - pad * 2);
+    padX + ((retention - minRetention) / Math.max(maxRetention - minRetention, 0.1)) * (width - padX * 2);
   const yFor = (revenue) =>
-    height - pad - ((revenue - minRevenue) / Math.max(maxRevenue - minRevenue, 1)) * (height - pad * 2);
+    height - padY - ((revenue - minRevenue) / Math.max(maxRevenue - minRevenue, 1)) * (height - padY * 2);
   const path = points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xFor(point.retention).toFixed(1)} ${yFor(point.revenue).toFixed(1)}`)
     .join(' ');
-  const showSkeleton = loading || points.length < 2 || !selectedPoint;
+  const minRetentionLabel = formatPercent(minRetention, locale);
+  const maxRetentionLabel = formatPercent(maxRetention, locale);
 
   return (
     <div className="analytics-panel frontier-panel">
@@ -2935,7 +2971,7 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
         <div className="frontier-skeleton" aria-hidden="true" />
       ) : (
         <>
-          <div className="frontier-chart-frame chart-ltr" dir="ltr">
+          <div ref={chartFrameRef} className="frontier-chart-frame chart-ltr" dir="ltr">
             <svg
               className="frontier-svg"
               viewBox={`0 0 ${width} ${height}`}
@@ -2943,12 +2979,12 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
               aria-label={pageText(locale, 'Revenue retention frontier', 'חזית הכנסה ושימור')}
             >
               {[0, 1, 2, 3].map((line) => {
-                const y = pad + line * ((height - pad * 2) / 3);
-                return <line key={`h-${line}`} x1={pad} x2={width - pad} y1={y} y2={y} />;
+                const y = padY + line * ((height - padY * 2) / 3);
+                return <line key={`h-${line}`} x1={padX} x2={width - padX} y1={y} y2={y} />;
               })}
               {[0, 1, 2, 3, 4].map((line) => {
-                const x = pad + line * ((width - pad * 2) / 4);
-                return <line key={`v-${line}`} x1={x} x2={x} y1={pad} y2={height - pad} />;
+                const x = padX + line * ((width - padX * 2) / 4);
+                return <line key={`v-${line}`} x1={x} x2={x} y1={padY} y2={height - padY} />;
               })}
               <path d={path} />
               {points.map((point, index) => (
@@ -2960,9 +2996,9 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
                   r={point.selected ? 6 : 4}
                 />
               ))}
-              <text className="axis-label" x={pad} y={height - 6}>{Math.round(minRetention)}%</text>
-              <text className="axis-label" x={width - pad - 28} y={height - 6}>{Math.round(maxRetention)}%</text>
-              <text className="axis-label" x={4} y={pad + 4}>{formatCurrency(maxRevenue, locale)}</text>
+              <text className="axis-label" x={padX} y={height - 6}>{minRetentionLabel}</text>
+              <text className="axis-label axis-label-end" x={width - padX} y={height - 6}>{maxRetentionLabel}</text>
+              <text className="axis-label" x={4} y={padY + 4}>{formatCurrency(maxRevenue, locale)}</text>
             </svg>
           </div>
           <div className="frontier-readout">
