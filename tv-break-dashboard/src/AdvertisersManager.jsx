@@ -1,27 +1,91 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button, FormControlLabel, Switch, TextField } from '@mui/material';
-import { Plus, RefreshCcw, Save, Trash2, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Switch, TextField } from '@mui/material';
+import {
+  ChevronDown,
+  HelpCircle,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Save,
+  Search,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react';
+import {
+  EMPTY_ADVERTISER,
+  GENRE_PRESETS,
+  POSITION_PRESETS,
+  chipOptions,
+  computeSummary,
+  filterAdvertisers,
+  isAnySelected,
+  isDirty,
+  normalizeRows,
+  pageText,
+  parseTokens,
+  premiumHint,
+  serializeTokens,
+  sortAdvertisers,
+  suggestNextId,
+  toPayload,
+  toggleToken,
+} from './advertisers-helpers';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
-function pageText(locale, en, he) {
-  return locale === 'he' ? he : en;
+// A keyboard-operable chip multi-select. Renders a clickable chip per option
+// (ANY first, then specifics, then any unknown stored tokens) with aria-pressed.
+function ChipSelect({ label, presets, value, onChange, locale }) {
+  const tokens = parseTokens(value);
+  const options = chipOptions(presets, tokens);
+  const anyActive = isAnySelected(tokens);
+
+  return (
+    <div className="adv-chip-field">
+      <span className="adv-field-label">{label}</span>
+      <div className="adv-chip-row" role="group" aria-label={label}>
+        {options.map((option) => {
+          const isAny = option.toUpperCase() === 'ANY';
+          const active = isAny ? anyActive : tokens.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              className={`adv-chip${active ? ' active' : ''}${isAny ? ' any' : ''}`}
+              aria-pressed={active}
+              onClick={() => onChange(serializeTokens(toggleToken(tokens, option)))}
+            >
+              <span dir="ltr">{isAny ? pageText(locale, 'Any', 'הכול') : option}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
-function normalizeRows(value) {
-  return Array.isArray(value) ? value : [];
+// The shared smart-control cluster used by both an editable row and the add form.
+function PremiumInput({ value, onChange, locale }) {
+  const hint = premiumHint(value, locale);
+  return (
+    <div className="adv-premium-field">
+      <span className="adv-field-label">{pageText(locale, 'Premium (x rate card)', 'מקדם (× מחירון)')}</span>
+      <div className="adv-premium-input">
+        <TextField
+          type="number"
+          size="small"
+          inputProps={{ min: 0, step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Default premium multiplier', 'מקדם תוספת ברירת מחדל') }}
+          value={value ?? 1}
+          onChange={(event) => onChange(event.target.value === '' ? '' : Number(event.target.value))}
+        />
+        <span className={`adv-premium-hint ${hint.tone}`} dir="ltr">{hint.text}</span>
+      </div>
+    </div>
+  );
 }
 
-const emptyAdvertiser = {
-  advertiser_id: '',
-  default_premium: 0,
-  allow_positions: '',
-  allow_genres: '',
-  prime_time_only: false,
-  notes: '',
-};
-
-function AdvertiserRow({ row, locale, onSave, onDelete }) {
+function AdvertiserRow({ row, locale, onSave, onDelete, registerDraft }) {
   const [draft, setDraft] = useState(row);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -29,6 +93,14 @@ function AdvertiserRow({ row, locale, onSave, onDelete }) {
   useEffect(() => {
     setDraft(row);
   }, [row]);
+
+  const dirty = isDirty(row, draft);
+
+  // Let the parent (Save all) reach the current dirty draft.
+  useEffect(() => {
+    registerDraft(row.advertiser_id, dirty ? draft : null);
+    return () => registerDraft(row.advertiser_id, null);
+  }, [row.advertiser_id, dirty, draft, registerDraft]);
 
   function update(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -41,65 +113,94 @@ function AdvertiserRow({ row, locale, onSave, onDelete }) {
   }
 
   return (
-    <div className="advertiser-row">
-      <div className="advertiser-key" dir="ltr">{row.advertiser_id}</div>
-      <div className="advertiser-fields">
-        <TextField
-          label={pageText(locale, 'Default premium', 'תוספת ברירת מחדל')}
-          type="number"
-          size="small"
-          value={draft.default_premium ?? 0}
-          onChange={(event) => update('default_premium', Number(event.target.value))}
-        />
-        <TextField
+    <div className={`adv-row${dirty ? ' dirty' : ''}`}>
+      <div className="adv-cell adv-cell-id">
+        {dirty && <span className="adv-dirty-dot" title={pageText(locale, 'Unsaved changes', 'שינויים שלא נשמרו')} />}
+        <span className="adv-id" dir="ltr">{row.advertiser_id}</span>
+      </div>
+
+      <div className="adv-cell">
+        <PremiumInput value={draft.default_premium} onChange={(value) => update('default_premium', value)} locale={locale} />
+      </div>
+
+      <div className="adv-cell">
+        <ChipSelect
           label={pageText(locale, 'Allowed positions', 'מיקומים מותרים')}
-          size="small"
-          value={draft.allow_positions || ''}
-          onChange={(event) => update('allow_positions', event.target.value)}
-        />
-        <TextField
-          label={pageText(locale, 'Allowed genres', 'ז׳אנרים מותרים')}
-          size="small"
-          value={draft.allow_genres || ''}
-          onChange={(event) => update('allow_genres', event.target.value)}
-        />
-        <TextField
-          label={pageText(locale, 'Notes', 'הערות')}
-          size="small"
-          value={draft.notes || ''}
-          onChange={(event) => update('notes', event.target.value)}
-        />
-        <FormControlLabel
-          className="advertiser-switch"
-          control={
-            <Switch
-              size="small"
-              checked={Boolean(draft.prime_time_only)}
-              onChange={(event) => update('prime_time_only', event.target.checked)}
-            />
-          }
-          label={pageText(locale, 'Prime time only', 'פריים טיים בלבד')}
+          presets={POSITION_PRESETS}
+          value={draft.allow_positions}
+          onChange={(value) => update('allow_positions', value)}
+          locale={locale}
         />
       </div>
-      <div className="advertiser-actions">
-        <Button className="secondary-button compact" type="button" variant="outlined" disabled={saving} onClick={handleSave}>
+
+      <div className="adv-cell">
+        <ChipSelect
+          label={pageText(locale, 'Allowed genres', 'ז׳אנרים מותרים')}
+          presets={GENRE_PRESETS}
+          value={draft.allow_genres}
+          onChange={(value) => update('allow_genres', value)}
+          locale={locale}
+        />
+      </div>
+
+      <div className="adv-cell adv-cell-prime">
+        <span className="adv-field-label">{pageText(locale, 'Prime time only', 'פריים טיים בלבד')}</span>
+        <Switch
+          size="small"
+          checked={Boolean(draft.prime_time_only)}
+          onChange={(event) => update('prime_time_only', event.target.checked)}
+          inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
+        />
+      </div>
+
+      <div className="adv-cell">
+        <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
+        <TextField
+          size="small"
+          fullWidth
+          value={draft.notes || ''}
+          onChange={(event) => update('notes', event.target.value)}
+          inputProps={{ 'aria-label': pageText(locale, 'Notes', 'הערות') }}
+        />
+      </div>
+
+      <div className="adv-cell adv-cell-actions">
+        <Button className="secondary-button compact" type="button" variant="outlined" disabled={!dirty || saving} onClick={handleSave}>
           <Save size={14} />
           {saving ? pageText(locale, 'Saving...', 'שומר...') : pageText(locale, 'Save', 'שמירה')}
         </Button>
-        {confirmDelete ? (
-          <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => onDelete(row.advertiser_id)}>
-            <Trash2 size={14} />
-            {pageText(locale, 'Confirm', 'אישור')}
-          </Button>
-        ) : (
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDelete(true)}>
-            <Trash2 size={14} />
-            {pageText(locale, 'Delete?', 'מחיקה?')}
+        {dirty && (
+          <Button
+            className="secondary-button compact"
+            type="button"
+            variant="outlined"
+            onClick={() => setDraft(row)}
+            aria-label={pageText(locale, 'Revert changes', 'ביטול שינויים')}
+          >
+            <RotateCcw size={14} />
+            {pageText(locale, 'Revert', 'שחזור')}
           </Button>
         )}
-        {confirmDelete && (
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDelete(false)}>
-            {pageText(locale, 'Cancel', 'ביטול')}
+        {confirmDelete ? (
+          <>
+            <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => onDelete(row.advertiser_id)}>
+              <Trash2 size={14} />
+              {pageText(locale, 'Confirm', 'אישור')}
+            </Button>
+            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDelete(false)}>
+              {pageText(locale, 'Cancel', 'ביטול')}
+            </Button>
+          </>
+        ) : (
+          <Button
+            className="secondary-button compact"
+            type="button"
+            variant="outlined"
+            onClick={() => setConfirmDelete(true)}
+            aria-label={pageText(locale, 'Delete advertiser', 'מחיקת מפרסם')}
+          >
+            <Trash2 size={14} />
+            {pageText(locale, 'Delete?', 'מחיקה?')}
           </Button>
         )}
       </div>
@@ -107,76 +208,114 @@ function AdvertiserRow({ row, locale, onSave, onDelete }) {
   );
 }
 
-function AddAdvertiser({ locale, onCreate }) {
-  const [draft, setDraft] = useState(emptyAdvertiser);
+function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCancel }) {
+  const [draft, setDraft] = useState({ ...EMPTY_ADVERTISER, advertiser_id: suggestedId });
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    setDraft((current) => (current.advertiser_id ? current : { ...current, advertiser_id: suggestedId }));
+  }, [suggestedId]);
 
   function update(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
+  const trimmedId = draft.advertiser_id.trim();
+  const duplicate = existingIds.includes(trimmedId);
+  const canCreate = trimmedId.length > 0 && !duplicate && !creating;
+
   async function handleCreate() {
-    if (!draft.advertiser_id.trim()) {
+    if (!canCreate) {
       return;
     }
     setCreating(true);
-    const ok = await onCreate(draft);
+    const ok = await onCreate({ ...draft, advertiser_id: trimmedId });
     setCreating(false);
     if (ok) {
-      setDraft(emptyAdvertiser);
+      setDraft({ ...EMPTY_ADVERTISER, advertiser_id: '' });
     }
   }
 
   return (
-    <div className="advertiser-add">
-      <TextField
-        label={pageText(locale, 'Advertiser ID', 'מזהה מפרסם')}
-        size="small"
-        value={draft.advertiser_id}
-        onChange={(event) => update('advertiser_id', event.target.value)}
-      />
-      <TextField
-        label={pageText(locale, 'Default premium', 'תוספת ברירת מחדל')}
-        type="number"
-        size="small"
-        value={draft.default_premium}
-        onChange={(event) => update('default_premium', Number(event.target.value))}
-      />
-      <TextField
-        label={pageText(locale, 'Allowed positions', 'מיקומים מותרים')}
-        size="small"
-        value={draft.allow_positions}
-        onChange={(event) => update('allow_positions', event.target.value)}
-      />
-      <TextField
-        label={pageText(locale, 'Allowed genres', 'ז׳אנרים מותרים')}
-        size="small"
-        value={draft.allow_genres}
-        onChange={(event) => update('allow_genres', event.target.value)}
-      />
-      <FormControlLabel
-        className="advertiser-switch"
-        control={
+    <div className="adv-add-form">
+      <div className="adv-add-grid">
+        <div className="adv-id-field">
+          <span className="adv-field-label">{pageText(locale, 'Advertiser ID', 'מזהה מפרסם')}</span>
+          <TextField
+            size="small"
+            value={draft.advertiser_id}
+            error={duplicate}
+            helperText={duplicate ? pageText(locale, 'This ID already exists', 'מזהה זה כבר קיים') : ' '}
+            onChange={(event) => update('advertiser_id', event.target.value)}
+            inputProps={{ dir: 'ltr', 'aria-label': pageText(locale, 'Advertiser ID', 'מזהה מפרסם') }}
+          />
+        </div>
+        <PremiumInput value={draft.default_premium} onChange={(value) => update('default_premium', value)} locale={locale} />
+        <ChipSelect
+          label={pageText(locale, 'Allowed positions', 'מיקומים מותרים')}
+          presets={POSITION_PRESETS}
+          value={draft.allow_positions}
+          onChange={(value) => update('allow_positions', value)}
+          locale={locale}
+        />
+        <ChipSelect
+          label={pageText(locale, 'Allowed genres', 'ז׳אנרים מותרים')}
+          presets={GENRE_PRESETS}
+          value={draft.allow_genres}
+          onChange={(value) => update('allow_genres', value)}
+          locale={locale}
+        />
+        <div className="adv-cell-prime">
+          <span className="adv-field-label">{pageText(locale, 'Prime time only', 'פריים טיים בלבד')}</span>
           <Switch
             size="small"
             checked={Boolean(draft.prime_time_only)}
             onChange={(event) => update('prime_time_only', event.target.checked)}
+            inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
           />
-        }
-        label={pageText(locale, 'Prime time only', 'פריים טיים בלבד')}
-      />
-      <Button className="run-button" type="button" variant="contained" disabled={creating || !draft.advertiser_id.trim()} onClick={handleCreate}>
-        <Plus size={15} />
-        {creating ? pageText(locale, 'Adding...', 'מוסיף...') : pageText(locale, 'Add advertiser', 'הוספת מפרסם')}
-      </Button>
+        </div>
+        <div className="adv-notes-field">
+          <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
+          <TextField
+            size="small"
+            fullWidth
+            value={draft.notes || ''}
+            onChange={(event) => update('notes', event.target.value)}
+            inputProps={{ 'aria-label': pageText(locale, 'Notes', 'הערות') }}
+          />
+        </div>
+      </div>
+      <div className="adv-add-actions">
+        <Button className="run-button" type="button" variant="contained" disabled={!canCreate} onClick={handleCreate}>
+          <Plus size={15} />
+          {creating ? pageText(locale, 'Adding...', 'מוסיף...') : pageText(locale, 'Add advertiser', 'הוספת מפרסם')}
+        </Button>
+        <Button className="secondary-button compact" type="button" variant="outlined" onClick={onCancel}>
+          {pageText(locale, 'Cancel', 'ביטול')}
+        </Button>
+      </div>
     </div>
   );
 }
+
+const FILTERS = [
+  { key: 'all', en: 'All', he: 'הכול' },
+  { key: 'premium', en: 'Custom premium', he: 'מקדם מותאם' },
+  { key: 'prime', en: 'Prime-only', he: 'פריים בלבד' },
+  { key: 'restricted', en: 'Restricted', he: 'מוגבל' },
+];
 
 function AdvertisersManager({ copy, locale, notify }) {
   const [advertisers, setAdvertisers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sortKey, setSortKey] = useState('id');
+  const [showAdd, setShowAdd] = useState(false);
+  const [showLegend, setShowLegend] = useState(false);
+  const [dirtyDrafts, setDirtyDrafts] = useState({});
+  const [savingAll, setSavingAll] = useState(false);
 
   const loadAdvertisers = useCallback(async () => {
     setLoading(true);
@@ -200,16 +339,47 @@ function AdvertisersManager({ copy, locale, notify }) {
     loadAdvertisers();
   }, [loadAdvertisers]);
 
+  const registerDraft = useCallback((id, draft) => {
+    setDirtyDrafts((current) => {
+      if (!draft) {
+        if (!(id in current)) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[id];
+        return next;
+      }
+      return { ...current, [id]: draft };
+    });
+  }, []);
+
+  const summary = useMemo(() => computeSummary(advertisers), [advertisers]);
+  const existingIds = useMemo(() => advertisers.map((row) => row.advertiser_id), [advertisers]);
+  const suggestedId = useMemo(() => suggestNextId(advertisers), [advertisers]);
+
+  const visible = useMemo(
+    () => sortAdvertisers(filterAdvertisers(advertisers, { search, filter }), sortKey),
+    [advertisers, search, filter, sortKey],
+  );
+
+  const dirtyCount = Object.keys(dirtyDrafts).length;
+  const hasActiveQuery = Boolean(search.trim()) || filter !== 'all';
+
+  async function putAdvertiser(draft) {
+    const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(draft.advertiser_id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toPayload(draft)),
+    });
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response;
+  }
+
   async function handleSave(draft) {
     try {
-      const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(draft.advertiser_id)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
-      });
-      if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}`);
-      }
+      await putAdvertiser(draft);
       notify(`Advertiser ${draft.advertiser_id} saved.`, `המפרסם ${draft.advertiser_id} נשמר.`);
       await loadAdvertisers();
     } catch (error) {
@@ -217,12 +387,40 @@ function AdvertisersManager({ copy, locale, notify }) {
     }
   }
 
+  async function handleSaveAll() {
+    const drafts = Object.values(dirtyDrafts);
+    if (drafts.length === 0) {
+      return;
+    }
+    setSavingAll(true);
+    let saved = 0;
+    const failures = [];
+    for (const draft of drafts) {
+      try {
+        await putAdvertiser(draft);
+        saved += 1;
+      } catch (error) {
+        failures.push(draft.advertiser_id);
+      }
+    }
+    setSavingAll(false);
+    if (failures.length === 0) {
+      notify(`Saved ${saved} advertisers.`, `נשמרו ${saved} מפרסמים.`);
+    } else {
+      notify(
+        `Saved ${saved}, ${failures.length} failed (${failures.join(', ')}).`,
+        `נשמרו ${saved}, ${failures.length} נכשלו (${failures.join(', ')}).`,
+      );
+    }
+    await loadAdvertisers();
+  }
+
   async function handleCreate(draft) {
     try {
       const response = await fetch(`${API_BASE}/api/advertisers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
+        body: JSON.stringify({ advertiser_id: draft.advertiser_id, ...toPayload(draft) }),
       });
       if (response.status === 409) {
         notify(`Advertiser ${draft.advertiser_id} already exists.`, `המפרסם ${draft.advertiser_id} כבר קיים.`);
@@ -232,6 +430,7 @@ function AdvertisersManager({ copy, locale, notify }) {
         throw new Error(`${response.status} ${response.statusText}`);
       }
       notify(`Advertiser ${draft.advertiser_id} created.`, `המפרסם ${draft.advertiser_id} נוצר.`);
+      setShowAdd(false);
       await loadAdvertisers();
       return true;
     } catch (error) {
@@ -255,6 +454,18 @@ function AdvertisersManager({ copy, locale, notify }) {
     }
   }
 
+  function clearQuery() {
+    setSearch('');
+    setFilter('all');
+  }
+
+  const stats = [
+    { key: 'total', value: summary.total, en: 'Advertisers', he: 'מפרסמים' },
+    { key: 'custom', value: summary.custom, en: 'Premium adjusted', he: 'מקדם מותאם' },
+    { key: 'prime', value: summary.prime, en: 'Prime-time only', he: 'פריים טיים בלבד' },
+    { key: 'restricted', value: summary.restricted, en: 'Position / genre limits', he: 'מגבלות מיקום / ז׳אנר' },
+  ];
+
   return (
     <section className="page-workspace">
       <div className="page-header">
@@ -263,8 +474,8 @@ function AdvertisersManager({ copy, locale, notify }) {
           <p>
             {pageText(
               locale,
-              'Manage advertiser rules: default premium, allowed positions and genres, prime-time limits, and notes.',
-              'ניהול תנאי מפרסמים: תוספת ברירת מחדל, מיקומים וז׳אנרים מותרים, מגבלות פריים טיים והערות.',
+              'Manage advertiser rules: pricing premium, allowed break positions and programme genres, prime-time limits, and notes.',
+              'ניהול תנאי מפרסמים: מקדם תמחור, מיקומי הפסקה וז׳אנרים מותרים, מגבלות פריים טיים והערות.',
             )}
           </p>
         </div>
@@ -274,39 +485,175 @@ function AdvertisersManager({ copy, locale, notify }) {
         </Button>
       </div>
 
-      <section className="page-panel">
-        <div className="panel-head">
-          <h2>{pageText(locale, 'Add advertiser', 'הוספת מפרסם')}</h2>
-          <span><Users size={14} /></span>
+      {!loading && online && advertisers.length > 0 && (
+        <div className="adv-stat-strip">
+          {stats.map((stat) => (
+            <div className="adv-stat-card" key={stat.key}>
+              <span className="adv-stat-value" dir="ltr">{stat.value}</span>
+              <span className="adv-stat-label">{pageText(locale, stat.en, stat.he)}</span>
+            </div>
+          ))}
         </div>
-        <div className="advertiser-add-wrap">
-          <AddAdvertiser locale={locale} onCreate={handleCreate} />
-        </div>
-      </section>
+      )}
 
       <section className="page-panel">
         <div className="panel-head">
-          <h2>{pageText(locale, 'Advertiser rules', 'תנאי מפרסמים')}</h2>
-          <span>{advertisers.length} {pageText(locale, 'advertisers', 'מפרסמים')}</span>
+          <div className="adv-panel-title">
+            <h2>{pageText(locale, 'Advertiser rules', 'תנאי מפרסמים')}</h2>
+            <button
+              type="button"
+              className="adv-legend-toggle"
+              aria-expanded={showLegend}
+              onClick={() => setShowLegend((value) => !value)}
+            >
+              <HelpCircle size={13} />
+              {pageText(locale, 'What do these terms mean?', 'מה המשמעות של השדות?')}
+            </button>
+          </div>
+          <div className="adv-head-actions">
+            {dirtyCount > 0 && (
+              <span className="adv-unsaved-count">
+                {pageText(locale, `${dirtyCount} unsaved`, `${dirtyCount} לא נשמרו`)}
+              </span>
+            )}
+            <Button
+              className="secondary-button compact"
+              type="button"
+              variant="outlined"
+              disabled={dirtyCount === 0 || savingAll}
+              onClick={handleSaveAll}
+            >
+              <Save size={14} />
+              {savingAll ? pageText(locale, 'Saving...', 'שומר...') : pageText(locale, 'Save all changes', 'שמירת כל השינויים')}
+            </Button>
+          </div>
         </div>
-        {loading && <div className="upload-state">{pageText(locale, 'Loading advertisers...', 'טוען מפרסמים...')}</div>}
-        {!loading && !online && (
-          <div className="upload-state error">{pageText(locale, 'The Kairos API is unavailable. Advertisers cannot be shown.', 'ה־API של Kairos לא זמין. לא ניתן להציג מפרסמים.')}</div>
+
+        {showLegend && (
+          <div className="adv-legend">
+            <dl>
+              <div>
+                <dt>{pageText(locale, 'Premium', 'מקדם')}</dt>
+                <dd>{pageText(locale, 'A multiplier on the rate card. 1.0 = rate card, 1.2 = +20%, 0.9 = -10%.', 'מקדם על המחירון. 1.0 = מחירון, 1.2 = ‎+20%‎, 0.9 = ‎-10%‎.')}</dd>
+              </div>
+              <div>
+                <dt>{pageText(locale, 'Positions', 'מיקומים')}</dt>
+                <dd>{pageText(locale, 'Which break positions the advertiser may take. "Any" = no limit.', 'אילו מיקומי הפסקה מותרים למפרסם. "הכול" = ללא הגבלה.')}</dd>
+              </div>
+              <div>
+                <dt>{pageText(locale, 'Genres', 'ז׳אנרים')}</dt>
+                <dd>{pageText(locale, 'Which programme types are allowed. "Any" = no limit.', 'אילו סוגי תוכניות מותרים. "הכול" = ללא הגבלה.')}</dd>
+              </div>
+              <div>
+                <dt>{pageText(locale, 'Prime-time only', 'פריים טיים בלבד')}</dt>
+                <dd>{pageText(locale, 'When on, the advertiser may only be placed in prime-time programmes.', 'כשמופעל, ניתן לשבץ את המפרסם רק בתוכניות פריים טיים.')}</dd>
+              </div>
+            </dl>
+          </div>
         )}
+
+        <div className="adv-toolbar">
+          <div className="adv-search">
+            <Search size={15} />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={pageText(locale, 'Search by ID or notes', 'חיפוש לפי מזהה או הערות')}
+              aria-label={pageText(locale, 'Search advertisers', 'חיפוש מפרסמים')}
+            />
+          </div>
+          <div className="adv-filter-chips" role="group" aria-label={pageText(locale, 'Filter advertisers', 'סינון מפרסמים')}>
+            {FILTERS.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                className={`adv-chip${filter === entry.key ? ' active' : ''}`}
+                aria-pressed={filter === entry.key}
+                onClick={() => setFilter(entry.key)}
+              >
+                {pageText(locale, entry.en, entry.he)}
+              </button>
+            ))}
+          </div>
+          <div className="adv-sort">
+            <label htmlFor="adv-sort-select">{pageText(locale, 'Sort', 'מיון')}</label>
+            <select id="adv-sort-select" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+              <option value="id">{pageText(locale, 'ID (A to Z)', 'מזהה (א-ת)')}</option>
+              <option value="premium-desc">{pageText(locale, 'Premium (high to low)', 'מקדם (גבוה לנמוך)')}</option>
+              <option value="premium-asc">{pageText(locale, 'Premium (low to high)', 'מקדם (נמוך לגבוה)')}</option>
+            </select>
+          </div>
+          <Button
+            className="secondary-button compact"
+            type="button"
+            variant="outlined"
+            aria-expanded={showAdd}
+            onClick={() => setShowAdd((value) => !value)}
+          >
+            {showAdd ? <X size={14} /> : <Plus size={14} />}
+            {showAdd ? pageText(locale, 'Close', 'סגירה') : pageText(locale, 'Add advertiser', 'הוספת מפרסם')}
+          </Button>
+        </div>
+
+        {showAdd && online && (
+          <AddAdvertiserForm
+            locale={locale}
+            suggestedId={suggestedId}
+            existingIds={existingIds}
+            onCreate={handleCreate}
+            onCancel={() => setShowAdd(false)}
+          />
+        )}
+
+        {loading && <div className="upload-state">{pageText(locale, 'Loading advertisers...', 'טוען מפרסמים...')}</div>}
+
+        {!loading && !online && (
+          <div className="upload-state error">
+            {pageText(locale, 'The Kairos API is unavailable. Advertisers cannot be shown.', 'ה־API של Kairos לא זמין. לא ניתן להציג מפרסמים.')}
+          </div>
+        )}
+
         {!loading && online && advertisers.length === 0 && (
           <div className="upload-state">{pageText(locale, 'No advertiser rules were found.', 'לא נמצאו תנאי מפרסמים.')}</div>
         )}
-        {!loading && online && advertisers.length > 0 && (
-          <div className="advertiser-list">
-            {advertisers.map((row) => (
+
+        {!loading && online && advertisers.length > 0 && visible.length === 0 && (
+          <div className="upload-state adv-no-match">
+            <span>{pageText(locale, 'No advertisers match your search or filter.', 'אין מפרסמים שתואמים את החיפוש או הסינון.')}</span>
+            <Button className="secondary-button compact" type="button" variant="outlined" onClick={clearQuery}>
+              {pageText(locale, 'Clear filters', 'ניקוי סינון')}
+            </Button>
+          </div>
+        )}
+
+        {!loading && online && visible.length > 0 && (
+          <div className="adv-table" role="table" aria-label={pageText(locale, 'Advertiser rules', 'תנאי מפרסמים')}>
+            <div className="adv-row adv-head-row" role="row">
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'ID', 'מזהה')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Premium', 'מקדם')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Positions', 'מיקומים')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Genres', 'ז׳אנרים')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Prime', 'פריים')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Notes', 'הערות')}</span>
+              <span className="adv-cell" role="columnheader">{pageText(locale, 'Actions', 'פעולות')}</span>
+            </div>
+            {visible.map((row) => (
               <AdvertiserRow
                 key={row.advertiser_id}
                 row={row}
                 locale={locale}
                 onSave={handleSave}
                 onDelete={handleDelete}
+                registerDraft={registerDraft}
               />
             ))}
+          </div>
+        )}
+
+        {!loading && online && visible.length > 0 && hasActiveQuery && (
+          <div className="adv-result-note">
+            {pageText(locale, `Showing ${visible.length} of ${advertisers.length}`, `מוצגים ${visible.length} מתוך ${advertisers.length}`)}
           </div>
         )}
       </section>
