@@ -102,8 +102,18 @@ def _write_frame(frame: pd.DataFrame) -> None:
 
 @router.get("")
 def list_advertisers() -> dict[str, Any]:
+    # Each advertiser carries its baseline fields plus its scoped conditions and
+    # any overlap findings, so the dashboard's "what covers what" view is one call.
+    from kairos_api.advertiser_conditions import conditions_for, overlaps_for
+
     frame = _load_frame()
-    advertisers = [_row_to_record(row) for _, row in frame.iterrows()]
+    advertisers = []
+    for _, row in frame.iterrows():
+        record = _row_to_record(row)
+        advertiser_id = record["advertiser_id"]
+        record["conditions"] = conditions_for(advertiser_id)
+        record["overlaps"] = overlaps_for(advertiser_id)
+        advertisers.append(record)
     return {"advertisers": advertisers, "columns": COLUMNS}
 
 
