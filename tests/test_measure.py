@@ -16,6 +16,7 @@ import pytest
 from kairos.model.measure import (
     MeasuredCoefficient,
     _broadcast_minute,
+    between_cell_variance,
     break_effects,
     channel_coefficients,
     read_coefficients_json,
@@ -150,6 +151,97 @@ def test_channel_coefficients_clamp_genuinely_positive_to_zero() -> None:
 
 def test_channel_coefficients_empty_is_empty() -> None:
     assert channel_coefficients(pd.DataFrame(columns=["channel_name", "log_effect"])) == {}
+
+
+# --- empirical-Bayes (learned) shrinkage -------------------------------------
+
+def _varied_effects(rows: dict[str, tuple[float, int, float]]) -> pd.DataFrame:
+    """Build an effects frame with real within-cell spread.
+
+    ``{channel_name: (mean, n, spread)}``. The n values are symmetric around the
+    mean (so the cell mean is exactly ``mean``) but carry a genuine spread, which
+    is what lets the hierarchical model estimate a within-cell noise scale instead
+    of falling back to the fixed pseudo-count.
+    """
+    import numpy as np
+
+    frames = []
+    for name, (mean, n, spread) in rows.items():
+        offsets = spread * np.linspace(-1.0, 1.0, n)
+        values = (float(mean) + offsets).tolist()
+        frames.append(pd.DataFrame({"channel_name": [name] * n, "log_effect": values}))
+    return pd.concat(frames, ignore_index=True)
+
+
+def test_empirical_bayes_shrinks_thin_cell_more_than_rich_cell() -> None:
+    # Two cells share the SAME apparent gain (+0.15) but differ in sample size.
+    # A negative-heavy anchor sets the global mean below zero. The thin cell, being
+    # measured less precisely, is pulled harder toward that negative mean than the
+    # rich cell: precision-weighted shrinkage the fixed pseudo-count cannot express
+    # (it would shrink both by count alone, but here the learned strength reacts to
+    # how noisy each cell's mean is). Proves the data, not a constant, sets it.
+    effects = _varied_effects({
+        "News_first_short": (-0.10, 100, 0.03),
+        "Other_last_long": (0.15, 4, 0.05),     # thin, same mean as the rich cell
+        "Other_middle_long": (0.15, 80, 0.05),  # rich, same mean as the thin cell
+    })
+    coefficients = channel_coefficients(effects)
+    thin = coefficients["Other_last_long"]
+    rich = coefficients["Other_middle_long"]
+    assert thin.raw_delta < rich.raw_delta  # thin pulled further toward the mean
+    assert thin.coefficient <= 0.0 and rich.coefficient <= 0.0
+    # The estimator ran the hierarchical path, not the fixed-k fallback.
+    diagnostics = between_cell_variance(effects)
+    assert diagnostics["method"] == "empirical_bayes"
+    assert diagnostics["tau2"] > 0.0
+    assert diagnostics["pooled_within_var"] > 0.0
+
+
+def test_between_cell_variance_separated_cells_learn_weak_shrinkage() -> None:
+    # When cells genuinely differ a lot (means far apart, little within-cell noise)
+    # the learned strength is SMALL: the data says trust each cell, so the
+    # equivalent pseudo-count is well below the old hand-set 20.
+    effects = _varied_effects({
+        "News_first_short": (-0.10, 60, 0.04),
+        "Other_last_long": (0.20, 8, 0.04),
+    })
+    diagnostics = between_cell_variance(effects)
+    assert diagnostics["method"] == "empirical_bayes"
+    assert diagnostics["tau2"] > 0.0
+    assert diagnostics["pseudo_count"] is not None
+    assert diagnostics["pseudo_count"] < 20.0
+
+
+def test_between_cell_variance_alike_cells_pool_completely() -> None:
+    # When cells are statistically indistinguishable (same mean, only noise apart)
+    # the between-cell variance is estimated at 0, so the data pools completely:
+    # tau2 is 0 and the equivalent pseudo-count is infinite (reported as None).
+    effects = _varied_effects({
+        "PrimeShow2_last_short": (0.05, 40, 0.06),
+        "PrimeShow2_middle_short": (0.05, 40, 0.06),
+        "PrimeShow2_first_short": (0.05, 40, 0.06),
+    })
+    diagnostics = between_cell_variance(effects)
+    assert diagnostics["method"] == "empirical_bayes"
+    assert diagnostics["tau2"] == 0.0
+    assert diagnostics["pseudo_count"] is None
+
+
+def test_between_cell_variance_empty_frame() -> None:
+    diagnostics = between_cell_variance(pd.DataFrame(columns=["channel_name", "log_effect"]))
+    assert diagnostics["method"] == "empty"
+    assert diagnostics["n_cells"] == 0
+
+
+def test_channel_coefficients_falls_back_when_no_within_spread() -> None:
+    # The synthetic fixtures give every break in a cell an identical effect, so the
+    # within-cell variance is zero and the hierarchical model has no noise scale to
+    # learn. The estimator must fall back to the fixed pseudo-count rather than
+    # divide by zero, and the diagnostics must report that honestly.
+    effects = _effects({"News_first_short": (-0.105, 50), "Other_last_long": (0.182, 3)})
+    diagnostics = between_cell_variance(effects)
+    assert diagnostics["method"] == "fixed_pseudo_count"
+    assert diagnostics["pseudo_count"] == 20.0
 
 
 # --- JSON round trip ---------------------------------------------------------

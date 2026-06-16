@@ -18,7 +18,7 @@ from pathlib import Path
 
 from kairos.data.loaders import DAILY_DIR, REFERENCE_DIR
 from kairos.model.measure import (
-    compute_measured_coefficients,
+    compute_measured_coefficients_with_diagnostics,
     write_coefficients_json,
 )
 
@@ -27,7 +27,7 @@ OUTPUT_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
 
 def main() -> None:
-    coefficients = compute_measured_coefficients()
+    coefficients, diagnostics = compute_measured_coefficients_with_diagnostics()
     if not coefficients:
         raise SystemExit("No breaks measured; refusing to write an empty coefficients file.")
 
@@ -42,12 +42,19 @@ def main() -> None:
         "before_after_window_minutes": 3,
         "detrended": True,
         "pooled": True,
+        # How the data, not a hand-set constant, set the partial-pooling strength.
+        "pooling_method": diagnostics["method"],
+        "between_cell_variance_tau2": diagnostics["tau2"],
+        "pooled_within_variance": diagnostics["pooled_within_var"],
+        "learned_pseudo_count": diagnostics["pseudo_count"],
     }
     written = write_coefficients_json(OUTPUT_PATH, coefficients, metadata=metadata)
 
     print(f"Wrote {len(coefficients)} measured coefficients to {written}")
     print(f"  total breaks measured: {total_breaks}")
     print(f"  negative cells: {negative} of {len(coefficients)}")
+    print(f"  pooling: {diagnostics['method']}, tau^2={diagnostics['tau2']:.5g}, "
+          f"learned pseudo-count={diagnostics['pseudo_count']}")
     most = sorted(coefficients.values(), key=lambda c: c.coefficient)[:3]
     for c in most:
         print(f"  {c.channel_name}: {c.coefficient:+.4f}  (n={c.n}, ci=[{c.ci_low:+.3f}, {c.ci_high:+.3f}])")

@@ -21,9 +21,17 @@ The three steps, and why each matters:
      remains is the break's own marginal effect, not the day's trend. This is the
      correction that stops the optimizer from "learning" that breaks help in prime.
   3. Pool. With 36 channel cells and uneven counts, a cell seen a handful of
-     times is shrunk toward the global mean by a strength set with a pseudo-count.
-     This is partial pooling: it refuses to trust a large difference drawn from a
-     small sample.
+     times is shrunk toward the global mean. This is partial pooling: it refuses
+     to trust a large difference drawn from a small sample. The shrinkage strength
+     is not a hand-set constant; it is learned from the data with a normal-normal
+     hierarchical (empirical-Bayes) model. The between-cell variance tau^2 is
+     estimated (DerSimonian-Laird), and each cell is pulled toward the global mean
+     in proportion to how noisy it is relative to how much cells genuinely differ.
+     When cells are alike (small tau^2) the data pools hard; when they truly differ
+     (large tau^2) the data trusts each cell. The credible interval is the proper
+     hierarchical posterior, which borrows strength and so is tighter than a thin
+     cell's own standard error. When the within-cell spread cannot be estimated
+     (every cell a single break), it falls back to a fixed pseudo-count.
 
 The result per channel is a retention delta in the optimizer's units (a change on
 the [0, 1] retention multiplier, normally <= 0), with the count and a credible
@@ -56,9 +64,16 @@ _AFTER_MINUTES = 3
 # Broadcast day starts at 02:00 (daypart timebands run hours 2..25).
 _BROADCAST_DAY_START_HOUR = 2
 _MINUTES_PER_DAY = 1440
-# Partial-pooling strength: a cell is shrunk toward the global mean as if it
-# carried this many extra observations at that mean. Larger means more shrinkage.
+# Fallback partial-pooling strength, used ONLY when the within-cell spread cannot
+# be estimated (for example a single break per cell), so the hierarchical model
+# has no noise scale to learn from. In that degenerate case a cell is shrunk
+# toward the global mean as if it carried this many extra observations at that
+# mean. In the normal case the shrinkage strength is learned from the data (see
+# :func:`channel_coefficients`), and this constant is not used.
 _DEFAULT_SHRINKAGE_K = 20.0
+# Below this, the pooled within-cell variance is treated as unavailable and the
+# fixed-pseudo-count fallback is used instead of the empirical-Bayes path.
+_MIN_POOLED_WITHIN_VAR = 1e-12
 
 
 @dataclass(frozen=True)
@@ -199,6 +214,63 @@ def break_effects(
     return pd.DataFrame(rows, columns=columns)
 
 
+def _cell_stats(effects: pd.DataFrame) -> list[tuple[str, int, float, float]]:
+    """Per-cell ``(name, n, mean_log_effect, residual_sum_of_squares)``.
+
+    The residual sum of squares is ``sum((x - mean)^2)`` within the cell (0 for a
+    single-break cell). It feeds the pooled within-cell variance.
+    """
+    stats: list[tuple[str, int, float, float]] = []
+    for name, group in effects.groupby("channel_name"):
+        logs = group["log_effect"].to_numpy()
+        n = int(len(logs))
+        mean = float(np.mean(logs))
+        rss = float(np.sum((logs - mean) ** 2))
+        stats.append((str(name), n, mean, rss))
+    return stats
+
+
+def _pooled_within_variance(stats: list[tuple[str, int, float, float]]) -> float:
+    """The pooled within-cell variance s_p^2 of a single break's log effect.
+
+    ``sum(rss_i) / (N - m)`` (total residual degrees of freedom). Returns NaN when
+    every cell is a single break (``N == m``), so the caller falls back.
+    """
+    total_n = sum(n for _, n, _, _ in stats)
+    n_cells = len(stats)
+    df = total_n - n_cells
+    if df <= 0:
+        return float("nan")
+    return sum(rss for _, _, _, rss in stats) / df
+
+
+def _use_empirical_bayes(stats: list[tuple[str, int, float, float]], pooled_within: float) -> bool:
+    """True when the hierarchical model can learn a noise scale from the data."""
+    return len(stats) >= 2 and np.isfinite(pooled_within) and pooled_within > _MIN_POOLED_WITHIN_VAR
+
+
+def _dersimonian_laird(
+    stats: list[tuple[str, int, float, float]], pooled_within: float
+) -> tuple[float, float, float]:
+    """Estimate ``(tau2, mu, sum_weights)`` for the normal-normal hierarchy.
+
+    Each cell mean has sampling variance ``sigma_i^2 = s_p^2 / n_i`` and inverse-
+    variance weight ``w_i = n_i / s_p^2``. ``mu`` is the precision-weighted global
+    mean (which equals the overall mean of individual breaks here), and ``tau2`` is
+    the DerSimonian-Laird method-of-moments estimate of the between-cell variance,
+    floored at 0 so a noise-only spread pools completely.
+    """
+    n_cells = len(stats)
+    w = np.array([n / pooled_within for _, n, _, _ in stats])
+    y = np.array([mean for _, _, mean, _ in stats])
+    sw = float(np.sum(w))
+    mu = float(np.sum(w * y) / sw)
+    q = float(np.sum(w * (y - mu) ** 2))
+    c = sw - float(np.sum(w ** 2)) / sw
+    tau2 = max(0.0, (q - (n_cells - 1)) / c) if c > 0 else 0.0
+    return tau2, mu, sw
+
+
 def channel_coefficients(
     effects: pd.DataFrame,
     *,
@@ -206,36 +278,127 @@ def channel_coefficients(
 ) -> dict[str, MeasuredCoefficient]:
     """Pool the per-break log effects into one delta per channel.
 
-    Each channel's mean log effect is shrunk toward the global mean with a
-    pseudo-count of ``shrinkage_k`` (partial pooling), converted to a retention
-    delta ``exp(shrunk) - 1``, and clamped to be non-positive for the optimizer.
-    A 95% interval is carried from the standard error of the cell's mean.
+    Each cell's mean log effect is shrunk toward the global mean by a strength the
+    data sets, not a hand-picked constant: a normal-normal hierarchical model whose
+    between-cell variance tau^2 is estimated by empirical Bayes (DerSimonian-Laird).
+    A cell measured with little noise, or in a population where cells genuinely
+    differ (large tau^2), is trusted near its own mean; a noisy cell, or one in a
+    population where cells are alike (small tau^2), is pulled hard toward the global
+    mean. The shrunk log effect is converted to a retention delta ``exp(x) - 1`` and
+    clamped non-positive for the optimizer. The 95% interval is the proper
+    hierarchical posterior (including the global-mean uncertainty), so it borrows
+    strength and never claims a thin cell is tighter than its own data allows.
+
+    When the within-cell spread cannot be estimated (every cell a single break),
+    it falls back to pooling toward the global mean with ``shrinkage_k``.
     """
     coefficients: dict[str, MeasuredCoefficient] = {}
     if effects.empty:
         return coefficients
 
-    grand_mean = float(effects["log_effect"].mean())
-    for channel_name, group in effects.groupby("channel_name"):
-        logs = group["log_effect"].to_numpy()
-        n = int(len(logs))
-        cell_mean = float(np.mean(logs))
-        shrunk = (n * cell_mean + shrinkage_k * grand_mean) / (n + shrinkage_k)
-        raw_delta = float(np.exp(shrunk) - 1.0)
+    stats = _cell_stats(effects)
+    pooled_within = _pooled_within_variance(stats)
 
-        std = float(np.std(logs, ddof=1)) if n > 1 else 0.0
+    if _use_empirical_bayes(stats, pooled_within):
+        tau2, mu, sw = _dersimonian_laird(stats, pooled_within)
+        logger.info(
+            "Hierarchical pooling: learned tau^2=%.5g, pooled within-var=%.5g over "
+            "%d cells (data-set shrinkage, not a fixed pseudo-count).",
+            tau2, pooled_within, len(stats),
+        )
+        for name, n, mean, _rss in stats:
+            sigma2 = pooled_within / n
+            denom = sigma2 + tau2
+            shrink = sigma2 / denom  # fraction pulled to the global mean
+            theta = mu + (1.0 - shrink) * (mean - mu)
+            # Posterior variance of the cell effect, including uncertainty in the
+            # global mean (the second term), so a fully-pooled cell still carries
+            # the grand-mean's own error rather than a zero-width interval.
+            post_var = (1.0 - shrink) * sigma2 + (shrink ** 2) / sw
+            half = 1.96 * float(np.sqrt(max(0.0, post_var)))
+            raw_delta = float(np.exp(theta) - 1.0)
+            coefficients[name] = MeasuredCoefficient(
+                channel_name=name,
+                coefficient=min(0.0, raw_delta),
+                raw_delta=raw_delta,
+                n=n,
+                ci_low=float(np.exp(theta - half) - 1.0),
+                ci_high=float(np.exp(theta + half) - 1.0),
+            )
+        return coefficients
+
+    # Fallback: no within-cell spread to learn from, so pool toward the global
+    # mean with the fixed pseudo-count and carry the cell's own standard error.
+    logger.info(
+        "Hierarchical pooling unavailable (pooled within-var=%s, %d cells); "
+        "falling back to fixed pseudo-count k=%.1f.",
+        pooled_within, len(stats), shrinkage_k,
+    )
+    grand_mean = float(effects["log_effect"].mean())
+    for name, n, mean, rss in stats:
+        shrunk = (n * mean + shrinkage_k * grand_mean) / (n + shrinkage_k)
+        raw_delta = float(np.exp(shrunk) - 1.0)
+        std = float(np.sqrt(rss / (n - 1))) if n > 1 else 0.0
         se = std / np.sqrt(n) if n > 0 else 0.0
-        low_log = shrunk - 1.96 * se
-        high_log = shrunk + 1.96 * se
-        coefficients[str(channel_name)] = MeasuredCoefficient(
-            channel_name=str(channel_name),
+        coefficients[name] = MeasuredCoefficient(
+            channel_name=name,
             coefficient=min(0.0, raw_delta),
             raw_delta=raw_delta,
             n=n,
-            ci_low=float(np.exp(low_log) - 1.0),
-            ci_high=float(np.exp(high_log) - 1.0),
+            ci_low=float(np.exp(shrunk - 1.96 * se) - 1.0),
+            ci_high=float(np.exp(shrunk + 1.96 * se) - 1.0),
         )
     return coefficients
+
+
+def between_cell_variance(effects: pd.DataFrame) -> dict[str, object]:
+    """Diagnostics for the hierarchical pooling, for audit and the JSON metadata.
+
+    Returns the learned between-cell variance ``tau2``, the ``pooled_within_var``
+    (s_p^2), the number of ``n_cells`` pooled, the ``method`` actually used
+    ("empirical_bayes" or "fixed_pseudo_count"), and the equivalent learned
+    ``pseudo_count`` (``s_p^2 / tau2``, the data's answer to the old hand-set k;
+    None when tau2 is 0, meaning the data pools completely). Exposed so a reader
+    can see how strongly the data, not a constant, set the shrinkage.
+    """
+    if effects.empty:
+        return {"tau2": 0.0, "pooled_within_var": 0.0, "n_cells": 0,
+                "method": "empty", "pseudo_count": None}
+    stats = _cell_stats(effects)
+    pooled_within = _pooled_within_variance(stats)
+    if _use_empirical_bayes(stats, pooled_within):
+        tau2, _mu, _sw = _dersimonian_laird(stats, pooled_within)
+        pseudo = (pooled_within / tau2) if tau2 > 0 else None
+        return {"tau2": tau2, "pooled_within_var": pooled_within, "n_cells": len(stats),
+                "method": "empirical_bayes", "pseudo_count": pseudo}
+    return {"tau2": 0.0,
+            "pooled_within_var": float(pooled_within) if np.isfinite(pooled_within) else 0.0,
+            "n_cells": len(stats), "method": "fixed_pseudo_count",
+            "pseudo_count": _DEFAULT_SHRINKAGE_K}
+
+
+def compute_measured_coefficients_with_diagnostics(
+    *,
+    spots: Optional[pd.DataFrame] = None,
+    programmes: Optional[pd.DataFrame] = None,
+    dayparts: Optional[pd.DataFrame] = None,
+    classifier: Optional[ProgramClassifier] = None,
+    shrinkage_k: float = _DEFAULT_SHRINKAGE_K,
+) -> tuple[dict[str, MeasuredCoefficient], dict[str, object]]:
+    """Measure the coefficients and the hierarchical-pooling diagnostics together.
+
+    Measures ``break_effects`` once, then returns both the per-cell coefficients
+    and the :func:`between_cell_variance` diagnostics (learned tau^2, pooled
+    within-variance, the equivalent learned pseudo-count) so the JSON can record
+    how the data, not a constant, set the shrinkage.
+    """
+    spots = load_spots() if spots is None else spots
+    programmes = load_programmes() if programmes is None else programmes
+    dayparts = load_dayparts() if dayparts is None else dayparts
+    classifier = classifier or ProgramClassifier.from_yaml()
+    effects = break_effects(spots, programmes, dayparts, classifier)
+    coefficients = channel_coefficients(effects, shrinkage_k=shrinkage_k)
+    return coefficients, between_cell_variance(effects)
 
 
 def compute_measured_coefficients(
@@ -247,12 +410,11 @@ def compute_measured_coefficients(
     shrinkage_k: float = _DEFAULT_SHRINKAGE_K,
 ) -> dict[str, MeasuredCoefficient]:
     """Load the reference data (unless frames are supplied) and measure coefficients."""
-    spots = load_spots() if spots is None else spots
-    programmes = load_programmes() if programmes is None else programmes
-    dayparts = load_dayparts() if dayparts is None else dayparts
-    classifier = classifier or ProgramClassifier.from_yaml()
-    effects = break_effects(spots, programmes, dayparts, classifier)
-    return channel_coefficients(effects, shrinkage_k=shrinkage_k)
+    coefficients, _diagnostics = compute_measured_coefficients_with_diagnostics(
+        spots=spots, programmes=programmes, dayparts=dayparts,
+        classifier=classifier, shrinkage_k=shrinkage_k,
+    )
+    return coefficients
 
 
 def write_coefficients_json(

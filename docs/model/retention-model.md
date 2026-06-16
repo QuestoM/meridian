@@ -49,13 +49,26 @@ For each aired break (detected from the spots log via
    effect is what remains.
 3. **Pool.** `channel_coefficients` groups the per-break log effects by channel
    cell (`program_type x break_position x break_length`, the
-   `ChannelDescriptor.name`). Each cell mean is shrunk toward the grand mean with a
-   **fixed pseudo-count** `shrinkage_k = 20`:
-   `shrunk = (n * cell_mean + k * grand_mean) / (n + k)`. The shrunk log effect is
-   converted to a retention delta `exp(shrunk) - 1`, clamped to be `<= 0` for the
-   optimizer (`coefficient = min(0.0, raw_delta)`), and a 95% interval is carried
-   from the normal standard error of the cell mean
-   (`shrunk +/- 1.96 * se`, `se = std / sqrt(n)`), mapped back through `exp(.) - 1`.
+   `ChannelDescriptor.name`). Each cell mean is shrunk toward the grand mean by a
+   strength **learned from the data**, not a hand-set constant: a normal-normal
+   hierarchical (empirical-Bayes) model whose between-cell variance `tau^2` is
+   estimated by DerSimonian-Laird (see Stage 2 below, now shipped). With a pooled
+   within-cell variance `s_p^2`, each cell's posterior mean is
+   `theta_i = mu + (1 - B_i)(ybar_i - mu)` with shrinkage fraction
+   `B_i = sigma_i^2 / (sigma_i^2 + tau^2)` and `sigma_i^2 = s_p^2 / n_i`. This is
+   algebraically the same `(n*ybar + k*mu)/(n+k)` form, but with the equivalent
+   pseudo-count `k* = s_p^2 / tau^2` set by the data: small when cells genuinely
+   differ, large when they are alike. On the reference data `k* ~ 79` (the cells are
+   mostly alike, so the data pools harder than the old hand-set 20). The shrunk log
+   effect is converted to a retention delta `exp(theta_i) - 1`, clamped to be `<= 0`
+   for the optimizer (`coefficient = min(0.0, raw_delta)`), and a 95% interval is the
+   proper hierarchical posterior `theta_i +/- 1.96 * sqrt(V_i)`,
+   `V_i = (1 - B_i) sigma_i^2 + B_i^2 / sum(w)`, mapped back through `exp(.) - 1`. The
+   second term carries the grand-mean's own uncertainty, so a fully-pooled cell never
+   reports a false zero-width interval. When the within-cell spread cannot be
+   estimated (every cell a single break) it falls back to the fixed pseudo-count.
+   `between_cell_variance()` exposes the learned `tau^2`, `s_p^2` and `k*` for audit,
+   and the coefficients JSON records them under `metadata`.
 
 `MeasuredCoefficient` already carries `coefficient`, `raw_delta`, `n`, `ci_low`,
 `ci_high` per cell. `write_coefficients_json` persists all of it under `detail`.
@@ -81,14 +94,16 @@ randomized experiment and does not claim to be.
 These are the genuine limitations a rigorous reviewer would raise. Each is real
 in the current code.
 
-1. **`shrinkage_k = 20` is an arbitrary knob, not learned from data.** The amount
-   of partial pooling is set by hand. There is no reason 20 is the right strength;
-   it is neither estimated from the between-cell variance nor cross-validated. A
-   cell with 5 breaks and a cell with 500 breaks are both shrunk against the same
-   fixed pseudo-count, which is only correct by accident. The right strength
-   depends on how much real signal varies between cells (tau^2) versus the noise
-   within a cell, and that ratio is exactly what a hierarchical model learns and a
-   fixed k assumes.
+1. **`shrinkage_k = 20` was an arbitrary knob (RESOLVED in Stage 2).** The amount of
+   partial pooling was set by hand: a cell with 5 breaks and a cell with 500 breaks
+   were both shrunk against the same fixed pseudo-count, correct only by accident.
+   The right strength depends on how much real signal varies between cells (`tau^2`)
+   versus the noise within a cell, and that ratio is exactly what the hierarchical
+   model now learns. `channel_coefficients` estimates `tau^2` (DerSimonian-Laird)
+   and pools each cell with the data-set strength `k* = s_p^2 / tau^2` instead of a
+   constant; the fixed pseudo-count survives only as a fallback for the degenerate
+   case where the within-cell spread cannot be estimated. The cell with 5 breaks now
+   shrinks more than the cell with 500, because its mean is measured less precisely.
 
 2. **The normal-SE credible interval is fragile for small n.** `se = std / sqrt(n)`
    with a 1.96 multiplier is a large-sample normal approximation. For a cell with
@@ -233,7 +248,16 @@ run; Stage 1.7 threaded `risk_lambda` through `optimize_day_plan` / `run_scenari
 into `optimize_breaks` and serialised the per-segment `retention_cost` block plus
 `risk_lambda` in `result_to_dict`.
 
-### Stage 2 (design only): learned hierarchical partial pooling
+### Stage 2 (SHIPPED): learned hierarchical partial pooling
+
+Shipped in `channel_coefficients` (see Step 3 of section a.1 above) using the
+closed-form empirical-Bayes path described below: a DerSimonian-Laird estimate of
+`tau^2` with a pooled within-cell variance, the precision-weighted posterior mean,
+and the proper hierarchical posterior-variance interval. `between_cell_variance`
+exposes the learned `tau^2` / `s_p^2` / `k*` and the coefficients JSON records them
+under `metadata` (`pooling_method`, `between_cell_variance_tau2`,
+`pooled_within_variance`, `learned_pseudo_count`). The fuller MCMC variant below
+remains a future option; the shipped closed form already removes the fixed-k knob.
 
 One-line summary: replace the fixed `shrinkage_k = 20` with a hierarchical
 Bayesian model that learns the between-cell variance `tau^2`, giving a real
