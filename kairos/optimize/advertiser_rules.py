@@ -46,13 +46,20 @@ DEFAULT_CONDITIONS_PATH = ROOT / "data" / "advertiser_conditions.csv"
 PREMIUM = "premium"
 REQUIRE = "require"
 FORBID = "forbid"
-_EFFECTS = (PREMIUM, REQUIRE, FORBID)
+# PRESSURE is a placement-only lever: it steers WHERE the optimizer wants to place a
+# spot (it raises the slot's apparent value) but is NEVER charged, so the real
+# revenue total is unchanged. Its value is a percent uplift (10 means +10%). This is
+# how an operator says "prefer placing here" without inventing money that is not paid.
+PRESSURE = "pressure"
+_EFFECTS = (PREMIUM, REQUIRE, FORBID, PRESSURE)
 
 ANY = "ANY"
 
 # How the optimizer/pricing path describes positions inside a break: a 1-based
 # integer. A baseline allow_positions list is matched against the string of that
-# integer, so "1,2" allows positions 1 and 2 only.
+# integer, so "1,2" allows positions 1 and 2 only. The special token GOLD names the
+# premium "gold break" (Hebrew: ברייק זהב) so it can be scoped like any position.
+GOLD_POSITION = "gold"
 
 
 def _tokens(raw: object) -> frozenset[str]:
@@ -146,15 +153,29 @@ class Condition:
     scope_positions: frozenset[str] = frozenset()
     scope_genres: frozenset[str] = frozenset()
     scope_dayparts: frozenset[str] = frozenset()
+    scope_programmes: frozenset[str] = frozenset()
     notes: str = ""
 
-    def matches(self, *, position: Optional[int], genre: Optional[str], daypart: Optional[str]) -> bool:
-        """True when an observed (position, genre, daypart) falls in this scope."""
+    def matches(
+        self,
+        *,
+        position: Optional[int] = None,
+        genre: Optional[str] = None,
+        daypart: Optional[str] = None,
+        programme: Optional[str] = None,
+    ) -> bool:
+        """True when an observed (position, genre, daypart, programme) is in scope.
+
+        Each dimension is an independent token set with ANY/empty meaning "no limit"
+        on that dimension. ``programme`` matches a specific show title, so a rule can
+        target one programme as precisely as it targets a genre or a daypart.
+        """
         position_token = None if position is None else str(position)
         return (
             _dimension_matches(self.scope_positions, position_token)
             and _dimension_matches(self.scope_genres, genre)
             and _dimension_matches(self.scope_dayparts, daypart)
+            and _dimension_matches(self.scope_programmes, programme)
         )
 
     def scope_intersects(self, other: "Condition") -> bool:
@@ -163,6 +184,7 @@ class Condition:
             _scopes_intersect(self.scope_positions, other.scope_positions)
             and _scopes_intersect(self.scope_genres, other.scope_genres)
             and _scopes_intersect(self.scope_dayparts, other.scope_dayparts)
+            and _scopes_intersect(self.scope_programmes, other.scope_programmes)
         )
 
 
@@ -225,22 +247,71 @@ class AdvertiserRuleEngine:
         position: Optional[int] = None,
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
+        programme: Optional[str] = None,
     ) -> float:
-        """The premium multiplier to apply to a spot's revenue.
+        """The premium multiplier to apply to a spot's REAL revenue.
 
         It is the advertiser's baseline ``default_premium`` times the product of
         every premium-effect rule whose scope matches the spot. An advertiser
         with no baseline is treated as default_premium 1.0 (never zero), so an
-        unknown advertiser leaves revenue unchanged.
+        unknown advertiser leaves revenue unchanged. Placement-pressure rules are
+        deliberately excluded here: they steer placement but are never charged, so
+        they must not touch the real revenue (see :meth:`placement_multiplier`).
         """
         baseline = self.baselines.get(advertiser_id)
         premium = baseline.default_premium if baseline is not None else 1.0
         for condition in self._conditions_for(advertiser_id):
             if condition.effect == PREMIUM and condition.matches(
-                position=position, genre=genre, daypart=daypart
+                position=position, genre=genre, daypart=daypart, programme=programme
             ):
                 premium *= condition.value
         return premium
+
+    def pressure_multiplier(
+        self,
+        advertiser_id: str,
+        *,
+        position: Optional[int] = None,
+        genre: Optional[str] = None,
+        daypart: Optional[str] = None,
+        programme: Optional[str] = None,
+    ) -> float:
+        """The placement-only multiplier from matching pressure rules (never charged).
+
+        Each matching :data:`PRESSURE` rule contributes ``(1 + value/100)`` (its value
+        is a percent uplift). The product is >= 0 and is 1.0 when no pressure rule
+        matches. It expresses "prefer placing here" as a virtual premium that the
+        optimizer's ranking can see but that never appears in the real revenue.
+        """
+        multiplier = 1.0
+        for condition in self._conditions_for(advertiser_id):
+            if condition.effect == PRESSURE and condition.matches(
+                position=position, genre=genre, daypart=daypart, programme=programme
+            ):
+                multiplier *= max(0.0, 1.0 + condition.value / 100.0)
+        return multiplier
+
+    def placement_multiplier(
+        self,
+        advertiser_id: str,
+        *,
+        position: Optional[int] = None,
+        genre: Optional[str] = None,
+        daypart: Optional[str] = None,
+        programme: Optional[str] = None,
+    ) -> float:
+        """The value the optimizer should RANK on: real premium times pressure.
+
+        This is ``effective_premium x pressure_multiplier``. The optimizer uses it to
+        decide where a spot wants to go (a +10% pressure makes the slot rank as if it
+        paid 10% more), while the revenue total uses only :meth:`effective_premium`.
+        Honest money, biased placement.
+        """
+        return self.effective_premium(
+            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
+        ) * self.pressure_multiplier(
+            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
+        )
 
     def allow_decision(
         self,
@@ -249,6 +320,7 @@ class AdvertiserRuleEngine:
         position: Optional[int] = None,
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
+        programme: Optional[str] = None,
     ) -> AllowDecision:
         """Whether a spot is allowed, plus a reason string for diagnostics.
 
@@ -270,14 +342,15 @@ class AdvertiserRuleEngine:
         rules = self._conditions_for(advertiser_id)
         for condition in rules:
             if condition.effect == FORBID and condition.matches(
-                position=position, genre=genre, daypart=daypart
+                position=position, genre=genre, daypart=daypart, programme=programme
             ):
                 return AllowDecision(False, f"forbidden by rule {condition.rule_id}")
 
         requires = [c for c in rules if c.effect == REQUIRE]
         if requires:
             matched = next(
-                (c for c in requires if c.matches(position=position, genre=genre, daypart=daypart)),
+                (c for c in requires if c.matches(
+                    position=position, genre=genre, daypart=daypart, programme=programme)),
                 None,
             )
             if matched is None:
@@ -292,10 +365,11 @@ class AdvertiserRuleEngine:
         position: Optional[int] = None,
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
+        programme: Optional[str] = None,
     ) -> bool:
         """Boolean shorthand for :meth:`allow_decision`."""
         return self.allow_decision(
-            advertiser_id, position=position, genre=genre, daypart=daypart
+            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
         ).allowed
 
     def overlaps(self, advertiser_id: str) -> list[OverlapFinding]:
@@ -323,6 +397,9 @@ class AdvertiserRuleEngine:
                 elif a.effect == PREMIUM and b.effect == PREMIUM:
                     kind = "stacked_premium"
                     detail = "two premium multipliers stack on the same scope"
+                elif a.effect == PRESSURE and b.effect == PRESSURE:
+                    kind = "stacked_pressure"
+                    detail = "two placement-pressure levers stack on the same scope (placement only)"
                 else:
                     kind = "overlap"
                     detail = f"two {a.effect} rules cover the same scope"
@@ -394,6 +471,7 @@ def _condition_from_row(row: dict[str, str]) -> Optional[Condition]:
         scope_positions=_tokens(row.get("scope_positions")),
         scope_genres=_tokens(row.get("scope_genres")),
         scope_dayparts=_tokens(row.get("scope_dayparts")),
+        scope_programmes=_tokens(row.get("scope_programmes")),
         notes=str(row.get("notes", "")),
     )
 

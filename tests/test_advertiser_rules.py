@@ -307,3 +307,93 @@ def test_conditions_crud_round_trip(client) -> None:
     deleted = client.delete("/api/advertisers/A/conditions/r1")
     assert deleted.status_code == 200
     assert client.get("/api/advertisers/A/conditions").json()["conditions"] == []
+
+
+# --- Stage 2 upgrade: programme dimension, placement pressure, gold position ---
+
+
+def test_premium_can_scope_to_a_specific_programme() -> None:
+    # A premium scoped to one programme matches only that programme, leaving every
+    # other show at the baseline. This is the new programme dimension.
+    engine = AdvertiserRuleEngine(
+        baselines={"A": _baseline("A", default_premium=1.0)},
+        conditions={"A": [
+            _condition("A", "r1", "premium", value=1.3,
+                       scope_programmes=frozenset({"חדשות הערב"})),
+        ]},
+    )
+    assert engine.effective_premium("A", programme="חדשות הערב") == pytest.approx(1.3)
+    assert engine.effective_premium("A", programme="סרט הערב") == pytest.approx(1.0)
+
+
+def test_pressure_steers_placement_but_never_revenue() -> None:
+    # A +20% pressure rule must leave the real premium (revenue) at the baseline,
+    # while the placement value the optimizer ranks on is lifted by 20%.
+    engine = AdvertiserRuleEngine(
+        baselines={"A": _baseline("A", default_premium=1.0)},
+        conditions={"A": [
+            _condition("A", "p1", "pressure", value=20.0, scope_dayparts=frozenset({"prime"})),
+        ]},
+    )
+    # Revenue is unchanged: pressure is never charged.
+    assert engine.effective_premium("A", daypart="prime") == pytest.approx(1.0)
+    # Placement value is lifted, so the optimizer prefers this slot.
+    assert engine.pressure_multiplier("A", daypart="prime") == pytest.approx(1.2)
+    assert engine.placement_multiplier("A", daypart="prime") == pytest.approx(1.2)
+    # Outside the scope there is no steer and no charge.
+    assert engine.pressure_multiplier("A", daypart="noon") == pytest.approx(1.0)
+    assert engine.placement_multiplier("A", daypart="noon") == pytest.approx(1.0)
+
+
+def test_pressure_and_premium_compose_correctly() -> None:
+    # A real +50% premium and a virtual +20% pressure: revenue carries only the
+    # premium (1.5), placement carries both (1.5 * 1.2 = 1.8).
+    engine = AdvertiserRuleEngine(
+        baselines={"A": _baseline("A", default_premium=1.0)},
+        conditions={"A": [
+            _condition("A", "r1", "premium", value=1.5, scope_dayparts=frozenset({"prime"})),
+            _condition("A", "p1", "pressure", value=20.0, scope_dayparts=frozenset({"prime"})),
+        ]},
+    )
+    assert engine.effective_premium("A", daypart="prime") == pytest.approx(1.5)
+    assert engine.placement_multiplier("A", daypart="prime") == pytest.approx(1.8)
+
+
+def test_gold_break_is_a_scopeable_position() -> None:
+    # The gold break (ברייק זהב) is a first-class position token, so a rule can
+    # target it like any other position.
+    from kairos.optimize.advertiser_rules import GOLD_POSITION
+
+    engine = AdvertiserRuleEngine(
+        baselines={"A": _baseline("A", default_premium=1.0)},
+        conditions={"A": [
+            _condition("A", "g1", "premium", value=2.0,
+                       scope_positions=frozenset({GOLD_POSITION})),
+        ]},
+    )
+    assert engine.effective_premium("A", position=GOLD_POSITION) == pytest.approx(2.0)
+    assert engine.effective_premium("A", position=1) == pytest.approx(1.0)
+
+
+def test_two_pressure_rules_report_stacked_pressure_overlap() -> None:
+    engine = AdvertiserRuleEngine(
+        conditions={"A": [
+            _condition("A", "p1", "pressure", value=10.0, scope_dayparts=frozenset({"prime"})),
+            _condition("A", "p2", "pressure", value=15.0, scope_dayparts=frozenset({"prime"})),
+        ]},
+    )
+    kinds = {f.kind for f in engine.overlaps("A")}
+    assert "stacked_pressure" in kinds
+
+
+def test_conditions_csv_round_trip_carries_programme_scope() -> None:
+    from kairos.optimize.advertiser_rules import _condition_from_row
+
+    row = {
+        "advertiser_id": "A", "rule_id": "r1", "effect": "premium", "value": "1.3",
+        "scope_positions": "ANY", "scope_genres": "ANY", "scope_dayparts": "prime",
+        "scope_programmes": "חדשות הערב", "notes": "",
+    }
+    condition = _condition_from_row(row)
+    assert condition is not None
+    assert condition.scope_programmes == frozenset({"חדשות הערב"})
