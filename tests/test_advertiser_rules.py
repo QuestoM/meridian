@@ -243,6 +243,44 @@ def test_price_daily_spots_applies_premium_and_drops_forbidden() -> None:
     assert result.dropped[0].position == 1
 
 
+def test_price_daily_spots_honours_programme_scope_and_placement_pressure() -> None:
+    # The daily pricing path must pass the spot's programme to the engine so a
+    # programme-scoped rule actually bites, and must surface placement_value so a
+    # placement-preference (pressure) rule shows a steer without inflating revenue.
+    import pandas as pd
+
+    from kairos.export.spots import price_daily_spots
+    from kairos.optimize.pricing import PricingModel
+
+    engine = AdvertiserRuleEngine(
+        baselines={"BRAND": _baseline("BRAND", default_premium=1.0)},
+        conditions={"BRAND": [
+            _condition("BRAND", "news_prem", "premium", value=20.0, mode="percent",
+                       scope_programmes=frozenset({"News"})),
+            _condition("BRAND", "news_push", "pressure", value=10.0,
+                       scope_programmes=frozenset({"News"})),
+        ]},
+    )
+    pricing = PricingModel(base_price_per_second_per_tvr_point=10.0)
+    daily = pd.DataFrame([
+        {"advertiser": "BRAND", "campaign": "C", "program": "News", "position_in_break": 2,
+         "planned_tvr": 5.0, "duration_sec": 30.0, "pricing_type": "CPP", "price": None, "spot_time": "21:00:00"},
+        {"advertiser": "BRAND", "campaign": "C", "program": "Movie", "position_in_break": 2,
+         "planned_tvr": 5.0, "duration_sec": 30.0, "pricing_type": "CPP", "price": None, "spot_time": "22:00:00"},
+    ])
+    priced = {spot.program: spot for spot in price_daily_spots(daily, engine=engine, pricing=pricing).priced}
+
+    # News matches the programme-scoped +20% premium: revenue = 10 * 5 * 1.20 = 60.
+    assert priced["News"].revenue == pytest.approx(60.0)
+    # Movie is out of scope, so it stays at the baseline: revenue = 10 * 5 * 1.0 = 50.
+    assert priced["Movie"].revenue == pytest.approx(50.0)
+    # The +10% placement pressure shows only in News's placement_value (60 * 1.10 = 66),
+    # never in its charged revenue; Movie has no pressure, so the two are equal.
+    assert priced["News"].placement_value == pytest.approx(66.0)
+    assert priced["News"].revenue == pytest.approx(60.0)
+    assert priced["Movie"].placement_value == pytest.approx(priced["Movie"].revenue)
+
+
 # --- API CRUD round-trip ----------------------------------------------------
 
 

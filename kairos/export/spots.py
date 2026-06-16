@@ -9,7 +9,11 @@ a campaign and a position per individual spot (see
 :class:`~kairos.optimize.advertiser_rules.AdvertiserRuleEngine` is wired in:
 
   * each priced spot's revenue is multiplied by ``effective_premium`` for its
-    advertiser, position, genre and daypart, and
+    advertiser, position, genre, daypart and programme (so a programme-scoped
+    rule bites here, on the path that actually prices the spot),
+  * each priced spot also carries ``placement_value`` (the same spot valued with
+    the placement-preference/pressure multiplier), so a steer is visible without
+    inflating the charged revenue, and
   * a spot that fails ``is_allowed`` is dropped from the priced output and
     recorded in a separate dropped list with the reason, so nothing is silently
     lost or silently kept.
@@ -69,7 +73,15 @@ def _hour_from_time(value: Any) -> Optional[int]:
 
 @dataclass(frozen=True)
 class PricedSpot:
-    """One priced daily spot, with the advertiser premium that was applied."""
+    """One priced daily spot, with the advertiser premium that was applied.
+
+    ``revenue`` is the REAL money (baseline premium times matching premium-effect
+    rules only). ``placement_value`` is the same spot valued with the placement
+    multiplier (premium times any matching placement-preference/pressure rules);
+    it is what the optimizer ranks on, never charged. When no pressure rule matches
+    the spot, ``placement_value == revenue`` (no steer); a positive pressure rule
+    makes ``placement_value > revenue``, showing the bias without inflating revenue.
+    """
 
     advertiser: str
     campaign: str
@@ -82,6 +94,7 @@ class PricedSpot:
     pricing_type: str
     premium: float
     revenue: float
+    placement_value: float
 
 
 @dataclass(frozen=True)
@@ -119,6 +132,12 @@ class DailyPricingResult:
     @property
     def total_revenue(self) -> float:
         return round(sum(spot.revenue for spot in self.priced), 2)
+
+    @property
+    def total_placement_value(self) -> float:
+        """The placement-ranked total (with pressure). Equals total_revenue when no
+        placement-preference rule matched any priced spot; it is never charged."""
+        return round(sum(spot.placement_value for spot in self.priced), 2)
 
     @property
     def status_text(self) -> str:
@@ -218,7 +237,7 @@ def price_daily_spots(
                 daypart = str(move["daypart"]).strip().lower()
 
         decision = engine.allow_decision(
-            advertiser, position=position, genre=genre, daypart=daypart
+            advertiser, position=position, genre=genre, daypart=daypart, programme=program,
         )
         if not decision.allowed and not locked:
             dropped.append(DroppedSpot(
@@ -229,7 +248,11 @@ def price_daily_spots(
 
         premium = engine.effective_premium(
             advertiser, position=position, genre=genre, daypart=daypart,
-            base_cpp=pricing.base_price,
+            programme=program, base_cpp=pricing.base_price,
+        )
+        placement_premium = engine.placement_multiplier(
+            advertiser, position=position, genre=genre, daypart=daypart,
+            programme=program, base_cpp=pricing.base_price,
         )
         duration = _coerce_float(getattr(row, "duration_sec", None))
         planned_tvr = _coerce_float(getattr(row, "planned_tvr", None))
@@ -237,10 +260,15 @@ def price_daily_spots(
         stated_price = _coerce_float(getattr(row, "price", None))
 
         if pricing_type == "FIX" and stated_price > 0:
-            revenue = fixed_revenue(stated_price) * premium
+            base_value = fixed_revenue(stated_price)
+            revenue = base_value * premium
+            placement_value = base_value * placement_premium
         else:
             revenue = break_revenue(
                 planned_tvr, duration, pricing.base_price, premium=premium,
+            )
+            placement_value = break_revenue(
+                planned_tvr, duration, pricing.base_price, premium=placement_premium,
             )
 
         priced.append(PricedSpot(
@@ -248,7 +276,7 @@ def price_daily_spots(
             position=position, genre=genre, daypart=daypart,
             duration_seconds=round(duration, 1), planned_tvr=planned_tvr,
             pricing_type=pricing_type or "CPP", premium=round(premium, 6),
-            revenue=round(revenue, 2),
+            revenue=round(revenue, 2), placement_value=round(placement_value, 2),
         ))
 
     return DailyPricingResult(priced=priced, dropped=dropped)
