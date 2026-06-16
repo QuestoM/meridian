@@ -211,18 +211,27 @@ What it changes (the accompanying code):
   `impact_confidence` and the interval, so the result object exposes, per segment,
   where the retention cost is well-measured versus a guess.
 
-Where uncertainty now flows, and where it does not yet:
-flows from `measure.py` detail JSON -> `read_coefficients_detail` ->
-`PosteriorImpactModel.estimate_for` -> `ProgramSegment` (optional fields) ->
-`objective.conservative_impact` in the greedy step -> `SegmentPlan` on the result.
-It does **not** yet flow all the way to the HTTP API response shape in
-`kairos/service.py::result_to_dict` / `kairos_api/server.py` for the live
-optimize endpoints; that wiring is intentionally left as a small follow-up and is
-called out honestly here so the operator knows the confidence is on the result
-object but not yet rendered in the dashboard payload. The `/api/impact` endpoint
-already surfaces per-cell `ci_low`/`ci_high`/`n` from the coefficients JSON
-(`server.py::_load_measured_impact_summary`), so the measured uncertainty is
-visible there today.
+Where uncertainty now flows, end to end:
+from `measure.py` detail JSON -> `read_coefficients_detail` ->
+`PosteriorImpactModel.estimate_for` -> `ProgramSegment` (optional fields, populated
+by `transform._segment_impact_kwargs`) -> `objective.conservative_impact` in the
+greedy step -> `SegmentPlan` on the result -> the HTTP API response shape in
+`kairos/service.py::result_to_dict`. The serialised plan now carries, per segment,
+a `retention_cost` block (`point`, `used`, `ci_low`, `ci_high`, `n`, `confidence`)
+and echoes the effective `risk_lambda` in `weights`, so the dashboard can render how
+trustworthy the cost behind each break count is. The `risk_lambda` control is
+threaded through both API entrypoints (`optimize_day_plan` and `run_scenario`),
+defaulting to the assumption value (`0.0`), so the decision is uncertainty-aware in
+production, not only in the library. The `/api/impact` endpoint additionally surfaces
+per-cell `ci_low`/`ci_high`/`n` from the coefficients JSON
+(`server.py::_load_measured_impact_summary`).
+
+Shipped in three verified increments: Stage 1.5 made the greedy decision consume the
+interval via a tunable `risk_lambda` and surfaced plan provenance; Stage 1.6 threaded
+the measured interval into `ProgramSegment` in `transform.py` so it fires in a real
+run; Stage 1.7 threaded `risk_lambda` through `optimize_day_plan` / `run_scenario`
+into `optimize_breaks` and serialised the per-segment `retention_cost` block plus
+`risk_lambda` in `result_to_dict`.
 
 ### Stage 2 (design only): learned hierarchical partial pooling
 

@@ -85,6 +85,15 @@ def _hhmm(start_seconds: float) -> str:
     return f"{(total_minutes // 60) % 24:02d}:{total_minutes % 60:02d}"
 
 
+def _round_or_none(value: Optional[float], digits: int = 4) -> Optional[float]:
+    """Round a retention coefficient for display, preserving an honest ``None``.
+
+    A missing credible bound stays ``None`` rather than collapsing to 0.0, so the
+    dashboard can tell "no interval known" apart from "interval is zero".
+    """
+    return None if value is None else round(value, digits)
+
+
 def result_to_dict(
     result: OptimizationResult,
     *,
@@ -126,6 +135,14 @@ def result_to_dict(
                 "num_breaks": s.num_breaks,
                 "retention_percent": round(s.retention * 100, 1),
                 "revenue": round(s.revenue, 2),
+                "retention_cost": {
+                    "point": _round_or_none(s.retention_cost_point),
+                    "used": _round_or_none(s.retention_cost_used),
+                    "ci_low": _round_or_none(s.retention_cost_ci_low),
+                    "ci_high": _round_or_none(s.retention_cost_ci_high),
+                    "n": s.retention_cost_n,
+                    "confidence": s.retention_confidence,
+                },
             }
             for s in result.segments
         ],
@@ -143,7 +160,11 @@ def result_to_dict(
             }
             for d in result.decisions
         ],
-        "weights": {"revenue_weight": result.revenue_weight, "revenue_scale": round(result.revenue_scale, 2)},
+        "weights": {
+            "revenue_weight": result.revenue_weight,
+            "revenue_scale": round(result.revenue_scale, 2),
+            "risk_lambda": result.risk_lambda,
+        },
     }
 
 
@@ -153,6 +174,7 @@ def optimize_day_plan(
     day: Optional[str] = None,
     settings: Optional[Mapping[str, Any]] = None,
     revenue_weight: Optional[float] = None,
+    risk_lambda: Optional[float] = None,
     assumptions: Optional[OptimizerAssumptions] = None,
     pricing: Optional[PricingModel] = None,
     programmes: Optional[pd.DataFrame] = None,
@@ -179,6 +201,7 @@ def optimize_day_plan(
     assumptions = assumptions or OptimizerAssumptions()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
+    risk = risk_lambda if risk_lambda is not None else assumptions.risk_lambda
     if impact_model is None:
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     classifier = _build_classifier()
@@ -204,7 +227,7 @@ def optimize_day_plan(
             programmes, classifier, pricing,
             assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
         )
-    result = optimize_breaks(segments, guardrails, revenue_weight=weight)
+    result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk)
 
     payload = result_to_dict(result, channel=channel, day=day)
     payload["guardrails"] = asdict(guardrails)
@@ -237,6 +260,7 @@ def run_scenario(
     revenue_weight: float,
     retention_floor: float,
     max_breaks_per_hour: int,
+    risk_lambda: float = 0.0,
     channel: Optional[str] = None,
     day: Optional[str] = None,
     programmes: Optional[pd.DataFrame] = None,
@@ -267,13 +291,14 @@ def run_scenario(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
-    result = optimize_breaks(segments, guardrails, revenue_weight=weight)
+    result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda)
 
     payload = result_to_dict(result, channel=channel, day=day)
     payload["controls"] = {
         "revenue_weight": revenue_weight,
         "retention_floor": retention_floor,
         "max_breaks_per_hour": max_breaks_per_hour,
+        "risk_lambda": risk_lambda,
     }
     payload["guardrails"] = asdict(guardrails)
     return payload
