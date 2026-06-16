@@ -642,6 +642,7 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
         revenue_weight=request.revenue_weight,
         retention_floor=request.retention_floor,
         max_breaks_per_hour=request.max_breaks_per_hour,
+        risk_lambda=request.risk_lambda,
     )
     summary = payload.setdefault("summary", {})
     summary["is_compliant"] = bool(summary.get("is_compliant", summary.get("compliant", False)))

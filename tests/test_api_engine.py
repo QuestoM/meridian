@@ -71,6 +71,14 @@ def test_risk_lambda_is_an_adjustable_knob_end_to_end() -> None:
         assert set(cost) == {"point", "used", "ci_low", "ci_high", "n", "confidence"}
         assert cost["confidence"] in {"low", "medium", "high"}
 
+    # The dashboard's own endpoint (/api/optimizer-plan) honours risk_lambda too.
+    optimizer = client.post(
+        "/api/optimizer-plan",
+        json={"revenue_weight": 60, "retention_floor": 0.72, "max_breaks_per_hour": 4, "risk_lambda": 1.0},
+    ).json()
+    assert optimizer["controls"]["risk_lambda"] == 1.0
+    assert optimizer["weights"]["risk_lambda"] == 1.0
+
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
