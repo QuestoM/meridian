@@ -970,6 +970,297 @@ button {
   color: #d7f2ee;
 }
 
+/* P3 schedule editor: drag-and-drop break editor plus constraint builder. */
+.schedule-editor {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 502px;
+}
+
+.schedule-editor-empty {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  min-height: 360px;
+  padding: 32px;
+  text-align: center;
+}
+
+.schedule-editor-empty h3 {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 680;
+}
+
+.schedule-editor-empty p {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 460px;
+}
+
+.schedule-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.schedule-editor-snap,
+.schedule-editor-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-editor-snap > span,
+.schedule-editor-scope > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.editor-break {
+  position: absolute;
+  top: 48px;
+  min-width: 44px;
+  height: 32px;
+  border-radius: 5px;
+  padding: 0 8px;
+  background: #0d1b2a;
+  color: #ffffff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 6px;
+  align-items: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: background 140ms ease, outline-color 140ms ease, transform 140ms ease;
+}
+
+.editor-break:hover {
+  background: #18304a;
+  transform: translateY(-1px);
+}
+
+.editor-break:focus-visible {
+  outline: 2px solid #315d8c;
+  outline-offset: 2px;
+}
+
+.editor-break:active {
+  cursor: grabbing;
+}
+
+.editor-break span,
+.editor-break strong,
+.editor-break em {
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.editor-break strong {
+  font-weight: 720;
+}
+
+.editor-break em {
+  grid-column: 1 / -1;
+  font-style: normal;
+  color: #d7f2ee;
+}
+
+/* Pinned (constrained) breaks get a lock badge and a teal frame. */
+.editor-break.pinned {
+  background: #0f3d36;
+  border-color: #1f7a6b;
+}
+
+.editor-break-lock {
+  position: absolute;
+  top: -6px;
+  inset-inline-start: -6px;
+  color: #0f3d36;
+  background: #d7f2ee;
+  border-radius: 50%;
+  padding: 1px;
+}
+
+/* Dragged-but-unsaved breaks get a dashed amber outline. */
+.editor-break.unsaved {
+  outline: 2px dashed #c98a00;
+  outline-offset: 2px;
+}
+
+/* Gold breaks keep their amber accent. */
+.editor-break.gold {
+  background: #7a4a00;
+}
+
+.editor-break-resize {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.35));
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+}
+
+.schedule-editor-readout {
+  border-top: 1px solid var(--line);
+  padding: 12px 16px;
+  background: #fbfcfd;
+}
+
+.schedule-editor-readout > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.schedule-editor-edit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.schedule-editor-edit-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.schedule-editor-edit-list li.is-pinned {
+  border-color: #1f7a6b;
+}
+
+.schedule-editor-edit-list li.is-unsaved {
+  border-color: #c98a00;
+}
+
+.schedule-editor-edit-list strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.schedule-editor-edit-list span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Constraint builder panel mounted on the Settings page. */
+.constraint-builder-warning {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #e0b400;
+  border-radius: 8px;
+  background: #fff8e1;
+  color: #7a4a00;
+  font-size: 12px;
+}
+
+.constraint-builder-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.constraint-field {
+  display: grid;
+  gap: 4px;
+}
+
+.constraint-builder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.constraint-list {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.constraint-list .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.constraint-list .panel-head h3 {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.constraint-list-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.constraint-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.constraint-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.constraint-chip {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0d1b2a;
+  background: #eef2f6;
+  border-radius: 5px;
+  padding: 2px 8px;
+}
+
+.constraint-scope {
+  flex: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.constraint-channel {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.constraint-delete.MuiButton-root {
+  min-width: 0;
+  color: #b3261e;
+}
+
 .daypart-card,
 .inventory-channel-card,
 .daypart-empty-summary {

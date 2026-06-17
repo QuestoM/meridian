@@ -30,6 +30,10 @@ from kairos.export.schedule import (  # noqa: E402
 # the weekly CSV must be built with those controls so the risk-aware decision the
 # operator selected actually reaches the screens that render this schedule.
 SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
+# Scoped placement constraints the operator saved (same file the API CRUD writes);
+# the weekly CSV honors them so a pinned offset / forced count / forbid actually
+# reaches the exported schedule. Absent file -> no constraints, unchanged output.
+CONSTRAINTS_PATH = ROOT / "data" / "kairos_constraints.csv"
 
 
 def _load_settings() -> dict[str, Any]:
@@ -55,10 +59,14 @@ def main() -> int:
     revenue_weight = float(raw_weight) / 100.0 if raw_weight is not None else None
     print(f"  using saved settings (revenue_weight={raw_weight}, risk_lambda={risk_lambda}, "
           f"retention_floor={settings.get('min_retention_floor', 'default')})")
+    constraints_path = str(CONSTRAINTS_PATH) if CONSTRAINTS_PATH.exists() else None
+    if constraints_path:
+        print(f"  honoring placement constraints from {CONSTRAINTS_PATH.name}")
     frame = build_weekly_schedule(
         settings=settings or None,
         revenue_weight=revenue_weight,
         risk_lambda=risk_lambda,
+        constraints_path=constraints_path,
     )
     if frame.empty:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")

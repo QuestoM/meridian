@@ -265,3 +265,61 @@ def test_write_and_read_coefficients_json(tmp_path) -> None:
 
 def test_read_missing_json_is_empty(tmp_path) -> None:
     assert read_coefficients_json(tmp_path / "nope.json") == {}
+
+
+# --- series layer (genre -> series -> episode pooling) -----------------------
+
+def _titled_effects(rows: list[tuple]) -> pd.DataFrame:
+    """Build an effects frame with titles from (channel_name, title, log_effect)."""
+    return pd.DataFrame(
+        [{"channel_name": c, "title": t, "log_effect": e} for c, t, e in rows]
+    )
+
+
+def test_series_coefficients_collapse_episodes_to_one_series() -> None:
+    # Three episodes of one series in the same genre cell pool into ONE series key,
+    # alongside an unrelated series in the same cell.
+    from kairos.model.series import series_coefficients
+
+    effects = _titled_effects([
+        ("News_first_short", "האח הגדול עונה 2 פרק 2", -0.10),
+        ("News_first_short", "האח הגדול עונה 2 פרק 7", -0.10),
+        ("News_first_short", "האח הגדול עונה 3 פרק 14", -0.10),
+        ("News_first_short", "מבשלים עם יובל מלחי", -0.02),
+    ])
+    series = series_coefficients(effects, shrinkage_k=20.0)
+    big_brother_keys = [k for k in series if k[1] == "האח הגדול"]
+    assert len(big_brother_keys) == 1
+    cell, key = big_brother_keys[0]
+    assert cell == "News_first_short"
+    assert series[(cell, key)].n == 3  # the three episodes pooled into one series
+    assert series[(cell, key)].coefficient <= 0.0
+
+
+def test_series_coefficients_skip_unmatched_titles_and_empty_frame() -> None:
+    # A break with no matched programme (empty title) contributes only to its genre
+    # cell, so no series record is produced for it. An empty frame yields nothing.
+    from kairos.model.series import series_coefficients
+
+    effects = _titled_effects([("News_first_short", "", -0.10)])
+    assert series_coefficients(effects) == {}
+    assert series_coefficients(pd.DataFrame(columns=["channel_name", "title", "log_effect"])) == {}
+
+
+def test_series_layer_does_not_change_genre_coefficients() -> None:
+    # The genre layer is identical whether or not the series layer is computed:
+    # the series layer is purely additive.
+    from kairos.model.measure import channel_coefficients
+    from kairos.model.series import series_coefficients
+
+    effects = _titled_effects([
+        ("News_first_short", "האח הגדול עונה 2 פרק 2", -0.10),
+        ("News_first_short", "האח הגדול עונה 2 פרק 7", -0.12),
+        ("Other_last_long", "טיול בעולם עם יובל מלחי", -0.02),
+    ])
+    genre_before = channel_coefficients(effects)
+    _series = series_coefficients(effects)
+    genre_after = channel_coefficients(effects)
+    assert {n: c.coefficient for n, c in genre_before.items()} == {
+        n: c.coefficient for n, c in genre_after.items()
+    }

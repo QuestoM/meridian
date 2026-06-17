@@ -1349,6 +1349,7 @@ app.add_middleware(
 # Operational capabilities live in focused modules to keep this file lean.
 from kairos_api.advertiser_conditions import router as advertiser_conditions_router  # noqa: E402
 from kairos_api.advertisers import router as advertisers_router  # noqa: E402
+from kairos_api.constraints import router as constraints_router  # noqa: E402
 from kairos_api.exporters import router as exporters_router  # noqa: E402
 from kairos_api.overrides import router as overrides_router  # noqa: E402
 from kairos_api.uploads import router as uploads_router  # noqa: E402
@@ -1358,6 +1359,7 @@ app.include_router(advertisers_router)
 app.include_router(advertiser_conditions_router)
 app.include_router(exporters_router)
 app.include_router(overrides_router)
+app.include_router(constraints_router)
 
 
 @app.get("/api/health")

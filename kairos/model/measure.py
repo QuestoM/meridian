@@ -47,13 +47,17 @@ import json
 import logging
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Mapping, Optional
+from typing import TYPE_CHECKING, Mapping, Optional
+
+if TYPE_CHECKING:  # pragma: no cover - import only for type hints, avoids a cycle
+    from kairos.model.series import SeriesCoefficient
 
 import numpy as np
 import pandas as pd
 
 from kairos.data.classifier import ProgramClassifier
 from kairos.data.loaders import load_dayparts, load_programmes, load_spots
+from kairos.data.title_features import canonicalize_series
 from kairos.model.prepare import keyed_breaks
 
 logger = logging.getLogger(__name__)
@@ -146,6 +150,38 @@ def _window_mean(values: list[Optional[float]]) -> Optional[float]:
     return float(np.mean(clean)) if clean else None
 
 
+def _programme_title_lookup(programmes: pd.DataFrame) -> dict[str, list[tuple]]:
+    """Map channel -> sorted (start, end, title) spans for title matching.
+
+    Built once and reused for every break, so the series layer can recover the
+    programme Title behind each break without re-running break detection. The
+    genre cell apparatus is unaffected; this only adds the title feature.
+    """
+    frame = programmes[programmes["start_dt"].notna()].copy()
+    lookup: dict[str, list[tuple]] = {}
+    for channel, group in frame.groupby("Channel", sort=False):
+        spans = []
+        for row in group.itertuples(index=False):
+            start = getattr(row, "start_dt")
+            end = getattr(row, "end_dt")
+            title = getattr(row, "Title")
+            if pd.notna(start) and pd.notna(end):
+                spans.append((start, end, "" if title is None or pd.isna(title) else str(title)))
+        spans.sort(key=lambda s: s[0])
+        lookup[str(channel)] = spans
+    return lookup
+
+
+def _title_for_break(
+    lookup: dict[str, list[tuple]], channel: str, start: pd.Timestamp, end: pd.Timestamp
+) -> str:
+    """Return the Title of the programme whose span contains the break, or ""."""
+    for s_start, s_end, title in lookup.get(channel, []):
+        if s_start <= start and s_end >= end:
+            return title
+    return ""
+
+
 def break_effects(
     spots: pd.DataFrame,
     programmes: pd.DataFrame,
@@ -171,6 +207,9 @@ def break_effects(
         # Stage 3 competitor-context extractor can join features without re-running
         # break detection. Harmless to the pooling, which keys only on channel_name.
         "channel", "break_start", "break_end",
+        # The programme Title behind each break, recovered from the programme span,
+        # so the optional series layer can canonicalize it. Empty when unmatched.
+        "title",
     ]
     if breaks.empty:
         return pd.DataFrame(columns=columns)
@@ -178,6 +217,7 @@ def break_effects(
     frame = _dayparts_frame(dayparts)
     observed = _minute_lookup(frame)
     baseline = _baseline_levels(frame)
+    titles = _programme_title_lookup(programmes)
 
     before_offsets = [-(k + 1) for k in range(before_minutes)]
     after_offsets = [k + 1 for k in range(after_minutes)]
@@ -215,6 +255,7 @@ def break_effects(
                 "channel": channel,
                 "break_start": start,
                 "break_end": end,
+                "title": _title_for_break(titles, channel, start, end),
             }
         )
 
@@ -391,13 +432,16 @@ def compute_measured_coefficients_with_diagnostics(
     dayparts: Optional[pd.DataFrame] = None,
     classifier: Optional[ProgramClassifier] = None,
     shrinkage_k: float = _DEFAULT_SHRINKAGE_K,
-) -> tuple[dict[str, MeasuredCoefficient], dict[str, object]]:
-    """Measure the coefficients and the hierarchical-pooling diagnostics together.
+    with_series: bool = False,
+) -> tuple[dict[str, MeasuredCoefficient], dict[str, object],
+           dict[tuple[str, str], SeriesCoefficient]]:
+    """Measure the coefficients, diagnostics, and optionally the series layer.
 
-    Measures ``break_effects`` once, then returns both the per-cell coefficients
-    and the :func:`between_cell_variance` diagnostics (learned tau^2, pooled
-    within-variance, the equivalent learned pseudo-count) so the JSON can record
-    how the data, not a constant, set the shrinkage.
+    Measures ``break_effects`` once, then returns the per-cell genre coefficients,
+    the :func:`between_cell_variance` diagnostics (learned tau^2, pooled within-
+    variance, the equivalent learned pseudo-count), and the per-(cell, series)
+    layer when ``with_series`` is on (empty otherwise, so existing callers are
+    unchanged). The genre layer is identical whether or not the series layer runs.
     """
     spots = load_spots() if spots is None else spots
     programmes = load_programmes() if programmes is None else programmes
@@ -405,7 +449,14 @@ def compute_measured_coefficients_with_diagnostics(
     classifier = classifier or ProgramClassifier.from_yaml()
     effects = break_effects(spots, programmes, dayparts, classifier)
     coefficients = channel_coefficients(effects, shrinkage_k=shrinkage_k)
-    return coefficients, between_cell_variance(effects)
+    series: dict[tuple[str, str], "SeriesCoefficient"] = {}
+    if with_series:
+        # Lazy import: series imports measure, so importing it eagerly would form a
+        # cycle. It is only needed when the optional series layer is requested.
+        from kairos.model.series import series_coefficients
+
+        series = series_coefficients(effects, shrinkage_k=shrinkage_k)
+    return coefficients, between_cell_variance(effects), series
 
 
 def compute_measured_coefficients(
@@ -417,7 +468,7 @@ def compute_measured_coefficients(
     shrinkage_k: float = _DEFAULT_SHRINKAGE_K,
 ) -> dict[str, MeasuredCoefficient]:
     """Load the reference data (unless frames are supplied) and measure coefficients."""
-    coefficients, _diagnostics = compute_measured_coefficients_with_diagnostics(
+    coefficients, _diagnostics, _series = compute_measured_coefficients_with_diagnostics(
         spots=spots, programmes=programmes, dayparts=dayparts,
         classifier=classifier, shrinkage_k=shrinkage_k,
     )
@@ -429,21 +480,30 @@ def write_coefficients_json(
     coefficients: Mapping[str, MeasuredCoefficient],
     *,
     metadata: Optional[Mapping[str, object]] = None,
+    series: Optional[Mapping[tuple[str, str], SeriesCoefficient]] = None,
 ) -> Path:
     """Write the measured coefficients (with provenance) as JSON.
 
     The file carries a flat ``coefficients`` map (channel name -> delta) that
     :func:`kairos.model.impact.load_impact_model` reads, plus per-channel detail
-    and any ``metadata`` (data window, method) for audit.
+    and any ``metadata`` (data window, method) for audit. When ``series`` is given,
+    an additive ``series`` block is written: a list of per-(cell, series) records
+    keyed under each genre cell. The block is purely additive, so a reader that
+    ignores it still gets the exact same genre coefficients.
     """
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
+    payload: dict[str, object] = {
         "method": "measured_detrended_pooled",
         "metadata": dict(metadata or {}),
         "coefficients": {name: c.coefficient for name, c in coefficients.items()},
         "detail": {name: asdict(c) for name, c in coefficients.items()},
     }
+    if series:
+        series_block: dict[str, list[dict[str, object]]] = {}
+        for (cell_name, _key), record in series.items():
+            series_block.setdefault(cell_name, []).append(asdict(record))
+        payload["series"] = series_block
     target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return target
 

@@ -86,6 +86,82 @@ def test_load_impact_model_missing_path_returns_assumption_fallback() -> None:
     )
 
 
+# --- series-aware impact lookup (cold-start fallback) ------------------------
+
+def _series_model():
+    """A trained PosteriorImpactModel carrying one genre cell and one series."""
+    from kairos.model.impact import PosteriorImpactModel, RetentionEstimate
+
+    name = "News_first_short"
+    genre = RetentionEstimate(
+        coefficient=-0.03, ci_low=-0.05, ci_high=-0.01, n=40, confidence="medium",
+    )
+    # The canonical series key for "האח הגדול עונה 2" is "האח הגדול".
+    series_key = "האח הגדול"
+    series = RetentionEstimate(
+        coefficient=-0.08, ci_low=-0.11, ci_high=-0.05, n=18, confidence="medium",
+    )
+    return PosteriorImpactModel(
+        {name: genre.coefficient},
+        default=OptimizerAssumptions().retention_impact_per_break,
+        source="measured",
+        detail={name: genre},
+        series={(name, series_key): series},
+    )
+
+
+def test_coefficient_for_title_returns_series_when_present() -> None:
+    # A break whose programme title canonicalizes to a series in the trained layer
+    # gets the series-aware coefficient, not the coarser genre-cell coefficient.
+    model = _series_model()
+    coeff = model.coefficient_for_title("האח הגדול עונה 2 פרק 5", "News", "first", "short")
+    assert coeff == -0.08
+    # It differs from the genre-cell coefficient, proving the series layer fired.
+    assert coeff != model.coefficient_for("News", "first", "short")
+
+
+def test_coefficient_for_title_falls_back_to_genre_for_unseen_title() -> None:
+    # A NEW title never seen in training (cold-start) falls back to the genre cell,
+    # the honest answer the genre layer always backs.
+    model = _series_model()
+    coeff = model.coefficient_for_title("תוכנית חדשה לגמרי", "News", "first", "short")
+    assert coeff == model.coefficient_for("News", "first", "short")
+    assert coeff == -0.03
+
+
+def test_series_round_trips_through_coefficients_json(tmp_path) -> None:
+    # The additive series block survives write -> read and reaches a loaded model's
+    # title-aware lookup, while a reader that ignores it still gets the genre cell.
+    from kairos.model.measure import MeasuredCoefficient, write_coefficients_json
+    from kairos.model.series import SeriesCoefficient
+
+    name = "News_first_short"
+    coefficients = {
+        name: MeasuredCoefficient(
+            channel_name=name, coefficient=-0.03, raw_delta=-0.03,
+            n=40, ci_low=-0.05, ci_high=-0.01,
+        ),
+    }
+    series = {
+        (name, "האח הגדול"): SeriesCoefficient(
+            channel_name=name, series_key="האח הגדול", coefficient=-0.08,
+            raw_delta=-0.08, n=18, ci_low=-0.11, ci_high=-0.05,
+        ),
+    }
+    path = tmp_path / "tv_break_coefficients.json"
+    write_coefficients_json(path, coefficients, series=series)
+
+    model = load_impact_model(tmp_path / "trained_model.pkl", coefficients_path=path)
+    assert model.has_series
+    assert model.coefficient_for_title(
+        "האח הגדול עונה 3 פרק 1", "News", "first", "short"
+    ) == -0.08
+    # Unseen title cold-start falls back to the genre cell.
+    assert model.coefficient_for_title(
+        "סדרה אחרת", "News", "first", "short"
+    ) == model.coefficient_for("News", "first", "short")
+
+
 def test_can_train_is_a_bool() -> None:
     assert isinstance(can_train(), bool)
 

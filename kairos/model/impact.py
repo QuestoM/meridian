@@ -158,6 +158,7 @@ class PosteriorImpactModel(ImpactModel):
         default: float,
         source: str = "trained",
         detail: Optional[Mapping[str, RetentionEstimate]] = None,
+        series: Optional[Mapping[tuple[str, str], RetentionEstimate]] = None,
     ) -> None:
         if not coefficients:
             raise ValueError("PosteriorImpactModel needs at least one fitted coefficient")
@@ -168,6 +169,11 @@ class PosteriorImpactModel(ImpactModel):
         # the model exposes the full posterior through estimate_for; when absent
         # estimate_for degrades to the point coefficient with low confidence.
         self._detail = dict(detail) if detail else {}
+        # Optional series layer: (genre cell name, canonical series key) -> estimate.
+        # When a segment carries a program_title whose series sits in this map under
+        # its genre cell, the series-aware coefficient is returned; otherwise the
+        # lookup falls back to the genre cell (honest cold-start).
+        self._series = dict(series) if series else {}
 
     @property
     def coefficients(self) -> dict[str, float]:
@@ -212,6 +218,67 @@ class PosteriorImpactModel(ImpactModel):
             coefficient=point, ci_low=point, ci_high=point, n=0, confidence="low",
         )
 
+    @property
+    def has_series(self) -> bool:
+        """True when this model carries a series-aware layer."""
+        return bool(self._series)
+
+    def coefficient_for_title(
+        self,
+        program_title: str,
+        program_type: str,
+        break_position: str,
+        break_length: str,
+    ) -> float:
+        """Return the series-aware coefficient for a break, else the genre cell.
+
+        The programme ``program_title`` is canonicalized to a series key (the same
+        deterministic key the trainer used), and if that series exists under this
+        break's genre cell in the trained series layer, its coefficient is returned.
+        Otherwise the lookup falls back to :meth:`coefficient_for`, the genre cell
+        coefficient, so a NEW title never seen in training still gets an honest
+        genre-level answer (cold-start). The genre effect always backs the result.
+        """
+        name = ChannelDescriptor.from_parts(program_type, break_position, break_length).name
+        key = self._series_key(program_title)
+        if key and (name, key) in self._series:
+            return self._series[(name, key)].coefficient
+        return self.coefficient_for(program_type, break_position, break_length)
+
+    def estimate_for_title(
+        self,
+        program_title: str,
+        program_type: str,
+        break_position: str,
+        break_length: str,
+    ) -> RetentionEstimate:
+        """Full series-aware estimate (interval + n + confidence), else genre cell.
+
+        Like :meth:`coefficient_for_title` but returns the whole estimate, so the
+        decision stays uncertainty-aware on the series layer too. Falls back to the
+        genre-cell estimate for an unseen series (honest cold-start).
+        """
+        name = ChannelDescriptor.from_parts(program_type, break_position, break_length).name
+        key = self._series_key(program_title)
+        if key and (name, key) in self._series:
+            return self._series[(name, key)]
+        return self.estimate_for(program_type, break_position, break_length)
+
+    @staticmethod
+    def _series_key(program_title: str) -> str:
+        """Canonicalize a programme title to its series key (empty on failure).
+
+        Lazy import keeps the impact <-> data import graph free of a hard cycle and
+        lets impact.py import on a desktop Python even if the title module's
+        optional deps are missing.
+        """
+        try:
+            from kairos.data.title_features import canonicalize_series
+
+            return canonicalize_series(program_title)
+        except Exception:  # noqa: BLE001 - any failure degrades to the genre cell
+            return ""
+
 
 def load_impact_model(
     path: str | Path,
@@ -244,6 +311,7 @@ def load_impact_model(
     # so the uncertainty reaches the optimizer in a real run, not only in unit
     # construction. ``read_coefficients_json`` stays the back-compat flat reader.
     from kairos.model.measure import read_coefficients_detail, read_coefficients_json
+    from kairos.model.series import read_series_coefficients
 
     coeff_path = Path(coefficients_path) if coefficients_path else model_path.with_name(
         "tv_break_coefficients.json"
@@ -261,16 +329,30 @@ def load_impact_model(
             )
             for name, d in detail.items()
         }
+        # Additive series layer (empty for a pre-series JSON, leaving behaviour
+        # identical). Keyed (cell, series) -> estimate for the title-aware lookup.
+        series = {
+            key: RetentionEstimate(
+                coefficient=d.coefficient,
+                ci_low=d.ci_low,
+                ci_high=d.ci_high,
+                n=d.n,
+                confidence=d.confidence,
+            )
+            for key, d in read_series_coefficients(coeff_path).items()
+        }
         logger.info(
-            "Loaded %d measured retention coefficients (with uncertainty) from %s.",
+            "Loaded %d measured retention coefficients (with uncertainty) from %s (%d series).",
             len(coefficients),
             coeff_path,
+            len(series),
         )
         return PosteriorImpactModel(
             coefficients,
             default=assumptions.retention_impact_per_break,
             source="measured",
             detail=estimates,
+            series=series,
         )
 
     # Back-compat fallback: a coefficients file that carries only the flat map and

@@ -95,6 +95,43 @@ def _channel_days(programmes: pd.DataFrame) -> list[tuple[str, str]]:
     return [(str(channel), str(day)) for channel, day in pairs.itertuples(index=False, name=None)]
 
 
+def _load_constraints(constraints_path: Optional[str | Path]):
+    """Load scoped placement constraints, honoring the default file.
+
+    An explicit path is always loaded. With no path, the default
+    ``data/kairos_constraints.csv`` is loaded only when it exists, so a deployment
+    that never created one gets an empty list and unchanged behaviour.
+    """
+    from kairos.optimize.constraints_store import DEFAULT_CONSTRAINTS_PATH, load_constraints
+
+    if constraints_path is not None:
+        return load_constraints(constraints_path)
+    if DEFAULT_CONSTRAINTS_PATH.exists():
+        return load_constraints(DEFAULT_CONSTRAINTS_PATH)
+    return []
+
+
+def _constraint_inputs(segments, constraints, overrides: Optional[OverrideSet]):
+    """Resolve constraints for one channel-day into (placement_pins, OverrideSet).
+
+    Count pins and forbids become a merged :class:`OverrideSet` (the engine's
+    count path), combined with any caller-supplied ``overrides``; placement pins
+    are returned separately for the optimizer's pin path. With no constraints this
+    returns ``({}, overrides)``, leaving the call unchanged.
+    """
+    if not constraints:
+        return {}, overrides
+    from kairos.optimize.constraints_store import count_pins_to_overrides, resolve_constraints
+
+    placement_pins, count_pins, forbids, _ = resolve_constraints(segments, constraints)
+    constraint_overrides = count_pins_to_overrides(count_pins, forbids)
+    if overrides is not None:
+        constraint_overrides = OverrideSet(
+            overrides=list(overrides.overrides) + list(constraint_overrides.overrides),
+        )
+    return placement_pins, constraint_overrides
+
+
 def build_weekly_schedule(
     programmes: Optional[pd.DataFrame] = None,
     *,
@@ -108,6 +145,7 @@ def build_weekly_schedule(
     impact_model: Optional[ImpactModel] = None,
     overrides: Optional[OverrideSet] = None,
     placement_pins: Optional[Mapping[str, Any]] = None,
+    constraints_path: Optional[str | Path] = None,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -117,6 +155,14 @@ def build_weekly_schedule(
     trained posterior if present, else the declared assumption (so the exported
     schedule matches the live service). The frame is sorted by day then channel so
     the output is deterministic.
+
+    ``constraints_path`` points at a scoped placement-constraint CSV
+    (:mod:`kairos.optimize.constraints_store`); when set, or when the default
+    ``data/kairos_constraints.csv`` exists, each channel-day's segments are matched
+    against the stored constraints and the resolved placement pins / count pins /
+    forbids are passed into that channel-day's optimize_breaks call, so the
+    exported num_breaks honors the operator's scoped rules. With no file it is
+    unchanged, so the path is fully backward compatible.
     """
     pricing = pricing or PricingModel.from_yaml()
     assumptions = assumptions or OptimizerAssumptions()
@@ -130,6 +176,11 @@ def build_weekly_schedule(
     if overrides is None and OverrideSet.from_csv().overrides:
         overrides = OverrideSet.from_csv()
 
+    # Load scoped placement constraints once. When the caller gives an explicit
+    # path use it; otherwise fall back to the default file only when it exists, so
+    # a deployment with no constraints file behaves exactly as before.
+    constraints = _load_constraints(constraints_path)
+
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
         segments = build_segments_from_programmes(
@@ -138,9 +189,14 @@ def build_weekly_schedule(
         )
         if not segments:
             continue
+        # Resolve the scoped constraints against THIS channel-day's segments into
+        # the optimizer's primitives (placement pins, count pins, forbids). The
+        # explicit ``placement_pins`` argument, when given, is merged on top.
+        day_pins, day_overrides = _constraint_inputs(segments, constraints, overrides)
+        merged_pins = {**day_pins, **(placement_pins or {})}
         result = optimize_breaks(
             segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
-            overrides=overrides, placement_pins=placement_pins,
+            overrides=day_overrides, placement_pins=merged_pins or None,
         )
         plans = {plan.segment_id: plan for plan in result.segments}
         for segment in segments:

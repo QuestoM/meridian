@@ -89,6 +89,12 @@ def conservative_impact(
         raise ValueError("risk_lambda must be non-negative")
     if risk_lambda == 0.0:
         return min(0.0, point)
+    # NaN guard runs on each raw bound first: a non-finite interval must degrade to
+    # the point estimate before any clamping. Each value is tested on its own via the
+    # self-inequality trick, because min(0.0, nan) silently erases the NaN and
+    # min(nan, x) depends on argument order, so a combined min() can miss it.
+    if ci_low != ci_low or ci_high != ci_high or point != point:  # NaN guard
+        return min(0.0, point)
     # The coefficient domain is non-positive (a break cannot raise retention), so
     # the credible interval on it must be non-positive too. Clamp both bounds to
     # <= 0 so a positive (gain-side) upper bound cannot inflate the variance penalty
@@ -96,8 +102,6 @@ def conservative_impact(
     ci_low = min(0.0, ci_low)
     ci_high = min(0.0, ci_high)
     low = min(ci_low, ci_high)
-    if not (low == low) or not (point == point):  # NaN guard
-        return min(0.0, point)
     # The worst plausible cost is the most damaging (most negative) of the two
     # credible bounds and the point itself, so a point below its own interval is
     # never ignored.

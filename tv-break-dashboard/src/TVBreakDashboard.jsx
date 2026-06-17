@@ -62,6 +62,7 @@ import {
 
 import UploadCenter from './UploadCenter';
 import AdvertisersManager from './AdvertisersManager';
+import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -1342,7 +1343,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Schedule') {
-      return <SchedulePage {...common} />;
+      return <SchedulePage {...common} onRecompute={handleRecomputeSchedule} recomputeState={recomputeState} />;
     }
 
     if (activeView === 'Inventory') {
@@ -1386,6 +1387,7 @@ function TVBreakDashboard() {
         onSave={persistSettings}
         onRecompute={handleRecomputeSchedule}
         recomputeState={recomputeState}
+        notify={notify}
       />
     );
   }
@@ -2054,7 +2056,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
   );
 }
 
-function SchedulePage({ schedule, copy, locale, notify }) {
+function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState }) {
   const rows = normalizeRows(schedule.break_schedule);
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
@@ -2123,6 +2125,15 @@ function SchedulePage({ schedule, copy, locale, notify }) {
             >
               {copy.toolbar[1]}
             </Button>
+            <Button
+              className={scheduleMode === 'editor' ? 'segmented active' : 'segmented'}
+              type="button"
+              variant="outlined"
+              aria-pressed={scheduleMode === 'editor'}
+              onClick={() => setScheduleMode('editor')}
+            >
+              {pageText(locale, 'Editor', 'עורך')}
+            </Button>
           </div>
           <div className="toolbar-right">
             {scheduleMode === 'grid' && (
@@ -2155,6 +2166,14 @@ function SchedulePage({ schedule, copy, locale, notify }) {
             locale={locale}
             selectedProgramKey={selectedProgramKey}
             onSelectProgram={handleSelectProgram}
+          />
+        ) : scheduleMode === 'editor' ? (
+          <ScheduleEditor
+            schedule={schedule}
+            locale={locale}
+            notify={notify}
+            onRecompute={onRecompute}
+            recomputeState={recomputeState}
           />
         ) : (
           <DaypartView
@@ -3428,7 +3447,7 @@ function ComplianceLedger({ compliance, copy, locale }) {
   );
 }
 
-function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute, recomputeState }) {
+function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -3664,6 +3683,13 @@ function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute,
             <NumberControl label={copy.dailyCap} value={draft.max_daily_ad_minutes} onChange={(value) => updateNumber('max_daily_ad_minutes', value)} suffix="min" />
           </div>
         </section>
+
+        <ConstraintBuilder
+          locale={locale}
+          notify={notify || (() => {})}
+          onRecompute={onRecompute}
+          recomputeState={recomputeState}
+        />
       </div>
     </section>
   );
