@@ -1814,6 +1814,15 @@ def parameters() -> dict[str, Any]:
 
         metadata = read_coefficients_metadata(MODELS_DIR / "tv_break_coefficients.json")
         payload["coefficient_freshness"] = coefficient_freshness(metadata, root=ROOT)
+        # Surface the self-activating first-break retention lever from the measured
+        # coefficients metadata so the dashboard can show, honestly, when a show's
+        # first break is charged extra retention cost. Off (multiplier 1.0) when the
+        # gate found no real first-break contrast.
+        payload["first_break_active"] = bool(metadata.get("first_break_active", False))
+        try:
+            payload["first_break_multiplier"] = float(metadata.get("first_break_multiplier", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            payload["first_break_multiplier"] = 1.0
     except Exception as exc:  # pragma: no cover - defensive, never blocks parameters
         payload["coefficient_freshness"] = {
             "status": "unknown",
@@ -1821,6 +1830,8 @@ def parameters() -> dict[str, Any]:
             "changed_files": [],
             "reason": f"freshness check unavailable: {str(exc)[:160]}",
         }
+        payload["first_break_active"] = False
+        payload["first_break_multiplier"] = 1.0
     return payload
 
 
