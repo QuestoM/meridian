@@ -33,6 +33,7 @@ try:
     from dataclasses import asdict as _asdict
 
     from kairos.data.loaders import CHANNELS as KAIROS_CHANNELS
+    from kairos.export.schedule import build_weekly_schedule, write_weekly_schedule
     from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
     from kairos.service import guardrails_from_settings, optimize_day_plan, run_scenario
 
@@ -96,6 +97,12 @@ class KairosSettings(BaseModel):
     currency: str = "ILS"
     effective_date: str = "2026-06-14"
     regulatory_source_url: str = "https://www.rashut2.org.il/"
+    # The single most important lever: how the optimizer balances ad revenue
+    # against viewer retention. 0 protects retention only (places no breaks),
+    # 100 chases revenue only (fills to the guardrails); 60 is a revenue-leaning
+    # balance. Persisted here so the operator's choice drives the saved weekly
+    # schedule, the frontier, and the forecasts, not just a transient simulation.
+    revenue_weight: int = Field(default=60, ge=0, le=100)
     max_ad_minutes_per_hour: float = Field(default=12.0, ge=0, le=60)
     max_breaks_per_hour: int = Field(default=4, ge=1, le=20)
     min_break_spacing_minutes: int = Field(default=7, ge=0, le=120)
@@ -631,7 +638,16 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
 
 
 def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
-    request = request or ScenarioRequest()
+    if request is None:
+        # The default plan is the operator's SAVED decision, not a static default:
+        # it honors the persisted revenue/retention balance, floor, and risk.
+        saved = _load_settings()
+        request = ScenarioRequest(
+            revenue_weight=saved.revenue_weight,
+            retention_floor=saved.min_retention_floor,
+            max_breaks_per_hour=saved.max_breaks_per_hour,
+            risk_lambda=saved.risk_lambda,
+        )
     if not _ENGINE_AVAILABLE:
         return {
             "summary": {
@@ -694,7 +710,7 @@ def _build_frontier(settings: KairosSettings) -> list[dict[str, Any]]:
     saved revenue_weight is marked ``selected``. If no plan can be computed the
     list is empty (an honest empty state, never a fabricated curve).
     """
-    saved_weight = int(round(OptimizerAssumptions().revenue_weight * 100))
+    saved_weight = settings.revenue_weight
     weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
     points: list[dict[str, Any]] = []
     for weight in weights:
@@ -1125,7 +1141,7 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
     current plan). 'Retention guardrail' leans retention-first, 'Revenue priority'
     leans revenue-first, 'Balanced' uses the saved weight; each value comes from
     :func:`kairos.service.run_scenario`. Empty (honest) when no plan computes."""
-    saved_weight = int(round(OptimizerAssumptions().revenue_weight * 100))
+    saved_weight = settings.revenue_weight
     named = [
         ("Retention guardrail", "ריסון לטובת צפייה", 20),
         ("Balanced", "מאוזן", saved_weight),
@@ -1364,6 +1380,176 @@ def get_settings() -> dict[str, Any]:
 @app.put("/api/settings")
 def update_settings(settings: KairosSettings) -> dict[str, Any]:
     return _model_dump(_save_settings(settings))
+
+
+@app.get("/api/settings/controls")
+def settings_controls() -> dict[str, Any]:
+    """Describe the operator-tunable optimizer levers and the named templates.
+
+    The dashboard renders its controls panel from this schema so every knob has a
+    clear label (Hebrew and English), help text, a default, and bounds, and so the
+    presets ("setups"/templates) stay in one authoritative place instead of being
+    hardcoded in the frontend. The ``current`` block is the operator's saved value,
+    so the panel opens on the real state, not a guess.
+    """
+    saved = _load_settings()
+    levers = [
+        {
+            "key": "revenue_weight",
+            "label_he": "איזון הכנסה מול צפייה",
+            "label_en": "Revenue vs retention balance",
+            "help_he": (
+                "הלֶבֶר המרכזי: כמה לרדוף אחרי הכנסת פרסום מול שמירה על הצופים. "
+                "0 שומר על הצפייה בלבד (כמעט בלי הפסקות), 100 ממקסם הכנסה עד גבול הרגולציה, "
+                "60 הוא איזון נוטה-להכנסה. הערך הזה מניע את הלוח השבועי, גבול היעילות והתחזיות."
+            ),
+            "help_en": (
+                "The central lever: how hard to chase ad revenue versus protecting viewers. "
+                "0 protects retention only (almost no breaks), 100 maximizes revenue up to the "
+                "regulatory guardrails, 60 is a revenue-leaning balance. This drives the weekly "
+                "schedule, the efficiency frontier, and the forecasts."
+            ),
+            "default": 60,
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "unit": "%",
+        },
+        {
+            "key": "risk_lambda",
+            "label_he": "זהירות מול אי-ודאות",
+            "label_en": "Uncertainty caution",
+            "help_he": (
+                "כמה להעניש עלות צפייה לא-ודאית. 0 משתמש באומדן הנקודתי (התנהגות רגילה), "
+                "1 מתמחר את התרחיש הגרוע ביותר בטווח הסביר. מעלה זהירות כשהמדידה רועשת."
+            ),
+            "help_en": (
+                "How much to penalize an uncertain retention cost. 0 uses the point estimate "
+                "(normal behavior), 1 prices the worst plausible cost in the interval. Raise it to "
+                "stay cautious where the measurement is noisy."
+            ),
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "unit": "",
+        },
+        {
+            "key": "min_retention_floor",
+            "label_he": "רצפת צפייה מינימלית",
+            "label_en": "Minimum retention floor",
+            "help_he": (
+                "אף הפסקה לא תיבחר אם היא מורידה את הצפייה הצפויה מתחת לרצף הזה. "
+                "מגן על הנכס לטווח ארוך גם כשהלֶבֶר נוטה להכנסה."
+            ),
+            "help_en": (
+                "No break is chosen if it pushes predicted retention below this floor. Protects the "
+                "long-term asset even when the balance lever leans toward revenue."
+            ),
+            "default": 0.72,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "unit": "",
+        },
+        {
+            "key": "max_breaks_per_hour",
+            "label_he": "מקסימום הפסקות לשעה",
+            "label_en": "Max breaks per hour",
+            "help_he": "תקרת מספר ההפסקות בכל שעת שידור. כבול לרגולציה ולמדיניות המכירה.",
+            "help_en": "Ceiling on breaks in any broadcast hour. Bound by regulation and sales policy.",
+            "default": 4,
+            "min": 1,
+            "max": 20,
+            "step": 1,
+            "unit": "",
+        },
+    ]
+    templates = [
+        {
+            "key": "balanced",
+            "label_he": "מאוזן",
+            "label_en": "Balanced",
+            "description_he": "ברירת המחדל: נוטה-להכנסה אך שומר על הצופים.",
+            "description_en": "The default: revenue-leaning but protective of viewers.",
+            "values": {"revenue_weight": 60, "risk_lambda": 0.0, "min_retention_floor": 0.72},
+        },
+        {
+            "key": "revenue_priority",
+            "label_he": "עדיפות להכנסה",
+            "label_en": "Revenue priority",
+            "description_he": "ממקסם הכנסת פרסום עד גבול הרגולציה. לשבועות מכירה חזקים.",
+            "description_en": "Maximizes ad revenue up to the guardrails. For strong sales weeks.",
+            "values": {"revenue_weight": 85, "risk_lambda": 0.0, "min_retention_floor": 0.70},
+        },
+        {
+            "key": "retention_guardrail",
+            "label_he": "שמירה על צפייה",
+            "label_en": "Retention guardrail",
+            "description_he": "מגן על הצופים: פחות הפסקות, רצפת צפייה גבוהה.",
+            "description_en": "Protects viewers: fewer breaks, a higher retention floor.",
+            "values": {"revenue_weight": 35, "risk_lambda": 0.0, "min_retention_floor": 0.78},
+        },
+        {
+            "key": "conservative_uncertainty",
+            "label_he": "זהיר באי-ודאות",
+            "label_en": "Conservative under uncertainty",
+            "description_he": "מתמחר את התרחיש הגרוע ביותר של עלות הצפייה. לערוצים עם מדידה רועשת.",
+            "description_en": "Prices the worst-case retention cost. For channels with noisy measurement.",
+            "values": {"revenue_weight": 60, "risk_lambda": 1.0, "min_retention_floor": 0.74},
+        },
+    ]
+    current = {
+        "revenue_weight": saved.revenue_weight,
+        "risk_lambda": saved.risk_lambda,
+        "min_retention_floor": saved.min_retention_floor,
+        "max_breaks_per_hour": saved.max_breaks_per_hour,
+    }
+    return {"levers": levers, "templates": templates, "current": current}
+
+
+@app.post("/api/recompute-schedule")
+def recompute_schedule() -> dict[str, Any]:
+    """Rebuild ``output/weekly_break_schedule.csv`` from the saved settings.
+
+    This is the button that makes the operator's controls real: it runs the engine
+    across every channel-day with the saved revenue_weight, risk_lambda, retention
+    floor and guardrails, then overwrites the CSV the dashboard's main screens read.
+    Without it, changing a setting only affected the live simulation, not the saved
+    schedule. Returns a summary so the operator sees the recompute landed.
+    """
+    if not _ENGINE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Optimization engine is not available")
+    saved = _load_settings()
+    settings_map = _model_dump(saved)
+    try:
+        frame = build_weekly_schedule(
+            settings=settings_map,
+            revenue_weight=saved.revenue_weight / 100.0,
+            risk_lambda=saved.risk_lambda,
+        )
+    except Exception as exc:  # pragma: no cover - surfaced honestly to the operator
+        logger.exception("recompute-schedule failed")
+        raise HTTPException(status_code=500, detail=f"recompute failed: {exc}") from exc
+    if frame.empty:
+        raise HTTPException(
+            status_code=422,
+            detail="No segments produced (is data/reference/Programmes.xlsx present?)",
+        )
+    path = write_weekly_schedule(frame=frame)
+    # The cached reader keys on mtime+size, but clear it so the next GET is fresh.
+    _read_csv_cached.cache_clear()
+    return {
+        "ok": True,
+        "path": str(path),
+        "rows": int(len(frame)),
+        "channels": int(frame["channel"].nunique()),
+        "days": int(frame["date"].nunique()),
+        "total_breaks": int(frame["num_breaks"].sum()),
+        "total_revenue": round(float(frame["predicted_revenue"].sum()), 2),
+        "revenue_weight": saved.revenue_weight,
+        "risk_lambda": saved.risk_lambda,
+    }
 
 
 @app.get("/api/compliance")

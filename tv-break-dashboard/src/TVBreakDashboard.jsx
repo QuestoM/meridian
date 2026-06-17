@@ -1060,6 +1060,7 @@ function TVBreakDashboard() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [settings, setSettings] = useState(overview.settings || fallbackSettings);
   const [saveState, setSaveState] = useState('idle');
+  const [recomputeState, setRecomputeState] = useState('idle');
   const [optimizationState, setOptimizationState] = useState('idle');
   const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
@@ -1221,7 +1222,11 @@ function TVBreakDashboard() {
   }
 
   function scenarioControls() {
-    const revenueWeight = scenario === 'Revenue priority' ? 85 : scenario === 'Retention guardrail' ? 35 : 60;
+    // The "Balanced" scenario follows the operator's saved revenue_weight so the
+    // simulation opens on their real choice, not a hardcoded default.
+    const savedWeight = finiteNumber(settings.revenue_weight);
+    const balanced = Number.isFinite(savedWeight) ? savedWeight : 60;
+    const revenueWeight = scenario === 'Revenue priority' ? 85 : scenario === 'Retention guardrail' ? 35 : balanced;
     return {
       revenue_weight: revenueWeight,
       retention_floor: settings.min_retention_floor,
@@ -1270,6 +1275,25 @@ function TVBreakDashboard() {
       window.setTimeout(() => setSaveState('idle'), 1800);
     } catch {
       setSaveState('error');
+    }
+  }
+
+  async function handleRecomputeSchedule() {
+    setRecomputeState('running');
+    try {
+      const response = await fetch(`${API_BASE}/api/recompute-schedule`, { method: 'POST' });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const result = await response.json();
+      setRecomputeState('done');
+      notify(
+        `Weekly schedule recomputed: ${formatNumber(result.total_breaks || 0, locale)} breaks, ${formatNumber(Math.round(result.total_revenue || 0), locale)} ILS.`,
+        `הלוח השבועי חושב מחדש: ${formatNumber(result.total_breaks || 0, locale)} ברייקים, ${formatNumber(Math.round(result.total_revenue || 0), locale)} ש"ח.`,
+      );
+      window.setTimeout(() => setRecomputeState('idle'), 2400);
+    } catch {
+      setRecomputeState('error');
+      notify('Recompute failed. The saved schedule is unchanged.', 'החישוב מחדש נכשל. הלוח השמור לא השתנה.');
+      window.setTimeout(() => setRecomputeState('idle'), 2400);
     }
   }
 
@@ -1360,6 +1384,8 @@ function TVBreakDashboard() {
         locale={locale}
         saveState={saveState}
         onSave={persistSettings}
+        onRecompute={handleRecomputeSchedule}
+        recomputeState={recomputeState}
       />
     );
   }
@@ -3402,7 +3428,7 @@ function ComplianceLedger({ compliance, copy, locale }) {
   );
 }
 
-function SettingsPanel({ settings, copy, locale, saveState, onSave }) {
+function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute, recomputeState }) {
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -3417,6 +3443,30 @@ function SettingsPanel({ settings, copy, locale, saveState, onSave }) {
     const parsed = Number(value);
     updateField(field, Number.isFinite(parsed) ? parsed : 0);
   }
+
+  function applyTemplate(values) {
+    setDraft((current) => ({ ...current, ...values }));
+  }
+
+  const he = locale === 'he';
+  // The named setups (templates) that snap the levers to a known posture. Kept
+  // in sync with GET /api/settings/controls so the dashboard and the engine
+  // agree on what each preset means.
+  const optimizerTemplates = [
+    { key: 'balanced', label: he ? 'מאוזן' : 'Balanced', desc: he ? 'נוטה-להכנסה אך שומר על הצופים' : 'Revenue-leaning, viewer-protective', values: { revenue_weight: 60, risk_lambda: 0, min_retention_floor: 0.72 } },
+    { key: 'revenue', label: he ? 'עדיפות להכנסה' : 'Revenue priority', desc: he ? 'ממקסם הכנסה עד גבול הרגולציה' : 'Maximize revenue to the guardrails', values: { revenue_weight: 85, risk_lambda: 0, min_retention_floor: 0.70 } },
+    { key: 'retention', label: he ? 'שמירה על צפייה' : 'Retention guardrail', desc: he ? 'פחות הפסקות, רצפת צפייה גבוהה' : 'Fewer breaks, higher floor', values: { revenue_weight: 35, risk_lambda: 0, min_retention_floor: 0.78 } },
+    { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מתמחר את התרחיש הגרוע ביותר' : 'Prices the worst-case cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
+  ];
+  const revenueWeight = Number.isFinite(finiteNumber(draft.revenue_weight)) ? finiteNumber(draft.revenue_weight) : 60;
+  const recomputeText =
+    recomputeState === 'running'
+      ? (he ? 'מחשב מחדש...' : 'Recomputing...')
+      : recomputeState === 'done'
+        ? (he ? 'הלוח עודכן' : 'Schedule updated')
+        : recomputeState === 'error'
+          ? (he ? 'החישוב נכשל' : 'Recompute failed')
+          : (he ? 'חשב מחדש את הלוח השבועי' : 'Recompute weekly schedule');
 
   const protectedTypes = (draft.protected_program_types || []).join(', ');
   const statusText =
@@ -3443,6 +3493,69 @@ function SettingsPanel({ settings, copy, locale, saveState, onSave }) {
       </div>
 
       <div className="settings-grid">
+        <section className="settings-panel wide">
+          <div className="settings-panel-head">
+            <div>
+              <h2>{he ? 'איזון האופטימיזציה' : 'Optimizer balance'}</h2>
+              <p>{he ? 'הלֶבֶר המרכזי שמניע את הלוח, גבול היעילות והתחזיות' : 'The central lever that drives the schedule, frontier, and forecasts'}</p>
+            </div>
+            <SlidersHorizontal size={18} />
+          </div>
+          <div className="optimizer-balance">
+            <p className="optimizer-balance-help">
+              {he
+                ? 'כמה לרדוף אחרי הכנסת פרסום מול שמירה על הצופים. 0 שומר על הצפייה בלבד (כמעט בלי הפסקות), 100 ממקסם הכנסה עד גבול הרגולציה, 60 הוא איזון נוטה-להכנסה (ברירת המחדל).'
+                : 'How hard to chase ad revenue versus protecting viewers. 0 protects retention only (almost no breaks), 100 maximizes revenue up to the regulatory guardrails, 60 is a revenue-leaning balance (the default).'}
+            </p>
+            <div className="optimizer-balance-slider">
+              <span>{he ? 'צפייה' : 'Retention'}</span>
+              <Slider
+                value={revenueWeight}
+                min={0}
+                max={100}
+                step={5}
+                marks={[{ value: 0 }, { value: 60, label: he ? 'דיפולט' : 'default' }, { value: 100 }]}
+                valueLabelDisplay="on"
+                onChange={(_event, value) => updateField('revenue_weight', Array.isArray(value) ? value[0] : value)}
+              />
+              <span>{he ? 'הכנסה' : 'Revenue'}</span>
+            </div>
+            <div className="optimizer-templates">
+              {optimizerTemplates.map((template) => {
+                const active = revenueWeight === template.values.revenue_weight && finiteNumber(draft.risk_lambda) === template.values.risk_lambda;
+                return (
+                  <button
+                    key={template.key}
+                    type="button"
+                    className={`optimizer-template${active ? ' is-active' : ''}`}
+                    onClick={() => applyTemplate(template.values)}
+                  >
+                    <strong>{template.label}</strong>
+                    <small>{template.desc}</small>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="optimizer-recompute">
+              <p>
+                {he
+                  ? 'שמור את ההגדרות, ואז חשב מחדש את הלוח השבועי כדי שהמסכים יראו את ההחלטה החדשה.'
+                  : 'Save the settings, then recompute the weekly schedule so the screens reflect the new decision.'}
+              </p>
+              <Button
+                type="button"
+                variant="outlined"
+                className="run-button"
+                disabled={recomputeState === 'running'}
+                onClick={() => onRecompute && onRecompute()}
+              >
+                <RefreshCcw size={15} />
+                {recomputeText}
+              </Button>
+            </div>
+          </div>
+        </section>
+
         <section className="settings-panel wide">
           <div className="settings-panel-head">
             <div>

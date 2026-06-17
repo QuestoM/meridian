@@ -48,9 +48,18 @@ def main() -> int:
     print("Building the real weekly break schedule from the reference data ...")
     settings = _load_settings()
     risk_lambda = float(settings.get("risk_lambda", 0.0) or 0.0)
-    print(f"  using saved settings (risk_lambda={risk_lambda}, "
+    # revenue_weight is stored 0..100 in KairosSettings; the optimizer takes 0..1.
+    # Thread the operator's saved choice through so the exported schedule reflects
+    # the revenue-vs-retention balance they selected, not the engine default (0.5).
+    raw_weight = settings.get("revenue_weight")
+    revenue_weight = float(raw_weight) / 100.0 if raw_weight is not None else None
+    print(f"  using saved settings (revenue_weight={raw_weight}, risk_lambda={risk_lambda}, "
           f"retention_floor={settings.get('min_retention_floor', 'default')})")
-    frame = build_weekly_schedule(settings=settings or None, risk_lambda=risk_lambda)
+    frame = build_weekly_schedule(
+        settings=settings or None,
+        revenue_weight=revenue_weight,
+        risk_lambda=risk_lambda,
+    )
     if frame.empty:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")
         return 1

@@ -2221,6 +2221,88 @@ button {
   gap: 12px;
 }
 
+.optimizer-balance {
+  display: grid;
+  gap: 16px;
+}
+
+.optimizer-balance-help {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.optimizer-balance-slider {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 6px 4px;
+}
+
+.optimizer-balance-slider > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.optimizer-templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.optimizer-template {
+  display: grid;
+  gap: 4px;
+  text-align: inherit;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.optimizer-template:hover {
+  border-color: var(--accent, #7c5cff);
+}
+
+.optimizer-template.is-active {
+  border-color: var(--accent, #7c5cff);
+  background: rgba(124, 92, 255, 0.12);
+}
+
+.optimizer-template strong {
+  font-size: 13px;
+}
+
+.optimizer-template small {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.optimizer-recompute {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.optimizer-recompute p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 360px;
+}
+
 .settings-panel label,
 .number-control,
 .toggle-control {
