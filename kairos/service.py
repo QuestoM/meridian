@@ -27,6 +27,8 @@ from kairos.data.transform import (
 )
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.observability.run_log import build_run_record, write_run_log
+from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
+from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.objective import clamp
 from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
@@ -234,9 +236,14 @@ def optimize_day_plan(
             programmes, classifier, pricing,
             assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
         )
+    # Demand weights: always computed, self-neutralizing when the advertiser
+    # CSVs carry no matching rules (every weight is 1.0, output byte-identical).
+    demand_engine = AdvertiserRuleEngine.from_files()
+    demand_weights = build_demand_weights(segments, demand_engine)
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk,
         overrides=overrides, placement_pins=placement_pins,
+        demand_weights=demand_weights,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)
@@ -304,9 +311,13 @@ def run_scenario(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
+    # Demand weights: always computed, self-neutralizing when no rules match.
+    demand_engine = AdvertiserRuleEngine.from_files()
+    demand_weights = build_demand_weights(segments, demand_engine)
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
         overrides=overrides, placement_pins=placement_pins,
+        demand_weights=demand_weights,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)

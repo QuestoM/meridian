@@ -27,6 +27,8 @@ from kairos.data import ProgramClassifier
 from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
 from kairos.model.impact import ImpactModel, load_impact_model
+from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
+from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.overrides import OverrideSet
@@ -181,6 +183,10 @@ def build_weekly_schedule(
     # a deployment with no constraints file behaves exactly as before.
     constraints = _load_constraints(constraints_path)
 
+    # Build the advertiser rule engine once for the whole schedule. Self-neutralizing:
+    # when the CSVs carry no matching rules every weight is 1.0 (identity).
+    demand_engine = AdvertiserRuleEngine.from_files()
+
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
         segments = build_segments_from_programmes(
@@ -194,9 +200,12 @@ def build_weekly_schedule(
         # explicit ``placement_pins`` argument, when given, is merged on top.
         day_pins, day_overrides = _constraint_inputs(segments, constraints, overrides)
         merged_pins = {**day_pins, **(placement_pins or {})}
+        # Demand weights: always computed per channel-day, self-neutralizing.
+        demand_weights = build_demand_weights(segments, demand_engine)
         result = optimize_breaks(
             segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
             overrides=day_overrides, placement_pins=merged_pins or None,
+            demand_weights=demand_weights,
         )
         plans = {plan.segment_id: plan for plan in result.segments}
         for segment in segments:
