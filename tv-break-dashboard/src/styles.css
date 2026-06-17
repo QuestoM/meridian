@@ -4038,6 +4038,80 @@ button {
   color: var(--subtle);
 }
 
+/* ---- Coefficient freshness chip + first-break note (honesty signals) ---- */
+.coefficient-freshness {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coefficient-freshness-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.coefficient-freshness-chip {
+  font-size: 11px;
+  font-weight: 620;
+  border-radius: 4px;
+  padding: 3px 10px;
+  background: #f0f2f5;
+  color: var(--muted);
+}
+
+.coefficient-freshness.fresh .coefficient-freshness-chip {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.coefficient-freshness.stale .coefficient-freshness-chip {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.coefficient-freshness.unknown .coefficient-freshness-chip {
+  background: #f0f2f5;
+  color: var(--muted);
+}
+
+.coefficient-freshness-date {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.coefficient-freshness-date .numeric {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.coefficient-freshness-detail p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 80ch;
+}
+
+.first-break-note {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  max-width: 80ch;
+}
+
+.first-break-note .numeric {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 /* ---- Predicate constraint builder (ConstraintBuilder.jsx) ---- */
 .cb-section-label {
   font-size: 11px;
