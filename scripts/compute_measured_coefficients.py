@@ -45,6 +45,7 @@ from kairos.model.measure import (
     between_cell_variance,
     break_effects,
     channel_coefficients,
+    first_break_gate,
     write_coefficients_json,
 )
 from kairos.model.freshness import COMPUTED_AT_KEY, FINGERPRINTS_KEY
@@ -125,6 +126,11 @@ def main() -> None:
         raise SystemExit("No breaks measured; refusing to write an empty coefficients file.")
     diagnostics = between_cell_variance(effects)
 
+    # First-break retention gate: measure whether the show's FIRST interruption
+    # sheds more audience than later breaks, and ship a multiplier (> 1.0) only
+    # when the contrast is large and significant. Off (1.0) otherwise.
+    fb_gate = first_break_gate(effects)
+
     # Series layer: ALWAYS compute, gate decides whether to emit.
     series_all = series_coefficients(effects)
 
@@ -173,6 +179,17 @@ def main() -> None:
         # Summary counts (unchanged from the old format).
         "series_layer": emit_series,
         "series_count": len(series_to_write),
+        # First-break retention gate: the multiplier the optimizer applies to the
+        # show's first break, plus the measured numbers and the gate's reason, so
+        # the decision is fully auditable from the JSON.
+        "first_break_multiplier": fb_gate["first_break_multiplier"],
+        "first_break_active": fb_gate["first_break_active"],
+        "first_break_n_first": fb_gate["first_break_n_first"],
+        "first_break_n_later": fb_gate["first_break_n_later"],
+        "first_break_mean_first": fb_gate["first_break_mean_first"],
+        "first_break_mean_later": fb_gate["first_break_mean_later"],
+        "first_break_p_value": fb_gate["first_break_p_value"],
+        "first_break_reason": fb_gate["first_break_reason"],
     }
     # Freshness stamp: when these coefficients were computed and a sha256 of every
     # source file they were measured from. The freshness checker
@@ -193,6 +210,7 @@ def main() -> None:
     print(f"  pooling: {diagnostics['method']}, tau^2={diagnostics['tau2']:.5g}, "
           f"learned pseudo-count={diagnostics['pseudo_count']}")
     print(f"  series gate: {gate['series_gate_reason']}")
+    print(f"  first-break gate: {fb_gate['first_break_reason']}")
     if emit_series:
         print(f"  series layer ACTIVE: {len(series_to_write)} (cell, series) records emitted")
     else:

@@ -369,6 +369,43 @@ and stripped from the inference path. Violating this boundary would leak
 unavailable information and produce a model that cannot be deployed honestly. This
 is design, not yet built.
 
+### Stage 3b (SHIPPED): first-break-aware retention cost
+
+One-line summary: the show's FIRST interruption sheds materially more audience
+than its later breaks, so the first break of each programme carries an extra,
+measured, self-activating retention cost.
+
+This is distinct from `break_position` in the 36-cell taxonomy, which is the
+first/middle/last SPOT WITHIN a single break, not the first/middle/last BREAK
+OF THE SHOW. The ordinal of a break within its containing programme is recovered
+in `prepare.py` (`programme_ordinals`): each detected break is matched to the
+programme whose start/end span contains it, then breaks are numbered by air time
+per programme. On the reference data this matches 99.7 percent of breaks.
+
+The measurement (`measure.py` `first_break_gate`) compares the detrended log
+effect of first breaks (ordinal 1) against later breaks (ordinal >= 2), using the
+same broadcast-minute baseline detrending as every other coefficient, so the
+contrast is not a baseline artifact. On the reference data first breaks shed
+about 1.95 times the all-breaks cost (n_first=1468, n_later=3081, Welch two-sided
+p approximately 9e-8). The gate ships a `first_break_multiplier > 1.0` only when
+the contrast is large (multiplier >= 1.10), significant (p < 0.01), and backed by
+enough breaks (>= 200), capped at 2.0; otherwise it stays at 1.0 (off). The
+decision and its numbers are written to the coefficients JSON metadata
+(`first_break_multiplier`, `first_break_active`, `first_break_n_first`,
+`first_break_n_later`, `first_break_p_value`, `first_break_reason`) so any reader
+can audit it, exactly like the series gate.
+
+The optimizer applies it in `_segment_retention`, the single chokepoint all
+retention math flows through: at `k >= 1` it charges one extra delta of
+`impact_coefficient * (first_break_multiplier - 1.0)` once (not per break), so the
+first break of a loaded segment costs more while every later break is unchanged.
+When the multiplier is 1.0 the result is byte-identical to the base linear model.
+The value reaches the optimizer through `OptimizerAssumptions.first_break_multiplier`,
+folded from the JSON metadata in `schedule.py` (`_apply_first_break_multiplier`)
+and passed into both segment builders in `transform.py`. Reported revenue always
+uses the realised retention; the adjustment can only lower a borderline first
+break's value, never inflate revenue.
+
 ### Stage 4 (design only): non-linear retention in k
 
 One-line summary: examine whether the per-break cost saturates or compounds with

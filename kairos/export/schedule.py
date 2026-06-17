@@ -23,10 +23,13 @@ from typing import Any, Mapping, Optional
 
 import pandas as pd
 
+from dataclasses import replace
+
 from kairos.data import ProgramClassifier
 from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
 from kairos.model.impact import ImpactModel, load_impact_model
+from kairos.model.measure import read_coefficients_metadata
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
@@ -42,8 +45,34 @@ DEFAULT_OUTPUT_PATH = ROOT / "output" / "weekly_break_schedule.csv"
 # coefficients, matching what the live service returns. Falls back honestly to
 # the declared assumption when the file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
+DEFAULT_COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
 SECONDS_PER_MINUTE = 60
+
+
+def _apply_first_break_multiplier(assumptions: OptimizerAssumptions) -> OptimizerAssumptions:
+    """Return assumptions carrying the measured first-break multiplier from the JSON.
+
+    The build pipeline (:mod:`scripts.compute_measured_coefficients`) runs the
+    first-break gate and persists ``first_break_multiplier`` into the coefficients
+    JSON metadata: 1.0 when the gate did not earn a value, > 1.0 when the show's
+    first interruption measurably sheds more audience. We read it here and fold it
+    into the assumptions so the optimizer charges the first break its measured
+    extra cost. A missing or 1.0 value leaves the assumptions unchanged (off), so
+    the default behaviour and reported revenue are identical when nothing is
+    measured. An explicit operator override on the assumptions (anything above 1.0)
+    is respected and not lowered.
+    """
+    metadata = read_coefficients_metadata(DEFAULT_COEFFICIENTS_PATH)
+    measured = metadata.get("first_break_multiplier")
+    try:
+        measured_value = float(measured) if measured is not None else 1.0
+    except (TypeError, ValueError):
+        measured_value = 1.0
+    chosen = max(assumptions.first_break_multiplier, measured_value)
+    if chosen == assumptions.first_break_multiplier:
+        return assumptions
+    return replace(assumptions, first_break_multiplier=chosen)
 
 # Column order the dashboard's schedule readers expect (extra columns are
 # ignored by them, missing ones trigger the placeholder fallback we are killing).
@@ -195,6 +224,10 @@ def build_weekly_schedule(
         operator_channel = str(settings.get("operator_channel", "") or "")
     if impact_model is None:
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
+    # Fold the measured first-break multiplier (when the gate shipped one) into the
+    # assumptions, so the show's first break is charged its measured extra cost.
+    # Off (1.0) when the coefficients file has no value, so behaviour is unchanged.
+    assumptions = _apply_first_break_multiplier(assumptions)
     if programmes is None:
         programmes = load_programmes(programmes_path)
     if overrides is None and OverrideSet.from_csv().overrides:

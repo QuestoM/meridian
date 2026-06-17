@@ -236,6 +236,53 @@ def match_break_to_programme(
     return _OTHER, "middle"
 
 
+def programme_ordinals(
+    breaks: pd.DataFrame,
+    lookup: dict[tuple[str, str], list[dict[str, Any]]],
+) -> tuple[list[float], list[Optional[tuple]]]:
+    """Assign each break its 1-based ordinal WITHIN its containing programme.
+
+    For each break, find the programme on the same channel-day whose span contains
+    it (the same containment test :func:`match_break_to_programme` uses), then
+    number the breaks inside each programme by air time: the show's first
+    interruption is ordinal 1, the next 2, and so on. The ordinal is a different
+    semantic from ``break_position`` (which is first/middle/last SPOT within a
+    single break): this is first/middle/last BREAK of the show. A break inside no
+    matched programme gets ordinal ``nan`` and a ``None`` key, because "first break
+    of the show" is undefined without a show. Pure pandas, deterministic.
+
+    Returns ``(ordinals, prog_keys)`` aligned to ``breaks`` rows, where each key is
+    ``(channel, day, programme_index)`` so breaks of the same show share a key.
+    """
+    rows = []
+    for idx, row in enumerate(breaks.itertuples(index=False)):
+        channel = str(getattr(row, "channel"))
+        start = pd.Timestamp(getattr(row, "break_start"))
+        end = pd.Timestamp(getattr(row, "break_end"))
+        day = start.strftime("%Y-%m-%d")
+        key: Optional[tuple] = None
+        for prog_idx, record in enumerate(lookup.get((channel, day), [])):
+            s, e = record["start_dt"], record["end_dt"]
+            if pd.isna(s) or pd.isna(e):
+                continue
+            if s <= start and e >= end:
+                key = (channel, day, prog_idx)
+                break
+        rows.append({"row": idx, "key": key, "start": start})
+
+    ordinals: list[float] = [float("nan")] * len(breaks)
+    prog_keys: list[Optional[tuple]] = [None] * len(breaks)
+    frame = pd.DataFrame(rows)
+    matched = frame[frame["key"].notna()].copy()
+    if not matched.empty:
+        matched = matched.sort_values(["key", "start"])
+        matched["ordinal"] = matched.groupby("key").cumcount() + 1
+        for r in matched.itertuples(index=False):
+            ordinals[int(r.row)] = float(r.ordinal)
+            prog_keys[int(r.row)] = r.key
+    return ordinals, prog_keys
+
+
 def keyed_breaks(
     spots: pd.DataFrame,
     programmes: pd.DataFrame,
@@ -254,6 +301,10 @@ def keyed_breaks(
     columns = [
         "channel", "break_start", "break_end", "break_seconds", "num_spots",
         "program_type", "break_position", "break_length", "channel_name", "day",
+        # The break's ordinal WITHIN its programme (1 = the show's first
+        # interruption) and the programme key, so the first-break retention gate
+        # can contrast first vs later breaks without re-running detection.
+        "ordinal", "prog_key",
     ]
     if breaks.empty:
         return pd.DataFrame(columns=columns)
@@ -261,6 +312,7 @@ def keyed_breaks(
     lookup = pricing_class_lookup(
         programmes, classifier, news_keywords=news_keywords, num_main_shows=num_main_shows,
     )
+    ordinals, prog_keys = programme_ordinals(breaks, lookup)
 
     program_types: list[str] = []
     positions: list[str] = []
@@ -288,6 +340,8 @@ def keyed_breaks(
     breaks["break_length"] = lengths
     breaks["channel_name"] = names
     breaks["day"] = days
+    breaks["ordinal"] = ordinals
+    breaks["prog_key"] = prog_keys
     return breaks
 
 

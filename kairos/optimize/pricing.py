@@ -54,6 +54,11 @@ class OptimizerAssumptions:
     default_max_breaks: int = 4
     revenue_weight: float = 0.5
     risk_lambda: float = 0.0   # how conservatively to value an uncertain retention cost
+    # Extra retention cost charged to the FIRST break of a programme (the show's
+    # first interruption), as a multiplier on the per-break coefficient. Measured
+    # from the real airings; 1.0 is OFF (the show's first break costs the same as
+    # any later break) and is the safe default until the measurement earns a value.
+    first_break_multiplier: float = 1.0
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.retention_baseline <= 1.0:
@@ -68,6 +73,8 @@ class OptimizerAssumptions:
             raise ValueError("revenue_weight must be in [0, 1]")
         if not 0.0 <= self.risk_lambda <= 1.0:
             raise ValueError("risk_lambda must be in [0, 1]")
+        if self.first_break_multiplier < 1.0:
+            raise ValueError("first_break_multiplier must be >= 1.0 (an adjustment only adds cost)")
 
 
 @dataclass(frozen=True)

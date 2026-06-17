@@ -83,6 +83,7 @@ class ProgramSegment:
     impact_n: int = 0                             # real breaks behind the estimate
     impact_confidence: str = "low"                # high / medium / low label
     program_title: str = ""                       # programme Title, for cross-date matching
+    first_break_multiplier: float = 1.0           # extra retention cost on the show's first break
 
     @property
     def hour(self) -> int:
@@ -105,6 +106,8 @@ class ProgramSegment:
             raise ValueError(f"segment {self.segment_id}: unit_seconds must be positive")
         if not 0.0 <= self.retention_baseline <= 1.0:
             raise ValueError(f"segment {self.segment_id}: retention_baseline must be in [0, 1]")
+        if self.first_break_multiplier < 1.0:
+            raise ValueError(f"segment {self.segment_id}: first_break_multiplier must be >= 1.0")
 
 
 @dataclass(frozen=True)
@@ -241,7 +244,23 @@ def _risk_adjusted_coefficient(segment: ProgramSegment, risk_lambda: float) -> f
 
 
 def _segment_retention(segment: ProgramSegment, k: int) -> float:
-    return predicted_retention(segment.retention_baseline, segment.impact_coefficient, k)
+    """Retention of the segment once it carries ``k`` breaks.
+
+    The base model charges ``impact_coefficient`` once per break. When the
+    measured first-break adjustment is active (``first_break_multiplier > 1.0``),
+    the show's FIRST interruption sheds more audience than later ones, so its
+    coefficient is scaled by the multiplier while every later break keeps the base
+    coefficient. The extra cost is purely additive: ``coefficient * (multiplier -
+    1)`` is applied once when ``k >= 1``, so with a multiplier of 1.0 this is
+    exactly the original model and reported revenue is unchanged. This is the only
+    seam where the per-break coefficient enters retention, so the whole optimizer
+    (marginal value, guardrails, plan totals) sees the adjustment consistently.
+    """
+    retention = predicted_retention(segment.retention_baseline, segment.impact_coefficient, k)
+    if k >= 1 and segment.first_break_multiplier != 1.0:
+        extra = segment.impact_coefficient * (segment.first_break_multiplier - 1.0)
+        retention = predicted_retention(retention, extra, 1)
+    return retention
 
 
 def _marginal_revenue(

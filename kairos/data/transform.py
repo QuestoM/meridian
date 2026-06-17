@@ -136,6 +136,20 @@ def _segment_impact_kwargs(
     }
 
 
+def _first_break_multiplier(
+    impact_model: ImpactModel | None, assumptions: OptimizerAssumptions
+) -> float:
+    """The first-break retention-cost multiplier to apply to a segment.
+
+    The adjustment is a measured property of the airings, so it is only applied
+    when a trained impact model is present, mirroring how the per-break coefficient
+    itself flows. With no model the segment keeps the neutral 1.0 (off), so the
+    declared-assumption fallback path is unchanged. The value still lives on the
+    assumptions, so an operator can override it and the measurement can set it.
+    """
+    return assumptions.first_break_multiplier if impact_model is not None else 1.0
+
+
 SECONDS_PER_MINUTE = 60
 # Fallback programme length when the daily input gives no next programme to
 # bound the last one (the daily plan carries no explicit programme duration).
@@ -239,6 +253,7 @@ def build_segments_from_daily_input(
             premium=pricing.segment_premium(pricing_class=pricing_class, weekday_iso=_daily_weekday(day)),
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,
+            first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
         ))
     return segments
 
@@ -370,5 +385,6 @@ def build_segments_from_programmes(
             ),
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,
+            first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
         ))
     return segments

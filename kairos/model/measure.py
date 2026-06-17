@@ -210,6 +210,11 @@ def break_effects(
         # The programme Title behind each break, recovered from the programme span,
         # so the optional series layer can canonicalize it. Empty when unmatched.
         "title",
+        # The break's ordinal WITHIN its programme (1 = the show's first
+        # interruption) and the programme key, so the first-break retention gate
+        # can contrast first vs later breaks. NaN/None when the break is in no
+        # matched programme. Travels with each effect; never enters the pooling.
+        "ordinal", "prog_key",
     ]
     if breaks.empty:
         return pd.DataFrame(columns=columns)
@@ -256,10 +261,120 @@ def break_effects(
                 "break_start": start,
                 "break_end": end,
                 "title": _title_for_break(titles, channel, start, end),
+                "ordinal": getattr(row, "ordinal"),
+                "prog_key": getattr(row, "prog_key"),
             }
         )
 
     return pd.DataFrame(rows, columns=columns)
+
+
+# First-break gate. The first interruption of a programme sheds more audience
+# than later breaks; we only ship a multiplier when the contrast is large enough
+# and significant enough on the data, otherwise it stays 1.0 (off). These are
+# explicit, editable knobs, not hidden constants.
+_FIRST_BREAK_MIN_BREAKS = 200          # need this many measured breaks in each arm
+_FIRST_BREAK_MIN_P = 0.01              # two-sided p-value must beat this
+_FIRST_BREAK_MIN_MULTIPLIER = 1.10     # only ship if the lift is at least this
+_FIRST_BREAK_MAX_MULTIPLIER = 2.0      # cap so a thin, noisy cell cannot explode it
+
+
+def _normal_two_sided_p(t: float) -> float:
+    """Two-sided p-value for a t-statistic under the normal approximation."""
+    from math import erfc, sqrt
+    return float(erfc(abs(t) / sqrt(2.0)))
+
+
+def first_break_gate(effects: pd.DataFrame) -> dict[str, object]:
+    """Measure the first-break retention multiplier with an honest gate.
+
+    ``effects`` must carry the per-break ``log_effect`` (the detrended audience
+    hold) plus ``channel``, ``break_start`` and ``break_end`` so each break can be
+    assigned its ordinal WITHIN its programme. The first break of a programme (the
+    show's first interruption) is contrasted with every later break of the same
+    programme; the multiplier is ``delta_first / delta_all`` in retention-delta
+    space, anchored on the all-breaks coefficient the optimizer already charges.
+
+    The gate ships a value (> 1.0) ONLY when all hold: at least
+    :data:`_FIRST_BREAK_MIN_BREAKS` breaks in each arm, a two-sided p-value below
+    :data:`_FIRST_BREAK_MIN_P`, and an implied multiplier of at least
+    :data:`_FIRST_BREAK_MIN_MULTIPLIER` (capped at
+    :data:`_FIRST_BREAK_MAX_MULTIPLIER`). Otherwise it returns 1.0 (off), so a thin
+    or noisy month never invents a cost. The decision and its numbers are returned
+    for the JSON metadata so any reader can audit it. Deterministic: no clock, no
+    randomness, so the byte-stable JSON tests hold.
+    """
+    out: dict[str, object] = {
+        "first_break_multiplier": 1.0,
+        "first_break_active": False,
+        "first_break_n_first": 0,
+        "first_break_n_later": 0,
+        "first_break_mean_first": 0.0,
+        "first_break_mean_later": 0.0,
+        "first_break_p_value": 1.0,
+        "first_break_reason": "no break ordinal recoverable",
+    }
+    needed = {"log_effect", "ordinal"}
+    if effects.empty or not needed.issubset(effects.columns):
+        return out
+
+    matched = effects[effects["ordinal"].notna()]
+    if matched.empty:
+        return out
+    # Only programmes with >=2 measured breaks define a first-vs-later contrast.
+    counts = matched.groupby("prog_key")["ordinal"].transform("count")
+    multi = matched[counts >= 2]
+    first = multi[multi["ordinal"] == 1]["log_effect"].to_numpy()
+    later = multi[multi["ordinal"] >= 2]["log_effect"].to_numpy()
+
+    out["first_break_n_first"] = int(len(first))
+    out["first_break_n_later"] = int(len(later))
+    if len(first) < 2 or len(later) < 2:
+        out["first_break_reason"] = "too few breaks per arm to measure"
+        return out
+
+    mean_first = float(np.mean(first))
+    mean_later = float(np.mean(later))
+    out["first_break_mean_first"] = mean_first
+    out["first_break_mean_later"] = mean_later
+
+    var_first = float(np.var(first, ddof=1))
+    var_later = float(np.var(later, ddof=1))
+    se = float(np.sqrt(var_first / len(first) + var_later / len(later)))
+    t = (mean_first - mean_later) / se if se > 0 else 0.0
+    p = _normal_two_sided_p(t)
+    out["first_break_p_value"] = p
+
+    mean_all = float(np.mean(multi["log_effect"].to_numpy()))
+    delta_all = np.exp(mean_all) - 1.0
+    delta_first = np.exp(mean_first) - 1.0
+    # The multiplier only makes sense when the all-breaks cost is itself negative
+    # (the optimizer charges a retention cost there); a non-negative baseline has
+    # no cost to scale, so the lever stays off.
+    multiplier = (delta_first / delta_all) if delta_all < 0 else 1.0
+
+    enough = len(first) >= _FIRST_BREAK_MIN_BREAKS and len(later) >= _FIRST_BREAK_MIN_BREAKS
+    significant = p < _FIRST_BREAK_MIN_P
+    sizable = multiplier >= _FIRST_BREAK_MIN_MULTIPLIER
+    if enough and significant and sizable:
+        capped = min(_FIRST_BREAK_MAX_MULTIPLIER, multiplier)
+        out["first_break_multiplier"] = float(round(capped, 3))
+        out["first_break_active"] = True
+        out["first_break_reason"] = (
+            f"first-break shedding {multiplier:.2f}x the all-breaks cost "
+            f"(p={p:.4f}, n_first={len(first)}, n_later={len(later)}); "
+            f"shipped multiplier {out['first_break_multiplier']}"
+        )
+    else:
+        bits = []
+        if not enough:
+            bits.append(f"need >={_FIRST_BREAK_MIN_BREAKS} per arm")
+        if not significant:
+            bits.append(f"p={p:.4f} not < {_FIRST_BREAK_MIN_P}")
+        if not sizable:
+            bits.append(f"multiplier {multiplier:.2f} < {_FIRST_BREAK_MIN_MULTIPLIER}")
+        out["first_break_reason"] = "; ".join(bits) + "; multiplier left at 1.0 (off)"
+    return out
 
 
 def _cell_stats(effects: pd.DataFrame) -> list[tuple[str, int, float, float]]:
