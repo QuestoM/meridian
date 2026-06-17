@@ -4037,3 +4037,243 @@ button {
 .retention-cost-row-body span small {
   color: var(--subtle);
 }
+
+/* ---- Predicate constraint builder (ConstraintBuilder.jsx) ---- */
+.cb-section-label {
+  font-size: 11px;
+  font-weight: 720;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.cb-tree-root {
+  margin-bottom: 4px;
+}
+
+.cb-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px 12px 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.cb-group-nested {
+  border-color: #c4cdd8;
+  background: #f9fafb;
+  margin-top: 6px;
+}
+
+.cb-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.cb-combinator-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.cb-combinator-btn {
+  padding: 3px 10px;
+  border: 0;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.cb-combinator-btn:hover {
+  background: #f3f5f7;
+}
+
+.cb-combinator-btn.active {
+  background: #0d1b2a;
+  color: #ffffff;
+}
+
+.cb-group-body {
+  display: grid;
+  gap: 6px;
+}
+
+.cb-group-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+  margin-top: 2px;
+}
+
+.cb-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 620;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.cb-add-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.cb-rule-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.cb-value-cell {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.cb-delete-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.cb-delete-btn:hover {
+  background: #fde9e9;
+  color: #b3261e;
+}
+
+.cb-between-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cb-between-sep {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* chip input for "in" operators */
+.cb-chip-input {
+  position: relative;
+}
+
+.cb-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  border: 1px solid #c4cdd8;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 4px 7px;
+  cursor: text;
+}
+
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2f6;
+  border-radius: 4px;
+  padding: 2px 6px 2px 8px;
+  font-size: 11px;
+  font-weight: 620;
+  color: var(--ink);
+}
+
+.cb-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.cb-chip-remove:hover {
+  color: #b3261e;
+}
+
+.cb-chip-text {
+  flex: 1 1 80px;
+  min-width: 60px;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 12px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.cb-chip-options {
+  position: absolute;
+  top: calc(100% + 2px);
+  inset-inline-start: 0;
+  z-index: 20;
+  min-width: 160px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.cb-chip-option {
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.cb-chip-option:hover {
+  background: #f5f7f9;
+}
+
+/* Operator-channel note below the channel select */
+.cb-operator-channel-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}

@@ -1381,6 +1381,7 @@ function TVBreakDashboard() {
     return (
       <SettingsPanel
         settings={settings}
+        parameters={parameters}
         copy={copy}
         locale={locale}
         saveState={saveState}
@@ -3447,7 +3448,55 @@ function ComplianceLedger({ compliance, copy, locale }) {
   );
 }
 
-function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
+// OperatorChannelPanel: shows available_channels from /api/parameters and lets
+// the operator choose which channel they own. The selection is persisted via
+// the same PUT /api/settings path as all other settings.
+function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState }) {
+  const he = locale === 'he';
+  const availableChannels = normalizeRows(
+    parameters?.available_channels || parameters?.settings?.available_channels,
+  );
+  const currentChannel = settings?.operator_channel || '';
+
+  function handleChange(channel) {
+    onSave({ ...settings, operator_channel: channel });
+  }
+
+  return (
+    <section className="settings-panel wide">
+      <div className="settings-panel-head">
+        <div>
+          <h2>{he ? 'הערוץ שלך' : 'Your channel'}</h2>
+          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה.' : 'The channel this operator owns. Your constraints apply to this channel.'}</p>
+        </div>
+        <Tv size={18} />
+      </div>
+      <FormControl size="small" sx={{ minWidth: 220 }}>
+        <InputLabel id="operator-channel-label">{he ? 'ערוץ' : 'Channel'}</InputLabel>
+        <Select
+          labelId="operator-channel-label"
+          label={he ? 'ערוץ' : 'Channel'}
+          value={currentChannel}
+          displayEmpty
+          onChange={(e) => handleChange(e.target.value)}
+        >
+          <MenuItem value="">{he ? 'לא נבחר' : 'Not set'}</MenuItem>
+          {availableChannels.map((ch) => {
+            const val = typeof ch === 'string' ? ch : ch.key || ch.value || ch.name || String(ch);
+            return <MenuItem key={val} value={val}>{val}</MenuItem>;
+          })}
+        </Select>
+      </FormControl>
+      {currentChannel && (
+        <p className="cb-operator-channel-note">
+          {he ? `האילוצים החדשים יחולו על ערוץ "${currentChannel}".` : `New constraints will be scoped to channel "${currentChannel}".`}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -3683,6 +3732,14 @@ function SettingsPanel({ settings, copy, locale, saveState, onSave, onRecompute,
             <NumberControl label={copy.dailyCap} value={draft.max_daily_ad_minutes} onChange={(value) => updateNumber('max_daily_ad_minutes', value)} suffix="min" />
           </div>
         </section>
+
+        <OperatorChannelPanel
+          settings={draft}
+          parameters={parameters}
+          locale={locale}
+          onSave={onSave}
+          saveState={saveState}
+        />
 
         <ConstraintBuilder
           locale={locale}
