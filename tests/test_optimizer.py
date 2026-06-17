@@ -255,3 +255,91 @@ def test_risk_lambda_out_of_range_is_rejected() -> None:
         optimize_breaks([make_segment()], GR, risk_lambda=1.5)
     with pytest.raises(ValueError):
         optimize_breaks([make_segment()], GR, risk_lambda=-0.1)
+
+
+# ---------------------------------------------------------------------------
+# F1: the refinement pass recovers compliant allocations greedy cannot reach,
+# because re-spacing makes feasibility non-monotone in break count. The plan
+# the optimizer returns must be a true per-group optimum (exact where the box
+# is small) and must never leave an improving, compliant single-segment move on
+# the table.
+# ---------------------------------------------------------------------------
+
+from itertools import product as _product  # noqa: E402
+
+from kairos.optimize.guardrails import is_compliant as _is_compliant  # noqa: E402
+from kairos.optimize.optimizer import (  # noqa: E402
+    _EPSILON,
+    _group_breaks,
+    _group_objective_contribution,
+    _segment_revenue,
+)
+
+
+def _objective_inputs(segments):
+    revenue_scale = max(sum(_segment_revenue(s, s.max_breaks) for s in segments), _EPSILON)
+    total_tvr = sum(s.baseline_tvr for s in segments)
+    return revenue_scale, total_tvr
+
+
+def _brute_force_best(segments, guardrails, *, revenue_weight):
+    revenue_scale, total_tvr = _objective_inputs(segments)
+    ranges = [range(0, s.max_breaks + 1) for s in segments]
+    best_counts, best = None, float("-inf")
+    for vector in _product(*ranges):
+        counts = {s.segment_id: k for s, k in zip(segments, vector)}
+        if not _is_compliant(_group_breaks(segments, counts, {}), guardrails):
+            continue
+        value, _, _ = _group_objective_contribution(
+            segments, counts,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+        if value > best + _EPSILON:
+            best, best_counts = value, counts
+    return best_counts, best
+
+
+def test_optimizer_matches_brute_force_on_a_coupled_hour() -> None:
+    # Two programmes in the same channel-hour: the breaks-per-hour cap couples
+    # them, so the best split is a joint decision, not one break at a time.
+    guardrails = Guardrails(max_breaks_per_hour=3)
+    segments = [
+        make_segment(segment_id="a", start_seconds=20 * 3600.0, cpp=2000.0, impact_coefficient=-0.04),
+        make_segment(segment_id="b", start_seconds=20 * 3600.0 + 200.0, cpp=800.0, impact_coefficient=-0.04),
+    ]
+    result = optimize_breaks(segments, guardrails, revenue_weight=0.6)
+    best_counts, _ = _brute_force_best(segments, guardrails, revenue_weight=0.6)
+    got = {s.segment_id: s.num_breaks for s in result.segments}
+    assert got == best_counts
+    assert result.is_compliant
+
+
+def test_refined_plan_admits_no_improving_compliant_single_move() -> None:
+    # Whatever the optimizer returns, no single segment can change its break
+    # count to a compliant, strictly better objective: the never-regress property
+    # the refinement guarantees.
+    guardrails = Guardrails(max_breaks_per_hour=3)
+    segments = [
+        make_segment(segment_id="a", start_seconds=19 * 3600.0, cpp=1500.0, impact_coefficient=-0.05),
+        make_segment(segment_id="b", start_seconds=19 * 3600.0 + 300.0, cpp=1500.0, impact_coefficient=-0.05),
+        make_segment(segment_id="c", start_seconds=19 * 3600.0 + 600.0, cpp=1500.0, impact_coefficient=-0.05),
+    ]
+    result = optimize_breaks(segments, guardrails, revenue_weight=0.5)
+    assert result.is_compliant
+    revenue_scale, total_tvr = _objective_inputs(segments)
+    counts = {s.segment_id: s.num_breaks for s in result.segments}
+    base, _, _ = _group_objective_contribution(
+        segments, counts, revenue_weight=0.5, revenue_scale=revenue_scale, total_tvr=total_tvr,
+    )
+    for seg in segments:
+        for k in range(0, seg.max_breaks + 1):
+            if k == counts[seg.segment_id]:
+                continue
+            trial = dict(counts)
+            trial[seg.segment_id] = k
+            if not _is_compliant(_group_breaks(segments, trial, {}), guardrails):
+                continue
+            value, _, _ = _group_objective_contribution(
+                segments, trial, revenue_weight=0.5, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            )
+            assert value <= base + _EPSILON

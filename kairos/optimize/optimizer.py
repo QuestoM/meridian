@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, replace
+from itertools import product
 from typing import Iterable, Optional
 
 from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, is_compliant
@@ -44,6 +45,11 @@ from kairos.optimize.overrides import OverrideSet
 SECONDS_PER_HOUR = 3600.0
 DEFAULT_BREAK_LENGTH_SECONDS = 120.0  # a two-minute break, a common unit
 _EPSILON = 1e-9
+# Tier threshold for refining a channel-day's break counts: at or below this many
+# break-count vectors the group is enumerated for a provably global optimum; above
+# it (real schedules hold dozens of segments, so 5 ** segments is astronomical) the
+# group is refined by guardrail-aware local search seeded from the greedy result.
+_MAX_EXACT_COMBOS = 200_000
 
 
 @dataclass(frozen=True)
@@ -295,6 +301,244 @@ def _group_breaks(
     return breaks
 
 
+def _group_objective_contribution(
+    group: list[ProgramSegment],
+    counts: dict[str, int],
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+) -> tuple[float, float, float]:
+    """A channel-day's additive share of the global weighted objective.
+
+    The global objective is separable across segments: revenue is a sum of
+    per-segment revenue and the retention term is a tvr-weighted sum of
+    per-segment retention, both divided by the same global constants. So the
+    objective of the whole schedule equals the sum of every group's contribution
+    here, and the global optimum is reached by maximising each group on its own
+    (groups share no guardrail: every check in :mod:`kairos.optimize.guardrails`
+    is scoped to one channel-day or finer). Returns ``(contribution, revenue,
+    retention_weighted)`` so the caller can also roll the totals back up.
+    """
+    revenue = 0.0
+    retention_weighted = 0.0
+    for segment in group:
+        k = counts[segment.segment_id]
+        revenue += _segment_revenue(segment, k)
+        retention_weighted += segment.baseline_tvr * _segment_retention(segment, k)
+    revenue_term = revenue_weight * (revenue / revenue_scale)
+    retention_share = retention_weighted / total_tvr if total_tvr > _EPSILON else 1.0
+    retention_term = (1.0 - revenue_weight) * retention_share
+    return revenue_term + retention_term, revenue, retention_weighted
+
+
+def _enumerate_group_exact(
+    group: list[ProgramSegment],
+    ranges: list[range],
+    gold_by_id: dict[str, bool],
+    guardrails: Guardrails,
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+) -> dict[str, int]:
+    """Globally optimal compliant break counts by exhaustive enumeration.
+
+    Used only for groups small enough to enumerate (``<= _MAX_EXACT_COMBOS``
+    break-count vectors). Returns the counts that maximise the group's objective
+    contribution among all guardrail-compliant vectors in the box. The all-floors
+    vector is always compliant (verified upstream), so a result always exists.
+    """
+    best_counts: dict[str, int] = {s.segment_id: r.start for s, r in zip(group, ranges)}
+    best_contribution = float("-inf")
+    for vector in product(*ranges):
+        counts = {segment.segment_id: k for segment, k in zip(group, vector)}
+        if not is_compliant(_group_breaks(group, counts, gold_by_id), guardrails):
+            continue
+        contribution, _, _ = _group_objective_contribution(
+            group, counts,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+        if contribution > best_contribution + _EPSILON:
+            best_contribution = contribution
+            best_counts = counts
+    return best_counts
+
+
+def _local_search_group(
+    group: list[ProgramSegment],
+    seed_counts: dict[str, int],
+    floors: dict[str, int],
+    caps: dict[str, int],
+    gold_by_id: dict[str, bool],
+    guardrails: Guardrails,
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+) -> dict[str, int]:
+    """Refine a large group's break counts by guardrail-aware local search.
+
+    Real channel-days hold dozens of programmes, so the box of break-count
+    vectors (``5 ** segments``) is far too large to enumerate. This climbs from
+    the greedy ``seed_counts`` using moves that the one-break-at-a-time greedy
+    search cannot reach because re-spacing makes feasibility non-monotone:
+
+      * single-coordinate: set one segment to any feasible count, others fixed;
+      * pairwise (2-opt): jointly set two TIME-ADJACENT segments, which is where
+        the hourly-cap and spacing guardrails actually couple segments.
+
+    Every adopted move is guardrail-compliant and strictly improves the group's
+    objective contribution, so the result never regresses below greedy. It climbs
+    to a local optimum, not a proven global one, so it is a lower bound on the
+    achievable gain. Pairwise is restricted to a window of time-adjacent segments
+    (the only ones that share an hour) to keep the search linear in segment count.
+    """
+    order = sorted(range(len(group)), key=lambda i: group[i].start_seconds)
+    window = 6  # time-adjacent segments that can share an hour or spacing window
+    counts = dict(seed_counts)
+
+    def contribution(c: dict[str, int]) -> float:
+        return _group_objective_contribution(
+            group, c,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )[0]
+
+    def compliant(c: dict[str, int]) -> bool:
+        return is_compliant(_group_breaks(group, c, gold_by_id), guardrails)
+
+    best = contribution(counts)
+    for _ in range(12):  # passes; converges well before this in practice
+        improved = False
+        for segment in group:
+            sid = segment.segment_id
+            for k in range(floors[sid], caps[sid] + 1):
+                if k == counts[sid]:
+                    continue
+                trial = dict(counts)
+                trial[sid] = k
+                if compliant(trial):
+                    value = contribution(trial)
+                    if value > best + _EPSILON:
+                        counts, best, improved = trial, value, True
+        for a, pos in enumerate(order):
+            seg_a = group[pos]
+            for b in order[a + 1:a + 1 + window]:
+                seg_b = group[b]
+                for ka in range(floors[seg_a.segment_id], caps[seg_a.segment_id] + 1):
+                    for kb in range(floors[seg_b.segment_id], caps[seg_b.segment_id] + 1):
+                        if ka == counts[seg_a.segment_id] and kb == counts[seg_b.segment_id]:
+                            continue
+                        trial = dict(counts)
+                        trial[seg_a.segment_id] = ka
+                        trial[seg_b.segment_id] = kb
+                        if compliant(trial):
+                            value = contribution(trial)
+                            if value > best + _EPSILON:
+                                counts, best, improved = trial, value, True
+        if not improved:
+            break
+    return counts
+
+
+def _optimize_group(
+    group: list[ProgramSegment],
+    seed_counts: dict[str, int],
+    floors: dict[str, int],
+    caps: dict[str, int],
+    gold_by_id: dict[str, bool],
+    guardrails: Guardrails,
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+) -> dict[str, int]:
+    """Best compliant break counts for one channel-day.
+
+    Enumerates exactly when the box of break-count vectors is small enough to be
+    provably optimal; otherwise climbs from the greedy ``seed_counts`` by local
+    search (large real channel-days, where exact enumeration is intractable).
+    Greedy is suboptimal because :func:`_segment_break_objects` re-spaces breaks
+    at ``duration / (k + 1)``, making feasibility non-monotone in break count, so
+    greedy cannot reach a feasible-and-better allocation through an infeasible
+    intermediate one.
+    """
+    ranges = [range(floors[s.segment_id], caps[s.segment_id] + 1) for s in group]
+    combos = 1
+    for r in ranges:
+        combos *= len(r)
+    if combos <= _MAX_EXACT_COMBOS:
+        return _enumerate_group_exact(
+            group, ranges, gold_by_id, guardrails,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+    return _local_search_group(
+        group, seed_counts, floors, caps, gold_by_id, guardrails,
+        revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+    )
+
+
+def _replay_group_decisions(
+    group: list[ProgramSegment],
+    target_counts: dict[str, int],
+    floors: dict[str, int],
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+) -> list[Decision]:
+    """Reconstruct a marginal-gain-ordered decision trace reaching the target.
+
+    Adds breaks one at a time, each step taking the segment whose next break
+    gains the most on the group's objective contribution, until every segment
+    reaches its target count. This is the explanation for an already-chosen
+    optimum, so intermediate states need not be guardrail-feasible (that is the
+    very reason greedy could not reach this optimum on its own). Because the
+    objective is separable, a single break only moves its own group's
+    contribution, so the contribution delta here is the same marginal gain the
+    greedy loop records globally.
+    """
+    counts = {s.segment_id: floors[s.segment_id] for s in group}
+    base, _, _ = _group_objective_contribution(
+        group, counts,
+        revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+    )
+    seg_by_id = {s.segment_id: s for s in group}
+    decisions: list[Decision] = []
+    pending = sum(target_counts[s.segment_id] - counts[s.segment_id] for s in group)
+    for _ in range(pending):
+        best_gain: Optional[float] = None
+        best_id: Optional[str] = None
+        for segment in group:
+            sid = segment.segment_id
+            if counts[sid] >= target_counts[sid]:
+                continue
+            trial = dict(counts)
+            trial[sid] += 1
+            contribution, _, _ = _group_objective_contribution(
+                group, trial,
+                revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            )
+            gain = contribution - base
+            if best_gain is None or gain > best_gain:
+                best_gain = gain
+                best_id = sid
+        if best_id is None:
+            break
+        counts[best_id] += 1
+        segment = seg_by_id[best_id]
+        k = counts[best_id]
+        decisions.append(Decision(
+            segment_id=best_id,
+            break_index=k,
+            marginal_objective_gain=best_gain if best_gain is not None else 0.0,
+            marginal_revenue=_marginal_revenue(segment, k),
+            retention_after=_segment_retention(segment, k),
+        ))
+        base += best_gain if best_gain is not None else 0.0
+    return decisions
+
+
 def optimize_breaks(
     segments: Iterable[ProgramSegment],
     guardrails: Optional[Guardrails] = None,
@@ -433,6 +677,53 @@ def optimize_breaks(
             marginal_revenue=marginal_rev,
             retention_after=_segment_retention(segment, k + 1),
         ))
+
+    # Greedy gives a fast, compliant warm start, but because breaks are re-spaced
+    # at duration/(k+1) the feasible region is not monotone in break count, so
+    # greedy can stop short of a better compliant allocation it could only reach
+    # through an infeasible intermediate. The objective is separable across
+    # channel-days (groups share no guardrail: every check is scoped to one
+    # channel-day or finer), so the true optimum is the sum of each group's own
+    # optimum. Refine every group by exact enumeration; adopt the exact counts
+    # wherever they strictly beat greedy, and rebuild that group's decision trace
+    # so the explanation matches the shipped plan. A group too large to enumerate
+    # keeps its greedy result (the skip is logged, never silent).
+    decisions_by_group: dict[tuple[str, str], list[Decision]] = defaultdict(list)
+    for decision in decisions:
+        seg = by_id[decision.segment_id]
+        decisions_by_group[(seg.channel, seg.day)].append(decision)
+
+    for key, group in groups.items():
+        greedy_counts = {s.segment_id: state[s.segment_id] for s in group}
+        greedy_contribution, _, _ = _group_objective_contribution(
+            group, greedy_counts,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+        refined_counts = _optimize_group(
+            group, greedy_counts, floors, caps, gold_by_id, guardrails,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+        refined_contribution, _, _ = _group_objective_contribution(
+            group, refined_counts,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+        if refined_contribution <= greedy_contribution + _EPSILON:
+            continue  # greedy already reached this group's optimum
+        for segment in group:
+            state[segment.segment_id] = refined_counts[segment.segment_id]
+        decisions_by_group[key] = _replay_group_decisions(
+            group, refined_counts, floors,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        )
+
+    # Roll the (possibly corrected) per-segment counts back up into the totals the
+    # result reports. ``retention_weighted`` is a free variable of the
+    # ``aggregate_retention`` closure, so re-binding it here updates that result too.
+    total_revenue = sum(_segment_revenue(by_id[sid], k) for sid, k in state.items())
+    retention_weighted = sum(
+        s.baseline_tvr * _segment_retention(s, state[s.segment_id]) for s in segs
+    )
+    decisions = [d for key in groups for d in decisions_by_group[key]]
 
     return _build_result(
         segs, state, total_revenue, aggregate_retention(),
