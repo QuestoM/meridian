@@ -30,7 +30,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from itertools import product
-from typing import Iterable, Optional
+from typing import Iterable, Mapping, Optional, Sequence
 
 from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, is_compliant
 from kairos.optimize.objective import (
@@ -88,6 +88,7 @@ class ProgramSegment:
     impact_ci_high: Optional[float] = None
     impact_n: int = 0                             # real breaks behind the estimate
     impact_confidence: str = "low"                # high / medium / low label
+    program_title: str = ""                       # programme Title, for cross-date matching
 
     @property
     def hour(self) -> int:
@@ -110,6 +111,24 @@ class ProgramSegment:
             raise ValueError(f"segment {self.segment_id}: unit_seconds must be positive")
         if not 0.0 <= self.retention_baseline <= 1.0:
             raise ValueError(f"segment {self.segment_id}: retention_baseline must be in [0, 1]")
+
+
+@dataclass(frozen=True)
+class PlacementPin:
+    """One explicit break the operator pinned onto a segment.
+
+    ``offset_seconds`` is measured from the segment's start, so the break's
+    absolute clock position is ``segment.start_seconds + offset_seconds``.
+    ``duration_seconds`` is this break's own length (breaks in one segment may
+    differ in length). ``is_gold`` marks just this break gold, on top of any
+    segment-level or override gold flag. Pinned breaks are honored as a HARD
+    constraint by every optimizer tier: the segment's count is fixed at the
+    number of pins and the breaks are emitted at exactly these positions.
+    """
+
+    offset_seconds: float
+    duration_seconds: float
+    is_gold: bool = False
 
 
 @dataclass(frozen=True)
@@ -231,46 +250,82 @@ def _segment_retention(segment: ProgramSegment, k: int) -> float:
     return predicted_retention(segment.retention_baseline, segment.impact_coefficient, k)
 
 
-def _marginal_revenue(segment: ProgramSegment, k: int) -> float:
+def _marginal_revenue(
+    segment: ProgramSegment,
+    k: int,
+    pins: Optional[Sequence[PlacementPin]] = None,
+) -> float:
     """Revenue gained by the k-th break (the segment goes from k-1 to k breaks).
 
     The break is valued at the retention that holds once it is present, so each
     successive break earns less, which is what gives the greedy search its
-    diminishing returns.
+    diminishing returns. With explicit ``pins`` the k-th break is valued at the
+    k-th pin's own duration rather than the segment's fixed break length, so a
+    variable-length pinned break earns exactly its own revenue.
     """
     if k <= 0:
         return 0.0
     retention = _segment_retention(segment, k)
     effective_tvr = segment.baseline_tvr * retention
+    length = segment.break_length_seconds
+    if pins is not None and 1 <= k <= len(pins):
+        length = pins[k - 1].duration_seconds
     return break_revenue(
         effective_tvr,
-        segment.break_length_seconds,
+        length,
         segment.cpp,
         unit_seconds=segment.unit_seconds,
         premium=segment.premium,
     )
 
 
-def _segment_revenue(segment: ProgramSegment, k: int) -> float:
-    return sum(_marginal_revenue(segment, j) for j in range(1, k + 1))
+def _segment_revenue(
+    segment: ProgramSegment,
+    k: int,
+    pins: Optional[Sequence[PlacementPin]] = None,
+) -> float:
+    return sum(_marginal_revenue(segment, j, pins) for j in range(1, k + 1))
 
 
-def _segment_break_objects(segment: ProgramSegment, k: int, *, is_gold: bool = False) -> list[Break]:
-    """Lay k breaks evenly through the segment for guardrail evaluation.
+def _segment_break_objects(
+    segment: ProgramSegment,
+    k: int,
+    *,
+    is_gold: bool = False,
+    pins: Optional[Sequence[PlacementPin]] = None,
+) -> list[Break]:
+    """Lay k breaks through the segment for guardrail evaluation.
 
-    Even spacing of ``duration / (k + 1)`` means a short programme cannot hold
-    many breaks without breaching the spacing guardrail, which is the real
-    constraint. Every break carries the segment's realised (final) retention,
-    the value the retention floor must be checked against. ``is_gold`` lets a
-    caller mark the breaks gold without mutating the frozen segment, which is how
-    a gold override is honored.
+    Without pins, breaks are spaced evenly at ``duration / (k + 1)``: a short
+    programme cannot then hold many breaks without breaching the spacing
+    guardrail, which is the real constraint. With explicit ``pins`` each break is
+    placed at ``segment.start_seconds + pin.offset_seconds`` and carries the
+    pin's own duration and gold flag, so an operator's exact geometry is what the
+    guardrails are checked against. Every break carries the segment's realised
+    (final) retention, the value the retention floor must be checked against.
+    ``is_gold`` lets a caller mark the breaks gold without mutating the frozen
+    segment, which is how a gold override is honored.
     """
     if k <= 0:
         return []
     retention = _segment_retention(segment, k)
-    spacing = segment.duration_seconds / (k + 1)
     gold = segment.is_gold or is_gold
     breaks: list[Break] = []
+    if pins is not None:
+        for pin in pins:
+            start = segment.start_seconds + pin.offset_seconds
+            breaks.append(Break(
+                channel=segment.channel,
+                day=segment.day,
+                hour=int(start // SECONDS_PER_HOUR),
+                start_seconds=start,
+                duration_seconds=pin.duration_seconds,
+                program_type=segment.program_type,
+                retention=retention,
+                is_gold=gold or pin.is_gold,
+            ))
+        return breaks
+    spacing = segment.duration_seconds / (k + 1)
     for j in range(1, k + 1):
         start = segment.start_seconds + spacing * j - segment.break_length_seconds / 2.0
         start = max(segment.start_seconds, start)
@@ -291,12 +346,16 @@ def _group_breaks(
     group: list[ProgramSegment],
     state: dict[str, int],
     gold_by_id: Optional[dict[str, bool]] = None,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> list[Break]:
     gold_by_id = gold_by_id or {}
+    placements = placements or {}
     breaks: list[Break] = []
     for segment in group:
         breaks.extend(_segment_break_objects(
-            segment, state[segment.segment_id], is_gold=gold_by_id.get(segment.segment_id, False),
+            segment, state[segment.segment_id],
+            is_gold=gold_by_id.get(segment.segment_id, False),
+            pins=placements.get(segment.segment_id),
         ))
     return breaks
 
@@ -308,6 +367,7 @@ def _group_objective_contribution(
     revenue_weight: float,
     revenue_scale: float,
     total_tvr: float,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> tuple[float, float, float]:
     """A channel-day's additive share of the global weighted objective.
 
@@ -320,11 +380,12 @@ def _group_objective_contribution(
     is scoped to one channel-day or finer). Returns ``(contribution, revenue,
     retention_weighted)`` so the caller can also roll the totals back up.
     """
+    placements = placements or {}
     revenue = 0.0
     retention_weighted = 0.0
     for segment in group:
         k = counts[segment.segment_id]
-        revenue += _segment_revenue(segment, k)
+        revenue += _segment_revenue(segment, k, placements.get(segment.segment_id))
         retention_weighted += segment.baseline_tvr * _segment_retention(segment, k)
     revenue_term = revenue_weight * (revenue / revenue_scale)
     retention_share = retention_weighted / total_tvr if total_tvr > _EPSILON else 1.0
@@ -341,6 +402,7 @@ def _enumerate_group_exact(
     revenue_weight: float,
     revenue_scale: float,
     total_tvr: float,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> dict[str, int]:
     """Globally optimal compliant break counts by exhaustive enumeration.
 
@@ -349,15 +411,17 @@ def _enumerate_group_exact(
     contribution among all guardrail-compliant vectors in the box. The all-floors
     vector is always compliant (verified upstream), so a result always exists.
     """
+    placements = placements or {}
     best_counts: dict[str, int] = {s.segment_id: r.start for s, r in zip(group, ranges)}
     best_contribution = float("-inf")
     for vector in product(*ranges):
         counts = {segment.segment_id: k for segment, k in zip(group, vector)}
-        if not is_compliant(_group_breaks(group, counts, gold_by_id), guardrails):
+        if not is_compliant(_group_breaks(group, counts, gold_by_id, placements), guardrails):
             continue
         contribution, _, _ = _group_objective_contribution(
             group, counts,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
         if contribution > best_contribution + _EPSILON:
             best_contribution = contribution
@@ -376,6 +440,7 @@ def _local_search_group(
     revenue_weight: float,
     revenue_scale: float,
     total_tvr: float,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> dict[str, int]:
     """Refine a large group's break counts by guardrail-aware local search.
 
@@ -394,6 +459,7 @@ def _local_search_group(
     achievable gain. Pairwise is restricted to a window of time-adjacent segments
     (the only ones that share an hour) to keep the search linear in segment count.
     """
+    placements = placements or {}
     order = sorted(range(len(group)), key=lambda i: group[i].start_seconds)
     window = 6  # time-adjacent segments that can share an hour or spacing window
     counts = dict(seed_counts)
@@ -402,10 +468,11 @@ def _local_search_group(
         return _group_objective_contribution(
             group, c,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )[0]
 
     def compliant(c: dict[str, int]) -> bool:
-        return is_compliant(_group_breaks(group, c, gold_by_id), guardrails)
+        return is_compliant(_group_breaks(group, c, gold_by_id, placements), guardrails)
 
     best = contribution(counts)
     for _ in range(12):  # passes; converges well before this in practice
@@ -452,6 +519,7 @@ def _optimize_group(
     revenue_weight: float,
     revenue_scale: float,
     total_tvr: float,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> dict[str, int]:
     """Best compliant break counts for one channel-day.
 
@@ -471,10 +539,12 @@ def _optimize_group(
         return _enumerate_group_exact(
             group, ranges, gold_by_id, guardrails,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
     return _local_search_group(
         group, seed_counts, floors, caps, gold_by_id, guardrails,
         revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        placements=placements,
     )
 
 
@@ -486,6 +556,7 @@ def _replay_group_decisions(
     revenue_weight: float,
     revenue_scale: float,
     total_tvr: float,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> list[Decision]:
     """Reconstruct a marginal-gain-ordered decision trace reaching the target.
 
@@ -498,10 +569,12 @@ def _replay_group_decisions(
     contribution, so the contribution delta here is the same marginal gain the
     greedy loop records globally.
     """
+    placements = placements or {}
     counts = {s.segment_id: floors[s.segment_id] for s in group}
     base, _, _ = _group_objective_contribution(
         group, counts,
         revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        placements=placements,
     )
     seg_by_id = {s.segment_id: s for s in group}
     decisions: list[Decision] = []
@@ -518,6 +591,7 @@ def _replay_group_decisions(
             contribution, _, _ = _group_objective_contribution(
                 group, trial,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+                placements=placements,
             )
             gain = contribution - base
             if best_gain is None or gain > best_gain:
@@ -532,7 +606,7 @@ def _replay_group_decisions(
             segment_id=best_id,
             break_index=k,
             marginal_objective_gain=best_gain if best_gain is not None else 0.0,
-            marginal_revenue=_marginal_revenue(segment, k),
+            marginal_revenue=_marginal_revenue(segment, k, placements.get(best_id)),
             retention_after=_segment_retention(segment, k),
         ))
         base += best_gain if best_gain is not None else 0.0
@@ -547,6 +621,7 @@ def optimize_breaks(
     revenue_scale: Optional[float] = None,
     overrides: Optional[OverrideSet] = None,
     risk_lambda: float = 0.0,
+    placement_pins: Optional[Mapping[str, Sequence[PlacementPin]]] = None,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -572,6 +647,16 @@ def optimize_breaks(
     apply a partial variance penalty (see
     :func:`~kairos.optimize.objective.conservative_impact`). A segment with only a
     point coefficient is unaffected at any ``risk_lambda``.
+
+    ``placement_pins`` maps a segment id to an explicit list of
+    :class:`PlacementPin` (absolute offset-from-start, per-break duration, gold
+    flag). A pinned segment is fixed at exactly those breaks: its count is forced
+    to ``len(pins)`` and every tier emits the breaks at the pinned positions and
+    durations, with revenue summed over the per-break durations. Pins are validated
+    first (in-bounds and non-overlapping, then the spacing / load guardrails on the
+    pinned geometry); a segment whose pins are invalid or breach a guardrail is
+    dropped to 0 breaks and reported in ``result.rejected_overrides`` with
+    ``kind="placement"``, never silently bent.
 
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
@@ -613,9 +698,18 @@ def optimize_breaks(
         segs, groups, guardrails, constraints,
     )
 
+    # Explicit placement pins fix a segment at exactly the supplied breaks. Valid
+    # pins force floor == cap == len(pins) and feed the side map every tier reads;
+    # invalid or guardrail-breaching pins are dropped to 0 and reported.
+    placements = _apply_placement_pins(
+        segs, groups, guardrails, placement_pins, floors, caps, gold_by_id, rejected,
+    )
+
     total_tvr = sum(s.baseline_tvr for s in segs)
     state: dict[str, int] = dict(floors)
-    total_revenue = sum(_segment_revenue(by_id[sid], k) for sid, k in state.items())
+    total_revenue = sum(
+        _segment_revenue(by_id[sid], k, placements.get(sid)) for sid, k in state.items()
+    )
     retention_weighted = sum(s.baseline_tvr * _segment_retention(s, state[s.segment_id]) for s in segs)
 
     def aggregate_retention() -> float:
@@ -640,7 +734,7 @@ def optimize_breaks(
             k = state[segment.segment_id]
             if k >= caps[segment.segment_id]:
                 continue
-            marginal_rev = _marginal_revenue(segment, k + 1)
+            marginal_rev = _marginal_revenue(segment, k + 1, placements.get(segment.segment_id))
             delta_retention = segment.baseline_tvr * (
                 _segment_retention(segment, k + 1) - _segment_retention(segment, k)
             )
@@ -654,7 +748,7 @@ def optimize_breaks(
                 continue
             group = groups[(segment.channel, segment.day)]
             state[segment.segment_id] = k + 1
-            feasible = is_compliant(_group_breaks(group, state, gold_by_id), guardrails)
+            feasible = is_compliant(_group_breaks(group, state, gold_by_id, placements), guardrails)
             state[segment.segment_id] = k
             if feasible:
                 best_gain = gain
@@ -664,7 +758,7 @@ def optimize_breaks(
             break
         segment = by_id[best_id]
         k = state[best_id]
-        marginal_rev = _marginal_revenue(segment, k + 1)
+        marginal_rev = _marginal_revenue(segment, k + 1, placements.get(best_id))
         state[best_id] = k + 1
         total_revenue += marginal_rev
         retention_weighted += segment.baseline_tvr * (
@@ -698,14 +792,17 @@ def optimize_breaks(
         greedy_contribution, _, _ = _group_objective_contribution(
             group, greedy_counts,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
         refined_counts = _optimize_group(
             group, greedy_counts, floors, caps, gold_by_id, guardrails,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
         refined_contribution, _, _ = _group_objective_contribution(
             group, refined_counts,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
         if refined_contribution <= greedy_contribution + _EPSILON:
             continue  # greedy already reached this group's optimum
@@ -714,12 +811,15 @@ def optimize_breaks(
         decisions_by_group[key] = _replay_group_decisions(
             group, refined_counts, floors,
             revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            placements=placements,
         )
 
     # Roll the (possibly corrected) per-segment counts back up into the totals the
     # result reports. ``retention_weighted`` is a free variable of the
     # ``aggregate_retention`` closure, so re-binding it here updates that result too.
-    total_revenue = sum(_segment_revenue(by_id[sid], k) for sid, k in state.items())
+    total_revenue = sum(
+        _segment_revenue(by_id[sid], k, placements.get(sid)) for sid, k in state.items()
+    )
     retention_weighted = sum(
         s.baseline_tvr * _segment_retention(s, state[s.segment_id]) for s in segs
     )
@@ -729,7 +829,7 @@ def optimize_breaks(
         segs, state, total_revenue, aggregate_retention(),
         objective_of(total_revenue, aggregate_retention()),
         guardrails, revenue_weight, revenue_scale, decisions, gold_by_id, rejected,
-        original_by_id=original_by_id, risk_lambda=risk_lambda,
+        original_by_id=original_by_id, risk_lambda=risk_lambda, placements=placements,
     )
 
 
@@ -795,6 +895,122 @@ def _apply_segment_overrides(
     return floors, caps, gold_by_id, rejected
 
 
+def _placements_in_bounds(segment: ProgramSegment, pins: Sequence[PlacementPin]) -> Optional[str]:
+    """Reason the pins are invalid for the segment, or None when they are valid.
+
+    Each break must sit inside the segment (``0 <= offset`` and
+    ``offset + duration <= segment.duration_seconds``) and, ordered by offset, no
+    two breaks may overlap (``prev.offset + prev.duration <= next.offset``).
+    """
+    for pin in pins:
+        if pin.duration_seconds <= 0:
+            return f"placement duration {pin.duration_seconds} must be positive"
+        if pin.offset_seconds < 0:
+            return f"placement offset {pin.offset_seconds} is before the segment start"
+        if pin.offset_seconds + pin.duration_seconds > segment.duration_seconds + _EPSILON:
+            return (
+                f"placement at {pin.offset_seconds}s + {pin.duration_seconds}s exceeds "
+                f"segment duration {segment.duration_seconds}s"
+            )
+    ordered = sorted(pins, key=lambda p: p.offset_seconds)
+    for previous, current in zip(ordered, ordered[1:]):
+        if previous.offset_seconds + previous.duration_seconds > current.offset_seconds + _EPSILON:
+            return "placements overlap within the segment"
+    return None
+
+
+def _apply_placement_pins(
+    segs: list[ProgramSegment],
+    groups: dict[tuple[str, str], list[ProgramSegment]],
+    guardrails: Guardrails,
+    placement_pins: Optional[Mapping[str, Sequence[PlacementPin]]],
+    floors: dict[str, int],
+    caps: dict[str, int],
+    gold_by_id: dict[str, bool],
+    rejected: list[RejectedOverride],
+) -> dict[str, Sequence[PlacementPin]]:
+    """Validate explicit placement pins and force the segments that carry them.
+
+    For each pinned segment: validate the pins are in-bounds and non-overlapping,
+    then run the guardrail checks on the pinned geometry for its channel-day. If
+    either fails, the segment's pins are dropped (it falls back to a 0 floor and
+    its normal cap) and a ``RejectedOverride(kind="placement")`` is recorded.
+    A valid pin set forces ``floor == cap == len(pins)`` so every tier leaves the
+    segment fixed, and is returned in the side map every emit / revenue path reads.
+    """
+    placements: dict[str, Sequence[PlacementPin]] = {}
+    if not placement_pins:
+        return placements
+
+    seg_by_id = {s.segment_id: s for s in segs}
+    for segment_id, pins in placement_pins.items():
+        segment = seg_by_id.get(segment_id)
+        if segment is None or not pins:
+            continue
+        reason = _placements_in_bounds(segment, pins)
+        if reason is None:
+            # Check the pinned geometry against the spacing / load guardrails in
+            # isolation (per-segment); the channel-day check below catches breaches
+            # that only show up once the whole group's pinned breaks are combined.
+            probe = _segment_break_objects(segment, len(pins), pins=pins)
+            if not is_compliant(probe, guardrails):
+                reason = "pinned breaks breach a guardrail (spacing/load) for the segment"
+        if reason is not None:
+            rejected.append(RejectedOverride(
+                segment_id=segment_id, kind="placement", requested=len(pins), reason=reason,
+            ))
+            # A rejected placement drops the segment to 0 breaks (the operator asked
+            # for explicit geometry that cannot be honored; falling back to free
+            # optimization would silently substitute different breaks).
+            floors[segment_id] = 0
+            caps[segment_id] = 0
+            continue
+        # Per-break gold lives on the individual PlacementPin (honored in the emit
+        # path); it is NOT promoted to a segment-level gold flag, so a single gold
+        # pin does not gild every break in the segment.
+        placements[segment_id] = pins
+        floors[segment_id] = len(pins)
+        caps[segment_id] = len(pins)
+
+    # Combined channel-day guardrail check: a group whose pinned floors breach a
+    # guardrail has the largest pinned segment backed out one at a time until the
+    # group's floor state is compliant, mirroring _reject_infeasible_floors.
+    for group in groups.values():
+        _reject_infeasible_placements(group, floors, caps, gold_by_id, guardrails, placements, rejected)
+    return placements
+
+
+def _reject_infeasible_placements(
+    group: list[ProgramSegment],
+    floors: dict[str, int],
+    caps: dict[str, int],
+    gold_by_id: dict[str, bool],
+    guardrails: Guardrails,
+    placements: dict[str, Sequence[PlacementPin]],
+    rejected: list[RejectedOverride],
+) -> None:
+    """Back out pinned segments in a group until its floor geometry is compliant.
+
+    Only placement-pinned segments are candidates (a non-pinned floor is left for
+    the override path to handle), removed largest first, each recorded as a
+    ``placement`` rejection.
+    """
+    state = {s.segment_id: floors[s.segment_id] for s in group}
+    while not is_compliant(_group_breaks(group, state, gold_by_id, placements), guardrails):
+        candidates = [s for s in group if s.segment_id in placements]
+        if not candidates:
+            break  # the infeasibility is not from a placement; leave it for reporting
+        worst = max(candidates, key=lambda s: len(placements[s.segment_id]))
+        rejected.append(RejectedOverride(
+            segment_id=worst.segment_id, kind="placement", requested=len(placements[worst.segment_id]),
+            reason="pinned breaks breach a guardrail for the channel-day (spacing/load)",
+        ))
+        del placements[worst.segment_id]
+        state[worst.segment_id] = 0
+        floors[worst.segment_id] = 0
+        caps[worst.segment_id] = worst.max_breaks
+
+
 def _reject_infeasible_floors(
     group: list[ProgramSegment],
     floors: dict[str, int],
@@ -850,16 +1066,19 @@ def _build_result(
     rejected: Optional[list[RejectedOverride]] = None,
     original_by_id: Optional[dict[str, ProgramSegment]] = None,
     risk_lambda: float = 0.0,
+    placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> OptimizationResult:
     gold_by_id = gold_by_id or {}
     original_by_id = original_by_id or {}
-    placements: list[BreakPlacement] = []
+    pin_placements = placements or {}
+    flat_placements: list[BreakPlacement] = []
     segment_plans: list[SegmentPlan] = []
     for segment in segs:
         k = state[segment.segment_id]
         retention = _segment_retention(segment, k)
         gold = segment.is_gold or gold_by_id.get(segment.segment_id, False)
-        breaks = _segment_break_objects(segment, k, is_gold=gold)
+        pins = pin_placements.get(segment.segment_id)
+        breaks = _segment_break_objects(segment, k, is_gold=gold, pins=pins)
         segment_placements: list[BreakPlacement] = []
         for index, brk in enumerate(breaks, start=1):
             segment_placements.append(BreakPlacement(
@@ -872,10 +1091,10 @@ def _build_result(
                 program_type=segment.program_type,
                 position_in_segment=index,
                 retention=retention,
-                revenue=_marginal_revenue(segment, index),
-                is_gold=gold,
+                revenue=_marginal_revenue(segment, index, pins),
+                is_gold=brk.is_gold,
             ))
-        placements.extend(segment_placements)
+        flat_placements.extend(segment_placements)
         # ``segment`` carries the risk-adjusted coefficient the decision used; the
         # original carries the point estimate and the interval behind it.
         original = original_by_id.get(segment.segment_id, segment)
@@ -883,7 +1102,7 @@ def _build_result(
             segment_id=segment.segment_id,
             num_breaks=k,
             retention=retention,
-            revenue=_segment_revenue(segment, k),
+            revenue=_segment_revenue(segment, k, pins),
             placements=tuple(segment_placements),
             retention_cost_point=original.impact_coefficient,
             retention_cost_used=segment.impact_coefficient,
@@ -899,11 +1118,11 @@ def _build_result(
             start_seconds=p.start_seconds, duration_seconds=p.duration_seconds,
             program_type=p.program_type, retention=p.retention, is_gold=p.is_gold,
         )
-        for p in placements
+        for p in flat_placements
     ]
     return OptimizationResult(
         segments=tuple(segment_plans),
-        placements=tuple(placements),
+        placements=tuple(flat_placements),
         total_revenue=total_revenue,
         aggregate_retention=aggregate_retention,
         objective=objective,

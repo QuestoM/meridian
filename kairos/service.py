@@ -29,13 +29,17 @@ from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.objective import clamp
-from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
+from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
+from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 
 SECONDS_PER_MINUTE = 60.0
 SECONDS_PER_HOUR = 3600.0
 
 ROOT = Path(__file__).resolve().parents[1]
+# Operator overrides (pins / forces / forbids / gold), loaded when present so a
+# manual hand-fix reaches the recompute. Absent file means no overrides.
+DEFAULT_OVERRIDES_PATH = ROOT / "data" / "manual_overrides.csv"
 # The trained Meridian posterior, when present. load_impact_model falls back to
 # the declared assumption coefficient when this file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
@@ -181,6 +185,8 @@ def optimize_day_plan(
     programmes_path: Optional[str] = None,
     daily_input_path: Optional[str] = None,
     impact_model: Optional[ImpactModel] = None,
+    overrides: Optional[OverrideSet] = None,
+    placement_pins: Optional[Mapping[str, Any]] = None,
     log_run: bool = True,
     run_id: Optional[str] = None,
     created_at: Optional[str] = None,
@@ -204,6 +210,7 @@ def optimize_day_plan(
     risk = risk_lambda if risk_lambda is not None else assumptions.risk_lambda
     if impact_model is None:
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
+    overrides = overrides if overrides is not None else _load_default_overrides()
     classifier = _build_classifier()
 
     if daily_input_path is not None:
@@ -227,7 +234,10 @@ def optimize_day_plan(
             programmes, classifier, pricing,
             assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
         )
-    result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk)
+    result = optimize_breaks(
+        segments, guardrails, revenue_weight=weight, risk_lambda=risk,
+        overrides=overrides, placement_pins=placement_pins,
+    )
 
     payload = result_to_dict(result, channel=channel, day=day)
     payload["guardrails"] = asdict(guardrails)
@@ -265,6 +275,8 @@ def run_scenario(
     day: Optional[str] = None,
     programmes: Optional[pd.DataFrame] = None,
     programmes_path: Optional[str] = None,
+    overrides: Optional[OverrideSet] = None,
+    placement_pins: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Run a real optimization for the dashboard scenario slider.
 
@@ -286,12 +298,16 @@ def run_scenario(
     pricing = PricingModel.from_yaml()
     assumptions = OptimizerAssumptions()
     impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
+    overrides = overrides if overrides is not None else _load_default_overrides()
     classifier = _build_classifier()
     segments = build_segments_from_programmes(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
-    result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda)
+    result = optimize_breaks(
+        segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
+        overrides=overrides, placement_pins=placement_pins,
+    )
 
     payload = result_to_dict(result, channel=channel, day=day)
     payload["controls"] = {
@@ -302,6 +318,13 @@ def run_scenario(
     }
     payload["guardrails"] = asdict(guardrails)
     return payload
+
+
+def _load_default_overrides() -> Optional[OverrideSet]:
+    """Load the operator overrides CSV when present, else None (no overrides)."""
+    if DEFAULT_OVERRIDES_PATH.exists():
+        return OverrideSet.from_csv(DEFAULT_OVERRIDES_PATH)
+    return None
 
 
 def _first_channel_day(programmes: pd.DataFrame) -> tuple[Optional[str], Optional[str]]:

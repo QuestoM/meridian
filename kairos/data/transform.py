@@ -229,6 +229,7 @@ def build_segments_from_daily_input(
             start_seconds=start_seconds,
             duration_seconds=duration,
             program_type=classification[1],
+            program_title=str(classification[0]),
             baseline_tvr=baseline_tvr,
             cpp=pricing.base_price,
             unit_seconds=1.0,
@@ -348,6 +349,7 @@ def build_segments_from_programmes(
         impact_coefficient, impact_fields = _segment_impact_kwargs(
             impact_model, pricing_class, assumptions,
         )
+        title = getattr(row, "Title", "")
         segments.append(ProgramSegment(
             segment_id=f"{segment_date}|{getattr(row, 'Channel')}|{index:03d}",
             channel=str(getattr(row, "Channel")),
@@ -355,6 +357,7 @@ def build_segments_from_programmes(
             start_seconds=_seconds_from_midnight(start),
             duration_seconds=duration,
             program_type=classification.category,
+            program_title="" if title is None or pd.isna(title) else str(title),
             baseline_tvr=baseline_tvr,
             cpp=pricing.base_price,
             unit_seconds=1.0,                       # base price is quoted per second

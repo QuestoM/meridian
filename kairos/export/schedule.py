@@ -29,6 +29,7 @@ from kairos.data.transform import build_segments_from_programmes
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.optimizer import optimize_breaks
+from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 from kairos.service import guardrails_from_settings
 
@@ -105,6 +106,8 @@ def build_weekly_schedule(
     risk_lambda: float = 0.0,
     classifier: Optional[ProgramClassifier] = None,
     impact_model: Optional[ImpactModel] = None,
+    overrides: Optional[OverrideSet] = None,
+    placement_pins: Optional[Mapping[str, Any]] = None,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -124,6 +127,8 @@ def build_weekly_schedule(
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     if programmes is None:
         programmes = load_programmes(programmes_path)
+    if overrides is None and OverrideSet.from_csv().overrides:
+        overrides = OverrideSet.from_csv()
 
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
@@ -133,7 +138,10 @@ def build_weekly_schedule(
         )
         if not segments:
             continue
-        result = optimize_breaks(segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda)
+        result = optimize_breaks(
+            segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
+            overrides=overrides, placement_pins=placement_pins,
+        )
         plans = {plan.segment_id: plan for plan in result.segments}
         for segment in segments:
             plan = plans.get(segment.segment_id)

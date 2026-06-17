@@ -89,6 +89,12 @@ def conservative_impact(
         raise ValueError("risk_lambda must be non-negative")
     if risk_lambda == 0.0:
         return min(0.0, point)
+    # The coefficient domain is non-positive (a break cannot raise retention), so
+    # the credible interval on it must be non-positive too. Clamp both bounds to
+    # <= 0 so a positive (gain-side) upper bound cannot inflate the variance penalty
+    # below, and the interval stays consistent with the clamped point estimate.
+    ci_low = min(0.0, ci_low)
+    ci_high = min(0.0, ci_high)
     low = min(ci_low, ci_high)
     if not (low == low) or not (point == point):  # NaN guard
         return min(0.0, point)
