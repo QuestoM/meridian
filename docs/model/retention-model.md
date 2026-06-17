@@ -15,6 +15,65 @@ must be uncertainty-aware. This doc holds the model to that standard.
 
 ---
 
+## Key headline: what the model actually predicts out of sample
+
+**Read this before the technical sections below.** The following numbers come from
+a held-out analysis on the real one-month reference dataset, evaluating the
+36-cell empirical-Bayes model against breaks it was not trained on.
+
+**The 36-cell model explains only about 0.8% of break-level variance
+out of sample (held-out R^2 approximately 0.008).** In plain language: on a
+break the model has not seen, the cell coefficient almost entirely fails to
+predict how much audience that break actually sheds. The overwhelming majority
+of the variance in break-level retention is not captured by the
+program_type x break_position x break_length cell structure.
+
+**The 36-cell model is statistically about equivalent to a break_length-only
+(3-level) model.** The break_position (first/middle/last spot within a break)
+and program_type splits do not generalize on one month of data. Adding
+break_position as a split even degrades held-out prediction; it does not help.
+
+**What the model's real value is:**
+
+1. A calibrated, conservative AVERAGE retention cost with honest uncertainty.
+   The empirical-Bayes shrinkage collapses noisy cells toward the grand mean,
+   so the optimizer is not misled by a thin cell that happened to look good.
+   The credible interval and the confidence label honestly reflect how little
+   is known for any individual cell.
+
+2. Two genuine levers that DO generalize:
+   - **Break length.** Longer breaks shed more audience, and that gradient is
+     real across held-out data.
+   - **First-break effect.** The show's first interruption sheds materially
+     more audience than later breaks (approximately 1.95x; see Stage 3b below).
+     This is measured, statistically robust, and self-activating.
+
+**What the credible intervals represent.** The hierarchical posterior intervals
+(approximately 95% nominal) are CREDIBLE intervals, not held-out prediction
+bands. They describe uncertainty about the cell's true mean. They are calibrated
+in the sense that once test-mean sampling error is included, their coverage is
+approximately correct. They do NOT claim to bound the outcome for an individual
+future break, which is a much harder task the current model cannot do.
+
+**Why 36 cells are kept despite not predicting.** Collapsing the grid to
+break_length granularity alone is a possible future simplification but is an
+owner decision, not done here. The empirical-Bayes shrinkage already neutralizes
+the noisy program_type and break_position cells by pulling them toward the grand
+mean, so keeping 36 cells is conservative and honest: a thin cell simply ends up
+near the pooled average with a wide interval. The only thing this model structure
+overstates is resolution to a reader of the raw cell table, which is what this
+section now corrects. The optimizer is not harmed by the extra cells because the
+shrinkage prevents them from diverging on thin data.
+
+**Implication for the optimizer.** Because the per-cell predictions are not
+reliably differentiated out of sample, the optimizer's real retention signal
+comes from: (a) the calibrated average cost, (b) the break_length gradient, and
+(c) the first-break multiplier. The program_type and break_position splits add
+the possibility of future signal once more data accumulates; for now they
+contribute primarily through the shrinkage-toward-mean path.
+
+---
+
 ## a. Current state, precisely and truthfully
 
 ### a.1 What `measure.py` actually estimates
@@ -394,6 +453,24 @@ decision and its numbers are written to the coefficients JSON metadata
 (`first_break_multiplier`, `first_break_active`, `first_break_n_first`,
 `first_break_n_later`, `first_break_p_value`, `first_break_reason`) so any reader
 can audit it, exactly like the series gate.
+
+**Honest framing of the shipped multiplier value (approximately 1.947).** The
+pooled contrast is measured without controlling for potential confounds (time of
+day, day of week, program genre) that correlate with both break position and
+audience level. A multivariate-controlled estimate on the same data puts the
+value closer to approximately 1.69. The pooled 1.947 is therefore an UPPER
+estimate with uncontrolled confounds. However, a direct revenue measurement
+showed that LOWERING the multiplier toward 1.69 is revenue-negative (approximately
+-4.1M ILS on the month; News-only approximately -1.06M at various weights). The
+reason is structural: a higher first-break cost makes the optimizer treat first
+breaks as more expensive, which concentrates breaks in slots where the first
+interruption is genuinely worth the cost. The multiplier is therefore a JOINT
+honesty-and-revenue knob, not a pure statistical parameter. The shipped value of
+approximately 1.947 sits near the revenue optimum despite being the uncontrolled
+upper estimate; lowering it purely for statistical correctness would reduce
+revenue without a corresponding improvement in retention accuracy. This is
+documented here so the choice is auditable. The value is NOT lowered to the
+controlled estimate; it remains as the self-activating measurement output.
 
 The optimizer applies it in `_segment_retention`, the single chokepoint all
 retention math flows through: at `k >= 1` it charges one extra delta of

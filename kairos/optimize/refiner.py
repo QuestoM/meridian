@@ -40,11 +40,9 @@ from itertools import product
 from typing import Optional, Sequence
 
 from kairos.optimize.guardrails import Break, Guardrails, is_compliant
-from kairos.optimize.optimizer import (
+from kairos.optimize._types import Decision, PlacementPin, ProgramSegment
+from kairos.optimize._segment_math import (
     _EPSILON,
-    Decision,
-    PlacementPin,
-    ProgramSegment,
     _group_breaks,
     _group_objective_contribution,
     _marginal_revenue,
