@@ -171,11 +171,13 @@ def _matches(
         )
 
     # Legacy flat path. Apply operator_channel if set.
-    if operator_channel and segment.channel != operator_channel:
+    # Use _normalize on both sides so a case/whitespace typo in the settings
+    # never silently drops the operator's own constraints.
+    if operator_channel and _normalize(segment.channel) != _normalize(operator_channel):
         return False
     # Per-constraint channel narrowing (the old per-row "channel" field).
     channel_filter = str(constraint.channel or "").strip()
-    if channel_filter and segment.channel != channel_filter:
+    if channel_filter and _normalize(segment.channel) != _normalize(channel_filter):
         return False
     scope = constraint.scope_type
     value = str(constraint.scope_value or "").strip()

@@ -600,3 +600,90 @@ class TestOperatorChannelInResolver:
         )
         assert "own" in forbids
         assert "other" not in forbids
+
+
+# ---------------------------------------------------------------------------
+# FIX 2b: normalized channel comparison tolerates case/whitespace typos
+# ---------------------------------------------------------------------------
+
+class TestNormalizedChannelComparePredicate:
+    """evaluate_predicate uses _norm on both sides so case/whitespace typos in
+    operator_channel never silently drop the operator's own constraints."""
+
+    def test_uppercase_operator_channel_still_matches_segment(self):
+        # Segment channel is "קשת 12"; operator_channel has wrong case (ASCII).
+        group = pred("and", cond("genre", "is", "Drama"))
+        # Channel is all-Hebrew so test with an ASCII example instead.
+        latin_seg = seg(channel="Channel One")
+        assert evaluate_predicate(
+            group, latin_seg, operator_channel="CHANNEL ONE"
+        ) is True, "normalized compare should tolerate uppercase operator_channel"
+
+    def test_whitespace_padded_operator_channel_still_matches(self):
+        group = pred("and", cond("genre", "is", "Drama"))
+        latin_seg = seg(channel="Channel One")
+        assert evaluate_predicate(
+            group, latin_seg, operator_channel="  channel one  "
+        ) is True, "normalized compare should strip whitespace"
+
+    def test_normalized_match_still_blocks_competitor(self):
+        # The normalization must NOT weaken the boundary: a competitor channel
+        # must still be blocked even when its name would survive normalization.
+        group = pred("and", cond("genre", "is", "Drama"))
+        competitor = seg(channel="Competitor Channel")
+        assert evaluate_predicate(
+            group, competitor, operator_channel="Channel One"
+        ) is False, "normalized compare must still block a genuinely different channel"
+
+
+class TestNormalizedChannelCompareConstraintsStore:
+    """constraints_store._matches uses _normalize on both sides so the legacy
+    flat path also tolerates case/whitespace typos in operator_channel."""
+
+    def _forbid_constraint(self, cid: str = "c1") -> PlacementConstraint:
+        return PlacementConstraint(
+            constraint_id=cid,
+            scope_type="always",
+            effect="forbid",
+            where=None,
+        )
+
+    def test_uppercase_operator_channel_matches_own_segment(self):
+        own = seg(segment_id="own", channel="Channel One")
+        constraint = self._forbid_constraint()
+        _, _, forbids, _ = resolve_constraints(
+            [own], [constraint], operator_channel="CHANNEL ONE",
+        )
+        assert "own" in forbids, "normalized legacy path should match own channel with case typo"
+
+    def test_whitespace_operator_channel_matches_own_segment(self):
+        own = seg(segment_id="own", channel="Channel One")
+        constraint = self._forbid_constraint()
+        _, _, forbids, _ = resolve_constraints(
+            [own], [constraint], operator_channel="  channel one  ",
+        )
+        assert "own" in forbids, "normalized legacy path should strip whitespace"
+
+    def test_normalized_match_still_blocks_competitor_in_store(self):
+        # The boundary must stay airtight: a competitor segment must be blocked.
+        competitor = seg(segment_id="comp", channel="Competitor Channel")
+        constraint = self._forbid_constraint()
+        _, _, forbids, _ = resolve_constraints(
+            [competitor], [constraint], operator_channel="Channel One",
+        )
+        assert "comp" not in forbids, "normalized legacy path must still block competitor"
+
+    def test_predicate_path_normalized_blocks_competitor(self):
+        # Predicate path: even with normalized operator_channel, competitor is blocked.
+        tree = pred("and", cond("genre", "is", "Drama"))
+        constraint = PlacementConstraint(
+            constraint_id="p1",
+            scope_type="always",
+            effect="forbid",
+            where=tree,
+        )
+        competitor = seg(segment_id="comp", channel="Competitor Channel")
+        _, _, forbids, _ = resolve_constraints(
+            [competitor], [constraint], operator_channel="CHANNEL ONE",
+        )
+        assert "comp" not in forbids

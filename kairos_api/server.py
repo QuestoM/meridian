@@ -302,10 +302,26 @@ def _load_break_schedule() -> pd.DataFrame:
 
 
 def _load_programmes() -> pd.DataFrame:
+    """Load EPG from the authoritative reference xlsx; fall back to legacy CSV."""
+    xlsx = DATA_DIR / "reference" / "Programmes.xlsx"
+    if xlsx.exists() and _ENGINE_AVAILABLE:
+        try:
+            from kairos.data.loaders import load_programmes as _lp
+            return _lp(xlsx)
+        except Exception:
+            logger.exception("reference xlsx load failed, falling back to legacy CSV")
     return _read_csv(DATA_DIR / "Programmes.csv")
 
 
 def _load_spots() -> pd.DataFrame:
+    """Load spots from the authoritative reference xlsx; fall back to legacy CSV."""
+    xlsx = DATA_DIR / "reference" / "Spots.xlsx"
+    if xlsx.exists() and _ENGINE_AVAILABLE:
+        try:
+            from kairos.data.loaders import load_spots as _ls
+            return _ls(xlsx)
+        except Exception:
+            logger.exception("reference xlsx load failed, falling back to legacy CSV")
     return _read_csv(DATA_DIR / "Spots.csv")
 
 
@@ -443,14 +459,19 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
     retention = pd.to_numeric(schedule.get("predicted_retention", 0), errors="coerce")
     retention = retention[retention > 0]
     avg_retention = retention.mean() if not retention.empty else 0.0
-    risk_score = max(0.0, min(100.0, (0.78 - avg_retention) * 220 + len(schedule) * 0.8))
+    total_breaks = int(num_breaks.sum())
+    avg_retention_pct = round(_percent(avg_retention), 1)
+    # Transparent risk score: lower retention and more breaks raise it.
+    # This is the same formula used in _risk_from_retention (defined below);
+    # duplicated here because _summarize_schedule is called before that helper.
+    risk_score = round(max(0.0, min(100.0, (78.0 - avg_retention_pct) * 2.2 + total_breaks * 0.8)), 1)
 
     return {
-        "total_breaks": int(num_breaks.sum()),
+        "total_breaks": total_breaks,
         "total_ad_seconds": int(break_time.sum()),
         "projected_revenue": _money(revenue.sum()),
-        "average_retention": round(_percent(avg_retention), 1),
-        "risk_score": round(risk_score, 1),
+        "average_retention": avg_retention_pct,
+        "risk_score": risk_score,
     }
 
 
@@ -462,7 +483,11 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
     frame = frame.dropna(subset=["start_dt"])
     frame["day"] = frame["start_dt"].dt.strftime("%a")
     frame["hour"] = frame["start_dt"].dt.hour
-    frame["program_type"] = frame.get("program_type", frame.get("programme_type", "Other")).fillna("Other")
+    frame["program_type"] = (
+        frame["program_type"] if "program_type" in frame.columns
+        else frame["programme_type"] if "programme_type" in frame.columns
+        else pd.Series("Other", index=frame.index)
+    ).fillna("Other")
     frame["viewing_points"] = pd.to_numeric(frame.get("TVR", 1.0), errors="coerce").fillna(1.0)
 
     schedule_by_type: dict[str, dict[str, float]] = {}
@@ -486,7 +511,7 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
                     "time": row["start_dt"].strftime("%H:%M"),
                     "duration_minutes": round(_safe_number(row.get("Duration"), 3600) / 60),
                     "revenue": _money(revenue),
-                    "retention": round(_safe_number(retention, 74.0), 1),
+                    "retention": round(_safe_number(retention, 0.0), 1),
                     "break_markers": break_count,
                     "selected": len(programs) == 1 and len(rows) == 0,
                 }
@@ -529,13 +554,25 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
     if frame.empty:
         return {"programs": [], "breaks": [], "summary": {"programs": 0, "breaks": 0, "ad_seconds": 0, "revenue": 0}}
 
-    frame["program_type"] = frame.get("program_type", frame.get("programme_type", "Other")).fillna("Other").astype(str)
+    frame["program_type"] = (
+        frame["program_type"] if "program_type" in frame.columns
+        else frame["programme_type"] if "programme_type" in frame.columns
+        else pd.Series("Other", index=frame.index)
+    ).fillna("Other").astype(str)
     frame["viewing_points"] = pd.to_numeric(frame.get("TVR", 1.0), errors="coerce").fillna(1.0)
     frame["day_key"] = frame["start_dt"].dt.strftime("%a")
     frame["duration_seconds"] = (frame["end_dt"] - frame["start_dt"]).dt.total_seconds().clip(lower=0)
     frame = frame.sort_values("start_dt").groupby("Channel", dropna=False).head(12).reset_index(drop=True)
 
     by_type_day, by_type = _schedule_lookup(schedule)
+    settings = _load_settings()
+    _pricing_model: Any = None
+    if _ENGINE_AVAILABLE:
+        try:
+            _pricing_model = PricingModel.from_yaml()
+        except Exception:
+            logger.exception("pricing config unavailable; per-break premiums will be 1.0")
+
     programs: list[dict[str, Any]] = []
     breaks: list[dict[str, Any]] = []
 
@@ -589,15 +626,32 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     candidate = max_start
             break_end = candidate + pd.Timedelta(seconds=break_seconds)
             is_prime = 20 <= int(candidate.hour) <= 23
-            is_gold = bool(is_prime and break_index == 1 and revenue_total >= 20_000)
+            # Gold: settings guardrail only; the old revenue >= 20 000 threshold
+            # was a magic constant unrelated to the guardrail configuration.
+            is_gold = bool(
+                settings.gold_breaks_enabled
+                and is_prime
+                and break_index == 1
+                and settings.gold_breaks_max_per_day > 0
+            )
             reference_revenue = _money(revenue_total / max(break_count, 1))
-            rating_points = _safe_number(row.get("viewing_points"), 1.0)
-            cpp = _safe_number(schedule_row.get("base_rate"), 1000)
-            premium = 1.25 if is_gold else 1.0
-            try:
-                cpp_revenue = cpp_break_revenue(rating_points, break_seconds, cpp, premium=premium)
-                break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention / 100))
-            except ValueError:
+            rating_points = _safe_number(row.get("viewing_points"), 0.0)
+            # base_rate comes from the optimizer's weekly schedule CSV. Absent
+            # means no plan was run; report None rather than inventing 1000.
+            raw_base_rate = schedule_row.get("base_rate")
+            cpp: float | None = _safe_number(raw_base_rate, -1.0) if raw_base_rate is not None else None
+            if cpp is not None and cpp < 0:
+                cpp = None
+            # Premium from config; never hardcode 1.25 for gold.
+            program_premium = _pricing_model.program_premium(program_type) if _pricing_model is not None else 1.0
+            break_revenue: float
+            if cpp is not None and cpp > 0 and rating_points > 0:
+                try:
+                    cpp_revenue = cpp_break_revenue(rating_points, break_seconds, cpp, premium=program_premium)
+                    break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention / 100))
+                except ValueError:
+                    break_revenue = reference_revenue
+            else:
                 break_revenue = reference_revenue
             breaks.append(
                 {
@@ -620,10 +674,10 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     "sponsorships_count": 1 if is_gold else 0,
                     "is_gold": is_gold,
                     "source": "Model",
-                    "rating_predicted": round(_safe_number(row.get("viewing_points"), 1.0), 2),
-                    "cpp": _money(_safe_number(schedule_row.get("base_rate"), 1000)),
+                    "rating_predicted": round(_safe_number(row.get("viewing_points"), 0.0), 2),
+                    "cpp": _money(cpp) if cpp is not None else None,
                     "revenue_reference": reference_revenue,
-                    "revenue_premium": premium,
+                    "revenue_premium": program_premium,
                     "revenue_calculated": break_revenue,
                     "retention": retention,
                     "status": "at_risk" if retention < 72 else "ready",
@@ -1221,7 +1275,13 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
             max(
                 [
                     path.stat().st_mtime
-                    for path in [OUTPUT_DIR / "weekly_break_schedule.csv", DATA_DIR / "Programmes.csv", DATA_DIR / "Spots.csv"]
+                    for path in [
+                        OUTPUT_DIR / "weekly_break_schedule.csv",
+                        DATA_DIR / "reference" / "Programmes.xlsx",
+                        DATA_DIR / "reference" / "Spots.xlsx",
+                        DATA_DIR / "Programmes.csv",
+                        DATA_DIR / "Spots.csv",
+                    ]
                     if path.exists()
                 ]
                 or [time.time()]
@@ -1583,18 +1643,35 @@ def create_optimizer_plan(request: ScenarioRequest) -> dict[str, Any]:
 @app.get("/api/overview")
 def overview() -> dict[str, Any]:
     return _overview_cached(
-        _signature([OUTPUT_DIR / "weekly_break_schedule.csv", DATA_DIR / "Programmes.csv", DATA_DIR / "Spots.csv", SETTINGS_PATH])
+        _signature([
+            OUTPUT_DIR / "weekly_break_schedule.csv",
+            DATA_DIR / "reference" / "Programmes.xlsx",
+            DATA_DIR / "reference" / "Spots.xlsx",
+            DATA_DIR / "Programmes.csv",
+            DATA_DIR / "Spots.csv",
+            SETTINGS_PATH,
+        ])
     )
 
 
 @app.get("/api/schedule")
 def schedule() -> dict[str, Any]:
-    return _schedule_cached(_signature([DATA_DIR / "Programmes.csv", OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+    return _schedule_cached(_signature([
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+    ]))
 
 
 @app.get("/api/break-operations")
 def break_operations() -> dict[str, Any]:
-    return _break_operations_cached(_signature([DATA_DIR / "Programmes.csv", OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+    return _break_operations_cached(_signature([
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+    ]))
 
 
 @app.get("/api/break-decisions")
@@ -1793,6 +1870,10 @@ def parameters() -> dict[str, Any]:
     payload["assumptions"] = _asdict(OptimizerAssumptions())
     payload["channels"] = list(KAIROS_CHANNELS)
     payload["operator_channel"] = settings.operator_channel
+    # Honest flag: when no channel is selected the competitor-boundary filter is
+    # inactive (constraints match any channel). The dashboard uses this to warn
+    # the operator so they know to visit OperatorChannelPanel and pick a channel.
+    payload["operator_channel_unset"] = not bool(settings.operator_channel)
     payload["available_channels"] = list(KAIROS_CHANNELS)
     try:
         pricing = PricingModel.from_yaml()

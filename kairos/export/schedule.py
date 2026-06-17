@@ -90,6 +90,16 @@ COLUMNS = [
     "position",
     "break_type",
     "base_rate",
+    # Risk-adjusted retention columns: the value the optimizer actually decided
+    # with under the active risk_lambda (equals predicted_retention when
+    # risk_lambda=0 or no CI is available), plus the per-segment credible
+    # interval and confidence that justify it. Empty (None -> blank in CSV)
+    # when the segment has no measured CI, so nothing is fabricated.
+    "retention_used",
+    "retention_ci_low",
+    "retention_ci_high",
+    "retention_n",
+    "retention_confidence",
 ]
 
 
@@ -271,6 +281,49 @@ def build_weekly_schedule(
             # A 0-break segment keeps its baseline retention and earns nothing.
             retention = plan.retention if plan else segment.retention_baseline
             revenue = plan.revenue if plan else 0.0
+
+            # Risk-adjusted retention fields: surface the per-segment uncertainty
+            # the optimizer used so the weekly CSV carries the full risk decision.
+            # ``plan.retention`` is already the risk-adjusted value (computed with
+            # the conservative coefficient when risk_lambda > 0 and a CI exists).
+            # The CI columns translate the per-break coefficient interval into
+            # retention bounds at ``num_breaks`` breaks, so the reader can see the
+            # pessimistic and optimistic retention the decision rests on. All four
+            # auxiliary fields are None (blank in CSV) when the segment has no
+            # measured CI, keeping the export honest.
+            if plan is not None:
+                ret_ci_low: Optional[float] = None
+                ret_ci_high: Optional[float] = None
+                if (
+                    plan.retention_cost_ci_low is not None
+                    and plan.retention_cost_ci_high is not None
+                    and num_breaks > 0
+                ):
+                    from kairos.optimize.objective import clamp, predicted_retention as _pred_ret
+                    ret_ci_low = round(
+                        _pred_ret(
+                            segment.retention_baseline,
+                            plan.retention_cost_ci_low,
+                            num_breaks,
+                        ),
+                        4,
+                    )
+                    ret_ci_high = round(
+                        _pred_ret(
+                            segment.retention_baseline,
+                            plan.retention_cost_ci_high,
+                            num_breaks,
+                        ),
+                        4,
+                    )
+                retention_n: Optional[int] = plan.retention_cost_n if plan.retention_cost_n else None
+                retention_confidence: Optional[str] = plan.retention_confidence or None
+            else:
+                ret_ci_low = None
+                ret_ci_high = None
+                retention_n = None
+                retention_confidence = None
+
             rows.append(
                 {
                     "channel": segment.channel,
@@ -286,6 +339,11 @@ def build_weekly_schedule(
                     "position": "middle",
                     "break_type": _break_type(segment.break_length_seconds),
                     "base_rate": round(segment.cpp * segment.premium, 4),
+                    "retention_used": round(retention, 4),
+                    "retention_ci_low": ret_ci_low,
+                    "retention_ci_high": ret_ci_high,
+                    "retention_n": retention_n,
+                    "retention_confidence": retention_confidence,
                 }
             )
 

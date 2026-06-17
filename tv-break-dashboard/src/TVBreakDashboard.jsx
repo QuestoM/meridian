@@ -3600,6 +3600,11 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState 
           {he ? `האילוצים החדשים יחולו על ערוץ "${currentChannel}".` : `New constraints will be scoped to channel "${currentChannel}".`}
         </p>
       )}
+      {!currentChannel && (
+        <p className="cb-operator-channel-warning">
+          {he ? 'אזהרה: הערוץ אינו מוגדר. מסנן הערוץ המתחרה אינו פעיל - האילוצים חלים על כל הערוצים עד שתבחר ערוץ.' : 'Warning: no channel is set. The competitor-channel boundary filter is inactive - constraints match all channels until you pick your channel.'}
+        </p>
+      )}
     </section>
   );
 }

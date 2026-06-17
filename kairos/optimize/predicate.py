@@ -307,7 +307,7 @@ def evaluate_predicate(
     """
     if operator_channel:
         seg_channel = str(getattr(segment, "channel", "") or "")
-        if seg_channel != operator_channel:
+        if _norm(seg_channel) != _norm(operator_channel):
             return False
     try:
         return _eval_group(group, segment)

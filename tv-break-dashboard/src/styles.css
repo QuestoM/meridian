@@ -4351,3 +4351,14 @@ button {
   color: var(--muted);
   font-size: 12px;
 }
+
+.cb-operator-channel-warning {
+  margin: 8px 0 0;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 500;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
