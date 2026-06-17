@@ -622,6 +622,7 @@ def optimize_breaks(
     overrides: Optional[OverrideSet] = None,
     risk_lambda: float = 0.0,
     placement_pins: Optional[Mapping[str, Sequence[PlacementPin]]] = None,
+    demand_weights: Optional[Mapping[str, float]] = None,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -657,6 +658,17 @@ def optimize_breaks(
     pinned geometry); a segment whose pins are invalid or breach a guardrail is
     dropped to 0 breaks and reported in ``result.rejected_overrides`` with
     ``kind="placement"``, never silently bent.
+
+    ``demand_weights`` is an optional mapping from segment id to a placement-
+    preference weight >= 1.0. When supplied, the greedy ranking step multiplies
+    each segment's apparent objective gain by its weight before comparing segments,
+    so a higher-demand segment is preferred when two segments have similar gains.
+    This biases WHERE breaks go without changing reported revenue: weights touch
+    only the ranking comparison, never ``total_revenue`` or any ``SegmentPlan``
+    revenue field. A missing or 1.0 weight leaves a segment's ranking unchanged.
+    Omitting the argument entirely (``None``) gives byte-identical output to
+    today's optimizer. Produced by
+    :meth:`~kairos.optimize.advertiser_rules.AdvertiserRuleEngine.segment_demand`.
 
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
@@ -744,6 +756,12 @@ def optimize_breaks(
                 if total_tvr > _EPSILON else 1.0
             )
             gain = objective_of(candidate_revenue, candidate_retention) - base_objective
+            # Demand weight scales the apparent gain used for ranking only. It
+            # steers which segment gets the next break (placement bias) without
+            # touching candidate_revenue or total_revenue, so reported revenue is
+            # always real. A weight of 1.0 (or None) leaves ranking unchanged.
+            if demand_weights is not None:
+                gain = gain * max(1.0, demand_weights.get(segment.segment_id, 1.0))
             if gain <= best_gain:
                 continue
             group = groups[(segment.channel, segment.day)]
