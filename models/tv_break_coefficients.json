@@ -21,7 +21,13 @@
     },
     "series_gate_reason": "series RMSE (0.21086) does not beat genre RMSE (0.18984) by the required 2% margin (actual improvement -11.1%); series layer omitted",
     "series_layer": false,
-    "series_count": 0
+    "series_count": 0,
+    "computed_at": "2026-06-17T17:26:29.439092+00:00",
+    "source_fingerprints": {
+      "data/reference/Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "data/reference/Programmes.xlsx": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "data/reference/Dayparts.xlsx": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0"
+    }
   },
   "coefficients": {
     "News_first_long": -0.031708837400069245,

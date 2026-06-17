@@ -25,7 +25,9 @@ from kairos.data.transform import (
     build_segments_from_daily_input,
     build_segments_from_programmes,
 )
+from kairos.model.freshness import coefficient_freshness
 from kairos.model.impact import ImpactModel, load_impact_model
+from kairos.model.measure import read_coefficients_metadata
 from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
@@ -45,6 +47,9 @@ DEFAULT_OVERRIDES_PATH = ROOT / "data" / "manual_overrides.csv"
 # The trained Meridian posterior, when present. load_impact_model falls back to
 # the declared assumption coefficient when this file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
+# The measured per-cell retention coefficients. Its metadata carries the
+# freshness stamp (computed_at + source_fingerprints) used to detect stale deltas.
+DEFAULT_COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 # Trusted AI genres for titles the rule-based classifier left as "Other",
 # written by scripts/classify_unclassified.py. Absent or empty means no AI
 # overrides, and classification stays purely rule-based (no fabrication).
@@ -56,6 +61,30 @@ def _build_classifier() -> ProgramClassifier:
     classifier = ProgramClassifier.from_yaml()
     overrides = load_ai_overrides(AI_CLASSIFICATIONS_PATH)
     return CachedClassifier(classifier, overrides) if overrides else classifier
+
+
+def _coefficient_freshness_block(impact_model: ImpactModel) -> dict[str, Any]:
+    """Honest freshness verdict for the retention coefficients the plan used.
+
+    Only the measured JSON carries source fingerprints, so freshness can be
+    verified only when the impact source is "measured": we read its metadata and
+    compare the fingerprinted source files against disk now. For any other source
+    (the declared assumption, or a trained posterior) there is no fingerprinted
+    measured JSON to check, so the verdict is an honest "unknown" that names the
+    source, never a fabricated "fresh".
+    """
+    if impact_model.source == "measured":
+        metadata = read_coefficients_metadata(DEFAULT_COEFFICIENTS_PATH)
+        return coefficient_freshness(metadata, root=ROOT)
+    return {
+        "status": "unknown",
+        "computed_at": None,
+        "changed_files": [],
+        "reason": (
+            f"Coefficients are not the measured JSON (impact source is "
+            f"'{impact_model.source}'); freshness is not applicable."
+        ),
+    }
 
 
 def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
@@ -251,6 +280,7 @@ def optimize_day_plan(
     payload["assumptions"] = asdict(assumptions)
     payload["segment_count"] = len(segments)
     payload["impact_source"] = impact_model.source
+    payload["coefficient_freshness"] = _coefficient_freshness_block(impact_model)
 
     if log_run:
         # Provenance: hash the programmes file when one fed the run. With a frame
@@ -328,6 +358,8 @@ def run_scenario(
         "risk_lambda": risk_lambda,
     }
     payload["guardrails"] = asdict(guardrails)
+    payload["impact_source"] = impact_model.source
+    payload["coefficient_freshness"] = _coefficient_freshness_block(impact_model)
     return payload
 
 

@@ -528,6 +528,27 @@ def read_coefficients_json(path: str | Path) -> dict[str, float]:
     return {str(name): float(value) for name, value in raw.items()}
 
 
+def read_coefficients_metadata(path: str | Path) -> dict[str, object]:
+    """Read the ``metadata`` block from a coefficients JSON, or an empty dict.
+
+    The metadata carries provenance (data window, pooling diagnostics, and the
+    freshness fields ``computed_at`` and ``source_fingerprints``). Returns an
+    empty dict when the file is missing, unreadable, or carries no metadata, so a
+    caller can fall back honestly (an empty metadata yields a freshness status of
+    ``unknown``, never a false ``fresh``).
+    """
+    source = Path(path)
+    if not source.exists():
+        return {}
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Could not read measured coefficients at %s; ignoring.", source)
+        return {}
+    metadata = payload.get("metadata", {})
+    return dict(metadata) if isinstance(metadata, dict) else {}
+
+
 # Confidence-label thresholds. A cell is trusted ("high") only when it carries
 # enough breaks AND its credible interval is tight; it is "low" when either the
 # count is small or the interval is wide. These are explicit, editable knobs, not

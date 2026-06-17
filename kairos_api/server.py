@@ -1805,6 +1805,22 @@ def parameters() -> dict[str, Any]:
         }
     except Exception as exc:  # pragma: no cover - config dependent
         payload["pricing"] = {"error": str(exc)[:200]}
+    # Honest freshness of the measured retention coefficients: re-hash the source
+    # files the coefficients were computed from and report fresh/stale/unknown so
+    # the dashboard can warn when the data has moved on from the stored deltas.
+    try:
+        from kairos.model.freshness import coefficient_freshness
+        from kairos.model.measure import read_coefficients_metadata
+
+        metadata = read_coefficients_metadata(MODELS_DIR / "tv_break_coefficients.json")
+        payload["coefficient_freshness"] = coefficient_freshness(metadata, root=ROOT)
+    except Exception as exc:  # pragma: no cover - defensive, never blocks parameters
+        payload["coefficient_freshness"] = {
+            "status": "unknown",
+            "computed_at": None,
+            "changed_files": [],
+            "reason": f"freshness check unavailable: {str(exc)[:160]}",
+        }
     return payload
 
 

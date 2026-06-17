@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from kairos.data import ProgramClassifier
@@ -46,15 +47,43 @@ from kairos.model.measure import (
     channel_coefficients,
     write_coefficients_json,
 )
+from kairos.model.freshness import COMPUTED_AT_KEY, FINGERPRINTS_KEY
 from kairos.model.series import series_coefficients
 from kairos.model.series_gate import series_holdout_gate
+from kairos.observability.run_log import checksum_file
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
+# The exact source files the coefficients are measured from. break_effects reads
+# spots, programmes and dayparts (load_spots/load_programmes/load_dayparts), which
+# resolve to these three reference xlsx files. We fingerprint exactly these so a
+# change to any of them is detectable as staleness, and nothing else is claimed.
+SOURCE_FILES = (
+    REFERENCE_DIR / "Spots.xlsx",
+    REFERENCE_DIR / "Programmes.xlsx",
+    REFERENCE_DIR / "Dayparts.xlsx",
+)
+
 # Sentinel values for the --series override flag.
 _FORCE_ON = "force-on"
 _FORCE_OFF = "force-off"
+
+
+def _source_fingerprints() -> dict[str, str]:
+    """Map each source file's relative POSIX path to its current sha256.
+
+    Used at write time so the coefficients JSON records exactly what data it was
+    computed from. A missing file is skipped here (the compute would already have
+    failed to read it), so only files that fed the measurement are fingerprinted.
+    """
+    prints: dict[str, str] = {}
+    for path in SOURCE_FILES:
+        digest = checksum_file(path)
+        if digest is not None:
+            rel = path.relative_to(ROOT).as_posix()
+            prints[rel] = digest
+    return prints
 
 
 def main() -> None:
@@ -145,6 +174,14 @@ def main() -> None:
         "series_layer": emit_series,
         "series_count": len(series_to_write),
     }
+    # Freshness stamp: when these coefficients were computed and a sha256 of every
+    # source file they were measured from. The freshness checker
+    # (kairos.model.freshness) re-hashes those files later and reports stale when
+    # the data has changed, so a stale number is detected instead of hidden. The
+    # timestamp is generated here at the CLI entry, not inside a pure function, so
+    # measure.py stays deterministic for its byte-stable JSON tests.
+    metadata[COMPUTED_AT_KEY] = datetime.now(timezone.utc).isoformat()
+    metadata[FINGERPRINTS_KEY] = _source_fingerprints()
     written = write_coefficients_json(
         OUTPUT_PATH, coefficients, metadata=metadata,
         series=series_to_write if series_to_write else None,
