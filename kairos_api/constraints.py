@@ -17,6 +17,7 @@ that cannot build real segments says so rather than inventing a delta.
 
 from __future__ import annotations
 
+import json
 import shutil
 import uuid
 from datetime import datetime, timezone
@@ -34,6 +35,16 @@ from kairos.optimize.constraints_store import (
     _EFFECTS,
     load_constraints,
     resolve_constraints,
+)
+from kairos_api._constraint_options import (
+    channel_options as _channel_options,
+    daypart_options_list as _daypart_options_list,
+    genre_options as _genre_options,
+    load_operator_channel as _load_operator_channel,
+    predicate_field_schema as _predicate_field_schema,
+    validate_where as _validate_where,
+    weekday_options as _weekday_options,
+    where_json_cell as _where_json_cell,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +72,12 @@ class ConstraintCreate(BaseModel):
     Field aliases keep the API tolerant of the dashboard's naming (for example
     ``offset_seconds_min`` and ``pin_count``) so a client and the store cannot drift
     apart silently; the canonical names still populate the same fields.
+
+    ``where`` is the optional rich predicate tree (Group/Condition). When
+    supplied it overrides the flat scope_type/scope_value matching; the flat
+    fields are still persisted for back-compat. When absent the legacy flat
+    matching is used. See docs/constraint-predicate-contract.md for the exact
+    frozen JSON shape.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -83,6 +100,7 @@ class ConstraintCreate(BaseModel):
         default=None, validation_alias=AliasChoices("duration_max_seconds", "duration_seconds_max"))
     order_index: Optional[int] = None
     notes: str = ""
+    where: Optional[dict[str, Any]] = None
 
 
 class ConstraintUpdate(BaseModel):
@@ -101,6 +119,7 @@ class ConstraintUpdate(BaseModel):
     duration_max_seconds: float | None = None
     order_index: int | None = None
     notes: str | None = None
+    where: Optional[dict[str, Any]] = None
 
 
 def _load_frame() -> pd.DataFrame:
@@ -128,7 +147,17 @@ def _write_frame(frame: pd.DataFrame) -> None:
 
 
 def _record(row: "pd.Series[Any]") -> dict[str, Any]:
-    return {column: str(row.get(column, "")) for column in COLUMNS}
+    result = {column: str(row.get(column, "")) for column in COLUMNS}
+    # Also expose the parsed where predicate (convenience for API consumers).
+    raw_json = str(row.get("where_json", "") or "")
+    if raw_json.strip():
+        try:
+            result["where"] = json.loads(raw_json)
+        except (json.JSONDecodeError, ValueError):
+            result["where"] = None
+    else:
+        result["where"] = None
+    return result
 
 
 def _validate_scope(scope_type: str) -> str:
@@ -164,6 +193,7 @@ def list_constraints() -> dict[str, Any]:
 def create_constraint(payload: ConstraintCreate) -> dict[str, Any]:
     scope_type = _validate_scope(payload.scope_type)
     effect = _validate_effect(payload.effect)
+    where = _validate_where(payload.where)
     frame = _load_frame()
     new_row = {
         "constraint_id": uuid.uuid4().hex[:12],
@@ -180,6 +210,7 @@ def create_constraint(payload: ConstraintCreate) -> dict[str, Any]:
         "duration_max_seconds": _num_cell(payload.duration_max_seconds),
         "order_index": _num_cell(payload.order_index),
         "notes": str(payload.notes or ""),
+        "where_json": _where_json_cell(where),
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
     _write_frame(frame)
@@ -211,6 +242,9 @@ def update_constraint(constraint_id: str, payload: ConstraintUpdate) -> dict[str
             frame.at[index, column] = str(value)
     if payload.notes is not None:
         frame.at[index, "notes"] = str(payload.notes)
+    if payload.where is not None:
+        where = _validate_where(payload.where)
+        frame.at[index, "where_json"] = _where_json_cell(where)
     _write_frame(frame)
     return _record(frame.loc[index])
 
@@ -224,38 +258,14 @@ def delete_constraint(constraint_id: str) -> dict[str, Any]:
     return {"deleted": constraint_id}
 
 
-def _channel_options() -> list[str]:
-    """Real channel names from the reference EPG, sorted and de-duplicated."""
-    try:
-        from kairos.data.loaders import load_programmes
-
-        frame = load_programmes()
-        if "Channel" not in frame.columns:
-            return []
-        names = {str(c).strip() for c in frame["Channel"].dropna() if str(c).strip()}
-        return sorted(names)
-    except Exception:
-        return []
-
-
-def _weekday_options() -> list[dict[str, Any]]:
-    """ISO weekday tokens 1..7 with bilingual labels (Mon..Sun)."""
-    names_en = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    names_he = ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"]
-    return [
-        {"key": str(i + 1), "en": names_en[i], "he": names_he[i]}
-        for i in range(7)
-    ]
-
-
 @router.get("/options")
 def scope_options() -> dict[str, Any]:
     """Option lists the dashboard needs to build a scoped placement constraint.
 
-    Programmes and channels come from the real reference EPG (the same source the
-    advertiser-conditions page reuses), weekdays are the ISO 1..7 tokens, and the
-    scope_types / effects come straight from the constraint store vocabulary, so
-    the dashboard never offers a value the resolver cannot consume.
+    Includes the frozen predicate field/operator schema, real programme and genre
+    lists from the EPG, active daypart and weekday vocabularies, and the
+    operator_channel setting (so the dashboard knows which channel's breaks the
+    constraints will scope to).
     """
     from kairos_api.advertiser_conditions import _programme_options
 
@@ -263,8 +273,13 @@ def scope_options() -> dict[str, Any]:
         "scope_types": sorted(_SCOPES),
         "effects": sorted(_EFFECTS),
         "programmes": _programme_options(),
+        "genres": _genre_options(),
         "channels": _channel_options(),
         "weekdays": _weekday_options(),
+        "dayparts": _daypart_options_list(),
+        "predicate_fields": _predicate_field_schema(),
+        "operator_channel": _load_operator_channel(),
+        "available_channels": _channel_options(),
     }
 
 
@@ -324,8 +339,11 @@ def constraint_effect(
     if not segments:
         raise HTTPException(status_code=404, detail="No segments found for the requested channel-day")
 
+    operator_channel = _load_operator_channel()
     constraints = load_constraints(CONSTRAINTS_PATH)
-    placement_pins, count_pins, forbids, skipped = resolve_constraints(segments, constraints)
+    placement_pins, count_pins, forbids, skipped = resolve_constraints(
+        segments, constraints, operator_channel=operator_channel,
+    )
     overrides = count_pins_to_overrides(count_pins, forbids)
 
     baseline = optimize_breaks(segments)

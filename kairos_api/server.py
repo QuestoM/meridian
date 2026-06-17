@@ -116,6 +116,11 @@ class KairosSettings(BaseModel):
     gold_breaks_max_per_day: int = Field(default=3, ge=0, le=50)
     require_manual_approval: bool = True
     notes: str = "Configurable baseline. Validate with current counsel and broadcaster policy before production use."
+    # The operator is the client and owns exactly one channel. All placement
+    # constraints are scoped to this channel automatically; the resolver never
+    # touches another channel's breaks. Empty string = not yet configured
+    # (constraints match any channel, an honest no-op until the operator picks one).
+    operator_channel: str = ""
 
 
 def _safe_path(relative_path: str) -> Path:
@@ -1529,6 +1534,7 @@ def recompute_schedule() -> dict[str, Any]:
             settings=settings_map,
             revenue_weight=saved.revenue_weight / 100.0,
             risk_lambda=saved.risk_lambda,
+            operator_channel=saved.operator_channel,
         )
     except Exception as exc:  # pragma: no cover - surfaced honestly to the operator
         logger.exception("recompute-schedule failed")
@@ -1786,6 +1792,8 @@ def parameters() -> dict[str, Any]:
     payload["guardrails"] = _asdict(guardrails_from_settings(_model_dump(settings)))
     payload["assumptions"] = _asdict(OptimizerAssumptions())
     payload["channels"] = list(KAIROS_CHANNELS)
+    payload["operator_channel"] = settings.operator_channel
+    payload["available_channels"] = list(KAIROS_CHANNELS)
     try:
         pricing = PricingModel.from_yaml()
         payload["pricing"] = {

@@ -6,9 +6,14 @@ into the optimizer's own primitives (placement pins, count pins, forbids) and
 honored exactly. They also prove conflicting constraints are skipped with a
 reason rather than letting the last writer silently win, and that the weekly
 export honors a constraints CSV end to end.
+
+Also includes tests for the new where_json column (added with the predicate
+upgrade), back-compat for legacy rows, and predicate-bearing constraints.
 """
 
 from __future__ import annotations
+
+import json
 
 import pandas as pd
 
@@ -186,3 +191,94 @@ def test_build_weekly_schedule_honors_constraints_csv(tmp_path) -> None:
         programmes=frame, revenue_weight=1.0, constraints_path=str(path),
     )
     assert int(with_constraints["num_breaks"].sum()) == 0   # forbid zeroed the channel
+
+
+# ---------------------------------------------------------------------------
+# where_json column: back-compat and round-trip
+# ---------------------------------------------------------------------------
+
+def test_columns_include_where_json() -> None:
+    """where_json must be in the COLUMNS tuple for persistence."""
+    assert "where_json" in COLUMNS
+
+
+def test_where_json_round_trip_in_csv(tmp_path) -> None:
+    """A constraint written with where_json loads back with a parsed 'where' tree."""
+    tree = {
+        "combinator": "and",
+        "conditions": [
+            {"field": "genre", "operator": "is", "value": "Drama"},
+            {"field": "hour", "operator": "gte", "value": 20},
+        ],
+    }
+    path = tmp_path / "pred_constraints.csv"
+    row = {column: "" for column in COLUMNS}
+    row.update({
+        "constraint_id": "pw1",
+        "scope_type": "always",
+        "effect": "forbid",
+        "where_json": json.dumps(tree, ensure_ascii=False),
+    })
+    pd.DataFrame([row])[list(COLUMNS)].to_csv(path, index=False, encoding="utf-8-sig")
+    loaded = load_constraints(path)
+    assert len(loaded) == 1
+    assert loaded[0].where == tree
+
+
+def test_legacy_csv_without_where_json_col_loads_fine(tmp_path) -> None:
+    """A CSV written before where_json existed loads without errors; where is None."""
+    legacy_cols = [c for c in COLUMNS if c != "where_json"]
+    row = {c: "" for c in legacy_cols}
+    row.update({
+        "constraint_id": "old1",
+        "scope_type": "always",
+        "effect": "pin_count",
+        "count": "2",
+    })
+    path = tmp_path / "legacy.csv"
+    pd.DataFrame([row])[legacy_cols].to_csv(path, index=False, encoding="utf-8-sig")
+    loaded = load_constraints(path)
+    assert len(loaded) == 1
+    assert loaded[0].where is None
+    assert loaded[0].count == 2
+
+
+def test_predicate_constraint_matches_in_resolver(tmp_path) -> None:
+    """A predicate constraint loaded from CSV resolves correctly against segments."""
+    monday = make_segment(segment_id="mon", day="2026-06-15")  # Monday
+    wednesday = make_segment(segment_id="wed", day="2026-06-17")  # Wednesday
+    # Constraint: forbid on Mondays using a weekday predicate
+    tree = {"combinator": "and", "conditions": [
+        {"field": "weekday", "operator": "is", "value": "Mon"},
+    ]}
+    path = tmp_path / "pred.csv"
+    row = {c: "" for c in COLUMNS}
+    row.update({
+        "constraint_id": "pred1",
+        "scope_type": "always",
+        "effect": "forbid",
+        "where_json": json.dumps(tree),
+    })
+    pd.DataFrame([row])[list(COLUMNS)].to_csv(path, index=False, encoding="utf-8-sig")
+    loaded = load_constraints(path)
+    _, _, forbids, _ = resolve_constraints([monday, wednesday], loaded)
+    assert "mon" in forbids
+    assert "wed" not in forbids
+
+
+def test_invalid_where_json_cell_does_not_crash_and_where_is_none(tmp_path) -> None:
+    """A malformed where_json cell must not crash the loader; where becomes None."""
+    path = tmp_path / "bad_json.csv"
+    row = {c: "" for c in COLUMNS}
+    row.update({
+        "constraint_id": "bad1",
+        "scope_type": "always",
+        "effect": "pin_count",
+        "count": "1",
+        "where_json": "{invalid json!!!",
+    })
+    pd.DataFrame([row])[list(COLUMNS)].to_csv(path, index=False, encoding="utf-8-sig")
+    loaded = load_constraints(path)
+    assert len(loaded) == 1
+    assert loaded[0].where is None  # falls back to legacy matching
+    assert loaded[0].count == 1

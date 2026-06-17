@@ -113,19 +113,31 @@ def _load_constraints(constraints_path: Optional[str | Path]):
     return []
 
 
-def _constraint_inputs(segments, constraints, overrides: Optional[OverrideSet]):
+def _constraint_inputs(
+    segments,
+    constraints,
+    overrides: Optional[OverrideSet],
+    *,
+    operator_channel: str = "",
+):
     """Resolve constraints for one channel-day into (placement_pins, OverrideSet).
 
     Count pins and forbids become a merged :class:`OverrideSet` (the engine's
     count path), combined with any caller-supplied ``overrides``; placement pins
     are returned separately for the optimizer's pin path. With no constraints this
     returns ``({}, overrides)``, leaving the call unchanged.
+
+    ``operator_channel`` is the operator's own channel (from KairosSettings). It
+    is passed to the resolver so predicate constraints (and legacy flat constraints
+    when set) are scoped to that channel automatically.
     """
     if not constraints:
         return {}, overrides
     from kairos.optimize.constraints_store import count_pins_to_overrides, resolve_constraints
 
-    placement_pins, count_pins, forbids, _ = resolve_constraints(segments, constraints)
+    placement_pins, count_pins, forbids, _ = resolve_constraints(
+        segments, constraints, operator_channel=operator_channel,
+    )
     constraint_overrides = count_pins_to_overrides(count_pins, forbids)
     if overrides is not None:
         constraint_overrides = OverrideSet(
@@ -148,6 +160,7 @@ def build_weekly_schedule(
     overrides: Optional[OverrideSet] = None,
     placement_pins: Optional[Mapping[str, Any]] = None,
     constraints_path: Optional[str | Path] = None,
+    operator_channel: str = "",
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -165,12 +178,21 @@ def build_weekly_schedule(
     forbids are passed into that channel-day's optimize_breaks call, so the
     exported num_breaks honors the operator's scoped rules. With no file it is
     unchanged, so the path is fully backward compatible.
+
+    ``operator_channel`` is the operator's own channel name (from
+    KairosSettings.operator_channel). Constraints are automatically scoped to this
+    channel, honoring the competitor-information boundary: the operator constrains
+    only their own channel's breaks. Empty string -> no channel filter (matches any
+    channel, the honest no-op before the operator has picked one).
     """
     pricing = pricing or PricingModel.from_yaml()
     assumptions = assumptions or OptimizerAssumptions()
     classifier = classifier or ProgramClassifier.from_yaml()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
+    # If operator_channel was not given explicitly, read it from settings dict.
+    if not operator_channel and settings:
+        operator_channel = str(settings.get("operator_channel", "") or "")
     if impact_model is None:
         impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     if programmes is None:
@@ -198,7 +220,9 @@ def build_weekly_schedule(
         # Resolve the scoped constraints against THIS channel-day's segments into
         # the optimizer's primitives (placement pins, count pins, forbids). The
         # explicit ``placement_pins`` argument, when given, is merged on top.
-        day_pins, day_overrides = _constraint_inputs(segments, constraints, overrides)
+        day_pins, day_overrides = _constraint_inputs(
+            segments, constraints, overrides, operator_channel=operator_channel,
+        )
         merged_pins = {**day_pins, **(placement_pins or {})}
         # Demand weights: always computed per channel-day, self-neutralizing.
         demand_weights = build_demand_weights(segments, demand_engine)

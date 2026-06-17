@@ -57,16 +57,21 @@ def main() -> int:
     # the revenue-vs-retention balance they selected, not the engine default (0.5).
     raw_weight = settings.get("revenue_weight")
     revenue_weight = float(raw_weight) / 100.0 if raw_weight is not None else None
+    operator_channel = str(settings.get("operator_channel", "") or "")
     print(f"  using saved settings (revenue_weight={raw_weight}, risk_lambda={risk_lambda}, "
-          f"retention_floor={settings.get('min_retention_floor', 'default')})")
+          f"retention_floor={settings.get('min_retention_floor', 'default')}, "
+          f"operator_channel={operator_channel or '(any)'})")
     constraints_path = str(CONSTRAINTS_PATH) if CONSTRAINTS_PATH.exists() else None
     if constraints_path:
         print(f"  honoring placement constraints from {CONSTRAINTS_PATH.name}")
+    if operator_channel:
+        print(f"  constraints scoped to operator channel: {operator_channel}")
     frame = build_weekly_schedule(
         settings=settings or None,
         revenue_weight=revenue_weight,
         risk_lambda=risk_lambda,
         constraints_path=constraints_path,
+        operator_channel=operator_channel,
     )
     if frame.empty:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")

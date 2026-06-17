@@ -34,20 +34,28 @@ Honesty rules:
 
 from __future__ import annotations
 
+import json
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import pandas as pd
 
 from kairos.optimize.optimizer import PlacementPin, ProgramSegment
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = ROOT / "data"
-BACKUP_DIR = DATA_DIR / "_backups"
-DEFAULT_CONSTRAINTS_PATH = DATA_DIR / "kairos_constraints.csv"
+from kairos.optimize._constraints_io import (  # noqa: F401  (re-exported)
+    BACKUP_DIR,
+    COLUMNS,
+    DATA_DIR,
+    DEFAULT_CONSTRAINTS_PATH,
+    ROOT,
+    _backup,
+    _load_frame,
+    _write_frame,
+    count_pins_to_overrides,
+)
 
 # Scope vocabulary: how a constraint selects the segments it applies to.
 PROGRAMME = "programme"   # scope_value is a programme Title (case-normalized match)
@@ -65,25 +73,6 @@ DURATION_RANGE = "duration_range"  # range a break's duration (only pins with an
 GOLD = "gold"                      # mark the segment's breaks gold
 FORBID = "forbid"                  # this segment carries 0 breaks
 _EFFECTS = (FIX_OFFSET, OFFSET_WINDOW, PIN_COUNT, DURATION_RANGE, GOLD, FORBID)
-
-# CSV columns, in the order they are written.
-COLUMNS = (
-    "constraint_id",
-    "scope_type",
-    "scope_value",
-    "channel",
-    "effect",
-    "offset_seconds",
-    "offset_min_seconds",
-    "offset_max_seconds",
-    "count",
-    "duration_seconds",
-    "duration_min_seconds",
-    "duration_max_seconds",
-    "order_index",
-    "notes",
-)
-
 
 def _to_float(raw: object) -> Optional[float]:
     """Parse a numeric cell to a float, or None when blank or unusable."""
@@ -110,6 +99,12 @@ class PlacementConstraint:
     ``effect`` is one of the effect vocabulary; the effect params carry the
     numbers it needs (an unused param is ``None``). ``order_index`` is the 1-based
     break within the segment a position effect targets (``None`` means break 1).
+
+    ``where`` is an optional rich predicate tree (the frozen Group/Condition
+    contract). When present it replaces the flat scope_type/scope_value matching
+    for that constraint; the old flat fields are preserved for backward compat.
+    When absent (None) the constraint uses the legacy flat scope matching exactly
+    as before.
     """
 
     constraint_id: str
@@ -126,6 +121,7 @@ class PlacementConstraint:
     duration_max_seconds: Optional[float] = None
     order_index: Optional[int] = None
     notes: str = ""
+    where: Optional[dict[str, Any]] = None   # parsed predicate Group tree
 
     def is_valid(self) -> bool:
         """True when the id, scope and effect are all recognised."""
@@ -149,8 +145,35 @@ def _normalize(text: object) -> str:
     return str(text if text is not None else "").strip().lower()
 
 
-def _matches(segment: ProgramSegment, constraint: PlacementConstraint) -> bool:
-    """True when ``constraint`` applies to ``segment`` (scope AND channel filter)."""
+def _matches(
+    segment: ProgramSegment,
+    constraint: PlacementConstraint,
+    *,
+    operator_channel: str = "",
+) -> bool:
+    """True when ``constraint`` applies to ``segment``.
+
+    Two-path matching:
+
+    1. Predicate path: when ``constraint.where`` is set, delegate to
+       :func:`kairos.optimize.predicate.evaluate_predicate` which enforces the
+       operator_channel filter internally and evaluates the full predicate tree.
+
+    2. Legacy flat path: when ``where`` is absent, use the original
+       scope_type/scope_value logic plus the per-constraint ``channel`` field
+       filter. The ``operator_channel`` setting is also applied here: if the
+       operator has picked a channel, only segments on that channel match.
+    """
+    if constraint.where is not None:
+        from kairos.optimize.predicate import evaluate_predicate
+        return evaluate_predicate(
+            constraint.where, segment, operator_channel=operator_channel or None,
+        )
+
+    # Legacy flat path. Apply operator_channel if set.
+    if operator_channel and segment.channel != operator_channel:
+        return False
+    # Per-constraint channel narrowing (the old per-row "channel" field).
     channel_filter = str(constraint.channel or "").strip()
     if channel_filter and segment.channel != channel_filter:
         return False
@@ -206,6 +229,8 @@ def _duration_for(constraint: PlacementConstraint, segment: ProgramSegment) -> f
 def resolve_constraints(
     segments: Sequence[ProgramSegment],
     constraints: Sequence[PlacementConstraint],
+    *,
+    operator_channel: str = "",
 ) -> tuple[dict[str, list[PlacementPin]], dict[str, int], set[str], list[SkippedConstraint]]:
     """Translate scoped constraints into the optimizer's per-segment primitives.
 
@@ -239,7 +264,7 @@ def resolve_constraints(
     for segment in segments:
         sid = segment.segment_id
         for constraint in valid:
-            if not _matches(segment, constraint):
+            if not _matches(segment, constraint, operator_channel=operator_channel):
                 continue
             effect = constraint.effect
 
@@ -321,6 +346,24 @@ def resolve_constraints(
     return placement_pins, count_pins, forbids, skipped
 
 
+def _parse_where_json(raw: str) -> Optional[dict[str, Any]]:
+    """Parse the where_json CSV cell into a Group dict, or None when absent/invalid.
+
+    A blank or whitespace-only cell -> None (legacy flat constraint).
+    A non-JSON cell -> None (defensive: a bad cell never becomes a match-all).
+    """
+    text = raw.strip()
+    if not text:
+        return None
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and "combinator" in parsed:
+            return parsed
+        return None
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
 def load_constraints(path: str | Path | None = None) -> list[PlacementConstraint]:
     """Read kairos_constraints.csv into :class:`PlacementConstraint` objects.
 
@@ -337,6 +380,7 @@ def load_constraints(path: str | Path | None = None) -> list[PlacementConstraint
         constraint_id = str(row.get("constraint_id", "")).strip()
         if not constraint_id:
             continue
+        where = _parse_where_json(str(row.get("where_json", "") or ""))
         out.append(PlacementConstraint(
             constraint_id=constraint_id,
             scope_type=_normalize(row.get("scope_type")),
@@ -352,6 +396,7 @@ def load_constraints(path: str | Path | None = None) -> list[PlacementConstraint
             duration_max_seconds=_to_float(row.get("duration_max_seconds")),
             order_index=_to_int(row.get("order_index")),
             notes=str(row.get("notes", "")),
+            where=where,
         ))
     return out
 
@@ -359,6 +404,8 @@ def load_constraints(path: str | Path | None = None) -> list[PlacementConstraint
 def constraints_to_optimizer_inputs(
     segments: Sequence[ProgramSegment],
     path: str | Path | None = None,
+    *,
+    operator_channel: str = "",
 ) -> tuple[dict[str, list[PlacementPin]], dict[str, int], set[str], list[SkippedConstraint]]:
     """Load the CSV and resolve it against ``segments``, ready for the optimizer.
 
@@ -369,55 +416,6 @@ def constraints_to_optimizer_inputs(
     :func:`count_pins_to_overrides`).
     """
     constraints = load_constraints(path)
-    return resolve_constraints(segments, constraints)
+    return resolve_constraints(segments, constraints, operator_channel=operator_channel)
 
 
-def count_pins_to_overrides(count_pins: dict[str, int], forbids: set[str]):
-    """Build an OverrideSet that pins / forbids segment break counts.
-
-    The optimizer consumes count constraints through an
-    :class:`~kairos.optimize.overrides.OverrideSet` (segment scope). A forbid maps
-    to a FORBID override; any other pinned count maps to a PIN override at that
-    count. Segments with an explicit placement pin are NOT included here, because
-    a placement pin already forces the count.
-    """
-    from kairos.optimize.overrides import FORBID as O_FORBID
-    from kairos.optimize.overrides import PIN as O_PIN
-    from kairos.optimize.overrides import SEGMENT, Override, OverrideSet
-
-    overrides: list[Override] = []
-    for sid in sorted(forbids):
-        overrides.append(Override(
-            override_id=f"forbid|{sid}", scope=SEGMENT, target_id=sid, kind=O_FORBID,
-        ))
-    for sid, count in sorted(count_pins.items()):
-        if sid in forbids:
-            continue
-        overrides.append(Override(
-            override_id=f"pin|{sid}", scope=SEGMENT, target_id=sid, kind=O_PIN, value=str(count),
-        ))
-    return OverrideSet(overrides=overrides)
-
-
-def _load_frame(path: Path = DEFAULT_CONSTRAINTS_PATH) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame(columns=list(COLUMNS))
-    frame = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
-    for column in COLUMNS:
-        if column not in frame.columns:
-            frame[column] = ""
-    return frame
-
-
-def _backup(path: Path = DEFAULT_CONSTRAINTS_PATH) -> None:
-    if not path.exists():
-        return
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-    shutil.copy2(path, BACKUP_DIR / f"kairos_constraints_{stamp}.csv")
-
-
-def _write_frame(frame: pd.DataFrame, path: Path = DEFAULT_CONSTRAINTS_PATH) -> None:
-    _backup(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    frame[list(COLUMNS)].to_csv(path, index=False, encoding="utf-8-sig")
