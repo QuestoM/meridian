@@ -65,6 +65,10 @@ logger = logging.getLogger(__name__)
 # Window sizes, in minutes, for the before and after audience measurement.
 _BEFORE_MINUTES = 3
 _AFTER_MINUTES = 3
+# Minimum window size in minutes. A break whose clipped before- or after-window
+# falls below this is dropped rather than measured on contaminated audience.
+# One minute is the coarsest granularity in the daypart series.
+_MIN_WINDOW_MINUTES = 1
 # Broadcast day starts at 02:00 (daypart timebands run hours 2..25).
 _BROADCAST_DAY_START_HOUR = 2
 _MINUTES_PER_DAY = 1440
@@ -150,6 +154,59 @@ def _window_mean(values: list[Optional[float]]) -> Optional[float]:
     return float(np.mean(clean)) if clean else None
 
 
+def _neighbour_lookup(
+    breaks: pd.DataFrame,
+) -> dict[str, list[tuple[pd.Timestamp, pd.Timestamp]]]:
+    """Build a per-channel sorted list of (start, end) break spans (floor minutes).
+
+    Used by :func:`break_effects` to clip each break's measurement windows so
+    they never cross an adjacent break's audience, which would contaminate the
+    before/after comparison. Only the floor-minute timestamps matter; the
+    channel key matches the ``channel`` column (raw airing channel, not the
+    engine vocabulary name). Deterministic: no clock or randomness.
+    """
+    lookup: dict[str, list[tuple[pd.Timestamp, pd.Timestamp]]] = {}
+    for channel, group in breaks.groupby("channel", sort=False):
+        spans = [
+            (
+                pd.Timestamp(row.break_start).floor("min"),
+                pd.Timestamp(row.break_end).floor("min"),
+            )
+            for row in group.itertuples(index=False)
+        ]
+        spans.sort(key=lambda s: s[0])
+        lookup[str(channel)] = spans
+    return lookup
+
+
+def _clipped_offsets(
+    window_start_ref: pd.Timestamp,
+    offsets: list[int],
+    *,
+    clip_before: Optional[pd.Timestamp],
+    clip_after: Optional[pd.Timestamp],
+    min_minutes: int,
+) -> Optional[list[pd.Timestamp]]:
+    """Return the subset of (window_start_ref + offset) timestamps that lie within bounds.
+
+    ``clip_before`` is the earliest timestamp allowed (exclusive lower bound, e.g.
+    the previous break's end). ``clip_after`` is the latest allowed (exclusive upper
+    bound, e.g. the next break's start). ``offsets`` are in minutes, signed: negative
+    for the before-window, positive for the after-window.
+
+    Returns ``None`` when the surviving timestamps number fewer than ``min_minutes``
+    so the caller can drop the break rather than measure on contaminated audience.
+    """
+    ts_list = [window_start_ref + pd.Timedelta(minutes=o) for o in offsets]
+    if clip_before is not None:
+        ts_list = [t for t in ts_list if t > clip_before]
+    if clip_after is not None:
+        ts_list = [t for t in ts_list if t < clip_after]
+    if len(ts_list) < min_minutes:
+        return None
+    return ts_list
+
+
 def _programme_title_lookup(programmes: pd.DataFrame) -> dict[str, list[tuple]]:
     """Map channel -> sorted (start, end, title) spans for title matching.
 
@@ -190,6 +247,7 @@ def break_effects(
     *,
     before_minutes: int = _BEFORE_MINUTES,
     after_minutes: int = _AFTER_MINUTES,
+    min_window_minutes: int = _MIN_WINDOW_MINUTES,
 ) -> pd.DataFrame:
     """Measure the detrended retention effect of every real break.
 
@@ -198,6 +256,18 @@ def break_effects(
     break held more audience than the time-of-day trend predicts, negative means
     it shed more. Breaks whose windows have no positive audience are dropped (no
     fabricated rating).
+
+    Window-boundary clipping (after-window boundary fix)
+    -----------------------------------------------------
+    When adjacent breaks on the same channel are close together, the fixed
+    3-minute window extends into the next (or previous) break's air time,
+    contaminating the audience measurement with viewers lost to the neighbour
+    rather than the current break. To avoid this, each break's after-window is
+    clipped so it never crosses the next break's start minute, and its
+    before-window never crosses the previous break's end minute. When the
+    clipped window shrinks below ``min_window_minutes`` (default 1 minute),
+    the break is dropped entirely rather than measured on contaminated audience.
+    Unaffected breaks (gap > window) keep the full window unchanged.
     """
     breaks = keyed_breaks(spots, programmes, classifier)
     columns = [
@@ -224,8 +294,13 @@ def break_effects(
     baseline = _baseline_levels(frame)
     titles = _programme_title_lookup(programmes)
 
-    before_offsets = [-(k + 1) for k in range(before_minutes)]
-    after_offsets = [k + 1 for k in range(after_minutes)]
+    # Build per-channel sorted break spans so we can find each break's
+    # neighbours without scanning the full frame on every iteration.
+    neighbours = _neighbour_lookup(breaks)
+
+    # Signed-minute offsets for the full windows; clipping may shorten them.
+    before_offsets_full = [-(k + 1) for k in range(before_minutes)]
+    after_offsets_full = [k + 1 for k in range(after_minutes)]
 
     rows: list[dict[str, object]] = []
     for row in breaks.itertuples(index=False):
@@ -233,8 +308,44 @@ def break_effects(
         start = pd.Timestamp(getattr(row, "break_start")).floor("min")
         end = pd.Timestamp(getattr(row, "break_end")).floor("min")
 
-        before_ts = [start + pd.Timedelta(minutes=o) for o in before_offsets]
-        after_ts = [end + pd.Timedelta(minutes=o) for o in after_offsets]
+        # Find the closest neighbour boundaries on this channel, in floor-minutes.
+        # Binary search on the sorted spans list: cheaper than a pandas merge.
+        spans = neighbours.get(channel, [])
+        prev_end: Optional[pd.Timestamp] = None
+        next_start: Optional[pd.Timestamp] = None
+        # Locate the position of this break in the sorted list by its start.
+        lo, hi = 0, len(spans)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if spans[mid][0] < start:
+                lo = mid + 1
+            else:
+                hi = mid
+        idx = lo  # index of this break (or the first break starting >= start)
+        if idx > 0:
+            prev_end = spans[idx - 1][1]
+        if idx + 1 < len(spans):
+            next_start = spans[idx + 1][0]
+
+        # Clip windows: before-window must stay above prev_end; after-window
+        # must stay below next_start. Drop the break when the result is too thin.
+        before_ts = _clipped_offsets(
+            start, before_offsets_full,
+            clip_before=prev_end,
+            clip_after=None,
+            min_minutes=min_window_minutes,
+        )
+        if before_ts is None:
+            continue
+
+        after_ts = _clipped_offsets(
+            end, after_offsets_full,
+            clip_before=None,
+            clip_after=next_start,
+            min_minutes=min_window_minutes,
+        )
+        if after_ts is None:
+            continue
 
         obs_before = _window_mean([observed.get((channel, t)) for t in before_ts])
         obs_after = _window_mean([observed.get((channel, t)) for t in after_ts])

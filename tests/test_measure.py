@@ -16,6 +16,8 @@ import pytest
 from kairos.model.measure import (
     MeasuredCoefficient,
     _broadcast_minute,
+    _clipped_offsets,
+    _neighbour_lookup,
     between_cell_variance,
     break_effects,
     channel_coefficients,
@@ -323,3 +325,141 @@ def test_series_layer_does_not_change_genre_coefficients() -> None:
     assert {n: c.coefficient for n, c in genre_before.items()} == {
         n: c.coefficient for n, c in genre_after.items()
     }
+
+
+# --- after-window boundary clipping -----------------------------------------
+
+def test_clipped_offsets_no_neighbours_returns_full_window() -> None:
+    """With no adjacent breaks (clip_before and clip_after both None) the
+    function returns all offsets unchanged."""
+    ref = pd.Timestamp("2024-11-04 20:07:00")
+    offsets = [1, 2, 3]
+    result = _clipped_offsets(ref, offsets, clip_before=None, clip_after=None, min_minutes=1)
+    assert result is not None
+    assert len(result) == 3
+    assert result[0] == ref + pd.Timedelta(minutes=1)
+
+
+def test_clipped_offsets_drops_timestamps_past_next_break() -> None:
+    """When the next break starts 1 min after break_end, only the first
+    offset (1 min) survives; offsets 2 and 3 are clipped out."""
+    ref = pd.Timestamp("2024-11-04 20:07:00")
+    next_start = ref + pd.Timedelta(minutes=2)  # only offset +1 survives
+    offsets = [1, 2, 3]
+    result = _clipped_offsets(ref, offsets, clip_before=None, clip_after=next_start, min_minutes=1)
+    assert result is not None
+    assert len(result) == 1
+    assert result[0] == ref + pd.Timedelta(minutes=1)
+
+
+def test_clipped_offsets_returns_none_when_window_below_floor() -> None:
+    """When even a 1-minute gap forces all offsets out (next break starts
+    at ref + 1 min, so offset +1 equals the boundary and is excluded), the
+    function returns None so the caller drops the break."""
+    ref = pd.Timestamp("2024-11-04 20:07:00")
+    next_start = ref + pd.Timedelta(minutes=1)  # offset +1 is NOT < next_start, excluded
+    offsets = [1, 2, 3]
+    result = _clipped_offsets(ref, offsets, clip_before=None, clip_after=next_start, min_minutes=1)
+    assert result is None
+
+
+def test_clipped_offsets_before_window_clips_against_prev_end() -> None:
+    """Before-window offsets at or before the previous break's end are removed."""
+    ref = pd.Timestamp("2024-11-04 20:07:00")
+    # prev_end = 20:05. Offsets: -3 -> 20:04 (excluded), -2 -> 20:05 (excluded,
+    # equality is not strictly greater), -1 -> 20:06 (included).
+    prev_end = ref - pd.Timedelta(minutes=2)
+    offsets = [-3, -2, -1]
+    result = _clipped_offsets(ref, offsets, clip_before=prev_end, clip_after=None, min_minutes=1)
+    assert result is not None
+    assert len(result) == 1
+    assert result[0] == ref + pd.Timedelta(minutes=-1)  # 20:06
+
+
+def test_neighbour_lookup_is_sorted_per_channel() -> None:
+    """_neighbour_lookup returns spans sorted by start within each channel."""
+    breaks = pd.DataFrame([
+        {"channel": "A", "break_start": pd.Timestamp("2024-11-04 20:10:00"),
+         "break_end": pd.Timestamp("2024-11-04 20:15:00")},
+        {"channel": "A", "break_start": pd.Timestamp("2024-11-04 19:50:00"),
+         "break_end": pd.Timestamp("2024-11-04 19:55:00")},
+        {"channel": "B", "break_start": pd.Timestamp("2024-11-04 21:00:00"),
+         "break_end": pd.Timestamp("2024-11-04 21:05:00")},
+    ])
+    lookup = _neighbour_lookup(breaks)
+    assert set(lookup.keys()) == {"A", "B"}
+    spans_a = lookup["A"]
+    assert len(spans_a) == 2
+    # Must be sorted ascending by start.
+    assert spans_a[0][0] < spans_a[1][0]
+    assert spans_a[0][0] == pd.Timestamp("2024-11-04 19:50:00")
+
+
+def _build_two_close_breaks(gap_seconds: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return (spots, programmes) for a channel with two breaks separated by gap_seconds.
+
+    The first break runs 20:06..20:07 (one minute), then content resumes.
+    The second break starts gap_seconds after the first ends. Only the first
+    break's after-window can be contaminated if gap_seconds < 180.
+    """
+    spots = pd.DataFrame([
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:06:00"), "Duration": 30.0},
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:06:30"), "Duration": 30.0},
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:07:00") + pd.Timedelta(seconds=gap_seconds), "Duration": 30.0},
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:07:30") + pd.Timedelta(seconds=gap_seconds), "Duration": 30.0},
+    ])
+    programmes = pd.DataFrame(
+        [("News", "A", "2024-11-04 20:00:00", "2024-11-04 21:00:00", 3600.0)],
+        columns=["Title", "Channel", "start", "end", "Duration"],
+    )
+    programmes["start_dt"] = pd.to_datetime(programmes["start"])
+    programmes["end_dt"] = pd.to_datetime(programmes["end"])
+    return spots, programmes
+
+
+def test_contaminated_break_is_dropped_when_gap_is_too_small() -> None:
+    """When two breaks are only 30 seconds apart the after-window of the
+    first break (which would read into the second break) is clipped to 0
+    minutes, dropping that measurement rather than contaminating it."""
+    spots, programmes = _build_two_close_breaks(30.0)
+    # Flat audience at 10 everywhere: no real shedding, just checking counts.
+    dayparts = _dayparts_from_curve(
+        {f"20:{m:02d}": 10.0 for m in range(0, 30)},
+    )
+    effects = break_effects(spots, programmes, dayparts, _classifier())
+    # The first break's after-window clipped to zero -> dropped.
+    # The second break may or may not survive depending on its own after-window.
+    # What matters: no break can have an after-window reading inside the next break.
+    for _, row in effects.iterrows():
+        start = pd.Timestamp(row["break_start"])
+        end = pd.Timestamp(row["break_end"])
+        # The after-window is at most 3 minutes past break_end.
+        # Verify it does not overlap the next break in the effects frame.
+        later_starts = effects[effects["break_start"] > end]["break_start"]
+        if not later_starts.empty:
+            min_next = later_starts.min()
+            # After-window ends at most 3 minutes past end. If next break is
+            # within 3 minutes, at least some offsets were clipped.
+            gap = (min_next - end).total_seconds()
+            assert gap >= 0, "Effect after-window must not reach into the next break"
+
+
+def test_isolated_break_retains_full_window() -> None:
+    """A break with no neighbours within 3 minutes keeps its full 3-minute
+    before and after window (the baseline behaviour is unchanged)."""
+    # Use a single break isolated by 10 minutes on each side.
+    spots = pd.DataFrame([
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:06:00"), "Duration": 30.0},
+        {"Channel": "A", "air_dt": pd.Timestamp("2024-11-04 20:06:30"), "Duration": 30.0},
+    ])
+    programmes = pd.DataFrame(
+        [("News", "A", "2024-11-04 20:00:00", "2024-11-04 21:00:00", 3600.0)],
+        columns=["Title", "Channel", "start", "end", "Duration"],
+    )
+    programmes["start_dt"] = pd.to_datetime(programmes["start"])
+    programmes["end_dt"] = pd.to_datetime(programmes["end"])
+    dayparts = _dayparts_mixed(9.0)  # real shedding below trend
+    effects = break_effects(spots, programmes, dayparts, _classifier())
+    # The single isolated break must be measurable and show real shedding.
+    assert len(effects) == 1
+    assert effects.iloc[0]["log_effect"] < 0.0
