@@ -1,0 +1,135 @@
+/* Advertiser detail DRAWER styles. Co-located with AdvertiserDetailDrawer so the
+   parallel agent's styles.css is never touched. Colour tokens inherited from
+   styles.css :root. */
+.amz-drawer-paper {
+  width: min(640px, 96vw);
+}
+.amz-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px 28px;
+}
+.amz-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+.amz-drawer-eyebrow {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--subtle);
+}
+.amz-drawer-title h2 {
+  margin: 2px 0 0;
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+.amz-drawer-close {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.amz-drawer-close:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.amz-drawer-statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+.amz-drawer-stat {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.amz-drawer-stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.amz-drawer-stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.amz-drawer-stat-value.teal {
+  color: var(--teal);
+}
+.amz-drawer-stat-value.amber {
+  color: var(--amber);
+}
+.amz-drawer-stat-value.empty {
+  color: var(--subtle);
+  font-weight: 600;
+}
+.amz-drawer-overlaps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.amz-drawer-section h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.amz-drawer-section + .amz-drawer-section {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.amz-baseline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.amz-drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.amz-drawer-notes {
+  grid-column: 1 / -1;
+}
+.amz-drawer-prime {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.amz-baseline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.amz-drawer-foot {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+@media (max-width: 540px) {
+  .amz-baseline-grid {
+    grid-template-columns: 1fr;
+  }
+}
