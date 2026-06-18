@@ -42,6 +42,13 @@ from kairos.data.classifier import ProgramClassifier
 from kairos.data.dayparts import daypart_for_hour
 from kairos.data.loaders import load_daily_input
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
+from kairos.optimize._frequency_rules import FrequencyRuleSet, load_frequency_rules
+from kairos.optimize.frequency import (
+    FrequencyDrop,
+    SpotView,
+    _minute_of_day,
+    enforce_spots,
+)
 from kairos.optimize.objective import break_revenue, fixed_revenue
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import PricingModel
@@ -95,6 +102,8 @@ class PricedSpot:
     premium: float
     revenue: float
     placement_value: float
+    ad: str = ""
+    break_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -128,6 +137,7 @@ class DailyPricingResult:
 
     priced: list[PricedSpot] = field(default_factory=list)
     dropped: list[DroppedSpot] = field(default_factory=list)
+    frequency_dropped: list[FrequencyDrop] = field(default_factory=list)
 
     @property
     def total_revenue(self) -> float:
@@ -144,8 +154,10 @@ class DailyPricingResult:
         """One honest sentence for the dashboard about what now honors the rules."""
         return (
             "Advertiser rules are applied on the per-spot daily pricing path "
-            f"({len(self.priced)} spots priced, {len(self.dropped)} dropped by a rule); "
-            "the weekly break-count optimizer does not yet honor advertiser rules."
+            f"({len(self.priced)} spots priced, {len(self.dropped)} dropped by a rule, "
+            f"{len(self.frequency_dropped)} dropped by a frequency/separation rule); "
+            "the weekly break-count optimizer does not yet honor these, because it "
+            "does not attribute breaks to advertisers."
         )
 
 
@@ -182,6 +194,7 @@ def price_daily_spots(
     pricing: Optional[PricingModel] = None,
     classifier: Optional[ProgramClassifier] = None,
     overrides: Optional[OverrideSet] = None,
+    frequency: Optional[FrequencyRuleSet] = None,
 ) -> DailyPricingResult:
     """Price every spot in a loaded daily Wally frame under the advertiser rules.
 
@@ -202,14 +215,25 @@ def price_daily_spots(
         position and daypart but cannot re-place a spot at a clock time it never
         owned, so a move re-tags what it can and the rest is recorded honestly in
         the spot's ``move`` intent rather than fabricated.
+
+    ``frequency`` adds ad-repetition and competitive-separation enforcement over
+    the priced spots, IN PRICED ORDER. When None the shipped CSV is loaded; pass
+    an EMPTY :class:`FrequencyRuleSet` to disable enforcement entirely (the spot
+    log is then identical to the no-frequency output, the identity case). A spot
+    removed by a frequency rule is recorded in ``frequency_dropped`` with its
+    reason, never silently lost. This enforcement is advertiser-vs-advertiser
+    WITHIN the owned channel only; it never touches the competitor-channel
+    boundary, and the weekly count optimizer (no attribution) is untouched.
     """
     engine = engine or AdvertiserRuleEngine.from_files()
     pricing = pricing or PricingModel.from_yaml()
     classifier = classifier or ProgramClassifier.from_yaml()
+    frequency = frequency if frequency is not None else load_frequency_rules()
     spot_overrides = overrides.spot_overrides() if overrides is not None else {}
 
     priced: list[PricedSpot] = []
     dropped: list[DroppedSpot] = []
+    spot_clocks: list[Optional[float]] = []
 
     for row in daily.itertuples(index=False):
         advertiser = str(getattr(row, "advertiser", "") or "")
@@ -220,6 +244,8 @@ def price_daily_spots(
         position = _coerce_int(getattr(row, "position_in_break", None))
         daypart = _daypart_for_hour(_hour_from_time(getattr(row, "spot_time", None)))
         campaign = str(getattr(row, "campaign", "") or "")
+        ad = str(getattr(row, "creative", "") or "")
+        break_id = str(getattr(row, "break_start", "") or "")
 
         override = spot_overrides.get(
             _spot_id(advertiser, campaign, getattr(row, "date", None), position)
@@ -277,9 +303,45 @@ def price_daily_spots(
             duration_seconds=round(duration, 1), planned_tvr=planned_tvr,
             pricing_type=pricing_type or "CPP", premium=round(premium, 6),
             revenue=round(revenue, 2), placement_value=round(placement_value, 2),
+            ad=ad or campaign, break_id=break_id,
         ))
+        spot_clocks.append(_minute_of_day(getattr(row, "spot_time", None)))
 
-    return DailyPricingResult(priced=priced, dropped=dropped)
+    priced, freq_dropped = _apply_frequency(priced, spot_clocks, frequency)
+    return DailyPricingResult(
+        priced=priced, dropped=dropped, frequency_dropped=freq_dropped,
+    )
+
+
+def _apply_frequency(
+    priced: list[PricedSpot],
+    spot_clocks: list[Optional[float]],
+    frequency: FrequencyRuleSet,
+) -> tuple[list[PricedSpot], list[FrequencyDrop]]:
+    """Run the deterministic frequency/separation pass over the priced spots.
+
+    Returns the surviving priced spots (in their original priced order) and the
+    spots removed by a rule, each with an explicit reason. With no enabled rule
+    this is the identity: every spot survives, nothing is dropped.
+    """
+    if not any(r.enabled for r in frequency.rules):
+        return priced, []
+    views = [
+        SpotView(
+            key=index,
+            advertiser=spot.advertiser,
+            campaign=spot.campaign,
+            ad=spot.ad or spot.campaign,
+            break_id=spot.break_id,
+            position=spot.position,
+            minute=spot_clocks[index] if index < len(spot_clocks) else None,
+        )
+        for index, spot in enumerate(priced)
+    ]
+    outcome = enforce_spots(views, frequency)
+    kept = {key for key in outcome.kept}
+    survivors = [spot for index, spot in enumerate(priced) if index in kept]
+    return survivors, outcome.dropped
 
 
 def price_daily_file(
@@ -289,9 +351,11 @@ def price_daily_file(
     pricing: Optional[PricingModel] = None,
     classifier: Optional[ProgramClassifier] = None,
     overrides: Optional[OverrideSet] = None,
+    frequency: Optional[FrequencyRuleSet] = None,
 ) -> DailyPricingResult:
     """Load a daily Wally csv from ``path`` and price it under the advertiser rules."""
     daily = load_daily_input(path)
     return price_daily_spots(
-        daily, engine=engine, pricing=pricing, classifier=classifier, overrides=overrides,
+        daily, engine=engine, pricing=pricing, classifier=classifier,
+        overrides=overrides, frequency=frequency,
     )

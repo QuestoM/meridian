@@ -1,0 +1,2 @@
+rule_id,limit_type,scope,advertiser_id,campaign,ad,competing_group,members,value,unit,enabled,notes
+DEFAULT_ONE_PER_BREAK,max_per_break,default,,,,,,1,,True,Conservative explicit default: at most one spot per advertiser per break. Override with a finer advertiser/campaign/ad rule or disable this row.
