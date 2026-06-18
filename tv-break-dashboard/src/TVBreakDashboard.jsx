@@ -268,6 +268,7 @@ const copyByLocale = {
     frontier: 'Revenue vs retention frontier',
     frontierMode: 'Measured retention model',
     heatmap: 'Daypart inventory heatmap',
+    heatmapEmpty: 'No daypart heatmap data yet',
     opportunity: 'Revenue opportunity',
     compliance: 'Compliance ledger',
     activeRules: 'active rules',
@@ -359,6 +360,7 @@ const copyByLocale = {
     frontier: 'חזית הכנסה מול שימור',
     frontierMode: 'מודל שימור מדוד',
     heatmap: 'מפת חום לפי רצועת שידור',
+    heatmapEmpty: 'אין עדיין נתוני מפת חום לפי רצועה',
     opportunity: 'פוטנציאל הכנסה',
     compliance: 'יומן תאימות',
     activeRules: 'כללים פעילים',
@@ -3491,33 +3493,16 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
 }
 
 function InventoryHeatmap({ copy, locale }) {
-  const rows = [
-    ['Early fringe', 0.4, 0.4, 0.5, 0.5, 0.5, 0.6, 0.5],
-    ['Prime access', 0.8, 0.9, 0.9, 0.9, 0.9, 1.0, 0.9],
-    ['Primetime', 6.0, 6.2, 6.4, 6.3, 6.1, 6.8, 6.0],
-    ['Late', 0.7, 0.7, 0.8, 0.8, 0.7, 0.9, 0.8],
-    ['Overnight', 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-  ];
+  // No per-daypart-per-weekday revenue source is exposed by the API today, so the
+  // panel renders an honest empty state rather than fabricated demo numbers. When
+  // the API gains a real daypart x weekday revenue grid, render it here.
   return (
-    <div className="analytics-panel heatmap-panel chart-ltr" dir="ltr">
+    <div className="analytics-panel heatmap-panel chart-ltr" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <div className="panel-head">
         <h2>{copy.heatmap}</h2>
         <span>{copy.opportunity}</span>
       </div>
-      <div className="heatmap">
-        <span />
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => <b key={day}>{day}</b>)}
-        {rows.map(([label, ...values]) => (
-          <React.Fragment key={label}>
-            <strong>{label}</strong>
-            {values.map((value, index) => (
-              <span key={`${label}-${index}`} style={{ '--heat': value / 7 }}>
-                {formatCurrency(value * 1000000, locale)}
-              </span>
-            ))}
-          </React.Fragment>
-        ))}
-      </div>
+      <div className="heatmap-empty">{copy.heatmapEmpty}</div>
     </div>
   );
 }

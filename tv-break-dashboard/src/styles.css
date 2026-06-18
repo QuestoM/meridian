@@ -2130,6 +2130,16 @@ button {
   font-size: 12px;
 }
 
+.heatmap-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
+}
+
 .data-table {
   width: 100%;
   min-width: 720px;
