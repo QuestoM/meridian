@@ -3326,15 +3326,19 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
     return () => observer.disconnect();
   }, [showSkeleton]);
 
-  function paddedDomain(values, minimumSpan, padRatio = 0.12) {
+  function paddedDomain(values, fallbackSpan, padRatio = 0.12) {
     const finiteValues = values.filter((value) => Number.isFinite(value));
     if (!finiteValues.length) {
-      return [0, minimumSpan];
+      return [0, fallbackSpan || 1];
     }
     const rawMin = Math.min(...finiteValues);
     const rawMax = Math.max(...finiteValues);
     const rawSpan = rawMax - rawMin;
-    const span = Math.max(rawSpan, minimumSpan);
+    // Frame the actual data range. The floor only prevents a zero-height axis on
+    // a single or flat point; it is kept tiny relative to the data so small but
+    // real differences stay visible instead of being squashed into a fixed window.
+    const scaleFloor = Math.max(Math.abs(rawMax), Math.abs(rawMin)) * 0.04;
+    const span = Math.max(rawSpan, scaleFloor, 1e-9);
     const center = (rawMin + rawMax) / 2;
     const padding = span * padRatio;
     return [center - span / 2 - padding, center + span / 2 + padding];
@@ -3342,15 +3346,17 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
 
   const width = chartWidth;
   const [retentionMin, retentionMax] = paddedDomain(points.map((point) => point.retention), 0.8);
-  const [revenueMin, revenueMax] = paddedDomain(points.map((point) => point.revenue), 1000000);
-  const minRetention = Math.max(0, retentionMin);
-  const maxRetention = Math.max(retentionMax, minRetention + 0.8);
-  const minRevenue = Math.max(0, revenueMin);
-  const maxRevenue = Math.max(revenueMax, minRevenue + 1);
+  const [revenueMin, revenueMax] = paddedDomain(points.map((point) => point.revenue), 1);
+  // Frame to the data range (auto-scale). Do not pin to 0 or a fixed window, so
+  // small revenue/retention differences are visible rather than flattened.
+  const minRetention = retentionMin;
+  const maxRetention = retentionMax;
+  const minRevenue = revenueMin;
+  const maxRevenue = revenueMax;
   const xFor = (retention) =>
-    padX + ((retention - minRetention) / Math.max(maxRetention - minRetention, 0.1)) * (width - padX * 2);
+    padX + ((retention - minRetention) / Math.max(maxRetention - minRetention, 1e-9)) * (width - padX * 2);
   const yFor = (revenue) =>
-    height - padY - ((revenue - minRevenue) / Math.max(maxRevenue - minRevenue, 1)) * (height - padY * 2);
+    height - padY - ((revenue - minRevenue) / Math.max(maxRevenue - minRevenue, 1e-9)) * (height - padY * 2);
   const path = points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xFor(point.retention).toFixed(1)} ${yFor(point.revenue).toFixed(1)}`)
     .join(' ');
