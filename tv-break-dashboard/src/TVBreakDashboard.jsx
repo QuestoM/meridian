@@ -63,6 +63,11 @@ import {
 import UploadCenter from './UploadCenter';
 import AdvertisersManager from './AdvertisersManager';
 import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
+import FrontierScopeChart from './FrontierScopeChart';
+import YieldView from './YieldView';
+import ScenarioCompare from './ScenarioCompare';
+import GoldBreakManager from './GoldBreakManager';
+import MakeGoodAlerts from './MakeGoodAlerts';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -1064,6 +1069,7 @@ function TVBreakDashboard() {
   const [settings, setSettings] = useState(overview.settings || fallbackSettings);
   const [saveState, setSaveState] = useState('idle');
   const [recomputeState, setRecomputeState] = useState('idle');
+  const [applyWeightState, setApplyWeightState] = useState('idle');
   const [optimizationState, setOptimizationState] = useState('idle');
   const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
@@ -1281,6 +1287,21 @@ function TVBreakDashboard() {
     }
   }
 
+  async function handleApplyFrontierWeight(weight) {
+    const nextWeight = finiteNumber(weight);
+    if (nextWeight === null) return;
+    setApplyWeightState('saving');
+    try {
+      await persistSettings({ ...settings, revenue_weight: Math.round(nextWeight) });
+      notify(
+        `Saved revenue weight set to ${Math.round(nextWeight)}.`,
+        `משקל ההכנסה השמור עודכן ל־${Math.round(nextWeight)}.`,
+      );
+    } finally {
+      setApplyWeightState('idle');
+    }
+  }
+
   async function handleRecomputeSchedule() {
     setRecomputeState('running');
     try {
@@ -1304,7 +1325,17 @@ function TVBreakDashboard() {
     const common = { overview, schedule, copy, locale, compliance, loading, notify };
 
     if (activeView === 'Overview') {
-      return <OverviewPage {...common} files={files} setActiveView={setActiveView} />;
+      return (
+        <OverviewPage
+          {...common}
+          files={files}
+          setActiveView={setActiveView}
+          operatorChannel={settings.operator_channel || ''}
+          savedRevenueWeight={finiteNumber(settings.revenue_weight)}
+          onApplyFrontierWeight={handleApplyFrontierWeight}
+          applyWeightState={applyWeightState}
+        />
+      );
     }
 
     if (activeView === 'Optimizer') {
@@ -2103,7 +2134,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRevenueWeight, onApplyFrontierWeight, applyWeightState }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -2161,8 +2192,18 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
       </div>
       <div className="page-grid even">
         <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
+        <FrontierScopeChart
+          initialData={overview.frontier || []}
+          copy={copy}
+          locale={locale}
+          loading={loading}
+          operatorChannel={operatorChannel}
+          savedRevenueWeight={savedRevenueWeight}
+          onApplyWeight={onApplyFrontierWeight}
+          applyState={applyWeightState}
+        />
       </div>
+      <YieldView locale={locale} />
     </section>
   );
 }
@@ -2316,6 +2357,7 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
           ]}
         />
       </section>
+      <GoldBreakManager locale={locale} />
     </section>
   );
 }
@@ -2444,6 +2486,7 @@ function CampaignsPage({ campaigns, copy, locale }) {
           ]}
         />
       </section>
+      <MakeGoodAlerts locale={locale} />
     </section>
   );
 }
@@ -2480,6 +2523,7 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
         </section>
         <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
       </div>
+      <ScenarioCompare locale={locale} savedRevenueWeight={finiteNumber(overview.settings?.revenue_weight)} />
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Daily forecast', 'תחזית יומית')}</h2>
