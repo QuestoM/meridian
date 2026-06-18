@@ -41,12 +41,14 @@ break_position as a split even degrades held-out prediction; it does not help.
    The credible interval and the confidence label honestly reflect how little
    is known for any individual cell.
 
-2. Two genuine levers that DO generalize:
+2. Genuine levers:
    - **Break length.** Longer breaks shed more audience, and that gradient is
      real across held-out data.
-   - **First-break effect.** The show's first interruption sheds materially
-     more audience than later breaks (approximately 1.95x; see Stage 3b below).
-     This is measured, statistically robust, and self-activating.
+   - **First-break effect (currently off).** The show's first interruption was
+     once measured as shedding materially more audience than later breaks, but
+     under boundary-clipped measurement the contrast is non-significant
+     (p=0.20), so the honest gate sets the multiplier to 1.0 (off). See
+     Stage 3b below for the full measurement-contamination finding.
 
 **What the credible intervals represent.** The hierarchical posterior intervals
 (approximately 95% nominal) are CREDIBLE intervals, not held-out prediction
@@ -67,8 +69,10 @@ shrinkage prevents them from diverging on thin data.
 
 **Implication for the optimizer.** Because the per-cell predictions are not
 reliably differentiated out of sample, the optimizer's real retention signal
-comes from: (a) the calibrated average cost, (b) the break_length gradient, and
-(c) the first-break multiplier. The program_type and break_position splits add
+comes from: (a) the calibrated average cost and (b) the break_length gradient.
+The first-break multiplier is currently 1.0 (off) because the clean,
+boundary-clipped measurement no longer finds a significant first-vs-later
+contrast (see Stage 3b). The program_type and break_position splits add
 the possibility of future signal once more data accumulates; for now they
 contribute primarily through the shrinkage-toward-mean path.
 
@@ -428,49 +432,63 @@ and stripped from the inference path. Violating this boundary would leak
 unavailable information and produce a model that cannot be deployed honestly. This
 is design, not yet built.
 
-### Stage 3b (SHIPPED): first-break-aware retention cost
+### Stage 3b (built, gate currently off): first-break-aware retention cost
 
-One-line summary: the show's FIRST interruption sheds materially more audience
-than its later breaks, so the first break of each programme carries an extra,
-measured, self-activating retention cost.
+One-line summary: a first-break-aware retention lever is built and self-gating,
+but on the clean (boundary-clipped) measurement the first-vs-later contrast is
+non-significant, so the gate sets the multiplier to 1.0 (off). The earlier
+shipped 1.947 was largely a measurement-contamination artifact.
 
-This is distinct from `break_position` in the 36-cell taxonomy, which is the
-first/middle/last SPOT WITHIN a single break, not the first/middle/last BREAK
-OF THE SHOW. The ordinal of a break within its containing programme is recovered
-in `prepare.py` (`programme_ordinals`): each detected break is matched to the
-programme whose start/end span contains it, then breaks are numbered by air time
-per programme. On the reference data this matches 99.7 percent of breaks.
+This lever is distinct from `break_position` in the 36-cell taxonomy, which is
+the first/middle/last SPOT WITHIN a single break, not the first/middle/last
+BREAK OF THE SHOW. The ordinal of a break within its containing programme is
+recovered in `prepare.py` (`programme_ordinals`): each detected break is matched
+to the programme whose start/end span contains it, then breaks are numbered by
+air time per programme. On the reference data this matches 99.7 percent of
+breaks.
 
 The measurement (`measure.py` `first_break_gate`) compares the detrended log
 effect of first breaks (ordinal 1) against later breaks (ordinal >= 2), using the
-same broadcast-minute baseline detrending as every other coefficient, so the
-contrast is not a baseline artifact. On the reference data first breaks shed
-about 1.95 times the all-breaks cost (n_first=1468, n_later=3081, Welch two-sided
-p approximately 9e-8). The gate ships a `first_break_multiplier > 1.0` only when
-the contrast is large (multiplier >= 1.10), significant (p < 0.01), and backed by
-enough breaks (>= 200), capped at 2.0; otherwise it stays at 1.0 (off). The
-decision and its numbers are written to the coefficients JSON metadata
-(`first_break_multiplier`, `first_break_active`, `first_break_n_first`,
-`first_break_n_later`, `first_break_p_value`, `first_break_reason`) so any reader
-can audit it, exactly like the series gate.
+same broadcast-minute baseline detrending as every other coefficient. The gate
+ships a `first_break_multiplier > 1.0` only when the contrast is large
+(multiplier >= 1.10), significant (p < 0.01), and backed by enough breaks
+(>= 200), capped at 2.0; otherwise it stays at 1.0 (off). The decision and its
+numbers are written to the coefficients JSON metadata (`first_break_multiplier`,
+`first_break_active`, `first_break_n_first`, `first_break_n_later`,
+`first_break_p_value`, `first_break_reason`) so any reader can audit it, exactly
+like the series gate.
 
-**Honest framing of the shipped multiplier value (approximately 1.947).** The
-pooled contrast is measured without controlling for potential confounds (time of
-day, day of week, program genre) that correlate with both break position and
-audience level. A multivariate-controlled estimate on the same data puts the
-value closer to approximately 1.69. The pooled 1.947 is therefore an UPPER
-estimate with uncontrolled confounds. However, a direct revenue measurement
-showed that LOWERING the multiplier toward 1.69 is revenue-negative (approximately
--4.1M ILS on the month; News-only approximately -1.06M at various weights). The
-reason is structural: a higher first-break cost makes the optimizer treat first
-breaks as more expensive, which concentrates breaks in slots where the first
-interruption is genuinely worth the cost. The multiplier is therefore a JOINT
-honesty-and-revenue knob, not a pure statistical parameter. The shipped value of
-approximately 1.947 sits near the revenue optimum despite being the uncontrolled
-upper estimate; lowering it purely for statistical correctness would reduce
-revenue without a corresponding improvement in retention accuracy. This is
-documented here so the choice is auditable. The value is NOT lowered to the
-controlled estimate; it remains as the self-activating measurement output.
+**The first-break effect was largely a measurement-contamination artifact (the
+corrected finding).** An earlier build shipped `first_break_multiplier=1.947`
+(`first_break_active=true`, p approximately 9e-8 on n_first=1468, n_later=3081).
+That measurement used a fixed 3-minute after-window that, on 32.6 percent of
+breaks, bled past the boundary into the adjacent break and measured the neighbour
+break's shedding rather than this break's. First breaks of a show sit closer to
+the next break on average, so the contaminated after-window systematically
+overstated their cost. The decontamination commit (`measure.py` `break_effects`
+now clips the before/after retention windows to the adjacent-break boundaries)
+re-derived the coefficients. Under clean, boundary-clipped measurement the
+first-vs-later contrast collapses to non-significant: p=0.2034 (n_first=476,
+n_later=816), so the honest gate correctly sets the multiplier to 1.0 and
+`first_break_active=false`. The much larger contaminated n (4549 vs 1292) was
+itself an artifact of the wider, overlapping windows admitting more break pairs.
+
+**Revenue note (measured, honest).** Because the gate is now off, the live plan
+no longer charges any first-break premium. Turning the artifact lever off (clean
+multiplier 1.0 vs the old contaminated 1.947) was measured directly: the weekly
+optimizer (revenue_weight 0.5) was run over a representative sample of 14 real
+channel-days (1042 programme segments) once with each coefficients file. The
+clean file produced 11,226,188 ILS of revenue-net at 0.9588 average retention;
+the old file produced 10,646,776 ILS at 0.9558. Turning the artifact lever off
+therefore changes measured revenue-net by +579,411 ILS (+5.44%) and average
+retention by +0.0030 on that sample: it is revenue-positive AND
+retention-positive. We keep the honest measurement. An earlier analysis had
+argued the 1.947 value sat near a revenue optimum and should not be lowered; that
+argument was written before the decontamination and is withdrawn. The contrast it
+rested on is not significant once the after-window is clipped (p=0.20), and the
+direct revenue measurement above shows turning the lever off improves both
+revenue and retention rather than costing revenue, so there is no honest
+first-break signal to monetise here.
 
 The optimizer applies it in `_segment_retention`, the single chokepoint all
 retention math flows through: at `k >= 1` it charges one extra delta of
@@ -481,7 +499,10 @@ The value reaches the optimizer through `OptimizerAssumptions.first_break_multip
 folded from the JSON metadata in `schedule.py` (`_apply_first_break_multiplier`)
 and passed into both segment builders in `transform.py`. Reported revenue always
 uses the realised retention; the adjustment can only lower a borderline first
-break's value, never inflate revenue.
+break's value, never inflate revenue. With the gate currently off
+(multiplier 1.0) this path is a no-op and the plan is byte-identical to the base
+linear model; the mechanism stays in place so the lever self-activates if future
+data, measured cleanly, ever produces a significant first-break contrast.
 
 ### Stage 4 (design only): non-linear retention in k
 
