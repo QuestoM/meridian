@@ -3614,14 +3614,16 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState 
         </div>
         <Tv size={18} />
       </div>
+      <label htmlFor="operator-channel-select" style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+        {he ? 'ערוץ' : 'Channel'}
+      </label>
       <FormControl size="small" sx={{ minWidth: 220 }}>
-        <InputLabel id="operator-channel-label">{he ? 'ערוץ' : 'Channel'}</InputLabel>
         <Select
-          labelId="operator-channel-label"
-          label={he ? 'ערוץ' : 'Channel'}
+          id="operator-channel-select"
           value={currentChannel}
           displayEmpty
           onChange={(e) => handleChange(e.target.value)}
+          renderValue={(selected) => selected || (he ? 'לא נבחר' : 'Not set')}
         >
           <MenuItem value="">{he ? 'לא נבחר' : 'Not set'}</MenuItem>
           {availableChannels.map((ch) => {

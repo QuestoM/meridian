@@ -1947,7 +1947,17 @@ def parameters() -> dict[str, Any]:
     # inactive (constraints match any channel). The dashboard uses this to warn
     # the operator so they know to visit OperatorChannelPanel and pick a channel.
     payload["operator_channel_unset"] = not bool(settings.operator_channel)
-    payload["available_channels"] = list(KAIROS_CHANNELS)
+    # available_channels drives the operator-channel picker. Derive it from the
+    # real loaded EPG (the same channel_options the constraint engine uses) so the
+    # picker can never drift from the channel ids the optimizer actually schedules
+    # on. Fall back to the canonical channel constant only if the EPG is missing.
+    try:
+        from kairos_api._constraint_options import channel_options as _channel_options
+
+        _data_channels = _channel_options()
+    except Exception:
+        _data_channels = []
+    payload["available_channels"] = _data_channels or list(KAIROS_CHANNELS)
     try:
         pricing = PricingModel.from_yaml()
         payload["pricing"] = {
