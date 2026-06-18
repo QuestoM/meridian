@@ -18,6 +18,7 @@ left without breaks earns zero and keeps its full baseline retention.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -30,11 +31,14 @@ from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.model.measure import read_coefficients_metadata
+from kairos.data.dayparts import daypart_for_hour
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
+from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.overrides import OverrideSet
+from kairos.optimize.pacing import build_pacing_weights, load_campaigns
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
 from kairos.service import guardrails_from_settings
 
@@ -200,6 +204,7 @@ def build_weekly_schedule(
     placement_pins: Optional[Mapping[str, Any]] = None,
     constraints_path: Optional[str | Path] = None,
     operator_channel: str = "",
+    today: Optional[date] = None,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -223,6 +228,13 @@ def build_weekly_schedule(
     channel, honoring the competitor-information boundary: the operator constrains
     only their own channel's breaks. Empty string -> no channel filter (matches any
     channel, the honest no-op before the operator has picked one).
+
+    ``today`` is the reference date for the delivery-pacing urgency signal
+    (:mod:`kairos.optimize.pacing`); it is passed in so the math is deterministic
+    (no clock read inside the engine). When omitted, the pacing signal stays inert
+    even if campaign data is present, so behaviour is unchanged. The inventory and
+    pacing signals fold into demand_weights and steer placement only; with no
+    inventory file and no campaign rows the schedule is byte-identical to today.
     """
     pricing = pricing or PricingModel.from_yaml()
     assumptions = assumptions or OptimizerAssumptions()
@@ -251,6 +263,15 @@ def build_weekly_schedule(
     # Build the advertiser rule engine once for the whole schedule. Self-neutralizing:
     # when the CSVs carry no matching rules every weight is 1.0 (identity).
     demand_engine = AdvertiserRuleEngine.from_files()
+    # Load the two coupled placement signals once. Both are identity no-ops until
+    # the owner uploads data: an empty inventory pool and an empty campaign list
+    # leave every weight at 1.0, so the schedule is byte-identical to today.
+    inventory_pool = load_inventory()
+    campaigns = load_campaigns()
+    # Pacing urgency needs a reference date. We pass it in (deterministic, no
+    # datetime.now in the math); a caller that omits it gets none, so even with
+    # campaign data present the pacing signal stays inert until a date is given.
+    pacing_today = today
 
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
@@ -267,8 +288,23 @@ def build_weekly_schedule(
             segments, constraints, overrides, operator_channel=operator_channel,
         )
         merged_pins = {**day_pins, **(placement_pins or {})}
-        # Demand weights: always computed per channel-day, self-neutralizing.
-        demand_weights = build_demand_weights(segments, demand_engine)
+        # Demand weights: advertiser demand always computed, folded with the
+        # inventory-awareness and pacing-urgency signals. Each is identity (1.0)
+        # until its data lands, so this is self-neutralizing per channel-day.
+        inventory_weights = build_inventory_weights(segments, inventory_pool)
+        pacing_weights = None
+        if campaigns and pacing_today is not None:
+            daypart_of = {
+                seg.segment_id: daypart_for_hour(seg.hour) for seg in segments
+            }
+            pacing_weights = build_pacing_weights(
+                segments, campaigns, pacing_today, daypart_of=daypart_of,
+            )
+        demand_weights = build_demand_weights(
+            segments, demand_engine,
+            inventory_weights=inventory_weights,
+            pacing_weights=pacing_weights,
+        )
         result = optimize_breaks(
             segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
             overrides=day_overrides, placement_pins=merged_pins or None,

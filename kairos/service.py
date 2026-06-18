@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -20,6 +20,7 @@ import pandas as pd
 
 from kairos.data import ProgramClassifier
 from kairos.data.ai_classifier import CachedClassifier, load_ai_overrides
+from kairos.data.dayparts import daypart_for_hour
 from kairos.data.loaders import REFERENCE_DIR, load_daily_input, load_programmes
 from kairos.data.transform import (
     build_segments_from_daily_input,
@@ -32,7 +33,9 @@ from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
+from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.objective import clamp
+from kairos.optimize.pacing import build_pacing_weights, load_campaigns
 from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
@@ -221,6 +224,7 @@ def optimize_day_plan(
     log_run: bool = True,
     run_id: Optional[str] = None,
     created_at: Optional[str] = None,
+    today: Optional[date] = None,
 ) -> dict[str, Any]:
     """Run the full real pipeline and return a serialisable plan.
 
@@ -265,10 +269,22 @@ def optimize_day_plan(
             programmes, classifier, pricing,
             assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
         )
-    # Demand weights: always computed, self-neutralizing when the advertiser
-    # CSVs carry no matching rules (every weight is 1.0, output byte-identical).
+    # Demand weights: advertiser demand always computed, folded with the
+    # inventory-awareness and pacing-urgency signals. Each is identity (1.0) until
+    # its data lands, so with no inventory file and no campaign rows the output is
+    # byte-identical to a run with no weights at all.
     demand_engine = AdvertiserRuleEngine.from_files()
-    demand_weights = build_demand_weights(segments, demand_engine)
+    inventory_weights = build_inventory_weights(segments, load_inventory())
+    campaigns = load_campaigns()
+    pacing_weights = None
+    if campaigns and today is not None:
+        daypart_of = {seg.segment_id: daypart_for_hour(seg.hour) for seg in segments}
+        pacing_weights = build_pacing_weights(segments, campaigns, today, daypart_of=daypart_of)
+    demand_weights = build_demand_weights(
+        segments, demand_engine,
+        inventory_weights=inventory_weights,
+        pacing_weights=pacing_weights,
+    )
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk,
         overrides=overrides, placement_pins=placement_pins,

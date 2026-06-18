@@ -14,7 +14,7 @@ identity case is the mathematical proof.
 
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable, Mapping, Optional
 
 from kairos.data.dayparts import daypart_for_hour
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
@@ -35,8 +35,11 @@ def _hour_from_start_seconds(start_seconds: float) -> Optional[int]:
 def build_demand_weights(
     segments: Iterable[ProgramSegment],
     engine: AdvertiserRuleEngine,
+    *,
+    inventory_weights: Optional[Mapping[str, float]] = None,
+    pacing_weights: Optional[Mapping[str, float]] = None,
 ) -> dict[str, float]:
-    """Compute per-segment placement-preference weights from the rule engine.
+    """Compute per-segment placement-preference weights for the optimizer.
 
     For each segment the daypart is derived from ``segment.start_seconds`` via
     the canonical Israeli taxonomy in :mod:`kairos.data.dayparts`. When the
@@ -45,9 +48,23 @@ def build_demand_weights(
     ``ANY`` (matches every rule in that dimension), which is the honest
     conservative choice.
 
-    The returned dict maps segment_id -> weight. A weight of 1.0 means no
-    demand bias for that segment; the optimizer's identity case. With no
-    matching rules every weight is 1.0 and the dict is a no-op.
+    Three independent placement signals are folded together MULTIPLICATIVELY,
+    each ``>= 1.0`` and each off-by-identity until its data lands:
+
+      * advertiser demand (the rule engine, always computed);
+      * inventory awareness (``inventory_weights``, from
+        :func:`kairos.optimize.inventory.build_inventory_weights`);
+      * delivery-pacing urgency (``pacing_weights``, from
+        :func:`kairos.optimize.pacing.build_pacing_weights`).
+
+    The combined weight is ``max(1.0, advertiser * inventory * pacing)``. Each
+    extra map defaults to ``None`` (treated as 1.0 everywhere), so omitting both
+    reproduces the advertiser-only weight exactly, and an advertiser engine with
+    no rules plus no extra maps yields every weight at 1.0 - the optimizer's
+    identity case, byte-identical to a run with no weights at all.
+
+    The returned dict maps segment_id -> weight. These weights touch only the
+    optimizer's ranking comparison, never charged revenue.
     """
     weights: dict[str, float] = {}
     for segment in segments:
@@ -59,5 +76,9 @@ def build_demand_weights(
             daypart=daypart,
             programme=segment.program_title if segment.program_title else None,
         )
-        weights[segment.segment_id] = weight
+        if inventory_weights is not None:
+            weight *= max(1.0, inventory_weights.get(segment.segment_id, 1.0))
+        if pacing_weights is not None:
+            weight *= max(1.0, pacing_weights.get(segment.segment_id, 1.0))
+        weights[segment.segment_id] = max(1.0, weight)
     return weights
