@@ -272,6 +272,7 @@ const copyByLocale = {
     exportOptions: ['Break detail', 'Weekly traffic plan', 'Guardrail report'],
     frontier: 'Revenue vs retention frontier',
     frontierMode: 'Measured retention model',
+    frontierPickChannel: 'Pick your channel in settings to forecast your own inventory. The frontier projects revenue for your channel only; competing programmes feed the retention model, never the revenue forecast.',
     heatmap: 'Daypart inventory heatmap',
     heatmapEmpty: 'No daypart heatmap data yet',
     opportunity: 'Revenue opportunity',
@@ -364,6 +365,7 @@ const copyByLocale = {
     exportOptions: ['פרטי ברייק', 'תוכנית טראפיק שבועית', 'דוח בקרות'],
     frontier: 'חזית הכנסה מול שימור',
     frontierMode: 'מודל שימור מדוד',
+    frontierPickChannel: 'בחרו את הערוץ שלכם בהגדרות כדי לחזות את המלאי שלכם בלבד. החזית מציגה תחזית הכנסה לערוץ שלכם בלבד; תוכניות מתחרות מזינות את מודל השימור, לעולם לא את תחזית ההכנסה.',
     heatmap: 'מפת חום לפי רצועת שידור',
     heatmapEmpty: 'אין עדיין נתוני מפת חום לפי רצועה',
     opportunity: 'פוטנציאל הכנסה',
@@ -2027,7 +2029,7 @@ function OptimizerWorkspace({
 
       {showMetrics && (
         <section className="analytics-strip" aria-label="Analytics and constraint ledger">
-          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
+          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} />
           <InventoryHeatmap copy={copy} locale={locale} />
           <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
         </section>
@@ -2521,7 +2523,7 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
             ))}
           </div>
         </section>
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} />
+        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} />
       </div>
       <ScenarioCompare locale={locale} savedRevenueWeight={finiteNumber(overview.settings?.revenue_weight)} />
       <section className="page-panel">
@@ -3340,13 +3342,14 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
   );
 }
 
-function FrontierPanel({ data, copy, locale, loading = false }) {
+function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = '' }) {
   const chartFrameRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(760);
   const [activePointIndex, setActivePointIndex] = useState(null);
   const height = 224;
   const padX = 46;
   const padY = 30;
+  const ownedChannel = String(operatorChannel || '').trim();
   const points = normalizeRows(data)
     .map((point) => ({
       retention: finiteNumber(point.retention),
@@ -3356,6 +3359,13 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
     .filter((point) => point.retention !== null && point.revenue !== null);
   const selectedPoint = points.find((point) => point.selected) || points[points.length - 1];
   const showSkeleton = loading || points.length < 2 || !selectedPoint;
+  // Honest empty state: when no channel is owned the backend returns no frontier
+  // (it never forecasts an arbitrary or all-channels number). Direct the operator
+  // to pick their channel instead of showing a misleading curve.
+  const showPickChannel = !loading && !ownedChannel;
+  // Subtitle: name the owned channel the curve forecasts, so the operator can see
+  // at a glance the projection is scoped to their inventory only.
+  const modeLabel = ownedChannel ? `${copy.frontierMode} · ${ownedChannel}` : copy.frontierMode;
 
   useEffect(() => {
     const frame = chartFrameRef.current;
@@ -3445,9 +3455,11 @@ function FrontierPanel({ data, copy, locale, loading = false }) {
     <div className="analytics-panel frontier-panel">
       <div className="panel-head">
         <h2>{copy.frontier}</h2>
-        <span>{copy.frontierMode}</span>
+        <span>{modeLabel}</span>
       </div>
-      {showSkeleton ? (
+      {showPickChannel ? (
+        <div className="frontier-empty">{copy.frontierPickChannel}</div>
+      ) : showSkeleton ? (
         <div className="frontier-skeleton" aria-hidden="true" />
       ) : (
         <>

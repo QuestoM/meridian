@@ -2144,6 +2144,19 @@ button {
   padding: 24px;
 }
 
+.frontier-empty {
+  min-height: 224px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  padding: 24px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
 .data-table {
   width: 100%;
   min-width: 720px;

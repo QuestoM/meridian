@@ -832,13 +832,28 @@ def _build_frontier(settings: KairosSettings, scope: str | None = None) -> list[
     saved revenue_weight is marked ``selected``. If no plan can be computed the
     list is empty (an honest empty state, never a fabricated curve).
 
-    ``scope`` optionally narrows the curve to one channel-day
-    (``channel:<id>`` or ``day:<date>``). The optimum is separable per channel-day
-    (see kairos.optimize.optimizer), so a per-group frontier is honest. With no
-    scope the behaviour is byte-identical to the previous whole-default frontier.
-    Only the operator's owned channel is selectable.
+    The frontier forecasts the operator's OWNED channel inventory only. Revenue is
+    never projected for a competitor channel: competitor programming informs the
+    churn/retention model, not the revenue projection (the competitor-information
+    boundary). The whole curve is therefore scoped to ``settings.operator_channel``
+    across all of that channel's broadcast days. When no channel is owned yet, the
+    list is empty (an honest empty state: the dashboard prompts the operator to pick
+    their channel) rather than an arbitrary single-channel or all-channels number.
+
+    ``scope`` optionally narrows the curve to one broadcast day within the owned
+    channel (``day:<date>``). A ``channel:<id>`` scope is accepted only when it
+    matches the owned channel (see :func:`_parse_frontier_scope`); it can never
+    redirect the forecast to a competitor.
     """
+    owned = str(settings.operator_channel or "").strip()
+    if not owned:
+        return []
     scope_kwargs = _parse_frontier_scope(scope, settings)
+    # Always the owned channel: a day scope only narrows within it, and a channel
+    # scope can only ever equal the owned channel, so competitor revenue is never
+    # projected here.
+    effective_channel = owned
+    effective_day = scope_kwargs["day"]
     saved_weight = settings.revenue_weight
     weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
     points: list[dict[str, Any]] = []
@@ -849,8 +864,8 @@ def _build_frontier(settings: KairosSettings, scope: str | None = None) -> list[
                 retention_floor=settings.min_retention_floor,
                 max_breaks_per_hour=settings.max_breaks_per_hour,
                 risk_lambda=settings.risk_lambda,
-                channel=scope_kwargs["channel"],
-                day=scope_kwargs["day"],
+                channel=effective_channel,
+                day=effective_day,
             )
         except Exception:
             logger.exception("frontier scenario failed at revenue_weight=%s", weight)
