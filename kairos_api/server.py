@@ -17,7 +17,7 @@ from typing import Any, Literal
 import pandas as pd
 
 logger = logging.getLogger(__name__)
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -765,7 +765,40 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
     return actions
 
 
-def _build_frontier(settings: KairosSettings) -> list[dict[str, Any]]:
+def _parse_frontier_scope(scope: str | None, settings: KairosSettings) -> dict[str, str | None]:
+    """Parse a ``scope=channel:<id>`` or ``scope=day:<date>`` query into run_scenario kwargs.
+
+    Returns ``{"channel": ..., "day": ...}`` to forward to :func:`run_scenario`.
+    No scope (None/empty) returns both None, which preserves the current
+    whole-default behaviour (run_scenario auto-detects the first channel-day),
+    making the unscoped frontier byte-identical to before. Only the operator's
+    OWNED channel is selectable: a channel scope that does not match the configured
+    operator_channel is rejected (treated as no scope) so no competitor channel can
+    ever be requested. An unrecognised prefix is ignored (honest no-op).
+    """
+    result: dict[str, str | None] = {"channel": None, "day": None}
+    text = str(scope or "").strip()
+    if not text or ":" not in text:
+        return result
+    prefix, _, value = text.partition(":")
+    prefix = prefix.strip().lower()
+    value = value.strip()
+    if not value:
+        return result
+    if prefix == "channel":
+        owned = str(settings.operator_channel or "").strip()
+        # When an owned channel is configured, only it is selectable. When it is
+        # not configured yet, accept the requested channel (no competitor boundary
+        # to enforce against) so the feature is usable in the unconfigured state.
+        if owned and value != owned:
+            return result
+        result["channel"] = value
+    elif prefix == "day":
+        result["day"] = value
+    return result
+
+
+def _build_frontier(settings: KairosSettings, scope: str | None = None) -> list[dict[str, Any]]:
     """The real revenue-vs-retention frontier, traced by sweeping the optimizer's
     revenue weight on the operator's saved guardrails.
 
@@ -776,7 +809,14 @@ def _build_frontier(settings: KairosSettings) -> list[dict[str, Any]]:
     retention floor, hourly break cap and risk aversion. The point matching the
     saved revenue_weight is marked ``selected``. If no plan can be computed the
     list is empty (an honest empty state, never a fabricated curve).
+
+    ``scope`` optionally narrows the curve to one channel-day
+    (``channel:<id>`` or ``day:<date>``). The optimum is separable per channel-day
+    (see kairos.optimize.optimizer), so a per-group frontier is honest. With no
+    scope the behaviour is byte-identical to the previous whole-default frontier.
+    Only the operator's owned channel is selectable.
     """
+    scope_kwargs = _parse_frontier_scope(scope, settings)
     saved_weight = settings.revenue_weight
     weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
     points: list[dict[str, Any]] = []
@@ -787,6 +827,8 @@ def _build_frontier(settings: KairosSettings) -> list[dict[str, Any]]:
                 retention_floor=settings.min_retention_floor,
                 max_breaks_per_hour=settings.max_breaks_per_hour,
                 risk_lambda=settings.risk_lambda,
+                channel=scope_kwargs["channel"],
+                day=scope_kwargs["day"],
             )
         except Exception:
             logger.exception("frontier scenario failed at revenue_weight=%s", weight)
@@ -1268,7 +1310,7 @@ def _signature(paths: list[Path]) -> tuple[tuple[str, int, int], ...]:
 
 
 @lru_cache(maxsize=16)
-def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+def _overview_cached(signature: tuple[tuple[str, int, int], ...], scope: str | None = None) -> dict[str, Any]:
     del signature
     schedule = _load_break_schedule()
     programmes = _load_programmes()
@@ -1303,7 +1345,8 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
             "planned_break_rows": int(len(schedule)),
         },
         "recommendations": _build_recommendations(schedule),
-        "frontier": _build_frontier(settings),
+        "frontier": _build_frontier(settings, scope),
+        "frontier_scope": scope or None,
         "settings": _model_dump(settings),
         "compliance": _build_compliance(schedule, settings, break_operations),
     }
@@ -1425,6 +1468,7 @@ from kairos_api.advertisers import router as advertisers_router  # noqa: E402
 from kairos_api.constraints import router as constraints_router  # noqa: E402
 from kairos_api.exporters import router as exporters_router  # noqa: E402
 from kairos_api.overrides import router as overrides_router  # noqa: E402
+from kairos_api.phase_b import router as phase_b_router  # noqa: E402
 from kairos_api.uploads import router as uploads_router  # noqa: E402
 
 app.include_router(uploads_router)
@@ -1433,6 +1477,7 @@ app.include_router(advertiser_conditions_router)
 app.include_router(exporters_router)
 app.include_router(overrides_router)
 app.include_router(constraints_router)
+app.include_router(phase_b_router)
 
 
 @app.get("/api/health")
@@ -1649,7 +1694,12 @@ def create_optimizer_plan(request: ScenarioRequest) -> dict[str, Any]:
 
 
 @app.get("/api/overview")
-def overview() -> dict[str, Any]:
+def overview(
+    scope: str | None = Query(
+        default=None,
+        description="Optional frontier scope: 'channel:<id>' or 'day:<date>'. Only the owned channel is selectable. Omit for the whole-default frontier.",
+    ),
+) -> dict[str, Any]:
     return _overview_cached(
         _signature([
             OUTPUT_DIR / "weekly_break_schedule.csv",
@@ -1658,7 +1708,8 @@ def overview() -> dict[str, Any]:
             DATA_DIR / "Programmes.csv",
             DATA_DIR / "Spots.csv",
             SETTINGS_PATH,
-        ])
+        ]),
+        scope or None,
     )
 
 

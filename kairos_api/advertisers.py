@@ -117,6 +117,67 @@ def list_advertisers() -> dict[str, Any]:
     return {"advertisers": advertisers, "columns": COLUMNS}
 
 
+@router.get("/stats")
+def advertiser_stats() -> dict[str, Any]:
+    """Per-advertiser at-a-glance stats for the management zone.
+
+    Every figure is computed from real data: baselines from advertiser_rules.csv
+    and scoped conditions from the conditions store, via the AdvertiserRuleEngine.
+    ``avg_effective_premium`` is the engine's deterministic unscoped effective
+    premium (baseline times every ANY-scope premium condition); it is a real
+    multiplier, not an estimate.
+
+    Revenue/profitability fields are NULL with a ``source_pending`` marker because
+    real spot-revenue attribution lives only on the daily spot-pricing path. The
+    ``status`` field carries the honest caveat that the WEEKLY optimizer does not
+    consume advertiser rules at all; only the daily path prices against them.
+    """
+    from kairos.optimize.advertiser_rules import (
+        FORBID,
+        PREMIUM,
+        PRESSURE,
+        REQUIRE,
+    )
+    from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
+    from kairos_api.advertiser_conditions import conditions_for
+
+    engine = AdvertiserRuleEngine.from_files()
+    frame = _load_frame()
+    effect_keys = [PREMIUM, REQUIRE, FORBID, PRESSURE]
+
+    advertisers: list[dict[str, Any]] = []
+    for _, row in frame.iterrows():
+        advertiser_id = str(row.get("advertiser_id", ""))
+        baseline = _row_to_record(row)
+        conditions = conditions_for(advertiser_id)
+        breakdown = {key: 0 for key in effect_keys}
+        for condition in conditions:
+            effect = str(condition.get("effect", "")).strip().lower()
+            if effect in breakdown:
+                breakdown[effect] += 1
+        advertisers.append(
+            {
+                "advertiser_id": advertiser_id,
+                "rule_count": len(conditions),
+                "effect_breakdown": breakdown,
+                "baseline_premium": round(baseline["default_premium"], 6),
+                "avg_effective_premium": round(engine.effective_premium(advertiser_id), 6),
+                "has_conditions": len(conditions) > 0,
+                "revenue": None,
+                "profitability": None,
+                "revenue_source": "source_pending",
+            }
+        )
+
+    return {
+        "advertisers": advertisers,
+        "count": len(advertisers),
+        "effect_types": effect_keys,
+        "revenue_note": "Spot-revenue attribution is computed on the daily spot-pricing path only; not available in this read-only aggregate.",
+        "status": "The weekly optimizer does not consume advertiser rules; only the daily spot-pricing path prices against them.",
+    }
+
+
 @router.put("/{advertiser_id}")
 def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate) -> dict[str, Any]:
     frame = _load_frame()
