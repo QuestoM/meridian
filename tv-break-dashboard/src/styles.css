@@ -32,12 +32,12 @@ body {
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 #root {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 button,
@@ -92,7 +92,11 @@ button {
   flex-direction: column;
   border-right: 1px solid var(--line);
   background: #ffffff;
-  min-height: 100vh;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  overflow-y: auto;
 }
 
 .brand-lockup {
