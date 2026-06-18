@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -307,16 +308,37 @@ def _load_break_schedule() -> pd.DataFrame:
     return pd.DataFrame()
 
 
+@lru_cache(maxsize=4)
+def _load_programmes_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Parse the programmes xlsx once per (path, mtime, size). The reference
+    parse is seconds-slow on the real file, and several builders load it per
+    request, so memoize on the file signature and hand back a copy."""
+    del mtime_ns, size
+    from kairos.data.loaders import load_programmes as _lp
+    return _lp(Path(path))
+
+
 def _load_programmes() -> pd.DataFrame:
     """Load EPG from the authoritative reference xlsx; fall back to legacy CSV."""
     xlsx = DATA_DIR / "reference" / "Programmes.xlsx"
     if xlsx.exists() and _ENGINE_AVAILABLE:
         try:
-            from kairos.data.loaders import load_programmes as _lp
-            return _lp(xlsx)
+            stat = xlsx.stat()
+            return _load_programmes_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
         except Exception:
             logger.exception("reference xlsx load failed, falling back to legacy CSV")
     return _read_csv(DATA_DIR / "Programmes.csv")
+
+
+@lru_cache(maxsize=4)
+def _load_spots_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Parse the spots xlsx once per (path, mtime, size). The reference parse is
+    tens-of-seconds slow on the real 50k-row file (date combination), and the
+    overview, inventory, and campaigns builders each load it per request, so
+    memoize on the file signature and hand back a copy."""
+    del mtime_ns, size
+    from kairos.data.loaders import load_spots as _ls
+    return _ls(Path(path))
 
 
 def _load_spots() -> pd.DataFrame:
@@ -324,8 +346,8 @@ def _load_spots() -> pd.DataFrame:
     xlsx = DATA_DIR / "reference" / "Spots.xlsx"
     if xlsx.exists() and _ENGINE_AVAILABLE:
         try:
-            from kairos.data.loaders import load_spots as _ls
-            return _ls(xlsx)
+            stat = xlsx.stat()
+            return _load_spots_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
         except Exception:
             logger.exception("reference xlsx load failed, falling back to legacy CSV")
     return _read_csv(DATA_DIR / "Spots.csv")
@@ -1156,15 +1178,29 @@ def _records(frame: pd.DataFrame, limit: int = 200) -> list[dict[str, Any]]:
     return cleaned.to_dict("records")
 
 
+def _series(frame: pd.DataFrame, name: str, default: Any) -> pd.Series:
+    """Return frame[name] if present, else a Series of `default` aligned to frame.
+
+    DataFrame.get(name, default) returns the bare scalar default when the column
+    is missing, which then has no .fillna/.astype and raises AttributeError. This
+    guarantees a Series so the builders degrade to honest zeros on a restructured
+    CSV (for example a Spots export without a revenue_ils column) instead of
+    crashing the endpoint into a 500.
+    """
+    if name in frame.columns:
+        return frame[name]
+    return pd.Series([default] * len(frame), index=frame.index)
+
+
 def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
     if spots.empty:
         return {"summary": {"spots": 0, "revenue": 0, "seconds": 0}, "by_channel": [], "by_hour": []}
 
     frame = spots.copy()
-    frame["revenue_ils"] = pd.to_numeric(frame.get("revenue_ils", 0), errors="coerce").fillna(0)
-    frame["Duration"] = pd.to_numeric(frame.get("Duration", 0), errors="coerce").fillna(0)
-    frame["hour_of_day"] = pd.to_numeric(frame.get("hour_of_day", 0), errors="coerce").fillna(0).astype(int)
-    frame["target"] = frame.get("is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
+    frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
+    frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
+    frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", 0), errors="coerce").fillna(0).astype(int)
+    frame["target"] = _series(frame, "is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
     valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
 
     by_channel = (
@@ -1197,8 +1233,15 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
         return {"campaigns": []}
 
     frame = spots.copy()
-    frame["revenue_ils"] = pd.to_numeric(frame.get("revenue_ils", 0), errors="coerce").fillna(0)
-    frame["Duration"] = pd.to_numeric(frame.get("Duration", 0), errors="coerce").fillna(0)
+    frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
+    frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
+    # The restructured Spots export may omit the identity/grouping columns. Backfill
+    # any that are missing with honest neutral defaults so the rollup degrades to a
+    # single bucket instead of crashing the endpoint (KeyError) into a 500.
+    frame["Campaign"] = _series(frame, "Campaign", "Unknown campaign")
+    frame["advertiser_id"] = _series(frame, "advertiser_id", "")
+    frame["Channel"] = _series(frame, "Channel", "")
+    frame["Date"] = _series(frame, "Date", "")
     grouped = (
         frame.groupby(["Campaign", "advertiser_id"], dropna=False)
         .agg(
@@ -1461,6 +1504,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _warm_overview_cache() -> None:
+    """Pre-compute the expensive caches in a background thread so the first
+    dashboard load is not blocked. Three endpoints are slow on a cold cache:
+    /api/overview and /api/forecasts each sweep several real optimizations, and
+    /api/campaigns + /api/parameters both trigger the one-time spots/EPG parse.
+    All of them are GIL-bound pure-Python work, so warm them sequentially in a
+    single thread (parallel warmers would just starve each other) and the
+    dashboard's parallel fetch finds every cache hot. Failures are swallowed: a
+    cold cache only means the first real request pays the cost.
+    """
+
+    def _run() -> None:
+        steps = (
+            ("overview", lambda: _overview_cached(
+                _signature([
+                    OUTPUT_DIR / "weekly_break_schedule.csv",
+                    DATA_DIR / "reference" / "Programmes.xlsx",
+                    DATA_DIR / "reference" / "Spots.xlsx",
+                    DATA_DIR / "Programmes.csv",
+                    DATA_DIR / "Spots.csv",
+                    SETTINGS_PATH,
+                ]),
+                None,
+            )),
+            ("forecasts", lambda: _forecasts_cached(
+                _signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"])
+            )),
+            ("campaigns", lambda: _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))),
+            ("inventory", lambda: _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))),
+        )
+        for name, step in steps:
+            try:
+                step()
+            except Exception:
+                logger.exception("cache warm-up failed for %s", name)
+
+    threading.Thread(target=_run, name="kairos-cache-warm", daemon=True).start()
 
 # Operational capabilities live in focused modules to keep this file lean.
 from kairos_api.advertiser_conditions import router as advertiser_conditions_router  # noqa: E402

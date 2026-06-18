@@ -14,6 +14,7 @@ to long form so it can be joined by (channel, date, minute).
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -74,15 +75,30 @@ def _combine_datetime(dates: pd.Series, times: pd.Series, *, dayfirst: bool) -> 
     day = pd.to_datetime(
         dates.astype(str).str.strip(), errors="coerce", dayfirst=dayfirst
     ).dt.normalize()
-    moment = pd.to_datetime(times.astype(str).str.strip(), errors="coerce")
+    # Parse the time-of-day fast. Without a format pandas falls back to per-element
+    # dateutil parsing, which is minutes-slow on 50k rows (the recurring "Could not
+    # infer format" warning). The bare "HH:MM:SS" cells parse vectorised against a
+    # fixed format; only the Excel-serial "1900-01-01 HH:MM:SS" leftovers fall
+    # through to the general parser. The result is value-identical, just faster.
+    times_str = times.astype(str).str.strip()
+    moment = pd.to_datetime(times_str, format="%H:%M:%S", errors="coerce")
+    leftover = moment.isna() & times_str.str.contains(":", na=False)
+    if leftover.any():
+        moment = moment.where(
+            ~leftover, pd.to_datetime(times_str.where(leftover), errors="coerce")
+        )
     time_of_day = moment - moment.dt.normalize()
     return day + time_of_day
 
 
-def load_programmes(path: str | Path | None = None) -> pd.DataFrame:
-    """Load the programme (EPG) log with parsed start_dt and end_dt."""
-    path = Path(path) if path else REFERENCE_DIR / "Programmes.xlsx"
-    frame = _drop_index_column(pd.read_excel(path))
+@lru_cache(maxsize=8)
+def _load_programmes_parsed(path_str: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Parse the programmes xlsx once per (path, mtime, size). The reference parse
+    runs the date-combination twice over the whole EPG; the optimizer frontier,
+    the channel picker, and the dashboard all load it repeatedly, so cache the
+    parse and let callers copy it."""
+    del mtime_ns, size
+    frame = _drop_index_column(pd.read_excel(path_str))
     frame["start_dt"] = _combine_datetime(frame["Date"], frame["Start time"], dayfirst=True)
     frame["end_dt"] = _combine_datetime(frame["Date"], frame["End time"], dayfirst=True)
     # Programmes that cross midnight have end < start; push end to the next day.
@@ -93,15 +109,49 @@ def load_programmes(path: str | Path | None = None) -> pd.DataFrame:
     return frame.reset_index(drop=True)
 
 
-def load_spots(path: str | Path | None = None) -> pd.DataFrame:
-    """Load the aired-spots log with parsed air datetime and numeric fields."""
-    path = Path(path) if path else REFERENCE_DIR / "Spots.xlsx"
-    frame = _drop_index_column(pd.read_excel(path))
+def load_programmes(path: str | Path | None = None) -> pd.DataFrame:
+    """Load the programme (EPG) log with parsed start_dt and end_dt.
+
+    The parse is memoized on the source file signature (path, mtime, size) and a
+    fresh copy is returned, so repeated loads within one process are cheap while
+    callers stay free to mutate their copy. A missing file falls through to the
+    uncached parse so the real FileNotFoundError surfaces honestly.
+    """
+    path = Path(path) if path else REFERENCE_DIR / "Programmes.xlsx"
+    try:
+        stat = path.stat()
+    except OSError:
+        return _load_programmes_parsed.__wrapped__(str(path), 0, 0)
+    return _load_programmes_parsed(str(path), stat.st_mtime_ns, stat.st_size).copy()
+
+
+@lru_cache(maxsize=8)
+def _load_spots_parsed(path_str: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Parse the spots xlsx once per (path, mtime, size). On the real 50k-row file
+    the date-combination is tens of seconds; the dashboard inventory, campaigns,
+    and overview builders each load it, so cache the parse and let callers copy."""
+    del mtime_ns, size
+    frame = _drop_index_column(pd.read_excel(path_str))
     frame["air_dt"] = _combine_datetime(frame["Date"], frame["Start time"], dayfirst=True)
     for column in ("Duration", "Pos. Block 1", "Spots Block 1", "TVR"):
         if column in frame.columns:
             frame[column] = pd.to_numeric(frame[column], errors="coerce")
     return frame.reset_index(drop=True)
+
+
+def load_spots(path: str | Path | None = None) -> pd.DataFrame:
+    """Load the aired-spots log with parsed air datetime and numeric fields.
+
+    Memoized on the source file signature (path, mtime, size); a fresh copy is
+    returned so callers may mutate freely. A missing file falls through to the
+    uncached parse so the real FileNotFoundError surfaces honestly.
+    """
+    path = Path(path) if path else REFERENCE_DIR / "Spots.xlsx"
+    try:
+        stat = path.stat()
+    except OSError:
+        return _load_spots_parsed.__wrapped__(str(path), 0, 0)
+    return _load_spots_parsed(str(path), stat.st_mtime_ns, stat.st_size).copy()
 
 
 def load_dayparts(path: str | Path | None = None) -> pd.DataFrame:
