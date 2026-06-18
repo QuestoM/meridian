@@ -47,6 +47,12 @@ OUTPUT_DIR = ROOT / "output"
 MODELS_DIR = ROOT / "models"
 SETTINGS_PATH = DATA_DIR / "kairos_settings.json"
 
+# Retention shortfall (in percentage points below the configured floor) that the
+# honest schedule risk score treats as the worst case (reads as 100). A 30-point
+# shortfall (for example floor 72%, realised 42%) is already a severe plan, so it
+# anchors the top of the scale; smaller shortfalls scale linearly toward 0.
+_RISK_FULL_SHORTFALL = 30.0
+
 
 class OptimizeRequest(BaseModel):
     """Parameters for a traffic-ready optimization run."""
@@ -461,10 +467,12 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
     avg_retention = retention.mean() if not retention.empty else 0.0
     total_breaks = int(num_breaks.sum())
     avg_retention_pct = round(_percent(avg_retention), 1)
-    # Transparent risk score: lower retention and more breaks raise it.
-    # This is the same formula used in _risk_from_retention (defined below);
-    # duplicated here because _summarize_schedule is called before that helper.
-    risk_score = round(max(0.0, min(100.0, (78.0 - avg_retention_pct) * 2.2 + total_breaks * 0.8)), 1)
+    # Honest risk score: the measured average-retention shortfall below the
+    # operator's configured floor (see _risk_from_retention). Sourced from the
+    # optimizer plan and operator settings, not the old saturating break-count
+    # formula. Falls back to the guardrail default floor when settings are absent.
+    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
+    risk_score = _risk_from_retention(avg_retention_pct, floor_percent)
 
     return {
         "total_breaks": total_breaks,
@@ -1752,9 +1760,21 @@ def files() -> dict[str, Any]:
     }
 
 
-def _risk_from_retention(average_retention_percent: float, total_breaks: int) -> float:
-    """A transparent risk score: lower retention and more breaks raise it."""
-    return round(max(0.0, min(100.0, (78 - average_retention_percent) * 2.2 + total_breaks * 0.8)), 1)
+def _risk_from_retention(average_retention_percent: float, floor_percent: float) -> float:
+    """Honest schedule risk: the measured average-retention shortfall below the
+    operator's configured floor, on a 0-100 scale.
+
+    The earlier formula added ``total_breaks * 0.8``; over a whole schedule the
+    break count is in the hundreds, so that term saturated the score to 100 for
+    every channel regardless of the real plan. This version is sourced entirely
+    from quantities the optimizer actually produces: the realised average
+    retention (``average_retention_percent``) and the operator-configured
+    ``min_retention_floor``. At or above the floor the risk is 0; a shortfall of
+    ``_RISK_FULL_SHORTFALL`` retention points or more reads as 100. Nothing is
+    fabricated and the score no longer saturates.
+    """
+    shortfall = max(0.0, floor_percent - average_retention_percent)
+    return round(max(0.0, min(100.0, shortfall / _RISK_FULL_SHORTFALL * 100.0)), 1)
 
 
 @lru_cache(maxsize=128)
@@ -1774,7 +1794,9 @@ def _scenario_cached(
             "total_ad_seconds": summary["total_ad_seconds"],
             "projected_revenue": summary["projected_revenue"],
             "average_retention": summary["average_retention"],
-            "risk_score": _risk_from_retention(summary["average_retention"], summary["total_breaks"]),
+            "risk_score": _risk_from_retention(
+                summary["average_retention"], round(retention_floor * 100, 1)
+            ),
         },
         "controls": result["controls"],
         "guardrails": result["guardrails"],
