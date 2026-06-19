@@ -564,35 +564,43 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
     frame = frame.dropna(subset=["start_dt"])
     frame["day"] = frame["start_dt"].dt.strftime("%a")
     frame["hour"] = frame["start_dt"].dt.hour
-    frame["program_type"] = (
-        frame["program_type"] if "program_type" in frame.columns
-        else frame["programme_type"] if "programme_type" in frame.columns
-        else pd.Series("Other", index=frame.index)
-    ).fillna("Other")
     frame["viewing_points"] = pd.to_numeric(frame.get("TVR", 1.0), errors="coerce").fillna(1.0)
 
-    schedule_by_type: dict[str, dict[str, float]] = {}
-    if not schedule.empty and "program_type" in schedule.columns:
-        for program_type, group in schedule.groupby("program_type"):
-            schedule_by_type[str(program_type)] = _summarize_schedule(group)
+    # Join each EPG program to ITS OWN planned row on (channel, date, HH:MM). The
+    # reference EPG has no program_type column, so the previous type-level join
+    # collapsed every program to "Other" and stamped a whole-type aggregate (a SUM
+    # of every "Other" plan row) plus a constant break count onto all of them. The
+    # plan row carries the real per-program revenue/retention/num_breaks and the
+    # real program_type, so look it up per program; emit honest null/0 when no plan
+    # row exists for that exact slot rather than borrowing another program's number.
+    plan_index = _plan_by_program_key(schedule)
 
     rows: list[dict[str, Any]] = []
     for channel, channel_df in frame.sort_values("start_dt").groupby("Channel"):
         programs = []
         for _, row in channel_df.head(18).iterrows():
-            type_summary = schedule_by_type.get(str(row["program_type"]), {})
-            retention = type_summary.get("average_retention", 0.0)
-            revenue = type_summary.get("projected_revenue", 0.0)
-            break_count = max(1, min(8, int(type_summary.get("total_breaks", 2) / 4) or 2))
+            plan_row = plan_index.get(
+                (str(channel), row["start_dt"].strftime("%Y-%m-%d"), row["start_dt"].strftime("%H:%M"))
+            )
+            if plan_row is None:
+                program_type = "Other"
+                revenue: float | None = None
+                retention: float | None = None
+                break_count = 0
+            else:
+                program_type = str(plan_row.get("program_type") or "Other")
+                revenue = _money(plan_row.get("predicted_revenue", 0.0))
+                retention = round(_percent(plan_row.get("predicted_retention", 0.0)), 1)
+                break_count = int(max(0, _safe_number(plan_row.get("num_breaks"), 0)))
             programs.append(
                 {
                     "title": row.get("Title", "Untitled"),
-                    "program_type": row["program_type"],
+                    "program_type": program_type,
                     "day": row["day"],
                     "time": row["start_dt"].strftime("%H:%M"),
                     "duration_minutes": round(_safe_number(row.get("Duration"), 3600) / 60),
-                    "revenue": _money(revenue),
-                    "retention": round(_safe_number(retention, 0.0), 1),
+                    "revenue": revenue,
+                    "retention": retention,
                     "break_markers": break_count,
                     "selected": len(programs) == 1 and len(rows) == 0,
                 }
@@ -602,28 +610,49 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
     return rows[:6]
 
 
-def _schedule_lookup(schedule: pd.DataFrame) -> tuple[dict[tuple[str, str], dict[str, Any]], dict[str, dict[str, Any]]]:
-    by_type_day: dict[tuple[str, str], dict[str, Any]] = {}
-    by_type: dict[str, dict[str, Any]] = {}
+def _plan_by_program_key(schedule: pd.DataFrame) -> dict[tuple[str, str, str], dict[str, Any]]:
+    """Index the weekly plan by the real per-program key (channel, date, HH:MM).
+
+    The reference EPG carries no program_type, so the old (type, day) lookup
+    matched every EPG program to one type-level row and stamped that single row's
+    revenue/retention/breaks onto every program of the type (a fabrication). The
+    plan's own (channel, date, start_time) is a real per-program key: it matches
+    100% of plan rows and the great majority of EPG rows on the reference data. A
+    few short fillers share a start minute, so rows that collide on the key are
+    aggregated (revenue, num_breaks and break-time summed; the highest-revenue row
+    supplies the representative type/retention/position/break_type/base_rate).
+    Callers look up each program's own slot and emit honest null/0 when there is
+    no match.
+    """
+    index: dict[tuple[str, str, str], dict[str, Any]] = {}
     if schedule.empty:
-        return by_type_day, by_type
+        return index
 
     frame = schedule.copy()
     frame["program_type"] = frame.get("program_type", "Other").fillna("Other").astype(str)
-    frame["day_key"] = frame.get("day", "").map(_day_key) if "day" in frame.columns else ""
+    frame["channel_key"] = frame.get("channel", "").astype(str).str.strip()
+    frame["date_key"] = frame.get("date", "").astype(str).str.strip()
+    frame["time_key"] = frame.get("start_time", "").astype(str).str.strip().str.slice(0, 5)
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
     frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.0), errors="coerce").fillna(0.0)
-    frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 1), errors="coerce").fillna(1)
-    frame["break_length"] = pd.to_numeric(frame.get("break_length", frame.get("total_break_time", 120)), errors="coerce").fillna(120)
+    frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 0), errors="coerce").fillna(0)
+    frame["total_break_time"] = pd.to_numeric(
+        frame.get("total_break_time", frame.get("break_length", 0)), errors="coerce"
+    ).fillna(0)
+    frame["break_length"] = pd.to_numeric(
+        frame.get("break_length", frame.get("total_break_time", 120)), errors="coerce"
+    ).fillna(120)
 
-    for _, row in frame.sort_values("predicted_revenue", ascending=False).iterrows():
-        key = str(row["program_type"]).lower()
-        record = row.to_dict()
-        by_type.setdefault(key, record)
-        if row.get("day_key"):
-            by_type_day.setdefault((key, str(row["day_key"])), record)
+    valid = frame[(frame["channel_key"] != "") & (frame["date_key"] != "") & (frame["time_key"] != "")]
+    for key, group in valid.groupby(["channel_key", "date_key", "time_key"], sort=False):
+        representative = group.sort_values("predicted_revenue", ascending=False).iloc[0]
+        record = representative.to_dict()
+        record["predicted_revenue"] = float(group["predicted_revenue"].sum())
+        record["num_breaks"] = float(group["num_breaks"].sum())
+        record["total_break_time"] = float(group["total_break_time"].sum())
+        index[(str(key[0]), str(key[1]), str(key[2]))] = record
 
-    return by_type_day, by_type
+    return index
 
 
 def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> dict[str, Any]:
@@ -645,7 +674,7 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
     frame["duration_seconds"] = (frame["end_dt"] - frame["start_dt"]).dt.total_seconds().clip(lower=0)
     frame = frame.sort_values("start_dt").groupby("Channel", dropna=False).head(12).reset_index(drop=True)
 
-    by_type_day, by_type = _schedule_lookup(schedule)
+    plan_index = _plan_by_program_key(schedule)
     settings = _load_settings()
     _pricing_model: Any = None
     if _ENGINE_AVAILABLE:
@@ -659,18 +688,25 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
 
     for row_index, row in frame.iterrows():
         channel = str(row.get("Channel") or row.get("channel") or "Channel")
-        program_type = str(row.get("program_type") or "Other")
         day = str(row.get("day_key") or "")
         program_id = str(row.get("programme_id") or row.get("id") or f"program-{row_index}")
         program_key = f"{channel}-{program_id}-{row['start_dt'].strftime('%H%M')}"
         duration_seconds = int(_safe_number(row.get("duration_seconds"), 0))
         duration_minutes = round(duration_seconds / 60, 1)
-        schedule_row = by_type_day.get((program_type.lower(), day)) or by_type.get(program_type.lower()) or {}
-        planned_breaks = int(max(0, _safe_number(schedule_row.get("num_breaks"), 1 if duration_minutes >= 30 else 0)))
+        # Look up THIS program's own planned row on (channel, date, HH:MM); the EPG
+        # has no program_type so a type-level join would stamp one row onto every
+        # program of the type. No match means no plan for this slot: honest 0/null,
+        # not a borrowed aggregate. The real program_type comes from the plan row.
+        schedule_row = plan_index.get(
+            (channel, row["start_dt"].strftime("%Y-%m-%d"), row["start_dt"].strftime("%H:%M"))
+        ) or {}
+        program_type = str(schedule_row.get("program_type") or "Other")
+        planned_breaks = int(max(0, _safe_number(schedule_row.get("num_breaks"), 0)))
         capacity_breaks = int(max(0, duration_minutes // 18))
         break_count = max(0, min(5, planned_breaks, capacity_breaks if duration_minutes >= 18 else 0))
-        revenue_total = _money(schedule_row.get("predicted_revenue", 0.0))
-        retention = round(_percent(schedule_row.get("predicted_retention", 0.0)), 1)
+        has_plan = bool(schedule_row)
+        revenue_total = _money(schedule_row.get("predicted_revenue", 0.0)) if has_plan else None
+        retention = round(_percent(schedule_row.get("predicted_retention", 0.0)), 1) if has_plan else None
         break_seconds = int(max(30, min(360, _safe_number(schedule_row.get("break_length"), 120))))
         lane = f"{channel} / {day}"
 
@@ -696,6 +732,11 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
         if break_count == 0:
             continue
 
+        # Per-break figures fall back to 0 only for the arithmetic below; the
+        # program row above keeps the honest null when no plan row matched.
+        revenue_for_breaks = revenue_total if revenue_total is not None else 0.0
+        retention_for_breaks = retention if retention is not None else 0.0
+
         for break_index in range(1, break_count + 1):
             candidate = row["start_dt"] + pd.Timedelta(seconds=int((duration_seconds / (break_count + 1)) * break_index))
             min_start = row["start_dt"] + pd.Timedelta(minutes=2)
@@ -718,7 +759,7 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                 and break_index == 1
                 and settings.gold_breaks_max_per_day > 0
             )
-            reference_revenue = _money(revenue_total / max(break_count, 1))
+            reference_revenue = _money(revenue_for_breaks / max(break_count, 1))
             rating_points = _safe_number(row.get("viewing_points"), 0.0)
             # base_rate comes from the optimizer's weekly schedule CSV. Absent
             # means no plan was run; report None rather than inventing 1000.
@@ -732,7 +773,7 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
             if cpp is not None and cpp > 0 and rating_points > 0:
                 try:
                     cpp_revenue = cpp_break_revenue(rating_points, break_seconds, cpp, premium=program_premium)
-                    break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention / 100))
+                    break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention_for_breaks / 100))
                 except ValueError:
                     break_revenue = reference_revenue
             else:
@@ -763,8 +804,8 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     "revenue_reference": reference_revenue,
                     "revenue_premium": program_premium,
                     "revenue_calculated": break_revenue,
-                    "retention": retention,
-                    "status": "at_risk" if retention < settings.min_retention_floor * 100 else "ready",
+                    "retention": retention_for_breaks,
+                    "status": "at_risk" if retention_for_breaks < settings.min_retention_floor * 100 else "ready",
                 }
             )
 
