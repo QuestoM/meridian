@@ -2505,6 +2505,98 @@ button {
   grid-column: 1 / -1;
 }
 
+/* The operator-channel picker is the gateway to the frontier, so when it is
+   featured at the top of the settings page it gets a distinct callout. */
+.settings-panel-featured {
+  margin-top: 16px;
+  border-color: var(--teal);
+  border-inline-start-width: 3px;
+  background: linear-gradient(180deg, var(--teal-soft) 0%, var(--surface) 64px);
+}
+
+.settings-channel-kicker {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--teal);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Sticky save bar: always-visible action bar pinned to the bottom of the
+   settings view so saving is obvious and reachable while the operator scrolls
+   and edits. The tone classes reflect the real draft-vs-saved + saveState. */
+.settings-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.settings-savebar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.settings-savebar-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+
+.settings-savebar.tone-dirty {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.settings-savebar.tone-dirty .settings-savebar-status {
+  color: var(--amber);
+}
+
+.settings-savebar.tone-dirty .settings-savebar-dot {
+  background: var(--amber);
+}
+
+.settings-savebar.tone-saved .settings-savebar-status,
+.settings-savebar.tone-clean .settings-savebar-status {
+  color: var(--teal);
+}
+
+.settings-savebar.tone-saved .settings-savebar-dot,
+.settings-savebar.tone-clean .settings-savebar-dot {
+  background: var(--teal);
+}
+
+.settings-savebar.tone-error .settings-savebar-status {
+  color: var(--red);
+}
+
+.settings-savebar.tone-error .settings-savebar-dot {
+  background: var(--red);
+}
+
+.settings-savebar .run-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .settings-panel-head {
   display: flex;
   align-items: flex-start;
@@ -2998,6 +3090,15 @@ button {
   .settings-form-grid,
   .settings-toggle-grid {
     grid-template-columns: 1fr;
+  }
+
+  .settings-savebar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .settings-savebar .run-button {
+    width: 100%;
   }
 }
 

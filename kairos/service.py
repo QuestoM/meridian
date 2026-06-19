@@ -330,6 +330,7 @@ def run_scenario(
     programmes_path: Optional[str] = None,
     overrides: Optional[OverrideSet] = None,
     placement_pins: Optional[Mapping[str, Any]] = None,
+    refine: bool = True,
 ) -> dict[str, Any]:
     """Run a real optimization for the dashboard scenario slider.
 
@@ -337,6 +338,12 @@ def run_scenario(
     optimizer's [0, 1]. ``retention_floor`` and ``max_breaks_per_hour`` override
     the matching guardrails. The plan is computed on the chosen channel-day (or
     the first one in the source when none is given) to stay responsive.
+
+    ``refine`` (default ``True``) runs the F1 local-search refiner after greedy
+    for the committed plan. Set ``refine=False`` for the pure-greedy optimum,
+    which is much faster on large multi-day scopes: the exploratory revenue
+    frontier uses it so a whole-channel sweep stays interactive (greedy is the
+    same real optimizer, just without the per-group local-search polish).
     """
     weight = clamp(float(revenue_weight) / 100.0, 0.0, 1.0)
     if programmes is None:
@@ -363,7 +370,7 @@ def run_scenario(
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
         overrides=overrides, placement_pins=placement_pins,
-        demand_weights=demand_weights,
+        demand_weights=demand_weights, refine=refine,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)

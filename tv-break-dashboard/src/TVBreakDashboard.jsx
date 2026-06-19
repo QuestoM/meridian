@@ -273,6 +273,7 @@ const copyByLocale = {
     frontier: 'Revenue vs retention frontier',
     frontierMode: 'Measured retention model',
     frontierPickChannel: 'Pick your channel in settings to forecast your own inventory. The frontier projects revenue for your channel only; competing programmes feed the retention model, never the revenue forecast.',
+    frontierComputing: 'Computing your channel forecast. This runs a real optimisation in the background and appears here once ready; refresh in a moment.',
     heatmap: 'Daypart inventory heatmap',
     heatmapEmpty: 'No daypart heatmap data yet',
     opportunity: 'Revenue opportunity',
@@ -287,6 +288,8 @@ const copyByLocale = {
     saving: 'Saving...',
     saved: 'Saved',
     saveFailed: 'Save failed',
+    unsavedChanges: 'You have unsaved changes',
+    noChanges: 'All changes saved',
     profile: 'Profile',
     source: 'Source',
     effectiveDate: 'Effective date',
@@ -366,6 +369,7 @@ const copyByLocale = {
     frontier: 'חזית הכנסה מול שימור',
     frontierMode: 'מודל שימור מדוד',
     frontierPickChannel: 'בחרו את הערוץ שלכם בהגדרות כדי לחזות את המלאי שלכם בלבד. החזית מציגה תחזית הכנסה לערוץ שלכם בלבד; תוכניות מתחרות מזינות את מודל השימור, לעולם לא את תחזית ההכנסה.',
+    frontierComputing: 'מחשבים את תחזית הערוץ שלכם. זהו אופטימיזציה אמיתית שרצה ברקע ותופיע כאן ברגע שתהיה מוכנה; רעננו עוד רגע.',
     heatmap: 'מפת חום לפי רצועת שידור',
     heatmapEmpty: 'אין עדיין נתוני מפת חום לפי רצועה',
     opportunity: 'פוטנציאל הכנסה',
@@ -380,6 +384,8 @@ const copyByLocale = {
     saving: 'שומר...',
     saved: 'נשמר',
     saveFailed: 'השמירה נכשלה',
+    unsavedChanges: 'יש לך שינויים שלא נשמרו',
+    noChanges: 'כל השינויים נשמרו',
     profile: 'פרופיל',
     source: 'מקור',
     effectiveDate: 'תאריך תחולה',
@@ -635,6 +641,21 @@ function Numeric({ children }) {
 
 function pageText(locale, en, he) {
   return locale === 'he' ? he : en;
+}
+
+// stableSettingsKey produces an order-independent JSON signature for a settings
+// object so the settings page can compare the in-progress draft against the
+// saved settings (drives the "unsaved changes" affordance) without false
+// positives from key order or fresh array identities.
+function stableSettingsKey(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSettingsKey).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${stableSettingsKey(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function normalizeRows(value) {
@@ -2029,7 +2050,7 @@ function OptimizerWorkspace({
 
       {showMetrics && (
         <section className="analytics-strip" aria-label="Analytics and constraint ledger">
-          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} />
+          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} />
           <InventoryHeatmap copy={copy} locale={locale} />
           <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
         </section>
@@ -2523,7 +2544,7 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
             ))}
           </div>
         </section>
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} />
+        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} />
       </div>
       <ScenarioCompare locale={locale} savedRevenueWeight={finiteNumber(overview.settings?.revenue_weight)} />
       <section className="page-panel">
@@ -3342,7 +3363,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
   );
 }
 
-function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = '' }) {
+function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = '', status = '' }) {
   const chartFrameRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(760);
   const [activePointIndex, setActivePointIndex] = useState(null);
@@ -3363,6 +3384,10 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
   // (it never forecasts an arbitrary or all-channels number). Direct the operator
   // to pick their channel instead of showing a misleading curve.
   const showPickChannel = !loading && !ownedChannel;
+  // The frontier is a slow optimizer sweep computed in the background. When the
+  // backend reports it is still computing and no points have arrived yet, show an
+  // honest "being computed" state rather than an empty skeleton with no curve.
+  const showComputing = !loading && ownedChannel && status === 'computing' && points.length < 2;
   // Subtitle: name the owned channel the curve forecasts, so the operator can see
   // at a glance the projection is scoped to their inventory only.
   const modeLabel = ownedChannel ? `${copy.frontierMode} · ${ownedChannel}` : copy.frontierMode;
@@ -3459,6 +3484,8 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
       </div>
       {showPickChannel ? (
         <div className="frontier-empty">{copy.frontierPickChannel}</div>
+      ) : showComputing ? (
+        <div className="frontier-empty">{copy.frontierComputing}</div>
       ) : showSkeleton ? (
         <div className="frontier-skeleton" aria-hidden="true" />
       ) : (
@@ -3606,7 +3633,7 @@ function ComplianceLedger({ compliance, copy, locale }) {
 // OperatorChannelPanel: shows available_channels from /api/parameters and lets
 // the operator choose which channel they own. The selection is persisted via
 // the same PUT /api/settings path as all other settings.
-function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState }) {
+function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState, featured }) {
   const he = locale === 'he';
   const availableChannels = normalizeRows(
     parameters?.available_channels || parameters?.settings?.available_channels,
@@ -3618,11 +3645,14 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState 
   }
 
   return (
-    <section className="settings-panel wide">
+    <section className={`settings-panel wide${featured ? ' settings-panel-featured' : ''}`}>
       <div className="settings-panel-head">
         <div>
+          {featured && (
+            <span className="settings-channel-kicker">{he ? 'נקודת הפתיחה' : 'Start here'}</span>
+          )}
           <h2>{he ? 'הערוץ שלך' : 'Your channel'}</h2>
-          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה.' : 'The channel this operator owns. Your constraints apply to this channel.'}</p>
+          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה, והוא משער את חזית ההכנסה מול שמירת הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention frontier.'}</p>
         </div>
         <Tv size={18} />
       </div>
@@ -3708,6 +3738,31 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
           ? copy.saveFailed
           : copy.saveSettings;
 
+  // Dirty detection: compare the in-progress draft against the saved settings.
+  // This drives the "unsaved changes" affordance on the sticky action bar. We
+  // compare by stable JSON so field order or array identity does not matter.
+  const isDirty = useMemo(() => {
+    try {
+      return stableSettingsKey(draft) !== stableSettingsKey(settings);
+    } catch {
+      return true;
+    }
+  }, [draft, settings]);
+
+  // The status line for the sticky bar reflects the real save lifecycle and the
+  // real draft-vs-saved comparison: saving / saved / failed come from saveState,
+  // otherwise we show unsaved vs all-saved based on isDirty.
+  const stickyStatus =
+    saveState === 'saving'
+      ? { text: copy.saving, tone: 'saving' }
+      : saveState === 'error'
+        ? { text: copy.saveFailed, tone: 'error' }
+        : isDirty
+          ? { text: copy.unsavedChanges, tone: 'dirty' }
+          : saveState === 'saved'
+            ? { text: copy.saved, tone: 'saved' }
+            : { text: copy.noChanges, tone: 'clean' };
+
   return (
     <section className="settings-workspace">
       <div className="settings-hero">
@@ -3716,11 +3771,16 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
           <h1>{copy.settingsTitle}</h1>
           <p>{copy.settingsIntro}</p>
         </div>
-        <Button className="run-button" type="button" variant="contained" onClick={() => onSave(draft)}>
-          <Save size={15} />
-          {statusText}
-        </Button>
       </div>
+
+      <OperatorChannelPanel
+        settings={draft}
+        parameters={parameters}
+        locale={locale}
+        onSave={onSave}
+        saveState={saveState}
+        featured
+      />
 
       <div className="settings-grid">
         <section className="settings-panel wide">
@@ -3895,20 +3955,29 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
           </div>
         </section>
 
-        <OperatorChannelPanel
-          settings={draft}
-          parameters={parameters}
-          locale={locale}
-          onSave={onSave}
-          saveState={saveState}
-        />
-
         <ConstraintBuilder
           locale={locale}
           notify={notify || (() => {})}
           onRecompute={onRecompute}
           recomputeState={recomputeState}
         />
+      </div>
+
+      <div className={`settings-savebar tone-${stickyStatus.tone}`}>
+        <span className="settings-savebar-status" aria-live="polite">
+          <span className="settings-savebar-dot" aria-hidden="true" />
+          {stickyStatus.text}
+        </span>
+        <Button
+          className="run-button"
+          type="button"
+          variant="contained"
+          disabled={saveState === 'saving' || !isDirty}
+          onClick={() => onSave(draft)}
+        >
+          <Save size={15} />
+          {statusText}
+        </Button>
       </div>
     </section>
   );

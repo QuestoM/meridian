@@ -820,52 +820,59 @@ def _parse_frontier_scope(scope: str | None, settings: KairosSettings) -> dict[s
     return result
 
 
-def _build_frontier(settings: KairosSettings, scope: str | None = None) -> list[dict[str, Any]]:
-    """The real revenue-vs-retention frontier, traced by sweeping the optimizer's
-    revenue weight on the operator's saved guardrails.
+def _frontier_data_signature() -> tuple[tuple[str, int], ...]:
+    """A cheap hashable signature of the data files the frontier depends on, so
+    the frontier cache invalidates automatically when programmes, spots or the
+    planned schedule change on disk."""
+    candidates = [
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "reference" / "Spots.xlsx",
+        DATA_DIR / "Programmes.csv",
+        DATA_DIR / "Spots.csv",
+    ]
+    sig: list[tuple[str, int]] = []
+    for path in candidates:
+        try:
+            sig.append((str(path), path.stat().st_mtime_ns))
+        except OSError:
+            continue
+    return tuple(sig)
 
-    Each point is an ACTUAL optimization (:func:`kairos.service.run_scenario`),
-    not a synthetic offset off one summary: the curve is the genuine Pareto
-    trade-off the engine produces as it shifts from retention-first
-    (revenue_weight 0) to revenue-first (revenue_weight 100), under the saved
-    retention floor, hourly break cap and risk aversion. The point matching the
-    saved revenue_weight is marked ``selected``. If no plan can be computed the
-    list is empty (an honest empty state, never a fabricated curve).
 
-    The frontier forecasts the operator's OWNED channel inventory only. Revenue is
-    never projected for a competitor channel: competitor programming informs the
-    churn/retention model, not the revenue projection (the competitor-information
-    boundary). The whole curve is therefore scoped to ``settings.operator_channel``
-    across all of that channel's broadcast days. When no channel is owned yet, the
-    list is empty (an honest empty state: the dashboard prompts the operator to pick
-    their channel) rather than an arbitrary single-channel or all-channels number.
+@lru_cache(maxsize=32)
+def _frontier_points_cached(
+    signature: tuple[tuple[str, int], ...],
+    channel: str,
+    day: str | None,
+    retention_floor: float,
+    max_breaks_per_hour: int,
+    risk_lambda: float,
+    saved_weight: int,
+) -> tuple[dict[str, Any], ...]:
+    """Trace the greedy revenue-vs-retention frontier for one owned-channel scope.
 
-    ``scope`` optionally narrows the curve to one broadcast day within the owned
-    channel (``day:<date>``). A ``channel:<id>`` scope is accepted only when it
-    matches the owned channel (see :func:`_parse_frontier_scope`); it can never
-    redirect the forecast to a competitor.
+    Cached on the data-file ``signature`` plus the guardrail inputs, so a
+    whole-channel sweep (one optimization per revenue weight, across all of the
+    channel's broadcast days) runs once and is reused across requests. The sweep
+    uses the pure-greedy optimum (``refine=False``) so it stays interactive on a
+    multi-day scope where the F1 local-search refiner would be too slow: greedy
+    is the same real optimizer, just without the per-group local-search polish,
+    and it still produces a monotone curve with distinct points per weight.
     """
-    owned = str(settings.operator_channel or "").strip()
-    if not owned:
-        return []
-    scope_kwargs = _parse_frontier_scope(scope, settings)
-    # Always the owned channel: a day scope only narrows within it, and a channel
-    # scope can only ever equal the owned channel, so competitor revenue is never
-    # projected here.
-    effective_channel = owned
-    effective_day = scope_kwargs["day"]
-    saved_weight = settings.revenue_weight
+    del signature  # part of the cache key only
     weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
     points: list[dict[str, Any]] = []
     for weight in weights:
         try:
             payload = run_scenario(
                 revenue_weight=weight,
-                retention_floor=settings.min_retention_floor,
-                max_breaks_per_hour=settings.max_breaks_per_hour,
-                risk_lambda=settings.risk_lambda,
-                channel=effective_channel,
-                day=effective_day,
+                retention_floor=retention_floor,
+                max_breaks_per_hour=max_breaks_per_hour,
+                risk_lambda=risk_lambda,
+                channel=channel,
+                day=day,
+                refine=False,
             )
         except Exception:
             logger.exception("frontier scenario failed at revenue_weight=%s", weight)
@@ -884,7 +891,112 @@ def _build_frontier(settings: KairosSettings, scope: str | None = None) -> list[
             }
         )
     points.sort(key=lambda point: point["retention"])
-    return points
+    return tuple(points)
+
+
+@lru_cache(maxsize=8)
+def _owned_representative_day(signature: tuple[tuple[str, int], ...], owned: str) -> str | None:
+    """The owned channel's busiest broadcast day (most programmes), as YYYY-MM-DD.
+
+    The frontier is traced on this single representative day, not across every
+    broadcast day of the channel. A real owned channel spans dozens of broadcast
+    days and each day is a full optimization per revenue weight, so a whole-channel
+    sweep is many minutes of compute; one full day is interactive. The busiest day
+    gives the richest, most distinct curve (a thin day collapses the Pareto points
+    on top of each other). Ties break to the latest date for a deterministic,
+    recent forecast. Returns ``None`` when the channel has no dated programmes.
+    """
+    del signature  # cache key only
+    try:
+        programmes = _load_programmes()
+    except Exception:
+        logger.exception("representative-day load failed")
+        return None
+    if programmes.empty or "Channel" not in programmes.columns or "start_dt" not in programmes.columns:
+        return None
+    owned_rows = programmes[programmes["Channel"].astype(str) == owned]
+    owned_rows = owned_rows[owned_rows["start_dt"].notna()]
+    if owned_rows.empty:
+        return None
+    days = owned_rows["start_dt"].dt.strftime("%Y-%m-%d")
+    counts = days.value_counts()
+    busiest = counts[counts == counts.max()].index
+    return max(busiest)  # YYYY-MM-DD sorts lexicographically; latest of the busiest
+
+
+# The frontier is a real optimizer sweep and is too slow to trace inline on a cold
+# cache, so it is computed in a background thread. These guard the single in-flight
+# computation and its result so /api/overview never blocks on the sweep.
+_frontier_bg_lock = threading.Lock()
+_frontier_bg_state: dict[str, Any] = {"key": None, "status": "idle", "points": ()}
+
+
+def _frontier_async(settings: KairosSettings, scope: str | None = None) -> tuple[list[dict[str, Any]], str]:
+    """Return ``(points, status)`` for the revenue-vs-retention frontier without
+    ever blocking the request.
+
+    Each point is an ACTUAL optimization (:func:`kairos.service.run_scenario`),
+    not a synthetic offset off one summary: the curve is the genuine Pareto
+    trade-off the engine produces as it shifts from retention-first
+    (revenue_weight 0) to revenue-first (revenue_weight 100), under the saved
+    retention floor, hourly break cap and risk aversion. The point matching the
+    saved revenue_weight is marked ``selected``.
+
+    The frontier forecasts the operator's OWNED channel inventory only. Revenue is
+    never projected for a competitor channel: competitor programming informs the
+    churn/retention model, not the revenue projection (the competitor-information
+    boundary). The curve is scoped to ``settings.operator_channel`` on its busiest
+    broadcast day (see :func:`_owned_representative_day`); a ``day:<date>`` scope
+    narrows it to another day within the owned channel, and a ``channel:<id>`` scope
+    is accepted only when it equals the owned channel, so the forecast can never be
+    redirected to a competitor.
+
+    Status is one of: ``no_channel`` (no owned channel set yet, points empty: the
+    dashboard prompts the operator to pick their channel), ``computing`` (a
+    background sweep is in flight, points empty: an honest "forecast is being
+    computed" state, never a fabricated curve), or ``ready`` (points populated from
+    the finished sweep). The sweep itself is cached on the data-file signature plus
+    the guardrails, so it runs once and is reused across requests and weights.
+    """
+    owned = str(settings.operator_channel or "").strip()
+    if not owned:
+        return [], "no_channel"
+    signature = _frontier_data_signature()
+    scope_kwargs = _parse_frontier_scope(scope, settings)
+    effective_day = scope_kwargs["day"] or _owned_representative_day(signature, owned)
+    key = (
+        signature,
+        owned,
+        effective_day,
+        float(settings.min_retention_floor),
+        int(settings.max_breaks_per_hour),
+        float(settings.risk_lambda),
+        int(settings.revenue_weight),
+    )
+    with _frontier_bg_lock:
+        state = _frontier_bg_state
+        if state["key"] == key and state["status"] == "ready":
+            return [dict(point) for point in state["points"]], "ready"
+        if state["key"] == key and state["status"] == "computing":
+            return [], "computing"
+        # New (or stale) key: start a fresh single in-flight computation.
+        state["key"] = key
+        state["status"] = "computing"
+        state["points"] = ()
+
+    def _compute() -> None:
+        try:
+            points = _frontier_points_cached(*key)
+        except Exception:
+            logger.exception("frontier background compute failed")
+            points = ()
+        with _frontier_bg_lock:
+            if _frontier_bg_state["key"] == key:
+                _frontier_bg_state["points"] = points
+                _frontier_bg_state["status"] = "ready"
+
+    threading.Thread(target=_compute, name="kairos-frontier", daemon=True).start()
+    return [], "computing"
 
 
 def _infer_hourly_ad_seconds(schedule: pd.DataFrame) -> pd.Series:
@@ -1403,7 +1515,6 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...], scope: str | N
             "planned_break_rows": int(len(schedule)),
         },
         "recommendations": _build_recommendations(schedule),
-        "frontier": _build_frontier(settings, scope),
         "frontier_scope": scope or None,
         "settings": _model_dump(settings),
         "compliance": _build_compliance(schedule, settings, break_operations),
@@ -1551,6 +1662,10 @@ def _warm_overview_cache() -> None:
             )),
             ("campaigns", lambda: _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))),
             ("inventory", lambda: _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))),
+            # Kick off the background frontier sweep at startup so it is "ready"
+            # by the time the operator opens the dashboard (it spawns its own
+            # thread and returns immediately, never blocking warm-up).
+            ("frontier", lambda: _frontier_async(_load_settings(), None)),
         )
         for name, step in steps:
             try:
@@ -1798,7 +1913,7 @@ def overview(
         description="Optional frontier scope: 'channel:<id>' or 'day:<date>'. Only the owned channel is selectable. Omit for the whole-default frontier.",
     ),
 ) -> dict[str, Any]:
-    return _overview_cached(
+    body = dict(_overview_cached(
         _signature([
             OUTPUT_DIR / "weekly_break_schedule.csv",
             DATA_DIR / "reference" / "Programmes.xlsx",
@@ -1808,7 +1923,13 @@ def overview(
             SETTINGS_PATH,
         ]),
         scope or None,
-    )
+    ))
+    # The frontier is a slow optimizer sweep, computed in the background so the
+    # overview never blocks on it. Merge its current state into the response.
+    points, status = _frontier_async(_load_settings(), scope or None)
+    body["frontier"] = points
+    body["frontier_status"] = status
+    return body
 
 
 @app.get("/api/schedule")
