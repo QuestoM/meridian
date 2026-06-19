@@ -251,6 +251,16 @@ class AdvertiserRuleEngine:
 
         Placement-pressure rules are deliberately excluded: they steer placement
         but are never charged, so they must not touch real revenue.
+
+        Modes compose differently. PERCENT, MULTIPLIER, CPP_ADD and CPP_DISCOUNT
+        are relative: each matching rule stacks on the running premium. CPP_ABSOLUTE
+        is authoritative: it SETS the effective cost-per-point to ``value`` (per the
+        contract in docs/advertiser-rules-upgrade.md), so a matching absolute rule
+        REPLACES the running premium with ``value / base_cpp`` rather than multiplying
+        the baseline by it. Multiple matching absolutes are last-wins (CSV row order);
+        a relative rule after an absolute still composes on the absolute's result. An
+        absolute with no usable ``base_cpp`` resolves to a 1.0 factor and is therefore
+        a no-op, leaving the running premium unchanged rather than collapsing it.
         """
         baseline = self.baselines.get(advertiser_id)
         premium = baseline.default_premium if baseline is not None else 1.0
@@ -258,7 +268,11 @@ class AdvertiserRuleEngine:
             if condition.effect == PREMIUM and condition.matches(
                 position=position, genre=genre, daypart=daypart, programme=programme
             ):
-                premium *= _premium_factor(condition.value, condition.mode, base_cpp)
+                factor = _premium_factor(condition.value, condition.mode, base_cpp)
+                if condition.mode == CPP_ABSOLUTE and not (base_cpp is None or base_cpp <= 0):
+                    premium = factor  # authoritative: SET the CPP, override prior factors
+                else:
+                    premium *= factor
         return premium
 
     def pressure_multiplier(

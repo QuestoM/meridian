@@ -3953,14 +3953,13 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           <div className="settings-panel-head">
             <div>
               <h2>{locale === 'he' ? 'מדיניות מסחרית' : 'Commercial policy'}</h2>
-              <p>{locale === 'he' ? 'חסויות, ברייקי זהב ואישור אנושי' : 'Sponsorships, gold breaks, and approval flow'}</p>
+              <p>{locale === 'he' ? 'חסויות וברייקי זהב' : 'Sponsorships and gold breaks'}</p>
             </div>
             <SlidersHorizontal size={18} />
           </div>
           <div className="settings-toggle-grid">
             <ToggleControl label={copy.sponsorships} checked={draft.sponsorships_enabled} onChange={(value) => updateField('sponsorships_enabled', value)} />
             <ToggleControl label={copy.gold} checked={draft.gold_breaks_enabled} onChange={(value) => updateField('gold_breaks_enabled', value)} />
-            <ToggleControl label={copy.approval} checked={draft.require_manual_approval} onChange={(value) => updateField('require_manual_approval', value)} />
             <NumberControl label={locale === 'he' ? 'מקסימום ברייקי זהב ביום' : 'Max gold breaks per day'} value={draft.gold_breaks_max_per_day} onChange={(value) => updateNumber('gold_breaks_max_per_day', value)} suffix="/day" />
             <NumberControl label={copy.dailyCap} value={draft.max_daily_ad_minutes} onChange={(value) => updateNumber('max_daily_ad_minutes', value)} suffix="min" />
           </div>

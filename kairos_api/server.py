@@ -709,8 +709,11 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
             is_prime = 20 <= int(candidate.hour) <= 23
             # Gold: settings guardrail only; the old revenue >= 20 000 threshold
             # was a magic constant unrelated to the guardrail configuration.
+            # sponsorships_enabled is the parent switch: gold breaks are the
+            # sponsorship inventory, so the parent must actually gate them.
             is_gold = bool(
-                settings.gold_breaks_enabled
+                settings.sponsorships_enabled
+                and settings.gold_breaks_enabled
                 and is_prime
                 and break_index == 1
                 and settings.gold_breaks_max_per_day > 0

@@ -471,6 +471,26 @@ def test_cpp_absolute_sets_the_point_price() -> None:
     assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(1.3)
 
 
+def test_cpp_absolute_overrides_baseline_not_stacks() -> None:
+    # cpp_absolute SETS the effective CPP; it must override the baseline premium,
+    # not multiply by it. With a 2.0 baseline and a cpp_absolute of 130 on
+    # base_cpp 100, the result is 1.3 (the absolute), not 2.0 * 1.3 = 2.6.
+    engine = AdvertiserRuleEngine(
+        baselines={"A": _baseline("A", default_premium=2.0)},
+        conditions={"A": [_condition("A", "r1", "premium", value=130.0, mode="cpp_absolute")]},
+    )
+    assert engine.effective_premium("A", base_cpp=100.0) == pytest.approx(1.3)
+    # A relative rule appearing after the absolute composes on the absolute's
+    # result: cpp_absolute 130 (1.3x) then percent +10 -> 1.3 * 1.10 = 1.43.
+    composed = AdvertiserRuleEngine(
+        conditions={"A": [
+            _condition("A", "r1", "premium", value=130.0, mode="cpp_absolute"),
+            _condition("A", "r2", "premium", value=10.0, mode="percent"),
+        ]},
+    )
+    assert composed.effective_premium("A", base_cpp=100.0) == pytest.approx(1.43)
+
+
 def test_cpp_add_raises_the_point_price() -> None:
     engine = AdvertiserRuleEngine(
         conditions={"A": [_condition("A", "r1", "premium", value=20.0, mode="cpp_add")]},

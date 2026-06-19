@@ -152,6 +152,8 @@ def _build_gold_breaks() -> dict[str, Any]:
         return {"available": False, "reason": "Optimization engine unavailable.", "count": 0, "breaks": [], "by_day": []}
 
     settings = server._load_settings()
+    if not settings.sponsorships_enabled:
+        return {"available": True, "enabled": False, "reason": "Sponsorships are disabled in settings.", "count": 0, "breaks": [], "by_day": []}
     if not settings.gold_breaks_enabled:
         return {"available": True, "enabled": False, "reason": "Gold breaks are disabled in settings.", "count": 0, "breaks": [], "by_day": []}
 
