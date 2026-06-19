@@ -143,7 +143,10 @@ until the owner says otherwise.
 
 ## 4. Operator UX (error-proof, comfortable)
 
-A Rate Card and Overrides workspace.
+A Rate Card and Overrides workspace. The implementation-ready detail (layout, components,
+interaction states, error-proofing flows, per-surface data contract, and build order) is
+in docs/pricing-hierarchy-ux-spec.md. The summary below is the shape; that doc is the
+build spec.
 
 1. Layer-stack panel. Vertical stack of named layer cards (Base, Prime, Show,
    Position, Ad-type), each with its current multiplier inline-editable. Beside it, a
