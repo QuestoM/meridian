@@ -139,6 +139,30 @@ function BaselineEditor({ row, locale, onSave }) {
             inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
           />
         </div>
+        <div className="amz-drawer-field">
+          <span className="adv-field-label">{pageText(locale, 'Behind-pace strength', 'עוצמת השלמה כשמאחור בלוז')}</span>
+          <TextField
+            type="number"
+            size="small"
+            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ)') }}
+            value={draft.urgency_k ?? ''}
+            onChange={(event) => update('urgency_k', event.target.value)}
+          />
+          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard behind-schedule campaigns lean toward inventory. Blank uses the channel default.', 'כמה חזק קמפיינים שמאחורי הלוז נמשכים למלאי. ריק = ברירת המחדל של הערוץ.')}</span>
+        </div>
+        <div className="amz-drawer-field">
+          <span className="adv-field-label">{pageText(locale, 'Over-delivery restraint', 'עוצמת ריסון כשמקדים את הלוז')}</span>
+          <TextField
+            type="number"
+            size="small"
+            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ)') }}
+            value={draft.ahead_k ?? ''}
+            onChange={(event) => update('ahead_k', event.target.value)}
+          />
+          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ריק = ברירת המחדל של הערוץ.')}</span>
+        </div>
         <div className="amz-drawer-field amz-drawer-notes">
           <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
           <TextField

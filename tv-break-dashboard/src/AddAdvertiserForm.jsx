@@ -125,6 +125,28 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
           />
         </div>
+        <div className="adv-premium-field">
+          <span className="adv-field-label">{pageText(locale, 'Behind-pace strength', 'עוצמת השלמה כשמאחור בלוז')}</span>
+          <TextField
+            type="number"
+            size="small"
+            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ)') }}
+            value={draft.urgency_k ?? ''}
+            onChange={(event) => update('urgency_k', event.target.value)}
+          />
+        </div>
+        <div className="adv-premium-field">
+          <span className="adv-field-label">{pageText(locale, 'Over-delivery restraint', 'עוצמת ריסון כשמקדים את הלוז')}</span>
+          <TextField
+            type="number"
+            size="small"
+            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ)') }}
+            value={draft.ahead_k ?? ''}
+            onChange={(event) => update('ahead_k', event.target.value)}
+          />
+        </div>
         <div className="adv-notes-field">
           <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
           <TextField

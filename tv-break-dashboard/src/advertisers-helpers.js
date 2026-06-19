@@ -26,6 +26,13 @@ export const EMPTY_ADVERTISER = {
   allow_positions: 'ANY',
   allow_genres: 'ANY',
   prime_time_only: false,
+  // Per-advertiser delivery-pacing strength defaults. Empty string means "use the
+  // channel-wide default" (the backend reads blank as None). urgency_k is how hard
+  // this advertiser's behind-pace campaigns lean toward their inventory; ahead_k is
+  // how hard over-delivered campaigns are leaned away. A per-campaign value in
+  // campaign_flights.csv still overrides these.
+  urgency_k: '',
+  ahead_k: '',
   notes: '',
 };
 
@@ -140,7 +147,7 @@ export function suggestNextId(advertisers) {
 }
 
 // Stable comparison of two advertiser rows on the editable fields only.
-const EDITABLE_FIELDS = ['default_premium', 'allow_positions', 'allow_genres', 'prime_time_only', 'notes'];
+const EDITABLE_FIELDS = ['default_premium', 'allow_positions', 'allow_genres', 'prime_time_only', 'urgency_k', 'ahead_k', 'notes'];
 
 export function isDirty(original, draft) {
   if (!original || !draft) {
@@ -162,12 +169,29 @@ export function isDirty(original, draft) {
 }
 
 // Build the PUT payload for a draft row (editable fields only).
+// Read an optional pacing-strength field into the payload shape the API expects.
+// A blank or invalid value sends the matching clear flag so a PUT removes the
+// override (falls back to the channel-wide default); a non-negative number sends
+// the value. ``field`` is 'urgency_k' or 'ahead_k'. On create the clear flag is
+// simply ignored by the backend, so the same shape is safe for POST.
+function pacingField(draft, field) {
+  const raw = draft[field];
+  const text = raw === null || raw === undefined ? '' : String(raw).trim();
+  const value = text === '' ? NaN : Number(text);
+  if (text === '' || !Number.isFinite(value) || value < 0) {
+    return { [`clear_${field}`]: true };
+  }
+  return { [field]: value };
+}
+
 export function toPayload(draft) {
   return {
     default_premium: Number(draft.default_premium ?? 0),
     allow_positions: serializeTokens(parseTokens(draft.allow_positions)),
     allow_genres: serializeTokens(parseTokens(draft.allow_genres)),
     prime_time_only: Boolean(draft.prime_time_only),
+    ...pacingField(draft, 'urgency_k'),
+    ...pacingField(draft, 'ahead_k'),
     notes: draft.notes ?? '',
   };
 }

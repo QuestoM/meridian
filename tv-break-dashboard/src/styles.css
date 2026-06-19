@@ -3570,6 +3570,15 @@ button {
   font-weight: 500;
 }
 
+/* Small explanatory note under a field (pacing strength helpers) */
+.adv-field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--subtle);
+}
+
 /* Table */
 .adv-table {
   padding: 8px 18px 14px;
