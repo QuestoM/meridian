@@ -1656,6 +1656,7 @@ function recommendationRationale(recommendation, locale) {
 }
 
 function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
+  const hasDelta = delta !== undefined && delta !== null && delta !== '';
   return (
     <div className="metric">
       <span className={`metric-icon ${tone || ''}`}>
@@ -1665,10 +1666,12 @@ function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
         <span>{label}</span>
         <strong><Numeric>{value}</Numeric></strong>
       </span>
-      <span className={positive ? 'delta positive' : tone === 'risk' ? 'delta risk' : 'delta negative'}>
-        {positive ? <ArrowUp size={12} /> : tone === 'risk' ? null : <ArrowDown size={12} />}
-        <Numeric>{delta}</Numeric>
-      </span>
+      {hasDelta ? (
+        <span className={positive ? 'delta positive' : tone === 'risk' ? 'delta risk' : 'delta negative'}>
+          {positive ? <ArrowUp size={12} /> : tone === 'risk' ? null : <ArrowDown size={12} />}
+          <Numeric>{delta}</Numeric>
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -1677,9 +1680,9 @@ function SummaryMetrics({ overview, copy, locale }) {
   const summary = overview.summary || fallbackOverview.summary;
   return (
     <section className="metric-strip" aria-label="Optimization summary">
-      <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} delta="+7.6%" icon={CircleDollarSign} positive />
-      <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} delta="-1.8pp" icon={Users} />
-      <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} delta="+120" icon={Clock3} positive />
+      <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} icon={CircleDollarSign} positive />
+      <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} />
+      <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive />
       <Metric label={copy.metrics[3]} value={copy.risk[riskLabel(summary.risk_score)]} delta={`${summary.risk_score}/100`} icon={ShieldCheck} tone="risk" />
     </section>
   );
@@ -2401,7 +2404,7 @@ function InventoryPage({ inventory, overview, copy, locale }) {
       />
       <section className="metric-strip page-metrics">
         <Metric label={pageText(locale, 'Inventory spots', 'ספוטים במלאי')} value={formatNumber(inventory.summary?.spots, locale)} delta={pageText(locale, 'source', 'מקור')} icon={TableProperties} positive />
-        <Metric label={pageText(locale, 'Booked value', 'ערך מוזמן')} value={formatCurrency(inventory.summary?.revenue, locale)} delta="+4.1%" icon={CircleDollarSign} positive />
+        <Metric label={pageText(locale, 'Booked value', 'ערך מוזמן')} value={formatCurrency(inventory.summary?.revenue, locale)} icon={CircleDollarSign} positive />
         <Metric label={pageText(locale, 'Booked minutes', 'דקות מוזמנות')} value={formatMinutes(inventory.summary?.seconds, locale)} delta={copy.nav.Schedule} icon={Clock3} />
         <Metric label={copy.metrics[3]} value={copy.risk[riskLabel(overview.summary?.risk_score)]} delta={`${overview.summary?.risk_score || 0}/100`} icon={ShieldCheck} tone="risk" />
       </section>

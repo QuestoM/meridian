@@ -341,13 +341,20 @@ def _program_datetime_columns(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _load_break_schedule() -> pd.DataFrame:
+    # Only accept a candidate that carries the weekly-plan contract columns. The
+    # legacy optimization_results.csv is a Spots-shaped artifact from the older
+    # optimizer (no predicted_revenue / predicted_retention / num_breaks), so
+    # loading it would make every builder substitute placeholder zeros and fake a
+    # plan. Guarding the schema keeps the API honest: when no real plan exists we
+    # return empty and the endpoints report "run the optimizer" rather than zeros.
+    required = {"predicted_revenue", "predicted_retention", "num_breaks"}
     candidates = [
         OUTPUT_DIR / "weekly_break_schedule.csv",
         ROOT / "optimization_results.csv",
     ]
     for path in candidates:
         frame = _read_csv(path)
-        if not frame.empty:
+        if not frame.empty and required.issubset(frame.columns):
             return frame
     return pd.DataFrame()
 
@@ -811,11 +818,16 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
     frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.0), errors="coerce").fillna(0.0)
     frame = frame.sort_values(["predicted_revenue", "predicted_retention"], ascending=[False, True])
 
+    # Risk labels are sourced from the operator's configured retention floor, not
+    # fixed literals. Below the floor is High; within a 2-point band above it is
+    # Medium; clear of the band is Low. This mirrors the honest _risk_from_retention
+    # scale so the recommendation risk and the headline risk score agree.
+    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
     actions = []
     for idx, row in frame.head(5).iterrows():
         retention = _percent(row.get("predicted_retention", 0.0))
         revenue = _money(row.get("predicted_revenue", 0))
-        risk = "High" if retention < 70 else "Medium" if retention < 74 else "Low"
+        risk = "High" if retention < floor_percent else "Medium" if retention < floor_percent + 2.0 else "Low"
         actions.append(
             {
                 "id": f"rec-{idx}",
@@ -1528,11 +1540,16 @@ def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str
     compliance = _build_compliance(schedule, settings)
     source_files = _source_file_paths()
     present = sum(1 for path in source_files if path.exists())
+    # Status is sourced from the real plan state, not a fixed "ready". An empty
+    # schedule (no plan run yet) reports "empty" so the operator sees the honest
+    # state instead of a green light backed by zero rows.
+    plan_rows = int(len(schedule))
+    revenue_rows = int(summary["total_breaks"])
     return {
         "reports": [
-            {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready", "rows": int(len(schedule)), "owner": "Traffic"},
+            {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready" if plan_rows else "empty", "rows": plan_rows, "owner": "Traffic"},
             {"id": "compliance", "title": "Compliance and guardrails", "status": compliance["status"], "rows": len(compliance["checks"]), "owner": "Legal / Ops"},
-            {"id": "revenue", "title": "Revenue forecast", "status": "ready", "rows": summary["total_breaks"], "owner": "Revenue"},
+            {"id": "revenue", "title": "Revenue forecast", "status": "ready" if revenue_rows else "empty", "rows": revenue_rows, "owner": "Revenue"},
             {"id": "data-quality", "title": "Source file audit", "status": "ready" if present == len(source_files) else "attention", "rows": present, "owner": "Data"},
         ]
     }
