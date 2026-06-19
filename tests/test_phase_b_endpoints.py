@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from kairos_api.server import _ENGINE_AVAILABLE, _build_frontier, _load_settings, app
+from kairos_api.server import _ENGINE_AVAILABLE, _frontier_async, _load_settings, app
 
 client = TestClient(app)
 
@@ -48,10 +48,15 @@ def test_overview_default_frontier_unchanged() -> None:
 
 
 def test_frontier_scope_byte_identical_to_default() -> None:
-    """No-scope must equal the unscoped builder exactly (byte-identical default)."""
+    """No-scope must equal the unscoped builder exactly (byte-identical default).
+
+    ``_frontier_async`` returns a ``(points, status)`` tuple; the frontier points
+    are the byte-identity contract (an empty scope must resolve to the unscoped
+    forecast), so the points element is what we compare.
+    """
     settings = _load_settings()
-    assert _build_frontier(settings) == _build_frontier(settings, None)
-    assert _build_frontier(settings) == _build_frontier(settings, "")
+    assert _frontier_async(settings)[0] == _frontier_async(settings, None)[0]
+    assert _frontier_async(settings)[0] == _frontier_async(settings, "")[0]
 
 
 def test_frontier_scope_day_filters_to_one_day() -> None:
