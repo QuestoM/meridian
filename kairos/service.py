@@ -304,7 +304,8 @@ def _assemble_demand_weights(
                     if value is not None:
                         knob_kwargs[key] = value
             pacing_weights = build_pacing_weights(
-                segments, campaigns, reference, daypart_of=daypart_of, **knob_kwargs
+                segments, campaigns, reference, daypart_of=daypart_of,
+                advertiser_k_of=engine.pacing_overrides(), **knob_kwargs
             )
 
     return build_demand_weights(

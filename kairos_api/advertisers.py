@@ -27,6 +27,8 @@ COLUMNS = [
     "allow_positions",
     "allow_genres",
     "prime_time_only",
+    "urgency_k",
+    "ahead_k",
     "notes",
 ]
 
@@ -34,23 +36,39 @@ router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
 
 
 class AdvertiserUpdate(BaseModel):
-    """Editable fields for an advertiser rule. All optional for PATCH-style PUT."""
+    """Editable fields for an advertiser rule. All optional for PATCH-style PUT.
+
+    ``urgency_k`` / ``ahead_k`` are this advertiser's delivery-pacing-strength
+    defaults: how hard its campaigns lean toward inventory when behind pace
+    (urgency_k) and away when over-delivered (ahead_k). Send an empty string or a
+    negative value to clear the override and fall back to the channel-wide default.
+    """
 
     default_premium: float | None = None
     allow_positions: str | None = None
     allow_genres: str | None = None
     prime_time_only: bool | None = None
+    urgency_k: float | None = None
+    ahead_k: float | None = None
+    clear_urgency_k: bool = False
+    clear_ahead_k: bool = False
     notes: str | None = None
 
 
 class AdvertiserCreate(BaseModel):
-    """A new advertiser rule. advertiser_id is required."""
+    """A new advertiser rule. advertiser_id is required.
+
+    ``urgency_k`` / ``ahead_k`` default to ``None`` (use the channel-wide pacing
+    strength); set either to give this advertiser its own default.
+    """
 
     advertiser_id: str
     default_premium: float = 1.0
     allow_positions: str = "ANY"
     allow_genres: str = "ANY"
     prime_time_only: bool = False
+    urgency_k: float | None = None
+    ahead_k: float | None = None
     notes: str = ""
 
 
@@ -63,6 +81,18 @@ def _coerce_float(value: Any, default: float = 1.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _coerce_opt_float(value: Any) -> float | None:
+    """Read an optional non-negative pacing strength; blank/invalid/negative -> None."""
+    text = str(value if value is not None else "").strip()
+    if not text:
+        return None
+    try:
+        parsed = float(text)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0.0 else None
 
 
 def _load_frame() -> pd.DataFrame:
@@ -82,6 +112,8 @@ def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "allow_positions": str(row.get("allow_positions", "ANY")),
         "allow_genres": str(row.get("allow_genres", "ANY")),
         "prime_time_only": _coerce_bool(row.get("prime_time_only")),
+        "urgency_k": _coerce_opt_float(row.get("urgency_k")),
+        "ahead_k": _coerce_opt_float(row.get("ahead_k")),
         "notes": str(row.get("notes", "")),
     }
 
@@ -194,6 +226,14 @@ def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate) -> dict[str
         frame.at[index, "allow_genres"] = payload.allow_genres
     if payload.prime_time_only is not None:
         frame.at[index, "prime_time_only"] = str(bool(payload.prime_time_only))
+    if payload.clear_urgency_k:
+        frame.at[index, "urgency_k"] = ""
+    elif payload.urgency_k is not None:
+        frame.at[index, "urgency_k"] = "" if payload.urgency_k < 0 else str(float(payload.urgency_k))
+    if payload.clear_ahead_k:
+        frame.at[index, "ahead_k"] = ""
+    elif payload.ahead_k is not None:
+        frame.at[index, "ahead_k"] = "" if payload.ahead_k < 0 else str(float(payload.ahead_k))
     if payload.notes is not None:
         frame.at[index, "notes"] = payload.notes
 
@@ -213,6 +253,8 @@ def create_advertiser(payload: AdvertiserCreate) -> dict[str, Any]:
         "allow_positions": payload.allow_positions,
         "allow_genres": payload.allow_genres,
         "prime_time_only": str(bool(payload.prime_time_only)),
+        "urgency_k": "" if payload.urgency_k is None or payload.urgency_k < 0 else str(float(payload.urgency_k)),
+        "ahead_k": "" if payload.ahead_k is None or payload.ahead_k < 0 else str(float(payload.ahead_k)),
         "notes": payload.notes,
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)

@@ -102,6 +102,14 @@ class Baseline:
     allow_positions: frozenset[str] = frozenset()
     allow_genres: frozenset[str] = frozenset()
     prime_time_only: bool = False
+    # Optional per-advertiser delivery-pacing defaults, read from the urgency_k /
+    # ahead_k columns of advertiser_rules.csv. ``None`` means "use the channel-wide
+    # default". They steer how aggressively this advertiser's campaigns are leaned
+    # toward (behind pace) or away from (over-delivered) when no per-campaign
+    # override is set, the same layering the premium rules use. They touch only the
+    # optimizer's placement ranking, never charged revenue.
+    urgency_k: Optional[float] = None
+    ahead_k: Optional[float] = None
 
     def allows(self, *, position: Optional[int], genre: Optional[str], daypart: Optional[str]) -> bool:
         """True when a spot passes this advertiser's baseline constraints."""
@@ -211,6 +219,23 @@ class AdvertiserRuleEngine:
 
     def _conditions_for(self, advertiser_id: str) -> list[Condition]:
         return self.conditions.get(advertiser_id, [])
+
+    def pacing_overrides(self) -> dict[str, tuple[Optional[float], Optional[float]]]:
+        """Per-advertiser pacing-strength defaults, keyed by advertiser_id.
+
+        Returns ``{advertiser_id: (urgency_k, ahead_k)}`` for every advertiser whose
+        baseline sets at least one of the two; either element may be ``None`` to mean
+        "defer to the global default" for that one strength. Advertisers with neither
+        set are omitted entirely, so the map is empty (and the pacing signal stays a
+        pure identity no-op) until an advertiser is actually given a custom strength.
+        This is the middle tier consumed by
+        :func:`kairos.optimize.pacing.build_pacing_weights`.
+        """
+        out: dict[str, tuple[Optional[float], Optional[float]]] = {}
+        for advertiser_id, baseline in self.baselines.items():
+            if baseline.urgency_k is not None or baseline.ahead_k is not None:
+                out[advertiser_id] = (baseline.urgency_k, baseline.ahead_k)
+        return out
 
     def effective_premium(
         self,

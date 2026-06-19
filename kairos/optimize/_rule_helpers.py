@@ -62,6 +62,23 @@ def parse_float(raw: object, default: float) -> float:
         return default
 
 
+def parse_opt_float(raw: object):
+    """Parse an optional non-negative float; blank or invalid yields ``None``.
+
+    Used for the advertiser baseline's optional pacing-strength columns, where a
+    blank cell must mean "use the global default", not zero. A negative value is
+    rejected (returned as ``None``) so a typo never inverts the pacing steer.
+    """
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    try:
+        value = float(text)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 0.0 else None
+
+
 def parse_bool(raw: object) -> bool:
     return str(raw).strip().lower() in {"true", "1", "yes", "y"}
 
@@ -115,6 +132,8 @@ def load_baselines(path: Path) -> dict[str, "Baseline"]:
                 allow_positions=scope_tokens(row.get("allow_positions")),
                 allow_genres=scope_tokens(row.get("allow_genres")),
                 prime_time_only=parse_bool(row.get("prime_time_only")),
+                urgency_k=parse_opt_float(row.get("urgency_k")),
+                ahead_k=parse_opt_float(row.get("ahead_k")),
             )
     return out
 

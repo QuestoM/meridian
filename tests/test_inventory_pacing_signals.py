@@ -427,3 +427,109 @@ def test_assemble_demand_weights_pacing_disabled_is_identity() -> None:
     knobs = {"enabled": False, "reference_date": "2026-06-26"}
     weights = _assemble_demand_weights(segs, today=date(2026, 6, 26), pacing_knobs=knobs)
     assert set(weights.values()) == {1.0}
+
+
+# ---------------------------------------------------------------------------
+# Per-advertiser pacing tier: per-campaign > per-advertiser > global default.
+# ---------------------------------------------------------------------------
+
+def _over_delivered_campaign(advertiser_id: str = "ADV_01", **kw) -> Campaign:
+    """A campaign 31 percent through its flight but 35 percent delivered (ahead)."""
+    return Campaign(
+        campaign_id="C_AHEAD",
+        flight_start="2026-06-01",
+        flight_end="2026-06-30",
+        target=100.0,
+        delivered=35.0,
+        advertiser_id=advertiser_id,
+        **kw,
+    )
+
+
+def test_resolve_strength_precedence() -> None:
+    """_resolve_strength returns the most specific non-None tier."""
+    from kairos.optimize.pacing import _resolve_strength
+    assert _resolve_strength(2.0, 3.0, 1.0) == 2.0  # per-campaign wins
+    assert _resolve_strength(None, 3.0, 1.0) == 3.0  # per-advertiser next
+    assert _resolve_strength(None, None, 1.0) == 1.0  # global default
+    assert _resolve_strength(0.0, 3.0, 1.0) == 0.0  # explicit 0 still wins
+
+
+def test_advertiser_default_strengthens_over_delivery_penalty() -> None:
+    """An advertiser ahead_k default deepens the penalty below the global result."""
+    today = date(2026, 6, 10)
+    camp = _over_delivered_campaign()
+    u_global = campaign_urgency(camp, today, k_ahead=1.0)
+    u_adv = campaign_urgency(camp, today, k_ahead=1.0, adv_k_ahead=3.0)
+    assert u_global < 1.0  # global already penalizes over-delivery
+    assert u_adv < u_global  # advertiser default penalizes harder
+
+
+def test_per_campaign_override_beats_advertiser_default() -> None:
+    """campaign ahead_k=0 disables the penalty even when the advertiser sets 3.0."""
+    today = date(2026, 6, 10)
+    camp = _over_delivered_campaign(ahead_k=0.0)
+    u = campaign_urgency(camp, today, k_ahead=1.0, adv_k_ahead=3.0)
+    assert u == 1.0  # per-campaign override (disable) wins over advertiser default
+
+
+def test_build_pacing_weights_applies_advertiser_map() -> None:
+    """build_pacing_weights resolves each campaign's advertiser default by id."""
+    segs = _segments()
+    camp = _over_delivered_campaign()  # empty scope -> matches every segment
+    today = date(2026, 6, 10)
+    base = build_pacing_weights(segs, [camp], today)
+    stronger = build_pacing_weights(
+        segs, [camp], today, advertiser_k_of={"ADV_01": (None, 3.0)},
+    )
+    # Every matched segment is pushed lower (away) by the advertiser's stronger ahead_k.
+    for seg in segs:
+        assert stronger[seg.segment_id] < base[seg.segment_id] < 1.0
+
+
+def test_build_pacing_weights_advertiser_map_unmatched_is_noop() -> None:
+    """A map keyed by a different advertiser leaves the weights at the global result."""
+    segs = _segments()
+    camp = _over_delivered_campaign(advertiser_id="ADV_01")
+    today = date(2026, 6, 10)
+    base = build_pacing_weights(segs, [camp], today)
+    other = build_pacing_weights(
+        segs, [camp], today, advertiser_k_of={"ADV_99": (None, 3.0)},
+    )
+    assert other == base
+
+
+def test_advertiser_engine_pacing_overrides_reads_baselines() -> None:
+    """pacing_overrides() returns only advertisers that set at least one strength."""
+    from kairos.optimize.advertiser_rules import AdvertiserRuleEngine, Baseline
+    engine = AdvertiserRuleEngine(
+        baselines={
+            "ADV_01": Baseline(advertiser_id="ADV_01", urgency_k=2.0, ahead_k=None),
+            "ADV_02": Baseline(advertiser_id="ADV_02"),  # no override -> omitted
+            "ADV_03": Baseline(advertiser_id="ADV_03", ahead_k=0.0),  # explicit 0 kept
+        },
+        conditions={},
+    )
+    overrides = engine.pacing_overrides()
+    assert overrides == {"ADV_01": (2.0, None), "ADV_03": (None, 0.0)}
+    assert "ADV_02" not in overrides
+
+
+def test_load_baselines_parses_pacing_columns(tmp_path) -> None:
+    """load_baselines reads urgency_k / ahead_k; blank cells -> None."""
+    from kairos.optimize._rule_helpers import load_baselines
+    csv_path = tmp_path / "advertiser_rules.csv"
+    csv_path.write_text(
+        "advertiser_id,default_premium,allow_positions,allow_genres,prime_time_only,urgency_k,ahead_k,notes\n"
+        "ADV_01,1.0,ANY,ANY,False,2.5,,note one\n"
+        "ADV_02,1.0,ANY,ANY,False,,1.5,note two\n"
+        "ADV_03,1.0,ANY,ANY,False,,,note three\n",
+        encoding="utf-8",
+    )
+    baselines = load_baselines(csv_path)
+    assert baselines["ADV_01"].urgency_k == 2.5
+    assert baselines["ADV_01"].ahead_k is None
+    assert baselines["ADV_02"].urgency_k is None
+    assert baselines["ADV_02"].ahead_k == 1.5
+    assert baselines["ADV_03"].urgency_k is None
+    assert baselines["ADV_03"].ahead_k is None

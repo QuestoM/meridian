@@ -77,6 +77,25 @@ def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def _resolve_strength(
+    campaign_value: Optional[float],
+    advertiser_value: Optional[float],
+    global_value: float,
+) -> float:
+    """Three-tier pacing-strength precedence: per-campaign, then per-advertiser, then global.
+
+    The most specific non-None value wins, so a campaign override beats its
+    advertiser's default, which beats the channel-wide setting. ``None`` at a tier
+    means "defer to the next, broader tier", the same layering advertiser rules use
+    over a baseline.
+    """
+    if campaign_value is not None:
+        return campaign_value
+    if advertiser_value is not None:
+        return advertiser_value
+    return global_value
+
+
 @dataclass(frozen=True)
 class Campaign:
     """One advertiser campaign flight read from campaign_flights.csv.
@@ -99,11 +118,18 @@ class Campaign:
     genres: frozenset[str] = frozenset()
     dayparts: frozenset[str] = frozenset()
     programmes: frozenset[str] = frozenset()
+    # The advertiser that booked this flight, read from the campaign_flights.csv
+    # advertiser_id column. Blank when a campaign is not linked to an advertiser.
+    # When set, the advertiser's own pacing default (urgency_k / ahead_k on its
+    # advertiser_rules.csv baseline) applies to this campaign unless the campaign
+    # carries its own per-campaign override. This is the middle tier of the
+    # three-level precedence: per-campaign > per-advertiser > global default.
+    advertiser_id: str = ""
     # Optional per-campaign overrides of the global pacing strengths. ``None`` means
-    # "use the global default". These let one campaign be steered more or less
-    # aggressively than the channel-wide setting, the same way advertiser rules can
-    # override a default. Read from the campaign_flights.csv urgency_k / ahead_k
-    # columns when present.
+    # "use the advertiser default, then the global default". These let one campaign
+    # be steered more or less aggressively than the channel-wide setting, the same
+    # way advertiser rules can override a default. Read from the campaign_flights.csv
+    # urgency_k / ahead_k columns when present.
     urgency_k: Optional[float] = None
     ahead_k: Optional[float] = None
 
@@ -198,6 +224,7 @@ def load_campaigns(path: Optional[str | Path] = None) -> list[Campaign]:
                 genres=_tokens(row.get("scope_genres")),
                 dayparts=_tokens(row.get("scope_dayparts")),
                 programmes=_tokens(row.get("scope_programmes")),
+                advertiser_id=str(row.get("advertiser_id", "") or "").strip(),
                 urgency_k=_opt_float(row.get("urgency_k")),
                 ahead_k=_opt_float(row.get("ahead_k")),
             ))
@@ -249,6 +276,8 @@ def campaign_urgency(
     k_ahead: float = URGENCY_K_AHEAD,
     u_min: float = URGENCY_U_MIN,
     epsilon: float = URGENCY_EPSILON,
+    adv_k: Optional[float] = None,
+    adv_k_ahead: Optional[float] = None,
 ) -> float:
     """Two-sided pacing urgency for one campaign at ``today``, in [u_min, u_max].
 
@@ -268,14 +297,18 @@ def campaign_urgency(
     flight runs OUT. The ahead denominator ``elapsed`` mirrors it: an over-delivery
     bites hardest EARLY, when there is the most remaining flight to keep
     over-delivering into, and softens as the flight naturally catches up. A
-    not-started or exactly on-pace campaign returns 1.0 (no steer). Per-campaign
-    ``urgency_k`` / ``ahead_k`` overrides take precedence over the passed defaults
-    so one campaign can be steered more or less aggressively than the channel-wide
-    setting. Setting ``k_ahead`` to 0 (globally or per campaign) disables the
-    over-delivery penalty entirely.
+    not-started or exactly on-pace campaign returns 1.0 (no steer).
+
+    Strength resolution is three-tiered, most specific first: the per-campaign
+    ``urgency_k`` / ``ahead_k`` override (on the Campaign) wins; failing that the
+    per-advertiser default ``adv_k`` / ``adv_k_ahead`` (from the advertiser's
+    rules baseline) applies; failing that the channel-wide ``k`` / ``k_ahead``
+    passed in. This mirrors how advertiser rules layer over a default. Setting the
+    effective ahead strength to 0 (at any tier) disables the over-delivery penalty
+    entirely for that campaign.
     """
-    eff_k = campaign.urgency_k if campaign.urgency_k is not None else k
-    eff_k_ahead = campaign.ahead_k if campaign.ahead_k is not None else k_ahead
+    eff_k = _resolve_strength(campaign.urgency_k, adv_k, k)
+    eff_k_ahead = _resolve_strength(campaign.ahead_k, adv_k_ahead, k_ahead)
     elapsed = elapsed_fraction(campaign, today)
     delivered = delivered_fraction(campaign)
     behind = max(0.0, elapsed - delivered)
@@ -326,6 +359,7 @@ def build_pacing_weights(
     k_ahead: float = URGENCY_K_AHEAD,
     u_min: float = URGENCY_U_MIN,
     epsilon: float = URGENCY_EPSILON,
+    advertiser_k_of: Optional[Mapping[str, tuple[Optional[float], Optional[float]]]] = None,
 ) -> dict[str, float]:
     """Per-segment two-sided pacing-urgency weights (in [u_min, u_max]) by segment_id.
 
@@ -341,8 +375,11 @@ def build_pacing_weights(
     weight at 1.0, a pure identity no-op. ``today`` is supplied by the caller so
     the math is deterministic; ``daypart_of`` optionally maps segment_id to its
     daypart key for daypart-scoped campaigns (absent -> daypart treated as None).
-    The knobs are the operator's global defaults; per-campaign overrides inside
-    :func:`campaign_urgency` take precedence.
+    The knobs are the operator's global defaults. ``advertiser_k_of`` optionally
+    maps an advertiser_id to its ``(urgency_k, ahead_k)`` default (either may be
+    None); a campaign linked to that advertiser uses those defaults unless it
+    carries its own per-campaign override. The precedence, most specific first, is
+    per-campaign, then per-advertiser, then the global knobs passed here.
     """
     # Materialize once: segments may be a one-shot iterator, and we walk it twice.
     seg_list = list(segments)
@@ -350,6 +387,7 @@ def build_pacing_weights(
     if not campaigns:
         return weights
     daypart_of = daypart_of or {}
+    advertiser_k_of = advertiser_k_of or {}
     for segment in seg_list:
         chosen = 1.0
         for campaign in campaigns:
@@ -361,9 +399,11 @@ def build_pacing_weights(
                 programme=segment.program_title or None,
             ):
                 continue
+            adv_k, adv_k_ahead = advertiser_k_of.get(campaign.advertiser_id, (None, None))
             u = campaign_urgency(
                 campaign, today,
                 k=k, u_max=u_max, k_ahead=k_ahead, u_min=u_min, epsilon=epsilon,
+                adv_k=adv_k, adv_k_ahead=adv_k_ahead,
             )
             dev = abs(u - 1.0)
             best_dev = abs(chosen - 1.0)
