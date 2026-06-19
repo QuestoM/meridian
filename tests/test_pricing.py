@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+from kairos.optimize.pricing import OptimizerAssumptions, PriceBreakdown, PricingModel
 
 
 @pytest.fixture(scope="module")
@@ -64,6 +64,60 @@ def test_position_zero_is_rejected(pricing: PricingModel) -> None:
 def test_segment_premium_combines_program_and_day(pricing: PricingModel) -> None:
     assert pricing.segment_premium(pricing_class="News", weekday_iso=6) == pytest.approx(1.15 * 1.20)
     assert pricing.segment_premium(pricing_class="Drama", weekday_iso=1) == pytest.approx(0.80 * 1.00)
+
+
+def test_price_slot_default_is_identity_to_segment_premium(pricing: PricingModel) -> None:
+    """The composition primitive must reproduce the legacy premium exactly.
+
+    With only the program and day layers active (the default), price_slot's
+    total_premium has to equal segment_premium for every class/day, so unifying
+    on price_slot changes no revenue number.
+    """
+    for pricing_class in ("News", "PrimeShow1", "PrimeShow2", "Drama", "Other"):
+        for weekday in range(1, 8):
+            breakdown = pricing.price_slot(pricing_class=pricing_class, weekday_iso=weekday)
+            expected = pricing.segment_premium(pricing_class=pricing_class, weekday_iso=weekday)
+            assert breakdown.total_premium == pytest.approx(expected)
+            assert breakdown.final_cpp == pytest.approx(pricing.base_price * expected)
+
+
+def test_price_slot_default_carries_only_named_program_and_day_layers(pricing: PricingModel) -> None:
+    breakdown = pricing.price_slot(pricing_class="News", weekday_iso=6)
+    assert isinstance(breakdown, PriceBreakdown)
+    assert [layer.name for layer in breakdown.layers] == ["program", "day"]
+    assert all(layer.source == "rate_card" for layer in breakdown.layers)
+    # Every line traces to a real configured premium.
+    by_name = {layer.name: layer.multiplier for layer in breakdown.layers}
+    assert by_name["program"] == 1.15
+    assert by_name["day"] == 1.20
+
+
+def test_price_slot_position_layer_is_off_by_default(pricing: PricingModel) -> None:
+    """Passing a position must not change the price unless the layer is enabled."""
+    base_only = pricing.price_slot(pricing_class="News", weekday_iso=6, position=1, break_size=5)
+    assert [layer.name for layer in base_only.layers] == ["program", "day"]
+    with_position = pricing.price_slot(
+        pricing_class="News", weekday_iso=6, position=1, break_size=5, enable_position=True
+    )
+    assert [layer.name for layer in with_position.layers] == ["program", "day", "position"]
+    # Enabling the layer multiplies in the first-position premium (1.30), a real change.
+    assert with_position.total_premium == pytest.approx(base_only.total_premium * 1.30)
+
+
+def test_price_slot_ad_type_layer_is_off_by_default(pricing: PricingModel) -> None:
+    base_only = pricing.price_slot(pricing_class="News", weekday_iso=1, ad_type="חסות")
+    assert [layer.name for layer in base_only.layers] == ["program", "day"]
+    with_ad_type = pricing.price_slot(
+        pricing_class="News", weekday_iso=1, ad_type="חסות", enable_ad_type=True
+    )
+    assert with_ad_type.total_premium == pytest.approx(base_only.total_premium * 1.05)
+
+
+def test_price_slot_accepts_per_advertiser_base(pricing: PricingModel) -> None:
+    breakdown = pricing.price_slot(pricing_class="PrimeShow2", weekday_iso=1, base_cpp=80.0)
+    assert breakdown.base_cpp == 80.0
+    # PrimeShow2 x Monday is 1.00 x 1.00, so the final CPP is just the negotiated base.
+    assert breakdown.final_cpp == pytest.approx(80.0)
 
 
 def test_from_weights_reads_a_plain_dict() -> None:

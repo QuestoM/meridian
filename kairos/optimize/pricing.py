@@ -35,6 +35,48 @@ _LAST_KEY = "last"
 
 
 @dataclass(frozen=True)
+class PriceLayer:
+    """One named multiplicative layer in a slot price, with its provenance.
+
+    ``source`` records where the multiplier came from (``rate_card`` for a
+    configured premium, ``override`` for a per-advertiser or per-campaign rule),
+    so a pricing surface can label every line honestly (Law 9).
+    """
+
+    name: str
+    multiplier: float
+    source: str = "rate_card"
+
+
+@dataclass(frozen=True)
+class PriceBreakdown:
+    """A composed slot price: base CPP times a stack of named premium layers.
+
+    ``final_cpp`` is ``base_cpp`` times the product of every layer multiplier.
+    ``layers`` keeps each named layer and its source, so every number traces back
+    to base x named layers (no opaque aggregate). This is the single composition
+    primitive the optimizer, dashboard and spot export are meant to converge on
+    (see docs/pricing-hierarchy-design.md). Until the position, ad-type and
+    override layers are switched on, a breakdown carries only the program and day
+    layers, so ``total_premium`` equals the legacy :meth:`PricingModel.segment_premium`.
+    """
+
+    base_cpp: float
+    layers: tuple[PriceLayer, ...] = ()
+
+    @property
+    def total_premium(self) -> float:
+        premium = 1.0
+        for layer in self.layers:
+            premium *= layer.multiplier
+        return premium
+
+    @property
+    def final_cpp(self) -> float:
+        return self.base_cpp * self.total_premium
+
+
+@dataclass(frozen=True)
 class OptimizerAssumptions:
     """Retention-side values not yet estimated by the Meridian impact model.
 
@@ -159,3 +201,42 @@ class PricingModel:
         applied separately when an individual spot is priced.
         """
         return self.program_premium(pricing_class) * self.day_premium(weekday_iso)
+
+    def price_slot(
+        self,
+        *,
+        pricing_class: str,
+        weekday_iso: int,
+        position: int | None = None,
+        break_size: int | None = None,
+        ad_type: str | None = None,
+        base_cpp: float | None = None,
+        enable_position: bool = False,
+        enable_ad_type: bool = False,
+    ) -> PriceBreakdown:
+        """Compose a slot price as base CPP times named, traceable premium layers.
+
+        By default only the program-class and day layers are active, so the
+        returned ``total_premium`` equals :meth:`segment_premium` exactly: the same
+        number the optimizer and dashboard already produce, now with a per-layer
+        breakdown that names every premium and its source. ``base_cpp`` defaults to
+        the configured channel base; pass a value for a per-advertiser negotiated
+        base.
+
+        The position and ad-type layers are wired but OFF by default. Their
+        configured multipliers are not 1.0 (a first-position premium, a zero promo
+        rate), so switching them on is a real revenue change that the owner approves
+        deliberately (``enable_position`` / ``enable_ad_type``), never a silent one.
+        This keeps the composition primitive identity-preserving until the staged
+        pricing-hierarchy rollout activates each layer.
+        """
+        base = self.base_price if base_cpp is None else float(base_cpp)
+        layers: list[PriceLayer] = [
+            PriceLayer("program", self.program_premium(pricing_class)),
+            PriceLayer("day", self.day_premium(weekday_iso)),
+        ]
+        if enable_position and position is not None and break_size is not None:
+            layers.append(PriceLayer("position", self.position_premium(position, break_size)))
+        if enable_ad_type and ad_type is not None:
+            layers.append(PriceLayer("ad_type", self.ad_type_premium(ad_type)))
+        return PriceBreakdown(base_cpp=base, layers=tuple(layers))
