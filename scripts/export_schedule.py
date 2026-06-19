@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,7 @@ def main() -> int:
         risk_lambda=risk_lambda,
         constraints_path=constraints_path,
         operator_channel=operator_channel,
+        today=date.today(),
     )
     if frame.empty:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")

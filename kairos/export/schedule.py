@@ -40,7 +40,11 @@ from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pacing import build_pacing_weights, load_campaigns
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
-from kairos.service import guardrails_from_settings
+from kairos.service import (
+    _pacing_knobs_from_settings,
+    _parse_pacing_date,
+    guardrails_from_settings,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT_PATH = ROOT / "output" / "weekly_break_schedule.csv"
@@ -272,6 +276,18 @@ def build_weekly_schedule(
     # datetime.now in the math); a caller that omits it gets none, so even with
     # campaign data present the pacing signal stays inert until a date is given.
     pacing_today = today
+    # Pacing knobs from the dashboard settings: the enable flag, the optional
+    # reference-date override, and the five urgency knobs. This is the SAME seam
+    # the live optimize_day_plan path uses, so the weekly CSV and the dashboard
+    # simulation agree once campaign flights land. None when no settings, which
+    # keeps the module-default pacing behaviour (identity until campaign data).
+    pacing_knobs = _pacing_knobs_from_settings(settings)
+    if pacing_knobs is not None:
+        if not pacing_knobs.get("enabled", True):
+            campaigns = []
+        override = _parse_pacing_date(pacing_knobs.get("reference_date"))
+        if override is not None:
+            pacing_today = override
 
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
@@ -297,8 +313,18 @@ def build_weekly_schedule(
             daypart_of = {
                 seg.segment_id: daypart_for_hour(seg.hour) for seg in segments
             }
+            # Thread the operator's tuned knobs and per-advertiser pacing tier,
+            # exactly as the live optimize_day_plan path does. Each knob is
+            # omitted when unset so build_pacing_weights keeps its module default.
+            knob_kwargs: dict[str, float] = {}
+            if pacing_knobs is not None:
+                for key in ("k", "u_max", "k_ahead", "u_min", "epsilon"):
+                    value = pacing_knobs.get(key)
+                    if value is not None:
+                        knob_kwargs[key] = value
             pacing_weights = build_pacing_weights(
                 segments, campaigns, pacing_today, daypart_of=daypart_of,
+                advertiser_k_of=demand_engine.pacing_overrides(), **knob_kwargs
             )
         demand_weights = build_demand_weights(
             segments, demand_engine,
