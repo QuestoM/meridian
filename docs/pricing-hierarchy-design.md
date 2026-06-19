@@ -97,10 +97,18 @@ This is strictly more expressive than today and matches the owner's mental model
 
 Each stage is independently shippable and identity-preserving until data enables it.
 
-S1. Unify composition. Build one `price_slot(base_cpp, context, rate_card,
-    overrides) -> PriceBreakdown` function that both the optimizer/dashboard path and
-    the spot-export path call. Returns the final CPP plus a per-layer breakdown with
-    provenance. No behavior change while layers default to 1.0.
+S1. Unify composition. [SHIPPED 2026-06-19, commit 8546f8b] Built
+    `PricingModel.price_slot(...) -> PriceBreakdown` (kairos/optimize/pricing.py) plus
+    the `PriceLayer` / `PriceBreakdown` types. Returns the final CPP plus a per-layer
+    breakdown with provenance. Identity proven: with only the program and day layers
+    active (the default), `price_slot(...).total_premium` equals `segment_premium`
+    across all 35 class/day combinations (test_pricing.py). The position and ad-type
+    layers are wired but OFF by default, because their configured multipliers are not
+    1.0, so no revenue number moves until a later, owner-approved stage activates them.
+    Remaining in S1: converge the existing call sites (transform.py segment math,
+    server.py dashboard, export/spots.py) onto price_slot so the breakdown is the live
+    path everywhere. Deferred until a surface consumes the breakdown, to avoid adding
+    indirection with no behavior gain.
 S2. Make position premium live. Apply position_in_break in `price_slot` so the
     dead hook becomes a real layer. Default values already in config; revenue moves
     only where position premiums differ from 1.0.
@@ -122,6 +130,16 @@ S8. Guardrails. Final-CPP floor/ceiling, below-cost warning, explicit-zero rule 
 Each stage ships with: real-data parity test proving identity when the new layer is
 empty, a unit test for the new layer, and the existing export/service/optimizer
 suites green. Competitor boundary untouched (pricing never reads competitor signals).
+
+Owner gate. S1 is identity-preserving and shipped autonomously. S2 (activate the
+position premium: a 1.30 first-position multiplier, 0.00 promo rate) and any other
+layer activation MOVE REAL REVENUE the moment they go live, so they do not ship
+without the owner's explicit yes on the intended numbers. They are built behind the
+already-wired `enable_position` / `enable_ad_type` flags (default OFF) so the
+mechanism can land and be tested without changing a single live price; flipping the
+default to ON is the owner's call. The three open decisions in Section 5 gate S5-S6
+(override target-layer, campaign scope); their documented default assumptions hold
+until the owner says otherwise.
 
 ## 4. Operator UX (error-proof, comfortable)
 
