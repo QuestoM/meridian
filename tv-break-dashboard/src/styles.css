@@ -4491,6 +4491,27 @@ button {
   padding: 6px 10px;
 }
 
+.settings-pacing-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-pacing-help {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.settings-pacing-help p {
+  margin: 0 0 6px;
+}
+
+.settings-pacing-help p:last-child {
+  margin-bottom: 0;
+}
+
 /* ------------------------------------------------------------------ */
 /* Phase B surfaces: frontier scope, yield, scenario A/B, gold, make-good */
 /* ------------------------------------------------------------------ */

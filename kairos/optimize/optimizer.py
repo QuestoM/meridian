@@ -249,9 +249,15 @@ def optimize_breaks(
             # Demand weight scales the apparent gain used for ranking only. It
             # steers which segment gets the next break (placement bias) without
             # touching candidate_revenue or total_revenue, so reported revenue is
-            # always real. A weight of 1.0 (or None) leaves ranking unchanged.
-            if demand_weights is not None:
-                gain = gain * max(1.0, demand_weights.get(segment.segment_id, 1.0))
+            # always real. A weight of 1.0 (or None) leaves ranking unchanged; a
+            # weight above 1.0 boosts a segment, below 1.0 de-prioritizes it
+            # (over-delivered campaign). The bias is applied only to a positive
+            # gain: a non-positive gain never wins the greedy step anyway (best_gain
+            # starts at _EPSILON > 0), so gating on gain > 0 keeps the sign safe and
+            # lets a sub-1.0 weight genuinely lower a candidate's rank.
+            if demand_weights is not None and gain > 0.0:
+                weight = demand_weights.get(segment.segment_id, 1.0)
+                gain = gain * (weight if weight > 0.0 else _EPSILON)
             if gain <= best_gain:
                 continue
             group = groups[(segment.channel, segment.day)]

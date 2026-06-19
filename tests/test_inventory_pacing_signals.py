@@ -183,15 +183,54 @@ def test_urgency_not_started_is_identity() -> None:
     assert elapsed_fraction(c, date(2026, 5, 1)) == 0.0
 
 
-def test_urgency_on_pace_is_identity() -> None:
-    """Delivered fraction tracking elapsed fraction gives urgency 1.0."""
-    # Half-way through the flight, half delivered -> on pace -> no steer.
-    c = _campaign(delivered=50.0)
-    mid = date(2026, 6, 15)  # ~ half of a 29-day span
-    assert elapsed_fraction(c, mid) == pytest.approx(14 / 29, abs=1e-9)
-    assert delivered_fraction(c) == 0.5
-    # behind = max(0, 0.4827 - 0.5) = 0 -> urgency 1.0
-    assert campaign_urgency(c, mid) == 1.0
+def test_urgency_exactly_on_pace_is_identity() -> None:
+    """Delivered fraction EXACTLY tracking elapsed fraction gives urgency 1.0.
+
+    The two-sided model has a single fixed point at delivered == elapsed: neither
+    behind (boost) nor ahead (penalty). Construct that point precisely from the
+    elapsed fraction so the test does not depend on integer-day rounding.
+    """
+    mid = date(2026, 6, 15)
+    elapsed = elapsed_fraction(_campaign(delivered=0.0), mid)
+    on_pace = _campaign(delivered=elapsed * 100.0)
+    assert campaign_urgency(on_pace, mid) == pytest.approx(1.0, abs=1e-9)
+
+
+def test_urgency_ahead_of_pace_is_penalized() -> None:
+    """Delivered well above elapsed (over-delivered) yields a sub-1.0 weight.
+
+    This is the symmetric over-delivery steer: a campaign running ahead of plan is
+    de-prioritized so remaining inventory spreads to campaigns that still need it.
+    The penalty is bounded below by u_min so the slot is never forbidden.
+    """
+    c = _campaign(delivered=90.0)  # 90% delivered
+    mid = date(2026, 6, 15)        # ~48% elapsed -> far ahead of pace
+    u = campaign_urgency(c, mid, k_ahead=1.0, u_min=0.5)
+    assert u < 1.0
+    assert u >= 0.5
+
+
+def test_urgency_ahead_penalty_grows_with_mismatch() -> None:
+    """A larger over-delivery mismatch yields a stronger (lower) penalty."""
+    mid = date(2026, 6, 15)
+    mild = campaign_urgency(_campaign(delivered=60.0), mid)   # slightly ahead
+    severe = campaign_urgency(_campaign(delivered=95.0), mid)  # far ahead
+    assert severe < mild < 1.0
+
+
+def test_urgency_ahead_penalty_disabled_when_k_ahead_zero() -> None:
+    """Setting k_ahead to 0 restores the legacy behind-pace-only behavior."""
+    c = _campaign(delivered=95.0)
+    mid = date(2026, 6, 15)
+    assert campaign_urgency(c, mid, k_ahead=0.0) == 1.0
+
+
+def test_urgency_ahead_floored_at_u_min() -> None:
+    """An extremely over-delivered campaign is floored at u_min, never below."""
+    c = _campaign(delivered=500.0)  # 5x delivered, wildly ahead early
+    early = date(2026, 6, 5)
+    u = campaign_urgency(c, early, k_ahead=5.0, u_min=0.4)
+    assert u == pytest.approx(0.4)
 
 
 def test_urgency_behind_and_late_is_high() -> None:
@@ -214,10 +253,17 @@ def test_urgency_capped_at_u_max() -> None:
     assert u == pytest.approx(2.5)
 
 
-def test_urgency_fully_delivered_is_identity() -> None:
-    """A campaign already at target stays at 1.0 even late in the flight."""
+def test_urgency_fully_delivered_after_flight_is_identity() -> None:
+    """A fully-delivered campaign whose flight has ended is on target, not ahead.
+
+    Once elapsed reaches 1.0 there is no remaining flight to over-deliver into, so
+    a 100%-delivered campaign returns exactly 1.0 (no steer). Mid-flight, the same
+    campaign would read as ahead of pace and be de-prioritized, which is the new
+    symmetric behavior the over-delivery penalty is built for.
+    """
     c = _campaign(delivered=100.0)
-    assert campaign_urgency(c, date(2026, 6, 28)) == 1.0
+    assert campaign_urgency(c, date(2026, 7, 5)) == 1.0  # after flight_end
+    assert campaign_urgency(c, date(2026, 6, 20)) < 1.0  # mid-flight: ahead -> penalty
 
 
 def test_urgency_denominator_sharpens_near_end() -> None:
@@ -291,3 +337,93 @@ def test_make_good_sorted_worst_first() -> None:
     severe = Campaign("SEVERE", "2026-06-01", "2026-06-30", 100.0, delivered=10.0)
     risks = project_make_goods([mild, severe], date(2026, 6, 26))
     assert [r.campaign_id for r in risks] == ["SEVERE", "MILD"]
+
+
+# ---------------------------------------------------------------------------
+# Per-campaign overrides: urgency_k / ahead_k take precedence over the defaults.
+# ---------------------------------------------------------------------------
+
+def test_per_campaign_urgency_k_overrides_default() -> None:
+    """A campaign's own urgency_k steers it harder than the channel-wide default."""
+    behind = Campaign(
+        "C1", "2026-06-01", "2026-06-30", 100.0, delivered=30.0, urgency_k=3.0,
+    )
+    # Mid-flight so neither saturates at u_max, isolating the k effect.
+    mid = date(2026, 6, 15)
+    overridden = campaign_urgency(behind, mid, k=1.0, u_max=5.0)
+    plain = campaign_urgency(_campaign(delivered=30.0), mid, k=1.0, u_max=5.0)
+    assert overridden > plain  # the per-campaign k=3.0 wins over the passed k=1.0
+
+
+def test_per_campaign_ahead_k_zero_disables_over_delivery_penalty() -> None:
+    """A campaign with ahead_k=0 is exempt from the over-delivery penalty."""
+    ahead = Campaign(
+        "C1", "2026-06-01", "2026-06-30", 100.0, delivered=90.0, ahead_k=0.0,
+    )
+    mid = date(2026, 6, 15)
+    # Even with a global k_ahead=1.0, the per-campaign override of 0.0 wins -> 1.0.
+    assert campaign_urgency(ahead, mid, k_ahead=1.0) == 1.0
+
+
+def test_load_campaigns_parses_override_columns(tmp_path) -> None:
+    """urgency_k / ahead_k columns in the CSV are parsed into the Campaign."""
+    csv = tmp_path / "flights.csv"
+    csv.write_text(
+        "campaign_id,flight_start,flight_end,target_impressions,delivered_to_date,"
+        "scope_channels,urgency_k,ahead_k\n"
+        "C1,2026-06-01,2026-06-30,100,30,קשת 12,2.5,0\n",
+        encoding="utf-8",
+    )
+    campaigns = load_campaigns(csv)
+    assert len(campaigns) == 1
+    assert campaigns[0].urgency_k == 2.5
+    assert campaigns[0].ahead_k == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Service-layer assembly: pacing knobs from settings + identity no-op.
+# ---------------------------------------------------------------------------
+
+def test_pacing_knobs_from_settings_none_when_absent() -> None:
+    """No settings -> None knobs (module defaults apply, identity until data)."""
+    from kairos.service import _pacing_knobs_from_settings
+    assert _pacing_knobs_from_settings(None) is None
+    assert _pacing_knobs_from_settings({}) is None
+
+
+def test_pacing_knobs_from_settings_reads_fields() -> None:
+    """The dashboard pacing fields map onto the urgency knob dict."""
+    from kairos.service import _pacing_knobs_from_settings
+    knobs = _pacing_knobs_from_settings({
+        "pacing_enabled": True,
+        "pacing_reference_date": "2026-06-20",
+        "pacing_urgency_k": 1.5,
+        "pacing_urgency_max": 2.5,
+        "pacing_ahead_k": 0.8,
+        "pacing_weight_floor": 0.4,
+        "pacing_epsilon": 0.1,
+    })
+    assert knobs["enabled"] is True
+    assert knobs["reference_date"] == "2026-06-20"
+    assert knobs["k"] == 1.5
+    assert knobs["u_max"] == 2.5
+    assert knobs["k_ahead"] == 0.8
+    assert knobs["u_min"] == 0.4  # pacing_weight_floor -> over-delivery floor
+    assert knobs["epsilon"] == 0.1
+
+
+def test_assemble_demand_weights_identity_with_no_data() -> None:
+    """With no advertiser rules, no inventory, no campaigns -> every weight 1.0."""
+    from kairos.service import _assemble_demand_weights
+    segs = _segments()
+    weights = _assemble_demand_weights(segs, today=date(2026, 6, 18), pacing_knobs=None)
+    assert set(weights.values()) == {1.0}
+
+
+def test_assemble_demand_weights_pacing_disabled_is_identity() -> None:
+    """Even given a reference date, disabled pacing keeps every weight 1.0."""
+    from kairos.service import _assemble_demand_weights
+    segs = _segments()
+    knobs = {"enabled": False, "reference_date": "2026-06-26"}
+    weights = _assemble_demand_weights(segs, today=date(2026, 6, 26), pacing_knobs=knobs)
+    assert set(weights.values()) == {1.0}

@@ -56,10 +56,21 @@ DEFAULT_CAMPAIGNS_PATH = ROOT / "data" / "campaign_flights.csv"
 # Urgency knobs. K is how hard a unit of "behind-ness" pushes; U_MAX caps the
 # lift so one desperate campaign cannot dominate the schedule; EPSILON floors the
 # (1 - elapsed_frac) denominator so a flight on its very last day does not divide
-# by zero. All three are documented and editable.
+# by zero. All are documented, editable, and operator-controllable from the
+# dashboard (a global default), and overridable per campaign (campaign_flights.csv
+# urgency_k / ahead_k columns).
 URGENCY_K = 1.0
 URGENCY_U_MAX = 2.0
 URGENCY_EPSILON = 0.05
+# Over-delivery (ahead-of-pace) de-prioritization. A campaign that has delivered
+# MORE than its elapsed flight fraction is ahead of plan; the channel should lean
+# breaks AWAY from its inventory so the remaining budget spreads to campaigns that
+# still need it. K_AHEAD is how hard that push-away is; U_MIN floors the resulting
+# placement weight so an over-delivered campaign is de-prioritized but never
+# forbidden a slot (the weight never reaches zero). Setting K_AHEAD to 0 disables
+# the over-delivery penalty entirely (the legacy behind-pace-only behavior).
+URGENCY_K_AHEAD = 1.0
+URGENCY_U_MIN = 0.5
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -88,6 +99,13 @@ class Campaign:
     genres: frozenset[str] = frozenset()
     dayparts: frozenset[str] = frozenset()
     programmes: frozenset[str] = frozenset()
+    # Optional per-campaign overrides of the global pacing strengths. ``None`` means
+    # "use the global default". These let one campaign be steered more or less
+    # aggressively than the channel-wide setting, the same way advertiser rules can
+    # override a default. Read from the campaign_flights.csv urgency_k / ahead_k
+    # columns when present.
+    urgency_k: Optional[float] = None
+    ahead_k: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -132,6 +150,18 @@ def _to_float(value: object, default: float = 0.0) -> float:
         return default
 
 
+def _opt_float(value: object) -> Optional[float]:
+    """Parse an optional non-negative float override; blank/invalid -> None."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = float(text)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0.0 else None
+
+
 def load_campaigns(path: Optional[str | Path] = None) -> list[Campaign]:
     """Read campaign flights from CSV; return ``[]`` when the file is header-only.
 
@@ -168,6 +198,8 @@ def load_campaigns(path: Optional[str | Path] = None) -> list[Campaign]:
                 genres=_tokens(row.get("scope_genres")),
                 dayparts=_tokens(row.get("scope_dayparts")),
                 programmes=_tokens(row.get("scope_programmes")),
+                urgency_k=_opt_float(row.get("urgency_k")),
+                ahead_k=_opt_float(row.get("ahead_k")),
             ))
     return out
 
@@ -195,30 +227,66 @@ def delivered_fraction(campaign: Campaign) -> float:
     return _clamp(campaign.delivered / campaign.target, 0.0, 1.0)
 
 
+def raw_delivered_fraction(campaign: Campaign) -> float:
+    """Delivered / target WITHOUT the upper clamp, so over-delivery is visible.
+
+    ``delivered_fraction`` caps at 1.0 (the right shape for behind-pace, where a
+    fully-delivered campaign is simply on target). The ahead-of-pace penalty needs
+    to see HOW FAR a campaign has run past plan, so it reads the uncapped ratio: a
+    campaign at 150 percent delivered reads 1.5 here, not 1.0.
+    """
+    if campaign.target <= 0:
+        return 1.0
+    return max(0.0, campaign.delivered / campaign.target)
+
+
 def campaign_urgency(
     campaign: Campaign,
     today: date,
     *,
     k: float = URGENCY_K,
     u_max: float = URGENCY_U_MAX,
+    k_ahead: float = URGENCY_K_AHEAD,
+    u_min: float = URGENCY_U_MIN,
     epsilon: float = URGENCY_EPSILON,
 ) -> float:
-    """Pacing urgency for one campaign at ``today``, in [1.0, u_max].
+    """Two-sided pacing urgency for one campaign at ``today``, in [u_min, u_max].
 
-        elapsed = clamp((today - start) / (end - start), 0, 1)
+    Behind pace (the original boost, unchanged):
+
+        elapsed   = clamp((today - start) / (end - start), 0, 1)
         delivered = clamp(delivered / target, 0, 1)
-        u = clamp(1 + k * max(0, elapsed - delivered) / max(epsilon, 1 - elapsed), 1, u_max)
+        behind    = max(0, elapsed - delivered)
+        u = clamp(1 + k * behind / max(epsilon, 1 - elapsed), 1, u_max)   # >= 1.0
 
-    A not-started, on-pace, or fully-delivered campaign returns exactly 1.0 (no
-    steer). A behind-and-late campaign returns a high weight, bounded by u_max.
+    Ahead of pace (the symmetric over-delivery penalty, NEW):
+
+        ahead = max(0, raw_delivered - elapsed)
+        u = clamp(1 - k_ahead * ahead / max(epsilon, elapsed), u_min, 1)  # <= 1.0
+
+    The behind denominator ``(1 - elapsed)`` makes a shortfall bite harder as the
+    flight runs OUT. The ahead denominator ``elapsed`` mirrors it: an over-delivery
+    bites hardest EARLY, when there is the most remaining flight to keep
+    over-delivering into, and softens as the flight naturally catches up. A
+    not-started or exactly on-pace campaign returns 1.0 (no steer). Per-campaign
+    ``urgency_k`` / ``ahead_k`` overrides take precedence over the passed defaults
+    so one campaign can be steered more or less aggressively than the channel-wide
+    setting. Setting ``k_ahead`` to 0 (globally or per campaign) disables the
+    over-delivery penalty entirely.
     """
+    eff_k = campaign.urgency_k if campaign.urgency_k is not None else k
+    eff_k_ahead = campaign.ahead_k if campaign.ahead_k is not None else k_ahead
     elapsed = elapsed_fraction(campaign, today)
     delivered = delivered_fraction(campaign)
     behind = max(0.0, elapsed - delivered)
-    if behind <= 0.0:
-        return 1.0
-    denom = max(epsilon, 1.0 - elapsed)
-    return _clamp(1.0 + k * behind / denom, 1.0, u_max)
+    if behind > 0.0:
+        denom = max(epsilon, 1.0 - elapsed)
+        return _clamp(1.0 + eff_k * behind / denom, 1.0, u_max)
+    ahead = max(0.0, raw_delivered_fraction(campaign) - elapsed)
+    if ahead > 0.0 and eff_k_ahead > 0.0:
+        denom = max(epsilon, elapsed)
+        return _clamp(1.0 - eff_k_ahead * ahead / denom, u_min, 1.0)
+    return 1.0
 
 
 def _campaign_matches_segment(
@@ -255,18 +323,26 @@ def build_pacing_weights(
     daypart_of: Optional[Mapping[str, Optional[str]]] = None,
     k: float = URGENCY_K,
     u_max: float = URGENCY_U_MAX,
+    k_ahead: float = URGENCY_K_AHEAD,
+    u_min: float = URGENCY_U_MIN,
     epsilon: float = URGENCY_EPSILON,
 ) -> dict[str, float]:
-    """Per-segment pacing-urgency weights (>= 1.0) keyed by segment_id.
+    """Per-segment two-sided pacing-urgency weights (in [u_min, u_max]) by segment_id.
 
-    Each segment's weight is the MAX urgency over the campaigns whose scope it
-    falls inside (the most urgent campaign pressing on a slot sets the lean). A
-    segment matched by no behind-pace campaign keeps weight 1.0.
+    Each segment's weight is the MOST DECISIVE urgency over the campaigns whose
+    scope it falls inside: the campaign whose urgency deviates furthest from 1.0
+    sets the lean, whether that pushes the slot TOWARD it (behind pace, weight > 1)
+    or AWAY from it (over-delivered, weight < 1). On an exact tie in magnitude the
+    boost wins, so a desperately-behind campaign is never cancelled by an equally
+    ahead one sharing the slot (the safer revenue posture). A segment matched by no
+    off-pace campaign keeps weight 1.0.
 
     ``campaigns`` of ``None`` or ``[]`` (the header-only seed case) yields every
     weight at 1.0, a pure identity no-op. ``today`` is supplied by the caller so
     the math is deterministic; ``daypart_of`` optionally maps segment_id to its
     daypart key for daypart-scoped campaigns (absent -> daypart treated as None).
+    The knobs are the operator's global defaults; per-campaign overrides inside
+    :func:`campaign_urgency` take precedence.
     """
     # Materialize once: segments may be a one-shot iterator, and we walk it twice.
     seg_list = list(segments)
@@ -275,7 +351,7 @@ def build_pacing_weights(
         return weights
     daypart_of = daypart_of or {}
     for segment in seg_list:
-        best = 1.0
+        chosen = 1.0
         for campaign in campaigns:
             if not _campaign_matches_segment(
                 campaign,
@@ -285,10 +361,15 @@ def build_pacing_weights(
                 programme=segment.program_title or None,
             ):
                 continue
-            u = campaign_urgency(campaign, today, k=k, u_max=u_max, epsilon=epsilon)
-            if u > best:
-                best = u
-        weights[segment.segment_id] = best
+            u = campaign_urgency(
+                campaign, today,
+                k=k, u_max=u_max, k_ahead=k_ahead, u_min=u_min, epsilon=epsilon,
+            )
+            dev = abs(u - 1.0)
+            best_dev = abs(chosen - 1.0)
+            if dev > best_dev or (dev == best_dev and u > chosen):
+                chosen = u
+        weights[segment.segment_id] = chosen
     return weights
 
 

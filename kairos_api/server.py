@@ -128,6 +128,21 @@ class KairosSettings(BaseModel):
     # touches another channel's breaks. Empty string = not yet configured
     # (constraints match any channel, an honest no-op until the operator picks one).
     operator_channel: str = ""
+    # Delivery pacing: steer placement toward campaigns that are BEHIND their
+    # flight pace and away from campaigns that are AHEAD (over-delivered). This is
+    # a placement-bias signal only; it never changes charged revenue. It is also an
+    # exact identity no-op until real campaign rows land in campaign_flights.csv, so
+    # the defaults are safe. pacing_reference_date pins "today" for the pace math
+    # (empty = use the run's own date); urgency_k/ahead_k set how hard a behind/ahead
+    # campaign is pushed; urgency_max caps the boost and weight_floor floors the
+    # over-delivery penalty so a slot is de-prioritized but never forbidden.
+    pacing_enabled: bool = True
+    pacing_reference_date: str = ""
+    pacing_urgency_k: float = Field(default=1.0, ge=0, le=10)
+    pacing_urgency_max: float = Field(default=2.0, ge=1, le=10)
+    pacing_ahead_k: float = Field(default=1.0, ge=0, le=10)
+    pacing_weight_floor: float = Field(default=0.5, ge=0, le=1)
+    pacing_epsilon: float = Field(default=0.05, ge=0.001, le=1)
 
 
 def _safe_path(relative_path: str) -> Path:
@@ -197,6 +212,35 @@ def _settings_to_guardrails(settings: KairosSettings) -> Guardrails:
         protected_max_ad_seconds_per_hour=settings.protected_program_max_ad_minutes_per_hour * 60,
         gold_breaks_max_per_day=settings.gold_breaks_max_per_day,
     )
+
+
+def _reference_today(settings: KairosSettings) -> date:
+    """The reference date for delivery-pacing math.
+
+    Prefers the explicit ``pacing_reference_date`` (the operator's pinned "today"),
+    falls back to the profile's ``effective_date``, and finally to the real current
+    date. Pure-string parsing so a malformed value degrades to ``date.today()``
+    rather than raising. The pacing math is identity until campaign rows land, so an
+    imperfect date is harmless until the operator uploads real flights.
+    """
+    for text in (settings.pacing_reference_date, settings.effective_date):
+        head = str(text or "").strip().split(" ")[0].split("T")[0]
+        try:
+            return date.fromisoformat(head)
+        except ValueError:
+            continue
+    return date.today()
+
+
+def _pacing_call_kwargs() -> dict[str, Any]:
+    """Saved-settings ``today`` + ``settings`` to forward to the optimizer service.
+
+    Centralizes how every scenario/plan call threads the pacing reference date and
+    the dashboard pacing knobs, so the over-delivery steer is consistent across the
+    scenario slider, the frontier, the weekly plan and the day plan.
+    """
+    saved = _load_settings()
+    return {"today": _reference_today(saved), "settings": _model_dump(saved)}
 
 
 def _percent(value: Any) -> float:
@@ -710,7 +754,7 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     "revenue_premium": program_premium,
                     "revenue_calculated": break_revenue,
                     "retention": retention,
-                    "status": "at_risk" if retention < 72 else "ready",
+                    "status": "at_risk" if retention < settings.min_retention_floor * 100 else "ready",
                 }
             )
 
@@ -751,6 +795,7 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
         retention_floor=request.retention_floor,
         max_breaks_per_hour=request.max_breaks_per_hour,
         risk_lambda=request.risk_lambda,
+        **_pacing_call_kwargs(),
     )
     summary = payload.setdefault("summary", {})
     summary["is_compliant"] = bool(summary.get("is_compliant", summary.get("compliant", False)))
@@ -862,6 +907,7 @@ def _frontier_points_cached(
     """
     del signature  # part of the cache key only
     weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
+    pacing = _pacing_call_kwargs()
     points: list[dict[str, Any]] = []
     for weight in weights:
         try:
@@ -873,6 +919,7 @@ def _frontier_points_cached(
                 channel=channel,
                 day=day,
                 refine=False,
+                **pacing,
             )
         except Exception:
             logger.exception("frontier scenario failed at revenue_weight=%s", weight)
@@ -1395,7 +1442,8 @@ def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
     frame["total_break_time"] = pd.to_numeric(frame.get("total_break_time", 0), errors="coerce").fillna(0)
     frame["priority"] = frame["predicted_revenue"] * frame["predicted_retention"].clip(lower=0.1)
     frame = frame.sort_values("priority", ascending=False).head(80)
-    frame["status"] = frame["predicted_retention"].map(lambda value: "at_risk" if _percent(value) < 72 else "ready")
+    floor_percent = _load_settings().min_retention_floor * 100
+    frame["status"] = frame["predicted_retention"].map(lambda value: "at_risk" if _percent(value) < floor_percent else "ready")
     return {"breaks": _records(frame)}
 
 
@@ -1434,6 +1482,8 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
                 retention_floor=settings.min_retention_floor,
                 max_breaks_per_hour=settings.max_breaks_per_hour,
                 risk_lambda=settings.risk_lambda,
+                today=_reference_today(settings),
+                settings=_model_dump(settings),
             )
         except Exception:
             logger.exception("forecast scenario '%s' failed at revenue_weight=%s", name, weight)
@@ -2050,12 +2100,35 @@ def _risk_from_retention(average_retention_percent: float, floor_percent: float)
 @lru_cache(maxsize=128)
 def _scenario_cached(
     revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
+    pacing_today: str = "", pacing_enabled: bool = True, pacing_reference_date: str = "",
+    pacing_urgency_k: float = 1.0, pacing_urgency_max: float = 2.0, pacing_ahead_k: float = 1.0,
+    pacing_weight_floor: float = 0.5, pacing_epsilon: float = 0.05,
 ) -> dict[str, Any]:
+    # The pacing inputs are part of the cache key (all scalars), so a settings
+    # change to the pacing knobs invalidates the cached scenario honestly. They
+    # reconstruct the minimal pacing settings the optimizer service reads.
+    today = None
+    if pacing_today:
+        try:
+            today = date.fromisoformat(pacing_today)
+        except ValueError:
+            today = None
+    pacing_settings = {
+        "pacing_enabled": pacing_enabled,
+        "pacing_reference_date": pacing_reference_date,
+        "pacing_urgency_k": pacing_urgency_k,
+        "pacing_urgency_max": pacing_urgency_max,
+        "pacing_ahead_k": pacing_ahead_k,
+        "pacing_weight_floor": pacing_weight_floor,
+        "pacing_epsilon": pacing_epsilon,
+    }
     result = run_scenario(
         revenue_weight=revenue_weight,
         retention_floor=retention_floor,
         max_breaks_per_hour=max_breaks_per_hour,
         risk_lambda=risk_lambda,
+        today=today,
+        settings=pacing_settings,
     )
     summary = result["summary"]
     return {
@@ -2086,9 +2159,18 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     """
     if _ENGINE_AVAILABLE:
         try:
+            saved = _load_settings()
             return _scenario_cached(
                 request.revenue_weight, request.retention_floor, request.max_breaks_per_hour,
                 request.risk_lambda,
+                pacing_today=_reference_today(saved).isoformat(),
+                pacing_enabled=saved.pacing_enabled,
+                pacing_reference_date=saved.pacing_reference_date,
+                pacing_urgency_k=saved.pacing_urgency_k,
+                pacing_urgency_max=saved.pacing_urgency_max,
+                pacing_ahead_k=saved.pacing_ahead_k,
+                pacing_weight_floor=saved.pacing_weight_floor,
+                pacing_epsilon=saved.pacing_epsilon,
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
             return {
@@ -2138,6 +2220,7 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
             risk_lambda=risk,
             daily_input_path=request.daily_input,
             settings=_model_dump(settings),
+            today=_reference_today(settings),
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")

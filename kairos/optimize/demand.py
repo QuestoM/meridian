@@ -22,6 +22,20 @@ from kairos.optimize.optimizer import ProgramSegment
 
 _SECONDS_PER_HOUR = 3600.0
 
+# Global bounds on the combined placement weight. Advertiser demand and inventory
+# awareness are boost-only (>= 1.0) by their data semantics, but the pacing signal
+# is TWO-SIDED: it may push a slot below 1.0 to de-prioritize an over-delivered
+# campaign. WEIGHT_FLOOR keeps that penalty bounded so a slot is never effectively
+# forbidden (which would indirectly suppress revenue); WEIGHT_CAP keeps one
+# desperate campaign from dominating the whole schedule. With no data every signal
+# is exactly 1.0 and clamp(1.0, FLOOR, CAP) == 1.0, so the identity no-op holds.
+WEIGHT_FLOOR = 0.25
+WEIGHT_CAP = 4.0
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
 
 def _hour_from_start_seconds(start_seconds: float) -> Optional[int]:
     """Clock hour (0..23) from seconds-since-midnight, or None when invalid."""
@@ -49,19 +63,20 @@ def build_demand_weights(
     conservative choice.
 
     Three independent placement signals are folded together MULTIPLICATIVELY,
-    each ``>= 1.0`` and each off-by-identity until its data lands:
+    each off-by-identity until its data lands:
 
-      * advertiser demand (the rule engine, always computed);
+      * advertiser demand (the rule engine, always computed; boost-only, >= 1.0);
       * inventory awareness (``inventory_weights``, from
-        :func:`kairos.optimize.inventory.build_inventory_weights`);
+        :func:`kairos.optimize.inventory.build_inventory_weights`; boost-only);
       * delivery-pacing urgency (``pacing_weights``, from
-        :func:`kairos.optimize.pacing.build_pacing_weights`).
+        :func:`kairos.optimize.pacing.build_pacing_weights`; TWO-SIDED, may be
+        below 1.0 to de-prioritize an over-delivered campaign).
 
-    The combined weight is ``max(1.0, advertiser * inventory * pacing)``. Each
-    extra map defaults to ``None`` (treated as 1.0 everywhere), so omitting both
-    reproduces the advertiser-only weight exactly, and an advertiser engine with
-    no rules plus no extra maps yields every weight at 1.0 - the optimizer's
-    identity case, byte-identical to a run with no weights at all.
+    The combined weight is ``clamp(advertiser * inventory * pacing, WEIGHT_FLOOR,
+    WEIGHT_CAP)``. Each extra map defaults to ``None`` (treated as 1.0 everywhere),
+    so omitting both reproduces the advertiser-only weight exactly, and an
+    advertiser engine with no rules plus no extra maps yields every weight at 1.0,
+    the optimizer's identity case, byte-identical to a run with no weights at all.
 
     The returned dict maps segment_id -> weight. These weights touch only the
     optimizer's ranking comparison, never charged revenue.
@@ -77,8 +92,13 @@ def build_demand_weights(
             programme=segment.program_title if segment.program_title else None,
         )
         if inventory_weights is not None:
+            # Inventory awareness is boost-only by construction.
             weight *= max(1.0, inventory_weights.get(segment.segment_id, 1.0))
         if pacing_weights is not None:
-            weight *= max(1.0, pacing_weights.get(segment.segment_id, 1.0))
-        weights[segment.segment_id] = max(1.0, weight)
+            # Pacing is two-sided: it may pull the product below 1.0 to
+            # de-prioritize an over-delivered campaign. Do NOT floor it here.
+            weight *= pacing_weights.get(segment.segment_id, 1.0)
+        # One global floor/cap so penalties and boosts compose honestly: a sub-1.0
+        # pacing penalty survives (down to WEIGHT_FLOOR) while boosts stay bounded.
+        weights[segment.segment_id] = _clamp(weight, WEIGHT_FLOOR, WEIGHT_CAP)
     return weights

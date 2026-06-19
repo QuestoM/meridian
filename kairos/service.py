@@ -35,7 +35,15 @@ from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.objective import clamp
-from kairos.optimize.pacing import build_pacing_weights, load_campaigns
+from kairos.optimize.pacing import (
+    URGENCY_EPSILON,
+    URGENCY_K,
+    URGENCY_K_AHEAD,
+    URGENCY_U_MAX,
+    URGENCY_U_MIN,
+    build_pacing_weights,
+    load_campaigns,
+)
 from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
@@ -206,6 +214,106 @@ def result_to_dict(
     }
 
 
+def _parse_pacing_date(value: Any) -> Optional[date]:
+    """Parse a YYYY-MM-DD reference date from settings, or None when absent/invalid."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    head = text.split(" ")[0].split("T")[0]
+    try:
+        return date.fromisoformat(head)
+    except ValueError:
+        return None
+
+
+def _pacing_knobs_from_settings(
+    settings: Optional[Mapping[str, Any]],
+) -> Optional[dict[str, Any]]:
+    """Translate the dashboard's pacing settings into pacing-urgency knobs.
+
+    Returns ``None`` when no settings are supplied, so a call with no settings
+    keeps the module-default pacing behavior (identity until campaign data lands).
+    Otherwise returns a dict carrying the ``enabled`` flag, the optional reference
+    date, and the five urgency knobs, each falling back to the module default when
+    the matching field is absent. ``pacing_weight_floor`` maps to the over-delivery
+    floor ``u_min`` (the lowest a de-prioritized slot's weight may fall).
+    """
+    if not settings:
+        return None
+
+    def _num(key: str, default: float) -> float:
+        try:
+            return float(settings.get(key, default))
+        except (TypeError, ValueError):
+            return default
+
+    return {
+        "enabled": bool(settings.get("pacing_enabled", True)),
+        "reference_date": settings.get("pacing_reference_date"),
+        "k": _num("pacing_urgency_k", URGENCY_K),
+        "u_max": _num("pacing_urgency_max", URGENCY_U_MAX),
+        "k_ahead": _num("pacing_ahead_k", URGENCY_K_AHEAD),
+        "u_min": _num("pacing_weight_floor", URGENCY_U_MIN),
+        "epsilon": _num("pacing_epsilon", URGENCY_EPSILON),
+    }
+
+
+def _assemble_demand_weights(
+    segments: list,
+    *,
+    today: Optional[date] = None,
+    pacing_knobs: Optional[Mapping[str, Any]] = None,
+) -> dict[str, float]:
+    """Build the optimizer's per-segment placement weights from all three signals.
+
+    Folds advertiser demand (always computed), inventory awareness, and delivery
+    pacing into one weight map via :func:`build_demand_weights`. Each signal is an
+    identity no-op until its data lands, so with no advertiser rules, no inventory
+    file, and a header-only ``campaign_flights.csv`` every weight is exactly 1.0 and
+    the optimizer output is byte-identical to a run with no weights at all.
+
+    Pacing fires only when (a) real campaign rows exist, (b) pacing is enabled (the
+    dashboard default; disabled only when settings say so), and (c) a reference date
+    is available, either the explicit ``pacing_reference_date`` setting or the caller
+    ``today``. Missing any of these leaves pacing as ``None`` (1.0 everywhere), the
+    honest conservative choice. Knob overrides from ``pacing_knobs`` feed straight
+    into :func:`build_pacing_weights`; per-campaign overrides inside the CSV still
+    take precedence over these channel-wide defaults.
+    """
+    segments = list(segments)
+    engine = AdvertiserRuleEngine.from_files()
+    inventory_weights = build_inventory_weights(segments, load_inventory())
+
+    pacing_weights: Optional[dict[str, float]] = None
+    enabled = True if pacing_knobs is None else bool(pacing_knobs.get("enabled", True))
+    campaigns = load_campaigns() if enabled else []
+    if campaigns:
+        reference = today
+        if pacing_knobs is not None:
+            override = _parse_pacing_date(pacing_knobs.get("reference_date"))
+            if override is not None:
+                reference = override
+        if reference is not None:
+            daypart_of = {
+                seg.segment_id: daypart_for_hour(seg.hour) for seg in segments
+            }
+            knob_kwargs: dict[str, float] = {}
+            if pacing_knobs is not None:
+                for key in ("k", "u_max", "k_ahead", "u_min", "epsilon"):
+                    value = pacing_knobs.get(key)
+                    if value is not None:
+                        knob_kwargs[key] = value
+            pacing_weights = build_pacing_weights(
+                segments, campaigns, reference, daypart_of=daypart_of, **knob_kwargs
+            )
+
+    return build_demand_weights(
+        segments, engine,
+        inventory_weights=inventory_weights,
+        pacing_weights=pacing_weights,
+    )
+
+
 def optimize_day_plan(
     *,
     channel: Optional[str] = None,
@@ -273,17 +381,8 @@ def optimize_day_plan(
     # inventory-awareness and pacing-urgency signals. Each is identity (1.0) until
     # its data lands, so with no inventory file and no campaign rows the output is
     # byte-identical to a run with no weights at all.
-    demand_engine = AdvertiserRuleEngine.from_files()
-    inventory_weights = build_inventory_weights(segments, load_inventory())
-    campaigns = load_campaigns()
-    pacing_weights = None
-    if campaigns and today is not None:
-        daypart_of = {seg.segment_id: daypart_for_hour(seg.hour) for seg in segments}
-        pacing_weights = build_pacing_weights(segments, campaigns, today, daypart_of=daypart_of)
-    demand_weights = build_demand_weights(
-        segments, demand_engine,
-        inventory_weights=inventory_weights,
-        pacing_weights=pacing_weights,
+    demand_weights = _assemble_demand_weights(
+        segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
     )
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk,
@@ -331,6 +430,8 @@ def run_scenario(
     overrides: Optional[OverrideSet] = None,
     placement_pins: Optional[Mapping[str, Any]] = None,
     refine: bool = True,
+    today: Optional[date] = None,
+    settings: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """Run a real optimization for the dashboard scenario slider.
 
@@ -364,9 +465,12 @@ def run_scenario(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
-    # Demand weights: always computed, self-neutralizing when no rules match.
-    demand_engine = AdvertiserRuleEngine.from_files()
-    demand_weights = build_demand_weights(segments, demand_engine)
+    # Demand weights: advertiser demand, inventory awareness and delivery pacing,
+    # folded together and self-neutralizing when no rules, inventory or campaigns
+    # are present (every weight 1.0, byte-identical to a run with no weights).
+    demand_weights = _assemble_demand_weights(
+        segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
+    )
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
         overrides=overrides, placement_pins=placement_pins,

@@ -1439,6 +1439,7 @@ function TVBreakDashboard() {
       <SettingsPanel
         settings={settings}
         parameters={parameters}
+        campaigns={campaigns}
         copy={copy}
         locale={locale}
         saveState={saveState}
@@ -3688,7 +3689,7 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState,
   );
 }
 
-function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
+function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -3729,6 +3730,13 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
           : (he ? 'חשב מחדש את הלוח השבועי' : 'Recompute weekly schedule');
 
   const protectedTypes = (draft.protected_program_types || []).join(', ');
+
+  // Honest empty state for pacing: pacing can only steer placement when there
+  // are real campaign flights to pace against. We read the live campaigns
+  // payload (the same one the Campaigns page uses) rather than fabricating any
+  // count, and treat an empty list as "no flights uploaded yet".
+  const campaignFlights = normalizeRows(campaigns?.campaigns);
+  const hasCampaignFlights = campaignFlights.length > 0;
   const statusText =
     saveState === 'saved'
       ? copy.saved
@@ -3952,6 +3960,70 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
             <ToggleControl label={copy.approval} checked={draft.require_manual_approval} onChange={(value) => updateField('require_manual_approval', value)} />
             <NumberControl label={locale === 'he' ? 'מקסימום ברייקי זהב ביום' : 'Max gold breaks per day'} value={draft.gold_breaks_max_per_day} onChange={(value) => updateNumber('gold_breaks_max_per_day', value)} suffix="/day" />
             <NumberControl label={copy.dailyCap} value={draft.max_daily_ad_minutes} onChange={(value) => updateNumber('max_daily_ad_minutes', value)} suffix="min" />
+          </div>
+        </section>
+
+        <section className="settings-panel wide">
+          <div className="settings-panel-head">
+            <div>
+              <h2>{he ? 'קצב קמפיינים' : 'Campaign pacing'}</h2>
+              <p>{he ? 'מטה את השיבוץ לפי קצב הדילוור של הקמפיינים, בלי לשנות את תחזית ההכנסה' : 'Steer placement by campaign delivery pace, without changing the revenue projection'}</p>
+            </div>
+            <Gauge size={18} />
+          </div>
+          {!hasCampaignFlights && (
+            <p className="settings-pacing-note">
+              {he ? 'טרם הועלו קמפיינים, ולכן הקצב אינו פעיל.' : 'No campaign flights uploaded yet, so pacing is inactive.'}
+            </p>
+          )}
+          <div className="settings-toggle-grid">
+            <ToggleControl
+              label={he ? 'קצב קמפיינים' : 'Campaign pacing'}
+              checked={draft.pacing_enabled ?? true}
+              onChange={(value) => updateField('pacing_enabled', value)}
+            />
+            <TextField
+              label={he ? 'תאריך ייחוס לקצב' : 'Pacing reference date'}
+              type="date"
+              size="small"
+              value={draft.pacing_reference_date ?? ''}
+              onChange={(event) => updateField('pacing_reference_date', event.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <NumberControl
+              label={he ? 'עוצמת פיגור בקצב' : 'Behind-pace strength'}
+              value={draft.pacing_urgency_k ?? 1.0}
+              onChange={(value) => updateNumber('pacing_urgency_k', Math.min(5, Math.max(0, Number(value))))}
+            />
+            <NumberControl
+              label={he ? 'תקרת פיגור בקצב' : 'Behind-pace cap'}
+              value={draft.pacing_urgency_max ?? 2.0}
+              onChange={(value) => updateNumber('pacing_urgency_max', Math.min(4, Math.max(1, Number(value))))}
+            />
+            <NumberControl
+              label={he ? 'ריסון דילוור-יתר' : 'Over-delivery throttle'}
+              value={draft.pacing_ahead_k ?? 1.0}
+              onChange={(value) => updateNumber('pacing_ahead_k', Math.min(5, Math.max(0, Number(value))))}
+            />
+            <NumberControl
+              label={he ? 'רצפת דילוור-יתר' : 'Over-delivery floor'}
+              value={draft.pacing_weight_floor ?? 0.5}
+              onChange={(value) => updateNumber('pacing_weight_floor', Math.min(1.0, Math.max(0.25, Number(value))))}
+            />
+            <NumberControl
+              label={he ? 'רצפת מכנה הקצב' : 'Pace denominator floor'}
+              value={draft.pacing_epsilon ?? 0.05}
+              onChange={(value) => updateNumber('pacing_epsilon', Math.min(0.5, Math.max(0.01, Number(value))))}
+            />
+          </div>
+          <div className="settings-pacing-help">
+            <p>{he ? 'מטה את השיבוץ לעבר קמפיינים שמפגרים בקצב הדילוור והרחק מקמפיינים שדילברו יותר מדי. שיבוץ בלבד; לעולם לא משנה את תחזית ההכנסה.' : 'Steer placement toward campaigns behind delivery pace and away from over-delivered ones. Placement only; never changes the revenue projection.'}</p>
+            <p>{he ? 'התאריך שנחשב כהיום בעת מדידת קצב הקמפיין. ריק משתמש בתאריך התוקף של הלוח.' : 'The date treated as today when measuring campaign pace. Empty uses the schedule effective date.'}</p>
+            <p>{he ? 'כמה חזק קמפיין בתת-דילוור מושך פרסומות למלאי שלו.' : 'How hard an under-delivered campaign pulls breaks toward its inventory.'}</p>
+            <p>{he ? 'הגברת השיבוץ המרבית לקמפיין המפגר ביותר.' : 'Maximum placement boost for the most behind campaign.'}</p>
+            <p>{he ? 'כמה חזק קמפיין בדילוור-יתר מקבל עדיפות נמוכה בשיבוץ. אפס מבטל את קנס דילוור-היתר.' : 'How hard an over-delivered campaign is de-prioritized in placement. Zero disables the over-delivery penalty.'}</p>
+            <p>{he ? 'המשקל הנמוך ביותר בשיבוץ שקמפיין בדילוור-יתר יכול לקבל. לעולם לא אפס, כך שפרסומת לעולם אינה נחסמת.' : 'The lowest placement weight an over-delivered campaign can receive. Never zero, so a slot is never forbidden.'}</p>
+            <p>{he ? 'רצפה נומרית כדי שהדחיפות תישאר סופית ביום הראשון והאחרון של הקמפיין.' : 'Numerical floor so urgency stays finite on the first and last flight day.'}</p>
           </div>
         </section>
 
