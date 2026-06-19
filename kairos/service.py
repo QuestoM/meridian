@@ -98,6 +98,32 @@ def _coefficient_freshness_block(impact_model: ImpactModel) -> dict[str, Any]:
     }
 
 
+def _apply_first_break_multiplier(assumptions: OptimizerAssumptions) -> OptimizerAssumptions:
+    """Fold the measured first-break multiplier from the coefficients JSON into
+    the assumptions, identically to the export path (export/schedule.py).
+
+    The build pipeline persists ``first_break_multiplier`` (1.0 when the gate did
+    not earn a value, > 1.0 when a show's first interruption measurably sheds more
+    audience). The CSV export already reads it; the live service path did not, so
+    once the self-activating gate ships a value above 1.0 the scenario/day-plan
+    numbers would silently disagree with the exported plan. We read the same JSON
+    here so both paths charge the first break the same measured cost. A missing or
+    1.0 value (the current state) leaves the assumptions unchanged, so default
+    behaviour and reported revenue are byte-identical. An explicit operator
+    override above 1.0 is respected and never lowered.
+    """
+    metadata = read_coefficients_metadata(DEFAULT_COEFFICIENTS_PATH)
+    measured = metadata.get("first_break_multiplier")
+    try:
+        measured_value = float(measured) if measured is not None else 1.0
+    except (TypeError, ValueError):
+        measured_value = 1.0
+    chosen = max(assumptions.first_break_multiplier, measured_value)
+    if chosen == assumptions.first_break_multiplier:
+        return assumptions
+    return replace(assumptions, first_break_multiplier=chosen)
+
+
 def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
     """Map the dashboard settings (minutes) onto engine Guardrails (seconds).
 
@@ -348,7 +374,7 @@ def optimize_day_plan(
     with ``run_id`` and ``created_at`` (generated here when not supplied).
     """
     pricing = pricing or PricingModel.from_yaml()
-    assumptions = assumptions or OptimizerAssumptions()
+    assumptions = _apply_first_break_multiplier(assumptions or OptimizerAssumptions())
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
     risk = risk_lambda if risk_lambda is not None else assumptions.risk_lambda
@@ -464,7 +490,7 @@ def run_scenario(
         max_breaks_per_hour=int(max_breaks_per_hour),
     )
     pricing = PricingModel.from_yaml()
-    assumptions = OptimizerAssumptions()
+    assumptions = _apply_first_break_multiplier(OptimizerAssumptions())
     impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     overrides = overrides if overrides is not None else _load_default_overrides()
     classifier = _build_classifier()

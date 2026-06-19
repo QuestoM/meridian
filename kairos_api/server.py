@@ -1505,15 +1505,35 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
     return scenarios
 
 
+def _source_file_paths() -> list[Path]:
+    """The real source files the data-quality report audits.
+
+    Single source of truth shared with ``/api/files`` so the report's row count
+    reflects the actual file set, not a magic constant.
+    """
+    return [
+        DATA_DIR / "Dayparts.csv",
+        DATA_DIR / "Programmes.csv",
+        DATA_DIR / "Spots.csv",
+        DATA_DIR / "rate_card_premiums.csv",
+        DATA_DIR / "advertiser_rules.csv",
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+        MODELS_DIR / "tv_break_posterior.pkl",
+    ]
+
+
 def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
     summary = _summarize_schedule(schedule)
     compliance = _build_compliance(schedule, settings)
+    source_files = _source_file_paths()
+    present = sum(1 for path in source_files if path.exists())
     return {
         "reports": [
             {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready", "rows": int(len(schedule)), "owner": "Traffic"},
             {"id": "compliance", "title": "Compliance and guardrails", "status": compliance["status"], "rows": len(compliance["checks"]), "owner": "Legal / Ops"},
             {"id": "revenue", "title": "Revenue forecast", "status": "ready", "rows": summary["total_breaks"], "owner": "Revenue"},
-            {"id": "data-quality", "title": "Source file audit", "status": "ready", "rows": 8, "owner": "Data"},
+            {"id": "data-quality", "title": "Source file audit", "status": "ready" if present == len(source_files) else "attention", "rows": present, "owner": "Data"},
         ]
     }
 
@@ -2055,16 +2075,7 @@ def reports() -> dict[str, Any]:
 
 @app.get("/api/files")
 def files() -> dict[str, Any]:
-    paths = [
-        DATA_DIR / "Dayparts.csv",
-        DATA_DIR / "Programmes.csv",
-        DATA_DIR / "Spots.csv",
-        DATA_DIR / "rate_card_premiums.csv",
-        DATA_DIR / "advertiser_rules.csv",
-        OUTPUT_DIR / "weekly_break_schedule.csv",
-        ROOT / "optimization_results.csv",
-        MODELS_DIR / "tv_break_posterior.pkl",
-    ]
+    paths = _source_file_paths()
     return {
         "files": [
             {
