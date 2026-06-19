@@ -11,7 +11,7 @@ display and edit it instead of relying on placeholder math.
 from __future__ import annotations
 
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
@@ -453,7 +453,13 @@ def run_scenario(
     if channel is None and day is None:
         channel, day = _first_channel_day(programmes)
 
-    guardrails = Guardrails(
+    # Start from the operator's saved guardrails so the scenario/frontier path
+    # honours every setting (ad-minutes, spacing, daily load, protected types,
+    # gold cap), not only the two the scenario slider controls. retention_floor
+    # and max_breaks_per_hour are the explicit scenario overrides on top.
+    base_guardrails = guardrails_from_settings(settings) if settings else Guardrails()
+    guardrails = replace(
+        base_guardrails,
         min_retention_floor=float(retention_floor),
         max_breaks_per_hour=int(max_breaks_per_hour),
     )
