@@ -37,6 +37,7 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   Clock3,
+  Coins,
   Database,
   Download,
   FileBarChart,
@@ -62,6 +63,7 @@ import {
 
 import UploadCenter from './UploadCenter';
 import AdvertisersManager from './AdvertisersManager';
+import PricingManager from './PricingManager';
 import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
 import FrontierScopeChart from './FrontierScopeChart';
 import YieldView from './YieldView';
@@ -236,6 +238,7 @@ const copyByLocale = {
       'Data Hub': 'Data Hub',
       'Data Center': 'Data Center',
       Advertisers: 'Advertisers',
+      Pricing: 'Pricing',
       Settings: 'Settings',
     },
     workspace: 'Revenue operations',
@@ -332,6 +335,7 @@ const copyByLocale = {
       'Data Hub': 'מרכז נתונים',
       'Data Center': 'מרכז קלט נתונים',
       Advertisers: 'מפרסמים',
+      Pricing: 'תמחור',
       Settings: 'הגדרות',
     },
     workspace: 'ניהול הכנסות מפרסום',
@@ -564,6 +568,7 @@ const navItems = [
   ['Data Hub', Database],
   ['Data Center', Upload],
   ['Advertisers', Users],
+  ['Pricing', Coins],
   ['Settings', Settings],
 ];
 
@@ -1433,6 +1438,10 @@ function TVBreakDashboard() {
 
     if (activeView === 'Advertisers') {
       return <AdvertisersManager copy={copy} locale={locale} notify={notify} />;
+    }
+
+    if (activeView === 'Pricing') {
+      return <PricingManager copy={copy} locale={locale} notify={notify} />;
     }
 
     return (

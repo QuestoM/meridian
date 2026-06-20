@@ -84,7 +84,8 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             getattr(effective, f"enable_{meta['name']}", False)
         )
         layers.append({
-            "name": meta["name"], "kind": "premium", "description": meta["description"],
+            "name": meta["name"], "kind": "premium",
+            "description": meta["description"],
             "values": _table(effective, meta["name"]),
             "defaults": _table(defaults, meta["name"]),
             "activatable": not meta["always_live"],

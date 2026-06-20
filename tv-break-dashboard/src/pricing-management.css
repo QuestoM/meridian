@@ -1,0 +1,234 @@
+/* Pricing hierarchy workspace: rate-card layer stack + price-any-slot tester. */
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-base-card,
+.pricing-layer-card,
+.pricing-tester {
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 12px;
+  background: var(--panel, #161a22);
+  padding: 16px 18px;
+}
+
+.pricing-base-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pricing-base-value input {
+  width: 110px;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: right;
+  background: var(--input-bg, #0e1117);
+  color: inherit;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.pricing-base-note {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.pricing-layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pricing-layer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pricing-layer-title {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.pricing-layer-desc {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 4px 0 0;
+}
+
+.pricing-chip {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.pricing-chip.live {
+  background: rgba(52, 199, 123, 0.16);
+  color: #34c77b;
+}
+
+.pricing-chip.off {
+  background: rgba(216, 168, 60, 0.16);
+  color: #d8a83c;
+}
+
+.pricing-chip.empty {
+  background: rgba(140, 150, 168, 0.14);
+  color: #8c96a8;
+}
+
+.pricing-multipliers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pricing-mult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.pricing-mult span {
+  opacity: 0.85;
+}
+
+.pricing-mult input {
+  width: 64px;
+  text-align: right;
+  background: var(--input-bg, #0e1117);
+  color: inherit;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.pricing-mult.edited input {
+  border-color: #7c5cff;
+}
+
+.pricing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pricing-empty {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 8px;
+}
+
+.pricing-tester {
+  position: sticky;
+  top: 12px;
+}
+
+.pricing-tester h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.pricing-tester-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.pricing-tester-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.pricing-tester-form input,
+.pricing-tester-form select {
+  background: var(--input-bg, #0e1117);
+  color: inherit;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.pricing-breakdown {
+  border-top: 1px solid var(--border, #2a2f3a);
+  padding-top: 10px;
+}
+
+.pricing-break-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.pricing-break-row .src {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.pricing-break-row.off {
+  opacity: 0.55;
+}
+
+.pricing-break-row.off .mult {
+  text-decoration: line-through;
+}
+
+.pricing-break-row.total {
+  border-top: 1px solid var(--border, #2a2f3a);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.pricing-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.pricing-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--border, #2a2f3a);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  background: rgba(124, 92, 255, 0.06);
+}
