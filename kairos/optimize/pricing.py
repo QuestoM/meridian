@@ -34,6 +34,22 @@ _MIDDLE_KEY = "default_middle"
 _LAST_KEY = "last"
 
 
+def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge ``overrides`` onto a copy of ``base`` (overrides win).
+
+    Nested dicts merge key by key so an operator can override a single premium (for
+    example position 2) without resupplying the whole table. Non-dict values replace.
+    """
+    merged = dict(base)
+    for key, value in (overrides or {}).items():
+        existing = merged.get(key)
+        if isinstance(existing, dict) and isinstance(value, dict):
+            merged[key] = _deep_merge(existing, value)
+        else:
+            merged[key] = value
+    return merged
+
+
 @dataclass(frozen=True)
 class PriceLayer:
     """One named multiplicative layer in a slot price, with its provenance.
@@ -128,11 +144,21 @@ class PricingModel:
     ad_type_premiums: dict[str, float] = field(default_factory=dict)
     position_premiums: dict[Any, float] = field(default_factory=dict)
     day_of_week_premiums: dict[int, float] = field(default_factory=dict)
+    # Per-show premium keyed on the literal programme title (decision 2026-06-20:
+    # title string for v1). Distinct from the program_type class, stacks on top of it.
+    show_premiums: dict[str, float] = field(default_factory=dict)
+    # Per-layer activation. A layer is multiplied into the live price only when its flag
+    # is on. Position and ad-type default OFF because their configured multipliers are not
+    # 1.0, so turning them on is a deliberate, dashboard-driven revenue change that the
+    # operator sees in the tester, never a silent restatement (docs/pricing-hierarchy-*).
+    enable_position: bool = False
+    enable_ad_type: bool = False
+    enable_show: bool = False
 
     def __post_init__(self) -> None:
         if self.base_price_per_second_per_tvr_point < 0:
             raise ValueError("base_price_per_second_per_tvr_point must be non-negative")
-        for table_name in ("program_type_premiums", "ad_type_premiums", "day_of_week_premiums"):
+        for table_name in ("program_type_premiums", "ad_type_premiums", "day_of_week_premiums", "show_premiums"):
             for key, value in getattr(self, table_name).items():
                 if value < 0:
                     raise ValueError(f"{table_name}[{key!r}] must be non-negative")
@@ -141,6 +167,7 @@ class PricingModel:
     def from_weights(cls, weights: dict[str, Any]) -> "PricingModel":
         premiums = (weights or {}).get("premiums") or {}
         day_raw = premiums.get("day_of_week") or {}
+        activation = (weights or {}).get("pricing_activation") or {}
         return cls(
             base_price_per_second_per_tvr_point=float(
                 (weights or {}).get("base_price_per_second_per_tvr_point", 0.0)
@@ -149,6 +176,10 @@ class PricingModel:
             ad_type_premiums={str(k): float(v) for k, v in (premiums.get("ad_type") or {}).items()},
             position_premiums=dict(premiums.get("position_in_break") or {}),
             day_of_week_premiums={int(k): float(v) for k, v in day_raw.items()},
+            show_premiums={str(k): float(v) for k, v in (premiums.get("show") or {}).items()},
+            enable_position=bool(activation.get("position", False)),
+            enable_ad_type=bool(activation.get("ad_type", False)),
+            enable_show=bool(activation.get("show", False)),
         )
 
     @classmethod
@@ -156,6 +187,24 @@ class PricingModel:
         path = Path(path) if path else DEFAULT_WEIGHTS_PATH
         with open(path, "r", encoding="utf-8") as handle:
             return cls.from_weights(yaml.safe_load(handle) or {})
+
+    @classmethod
+    def from_config(
+        cls, overrides: dict[str, Any] | None = None, path: str | Path | None = None
+    ) -> "PricingModel":
+        """Load the YAML rate card, then deep-merge the operator's dashboard overrides.
+
+        ``overrides`` carries exactly what the operator edits in the dashboard (a base
+        price, per-table premium edits, per-show premiums, and the per-layer activation
+        flags), in the same nested shape as the YAML. An empty or absent override is an
+        exact identity to :meth:`from_yaml`, so the rate card is unchanged until the
+        operator touches it. This is the single constructor the live revenue path uses so
+        a dashboard edit reaches the optimizer, the dashboard and the spot export alike.
+        """
+        path = Path(path) if path else DEFAULT_WEIGHTS_PATH
+        with open(path, "r", encoding="utf-8") as handle:
+            base = yaml.safe_load(handle) or {}
+        return cls.from_weights(_deep_merge(base, overrides or {}))
 
     @property
     def base_price(self) -> float:
@@ -174,6 +223,16 @@ class PricingModel:
 
     def ad_type_premium(self, ad_type: str) -> float:
         return self.ad_type_premiums.get(ad_type, 1.0)
+
+    def show_premium(self, title: str | None) -> float:
+        """Premium for a specific programme title (for example Big Brother).
+
+        Unknown or missing titles return 1.0 (no effect), so a show without a
+        configured premium never zeroes revenue.
+        """
+        if not title:
+            return 1.0
+        return self.show_premiums.get(title, 1.0)
 
     def day_premium(self, weekday_iso: int) -> float:
         """Premium for an ISO weekday (1 = Monday ... 7 = Sunday)."""
@@ -207,36 +266,43 @@ class PricingModel:
         *,
         pricing_class: str,
         weekday_iso: int,
+        show: str | None = None,
         position: int | None = None,
         break_size: int | None = None,
         ad_type: str | None = None,
         base_cpp: float | None = None,
-        enable_position: bool = False,
-        enable_ad_type: bool = False,
+        enable_show: bool | None = None,
+        enable_position: bool | None = None,
+        enable_ad_type: bool | None = None,
     ) -> PriceBreakdown:
         """Compose a slot price as base CPP times named, traceable premium layers.
 
-        By default only the program-class and day layers are active, so the
-        returned ``total_premium`` equals :meth:`segment_premium` exactly: the same
-        number the optimizer and dashboard already produce, now with a per-layer
-        breakdown that names every premium and its source. ``base_cpp`` defaults to
-        the configured channel base; pass a value for a per-advertiser negotiated
-        base.
+        Canonical layer order: program, day, show, position, ad-type. By default
+        (every activation flag off, the engine's shipped state) only the program-class
+        and day layers are active, so the returned ``total_premium`` equals
+        :meth:`segment_premium` exactly: the same number the optimizer and dashboard
+        already produce, now with a per-layer breakdown that names every premium and
+        its source. ``base_cpp`` defaults to the configured channel base; pass a value
+        for a per-advertiser negotiated base.
 
-        The position and ad-type layers are wired but OFF by default. Their
-        configured multipliers are not 1.0 (a first-position premium, a zero promo
-        rate), so switching them on is a real revenue change that the owner approves
-        deliberately (``enable_position`` / ``enable_ad_type``), never a silent one.
-        This keeps the composition primitive identity-preserving until the staged
-        pricing-hierarchy rollout activates each layer.
+        The show, position and ad-type layers are wired but default OFF (their
+        configured multipliers are not 1.0), so switching them on is a deliberate,
+        dashboard-driven revenue change the operator sees, never a silent one. Each
+        ``enable_*`` argument defaults to the model-level flag (set from the operator's
+        saved pricing config); pass an explicit bool to force a single call.
         """
         base = self.base_price if base_cpp is None else float(base_cpp)
+        use_show = self.enable_show if enable_show is None else enable_show
+        use_position = self.enable_position if enable_position is None else enable_position
+        use_ad_type = self.enable_ad_type if enable_ad_type is None else enable_ad_type
         layers: list[PriceLayer] = [
             PriceLayer("program", self.program_premium(pricing_class)),
             PriceLayer("day", self.day_premium(weekday_iso)),
         ]
-        if enable_position and position is not None and break_size is not None:
+        if use_show and show:
+            layers.append(PriceLayer("show", self.show_premium(show)))
+        if use_position and position is not None and break_size is not None:
             layers.append(PriceLayer("position", self.position_premium(position, break_size)))
-        if enable_ad_type and ad_type is not None:
+        if use_ad_type and ad_type is not None:
             layers.append(PriceLayer("ad_type", self.ad_type_premium(ad_type)))
         return PriceBreakdown(base_cpp=base, layers=tuple(layers))

@@ -172,12 +172,25 @@ build spec.
 Law 9: every number on every surface traces to base x named layers x named
 overrides, each line labeled with its source.
 
-## 5. Open decisions for the owner
-- Base per advertiser: is the negotiated base a per-advertiser base override, or do
-  all advertisers share one channel base with only premium overrides? Default
-  assumption: shared base, per-advertiser base override allowed.
-- Show identity: price per literal title string, or introduce a stable show id that
-  survives title spelling changes? Default assumption: title string for v1, show id
-  later.
-- Campaign granularity: is a campaign always within one advertiser (campaign implies
-  advertiser), so campaign scope alone is enough? Default assumption: yes.
+## 5. Decisions (owner delegated, decided 2026-06-20)
+
+The owner handed the reins with one standing requirement: everything reflects in the
+dashboard, and everything that needs tuning is tunable there at every level. These are
+the resolved decisions, not open questions.
+
+- Base per advertiser: DECIDED shared channel base plus a per-advertiser negotiated base
+  override. `price_slot(base_cpp=...)` already accepts the override; the dashboard sets
+  the channel base and, per advertiser, an optional base override.
+- Show identity: DECIDED literal title string for v1. Israeli prime titles (for example
+  אח הגדול) are stable within a season; a stable show id is a later migration, not a v1
+  blocker.
+- Campaign granularity: DECIDED a campaign always belongs to one advertiser (campaign
+  implies advertiser). The dashboard disables the campaign field until an advertiser is
+  chosen.
+- Layer activation (position, ad-type): DECIDED ship them fully tunable and toggleable
+  from the dashboard at every level (edit each multiplier, flip activation per layer).
+  Default activation stays OFF, because flipping unvalidated multipliers live would
+  silently restate every historical revenue figure. Turning a layer ON is a one-click
+  dashboard action that visibly restates the price in the tester, so the operator owns a
+  real-money rate-card decision with full sight of its effect. This is the honest form of
+  "tunable at every level": real control in the dashboard, no silent revenue change.

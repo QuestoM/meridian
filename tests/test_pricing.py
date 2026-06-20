@@ -120,6 +120,52 @@ def test_price_slot_accepts_per_advertiser_base(pricing: PricingModel) -> None:
     assert breakdown.final_cpp == pytest.approx(80.0)
 
 
+def test_from_config_empty_overrides_is_identity_to_from_yaml() -> None:
+    """No operator overrides must reproduce the YAML rate card exactly."""
+    yaml_model = PricingModel.from_yaml()
+    config_model = PricingModel.from_config({})
+    assert config_model.base_price == yaml_model.base_price
+    assert config_model.program_type_premiums == yaml_model.program_type_premiums
+    assert config_model.position_premiums == yaml_model.position_premiums
+    # Activation flags ship OFF, so the live premium is unchanged.
+    assert config_model.enable_position is False
+    assert config_model.enable_ad_type is False
+    assert config_model.enable_show is False
+
+
+def test_from_config_merges_a_single_premium_without_dropping_the_table() -> None:
+    """A one-key override edits that value and leaves the rest of the table intact."""
+    model = PricingModel.from_config(
+        {"premiums": {"program_type": {"News": 1.25}}}
+    )
+    assert model.program_premium("News") == 1.25       # the operator's edit
+    assert model.program_premium("PrimeShow1") == 1.10  # untouched YAML value
+
+
+def test_from_config_activates_a_layer_via_overrides() -> None:
+    model = PricingModel.from_config({"pricing_activation": {"position": True}})
+    assert model.enable_position is True
+    breakdown = model.price_slot(
+        pricing_class="News", weekday_iso=1, position=1, break_size=5
+    )
+    assert [layer.name for layer in breakdown.layers] == ["program", "day", "position"]
+    assert breakdown.total_premium == pytest.approx(1.15 * 1.00 * 1.30)
+
+
+def test_show_premium_layer(pricing: PricingModel) -> None:
+    assert pricing.show_premium("Big Brother") == 1.0   # nothing configured, no effect
+    model = PricingModel.from_config(
+        {"premiums": {"show": {"Big Brother": 1.25}}, "pricing_activation": {"show": True}}
+    )
+    assert model.show_premium("Big Brother") == 1.25
+    breakdown = model.price_slot(pricing_class="News", weekday_iso=1, show="Big Brother")
+    assert [layer.name for layer in breakdown.layers] == ["program", "day", "show"]
+    assert breakdown.total_premium == pytest.approx(1.15 * 1.00 * 1.25)
+    # A show with no configured premium leaves the price unchanged even when on.
+    plain = model.price_slot(pricing_class="News", weekday_iso=1, show="Unknown Show")
+    assert plain.total_premium == pytest.approx(1.15)
+
+
 def test_from_weights_reads_a_plain_dict() -> None:
     model = PricingModel.from_weights({
         "base_price_per_second_per_tvr_point": 50.0,
