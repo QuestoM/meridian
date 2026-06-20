@@ -144,6 +144,19 @@ class Condition:
     scope_genres: frozenset[str] = frozenset()
     scope_dayparts: frozenset[str] = frozenset()
     scope_programmes: frozenset[str] = frozenset()
+    # S6: a campaign always belongs to one advertiser, so a campaign-scoped rule
+    # narrows this advertiser's rule to specific campaigns. Empty = ANY campaign.
+    scope_campaigns: frozenset[str] = frozenset()
+    # S5: which named rate-card layer a PREMIUM rule REPLACES, instead of stacking
+    # on the running premium. "" (the default) keeps the legacy whole-stack
+    # behavior so every existing rule is byte-identical. A non-empty target_layer
+    # (one of program/prime/day/show/position/ad_type, or "final" for an
+    # adjust-the-whole-price rule) makes the rule a per-layer or final override,
+    # consumed by kairos.optimize.layer_overrides; the legacy effective_premium
+    # path ignores targeted rules so charged revenue is unchanged until the
+    # layered spot-pricing path is switched on.
+    target_layer: str = ""
+    priority: int = 0
     notes: str = ""
 
     def matches(
@@ -153,15 +166,29 @@ class Condition:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        campaign: Optional[str] = None,
     ) -> bool:
-        """True when an observed (position, genre, daypart, programme) is in scope."""
+        """True when an observed (position, genre, daypart, programme, campaign) is in scope."""
         position_token = None if position is None else str(position)
         return (
             _dimension_matches(self.scope_positions, position_token)
             and _dimension_matches(self.scope_genres, genre)
             and _dimension_matches(self.scope_dayparts, daypart)
             and _dimension_matches(self.scope_programmes, programme)
+            and _dimension_matches(self.scope_campaigns, campaign)
         )
+
+    def specificity(self) -> int:
+        """How many scope dimensions this rule constrains (more = more specific).
+
+        Used by the most-specific-wins resolver (S7): a rule scoped to advertiser +
+        campaign + position is more specific than one scoped to advertiser + position,
+        so it wins per layer. An empty scope set counts as unconstrained (ANY).
+        """
+        return sum(1 for s in (
+            self.scope_positions, self.scope_genres, self.scope_dayparts,
+            self.scope_programmes, self.scope_campaigns,
+        ) if s)
 
     def scope_intersects(self, other: "Condition") -> bool:
         """True when this rule's scope can describe the same spot as ``other``."""
@@ -170,6 +197,7 @@ class Condition:
             and _scopes_intersect(self.scope_genres, other.scope_genres)
             and _scopes_intersect(self.scope_dayparts, other.scope_dayparts)
             and _scopes_intersect(self.scope_programmes, other.scope_programmes)
+            and _scopes_intersect(self.scope_campaigns, other.scope_campaigns)
         )
 
 
@@ -265,6 +293,8 @@ class AdvertiserRuleEngine:
         baseline = self.baselines.get(advertiser_id)
         premium = baseline.default_premium if baseline is not None else 1.0
         for condition in self._conditions_for(advertiser_id):
+            if condition.target_layer:
+                continue  # targeted layer/final override: handled by the layered path
             if condition.effect == PREMIUM and condition.matches(
                 position=position, genre=genre, daypart=daypart, programme=programme
             ):

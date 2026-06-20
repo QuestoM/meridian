@@ -177,5 +177,8 @@ def condition_from_row(row: dict[str, str]) -> "Optional[Condition]":
         scope_genres=scope_tokens(row.get("scope_genres")),
         scope_dayparts=scope_tokens(row.get("scope_dayparts")),
         scope_programmes=scope_tokens(row.get("scope_programmes")),
+        scope_campaigns=scope_tokens(row.get("scope_campaigns")),
+        target_layer=str(row.get("target_layer", "")).strip().lower(),
+        priority=int(parse_float(row.get("priority"), 0.0)),
         notes=str(row.get("notes", "")),
     )
