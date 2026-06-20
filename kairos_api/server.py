@@ -1758,9 +1758,15 @@ app = FastAPI(
     description="Operational API for TV ad break revenue optimization.",
 )
 
+# Default to the local dashboard origins: the Vite dev server (5173/5174) and a
+# 3000 fallback, on both localhost and 127.0.0.1. Without the dev port here the
+# browser blocks the cross-origin fetch and the dashboard shows its offline "demo
+# data" fallback. Override with KAIROS_CORS_ORIGINS for a deployed origin.
 allowed_origins = os.getenv(
     "KAIROS_CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
+    "http://localhost:3000,http://127.0.0.1:3000,"
+    "http://localhost:5173,http://127.0.0.1:5173,"
+    "http://localhost:5174,http://127.0.0.1:5174",
 ).split(",")
 
 app.add_middleware(
