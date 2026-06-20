@@ -24,7 +24,10 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from kairos.optimize.pricing import PricingModel, _deep_merge
+from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
+from kairos.optimize.layer_overrides import apply_overrides, resolve_layer_overrides
+from kairos.optimize.price_guardrails import Guardrails
+from kairos.optimize.pricing import PriceBreakdown, PricingModel, _deep_merge
 
 router = APIRouter(tags=["pricing"])
 
@@ -123,7 +126,13 @@ class PricingUpdate(BaseModel):
 
 
 class PriceSlotRequest(BaseModel):
-    """Inputs for the price-any-slot tester. Only class and weekday are required."""
+    """Inputs for the price-any-slot tester. Only class and weekday are required.
+
+    ``advertiser`` and ``campaign`` opt the slot into the per-layer override path:
+    when an advertiser is given, the tester resolves and applies that advertiser's
+    (and campaign's) targeted layer/final overrides on top of the rate card, so the
+    operator sees exactly what a scoped rule does to the price.
+    """
 
     pricing_class: str = "Other"
     weekday_iso: int = Field(default=1, ge=1, le=7)
@@ -132,6 +141,10 @@ class PriceSlotRequest(BaseModel):
     break_size: Optional[int] = Field(default=None, ge=1)
     ad_type: Optional[str] = None
     advertiser_base: Optional[float] = Field(default=None, ge=0)
+    advertiser: Optional[str] = None
+    campaign: Optional[str] = None
+    genre: Optional[str] = None
+    daypart: Optional[str] = None
 
 
 # These three helpers are imported lazily from server.py to avoid an import cycle at
@@ -169,6 +182,26 @@ def put_pricing(update: PricingUpdate) -> dict[str, Any]:
     return _state_payload(settings)
 
 
+def _advertiser_overrides(req: PriceSlotRequest, breakdown: PriceBreakdown) -> Any:
+    """Resolve this advertiser/campaign's targeted overrides for the slot, or None.
+
+    Returns the OverrideResolution when an advertiser is named and has at least one
+    matching targeted rule, so the tester shows exactly what a scoped rule does to the
+    price. With no advertiser (or no matching rule) the rate-card price stands unchanged.
+    """
+    if not req.advertiser:
+        return None
+    engine = AdvertiserRuleEngine.from_files()
+    resolution = resolve_layer_overrides(
+        engine, req.advertiser,
+        position=req.position, genre=req.genre, daypart=req.daypart,
+        programme=req.show, campaign=req.campaign, base_cpp=breakdown.base_cpp,
+    )
+    if not resolution.layer_overrides and not resolution.final_overrides:
+        return None
+    return resolution
+
+
 @router.post("/api/pricing/price-slot")
 def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
     """Price one slot with a full per-layer breakdown (the price-any-slot tester).
@@ -176,6 +209,11 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
     Uses the operator's saved rate card. Each layer names its multiplier and source, and
     the live total only multiplies the layers active today, so the tester never overstates
     the price. A struck-through "wired_off" line shows a configured-but-not-applied layer.
+
+    When an advertiser (and optionally a campaign) is named, the tester resolves and
+    applies that advertiser's targeted per-layer and final overrides on top of the rate
+    card, so the operator sees exactly what a scoped rule does. Final-CPP guardrails run
+    on the resulting price and any breach is surfaced as a named warning, never clamped.
     """
     load, _ = _settings_io()
     settings = load()
@@ -190,6 +228,23 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
         ad_type=req.ad_type,
         base_cpp=req.advertiser_base,
     )
+
+    # Apply this advertiser's scoped overrides (per-layer REPLACE / final adjust), if any.
+    resolution = _advertiser_overrides(req, breakdown)
+    applied_overrides: list[dict[str, Any]] = []
+    shadowed_overrides: list[dict[str, Any]] = []
+    if resolution is not None:
+        breakdown = apply_overrides(breakdown, resolution)
+        applied_overrides = [
+            {"rule_id": o.rule_id, "target_layer": o.target_layer, "multiplier": o.multiplier}
+            for o in (*resolution.layer_overrides, *resolution.final_overrides)
+        ]
+        shadowed_overrides = [
+            {"rule_id": s.rule_id, "target_layer": s.target_layer,
+             "winner_rule_id": s.winner_rule_id, "reason": s.reason}
+            for s in resolution.shadowed
+        ]
+
     live_layers = [
         {"name": layer.name, "multiplier": layer.multiplier, "source": layer.source}
         for layer in breakdown.layers
@@ -208,10 +263,19 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
     if not model.enable_ad_type and req.ad_type and model.ad_type_premium(req.ad_type) != 1.0:
         wired_off.append({"name": "ad_type", "multiplier": model.ad_type_premium(req.ad_type),
                           "source": "rate_card", "applied": False})
+
+    # Final-CPP guardrails: surface a breach, never silently clamp the price.
+    warnings = [
+        {"code": w.code, "bound": w.bound, "message": w.message}
+        for w in Guardrails.from_config(overrides).check(breakdown)
+    ]
     return {
         "base_cpp": breakdown.base_cpp,
         "layers": live_layers,
         "wired_off_layers": wired_off,
+        "applied_overrides": applied_overrides,
+        "shadowed_overrides": shadowed_overrides,
+        "guardrail_warnings": warnings,
         "total_premium": breakdown.total_premium,
         "final_cpp": breakdown.final_cpp,
         "currency": getattr(settings, "currency", "ILS"),

@@ -1,4 +1,4 @@
-"""Tests for per-layer and per-final advertiser overrides (S5-S7).
+"""Tests for per-layer and per-final advertiser overrides.
 
 These prove the owner's model: a scoped advertiser/campaign rule REPLACES exactly
 one named layer (the position-2 example), most-specific-wins resolves competing
@@ -68,7 +68,7 @@ def test_replace_position_layer_for_advertiser() -> None:
 
 
 def test_most_specific_wins_per_layer() -> None:
-    """A campaign+position rule beats an advertiser-wide position rule (S7)."""
+    """A campaign+position rule beats an advertiser-wide position rule."""
     engine = _engine(
         Condition(advertiser_id="X", rule_id="wide", effect="premium", value=0.95,
                   target_layer="position", scope_positions=frozenset({"2"})),
@@ -84,7 +84,7 @@ def test_most_specific_wins_per_layer() -> None:
 
 
 def test_campaign_scope_excludes_other_campaign() -> None:
-    """A campaign-scoped rule must not match a different campaign (S6)."""
+    """A campaign-scoped rule must not match a different campaign."""
     engine = _engine(Condition(
         advertiser_id="X", rule_id="camp", effect="premium", value=0.80,
         target_layer="position", scope_positions=frozenset({"2"}),

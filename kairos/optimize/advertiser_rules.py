@@ -144,10 +144,10 @@ class Condition:
     scope_genres: frozenset[str] = frozenset()
     scope_dayparts: frozenset[str] = frozenset()
     scope_programmes: frozenset[str] = frozenset()
-    # S6: a campaign always belongs to one advertiser, so a campaign-scoped rule
+    # A campaign always belongs to one advertiser, so a campaign-scoped rule
     # narrows this advertiser's rule to specific campaigns. Empty = ANY campaign.
     scope_campaigns: frozenset[str] = frozenset()
-    # S5: which named rate-card layer a PREMIUM rule REPLACES, instead of stacking
+    # Which named rate-card layer a PREMIUM rule REPLACES, instead of stacking
     # on the running premium. "" (the default) keeps the legacy whole-stack
     # behavior so every existing rule is byte-identical. A non-empty target_layer
     # (one of program/prime/day/show/position/ad_type, or "final" for an
@@ -181,7 +181,7 @@ class Condition:
     def specificity(self) -> int:
         """How many scope dimensions this rule constrains (more = more specific).
 
-        Used by the most-specific-wins resolver (S7): a rule scoped to advertiser +
+        Used by the most-specific-wins resolver: a rule scoped to advertiser +
         campaign + position is more specific than one scoped to advertiser + position,
         so it wins per layer. An empty scope set counts as unconstrained (ANY).
         """

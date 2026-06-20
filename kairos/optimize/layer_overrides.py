@@ -1,4 +1,4 @@
-"""Per-layer and per-final advertiser overrides on the rate-card breakdown (S5-S7).
+"""Per-layer and per-final advertiser overrides on the rate-card breakdown.
 
 The owner's pricing model: a slot's price is base CPP times a stack of named
 premium layers (prime, show, position, ad-type), and a scoped advertiser or
@@ -10,15 +10,15 @@ This module is the resolution + application step that makes that real, composing
 :class:`~kairos.optimize.advertiser_rules.AdvertiserRuleEngine` conditions onto a
 :class:`~kairos.optimize.pricing.PriceBreakdown`:
 
-  * S5 (per-layer REPLACE): a PREMIUM condition whose ``target_layer`` names a
-    layer swaps that layer's multiplier for the matched scope. Other layers still
-    stack. ``target_layer == "final"`` adjusts the whole composed price instead.
-  * S6 (campaign scope): conditions carry ``scope_campaigns``; a campaign always
-    belongs to one advertiser, so a campaign-scoped rule narrows that advertiser's
-    rule to specific campaigns.
-  * S7 (most-specific-wins): when several REPLACE rules target the same layer for
-    one slot, the most specific (most matched scope dimensions) wins; ties break on
-    an explicit ``priority`` then CSV row order. Shadowed rules are reported, not
+  * Per-layer REPLACE: a PREMIUM condition whose ``target_layer`` names a layer
+    swaps that layer's multiplier for the matched scope. Other layers still stack.
+    ``target_layer == "final"`` adjusts the whole composed price instead.
+  * Campaign scope: conditions carry ``scope_campaigns``; a campaign always belongs
+    to one advertiser, so a campaign-scoped rule narrows that advertiser's rule to
+    specific campaigns.
+  * Most-specific-wins: when several REPLACE rules target the same layer for one
+    slot, the most specific (most matched scope dimensions) wins; ties break on an
+    explicit ``priority`` then CSV row order. Shadowed rules are reported, not
     silently dropped, so the dashboard precedence preview can grey them out.
 
 Honesty: a rule with an empty ``target_layer`` is a legacy whole-stack premium and
@@ -91,7 +91,7 @@ def resolve_layer_overrides(
     campaign: Optional[str] = None,
     base_cpp: Optional[float] = None,
 ) -> OverrideResolution:
-    """Resolve targeted overrides for one slot, most-specific-wins per layer (S7).
+    """Resolve targeted overrides for one slot, most-specific-wins per layer.
 
     Only PREMIUM conditions with a non-empty ``target_layer`` that match the slot's
     scope take part; legacy whole-stack rules are ignored here. For each named
@@ -143,7 +143,7 @@ def resolve_layer_overrides(
 
 
 def apply_overrides(breakdown: PriceBreakdown, resolution: OverrideResolution) -> PriceBreakdown:
-    """Return a new breakdown with the resolved overrides applied (S5).
+    """Return a new breakdown with the resolved overrides applied.
 
     A per-layer override replaces that named layer's multiplier in place (or injects
     the layer in canonical order if it is not currently active, so an advertiser can
