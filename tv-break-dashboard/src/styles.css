@@ -79,9 +79,16 @@ button {
   direction: ltr;
 }
 
-.numeric,
-.numeric-cell {
+.numeric {
   direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table numeric cells let the content's own dir="auto" decide direction, so a
+   bare number stays left-to-right while a number plus a Hebrew unit (for example
+   "8 דק׳") reads right-to-left correctly. Forcing ltr here reversed the unit. */
+.numeric-cell {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
@@ -2219,8 +2226,12 @@ button {
   padding: 0 12px;
 }
 
-.kairos-shell.rtl .status-badge {
-  justify-content: flex-end;
+/* Under RTL the flex main axis is mirrored, so the reading start (physical right)
+   is flex-start. Align the status pill and numeric cells there so Hebrew content
+   sits on the right of its cell instead of being pushed to the left. */
+.kairos-shell.rtl .status-badge,
+.kairos-shell.rtl .numeric-cell {
+  justify-content: flex-start;
 }
 
 .status-badge.ready,

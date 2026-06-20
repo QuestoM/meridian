@@ -2133,7 +2133,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
         isNumeric ? 'numeric-cell' : '',
         column.status ? 'status-grid-content' : '',
       ].filter(Boolean).join(' ');
-      return <span className={className}>{value}</span>;
+      return <span className={className} dir="auto">{value}</span>;
     },
     align: column.align || (column.numeric || numericKeys.has(column.key) ? 'right' : locale === 'he' ? 'right' : 'left'),
     headerAlign:
