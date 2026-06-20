@@ -143,6 +143,15 @@ class KairosSettings(BaseModel):
     pacing_ahead_k: float = Field(default=1.0, ge=0, le=10)
     pacing_weight_floor: float = Field(default=0.5, ge=0, le=1)
     pacing_epsilon: float = Field(default=0.05, ge=0.001, le=1)
+    # Pricing hierarchy overrides: the operator's dashboard edits to the rate card, in
+    # the same nested shape as config/optimization_weights.yaml (base_price_per_second_
+    # per_tvr_point, premiums.{program_type,day_of_week,position_in_break,ad_type,show},
+    # pricing_activation.{position,ad_type,show}). Deep-merged onto the YAML defaults by
+    # PricingModel.from_config, so an empty dict is an exact identity to the shipped rate
+    # card: the optimizer, dashboard and export are unchanged until the operator edits a
+    # value. Default-OFF activation keeps revenue unchanged until the operator opts in.
+    # See docs/pricing-hierarchy-design.md and the /api/pricing endpoints.
+    pricing_overrides: dict[str, Any] = Field(default_factory=dict)
 
 
 def _safe_path(relative_path: str) -> Path:
@@ -1813,6 +1822,7 @@ from kairos_api.constraints import router as constraints_router  # noqa: E402
 from kairos_api.exporters import router as exporters_router  # noqa: E402
 from kairos_api.overrides import router as overrides_router  # noqa: E402
 from kairos_api.phase_b import router as phase_b_router  # noqa: E402
+from kairos_api.pricing_api import router as pricing_router  # noqa: E402
 from kairos_api.uploads import router as uploads_router  # noqa: E402
 
 app.include_router(uploads_router)
@@ -1822,6 +1832,7 @@ app.include_router(exporters_router)
 app.include_router(overrides_router)
 app.include_router(constraints_router)
 app.include_router(phase_b_router)
+app.include_router(pricing_router)
 
 
 @app.get("/api/health")

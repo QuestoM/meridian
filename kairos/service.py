@@ -46,7 +46,7 @@ from kairos.optimize.pacing import (
 )
 from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
-from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 
 SECONDS_PER_MINUTE = 60.0
 SECONDS_PER_HOUR = 3600.0
@@ -373,7 +373,7 @@ def optimize_day_plan(
     is set, the run is appended to ``output/run_log.jsonl`` for audit, stamped
     with ``run_id`` and ``created_at`` (generated here when not supplied).
     """
-    pricing = pricing or PricingModel.from_yaml()
+    pricing = pricing_from_settings(settings, pricing)
     assumptions = _apply_first_break_multiplier(assumptions or OptimizerAssumptions())
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
@@ -489,7 +489,7 @@ def run_scenario(
         min_retention_floor=float(retention_floor),
         max_breaks_per_hour=int(max_breaks_per_hour),
     )
-    pricing = PricingModel.from_yaml()
+    pricing = pricing_from_settings(settings)
     assumptions = _apply_first_break_multiplier(OptimizerAssumptions())
     impact_model = load_impact_model(DEFAULT_IMPACT_MODEL_PATH, assumptions=assumptions)
     overrides = overrides if overrides is not None else _load_default_overrides()

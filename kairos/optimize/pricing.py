@@ -34,6 +34,31 @@ _MIDDLE_KEY = "default_middle"
 _LAST_KEY = "last"
 
 
+def pricing_from_settings(
+    settings: Any = None, pricing: "PricingModel | None" = None
+) -> "PricingModel":
+    """Build the live PricingModel, honoring the operator's saved dashboard edits.
+
+    The single seam the revenue path uses so a dashboard pricing edit reaches the
+    optimizer, the dashboard forecast and the spot export without per-call-site
+    plumbing. An explicit ``pricing`` wins (test or override). Otherwise the
+    operator's ``pricing_overrides`` are read from ``settings`` (a KairosSettings
+    model or a plain mapping) and merged onto the YAML rate card. No settings or
+    empty overrides is an exact identity to the YAML, so the rate card is unchanged
+    until the operator edits it in the dashboard.
+    """
+    if pricing is not None:
+        return pricing
+    overrides: dict[str, Any] = {}
+    if settings is not None:
+        raw = getattr(settings, "pricing_overrides", None)
+        if raw is None and hasattr(settings, "get"):
+            raw = settings.get("pricing_overrides")
+        if isinstance(raw, dict):
+            overrides = raw
+    return PricingModel.from_config(overrides)
+
+
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge ``overrides`` onto a copy of ``base`` (overrides win).
 

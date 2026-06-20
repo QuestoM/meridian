@@ -39,7 +39,7 @@ from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pacing import build_pacing_weights, load_campaigns
-from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 from kairos.service import (
     _pacing_knobs_from_settings,
     _parse_pacing_date,
@@ -240,7 +240,7 @@ def build_weekly_schedule(
     pacing signals fold into demand_weights and steer placement only; with no
     inventory file and no campaign rows the schedule is byte-identical to today.
     """
-    pricing = pricing or PricingModel.from_yaml()
+    pricing = pricing_from_settings(settings, pricing)
     assumptions = assumptions or OptimizerAssumptions()
     classifier = classifier or ProgramClassifier.from_yaml()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
