@@ -152,6 +152,23 @@ def test_from_config_activates_a_layer_via_overrides() -> None:
     assert breakdown.total_premium == pytest.approx(1.15 * 1.00 * 1.30)
 
 
+def test_from_config_position_override_with_string_key_takes_effect() -> None:
+    """A dashboard edit arrives as a JSON-string position key ("2"); it must apply.
+
+    JSON object keys are always strings, so an operator edit to position 2 reaches the
+    engine as {"2": 1.5}. position_premium looks up the int 2, so from_weights has to
+    coerce the numeric key to int or the edit would silently no-op. The named keys
+    (last, default_middle) must stay strings.
+    """
+    model = PricingModel.from_config(
+        {"premiums": {"position_in_break": {"2": 1.5}}, "pricing_activation": {"position": True}}
+    )
+    assert model.position_premium(2, break_size=5) == 1.5      # the operator's edit took effect
+    assert model.position_premium(1, break_size=5) == 1.30     # untouched YAML value
+    breakdown = model.price_slot(pricing_class="News", weekday_iso=1, position=2, break_size=5)
+    assert breakdown.total_premium == pytest.approx(1.15 * 1.00 * 1.5)
+
+
 def test_show_premium_layer(pricing: PricingModel) -> None:
     assert pricing.show_premium("Big Brother") == 1.0   # nothing configured, no effect
     model = PricingModel.from_config(

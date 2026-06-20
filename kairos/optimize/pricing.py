@@ -199,7 +199,10 @@ class PricingModel:
             ),
             program_type_premiums={str(k): float(v) for k, v in (premiums.get("program_type") or {}).items()},
             ad_type_premiums={str(k): float(v) for k, v in (premiums.get("ad_type") or {}).items()},
-            position_premiums=dict(premiums.get("position_in_break") or {}),
+            position_premiums={
+                (int(k) if str(k).lstrip("-").isdigit() else str(k)): float(v)
+                for k, v in (premiums.get("position_in_break") or {}).items()
+            },
             day_of_week_premiums={int(k): float(v) for k, v in day_raw.items()},
             show_premiums={str(k): float(v) for k, v in (premiums.get("show") or {}).items()},
             enable_position=bool(activation.get("position", False)),
