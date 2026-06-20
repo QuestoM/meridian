@@ -3534,6 +3534,12 @@ button {
   letter-spacing: 0.02em;
 }
 
+.adv-field-label-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .adv-premium-field,
 .adv-chip-field,
 .adv-id-field,

@@ -57,6 +57,22 @@ function ChipField({ label, presets, value, onChange, locale }) {
   );
 }
 
+// A field label with an info tooltip. Used for the pacing-strength knobs where the
+// operator needs the real channel default (1.0) and a worked example spelled out, so
+// a blank field and a typed value both read unambiguously (no hidden defaults).
+function InfoLabel({ label, help }) {
+  return (
+    <span className="adv-field-label adv-field-label-info">
+      {label}
+      <Tooltip title={help} arrow placement="top">
+        <span className="amz-stat-info" tabIndex={0} role="img" aria-label={help}>
+          <Info size={11} />
+        </span>
+      </Tooltip>
+    </span>
+  );
+}
+
 // One read-only stat tile in the drawer header with a provenance tooltip.
 function StatTile({ label, value, delta, tone, provenance }) {
   const shown = value === null || value === undefined || value === '' ? '-' : value;
@@ -140,28 +156,42 @@ function BaselineEditor({ row, locale, onSave }) {
           />
         </div>
         <div className="amz-drawer-field">
-          <span className="adv-field-label">{pageText(locale, 'Behind-pace strength', 'עוצמת השלמה כשמאחור בלוז')}</span>
+          <InfoLabel
+            label={pageText(locale, 'Behind-pace strength', 'עוצמת השלמה כשמאחור בלוז')}
+            help={pageText(
+              locale,
+              'How hard a behind-schedule campaign pulls breaks toward its inventory. Channel default is 1.0. Higher catches up faster (2 pulls about twice as hard as the default); 0 turns catch-up off. Leave blank to use the channel default (1.0).',
+              'כמה חזק קמפיין שמאחורי הלוז מושך אליו פרסומות. ברירת המחדל של הערוץ היא 1.0. ערך גבוה יותר משלים מהר יותר (2 מושך בערך פי שניים מברירת המחדל); 0 מכבה את ההשלמה. השאר ריק כדי להשתמש בברירת המחדל של הערוץ (1.0).'
+            )}
+          />
           <TextField
             type="number"
             size="small"
-            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ)') }}
+            placeholder={pageText(locale, 'channel default (1.0)', 'ברירת מחדל של הערוץ (1.0)')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default 1.0)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ 1.0)') }}
             value={draft.urgency_k ?? ''}
             onChange={(event) => update('urgency_k', event.target.value)}
           />
-          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard behind-schedule campaigns lean toward inventory. Blank uses the channel default.', 'כמה חזק קמפיינים שמאחורי הלוז נמשכים למלאי. ריק = ברירת המחדל של הערוץ.')}</span>
+          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard behind-schedule campaigns lean toward inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שמאחורי הלוז נמשכים למלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
         </div>
         <div className="amz-drawer-field">
-          <span className="adv-field-label">{pageText(locale, 'Over-delivery restraint', 'עוצמת ריסון כשמקדים את הלוז')}</span>
+          <InfoLabel
+            label={pageText(locale, 'Over-delivery restraint', 'עוצמת ריסון כשמקדים את הלוז')}
+            help={pageText(
+              locale,
+              'How hard an over-delivered campaign (ahead of its delivery pace) is steered away from inventory, so budget spreads to campaigns that still need it. Channel default is 1.0. Higher restrains harder (2 pushes about twice as hard as the default); 0 turns the over-delivery penalty off. Leave blank to use the channel default (1.0).',
+              'כמה חזק קמפיין שהקדים את הלוז (מסר יותר ממה שתוכנן) מורחק מהמלאי, כדי שהתקציב יתפרס לקמפיינים שעוד זקוקים לו. ברירת המחדל של הערוץ היא 1.0. ערך גבוה יותר מרסן חזק יותר (2 דוחף בערך פי שניים מברירת המחדל); 0 מכבה את קנס ההקדמה. השאר ריק כדי להשתמש בברירת המחדל של הערוץ (1.0).'
+            )}
+          />
           <TextField
             type="number"
             size="small"
-            placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ)') }}
+            placeholder={pageText(locale, 'channel default (1.0)', 'ברירת מחדל של הערוץ (1.0)')}
+            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default 1.0)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ 1.0)') }}
             value={draft.ahead_k ?? ''}
             onChange={(event) => update('ahead_k', event.target.value)}
           />
-          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ריק = ברירת המחדל של הערוץ.')}</span>
+          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
         </div>
         <div className="amz-drawer-field amz-drawer-notes">
           <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
