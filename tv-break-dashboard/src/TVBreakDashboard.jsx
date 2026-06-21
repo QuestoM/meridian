@@ -189,6 +189,17 @@ function createKairosTheme(direction) {
           slotProps: { tooltip: { dir: direction } },
         },
       },
+      // Select/Menu/Popover portal their list to document.body, outside the rtl
+      // shell, so without an explicit direction they open left-to-right in Hebrew.
+      MuiPopover: {
+        defaultProps: { slotProps: { paper: { dir: direction } } },
+      },
+      MuiMenu: {
+        defaultProps: { slotProps: { paper: { dir: direction } } },
+      },
+      MuiSelect: {
+        defaultProps: { MenuProps: { slotProps: { paper: { dir: direction } } } },
+      },
     },
   });
 }
@@ -221,14 +232,11 @@ const fallbackCompliance = {
   profile: fallbackSettings.profile_name,
   effective_date: fallbackSettings.effective_date,
   source_url: fallbackSettings.regulatory_source_url,
-  status: 'compliant',
+  // API offline: there is no schedule to evaluate, so report unknown rather than
+  // asserting compliance against invented observed values.
+  status: 'unknown',
   disclaimer: fallbackSettings.notes,
-  checks: [
-    { id: 'hourly_ad_load', label_en: 'Ad minutes per broadcast hour', label_he: 'דקות פרסום לשעת שידור', status: 'compliant', observed: 7.2, limit: 12, unit: 'minutes/hour' },
-    { id: 'break_density', label_en: 'Breaks per hour', label_he: 'מספר ברייקים בשעה', status: 'compliant', observed: 3, limit: 4, unit: 'breaks/hour' },
-    { id: 'retention_floor', label_en: 'Viewer retention floor', label_he: 'רף שימור צפייה', status: 'compliant', observed: 74.2, limit: 72, unit: '%' },
-    { id: 'protected_programs', label_en: 'Protected programme ad load', label_he: 'עומס פרסום בתוכן מוגן', status: 'compliant', observed: 5.1, limit: 8, unit: 'minutes/hour' },
-  ],
+  checks: [],
 };
 
 const copyByLocale = {
@@ -432,55 +440,18 @@ const fallbackOverview = {
   brand: 'Kairos',
   workspace: 'KAI Network',
   data_freshness: new Date().toISOString(),
+  // API offline: do not fabricate metrics. Null fields drive the honest empty
+  // states in the consuming components rather than confident invented numbers.
   summary: {
-    total_breaks: 89,
-    total_ad_seconds: 8010,
-    projected_revenue: 429100,
-    average_retention: 74.2,
-    risk_score: 52,
+    total_breaks: null,
+    total_ad_seconds: null,
+    projected_revenue: null,
+    average_retention: null,
+    risk_score: null,
   },
-  source_counts: {
-    programmes: 1200,
-    spots: 5400,
-    planned_break_rows: 18,
-  },
-  recommendations: [
-    {
-      id: 'rec-1',
-      title: 'Increase selected primetime break by 1 spot',
-      program_type: 'Reality',
-      impact: 18000,
-      retention: 72.3,
-      risk: 'Medium',
-      rationale: 'Demand is concentrated in the selected slot while retention guardrail remains compliant.',
-    },
-    {
-      id: 'rec-2',
-      title: 'Shift a late break earlier in the hour',
-      program_type: 'Drama',
-      impact: 9200,
-      retention: 73.1,
-      risk: 'Low',
-      rationale: 'Earlier placement improves sell-through with limited churn exposure.',
-    },
-    {
-      id: 'rec-3',
-      title: 'Hold break length in news block',
-      program_type: 'News',
-      impact: 0,
-      retention: 80.8,
-      risk: 'Low',
-      rationale: 'News retention is strong, but incremental minutes are below target yield.',
-    },
-  ],
-  frontier: [
-    { retention: 67.4, revenue: 488000, selected: false },
-    { retention: 69.0, revenue: 470000, selected: false },
-    { retention: 71.1, revenue: 451000, selected: false },
-    { retention: 74.2, revenue: 429100, selected: true },
-    { retention: 75.6, revenue: 401000, selected: false },
-    { retention: 77.2, revenue: 372000, selected: false },
-  ],
+  source_counts: null,
+  recommendations: [],
+  frontier: [],
   settings: fallbackSettings,
   compliance: fallbackCompliance,
 };
@@ -598,8 +569,14 @@ function gridAxisFromLocation() {
   return ['day', 'daypart', 'hour', 'type'].includes(axis) ? axis : 'day';
 }
 
+// Honest empty-state sentinel: null/undefined/non-finite input renders as a
+// plain hyphen, never a confident 0 that hides missing data. Callers that mean
+// a real zero should pass 0 (or value || 0) to opt into the numeric path.
+const EMPTY_VALUE = '-';
+
 function formatCurrency(value, locale = 'en') {
-  const number = Number(value || 0);
+  const number = finiteNumber(value);
+  if (number === null) return EMPTY_VALUE;
   const magnitude = Math.abs(number);
   const formatter = new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     style: 'currency',
@@ -611,17 +588,22 @@ function formatCurrency(value, locale = 'en') {
 }
 
 function formatMinutes(seconds, locale = 'en') {
-  const minutes = Math.round(Number(seconds || 0) / 60);
+  const number = finiteNumber(seconds);
+  if (number === null) return EMPTY_VALUE;
+  const minutes = Math.round(number / 60);
   return locale === 'he' ? `${minutes.toLocaleString('he-IL')} דק׳` : `${minutes.toLocaleString()} min`;
 }
 
 function formatNumber(value, locale = 'en') {
-  return Number(value || 0).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', {
+  const number = finiteNumber(value);
+  if (number === null) return EMPTY_VALUE;
+  return number.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', {
     maximumFractionDigits: 1,
   });
 }
 
 function formatPercent(value, locale = 'en') {
+  if (finiteNumber(value) === null) return EMPTY_VALUE;
   return `${formatNumber(value, locale)}%`;
 }
 
@@ -1265,6 +1247,20 @@ function TVBreakDashboard() {
     notify('Data refreshed from the Kairos API.', 'הנתונים רועננו מה־API של Kairos.');
   }
 
+  function handleNotifications() {
+    const checks = overview?.compliance?.checks || [];
+    if (checks.length === 0) {
+      notify('No compliance checks available to evaluate.', 'אין בדיקות תאימות זמינות להערכה.');
+      return;
+    }
+    const atRisk = checks.filter((check) => check.status === 'at_risk').length;
+    if (atRisk === 0) {
+      notify('No open operational alerts. All compliance checks pass.', 'אין התראות תפעוליות פתוחות. כל בדיקות התאימות תקינות.');
+      return;
+    }
+    notify(`${atRisk} compliance check(s) need review.`, `${atRisk} בדיקות תאימות דורשות בדיקה.`);
+  }
+
   function scenarioControls() {
     // The "Balanced" scenario follows the operator's saved revenue_weight so the
     // simulation opens on their real choice, not a hardcoded default.
@@ -1316,6 +1312,9 @@ function TVBreakDashboard() {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       setSettings(await response.json());
       setSaveState('saved');
+      // Bump the refresh key so dependent views refetch against the saved state
+      // instead of leaving stale numbers behind a success toast.
+      setRefreshKey((k) => k + 1);
       window.setTimeout(() => setSaveState('idle'), 1800);
     } catch {
       setSaveState('error');
@@ -1344,6 +1343,8 @@ function TVBreakDashboard() {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const result = await response.json();
       setRecomputeState('done');
+      // Refetch so the schedule and overview reflect the freshly computed plan.
+      setRefreshKey((k) => k + 1);
       notify(
         `Weekly schedule recomputed: ${formatNumber(result.total_breaks || 0, locale)} breaks, ${formatNumber(Math.round(result.total_revenue || 0), locale)} ILS.`,
         `הלוח השבועי חושב מחדש: ${formatNumber(result.total_breaks || 0, locale)} ברייקים, ${formatNumber(Math.round(result.total_revenue || 0), locale)} ש"ח.`,
@@ -1599,7 +1600,7 @@ function TVBreakDashboard() {
               type="button"
               aria-label={copy.notifications}
               size="small"
-              onClick={() => notify('No open operational alerts.', 'אין התראות תפעוליות פתוחות.')}
+              onClick={handleNotifications}
             >
               <Bell size={15} />
             </IconButton>
@@ -1693,13 +1694,16 @@ function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
 }
 
 function SummaryMetrics({ overview, copy, locale }) {
-  const summary = overview.summary || fallbackOverview.summary;
+  // A malformed-but-online response falls back to an empty summary so the
+  // metrics show honest empty states, never the offline demo numbers.
+  const summary = overview.summary || {};
+  const riskScore = finiteNumber(summary.risk_score);
   return (
     <section className="metric-strip" aria-label="Optimization summary">
       <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} icon={CircleDollarSign} positive />
       <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} />
       <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive />
-      <Metric label={copy.metrics[3]} value={copy.risk[riskLabel(summary.risk_score)]} delta={`${summary.risk_score}/100`} icon={ShieldCheck} tone="risk" />
+      <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" />
     </section>
   );
 }
@@ -2229,7 +2233,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
             <div><span>{pageText(locale, 'Programmes', 'תוכניות')}</span><strong>{formatNumber(sourceCounts.programmes, locale)}</strong></div>
             <div><span>{pageText(locale, 'Spots', 'ספוטים')}</span><strong>{formatNumber(sourceCounts.spots, locale)}</strong></div>
             <div><span>{pageText(locale, 'Planned break rows', 'שורות תכנון ברייקים')}</span><strong>{formatNumber(sourceCounts.planned_break_rows, locale)}</strong></div>
-            <div><span>{pageText(locale, 'Available source files', 'קבצי מקור זמינים')}</span><strong>{existingFiles} / {fileRows.length || 8}</strong></div>
+            <div><span>{pageText(locale, 'Available source files', 'קבצי מקור זמינים')}</span><strong>{existingFiles} / {fileRows.length}</strong></div>
           </div>
         </section>
       </div>
@@ -2671,7 +2675,7 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
         <Metric label={pageText(locale, 'Programmes', 'תוכניות')} value={formatNumber(overview.source_counts?.programmes, locale)} delta={copy.nav.Schedule} icon={CalendarDays} positive />
         <Metric label={pageText(locale, 'Spots', 'ספוטים')} value={formatNumber(overview.source_counts?.spots, locale)} delta={copy.nav.Inventory} icon={TableProperties} positive />
         <Metric label={pageText(locale, 'Plan rows', 'שורות תכנון')} value={formatNumber(overview.source_counts?.planned_break_rows, locale)} delta={copy.nav['Break Library']} icon={ClipboardCheck} />
-        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length || 8}`} delta={copy.data} icon={Database} positive />
+        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length}`} delta={copy.data} icon={Database} positive />
       </section>
       <div className="page-grid two-one">
         <section className="page-panel">

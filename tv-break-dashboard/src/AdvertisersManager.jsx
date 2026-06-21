@@ -35,6 +35,7 @@ function AdvertisersManager({ copy, locale, notify }) {
   const [statusNote, setStatusNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
+  const [statsError, setStatsError] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [sortKey, setSortKey] = useState('rules-desc');
@@ -67,13 +68,17 @@ function AdvertisersManager({ copy, locale, notify }) {
     try {
       const response = await fetch(`${API_BASE}/api/advertisers/stats`);
       if (!response.ok) {
+        setStatsError(true);
         return;
       }
       const payload = await response.json();
       setStatsIndex(indexStats(payload));
       setStatusNote(payload && payload.status ? String(payload.status) : '');
+      setStatsError(false);
     } catch {
-      // Stats are an enhancement: cards fall back to honest "-" markers.
+      // Stats are an enhancement, but a failure must read as an error, not as
+      // empty data: flag it so the cards' "-" carries an honest reason.
+      setStatsError(true);
     }
   }, []);
 
@@ -270,6 +275,19 @@ function AdvertisersManager({ copy, locale, notify }) {
               <span className="amz-summary-label">{pageText(locale, card.en, card.he)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {statsError && !loading && online && (
+        <div className="amz-status-banner" role="alert">
+          <Info size={16} aria-hidden="true" />
+          <p>
+            {pageText(
+              locale,
+              'Stats did not load. The figures below show "-" because the stats request failed, not because the data is empty. Refresh to try again.',
+              'הנתונים הסטטיסטיים לא נטענו. הערכים מטה מוצגים כ-״-״ כי בקשת הנתונים נכשלה, לא כי אין נתונים. רעננו כדי לנסות שוב.',
+            )}
+          </p>
         </div>
       )}
 

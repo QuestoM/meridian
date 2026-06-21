@@ -250,9 +250,10 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
     setSavingPin(item.id);
     try {
       const saved = await postConstraint(body);
+      const savedId = saved.constraint_id ?? saved.id;
       setConstraints((current) => [
         ...current.filter((constraint) => constraint.break_id !== item.id),
-        { ...body, id: saved.id || `pin-${item.id}`, break_id: item.id },
+        { ...body, id: savedId || `pin-${item.id}`, break_id: item.id },
       ]);
       notify(
         `Break pinned at ${formatOffset(offsetSeconds)} from ${item.program_title}.`,

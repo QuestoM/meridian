@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Slider } from '@mui/material';
-import { ArrowRight, GitCompare } from 'lucide-react';
+import { ArrowLeft, ArrowRight, GitCompare } from 'lucide-react';
 import {
   API_BASE,
   finiteNumber,
@@ -107,6 +107,11 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
 
   const { status, payload } = state;
 
+  // The A -> B flow arrow must follow the reading direction. Under RTL the grid
+  // lays A on the right and B on the left, so the arrow points left; under LTR it
+  // points right. Matches the AdvertiserStatCard caret idiom.
+  const Flow = he ? ArrowLeft : ArrowRight;
+
   return (
     <section className="page-panel scenario-compare">
       <div className="panel-head">
@@ -170,7 +175,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
         <>
           <div className="scenario-grid">
             <SummaryCard title={pageText(locale, 'Scenario A', 'תרחיש A')} summary={payload.a} accent="accent-a" locale={locale} />
-            <div className="scenario-arrow" aria-hidden="true"><ArrowRight size={18} /></div>
+            <div className="scenario-arrow" aria-hidden="true"><Flow size={18} /></div>
             <SummaryCard title={pageText(locale, 'Scenario B', 'תרחיש B')} summary={payload.b} accent="accent-b" locale={locale} />
           </div>
 

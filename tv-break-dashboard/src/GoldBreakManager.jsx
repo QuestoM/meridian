@@ -117,7 +117,13 @@ export default function GoldBreakManager({ locale }) {
                   <td className="numeric" dir="ltr">{row.start_time || '-'}</td>
                   <td>{programTypeText(row.program_type, locale)}</td>
                   <td className="numeric" dir="ltr">{formatSeconds(row.duration_seconds, locale)}</td>
-                  <td className="numeric" dir="ltr">{formatCurrency(row.revenue, locale)}</td>
+                  <td className="numeric" dir="ltr">
+                    {row.revenue != null && row.revenue !== '' && Number.isFinite(Number(row.revenue)) ? (
+                      formatCurrency(row.revenue, locale)
+                    ) : (
+                      <span className="gold-premium-pending">{pageText(locale, 'Pending', 'ממתין')}</span>
+                    )}
+                  </td>
                   <td>
                     <span className="gold-premium-pending">{pageText(locale, 'Pending', 'ממתין')}</span>
                   </td>

@@ -10,6 +10,7 @@ function t(locale, en, he) {
 
 function normalizeRows(value) {
   if (Array.isArray(value)) return value;
+  if (value && Array.isArray(value.constraints)) return value.constraints;
   if (value && Array.isArray(value.rows)) return value.rows;
   return [];
 }
@@ -391,6 +392,15 @@ const EFFECT_LIST = [
   { value: 'FORBID', label_en: 'Forbid', label_he: 'איסור' },
 ];
 
+// Map a stored effect (lowercase from the backend, uppercase locally) to a
+// human label case-insensitively, so server-loaded and locally-created rows read alike.
+function effectLabel(effect, locale) {
+  const key = String(effect || '').trim().toUpperCase();
+  const match = EFFECT_LIST.find((ef) => ef.value === key);
+  if (match) return t(locale, match.label_en, match.label_he);
+  return key.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+}
+
 function buildBody(draft, where) {
   const body = {
     scope_type: 'always',
@@ -504,7 +514,8 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
       }
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       const saved = await res.json();
-      setItems((current) => [...current, { ...body, id: saved.id || `constraint-${current.length + 1}` }]);
+      const savedId = saved.constraint_id ?? saved.id;
+      setItems((current) => [...current, { ...body, id: savedId || `constraint-${current.length + 1}` }]);
       notify('Constraint saved.', 'האילוץ נשמר.');
     } catch (err) {
       notify(`Saving the constraint failed (${err.message}).`, `שמירת האילוץ נכשלה (${err.message}).`);
@@ -514,14 +525,15 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
   }
 
   async function deleteConstraint(id) {
+    const matchesId = (item) => (item.constraint_id ?? item.id) === id;
     try {
       const res = await fetch(`${API_BASE}/api/constraints/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (res.status === 404) {
-        setItems((current) => current.filter((item) => item.id !== id));
+        setItems((current) => current.filter((item) => !matchesId(item)));
         return;
       }
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      setItems((current) => current.filter((item) => item.id !== id));
+      setItems((current) => current.filter((item) => !matchesId(item)));
       notify('Constraint removed.', 'האילוץ הוסר.');
     } catch (err) {
       notify(`Removing the constraint failed (${err.message}).`, `הסרת האילוץ נכשלה (${err.message}).`);
@@ -641,16 +653,19 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
           <p className="constraint-list-empty">{t(locale, 'No constraints yet.', 'אין אילוצים עדיין.')}</p>
         ) : (
           <ul>
-            {items.map((item) => (
-              <li key={item.id}>
-                <span className="constraint-chip">{item.effect}</span>
-                <span className="constraint-scope">{item.where ? t(locale, 'predicate', 'פרדיקט') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
-                {item.notes && <span className="constraint-channel">{item.notes}</span>}
-                <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(item.id)} aria-label={t(locale, 'Delete constraint', 'מחק אילוץ')}>
-                  <Trash2 size={14} />
-                </Button>
-              </li>
-            ))}
+            {items.map((item, index) => {
+              const itemId = item.constraint_id ?? item.id;
+              return (
+                <li key={itemId ?? `constraint-${index}`}>
+                  <span className="constraint-chip">{effectLabel(item.effect, locale)}</span>
+                  <span className="constraint-scope">{item.where ? t(locale, 'predicate', 'פרדיקט') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
+                  {item.notes && <span className="constraint-channel">{item.notes}</span>}
+                  <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחק אילוץ')}>
+                    <Trash2 size={14} />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

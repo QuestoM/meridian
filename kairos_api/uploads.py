@@ -23,9 +23,22 @@ from kairos.data.loaders import DAILY_COLUMN_MAP
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 DAILY_DIR = DATA_DIR / "daily_input"
+REFERENCE_DIR = DATA_DIR / "reference"
 BACKUP_DIR = DATA_DIR / "_backups"
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
+
+# The three channel-source kinds land as flat CSVs under data/, but the engine
+# loaders (kairos.data.loaders) read data/reference/*.xlsx FIRST with no CSV
+# fallback. When the reference xlsx exists, an uploaded CSV is stored and
+# backed up but SHADOWED: the optimizer never reads it. We map each shadowed
+# kind to the reference file that takes precedence so the status can say so
+# honestly instead of reporting a bare green "valid" that implies ingestion.
+SHADOWING_REFERENCE: dict[str, Path] = {
+    "programmes": REFERENCE_DIR / "Programmes.xlsx",
+    "spots": REFERENCE_DIR / "Spots.xlsx",
+    "dayparts": REFERENCE_DIR / "Dayparts.xlsx",
+}
 
 # Required columns per kind. These are the canonical headers the loaders and
 # the optimizer read; extra columns are tolerated (reported as warnings).
@@ -114,6 +127,36 @@ def _read_header_and_rows(path: Path) -> tuple[list[str], int, list[str]]:
     return columns, rows, warnings
 
 
+def _in_use(kind: str) -> tuple[bool, str]:
+    """Whether the optimizer actually consumes an upload of this kind.
+
+    Most kinds land exactly where their consumer reads (the daily Wally file in
+    daily_input/, advertiser rules and the rate card in the config CSVs), so an
+    upload genuinely takes effect: in_use is True with an empty reason.
+
+    The three channel-source kinds (programmes/spots/dayparts) are the exception.
+    They are written to flat data/*.csv, but the engine loaders read
+    data/reference/*.xlsx first with no CSV fallback. While that reference xlsx
+    exists on disk it shadows the upload: the file is stored and validated but
+    the optimizer never reads it. We report in_use False with a reason the
+    dashboard can surface, so the upload status never implies an ingestion that
+    did not happen.
+    """
+    reference = SHADOWING_REFERENCE.get(kind)
+    if reference is None:
+        return True, ""
+    if reference.exists():
+        relative = str(reference.relative_to(ROOT)).replace("\\", "/")
+        return (
+            False,
+            f"Stored but not used by the optimizer: the engine reads {relative} "
+            "first and no CSV fallback exists, so this upload is shadowed by the "
+            "reference file. Replace the reference file to change the optimizer input.",
+        )
+    # No reference file present: the upload is the only source, so it is live.
+    return True, ""
+
+
 def _validate_columns(kind: str, columns: list[str]) -> list[str]:
     """Return the required columns that are missing from the header.
 
@@ -137,6 +180,7 @@ def upload_status() -> dict[str, Any]:
         kind = meta["kind"]
         path = _live_path(kind)
         exists = bool(path and path.exists())
+        in_use, in_use_reason = _in_use(kind)
         entry: dict[str, Any] = {
             "kind": kind,
             "label_en": meta["label_en"],
@@ -149,6 +193,8 @@ def upload_status() -> dict[str, Any]:
             "columns": [],
             "last_modified": None,
             "valid": False,
+            "in_use": in_use,
+            "in_use_reason": in_use_reason,
             "warnings": [],
         }
         if exists and path is not None:
@@ -161,6 +207,10 @@ def upload_status() -> dict[str, Any]:
             warnings = list(read_warnings)
             if missing:
                 warnings.insert(0, f"Missing required columns: {', '.join(missing)}")
+            if not in_use and in_use_reason:
+                # Surface the shadow state in warnings too, so a dashboard that
+                # only renders warnings still stops short of a bare green badge.
+                warnings.insert(0, in_use_reason)
             entry["warnings"] = warnings
         inputs.append(entry)
     return {"inputs": inputs}
@@ -228,6 +278,13 @@ async def upload_file(kind: str, file: UploadFile = File(...)) -> dict[str, Any]
     if backed_up:
         warnings.append(f"Previous file backed up to {backed_up}")
 
+    in_use, in_use_reason = _in_use(kind)
+    if not in_use and in_use_reason:
+        # The file saved and parsed, but the optimizer will not read it. Say so
+        # in the response so the post-upload confirmation does not imply an
+        # ingestion that did not happen.
+        warnings.insert(0, in_use_reason)
+
     return {
         "kind": kind,
         "saved_path": str(destination.relative_to(ROOT)).replace("\\", "/"),
@@ -235,5 +292,7 @@ async def upload_file(kind: str, file: UploadFile = File(...)) -> dict[str, Any]
         "columns": columns,
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
         "valid": True,
+        "in_use": in_use,
+        "in_use_reason": in_use_reason,
         "warnings": warnings,
     }

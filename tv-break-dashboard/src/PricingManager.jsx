@@ -41,6 +41,7 @@ function PricingManager({ copy, locale, notify }) {
     pricing_class: 'News', weekday_iso: 1, show: '', position: '', break_size: '', ad_type: '', advertiser_base: '',
   });
   const [breakdown, setBreakdown] = useState(null);
+  const [testerError, setTesterError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,7 +132,10 @@ function PricingManager({ copy, locale, notify }) {
         throw new Error(`${response.status} ${response.statusText}`);
       }
       setBreakdown(await response.json());
+      setTesterError(null);
     } catch (error) {
+      setBreakdown(null);
+      setTesterError(error.message);
       notify(`Price tester failed (${error.message}).`, `בודק המחיר נכשל (${error.message}).`);
     }
   }, [slot, notify]);
@@ -323,27 +327,35 @@ function PricingManager({ copy, locale, notify }) {
             </label>
           </div>
 
-          {breakdown && (
+          {testerError && (
+            <div className="pricing-breakdown">
+              <p className="pricing-empty">{pageText(locale,
+                `Could not price this slot (${testerError}). No breakdown is shown rather than a stale one.`,
+                `לא ניתן לתמחר את המשבצת (${testerError}). לא מוצג פירוט במקום פירוט ישן.`)}</p>
+            </div>
+          )}
+
+          {breakdown && !testerError && (
             <div className="pricing-breakdown">
               <div className="pricing-break-row">
                 <span>{pageText(locale, 'Base CPP', 'מחיר בסיס')}</span>
-                <span className="mult" dir="ltr">{breakdown.base_cpp.toFixed(2)}</span>
+                <span className="mult" dir="ltr">{Number(breakdown.base_cpp ?? 0).toFixed(2)}</span>
               </div>
-              {breakdown.layers.map((layer, idx) => (
+              {(breakdown.layers || []).map((layer, idx) => (
                 <div className="pricing-break-row" key={`live-${layer.name}-${idx}`}>
                   <span>x {layerLabel(layer.name)} <span className="src">({layer.source})</span></span>
-                  <span className="mult" dir="ltr">{layer.multiplier.toFixed(3)}</span>
+                  <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
                 </div>
               ))}
               {(breakdown.wired_off_layers || []).map((layer, idx) => (
                 <div className="pricing-break-row off" key={`off-${layer.name}-${idx}`}>
                   <span>x {layerLabel(layer.name)} <span className="src">({pageText(locale, 'wired off', 'כבוי')})</span></span>
-                  <span className="mult" dir="ltr">{layer.multiplier.toFixed(3)}</span>
+                  <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
                 </div>
               ))}
               <div className="pricing-break-row total">
                 <span>= {pageText(locale, 'Final CPP', 'מחיר סופי')} ({currency})</span>
-                <span dir="ltr">{breakdown.final_cpp.toFixed(2)}</span>
+                <span dir="ltr">{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</span>
               </div>
             </div>
           )}

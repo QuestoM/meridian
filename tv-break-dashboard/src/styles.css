@@ -22,6 +22,22 @@
   --amber-soft: #fff5e5;
   --red: #c24141;
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --primary: #0d1b2a;
+  --primary-hover: #18304a;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --weight-semibold: 680;
+  --weight-bold: 720;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 14px;
+  --space-5: 18px;
+  --space-6: 24px;
 }
 
 * {
@@ -2681,7 +2697,7 @@ button {
   text-align: inherit;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--line);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -2689,12 +2705,12 @@ button {
 }
 
 .optimizer-template:hover {
-  border-color: var(--accent, #7c5cff);
+  border-color: var(--teal);
 }
 
 .optimizer-template.is-active {
-  border-color: var(--accent, #7c5cff);
-  background: rgba(124, 92, 255, 0.12);
+  border-color: var(--teal);
+  background: rgba(15, 139, 126, 0.1);
 }
 
 .optimizer-template strong {
@@ -2714,7 +2730,7 @@ button {
   gap: 16px;
   flex-wrap: wrap;
   padding-top: 12px;
-  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--line);
 }
 
 .optimizer-recompute p {

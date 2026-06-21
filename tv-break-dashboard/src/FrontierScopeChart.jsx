@@ -52,6 +52,14 @@ export default function FrontierScopeChart({
   savedRevenueWeight = null,
   onApplyWeight,
   applyState = 'idle',
+  // Real backend field overview.frontier_status (the sibling FrontierPanel already
+  // consumes the same value, where 'computing' means the optimizer sweep is still
+  // running on a cold cache). NOTE: the current parent call site in
+  // TVBreakDashboard.jsx does not yet pass this prop, so until it adds
+  // status={overview.frontier_status} the unscoped path falls back to '' and we
+  // cannot distinguish computing from no-data there. We do NOT fabricate a status:
+  // when it is absent the empty state stays honestly generic.
+  status = '',
 }) {
   const he = locale === 'he';
   const chartFrameRef = useRef(null);
@@ -61,6 +69,12 @@ export default function FrontierScopeChart({
   const [scopeLoading, setScopeLoading] = useState(false);
   const [scopeError, setScopeError] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  // Honest frontier_status for the SCOPED view: the /api/overview payload carries
+  // the same frontier_status field, so when a scope is active we read it from the
+  // scoped response. When no scope is active we fall back to the parent's status
+  // prop. refetchNonce lets a 'computing' cold cache trigger one re-fetch.
+  const [scopeStatus, setScopeStatus] = useState('');
+  const [refetchNonce, setRefetchNonce] = useState(0);
 
   // When no scope is active, mirror the parent-provided frontier so the panel
   // reflects the same overview payload the rest of the page consumes.
@@ -76,6 +90,7 @@ export default function FrontierScopeChart({
     if (!scope) {
       setScopeError(false);
       setScopeLoading(false);
+      setScopeStatus('');
       return undefined;
     }
     let active = true;
@@ -89,6 +104,7 @@ export default function FrontierScopeChart({
       .then((payload) => {
         if (!active) return;
         setData(payload.frontier || []);
+        setScopeStatus(payload.frontier_status || '');
         setScopeLoading(false);
       })
       .catch(() => {
@@ -99,7 +115,7 @@ export default function FrontierScopeChart({
     return () => {
       active = false;
     };
-  }, [scope]);
+  }, [scope, refetchNonce]);
 
   useEffect(() => {
     const frame = chartFrameRef.current;
@@ -130,6 +146,22 @@ export default function FrontierScopeChart({
   const savedPoint = points.find((point) => point.selected) || points[points.length - 1];
   const showSkeleton = loading || scopeLoading;
   const showEmpty = !showSkeleton && (points.length < 2 || !savedPoint);
+  // When a scope is active the scoped response carries its own frontier_status;
+  // otherwise we trust the parent's status prop. 'computing' means the optimizer
+  // sweep is still warming the cache, which is honestly distinct from a no-data /
+  // no-channel empty state. Any other (or absent) value stays generic.
+  const effectiveStatus = scope ? scopeStatus : status;
+  const isComputing = showEmpty && effectiveStatus === 'computing';
+
+  // On a cold-cache 'computing' state, kick a single delayed re-fetch so the curve
+  // self-heals once the sweep finishes, instead of waiting for a manual reload.
+  // Only the scoped view owns its own fetch here; the unscoped view is driven by
+  // the parent overview, so we bump the scope effect's nonce only when scoped.
+  useEffect(() => {
+    if (!isComputing || !scope) return undefined;
+    const timer = setTimeout(() => setRefetchNonce((nonce) => nonce + 1), 4000);
+    return () => clearTimeout(timer);
+  }, [isComputing, scope]);
 
   const scopeOptions = useMemo(() => {
     const options = [{ value: '', labelHe: 'כל הערוצים', labelEn: 'All channels', icon: 'globe' }];
@@ -215,7 +247,11 @@ export default function FrontierScopeChart({
         <div className="heatmap-empty">
           {scopeError
             ? pageText(locale, 'This scope could not be computed right now.', 'לא ניתן לחשב את ההיקף הזה כרגע.')
-            : pageText(locale, 'Not enough scenarios to draw a frontier yet.', 'אין מספיק תרחישים לשרטוט החזית עדיין.')}
+            : isComputing
+              ? pageText(locale, 'The frontier is being computed, refresh in a moment.', 'החזית בחישוב, רעננו בעוד רגע.')
+              : scope && !String(operatorChannel || '').trim()
+                ? pageText(locale, 'No channel selected, so there is no frontier to draw.', 'לא נבחר ערוץ, ולכן אין חזית לשרטוט.')
+                : pageText(locale, 'Not enough scenarios to draw a frontier yet.', 'אין מספיק תרחישים לשרטוט החזית עדיין.')}
         </div>
       ) : (
         <>
@@ -273,7 +309,12 @@ export default function FrontierScopeChart({
             </svg>
           </div>
 
-          <div className="frontier-axis-legend" dir={he ? 'rtl' : 'ltr'}>
+          {/* The chart itself is hard-forced dir="ltr" so the plotted axes run
+              low-to-high left-to-right. Keep the legend in that same chart space
+              (always ltr) so the X label sits under the X axis and the Y label
+              under the Y axis. An rtl legend here would mirror the labels off
+              their axes even though the numbers are correct. */}
+          <div className="frontier-axis-legend" dir="ltr">
             <span>{pageText(locale, 'X: average retention', 'ציר X: שימור ממוצע')}</span>
             <span>{pageText(locale, 'Y: projected revenue', 'ציר Y: הכנסה צפויה')}</span>
           </div>
