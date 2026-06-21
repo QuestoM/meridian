@@ -3966,6 +3966,12 @@ button {
   }
 }
 
+/* Inside the 640px advertiser drawer the four-column rule editor has no room,
+   so the scope, effect, notes and action columns collide. Stack it there. */
+.amz-drawer .adv-cond-row {
+  grid-template-columns: 1fr;
+}
+
 .schedule-actions {
   display: flex;
   gap: 8px;

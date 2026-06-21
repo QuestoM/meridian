@@ -182,6 +182,13 @@ function createKairosTheme(direction) {
           },
         },
       },
+      MuiTooltip: {
+        defaultProps: {
+          // Hebrew tooltips read right-to-left; the popper is portaled outside
+          // the rtl shell, so the bubble needs the direction set explicitly.
+          slotProps: { tooltip: { dir: direction } },
+        },
+      },
     },
   });
 }
