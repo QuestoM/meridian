@@ -250,8 +250,7 @@ const copyByLocale = {
       Campaigns: 'Campaigns',
       Forecasts: 'Forecasts',
       Reports: 'Reports',
-      'Data Hub': 'Data Hub',
-      'Data Center': 'Data Center',
+      Data: 'Data',
       Advertisers: 'Advertisers',
       Pricing: 'Pricing',
       Settings: 'Settings',
@@ -288,7 +287,7 @@ const copyByLocale = {
     applySimilar: 'Apply Similar',
     export: 'Export',
     exportOptions: ['Break detail', 'Weekly traffic plan', 'Guardrail report'],
-    frontier: 'Revenue vs retention frontier',
+    frontier: 'Revenue vs retention',
     frontierMode: 'Measured retention model',
     frontierPickChannel: 'Pick your channel in settings to forecast your own inventory. The frontier projects revenue for your channel only; competing programmes feed the retention model, never the revenue forecast.',
     frontierComputing: 'Computing your channel forecast. This runs a real optimisation in the background and appears here once ready; refresh in a moment.',
@@ -347,8 +346,7 @@ const copyByLocale = {
       Campaigns: 'קמפיינים',
       Forecasts: 'תחזיות',
       Reports: 'דוחות',
-      'Data Hub': 'מרכז נתונים',
-      'Data Center': 'מרכז קלט נתונים',
+      Data: 'נתונים',
       Advertisers: 'מפרסמים',
       Pricing: 'תמחור',
       Settings: 'הגדרות',
@@ -385,7 +383,7 @@ const copyByLocale = {
     applySimilar: 'החלה דומה',
     export: 'ייצוא',
     exportOptions: ['פרטי ברייק', 'תוכנית טראפיק שבועית', 'דוח בקרות'],
-    frontier: 'חזית הכנסה מול שימור',
+    frontier: 'הכנסה מול שימור',
     frontierMode: 'מודל שימור מדוד',
     frontierPickChannel: 'בחרו את הערוץ שלכם בהגדרות כדי לחזות את המלאי שלכם בלבד. החזית מציגה תחזית הכנסה לערוץ שלכם בלבד; תוכניות מתחרות מזינות את מודל השימור, לעולם לא את תחזית ההכנסה.',
     frontierComputing: 'מחשבים את תחזית הערוץ שלכם. זהו אופטימיזציה אמיתית שרצה ברקע ותופיע כאן ברגע שתהיה מוכנה; רעננו עוד רגע.',
@@ -543,8 +541,7 @@ const navItems = [
   ['Campaigns', FileBarChart],
   ['Forecasts', Gauge],
   ['Reports', ListChecks],
-  ['Data Hub', Database],
-  ['Data Center', Upload],
+  ['Data', Database],
   ['Advertisers', Users],
   ['Pricing', Coins],
   ['Settings', Settings],
@@ -1436,12 +1433,18 @@ function TVBreakDashboard() {
       return <ReportsPage reports={reports} files={files} copy={copy} locale={locale} />;
     }
 
-    if (activeView === 'Data Hub') {
-      return <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />;
-    }
-
-    if (activeView === 'Data Center') {
-      return <UploadCenter copy={copy} locale={locale} notify={notify} />;
+    if (activeView === 'Data') {
+      return (
+        <DataPage
+          files={files}
+          impact={impact}
+          parameters={parameters}
+          overview={overview}
+          copy={copy}
+          locale={locale}
+          notify={notify}
+        />
+      );
     }
 
     if (activeView === 'Advertisers') {
@@ -2646,6 +2649,41 @@ function ReportsPage({ reports, files, copy, locale }) {
   );
 }
 
+function DataPage({ files, impact, parameters, overview, copy, locale, notify }) {
+  const [dataTab, setDataTab] = useState('upload');
+  return (
+    <section className="page-workspace">
+      <div className="surface-toolbar no-print">
+        <div className="toolbar-left">
+          <Button
+            className={dataTab === 'upload' ? 'segmented active' : 'segmented'}
+            type="button"
+            variant="outlined"
+            aria-pressed={dataTab === 'upload'}
+            onClick={() => setDataTab('upload')}
+          >
+            {pageText(locale, 'Upload', 'העלאה')}
+          </Button>
+          <Button
+            className={dataTab === 'sources' ? 'segmented active' : 'segmented'}
+            type="button"
+            variant="outlined"
+            aria-pressed={dataTab === 'sources'}
+            onClick={() => setDataTab('sources')}
+          >
+            {pageText(locale, 'Sources and model', 'מקורות ומודל')}
+          </Button>
+        </div>
+      </div>
+      {dataTab === 'upload' ? (
+        <UploadCenter copy={copy} locale={locale} notify={notify} />
+      ) : (
+        <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />
+      )}
+    </section>
+  );
+}
+
 function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
   const fileRows = normalizeRows(files.files);
   const measuredImpacts = impact.coefficient_impacts || {};
@@ -3519,7 +3557,7 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
               className="frontier-svg"
               viewBox={`0 0 ${width} ${height}`}
               role="img"
-              aria-label={pageText(locale, 'Revenue retention frontier', 'חזית הכנסה ושימור')}
+              aria-label={pageText(locale, 'Revenue vs retention', 'הכנסה מול שימור')}
             >
               {[0, 1, 2, 3].map((line) => {
                 const y = padY + line * ((height - padY * 2) / 3);
@@ -3676,7 +3714,7 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState,
             <span className="settings-channel-kicker">{he ? 'נקודת הפתיחה' : 'Start here'}</span>
           )}
           <h2>{he ? 'הערוץ שלך' : 'Your channel'}</h2>
-          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה, והוא משער את חזית ההכנסה מול שמירת הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention frontier.'}</p>
+          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה, והוא משער את ההכנסה מול שמירת הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention view.'}</p>
         </div>
         <Tv size={18} />
       </div>
@@ -3818,7 +3856,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           <div className="settings-panel-head">
             <div>
               <h2>{he ? 'איזון האופטימיזציה' : 'Optimizer balance'}</h2>
-              <p>{he ? 'הלֶבֶר המרכזי שמניע את הלוח, גבול היעילות והתחזיות' : 'The central lever that drives the schedule, frontier, and forecasts'}</p>
+              <p>{he ? 'הלֶבֶר המרכזי שמניע את הלוח, ההכנסה מול השימור והתחזיות' : 'The central lever that drives the schedule, revenue vs retention, and forecasts'}</p>
             </div>
             <SlidersHorizontal size={18} />
           </div>

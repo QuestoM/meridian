@@ -59,6 +59,11 @@ function InputCard({ input, locale, onUploaded, notify }) {
 
   const label = pageText(locale, input.label_en || input.kind, input.label_he || input.label_en || input.kind);
   const valid = Boolean(input.valid) && Boolean(input.exists);
+  // Law 9 honesty: a stored upload can be shadowed by a reference file, so the
+  // optimizer is not using it. in_use === false means stored-but-not-in-use; a
+  // missing in_use (older payloads) keeps the existing truthful display.
+  const storedNotInUse = valid && input.in_use === false;
+  const inUseReason = input.in_use_reason || '';
   const warnings = normalizeRows(input.warnings);
 
   async function handleFile(event) {
@@ -90,9 +95,19 @@ function InputCard({ input, locale, onUploaded, notify }) {
         const warningSuffix = uploadWarnings.length
           ? pageText(locale, ` with ${uploadWarnings.length} warning(s)`, ` עם ${uploadWarnings.length} אזהרות`)
           : '';
+        // Honest signal: do not imply the optimizer is using the file when a
+        // reference file shadows it. Append the stored-not-in-use note instead
+        // of a clean success line.
+        const notInUseSuffix = payload?.in_use === false
+          ? pageText(
+              locale,
+              ` Stored, not in use: ${payload?.in_use_reason || 'a reference file currently takes priority.'}`,
+              ` נשמר, לא בשימוש: ${payload?.in_use_reason || 'קובץ רפרנס מקבל כרגע עדיפות.'}`,
+            )
+          : '';
         notify(
-          `${label}: uploaded ${rows.toLocaleString('en-US')} rows${warningSuffix}.`,
-          `${label}: הועלו ${rows.toLocaleString('he-IL')} שורות${warningSuffix}.`,
+          `${label}: uploaded ${rows.toLocaleString('en-US')} rows${warningSuffix}.${notInUseSuffix}`,
+          `${label}: הועלו ${rows.toLocaleString('he-IL')} שורות${warningSuffix}.${notInUseSuffix}`,
         );
         await onUploaded();
       }
@@ -117,10 +132,17 @@ function InputCard({ input, locale, onUploaded, notify }) {
           <strong>{label}</strong>
           <span className="upload-filename" dir="ltr">{input.filename}</span>
         </div>
-        <span className={valid ? 'upload-badge valid' : 'upload-badge invalid'}>
-          {valid ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-          {valid ? pageText(locale, 'Valid', 'תקין') : pageText(locale, 'Needs review', 'דורש בדיקה')}
-        </span>
+        {storedNotInUse ? (
+          <span className="upload-badge stored" style={{ color: '#b7791f', borderColor: '#b7791f' }}>
+            <AlertTriangle size={13} />
+            {pageText(locale, 'Stored, not in use', 'נשמר, לא בשימוש')}
+          </span>
+        ) : (
+          <span className={valid ? 'upload-badge valid' : 'upload-badge invalid'}>
+            {valid ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+            {valid ? pageText(locale, 'Valid', 'תקין') : pageText(locale, 'Needs review', 'דורש בדיקה')}
+          </span>
+        )}
       </div>
       <div className="upload-card-meta">
         <div>
@@ -134,6 +156,11 @@ function InputCard({ input, locale, onUploaded, notify }) {
       </div>
       {!input.exists && (
         <p className="upload-empty">{pageText(locale, 'No file uploaded yet for this input.', 'עדיין לא הועלה קובץ עבור קלט זה.')}</p>
+      )}
+      {storedNotInUse && (
+        <p className="upload-empty" style={{ color: '#b7791f' }}>
+          {inUseReason || pageText(locale, 'Stored but not used by the optimizer: a reference file currently takes priority.', 'נשמר אך לא בשימוש האופטימייזר: קובץ רפרנס מקבל כרגע עדיפות.')}
+        </p>
       )}
       {warnings.length > 0 && (
         <ul className="upload-warnings">
@@ -208,7 +235,7 @@ function UploadCenter({ copy, locale, notify }) {
     <section className="page-workspace">
       <div className="page-header">
         <div>
-          <h1>{pageText(locale, 'Data Center', 'מרכז נתונים')}</h1>
+          <h1>{pageText(locale, 'Upload', 'העלאה')}</h1>
           <p>
             {pageText(
               locale,
