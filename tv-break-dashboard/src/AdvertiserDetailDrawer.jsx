@@ -257,7 +257,7 @@ function AdvertiserDetailDrawer({
       anchor={anchor}
       open={open}
       onClose={onClose}
-      PaperProps={{ className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' }}
+      slotProps={{ paper: { className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' } }}
     >
       <div className="amz-drawer">
         <header className="amz-drawer-head">
