@@ -411,9 +411,15 @@ def optimize_day_plan(
     demand_weights = _assemble_demand_weights(
         segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
     )
+    # Honor the operator's stored placement constraints, wired identically to the
+    # CSV recompute path so the live plan and the saved schedule agree. No-op when
+    # no constraints file exists (the current state).
+    merged_pins, merged_overrides = _constraint_inputs(
+        segments, overrides, placement_pins, operator_channel=_operator_channel(settings),
+    )
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk,
-        overrides=overrides, placement_pins=placement_pins,
+        overrides=merged_overrides, placement_pins=merged_pins,
         demand_weights=demand_weights,
     )
 
@@ -504,9 +510,15 @@ def run_scenario(
     demand_weights = _assemble_demand_weights(
         segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
     )
+    # Honor the operator's stored placement constraints, wired identically to the
+    # CSV recompute path so the frontier / scenario plan is the achievable optimum
+    # under the operator's rules, not an unconstrained one. No-op with no file.
+    merged_pins, merged_overrides = _constraint_inputs(
+        segments, overrides, placement_pins, operator_channel=_operator_channel(settings),
+    )
     result = optimize_breaks(
         segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
-        overrides=overrides, placement_pins=placement_pins,
+        overrides=merged_overrides, placement_pins=merged_pins,
         demand_weights=demand_weights, refine=refine,
     )
 
@@ -528,6 +540,67 @@ def _load_default_overrides() -> Optional[OverrideSet]:
     if DEFAULT_OVERRIDES_PATH.exists():
         return OverrideSet.from_csv(DEFAULT_OVERRIDES_PATH)
     return None
+
+
+def _constraint_inputs(
+    segments: list,
+    overrides: Optional[OverrideSet],
+    placement_pins: Optional[Mapping[str, Any]],
+    *,
+    operator_channel: str = "",
+) -> tuple[Optional[Mapping[str, Any]], Optional[OverrideSet]]:
+    """Fold the operator's stored placement constraints into (pins, overrides).
+
+    This is the SAME wiring the CSV recompute path uses
+    (:func:`kairos.export.schedule.build_weekly_schedule` via its
+    ``_load_constraints`` + ``_constraint_inputs`` + ``merged_pins`` steps), so the
+    live scenario / day-plan numbers agree with the saved schedule for the same
+    channel-day and inputs. The stored constraints are loaded from the default
+    ``data/kairos_constraints.csv`` (only when it exists), resolved against THIS
+    run's ``segments`` with the operator's own channel, and merged on top of the
+    caller's ``overrides`` and ``placement_pins``.
+
+    The merge mirrors the export path exactly: caller placement pins win on a
+    segment-id collision (``{**day_pins, **caller_pins}``), and constraint count
+    pins / forbids are appended after the caller's overrides in one OverrideSet.
+    With no constraints file (the current deployment state) this returns
+    ``(placement_pins, overrides)`` untouched, so behaviour is byte-identical to
+    before and no revenue moves.
+    """
+    from kairos.optimize.constraints_store import (
+        DEFAULT_CONSTRAINTS_PATH,
+        count_pins_to_overrides,
+        load_constraints,
+        resolve_constraints,
+    )
+
+    constraints = load_constraints(DEFAULT_CONSTRAINTS_PATH) if DEFAULT_CONSTRAINTS_PATH.exists() else []
+    if not constraints:
+        return placement_pins, overrides
+
+    day_pins, count_pins, forbids, _ = resolve_constraints(
+        segments, constraints, operator_channel=operator_channel,
+    )
+    constraint_overrides = count_pins_to_overrides(count_pins, forbids)
+    if overrides is not None:
+        constraint_overrides = OverrideSet(
+            overrides=list(overrides.overrides) + list(constraint_overrides.overrides),
+        )
+    merged_pins = {**day_pins, **(placement_pins or {})}
+    return (merged_pins or None), constraint_overrides
+
+
+def _operator_channel(settings: Optional[Mapping[str, Any]]) -> str:
+    """The operator's own channel from settings, or '' (no channel filter).
+
+    Sourced identically to the export path
+    (:func:`kairos.export.schedule.build_weekly_schedule`), so constraints scope to
+    the same channel in both engines, honouring the competitor-information
+    boundary. Empty when no settings or no key, the honest no-op.
+    """
+    if not settings:
+        return ""
+    return str(settings.get("operator_channel", "") or "")
 
 
 def _first_channel_day(programmes: pd.DataFrame) -> tuple[Optional[str], Optional[str]]:

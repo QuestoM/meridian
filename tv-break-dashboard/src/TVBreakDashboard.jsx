@@ -1355,6 +1355,31 @@ function TVBreakDashboard() {
     }
   }
 
+  async function handleApplyOptimization() {
+    // The optimizer preview runs on the operator's chosen levers but never saves
+    // them, so the weekly schedule (saved CSV) never moves. Apply persists those
+    // levers into settings, then runs the legitimate full-week recompute that
+    // reads them, so the Schedule, Reports and Overview pages all catch up.
+    // The preview result itself is never written to the CSV, which would corrupt
+    // the rest of the week; only settings plus a full recompute are persisted.
+    const controls = scenarioControls();
+    // Map the scenario control fields onto their settings field names. Most match
+    // by name; retention_floor lands on min_retention_floor (the setting key).
+    const nextSettings = {
+      ...settings,
+      revenue_weight: Math.round(finiteNumber(controls.revenue_weight) ?? settings.revenue_weight),
+      risk_lambda: finiteNumber(controls.risk_lambda) ?? settings.risk_lambda,
+      min_retention_floor: finiteNumber(controls.retention_floor) ?? settings.min_retention_floor,
+      max_breaks_per_hour: finiteNumber(controls.max_breaks_per_hour) ?? settings.max_breaks_per_hour,
+    };
+    await persistSettings(nextSettings);
+    notify(
+      'Saved these levers and rebuilding the whole weekly schedule.',
+      'הלברים נשמרו והלוח השבועי כולו נבנה מחדש.',
+    );
+    await handleRecomputeSchedule();
+  }
+
   function renderActiveWorkspace() {
     const common = { overview, schedule, copy, locale, compliance, loading, notify };
 
@@ -1621,6 +1646,20 @@ function TVBreakDashboard() {
               <Play size={15} fill="currentColor" />
               {optimizationState === 'running' ? pageText(locale, 'Running', 'מריץ') : copy.runOptimization}
             </Button>
+            <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את הלברים האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
+              <span>
+                <Button
+                  className="apply-button"
+                  type="button"
+                  variant="outlined"
+                  disabled={optimizationState === 'running' || recomputeState === 'running'}
+                  onClick={handleApplyOptimization}
+                >
+                  <CalendarDays size={15} />
+                  {recomputeState === 'running' ? pageText(locale, 'Applying', 'מחיל') : pageText(locale, 'Apply to weekly schedule', 'החל על לוח השבוע')}
+                </Button>
+              </span>
+            </Tooltip>
           </div>
         </header>
 

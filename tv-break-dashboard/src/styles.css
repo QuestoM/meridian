@@ -329,6 +329,7 @@ button {
 .date-control,
 .secondary-button,
 .run-button,
+.apply-button,
 .segmented,
 .icon-button,
 .scenario-select select,
@@ -361,6 +362,23 @@ button {
   color: #ffffff;
   border-color: #0d1b2a;
   font-weight: var(--weight-medium);
+}
+
+/* Apply is the commit to the saved weekly schedule; secondary to the preview Run. */
+.apply-button {
+  background: #ffffff;
+  color: var(--teal, #0f766e);
+  border-color: var(--teal, #0f766e);
+  font-weight: var(--weight-medium);
+}
+
+.apply-button:hover {
+  background: var(--teal-soft, #e8f4f2);
+}
+
+.apply-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .icon-button {
