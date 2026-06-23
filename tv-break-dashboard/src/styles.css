@@ -4284,6 +4284,61 @@ button {
   max-width: 80ch;
 }
 
+/* Calm amber strip below the header telling the operator the saved schedule is
+   out of date. Full width, in normal flow, so it inherits the shell direction
+   for RTL. Message and recompute button sit on one row and wrap when narrow. */
+.schedule-staleness-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  background: var(--amber-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.schedule-staleness-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.schedule-staleness-heading {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--amber);
+}
+
+.schedule-staleness-detail {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  max-width: 80ch;
+}
+
+.schedule-staleness-button {
+  flex: none;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--amber);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.schedule-staleness-button:hover {
+  background: var(--amber);
+  color: var(--surface);
+}
+
+.schedule-staleness-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .first-break-note {
   margin: 0 0 12px;
   font-size: var(--text-xs);

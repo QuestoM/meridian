@@ -18,11 +18,14 @@ left without breaks earns zero and keeps its full baseline retention.
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from dataclasses import replace
 
@@ -428,4 +431,15 @@ def write_weekly_schedule(
     target = Path(path) if path is not None else DEFAULT_OUTPUT_PATH
     target.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(target, index=False, encoding="utf-8")
+    # Stamp a freshness sidecar next to the CSV so the dashboard can tell honestly
+    # whether this saved schedule still matches its inputs (settings, constraints,
+    # overrides, coefficients, data). Imported lazily to avoid an import cycle, and
+    # guarded so a meta failure never breaks the CSV write, which is the critical
+    # path: a missing sidecar simply reads as freshness "unknown" downstream.
+    try:
+        from kairos.export.schedule_freshness import write_schedule_meta
+
+        write_schedule_meta(target, ROOT)
+    except Exception:  # pragma: no cover - meta is best-effort, never blocks export
+        logger.warning("Could not write schedule freshness sidecar for %s.", target, exc_info=True)
     return target

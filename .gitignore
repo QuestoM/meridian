@@ -63,3 +63,4 @@ models/ai_program_classifications.json
 
 # Runtime API backups of advertiser CSVs
 data/_backups/
+output/*.meta.json

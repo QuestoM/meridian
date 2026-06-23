@@ -70,6 +70,7 @@ import YieldView from './YieldView';
 import ScenarioCompare from './ScenarioCompare';
 import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
+import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -1622,6 +1623,13 @@ function TVBreakDashboard() {
             </Button>
           </div>
         </header>
+
+        <ScheduleStalenessBanner
+          freshness={overview?.schedule_freshness}
+          locale={locale}
+          onRecompute={handleRecomputeSchedule}
+          recomputeState={recomputeState}
+        />
 
         {renderActiveWorkspace()}
 

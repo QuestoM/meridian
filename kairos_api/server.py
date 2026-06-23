@@ -2078,6 +2078,17 @@ def overview(
     points, status = _frontier_async(_load_settings(), scope or None)
     body["frontier"] = points
     body["frontier_status"] = status
+    # Schedule freshness: is the saved schedule the dashboard renders still in
+    # step with its inputs? Computed FRESH here (never inside _overview_cached),
+    # because a settings/constraints/pricing edit does not clear the overview
+    # cache, so a cached verdict would lie. Honest fresh/stale/unknown; never
+    # fabricated. Guarded so a freshness failure never breaks the overview.
+    try:
+        from kairos.export.schedule_freshness import schedule_freshness
+
+        body["schedule_freshness"] = schedule_freshness(ROOT)
+    except Exception:  # pragma: no cover - defensive, never blocks the overview
+        body["schedule_freshness"] = {"status": "unknown", "computed_at": None, "changed": []}
     return body
 
 
