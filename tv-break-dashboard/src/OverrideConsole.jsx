@@ -61,6 +61,8 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   const [countValue, setCountValue] = useState('');
   const [notes, setNotes] = useState('');
   const [preview, setPreview] = useState(null);
+  const [lastCreated, setLastCreated] = useState(null);
+  const [dayJobState, setDayJobState] = useState('idle');
   const [previewState, setPreviewState] = useState('idle'); // idle | loading | ready | unavailable
 
   const loadOverrides = useCallback(async () => {
@@ -185,10 +187,57 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
       notify('Override saved. Recompute when ready to apply it to the plan.',
         'העקיפה נשמרה. הריצו חישוב מחדש כשתרצו להחיל אותה על התוכנית.');
       setNotes('');
+      const day = seg.day || seg.anchor?.date || '';
+      if (seg.channel && day) setLastCreated({ channel: seg.channel, day });
       await loadOverrides();
       onGlobalRefresh?.();
     } catch (error) {
       notify(`Override save failed (${error.message}).`, `שמירת העקיפה נכשלה (${error.message}).`);
+    }
+  }
+
+  async function handleDayRecompute() {
+    if (!lastCreated) return;
+    setDayJobState('running');
+    const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    try {
+      const startResponse = await fetch(`${API_BASE}/api/jobs/recompute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: [lastCreated] }),
+      });
+      if (startResponse.status === 404) {
+        setDayJobState('idle');
+        notify('Day recompute needs the updated backend. Use the full recompute instead.',
+          'חישוב מחדש ליום דורש שרת מעודכן. השתמשו בחישוב המלא במקום.');
+        return;
+      }
+      if (!startResponse.ok) throw new Error(`${startResponse.status} ${startResponse.statusText}`);
+      const { job_id: jobId } = await startResponse.json();
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await sleep(1000);
+        const statusResponse = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        if (!statusResponse.ok) throw new Error(`${statusResponse.status} ${statusResponse.statusText}`);
+        const record = await statusResponse.json();
+        if (record.status === 'done') {
+          setDayJobState('idle');
+          setLastCreated(null);
+          notify('Day recomputed. The plan now reflects the override.',
+            'היום חושב מחדש. התוכנית משקפת כעת את העקיפה.');
+          onGlobalRefresh?.();
+          return;
+        }
+        if (record.status === 'failed') {
+          setDayJobState('idle');
+          notify(`Day recompute failed: ${record.error || 'unknown error'}.`,
+            `חישוב היום מחדש נכשל: ${record.error || 'שגיאה לא ידועה'}.`);
+          return;
+        }
+      }
+      throw new Error('timed out');
+    } catch (error) {
+      setDayJobState('idle');
+      notify(`Day recompute failed (${error.message}).`, `חישוב היום מחדש נכשל (${error.message}).`);
     }
   }
 
@@ -333,12 +382,19 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
                 </div>
               )}
 
-              <div style={{ marginTop: 14 }}>
+              <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <Button className="primary-button compact" type="button" variant="contained"
                   disabled={!selectedSeg} onClick={handleCreate}>
                   <SlidersHorizontal size={14} />
                   {pageText(locale, 'Save override', 'שמירת עקיפה')}
                 </Button>
+                {lastCreated && (
+                  <Button className="compact" type="button" variant="outlined"
+                    disabled={dayJobState === 'running'} onClick={handleDayRecompute}>
+                    <RefreshCcw size={14} className={dayJobState === 'running' ? 'spin' : undefined} />
+                    {dayJobState === 'running' ? pageText(locale, 'Recomputing day', 'מחשב את היום') : pageText(locale, 'Recompute this day', 'חישוב מחדש ליום זה')}
+                  </Button>
+                )}
               </div>
             </>
           )}

@@ -1082,6 +1082,7 @@ function TVBreakDashboard() {
   const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [recomputeProgress, setRecomputeProgress] = useState(null);
   const toastTimer = useRef(null);
 
   // Honest progress affordance: a full-week rebuild is a synchronous call with no
@@ -1349,12 +1350,10 @@ function TVBreakDashboard() {
     }
   }
 
-  async function handleRecomputeSchedule() {
+  async function handleRecomputeSchedule(scope = null) {
     setRecomputeState('running');
-    try {
-      const response = await fetch(`${API_BASE}/api/recompute-schedule`, { method: 'POST' });
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      const result = await response.json();
+    setRecomputeProgress(null);
+    const finishOk = (result) => {
       setRecomputeState('done');
       // Refetch so the schedule and overview reflect the freshly computed plan.
       setRefreshKey((k) => k + 1);
@@ -1363,10 +1362,59 @@ function TVBreakDashboard() {
         `הלוח השבועי חושב מחדש: ${formatNumber(result.total_breaks || 0, locale)} ברייקים, ${formatNumber(Math.round(result.total_revenue || 0), locale)} ש"ח.`,
       );
       window.setTimeout(() => setRecomputeState('idle'), 2400);
-    } catch {
+    };
+    const finishFail = () => {
       setRecomputeState('error');
       notify('Recompute failed. The saved schedule is unchanged.', 'החישוב מחדש נכשל. הלוח השמור לא השתנה.');
       window.setTimeout(() => setRecomputeState('idle'), 2400);
+    };
+    const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    try {
+      // Preferred path: the async job endpoint with honest tri-state status and
+      // real per-day progress. Falls back to the synchronous endpoint when the
+      // job API is absent (older backend).
+      const startResponse = await fetch(`${API_BASE}/api/jobs/recompute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scope ? { scope } : {}),
+      });
+      if (startResponse.status === 404) {
+        const response = await fetch(`${API_BASE}/api/recompute-schedule`, { method: 'POST' });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        finishOk(await response.json());
+        return;
+      }
+      if (!startResponse.ok) throw new Error(`${startResponse.status} ${startResponse.statusText}`);
+      const { job_id: jobId } = await startResponse.json();
+      // Poll to a terminal state; ~10 minute ceiling so a dead backend cannot
+      // leave the button spinning forever.
+      for (let attempt = 0; attempt < 400; attempt += 1) {
+        await sleep(1500);
+        const statusResponse = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        if (!statusResponse.ok) throw new Error(`${statusResponse.status} ${statusResponse.statusText}`);
+        const record = await statusResponse.json();
+        if (record.progress && Number.isFinite(record.progress.done) && Number.isFinite(record.progress.total)) {
+          setRecomputeProgress({ done: record.progress.done, total: record.progress.total });
+        }
+        if (record.status === 'done') {
+          finishOk(record.result || {});
+          return;
+        }
+        if (record.status === 'failed') {
+          setRecomputeState('error');
+          notify(
+            `Recompute failed: ${record.error || 'unknown error'}. The saved schedule is unchanged.`,
+            `החישוב מחדש נכשל: ${record.error || 'שגיאה לא ידועה'}. הלוח השמור לא השתנה.`,
+          );
+          window.setTimeout(() => setRecomputeState('idle'), 2400);
+          return;
+        }
+      }
+      throw new Error('job polling timed out');
+    } catch {
+      finishFail();
+    } finally {
+      setRecomputeProgress(null);
     }
   }
 
@@ -1694,7 +1742,7 @@ function TVBreakDashboard() {
         {isBusy && (
           <div className="rebuild-note" role="status">
             <RefreshCcw size={14} className="upload-spinner" />
-            <span>{pageText(locale, `Rebuilding the whole weekly schedule. This can take up to a couple of minutes. Elapsed ${elapsedSec}s.`, `בונה מחדש את כל הלוח השבועי. זה יכול להימשך עד כמה דקות. חלפו ${elapsedSec} שניות.`)}</span>
+            <span>{recomputeProgress ? pageText(locale, `Rebuilding the schedule: day ${recomputeProgress.done} of ${recomputeProgress.total}. Elapsed ${elapsedSec}s.`, `בונה מחדש את הלוח: יום ${recomputeProgress.done} מתוך ${recomputeProgress.total}. חלפו ${elapsedSec} שניות.`) : pageText(locale, `Rebuilding the whole weekly schedule. This can take up to a couple of minutes. Elapsed ${elapsedSec}s.`, `בונה מחדש את כל הלוח השבועי. זה יכול להימשך עד כמה דקות. חלפו ${elapsedSec} שניות.`)}</span>
           </div>
         )}
 
