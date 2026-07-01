@@ -65,6 +65,7 @@ import {
 import UploadCenter from './UploadCenter';
 import AdvertisersManager from './AdvertisersManager';
 import PricingManager from './PricingManager';
+import OverrideConsole from './OverrideConsole';
 import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
 import FrontierScopeChart from './FrontierScopeChart';
 import YieldView from './YieldView';
@@ -255,6 +256,7 @@ const copyByLocale = {
       Data: 'Data',
       Advertisers: 'Advertisers',
       Pricing: 'Pricing',
+      Overrides: 'Overrides',
       Settings: 'Settings',
     },
     workspace: 'Revenue operations',
@@ -350,6 +352,7 @@ const copyByLocale = {
       Data: 'נתונים',
       Advertisers: 'מפרסמים',
       Pricing: 'תמחור',
+      Overrides: 'עקיפות',
       Settings: 'הגדרות',
     },
     workspace: 'ניהול הכנסות מפרסום',
@@ -510,6 +513,7 @@ const navItems = [
   ['Data', Database],
   ['Advertisers', Users],
   ['Pricing', Coins],
+  ['Overrides', SlidersHorizontal],
   ['Settings', Settings],
 ];
 
@@ -1491,6 +1495,10 @@ function TVBreakDashboard() {
 
     if (activeView === 'Pricing') {
       return <PricingManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+    }
+
+    if (activeView === 'Overrides') {
+      return <OverrideConsole copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     return (

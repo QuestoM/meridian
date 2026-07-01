@@ -80,6 +80,14 @@ class OverrideUpdate(BaseModel):
     notes: str | None = None
 
 
+def _segment_clock(start_seconds: float) -> str:
+    """Format a segment start (seconds past midnight) as the HH:MM the weekly CSV
+    stores. Matches kairos.export.schedule._clock so a stored anchor built from the
+    CSV start_time compares equal to a freshly built segment's clock."""
+    total_minutes = int(start_seconds // 60)
+    return f"{(total_minutes // 60) % 24:02d}:{total_minutes % 60:02d}"
+
+
 def _load_frame() -> pd.DataFrame:
     if not OVERRIDES_PATH.exists():
         return pd.DataFrame(columns=list(COLUMNS))
@@ -251,8 +259,23 @@ def override_effect(
         raise HTTPException(status_code=404, detail="No segments found for the requested channel-day")
 
     overrides = OverrideSet.from_csv(OVERRIDES_PATH)
+    # Anchor guard (re-ingest safety): resolve the stored overrides against the
+    # anchors of the segments we just built. An override whose stored anchor no
+    # longer matches the segment now carrying its target_id is reported STALE and
+    # dropped here, so a re-ingest that reordered the build-order segment ids can
+    # never silently rebind an override to a different-but-valid break and move
+    # revenue on the wrong one. A blank-anchor (legacy) override still binds.
+    anchors = {
+        segment.segment_id: (
+            str(segment.day),
+            _segment_clock(segment.start_seconds),
+            str(segment.program_type),
+        )
+        for segment in segments
+    }
+    active_overrides, stale_overrides = overrides.resolve_against_segments(anchors)
     baseline = optimize_breaks(segments)
-    overridden = optimize_breaks(segments, overrides=overrides)
+    overridden = optimize_breaks(segments, overrides=active_overrides)
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
     new_counts = {s.segment_id: s.num_breaks for s in overridden.segments}
@@ -279,5 +302,17 @@ def override_effect(
         "rejected_overrides": [
             {"segment_id": r.segment_id, "kind": r.kind, "requested": r.requested, "reason": r.reason}
             for r in overridden.rejected_overrides
+        ] + [
+            {
+                "segment_id": s["segment_id"],
+                "kind": s["kind"],
+                "requested": None,
+                "reason": s["reason"],
+                "anchor_stale": True,
+                "override_id": s["override_id"],
+                "expected": s["expected"],
+                "found": s["found"],
+            }
+            for s in stale_overrides
         ],
     }

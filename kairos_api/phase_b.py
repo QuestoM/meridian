@@ -84,12 +84,31 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
     ad_seconds = pd.to_numeric(
         frame.get("total_break_time", frame.get("break_length", 0)), errors="coerce"
     ).fillna(0.0)
-    frame = frame.assign(_revenue=revenue, _ad_seconds=ad_seconds)
+    # retention_used and segment_id are persisted on the weekly CSV now, so the
+    # per-group retention level and true segment count are faithful reads, not
+    # engine re-derivations. Both are guarded so an older CSV that lacks them still
+    # returns the revenue/yield figures rather than erroring.
+    retention = (
+        pd.to_numeric(frame["retention_used"], errors="coerce")
+        if "retention_used" in frame.columns
+        else pd.Series(pd.NA, index=frame.index, dtype="float64")
+    )
+    frame = frame.assign(_revenue=revenue, _ad_seconds=ad_seconds, _retention=retention)
     frame = frame[frame["_ad_seconds"] > 0]
     if frame.empty:
         return {"available": False, "reason": "Saved schedule has no ad-seconds to monetize.", "by_daypart": [], "by_programme": []}
 
     frame["_daypart"] = frame.get("start_time").map(_daypart_for_start)
+    has_segment_id = "segment_id" in frame.columns
+
+    def _weighted_retention(part: pd.DataFrame) -> Optional[float]:
+        """Ad-seconds-weighted mean of the persisted retention_used, or None when
+        no row in the group carries a measured value (never fabricated to 0)."""
+        valid = part[part["_retention"].notna() & (part["_ad_seconds"] > 0)]
+        weight = float(valid["_ad_seconds"].sum())
+        if valid.empty or weight <= 0:
+            return None
+        return round(float((valid["_retention"] * valid["_ad_seconds"]).sum() / weight), 4)
 
     def _aggregate(group_key: str, label_unknown: str) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -105,6 +124,8 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
                     "ad_seconds": int(round(seconds)),
                     "yield_per_second": round(rev / seconds, 4),
                     "break_count": int(pd.to_numeric(part.get("num_breaks", 1), errors="coerce").fillna(1).sum()),
+                    "segment_count": int(part["segment_id"].nunique()) if has_segment_id else None,
+                    "avg_retention": _weighted_retention(part),
                 }
             )
         return sorted(rows, key=lambda row: row["yield_per_second"], reverse=True)
@@ -122,6 +143,8 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
             "revenue": round(total_revenue, 2),
             "ad_seconds": int(round(total_seconds)),
             "yield_per_second": round(total_revenue / total_seconds, 4) if total_seconds > 0 else 0.0,
+            "segment_count": int(frame["segment_id"].nunique()) if has_segment_id else None,
+            "avg_retention": _weighted_retention(frame),
         },
         "by_daypart": by_daypart,
         "by_programme": by_programme,
@@ -135,49 +158,70 @@ def yield_per_second() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# 5. Gold breaks, from a real optimizer run on the saved settings.
+# 5. Gold breaks, read straight from the saved weekly schedule CSV.
 # ---------------------------------------------------------------------------
-def _build_gold_breaks() -> dict[str, Any]:
-    """Gold breaks in the operator's current plan, from a live optimizer run.
+def _is_gold_truthy(value: Any) -> bool:
+    """Whether a CSV ``is_gold`` cell marks the segment gold.
 
-    Gold status is an override/guardrail concept (manual_overrides.csv ``gold``
-    column -> optimizer placement ``is_gold``); the saved weekly CSV does not carry
-    it, so the honest source is one real :func:`run_scenario` run on the saved
-    settings. ``realized_premium``/``potential_premium`` are advertiser-attribution
-    figures that exist only on the daily spot-pricing path, so they are returned as
-    null with a ``source_pending`` marker, never invented.
+    Robust to how the round-tripped column typed itself: a native pandas bool, or
+    the literal 'True'/'False' text a re-read CSV can carry. Anything else (blank,
+    NaN, 'False') is honestly not gold.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"true", "1", "yes", "1.0"}
+
+
+def _cell_or_none(value: Any) -> Optional[str]:
+    """A schedule cell as a clean string, or None for blank/NaN, never 'nan'."""
+    if value is None:
+        return None
+    if isinstance(value, float) and pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "nan":
+        return None
+    return text
+
+
+def _build_gold_breaks() -> dict[str, Any]:
+    """Gold breaks in the operator's current plan, read from the saved schedule CSV.
+
+    Gold status is now materialized on ``output/weekly_break_schedule.csv`` as the
+    per-segment ``is_gold`` column. The export sets it from each plan's placements
+    (``is_gold = any(placement.is_gold)`` for the segment), so reading the column
+    here is the faithful, cheap source: this endpoint no longer re-runs the whole
+    optimizer just to recover gold status. Each gold row is one gold segment,
+    carrying its own ``predicted_revenue`` and first-break ``start_time`` from the
+    plan. ``realized_premium``/``potential_premium`` are advertiser-attribution
+    figures that live only on the daily spot-pricing path, so they stay null with a
+    ``source_pending`` marker, never invented.
     """
     server = _server()
-    if not server._ENGINE_AVAILABLE:
-        return {"available": False, "reason": "Optimization engine unavailable.", "count": 0, "breaks": [], "by_day": []}
-
     settings = server._load_settings()
     if not settings.sponsorships_enabled:
         return {"available": True, "enabled": False, "reason": "Sponsorships are disabled in settings.", "count": 0, "breaks": [], "by_day": []}
     if not settings.gold_breaks_enabled:
         return {"available": True, "enabled": False, "reason": "Gold breaks are disabled in settings.", "count": 0, "breaks": [], "by_day": []}
 
-    try:
-        from kairos.service import run_scenario
+    schedule = server._load_break_schedule()
+    if schedule.empty:
+        return {"available": False, "reason": "No saved weekly schedule on disk.", "count": 0, "breaks": [], "by_day": []}
+    if "is_gold" not in schedule.columns:
+        return {
+            "available": True,
+            "enabled": True,
+            "count": 0,
+            "reason": "Saved weekly schedule predates gold-break tracking; recompute the schedule to populate is_gold.",
+            "max_per_day": settings.gold_breaks_max_per_day,
+            "breaks": [],
+            "by_day": [],
+        }
 
-        payload = run_scenario(
-            revenue_weight=settings.revenue_weight,
-            retention_floor=settings.min_retention_floor,
-            max_breaks_per_hour=settings.max_breaks_per_hour,
-            risk_lambda=settings.risk_lambda,
-            # Thread the operator's full saved settings and pacing reference date,
-            # exactly as /api/optimizer-plan and the frontier do (server._pacing_call_kwargs).
-            # Without these the run silently uses default guardrails, default YAML
-            # pricing and an unscoped channel, so the "current plan" claim would be
-            # false whenever the operator's settings deviate from the defaults.
-            today=server._reference_today(settings),
-            settings=server._model_dump(settings),
-        )
-    except Exception as exc:  # pragma: no cover - data/environment dependent
-        return {"available": False, "reason": f"Optimizer run failed: {str(exc)[:200]}", "count": 0, "breaks": [], "by_day": []}
-
-    gold = [p for p in payload.get("placements", []) if p.get("is_gold")]
-    if not gold:
+    gold = schedule[schedule["is_gold"].map(_is_gold_truthy)]
+    if gold.empty:
         return {
             "available": True,
             "enabled": True,
@@ -188,20 +232,22 @@ def _build_gold_breaks() -> dict[str, Any]:
             "by_day": [],
         }
 
+    revenue = pd.to_numeric(gold.get("predicted_revenue", 0), errors="coerce").fillna(0.0)
+    duration = pd.to_numeric(gold.get("break_length", 0), errors="coerce").fillna(0.0)
     breaks: list[dict[str, Any]] = []
     by_day_counts: dict[str, int] = {}
-    for placement in gold:
-        day = str(placement.get("day") or "")
+    for (_, row), rev, dur in zip(gold.iterrows(), revenue, duration):
+        day = _cell_or_none(row.get("date")) or ""
         by_day_counts[day] = by_day_counts.get(day, 0) + 1
         breaks.append(
             {
-                "segment_id": placement.get("segment_id"),
-                "channel": placement.get("channel"),
+                "segment_id": _cell_or_none(row.get("segment_id")),
+                "channel": _cell_or_none(row.get("channel")),
                 "day": day,
-                "start_time": placement.get("start_time"),
-                "program_type": placement.get("program_type"),
-                "duration_seconds": placement.get("duration_seconds"),
-                "revenue": placement.get("revenue"),
+                "start_time": _cell_or_none(row.get("start_time")),
+                "program_type": _cell_or_none(row.get("program_type")),
+                "duration_seconds": round(float(dur), 1),
+                "revenue": round(float(rev), 2),
                 "realized_premium": None,
                 "potential_premium": None,
                 "premium_source": "source_pending",

@@ -172,6 +172,39 @@ def _parse_move_token(value: str) -> dict[str, str]:
     return out
 
 
+def _override_anchor(override: Override) -> Optional[tuple[str, str, str]]:
+    """The override's stored semantic anchor, or None when it is blank (legacy).
+
+    A blank anchor (no date, start, or title recorded) means the override predates
+    the anchor column and must keep binding by target_id alone, so callers treat
+    None as "always binds".
+    """
+    date = str(override.anchor_date or "").strip()
+    start = str(override.anchor_start or "").strip()
+    title = str(override.anchor_title or "").strip()
+    if not date and not start and not title:
+        return None
+    return (date, start, title)
+
+
+def _anchors_match(
+    stored: tuple[str, str, str], current: tuple[str, str, str]
+) -> bool:
+    """True when a stored anchor still identifies the current segment.
+
+    Date and start clock must match exactly (after trimming); the program label is
+    compared case-insensitively so a harmless casing change does not falsely flag a
+    stale override.
+    """
+    s_date, s_start, s_title = (str(v or "").strip() for v in stored)
+    c_date, c_start, c_title = (str(v or "").strip() for v in current)
+    return (
+        s_date == c_date
+        and s_start == c_start
+        and s_title.lower() == c_title.lower()
+    )
+
+
 @dataclass
 class OverrideSet:
     """A loaded, scoped set of operator overrides.
@@ -191,6 +224,66 @@ class OverrideSet:
     def _valid(self) -> list[Override]:
         return [o for o in self.overrides if o.is_valid()]
 
+    def _active(self) -> list[Override]:
+        """Valid overrides the plan should actually honour.
+
+        A dismissed or stale override (status != active) is recorded for the
+        decision log but must never bend the plan, so the constraint builders read
+        only active rows. A legacy CSV loads status="active" for every row, so this
+        is an exact identity for the pre-status store.
+        """
+        return [o for o in self._valid() if o.status == STATUS_ACTIVE]
+
+    def resolve_against_segments(
+        self, segment_anchors: dict[str, tuple[str, str, str]]
+    ) -> tuple["OverrideSet", list[dict[str, object]]]:
+        """Split active overrides into those that bind and those that are stale.
+
+        ``segment_anchors`` maps each CURRENT segment_id to its semantic anchor
+        ``(date, start_clock, program)``. A segment override with a BLANK anchor
+        (legacy) binds as before. A segment override with a non-blank anchor binds
+        only when that anchor matches the current segment for its target_id; when it
+        does not (a re-ingest reordered the build indices, so the same segment_id now
+        points at a different-but-valid break), the override is reported STALE and is
+        NOT applied, so it can never move revenue on the wrong break. Spot-scope
+        overrides have no segment anchor and pass through unchanged.
+
+        Returns ``(active_set, stale)`` where ``active_set`` is a new OverrideSet of
+        the overrides that bind (feed straight into :meth:`segment_constraints`) and
+        ``stale`` is a list of report dicts for the rejected-override channel.
+        """
+        kept: list[Override] = []
+        stale: list[dict[str, object]] = []
+        for override in self._active():
+            if override.scope != SEGMENT:
+                kept.append(override)
+                continue
+            anchor = _override_anchor(override)
+            if anchor is None:
+                kept.append(override)
+                continue
+            current = segment_anchors.get(override.target_id)
+            if current is not None and _anchors_match(anchor, current):
+                kept.append(override)
+                continue
+            missing = current is None
+            stale.append({
+                "override_id": override.override_id,
+                "segment_id": override.target_id,
+                "kind": override.kind,
+                "reason": (
+                    "anchor target segment_id is not in the current schedule"
+                    if missing
+                    else "anchor mismatch: stored anchor does not match the current segment for this segment_id"
+                ),
+                "expected": {"date": anchor[0], "start_clock": anchor[1], "program": anchor[2]},
+                "found": (
+                    None if missing
+                    else {"date": current[0], "start_clock": current[1], "program": current[2]}
+                ),
+            })
+        return OverrideSet(kept), stale
+
     def segment_constraints(self) -> dict[str, dict[str, object]]:
         """Constraints per segment id the optimizer must honour.
 
@@ -201,7 +294,7 @@ class OverrideSet:
         A ``gold`` override (or the ``gold`` flag on any override) sets gold.
         """
         out: dict[str, dict[str, object]] = {}
-        for override in self._valid():
+        for override in self._active():
             if override.scope != SEGMENT:
                 continue
             entry = out.setdefault(override.target_id, {})
@@ -230,7 +323,7 @@ class OverrideSet:
         they merge: any lock sticks, the last move's parsed target wins.
         """
         out: dict[str, dict[str, object]] = {}
-        for override in self._valid():
+        for override in self._active():
             if override.scope != SPOT:
                 continue
             entry = out.setdefault(override.target_id, {})

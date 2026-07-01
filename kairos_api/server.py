@@ -74,6 +74,17 @@ class BreakDecisionRequest(BaseModel):
     program_type: str | None = Field(default=None)
     scenario: str | None = Field(default=None)
     note: str | None = Field(default=None, max_length=500)
+    # Fields that let an approve/reject resolve into a REAL override. target_id is the
+    # owned-channel segment_id (falls back to break_id); kind is the override kind
+    # (pin/force/forbid/gold); the anchor trio is copied from the recommendation so a
+    # later re-ingest cannot silently rebind the override to a different break.
+    target_id: str | None = Field(default=None)
+    kind: str | None = Field(default=None)
+    value: str | None = Field(default=None)
+    gold: bool = Field(default=False)
+    anchor_date: str | None = Field(default=None)
+    anchor_start: str | None = Field(default=None)
+    anchor_title: str | None = Field(default=None)
 
 
 class KairosSettings(BaseModel):
@@ -865,36 +876,180 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
     return payload
 
 
+def _augment_segment_ids(schedule: pd.DataFrame) -> pd.DataFrame:
+    """Return the schedule with a populated segment_id and a boolean is_gold column.
+
+    The weekly CSV carries both (kairos.export.schedule). This restores them when an
+    older CSV predates the columns: segment_id is rebuilt as
+    ``f"{date}|{channel}|{index:03d}"`` with index the row's position within its
+    channel-day, exactly the build-order key the exporter writes and the override /
+    constraint engines key their target_id on. Nothing is fabricated; a segment with
+    no gold break reads False.
+    """
+    frame = schedule.copy()
+    if "segment_id" in frame.columns:
+        sid = frame["segment_id"].astype(str).str.strip()
+    else:
+        sid = pd.Series([""] * len(frame), index=frame.index)
+    blank = sid == ""
+    if bool(blank.any()) and {"date", "channel"}.issubset(frame.columns):
+        order = frame.groupby(["date", "channel"], sort=False).cumcount()
+        rebuilt = (
+            frame["date"].astype(str).str.strip() + "|"
+            + frame["channel"].astype(str).str.strip() + "|"
+            + order.map(lambda i: f"{int(i):03d}")
+        )
+        sid = sid.where(~blank, rebuilt)
+    frame["segment_id"] = sid
+    if "is_gold" in frame.columns:
+        frame["is_gold"] = frame["is_gold"].map(
+            lambda v: str(v).strip().lower() in {"true", "1", "yes", "y"}
+        )
+    else:
+        frame["is_gold"] = False
+    return frame
+
+
+def _row_anchor(row: Any) -> dict[str, str]:
+    """The semantic anchor for a schedule row: the trio the override store records
+    beside the build-order segment_id so a re-ingest cannot silently rebind."""
+    return {
+        "date": str(row.get("date", "")).strip(),
+        "start_clock": str(row.get("start_time", "")).strip(),
+        "program": str(row.get("program_type", "")).strip(),
+    }
+
+
+def _build_schedule_segments(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
+    """The operator's list of valid override targets, OWNED CHANNEL ONLY.
+
+    The weekly schedule loops every channel-day, but the operator may only constrain
+    their own channel, so this filters to settings.operator_channel and never emits a
+    competitor row. Honest empty (empty list) when no schedule exists or no owned
+    channel is configured yet.
+    """
+    owned = str(settings.operator_channel or "").strip()
+    if schedule.empty or not owned:
+        return {
+            "operator_channel": owned or None,
+            "operator_channel_unset": not owned,
+            "segments": [],
+        }
+    frame = _augment_segment_ids(schedule)
+    frame = frame[frame["channel"].astype(str).str.strip() == owned]
+    segments = [
+        {
+            "segment_id": str(row.get("segment_id", "")).strip(),
+            "channel": owned,
+            "day": str(row.get("date", "")).strip(),
+            "anchor": _row_anchor(row),
+            "state": {
+                "num_breaks": int(_safe_number(row.get("num_breaks", 0))),
+                "is_gold": bool(row.get("is_gold", False)),
+                "predicted_revenue": _money(row.get("predicted_revenue", 0)),
+                "retention": round(_percent(row.get("predicted_retention", 0)), 1),
+            },
+        }
+        for _, row in frame.iterrows()
+    ]
+    return {"operator_channel": owned, "operator_channel_unset": False, "segments": segments}
+
+
+def _proposed_kind(risk: str, num_breaks: int, is_gold: bool) -> str | None:
+    """The override a review of this break honestly implies, or None when the break
+    is inherently advisory (nothing concrete to change).
+
+    A break below the retention floor (High risk) should shed load: lower its count
+    when it carries more than one break, or forbid it when it carries a single break.
+    A healthy break (at or above the floor) that already earns is worth protecting:
+    tag it gold, or pin its count when it is already gold. A zero-break healthy
+    segment has nothing to act on.
+    """
+    if risk == "High":
+        if num_breaks > 1:
+            return "lower_count"
+        if num_breaks == 1:
+            return "forbid"
+        return None
+    if num_breaks <= 0:
+        return None
+    return "pin" if is_gold else "gold"
+
+
 def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
     if schedule.empty:
         return []
 
-    frame = schedule.copy()
+    settings = _load_settings()
+    owned = str(settings.operator_channel or "").strip()
+    frame = _augment_segment_ids(schedule)
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
     frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0.0), errors="coerce").fillna(0.0)
-    frame = frame.sort_values(["predicted_revenue", "predicted_retention"], ascending=[False, True])
+    frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 0), errors="coerce").fillna(0).astype(int)
+
+    # Competitor boundary: only the operator's OWNED channel produces
+    # recommendations, and only owned-channel segments are ever offered as targets.
+    # With no channel configured yet, recommendations stay advisory (channel null, no
+    # segment mapping) rather than binding to a channel the operator may not own.
+    scoped = frame[frame["channel"].astype(str).str.strip() == owned] if owned else frame
+    if scoped.empty:
+        return []
+    scoped = scoped.sort_values(["predicted_revenue", "predicted_retention"], ascending=[False, True])
 
     # Risk labels are sourced from the operator's configured retention floor, not
     # fixed literals. Below the floor is High; within a 2-point band above it is
     # Medium; clear of the band is Low. This mirrors the honest _risk_from_retention
     # scale so the recommendation risk and the headline risk score agree.
-    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
+    floor_percent = round(settings.min_retention_floor * 100, 1)
     actions = []
-    for idx, row in frame.head(5).iterrows():
+    for idx, row in scoped.head(5).iterrows():
         retention = _percent(row.get("predicted_retention", 0.0))
         revenue = _money(row.get("predicted_revenue", 0))
+        num_breaks = int(row.get("num_breaks", 0))
         risk = "High" if retention < floor_percent else "Medium" if retention < floor_percent + 2.0 else "Low"
+        program_type = str(row.get("program_type", "Other"))
+        position = row.get("position", "middle")
+        break_type = row.get("break_type", "medium")
+        segment_id = str(row.get("segment_id", "")).strip()
+        anchor = _row_anchor(row)
+        proposed_kind = _proposed_kind(risk, num_breaks, bool(row.get("is_gold", False)))
+        # Candidate owned-channel segments of the same program_type / position /
+        # break_type this review resolves to. Only produced for the owned channel
+        # with a real segment_id; never fabricated for an aggregate advisory.
+        candidates: list[dict[str, Any]] = []
+        if owned and segment_id:
+            same = scoped[
+                (scoped["program_type"].astype(str) == program_type)
+                & (scoped["position"].astype(str) == str(position))
+                & (scoped["break_type"].astype(str) == str(break_type))
+            ]
+            candidates = [
+                {"segment_id": str(cand.get("segment_id", "")).strip(), "anchor": _row_anchor(cand)}
+                for _, cand in same.head(12).iterrows()
+            ]
+        actionable = bool(owned and segment_id and proposed_kind)
         actions.append(
             {
                 "id": f"rec-{idx}",
-                "title": f"Review {row.get('position', 'middle')} {row.get('break_type', 'medium')} break",
-                "title_he": f"בדיקת ברייק {row.get('break_type', 'בינוני')} במיקום {row.get('position', 'אמצע')}",
-                "program_type": row.get("program_type", "Other"),
+                "title": f"Review {position} {break_type} break",
+                "title_he": f"בדיקת ברייק {break_type} במיקום {position}",
+                "program_type": program_type,
                 "impact": revenue,
                 "retention": round(retention, 1),
                 "risk": risk,
                 "rationale": "Revenue opportunity is strong while guardrails remain within the selected scenario.",
                 "rationale_he": "פוטנציאל ההכנסה גבוה, והבקרות עדיין עומדות בתרחיש שנבחר.",
+                # Decision-plane enrichment: the owned channel, the concrete
+                # owned-channel segment(s) this resolves to, and the override kind the
+                # review implies. non_actionable marks an advisory that cannot honestly
+                # bind to a segment (no owned channel, or nothing to change).
+                "channel": owned or None,
+                "actionable": actionable,
+                "non_actionable": not actionable,
+                "segment_id": segment_id if actionable else None,
+                "anchor": anchor if actionable else None,
+                "proposed_kind": proposed_kind if actionable else None,
+                "candidates": candidates,
             }
         )
     return actions
@@ -1677,6 +1832,12 @@ def _schedule_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
 
 
 @lru_cache(maxsize=16)
+def _schedule_segments_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature
+    return _build_schedule_segments(_load_break_schedule(), _load_settings())
+
+
+@lru_cache(maxsize=16)
 def _inventory_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
     return _build_inventory(_load_spots())
@@ -1720,36 +1881,91 @@ def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any
     }
 
 
-def _decisions_path() -> Path:
-    return DATA_DIR / "kairos_decisions.json"
+def _decision_log() -> list[dict[str, Any]]:
+    """The operator's decision log, read from the REAL override store.
+
+    Retires the old data/kairos_decisions.json, which was written on every
+    approve/reject but read only for display, so the log and the plan could drift.
+    Now every row here is a persisted Override that actually resolves through the
+    decision plane: an approved recommendation (source=recommendation) or a dismissed
+    rejection (status=dismissed, recorded but never applied).
+    """
+    from kairos.optimize.overrides import (
+        OverrideSet,
+        SOURCE_RECOMMENDATION,
+        STATUS_DISMISSED,
+    )
+
+    records: list[dict[str, Any]] = []
+    for override in OverrideSet.from_csv().overrides:
+        if override.source != SOURCE_RECOMMENDATION and override.status != STATUS_DISMISSED:
+            continue
+        records.append({
+            "id": override.override_id,
+            "action": "reject" if override.status == STATUS_DISMISSED else "approve",
+            "recommendation_id": override.rec_id or None,
+            "break_id": override.target_id,
+            "kind": override.kind,
+            "value": override.value,
+            "status": override.status,
+            "note": override.notes,
+            "created_at": override.created_at,
+            "source": override.source,
+            "anchor": {
+                "date": override.anchor_date,
+                "start_clock": override.anchor_start,
+                "program": override.anchor_title,
+            },
+        })
+    records.sort(key=lambda record: str(record.get("created_at") or ""), reverse=True)
+    return records
 
 
-def _load_decisions() -> list[dict[str, Any]]:
-    path = _decisions_path()
-    if not path.exists():
-        return []
-    try:
-        with path.open("r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-    except (OSError, ValueError, TypeError):
-        return []
-    return payload if isinstance(payload, list) else []
+def _resolve_decision(request: BreakDecisionRequest) -> dict[str, Any]:
+    """Turn an approve/reject decision into a REAL override (no dead log write).
 
+    Approve creates an active segment override stamped source=recommendation with the
+    rec_id and the semantic anchor, so the anchor guard protects it on re-ingest.
+    Reject creates a dismissed record (forbid by default) that the plan never applies
+    because only active overrides bend the schedule. The console can equivalently POST
+    /api/overrides directly; this shortcut just routes through the same honest store.
+    """
+    from kairos.optimize.overrides import (
+        FORBID,
+        SOURCE_RECOMMENDATION,
+        STATUS_ACTIVE,
+        STATUS_DISMISSED,
+    )
+    from kairos_api.overrides import OverrideCreate, create_override
 
-def _save_decision(request: BreakDecisionRequest) -> dict[str, Any]:
-    decisions = _load_decisions()
-    record = {
-        "id": f"decision-{int(time.time() * 1000)}",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        **_model_dump(request),
-    }
-    decisions.insert(0, record)
-    path = _decisions_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(decisions[:500], handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
-    return record
+    target = str(request.target_id or request.break_id or "").strip()
+    if not target:
+        raise HTTPException(
+            status_code=400,
+            detail="a target segment_id (target_id or break_id) is required to resolve a decision into an override",
+        )
+    reject = request.action == "reject"
+    kind = str(request.kind or "").strip().lower() or (FORBID if reject else "")
+    if not kind:
+        raise HTTPException(
+            status_code=400,
+            detail="kind is required to approve a decision (pin, force, forbid, or gold)",
+        )
+    payload = OverrideCreate(
+        scope="segment",
+        target_id=target,
+        kind=kind,
+        value=str(request.value or ""),
+        gold=bool(request.gold),
+        notes=str(request.note or ""),
+        source=SOURCE_RECOMMENDATION,
+        rec_id=str(request.recommendation_id or "").strip(),
+        status=STATUS_DISMISSED if reject else STATUS_ACTIVE,
+        anchor_date=str(request.anchor_date or "").strip(),
+        anchor_start=str(request.anchor_start or "").strip(),
+        anchor_title=str(request.anchor_title or "").strip(),
+    )
+    return create_override(payload)
 
 
 app = FastAPI(
@@ -2111,6 +2327,23 @@ def schedule() -> dict[str, Any]:
     ]))
 
 
+@app.get("/api/schedule/segments")
+def schedule_segments() -> dict[str, Any]:
+    """The operator's valid override targets on the OWNED channel only.
+
+    The weekly schedule loops every channel-day, but this endpoint enforces the
+    competitor boundary and returns segments for settings.operator_channel alone, each
+    with its build-order segment_id, its semantic anchor (date, start_clock, program),
+    and its current state (num_breaks, is_gold, predicted_revenue, retention). Honest
+    empty (200 + empty list) when no schedule exists or no owned channel is set.
+    """
+    return _schedule_segments_cached(_signature([
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+        SETTINGS_PATH,
+    ]))
+
+
 @app.get("/api/break-operations")
 def break_operations() -> dict[str, Any]:
     return _break_operations_cached(_signature([
@@ -2123,12 +2356,15 @@ def break_operations() -> dict[str, Any]:
 
 @app.get("/api/break-decisions")
 def break_decisions() -> dict[str, Any]:
-    return {"decisions": _load_decisions()}
+    # Display is driven by the real override store, not a parallel decision-log file.
+    return {"decisions": _decision_log()}
 
 
 @app.post("/api/break-decisions")
 def create_break_decision(request: BreakDecisionRequest) -> dict[str, Any]:
-    return {"decision": _save_decision(request)}
+    # Approve/Reject shortcut: persists a real Override (source=recommendation, rec_id,
+    # anchor) rather than a display-only log entry.
+    return {"decision": _resolve_decision(request)}
 
 
 @app.get("/api/impact")
