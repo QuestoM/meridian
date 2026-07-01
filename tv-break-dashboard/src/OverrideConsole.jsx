@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
+import { asList, isNum, fmtNum, anchorText, isStale, runDayRecomputeJob } from './override-console-lib';
 import './override-console.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
@@ -14,40 +15,6 @@ const KINDS = [
   { key: 'forbid', en: 'Forbid breaks here', he: 'מניעת ברייקים כאן' },
   { key: 'gold', en: 'Mark as gold', he: 'סימון כזהב' },
 ];
-
-const asList = (json, key) => (Array.isArray(json) ? json : (json && json[key]) || []);
-const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
-
-function pick(obj, keys) {
-  if (!obj) return undefined;
-  for (const k of keys) {
-    if (isNum(obj[k])) return obj[k];
-  }
-  return undefined;
-}
-
-function fmtNum(value, locale) {
-  if (!isNum(value)) return '-';
-  return value.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { maximumFractionDigits: 2 });
-}
-
-function anchorText(o) {
-  const parts = [o.anchor_date, o.anchor_start, o.anchor_title].filter(Boolean);
-  return parts.length ? parts.join(' - ') : '';
-}
-
-// An override reads stale when the backend says so, or when its anchor no
-// longer matches the live segment carrying the same id (a re-ingest drifted).
-function isStale(o, segById) {
-  if (o.status === 'stale') return true;
-  const seg = segById.get(o.target_id);
-  if (!seg || !seg.anchor) return false;
-  const a = seg.anchor;
-  const drift = (o.anchor_date && a.date && o.anchor_date !== a.date)
-    || (o.anchor_start && a.start_clock && o.anchor_start !== a.start_clock)
-    || (o.anchor_title && a.title && o.anchor_title !== a.title);
-  return Boolean(drift);
-}
 
 function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   const [overrides, setOverrides] = useState([]);
@@ -108,7 +75,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
     if (!q) return segments.slice(0, 200);
     return segments.filter((s) => {
       const a = s.anchor || {};
-      return [s.segment_id, s.day, s.channel, a.title, a.date, a.start_clock]
+      return [s.segment_id, s.day, s.channel, a.program || a.title, a.date, a.start_clock]
         .filter(Boolean).some((f) => String(f).toLowerCase().includes(q));
     }).slice(0, 200);
   }, [segments, search]);
@@ -140,20 +107,19 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   }, [selectedSeg, kind, countValue]);
 
   const previewRows = useMemo(() => {
-    if (!preview) return [];
-    const wo = preview.without || preview.baseline || preview.before;
-    const wi = preview.with || preview.candidate || preview.after;
+    // The /effect payload reports the channel-day totals WITH the stored
+    // overrides (before) versus WITH stored plus this candidate (after).
+    const summary = preview && preview.summary;
+    if (!summary) return [];
     const descriptors = [
-      { keys: ['predicted_revenue', 'revenue'], en: 'Predicted revenue', he: 'הכנסה חזויה' },
-      { keys: ['retention'], en: 'Retention', he: 'שימור' },
-      { keys: ['num_breaks', 'breaks'], en: 'Breaks', he: 'ברייקים' },
+      { before: 'before_revenue', after: 'after_revenue', en: 'Day revenue', he: 'הכנסת היום' },
+      { before: 'before_total_breaks', after: 'after_total_breaks', en: 'Day breaks', he: 'ברייקים ביום' },
     ];
     return descriptors.map((d) => {
-      const a = pick(wo, d.keys);
-      const b = pick(wi, d.keys);
-      const delta = pick(preview.delta, d.keys);
-      if (!isNum(a) && !isNum(b) && !isNum(delta)) return null;
-      const diff = isNum(delta) ? delta : (isNum(a) && isNum(b) ? b - a : undefined);
+      const a = isNum(summary[d.before]) ? summary[d.before] : undefined;
+      const b = isNum(summary[d.after]) ? summary[d.after] : undefined;
+      if (!isNum(a) && !isNum(b)) return null;
+      const diff = isNum(a) && isNum(b) ? b - a : undefined;
       return { label: pageText(locale, d.en, d.he), a, b, diff };
     }).filter(Boolean);
   }, [preview, locale]);
@@ -173,7 +139,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
       notes: notes.trim() || undefined,
       anchor_date: seg.anchor?.date,
       anchor_start: seg.anchor?.start_clock,
-      anchor_title: seg.anchor?.title,
+      anchor_title: seg.anchor?.program || seg.anchor?.title || '',
     };
     if (kind === 'force') body.value = Number(countValue);
     if (kind === 'gold') body.gold = true;
@@ -199,42 +165,21 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   async function handleDayRecompute() {
     if (!lastCreated) return;
     setDayJobState('running');
-    const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
     try {
-      const startResponse = await fetch(`${API_BASE}/api/jobs/recompute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scope: [lastCreated] }),
-      });
-      if (startResponse.status === 404) {
-        setDayJobState('idle');
+      const result = await runDayRecomputeJob(API_BASE, [lastCreated]);
+      setDayJobState('idle');
+      if (result.status === 'done') {
+        setLastCreated(null);
+        notify('Day recomputed. The plan now reflects the override.',
+          'היום חושב מחדש. התוכנית משקפת כעת את העקיפה.');
+        onGlobalRefresh?.();
+      } else if (result.status === 'missing') {
         notify('Day recompute needs the updated backend. Use the full recompute instead.',
           'חישוב מחדש ליום דורש שרת מעודכן. השתמשו בחישוב המלא במקום.');
-        return;
+      } else {
+        const reason = result.error || (result.status === 'timeout' ? 'timed out' : 'unknown error');
+        notify(`Day recompute failed: ${reason}.`, `חישוב היום מחדש נכשל: ${reason}.`);
       }
-      if (!startResponse.ok) throw new Error(`${startResponse.status} ${startResponse.statusText}`);
-      const { job_id: jobId } = await startResponse.json();
-      for (let attempt = 0; attempt < 120; attempt += 1) {
-        await sleep(1000);
-        const statusResponse = await fetch(`${API_BASE}/api/jobs/${jobId}`);
-        if (!statusResponse.ok) throw new Error(`${statusResponse.status} ${statusResponse.statusText}`);
-        const record = await statusResponse.json();
-        if (record.status === 'done') {
-          setDayJobState('idle');
-          setLastCreated(null);
-          notify('Day recomputed. The plan now reflects the override.',
-            'היום חושב מחדש. התוכנית משקפת כעת את העקיפה.');
-          onGlobalRefresh?.();
-          return;
-        }
-        if (record.status === 'failed') {
-          setDayJobState('idle');
-          notify(`Day recompute failed: ${record.error || 'unknown error'}.`,
-            `חישוב היום מחדש נכשל: ${record.error || 'שגיאה לא ידועה'}.`);
-          return;
-        }
-      }
-      throw new Error('timed out');
     } catch (error) {
       setDayJobState('idle');
       notify(`Day recompute failed (${error.message}).`, `חישוב היום מחדש נכשל (${error.message}).`);
@@ -306,7 +251,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
                   <option value="">{pageText(locale, 'Select a segment', 'בחרו משבצת')}</option>
                   {visibleSegments.map((s) => {
                     const a = s.anchor || {};
-                    const label = [a.date, a.start_clock, a.title || s.segment_id].filter(Boolean).join(' - ');
+                    const label = [a.date, a.start_clock, a.program || a.title || s.segment_id].filter(Boolean).join(' - ');
                     return <option key={s.segment_id} value={s.segment_id}>{label}</option>;
                   })}
                 </select>
@@ -315,10 +260,10 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
               {selectedSeg && (
                 <div className="oc-seg-current">
                   <span><b>{pageText(locale, 'Channel', 'ערוץ')}:</b> {selectedSeg.channel || '-'}</span>
-                  <span><b>{pageText(locale, 'Breaks', 'ברייקים')}:</b> <span dir="ltr">{fmtNum(selectedSeg.current?.num_breaks, locale)}</span></span>
-                  <span><b>{pageText(locale, 'Gold', 'זהב')}:</b> {selectedSeg.current?.is_gold ? pageText(locale, 'Yes', 'כן') : pageText(locale, 'No', 'לא')}</span>
-                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <span dir="ltr">{fmtNum(selectedSeg.current?.predicted_revenue, locale)}</span></span>
-                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <span dir="ltr">{fmtNum(selectedSeg.current?.retention, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Breaks', 'ברייקים')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.num_breaks, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Gold', 'זהב')}:</b> {selectedSeg.state?.is_gold ? pageText(locale, 'Yes', 'כן') : pageText(locale, 'No', 'לא')}</span>
+                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.predicted_revenue, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.retention, locale)}</span></span>
                 </div>
               )}
 
@@ -377,6 +322,11 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
                           </span>
                         </div>
                       ))}
+                      {Array.isArray(preview?.rejected_overrides) && preview.rejected_overrides.length > 0 && (
+                        <p className="oc-sub oc-rejected">{pageText(locale,
+                          `The optimizer rejected ${preview.rejected_overrides.length} override(s) as infeasible: ${preview.rejected_overrides.map((r) => r.reason).filter(Boolean).join('; ') || 'no reason given'}.`,
+                          `האופטימייזר דחה ${preview.rejected_overrides.length} עקיפות כלא ישימות: ${preview.rejected_overrides.map((r) => r.reason).filter(Boolean).join('; ') || 'ללא נימוק'}.`)}</p>
+                      )}
                     </>
                   )}
                 </div>

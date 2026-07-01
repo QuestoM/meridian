@@ -31,6 +31,7 @@ from kairos.optimize.overrides import (
     DEFAULT_STATUS,
     SEGMENT,
     SPOT,
+    Override,
     OverrideSet,
     _SEGMENT_KINDS,
     _SPOT_KINDS,
@@ -240,6 +241,11 @@ def override_effect(
     channel: str | None = None,
     day: str | None = None,
     daily_input: str | None = None,
+    target_id: str | None = None,
+    kind: str | None = None,
+    value: str | None = None,
+    gold: bool = False,
+    scope: str | None = None,
 ) -> dict[str, Any]:
     """Preview the optimizer WITH vs WITHOUT the stored overrides.
 
@@ -248,8 +254,35 @@ def override_effect(
     deltas plus any rejected (infeasible) overrides. This is honest about where
     overrides bite: it only reflects segment-scope overrides, since those are the
     ones the weekly break-count optimizer consumes.
+
+    Candidate mode: with ``target_id`` (a ``day|channel|index`` segment id) and
+    ``kind``, the preview scopes itself to that segment's channel-day and
+    compares the plan WITH the stored overrides against the plan WITH stored
+    overrides PLUS this one candidate, so the delta isolates the decision being
+    considered before it is saved. Nothing is written.
     """
     from kairos.optimize.optimizer import optimize_breaks
+
+    candidate: Override | None = None
+    if target_id:
+        if scope not in (None, "", "segment"):
+            raise HTTPException(status_code=422, detail="Candidate preview supports scope=segment only")
+        parts = str(target_id).split("|")
+        if len(parts) != 3 or not parts[0] or not parts[1]:
+            raise HTTPException(status_code=422, detail="target_id must be day|channel|index")
+        day = parts[0]
+        channel = parts[1]
+        candidate_kind = str(kind or "").strip().lower()
+        if candidate_kind not in _SEGMENT_KINDS:
+            raise HTTPException(status_code=422, detail="kind must be pin, force, forbid or gold")
+        candidate = Override(
+            override_id="candidate-preview",
+            scope=SEGMENT,
+            target_id=str(target_id),
+            kind=candidate_kind,
+            value=str(value or ""),
+            gold=bool(gold) or candidate_kind == "gold",
+        )
 
     try:
         segments = _build_segments(channel, day, daily_input)
@@ -274,8 +307,16 @@ def override_effect(
         for segment in segments
     }
     active_overrides, stale_overrides = overrides.resolve_against_segments(anchors)
-    baseline = optimize_breaks(segments)
-    overridden = optimize_breaks(segments, overrides=active_overrides)
+    if candidate is not None:
+        # Candidate mode: the baseline is the CURRENT plan (stored overrides
+        # applied), and the comparison adds only the candidate, so the delta is
+        # exactly what this one decision would change.
+        baseline = optimize_breaks(segments, overrides=active_overrides)
+        with_candidate = OverrideSet(overrides=list(active_overrides.overrides) + [candidate])
+        overridden = optimize_breaks(segments, overrides=with_candidate)
+    else:
+        baseline = optimize_breaks(segments)
+        overridden = optimize_breaks(segments, overrides=active_overrides)
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
     new_counts = {s.segment_id: s.num_breaks for s in overridden.segments}
@@ -291,6 +332,11 @@ def override_effect(
     return {
         "channel": channel,
         "day": day,
+        "candidate": (
+            {"target_id": candidate.target_id, "kind": candidate.kind, "value": candidate.value}
+            if candidate is not None
+            else None
+        ),
         "summary": {
             "before_total_breaks": baseline.total_breaks,
             "after_total_breaks": overridden.total_breaks,
