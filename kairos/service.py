@@ -14,7 +14,7 @@ import uuid
 from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 import pandas as pd
 
@@ -33,6 +33,7 @@ from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
 from kairos.optimize.guardrails import Guardrails
+from kairos.optimize.day_core import _optimize_one_day
 from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.objective import clamp
 from kairos.optimize.pacing import (
@@ -289,6 +290,9 @@ def _assemble_demand_weights(
     *,
     today: Optional[date] = None,
     pacing_knobs: Optional[Mapping[str, Any]] = None,
+    engine: Optional[AdvertiserRuleEngine] = None,
+    inventory_pool: Optional[Mapping[Any, Any]] = None,
+    campaigns: Optional[Sequence[Any]] = None,
 ) -> dict[str, float]:
     """Build the optimizer's per-segment placement weights from all three signals.
 
@@ -297,6 +301,14 @@ def _assemble_demand_weights(
     identity no-op until its data lands, so with no advertiser rules, no inventory
     file, and a header-only ``campaign_flights.csv`` every weight is exactly 1.0 and
     the optimizer output is byte-identical to a run with no weights at all.
+
+    This is the single demand fold for every optimize path (the live day plan, the
+    scenario slider and the weekly CSV export all reach it through
+    :func:`kairos.optimize.day_core._optimize_one_day`). ``engine``,
+    ``inventory_pool`` and ``campaigns`` are the demand resources: a single-day
+    caller leaves them ``None`` and they are loaded here, while the weekly export
+    loads them ONCE before its loop and passes them in, so a 120-day export reads
+    each source file once, not once per day.
 
     Pacing fires only when (a) real campaign rows exist, (b) pacing is enabled (the
     dashboard default; disabled only when settings say so), and (c) a reference date
@@ -307,12 +319,19 @@ def _assemble_demand_weights(
     take precedence over these channel-wide defaults.
     """
     segments = list(segments)
-    engine = AdvertiserRuleEngine.from_files()
-    inventory_weights = build_inventory_weights(segments, load_inventory())
+    if engine is None:
+        engine = AdvertiserRuleEngine.from_files()
+    if inventory_pool is None:
+        inventory_pool = load_inventory()
+    inventory_weights = build_inventory_weights(segments, inventory_pool)
+
+    enabled = True if pacing_knobs is None else bool(pacing_knobs.get("enabled", True))
+    if not enabled:
+        campaigns = []
+    elif campaigns is None:
+        campaigns = load_campaigns()
 
     pacing_weights: Optional[dict[str, float]] = None
-    enabled = True if pacing_knobs is None else bool(pacing_knobs.get("enabled", True))
-    campaigns = load_campaigns() if enabled else []
     if campaigns:
         reference = today
         if pacing_knobs is not None:
@@ -404,23 +423,22 @@ def optimize_day_plan(
             programmes, classifier, pricing,
             assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
         )
-    # Demand weights: advertiser demand always computed, folded with the
-    # inventory-awareness and pacing-urgency signals. Each is identity (1.0) until
-    # its data lands, so with no inventory file and no campaign rows the output is
-    # byte-identical to a run with no weights at all.
-    demand_weights = _assemble_demand_weights(
-        segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
-    )
-    # Honor the operator's stored placement constraints, wired identically to the
-    # CSV recompute path so the live plan and the saved schedule agree. No-op when
-    # no constraints file exists (the current state).
-    merged_pins, merged_overrides = _constraint_inputs(
-        segments, overrides, placement_pins, operator_channel=_operator_channel(settings),
-    )
-    result = optimize_breaks(
-        segments, guardrails, revenue_weight=weight, risk_lambda=risk,
-        overrides=merged_overrides, placement_pins=merged_pins,
-        demand_weights=demand_weights,
+    # One channel-day through the shared core: it folds the demand signal and honours
+    # the operator's stored constraints, wired identically to the CSV recompute path
+    # so the live plan and the saved schedule agree. Demand resources are left unset
+    # so the core loads them for this single day.
+    result = _optimize_one_day(
+        segments,
+        guardrails=guardrails,
+        revenue_weight=weight,
+        risk_lambda=risk,
+        pacing_today=today,
+        pacing_knobs=_pacing_knobs_from_settings(settings),
+        constraints=_default_constraints(),
+        overrides=overrides,
+        placement_pins=placement_pins,
+        operator_channel=_operator_channel(settings),
+        optimize_fn=optimize_breaks,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)
@@ -504,22 +522,23 @@ def run_scenario(
         programmes, classifier, pricing,
         assumptions=assumptions, impact_model=impact_model, channel=channel, day=day,
     )
-    # Demand weights: advertiser demand, inventory awareness and delivery pacing,
-    # folded together and self-neutralizing when no rules, inventory or campaigns
-    # are present (every weight 1.0, byte-identical to a run with no weights).
-    demand_weights = _assemble_demand_weights(
-        segments, today=today, pacing_knobs=_pacing_knobs_from_settings(settings),
-    )
-    # Honor the operator's stored placement constraints, wired identically to the
-    # CSV recompute path so the frontier / scenario plan is the achievable optimum
-    # under the operator's rules, not an unconstrained one. No-op with no file.
-    merged_pins, merged_overrides = _constraint_inputs(
-        segments, overrides, placement_pins, operator_channel=_operator_channel(settings),
-    )
-    result = optimize_breaks(
-        segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
-        overrides=merged_overrides, placement_pins=merged_pins,
-        demand_weights=demand_weights, refine=refine,
+    # One channel-day through the shared core, the same seam the weekly export and
+    # the live day plan use, so the frontier / scenario plan is the achievable optimum
+    # under the operator's rules. ``refine`` is passed straight through: the frontier's
+    # ``refine=False`` stays a deliberate performance choice, not incoherence.
+    result = _optimize_one_day(
+        segments,
+        guardrails=guardrails,
+        revenue_weight=weight,
+        risk_lambda=risk_lambda,
+        pacing_today=today,
+        pacing_knobs=_pacing_knobs_from_settings(settings),
+        constraints=_default_constraints(),
+        overrides=overrides,
+        placement_pins=placement_pins,
+        operator_channel=_operator_channel(settings),
+        refine=refine,
+        optimize_fn=optimize_breaks,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)
@@ -542,41 +561,49 @@ def _load_default_overrides() -> Optional[OverrideSet]:
     return None
 
 
+def _default_constraints() -> list:
+    """Load the operator's stored placement constraints from the default file.
+
+    Empty list when ``data/kairos_constraints.csv`` is absent (the current state), so
+    the live optimize path adds no constraint when none were saved. Loaded once per
+    plan; the weekly export loads it once for its whole loop.
+    """
+    from kairos.optimize.constraints_store import DEFAULT_CONSTRAINTS_PATH, load_constraints
+
+    if DEFAULT_CONSTRAINTS_PATH.exists():
+        return load_constraints(DEFAULT_CONSTRAINTS_PATH)
+    return []
+
+
 def _constraint_inputs(
     segments: list,
+    constraints: Optional[Sequence[Any]],
     overrides: Optional[OverrideSet],
     placement_pins: Optional[Mapping[str, Any]],
     *,
     operator_channel: str = "",
 ) -> tuple[Optional[Mapping[str, Any]], Optional[OverrideSet]]:
-    """Fold the operator's stored placement constraints into (pins, overrides).
+    """Fold pre-loaded placement constraints into (pins, overrides).
 
-    This is the SAME wiring the CSV recompute path uses
-    (:func:`kairos.export.schedule.build_weekly_schedule` via its
-    ``_load_constraints`` + ``_constraint_inputs`` + ``merged_pins`` steps), so the
-    live scenario / day-plan numbers agree with the saved schedule for the same
-    channel-day and inputs. The stored constraints are loaded from the default
-    ``data/kairos_constraints.csv`` (only when it exists), resolved against THIS
-    run's ``segments`` with the operator's own channel, and merged on top of the
-    caller's ``overrides`` and ``placement_pins``.
+    This is the SINGLE constraint-resolution helper for every optimize path (the
+    live day plan, the scenario slider and the CSV export all reach it through
+    :func:`kairos.optimize.day_core._optimize_one_day`), so the live numbers agree
+    with the saved schedule for the same channel-day and inputs. ``constraints`` are
+    pre-loaded by the caller (single-day callers load the default file once, the
+    export loads it once for its loop) and resolved against THIS run's ``segments``
+    with the operator's own channel, then merged on top of ``overrides`` and
+    ``placement_pins``.
 
-    The merge mirrors the export path exactly: caller placement pins win on a
-    segment-id collision (``{**day_pins, **caller_pins}``), and constraint count
-    pins / forbids are appended after the caller's overrides in one OverrideSet.
-    With no constraints file (the current deployment state) this returns
-    ``(placement_pins, overrides)`` untouched, so behaviour is byte-identical to
-    before and no revenue moves.
+    The merge is deterministic: caller placement pins win on a segment-id collision
+    (``{**day_pins, **caller_pins}``), and constraint count pins / forbids are
+    appended after the caller's overrides in one OverrideSet. With no constraints
+    (the current deployment state) this returns ``(placement_pins, overrides)``
+    untouched, so behaviour is byte-identical to before and no revenue moves.
     """
-    from kairos.optimize.constraints_store import (
-        DEFAULT_CONSTRAINTS_PATH,
-        count_pins_to_overrides,
-        load_constraints,
-        resolve_constraints,
-    )
-
-    constraints = load_constraints(DEFAULT_CONSTRAINTS_PATH) if DEFAULT_CONSTRAINTS_PATH.exists() else []
     if not constraints:
         return placement_pins, overrides
+
+    from kairos.optimize.constraints_store import count_pins_to_overrides, resolve_constraints
 
     day_pins, count_pins, forbids, _ = resolve_constraints(
         segments, constraints, operator_channel=operator_channel,

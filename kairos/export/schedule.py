@@ -27,26 +27,28 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-from dataclasses import replace
-
 from kairos.data import ProgramClassifier
 from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
 from kairos.model.impact import ImpactModel, load_impact_model
-from kairos.model.measure import read_coefficients_metadata
-from kairos.data.dayparts import daypart_for_hour
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
-from kairos.optimize.demand import build_demand_weights
+from kairos.optimize.day_core import _optimize_one_day
 from kairos.optimize.guardrails import Guardrails
-from kairos.optimize.inventory import build_inventory_weights, load_inventory
+# build_inventory_weights and build_pacing_weights are no longer called in this
+# module's body: the demand fold lives in kairos.service._assemble_demand_weights,
+# which every optimize path reaches through _optimize_one_day. They stay imported
+# because the demand-assembly equivalence test patches them on this module as the
+# fold's per-module seam; load_inventory / load_campaigns are still called directly
+# to load the demand resources once before the channel-day loop.
+from kairos.optimize.inventory import build_inventory_weights, load_inventory  # noqa: F401
 from kairos.optimize.optimizer import optimize_breaks
 from kairos.optimize.overrides import OverrideSet
-from kairos.optimize.pacing import build_pacing_weights, load_campaigns
+from kairos.optimize.pacing import build_pacing_weights, load_campaigns  # noqa: F401
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 from kairos.service import (
+    _apply_first_break_multiplier,
     _build_classifier,
     _pacing_knobs_from_settings,
-    _parse_pacing_date,
     guardrails_from_settings,
 )
 
@@ -57,34 +59,12 @@ DEFAULT_OUTPUT_PATH = ROOT / "output" / "weekly_break_schedule.csv"
 # coefficients, matching what the live service returns. Falls back honestly to
 # the declared assumption when the file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
-DEFAULT_COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
 SECONDS_PER_MINUTE = 60
 
-
-def _apply_first_break_multiplier(assumptions: OptimizerAssumptions) -> OptimizerAssumptions:
-    """Return assumptions carrying the measured first-break multiplier from the JSON.
-
-    The build pipeline (:mod:`scripts.compute_measured_coefficients`) runs the
-    first-break gate and persists ``first_break_multiplier`` into the coefficients
-    JSON metadata: 1.0 when the gate did not earn a value, > 1.0 when the show's
-    first interruption measurably sheds more audience. We read it here and fold it
-    into the assumptions so the optimizer charges the first break its measured
-    extra cost. A missing or 1.0 value leaves the assumptions unchanged (off), so
-    the default behaviour and reported revenue are identical when nothing is
-    measured. An explicit operator override on the assumptions (anything above 1.0)
-    is respected and not lowered.
-    """
-    metadata = read_coefficients_metadata(DEFAULT_COEFFICIENTS_PATH)
-    measured = metadata.get("first_break_multiplier")
-    try:
-        measured_value = float(measured) if measured is not None else 1.0
-    except (TypeError, ValueError):
-        measured_value = 1.0
-    chosen = max(assumptions.first_break_multiplier, measured_value)
-    if chosen == assumptions.first_break_multiplier:
-        return assumptions
-    return replace(assumptions, first_break_multiplier=chosen)
+# The measured first-break multiplier is folded into the assumptions by the shared
+# kairos.service._apply_first_break_multiplier, imported above so the export and the
+# live paths charge the show's first break the same measured extra cost.
 
 # Column order the dashboard's schedule readers expect (extra columns are
 # ignored by them, missing ones trigger the placeholder fallback we are killing).
@@ -162,39 +142,6 @@ def _load_constraints(constraints_path: Optional[str | Path]):
     if DEFAULT_CONSTRAINTS_PATH.exists():
         return load_constraints(DEFAULT_CONSTRAINTS_PATH)
     return []
-
-
-def _constraint_inputs(
-    segments,
-    constraints,
-    overrides: Optional[OverrideSet],
-    *,
-    operator_channel: str = "",
-):
-    """Resolve constraints for one channel-day into (placement_pins, OverrideSet).
-
-    Count pins and forbids become a merged :class:`OverrideSet` (the engine's
-    count path), combined with any caller-supplied ``overrides``; placement pins
-    are returned separately for the optimizer's pin path. With no constraints this
-    returns ``({}, overrides)``, leaving the call unchanged.
-
-    ``operator_channel`` is the operator's own channel (from KairosSettings). It
-    is passed to the resolver so predicate constraints (and legacy flat constraints
-    when set) are scoped to that channel automatically.
-    """
-    if not constraints:
-        return {}, overrides
-    from kairos.optimize.constraints_store import count_pins_to_overrides, resolve_constraints
-
-    placement_pins, count_pins, forbids, _ = resolve_constraints(
-        segments, constraints, operator_channel=operator_channel,
-    )
-    constraint_overrides = count_pins_to_overrides(count_pins, forbids)
-    if overrides is not None:
-        constraint_overrides = OverrideSet(
-            overrides=list(overrides.overrides) + list(constraint_overrides.overrides),
-        )
-    return placement_pins, constraint_overrides
 
 
 def build_weekly_schedule(
@@ -287,14 +234,10 @@ def build_weekly_schedule(
     # reference-date override, and the five urgency knobs. This is the SAME seam
     # the live optimize_day_plan path uses, so the weekly CSV and the dashboard
     # simulation agree once campaign flights land. None when no settings, which
-    # keeps the module-default pacing behaviour (identity until campaign data).
+    # keeps the module-default pacing behaviour (identity until campaign data). The
+    # enable gate and the reference-date override are applied inside the shared
+    # demand fold, so campaigns and pacing_today are passed through untouched here.
     pacing_knobs = _pacing_knobs_from_settings(settings)
-    if pacing_knobs is not None:
-        if not pacing_knobs.get("enabled", True):
-            campaigns = []
-        override = _parse_pacing_date(pacing_knobs.get("reference_date"))
-        if override is not None:
-            pacing_today = override
 
     rows: list[dict[str, Any]] = []
     for channel, day in _channel_days(programmes):
@@ -304,44 +247,28 @@ def build_weekly_schedule(
         )
         if not segments:
             continue
-        # Resolve the scoped constraints against THIS channel-day's segments into
-        # the optimizer's primitives (placement pins, count pins, forbids). The
-        # explicit ``placement_pins`` argument, when given, is merged on top.
-        day_pins, day_overrides = _constraint_inputs(
-            segments, constraints, overrides, operator_channel=operator_channel,
-        )
-        merged_pins = {**day_pins, **(placement_pins or {})}
-        # Demand weights: advertiser demand always computed, folded with the
-        # inventory-awareness and pacing-urgency signals. Each is identity (1.0)
-        # until its data lands, so this is self-neutralizing per channel-day.
-        inventory_weights = build_inventory_weights(segments, inventory_pool)
-        pacing_weights = None
-        if campaigns and pacing_today is not None:
-            daypart_of = {
-                seg.segment_id: daypart_for_hour(seg.hour) for seg in segments
-            }
-            # Thread the operator's tuned knobs and per-advertiser pacing tier,
-            # exactly as the live optimize_day_plan path does. Each knob is
-            # omitted when unset so build_pacing_weights keeps its module default.
-            knob_kwargs: dict[str, float] = {}
-            if pacing_knobs is not None:
-                for key in ("k", "u_max", "k_ahead", "u_min", "epsilon"):
-                    value = pacing_knobs.get(key)
-                    if value is not None:
-                        knob_kwargs[key] = value
-            pacing_weights = build_pacing_weights(
-                segments, campaigns, pacing_today, daypart_of=daypart_of,
-                advertiser_k_of=demand_engine.pacing_overrides(), **knob_kwargs
-            )
-        demand_weights = build_demand_weights(
-            segments, demand_engine,
-            inventory_weights=inventory_weights,
-            pacing_weights=pacing_weights,
-        )
-        result = optimize_breaks(
-            segments, guardrails, revenue_weight=weight, risk_lambda=risk_lambda,
-            overrides=day_overrides, placement_pins=merged_pins or None,
-            demand_weights=demand_weights,
+        # One channel-day through the shared core, the same seam the live day plan
+        # and scenario slider use. It folds the demand signal (advertiser demand,
+        # inventory awareness, delivery pacing; each identity until its data lands)
+        # from the resources loaded ONCE above, and resolves the operator's scoped
+        # constraints against THIS day's segments, merging the explicit
+        # ``placement_pins`` on top. ``optimize_fn`` is this module's optimize_breaks
+        # so the demand-assembly equivalence test can observe the folded weights.
+        result = _optimize_one_day(
+            segments,
+            guardrails=guardrails,
+            revenue_weight=weight,
+            risk_lambda=risk_lambda,
+            demand_engine=demand_engine,
+            inventory_pool=inventory_pool,
+            campaigns=campaigns,
+            pacing_today=pacing_today,
+            pacing_knobs=pacing_knobs,
+            constraints=constraints,
+            overrides=overrides,
+            placement_pins=placement_pins,
+            operator_channel=operator_channel,
+            optimize_fn=optimize_breaks,
         )
         plans = {plan.segment_id: plan for plan in result.segments}
         for segment in segments:

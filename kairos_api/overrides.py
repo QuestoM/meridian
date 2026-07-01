@@ -27,6 +27,8 @@ from pydantic import BaseModel
 
 from kairos.optimize.overrides import (
     COLUMNS,
+    DEFAULT_SOURCE,
+    DEFAULT_STATUS,
     SEGMENT,
     SPOT,
     OverrideSet,
@@ -43,7 +45,15 @@ router = APIRouter(prefix="/api/overrides", tags=["overrides"])
 
 
 class OverrideCreate(BaseModel):
-    """A new operator override. scope and kind must agree."""
+    """A new operator override. scope and kind must agree.
+
+    The trailing fields are the additive decision-plane extension: ``source``
+    records where the override came from (lever, recommendation, or manual),
+    ``rec_id`` links back to an approved recommendation, ``status`` tracks the
+    lifecycle, and the ``anchor_*`` trio is the semantic anchor stored beside the
+    build-order ``target_id`` so a later resolve can confirm the override still
+    binds to the same real break after a re-ingest.
+    """
 
     scope: str
     target_id: str
@@ -51,6 +61,12 @@ class OverrideCreate(BaseModel):
     value: str = ""
     gold: bool = False
     notes: str = ""
+    source: str = DEFAULT_SOURCE
+    rec_id: str = ""
+    status: str = DEFAULT_STATUS
+    anchor_date: str = ""
+    anchor_start: str = ""
+    anchor_title: str = ""
 
 
 class OverrideUpdate(BaseModel):
@@ -134,6 +150,12 @@ def create_override(payload: OverrideCreate) -> dict[str, Any]:
         "gold": str(bool(payload.gold)),
         "notes": str(payload.notes or ""),
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "source": str(payload.source or "").strip().lower() or DEFAULT_SOURCE,
+        "rec_id": str(payload.rec_id or "").strip(),
+        "status": str(payload.status or "").strip().lower() or DEFAULT_STATUS,
+        "anchor_date": str(payload.anchor_date or "").strip(),
+        "anchor_start": str(payload.anchor_start or "").strip(),
+        "anchor_title": str(payload.anchor_title or "").strip(),
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
     _write_frame(frame)

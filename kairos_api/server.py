@@ -2009,7 +2009,7 @@ def recompute_schedule() -> dict[str, Any]:
             revenue_weight=saved.revenue_weight / 100.0,
             risk_lambda=saved.risk_lambda,
             operator_channel=saved.operator_channel,
-            today=date.today(),
+            today=_reference_today(saved),
         )
     except Exception as exc:  # pragma: no cover - surfaced honestly to the operator
         logger.exception("recompute-schedule failed")

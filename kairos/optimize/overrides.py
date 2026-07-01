@@ -58,6 +58,14 @@ MOVE = "move"      # relocate the spot to the position/daypart given in `value`
 _SPOT_KINDS = (LOCK, MOVE)
 
 # CSV columns, in the order they are written.
+#
+# The first block is the original override record. The trailing block is the
+# additive decision-plane extension: ``source`` records where an override came
+# from (a lever tweak, an approved recommendation, or a hand edit), ``rec_id``
+# links it back to the recommendation that produced it, ``status`` tracks its
+# lifecycle, and the ``anchor_*`` trio is a semantic anchor recorded alongside
+# the build-order ``target_id`` so a later resolve can confirm the override
+# still points at the same real break after a re-ingest reorders segment ids.
 COLUMNS = (
     "override_id",
     "scope",
@@ -67,7 +75,27 @@ COLUMNS = (
     "gold",
     "notes",
     "created_at",
+    "source",
+    "rec_id",
+    "status",
+    "anchor_date",
+    "anchor_start",
+    "anchor_title",
 )
+
+# Provenance sources.
+SOURCE_LEVER = "lever"
+SOURCE_RECOMMENDATION = "recommendation"
+SOURCE_MANUAL = "manual"
+_SOURCES = (SOURCE_LEVER, SOURCE_RECOMMENDATION, SOURCE_MANUAL)
+DEFAULT_SOURCE = SOURCE_MANUAL
+
+# Lifecycle statuses.
+STATUS_ACTIVE = "active"
+STATUS_STALE = "stale"
+STATUS_DISMISSED = "dismissed"
+_STATUSES = (STATUS_ACTIVE, STATUS_STALE, STATUS_DISMISSED)
+DEFAULT_STATUS = STATUS_ACTIVE
 
 
 def _to_int(raw: object) -> Optional[int]:
@@ -106,6 +134,13 @@ class Override:
     gold: bool = False
     notes: str = ""
     created_at: str = ""
+    # Decision-plane extension (additive; does not affect fold/apply here).
+    source: str = DEFAULT_SOURCE
+    rec_id: str = ""
+    status: str = DEFAULT_STATUS
+    anchor_date: str = ""
+    anchor_start: str = ""
+    anchor_title: str = ""
 
     def is_valid(self) -> bool:
         """True when scope and kind are recognised and the target is non-empty."""
@@ -224,6 +259,9 @@ def _load_overrides(path: Path) -> list[Override]:
             override_id = str(row.get("override_id", "")).strip()
             if not override_id:
                 continue
+            # New columns are absent in an older CSV; row.get returns "" and the
+            # blank-safe defaults below keep an old file loading unchanged
+            # (source -> manual, status -> active, anchors -> blank).
             out.append(Override(
                 override_id=override_id,
                 scope=str(row.get("scope", "")).strip().lower(),
@@ -233,5 +271,11 @@ def _load_overrides(path: Path) -> list[Override]:
                 gold=_to_bool(row.get("gold")),
                 notes=str(row.get("notes", "")),
                 created_at=str(row.get("created_at", "")),
+                source=str(row.get("source", "")).strip().lower() or DEFAULT_SOURCE,
+                rec_id=str(row.get("rec_id", "")).strip(),
+                status=str(row.get("status", "")).strip().lower() or DEFAULT_STATUS,
+                anchor_date=str(row.get("anchor_date", "")).strip(),
+                anchor_start=str(row.get("anchor_start", "")).strip(),
+                anchor_title=str(row.get("anchor_title", "")).strip(),
             ))
     return out
