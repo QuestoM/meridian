@@ -19,20 +19,20 @@
   padding-bottom: 14px;
 }
 .amz-drawer-eyebrow {
-  font-size: 0.74rem;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--subtle);
 }
 .amz-drawer-title h2 {
   margin: 2px 0 0;
-  font-size: 1.35rem;
+  font-size: var(--text-2xl);
   color: var(--ink);
 }
 .amz-drawer-close {
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   width: 34px;
   height: 34px;
   display: inline-flex;
@@ -53,7 +53,7 @@
 }
 .amz-drawer-stat {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--surface-muted);
   padding: 10px 12px;
   display: flex;
@@ -64,12 +64,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 .amz-drawer-stat-value {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
   color: var(--ink);
   display: inline-flex;
   align-items: baseline;
@@ -83,7 +83,7 @@
 }
 .amz-drawer-stat-value.empty {
   color: var(--subtle);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 .amz-drawer-overlaps {
   display: flex;
@@ -92,7 +92,7 @@
 }
 .amz-drawer-section h3 {
   margin: 0 0 10px;
-  font-size: 0.95rem;
+  font-size: var(--text-lg);
   color: var(--ink);
 }
 .amz-drawer-section + .amz-drawer-section {

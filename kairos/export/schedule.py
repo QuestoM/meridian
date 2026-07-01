@@ -44,6 +44,7 @@ from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pacing import build_pacing_weights, load_campaigns
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 from kairos.service import (
+    _build_classifier,
     _pacing_knobs_from_settings,
     _parse_pacing_date,
     guardrails_from_settings,
@@ -245,7 +246,10 @@ def build_weekly_schedule(
     """
     pricing = pricing_from_settings(settings, pricing)
     assumptions = assumptions or OptimizerAssumptions()
-    classifier = classifier or ProgramClassifier.from_yaml()
+    # Default to the SAME classifier seam the live service uses: the YAML classifier
+    # wrapped with any trusted AI genres on disk. With the AI-overrides file absent
+    # (today) this equals ``ProgramClassifier.from_yaml()``, so the export is a no-op.
+    classifier = classifier or _build_classifier()
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
     # If operator_channel was not given explicitly, read it from settings dict.

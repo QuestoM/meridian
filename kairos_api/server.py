@@ -527,12 +527,18 @@ def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
 
 def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
     if schedule.empty:
+        # No saved schedule yet (fresh deploy, or post-upload pre-recompute). The
+        # break/second counts are honestly zero, but revenue, retention and risk
+        # are unknown, not measured lows. Report them as null so the dashboard
+        # renders an honest "-" rather than a confident "Low risk / 0% / 0" that
+        # no computation produced. The frontend guards each on null (formatCurrency
+        # and formatPercent return "-", and the risk metric is gated on === null).
         return {
             "total_breaks": 0,
             "total_ad_seconds": 0,
-            "projected_revenue": 0,
-            "average_retention": 0,
-            "risk_score": 0,
+            "projected_revenue": None,
+            "average_retention": None,
+            "risk_score": None,
         }
 
     num_breaks = pd.to_numeric(schedule.get("num_breaks", 1), errors="coerce").fillna(1)
@@ -2201,35 +2207,29 @@ def _risk_from_retention(average_retention_percent: float, floor_percent: float)
 @lru_cache(maxsize=128)
 def _scenario_cached(
     revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
-    pacing_today: str = "", pacing_enabled: bool = True, pacing_reference_date: str = "",
-    pacing_urgency_k: float = 1.0, pacing_urgency_max: float = 2.0, pacing_ahead_k: float = 1.0,
-    pacing_weight_floor: float = 0.5, pacing_epsilon: float = 0.05,
+    pacing_today: str = "", settings_json: str = "",
 ) -> dict[str, Any]:
-    # The pacing inputs are part of the cache key (all scalars), so a settings
-    # change to the pacing knobs invalidates the cached scenario honestly. They
-    # reconstruct the minimal pacing settings the optimizer service reads.
+    # The full saved settings (guardrails, pricing and pacing) are threaded in as
+    # a JSON string, exactly as /api/optimizer-plan threads them, so the scenario
+    # preview honours every operator setting instead of silently dropping the
+    # guardrails and pricing to defaults. Both the settings JSON and the reference
+    # date are part of the cache key, so any settings edit invalidates the cached
+    # scenario honestly. The scenario controls (revenue_weight, retention_floor,
+    # max_breaks_per_hour, risk_lambda) remain the explicit per-request overrides.
     today = None
     if pacing_today:
         try:
             today = date.fromisoformat(pacing_today)
         except ValueError:
             today = None
-    pacing_settings = {
-        "pacing_enabled": pacing_enabled,
-        "pacing_reference_date": pacing_reference_date,
-        "pacing_urgency_k": pacing_urgency_k,
-        "pacing_urgency_max": pacing_urgency_max,
-        "pacing_ahead_k": pacing_ahead_k,
-        "pacing_weight_floor": pacing_weight_floor,
-        "pacing_epsilon": pacing_epsilon,
-    }
+    settings = json.loads(settings_json) if settings_json else None
     result = run_scenario(
         revenue_weight=revenue_weight,
         retention_floor=retention_floor,
         max_breaks_per_hour=max_breaks_per_hour,
         risk_lambda=risk_lambda,
         today=today,
-        settings=pacing_settings,
+        settings=settings,
     )
     summary = result["summary"]
     return {
@@ -2260,18 +2260,12 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     """
     if _ENGINE_AVAILABLE:
         try:
-            saved = _load_settings()
+            pacing = _pacing_call_kwargs()
             return _scenario_cached(
                 request.revenue_weight, request.retention_floor, request.max_breaks_per_hour,
                 request.risk_lambda,
-                pacing_today=_reference_today(saved).isoformat(),
-                pacing_enabled=saved.pacing_enabled,
-                pacing_reference_date=saved.pacing_reference_date,
-                pacing_urgency_k=saved.pacing_urgency_k,
-                pacing_urgency_max=saved.pacing_urgency_max,
-                pacing_ahead_k=saved.pacing_ahead_k,
-                pacing_weight_floor=saved.pacing_weight_floor,
-                pacing_epsilon=saved.pacing_epsilon,
+                pacing_today=pacing["today"].isoformat(),
+                settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
             return {

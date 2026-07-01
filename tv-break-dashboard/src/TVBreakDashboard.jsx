@@ -3,6 +3,7 @@ import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { prefixer } from 'stylis';
 import rtlPlugin from '@mui/stylis-plugin-rtl';
+import './coherence.css';
 import {
   Button,
   Checkbox,
@@ -259,7 +260,6 @@ const copyByLocale = {
     workspace: 'Revenue operations',
     operatorRole: 'Revenue Ops',
     optimizer: 'Optimizer',
-    dateRange: 'May 19 - May 25, 2025',
     scenario: 'Scenario',
     scenarios: ['Balanced', 'Revenue priority', 'Retention guardrail'],
     compare: 'Compare',
@@ -273,7 +273,7 @@ const copyByLocale = {
     loading: 'Loading Kairos workspace',
     apiUnavailable: 'API unavailable. Showing local snapshot.',
     metrics: ['Projected revenue', 'Viewer retention D7', 'Total ad minutes', 'Risk score'],
-    risk: { High: 'High', Medium: 'Medium', Low: 'Low' },
+    risk: { High: 'High', Medium: 'Medium', Low: 'Low', Unknown: 'Unknown' },
     toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
     channelProgram: 'Channel / Program',
@@ -285,7 +285,7 @@ const copyByLocale = {
     recommendation: 'Recommendation',
     approve: 'Approve',
     reject: 'Reject',
-    applySimilar: 'Apply Similar',
+    applySimilar: 'Approve similar',
     export: 'Export',
     exportOptions: ['Break detail', 'Weekly traffic plan', 'Guardrail report'],
     frontier: 'Revenue vs retention',
@@ -355,7 +355,6 @@ const copyByLocale = {
     workspace: 'ניהול הכנסות מפרסום',
     operatorRole: 'Revenue Ops',
     optimizer: 'אופטימייזר',
-    dateRange: '19 במאי - 25 במאי 2025',
     scenario: 'תרחיש',
     scenarios: ['מאוזן', 'מקסום הכנסה', 'הגנת שימור'],
     compare: 'השוואה',
@@ -369,7 +368,7 @@ const copyByLocale = {
     loading: 'טוען סביבת Kairos',
     apiUnavailable: 'ה־API לא זמין. מוצגת תמונת מצב מקומית.',
     metrics: ['הכנסה צפויה', 'שימור צפייה D7', 'דקות פרסום', 'רמת סיכון'],
-    risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה' },
+    risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
     channelProgram: 'ערוץ / תוכנית',
@@ -381,7 +380,7 @@ const copyByLocale = {
     recommendation: 'המלצה',
     approve: 'אישור',
     reject: 'דחייה',
-    applySimilar: 'החלה דומה',
+    applySimilar: 'אישור דומים',
     export: 'ייצוא',
     exportOptions: ['פרטי ברייק', 'תוכנית טראפיק שבועית', 'דוח בקרות'],
     frontier: 'הכנסה מול שימור',
@@ -455,49 +454,15 @@ const fallbackOverview = {
   compliance: fallbackCompliance,
 };
 
+// API offline: do not fabricate a schedule. Empty rows/programs/breaks drive the
+// honest empty states in the consuming components, matching fallbackOverview
+// (nulled metrics) and fallbackInventory (empty rows).
 const fallbackSchedule = {
-  rows: [
-    {
-      channel: 'KAI 1',
-      programs: [
-        { title: 'The Voice', program_type: 'Reality', day: 'Mon', time: '20:00', duration_minutes: 120, revenue: 382000, retention: 74.1, break_markers: 5, selected: false },
-        { title: 'NCIS', program_type: 'Drama', day: 'Tue', time: '20:00', duration_minutes: 60, revenue: 246000, retention: 73.6, break_markers: 4, selected: false },
-        { title: "Grey's Anatomy", program_type: 'Drama', day: 'Thu', time: '20:00', duration_minutes: 60, revenue: 456000, retention: 72.3, break_markers: 6, selected: true },
-        { title: 'Movie: Top Gun', program_type: 'Sports', day: 'Sat', time: '20:00', duration_minutes: 180, revenue: 512000, retention: 71.6, break_markers: 8, selected: false },
-      ],
-    },
-    {
-      channel: 'KAI 2',
-      programs: [
-        { title: 'The Big Bang Theory', program_type: 'Comedy', day: 'Mon', time: '20:00', duration_minutes: 30, revenue: 186000, retention: 77.2, break_markers: 2, selected: false },
-        { title: 'Chicago P.D.', program_type: 'Drama', day: 'Wed', time: '20:00', duration_minutes: 60, revenue: 212000, retention: 75.6, break_markers: 3, selected: false },
-        { title: 'NHL Playoffs', program_type: 'Sports', day: 'Fri', time: '20:00', duration_minutes: 150, revenue: 410000, retention: 74.6, break_markers: 7, selected: false },
-        { title: 'The Simpsons', program_type: 'Comedy', day: 'Sun', time: '20:00', duration_minutes: 30, revenue: 156000, retention: 76.9, break_markers: 2, selected: false },
-      ],
-    },
-    {
-      channel: 'KAI News',
-      programs: [
-        { title: 'Kai News 8PM', program_type: 'News', day: 'Mon', time: '20:00', duration_minutes: 30, revenue: 98000, retention: 81.3, break_markers: 2, selected: false },
-        { title: 'Kai News 8PM', program_type: 'News', day: 'Tue', time: '20:00', duration_minutes: 30, revenue: 98000, retention: 81.6, break_markers: 2, selected: false },
-        { title: 'Kai News 8PM', program_type: 'News', day: 'Thu', time: '20:00', duration_minutes: 30, revenue: 98000, retention: 81.0, break_markers: 2, selected: false },
-        { title: 'Kai News 8PM', program_type: 'News', day: 'Sun', time: '20:00', duration_minutes: 30, revenue: 98000, retention: 81.2, break_markers: 2, selected: false },
-      ],
-    },
-  ],
+  rows: [],
   break_operations: {
-    programs: [
-      { id: 'fallback-1', key: 'KAI 1-fallback-1-2000', lane: 'KAI 1 / Mon', channel: 'KAI 1', title: 'The Voice', program_type: 'Reality', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '22:00', duration_minutes: 120, revenue: 382000, retention: 74.1, break_markers: 5 },
-      { id: 'fallback-2', key: 'KAI 2-fallback-2-2000', lane: 'KAI 2 / Mon', channel: 'KAI 2', title: 'The Big Bang Theory', program_type: 'Comedy', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '20:30', duration_minutes: 30, revenue: 186000, retention: 77.2, break_markers: 2 },
-      { id: 'fallback-3', key: 'KAI News-fallback-3-2000', lane: 'KAI News / Mon', channel: 'KAI News', title: 'Kai News 8PM', program_type: 'News', day: 'Mon', date: '2025-05-19', start_time: '20:00', end_time: '20:30', duration_minutes: 30, revenue: 98000, retention: 81.3, break_markers: 2 },
-    ],
-    breaks: [
-      { id: 'fallback-1-br-1', program_key: 'KAI 1-fallback-1-2000', program_title: 'The Voice', lane: 'KAI 1 / Mon', channel: 'KAI 1', day: 'Mon', program_type: 'Reality', break_num_in_program: 1, breaks_in_program: 5, start_time: '20:20', end_time: '20:22', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 76400, retention: 74.1, status: 'ready' },
-      { id: 'fallback-1-br-2', program_key: 'KAI 1-fallback-1-2000', program_title: 'The Voice', lane: 'KAI 1 / Mon', channel: 'KAI 1', day: 'Mon', program_type: 'Reality', break_num_in_program: 2, breaks_in_program: 5, start_time: '20:40', end_time: '20:42', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 76400, retention: 74.1, status: 'ready' },
-      { id: 'fallback-2-br-1', program_key: 'KAI 2-fallback-2-2000', program_title: 'The Big Bang Theory', lane: 'KAI 2 / Mon', channel: 'KAI 2', day: 'Mon', program_type: 'Comedy', break_num_in_program: 1, breaks_in_program: 2, start_time: '20:10', end_time: '20:12', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 93000, retention: 77.2, status: 'ready' },
-      { id: 'fallback-3-br-1', program_key: 'KAI News-fallback-3-2000', program_title: 'Kai News 8PM', lane: 'KAI News / Mon', channel: 'KAI News', day: 'Mon', program_type: 'News', break_num_in_program: 1, breaks_in_program: 2, start_time: '20:12', end_time: '20:14', duration_sec: 120, sponsorships_count: 0, is_gold: false, source: 'Model', revenue_calculated: 49000, retention: 81.3, status: 'ready' },
-    ],
-    summary: { programs: 3, breaks: 4, ad_seconds: 480, revenue: 294800 },
+    programs: [],
+    breaks: [],
+    summary: { programs: 0, breaks: 0, ad_seconds: 0, revenue: 0 },
   },
   break_schedule: [],
 };
@@ -633,6 +598,30 @@ function Numeric({ children }) {
 
 function pageText(locale, en, he) {
   return locale === 'he' ? he : en;
+}
+
+// Derive the active planning window from the loaded schedule rather than a
+// hardcoded literal. Returns a real date range when the schedule carries dates,
+// otherwise a neutral label with no fabricated dates.
+function planningWeekLabel(schedule, locale) {
+  const programs = normalizeRows(schedule?.break_operations?.programs);
+  const dates = programs
+    .map((program) => program?.date)
+    .filter(Boolean)
+    .sort();
+  if (dates.length === 0) {
+    return pageText(locale, 'Planning week', 'שבוע התכנון');
+  }
+  const format = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' });
+  };
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  return first === last ? format(first) : `${format(first)} - ${format(last)}`;
 }
 
 // stableSettingsKey produces an order-independent JSON signature for a settings
@@ -1088,7 +1077,25 @@ function TVBreakDashboard() {
   const [optimizationState, setOptimizationState] = useState('idle');
   const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
+  const [elapsedSec, setElapsedSec] = useState(0);
   const toastTimer = useRef(null);
+
+  // Honest progress affordance: a full-week rebuild is a synchronous call with no
+  // percentage available, so we surface an elapsed-seconds timer (not a fake
+  // progress bar) while an optimization or recompute is running.
+  const isBusy = optimizationState === 'running' || recomputeState === 'running';
+  useEffect(() => {
+    if (!isBusy) {
+      setElapsedSec(0);
+      return undefined;
+    }
+    const started = Date.now();
+    setElapsedSec(0);
+    const id = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [isBusy]);
 
   function setActiveView(label) {
     setActiveViewState(label);
@@ -1139,6 +1146,10 @@ function TVBreakDashboard() {
   const locale = settings.locale === 'en' ? 'en' : 'he';
   const isHebrew = locale === 'he';
   const copy = copyByLocale[locale];
+  // The optimization command group (scenario, risk, run, apply, planning-week)
+  // is only meaningful on the planning surfaces; hide it on Data, Pricing,
+  // Advertisers, Reports and the like where it does nothing.
+  const showOptimizationControls = ['Overview', 'Optimizer', 'Schedule'].includes(activeView);
   const compliance = overview.compliance || fallbackCompliance;
   const theme = useMemo(() => createKairosTheme(isHebrew ? 'rtl' : 'ltr'), [isHebrew]);
   const muiCache = isHebrew ? rtlCache : ltrCache;
@@ -1469,6 +1480,7 @@ function TVBreakDashboard() {
           copy={copy}
           locale={locale}
           notify={notify}
+          onGlobalRefresh={() => setRefreshKey((k) => k + 1)}
         />
       );
     }
@@ -1549,20 +1561,23 @@ function TVBreakDashboard() {
         <header className="top-bar">
           <div className="title-group">
             <span className="section-title">{copy.nav[activeView] || copy.optimizer}</span>
-            <Button
-              className="date-control"
-              type="button"
-              variant="outlined"
-              onClick={() => {
-                setActiveView('Schedule');
-                notify('Opened the schedule for the active planning week.', 'נפתח לוח השידורים לשבוע התכנון הפעיל.');
-              }}
-            >
-              {copy.dateRange}
-              <ChevronDown size={14} />
-            </Button>
+            {showOptimizationControls && (
+              <Button
+                className="date-control"
+                type="button"
+                variant="outlined"
+                onClick={() => {
+                  setActiveView('Schedule');
+                  notify('Opened the schedule for the active planning week.', 'נפתח לוח השידורים לשבוע התכנון הפעיל.');
+                }}
+              >
+                {planningWeekLabel(schedule, locale)}
+                <ChevronDown size={14} />
+              </Button>
+            )}
           </div>
 
+          {showOptimizationControls && (
           <div className="command-group">
             <FormControl className="scenario-select" size="small">
               <InputLabel id="scenario-label">{copy.scenario}</InputLabel>
@@ -1572,7 +1587,7 @@ function TVBreakDashboard() {
                 label={copy.scenario}
                 onChange={(event) => {
                   setScenario(event.target.value);
-                  notify('Scenario switched. Metrics are shown for the selected planning mode.', 'התרחיש הוחלף. המדדים מוצגים לפי מצב התכנון שנבחר.');
+                  notify('Scenario selected. Run optimization to preview this planning mode.', 'התרחיש נבחר. יש להריץ אופטימיזציה כדי לצפות במצב תכנון זה.');
                 }}
               >
                 <MenuItem value="Balanced">{copy.scenarios[0]}</MenuItem>
@@ -1615,6 +1630,7 @@ function TVBreakDashboard() {
               {copy.compare}
             </Button>
           </div>
+          )}
 
           <div className="status-group">
             <span className={online ? 'api-state online' : 'api-state offline'}>
@@ -1642,26 +1658,37 @@ function TVBreakDashboard() {
               <Languages size={14} />
               {locale === 'he' ? copy.english : copy.hebrew}
             </Button>
-            <Button className="run-button" type="button" variant="contained" disabled={optimizationState === 'running'} onClick={handleRunOptimization}>
-              <Play size={15} fill="currentColor" />
-              {optimizationState === 'running' ? pageText(locale, 'Running', 'מריץ') : copy.runOptimization}
-            </Button>
-            <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את הלברים האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
-              <span>
-                <Button
-                  className="apply-button"
-                  type="button"
-                  variant="outlined"
-                  disabled={optimizationState === 'running' || recomputeState === 'running'}
-                  onClick={handleApplyOptimization}
-                >
-                  <CalendarDays size={15} />
-                  {recomputeState === 'running' ? pageText(locale, 'Applying', 'מחיל') : pageText(locale, 'Apply to weekly schedule', 'החל על לוח השבוע')}
+            {showOptimizationControls && (
+              <>
+                <Button className="run-button" type="button" variant="contained" disabled={optimizationState === 'running'} onClick={handleRunOptimization}>
+                  {optimizationState === 'running' ? <RefreshCcw size={15} className="upload-spinner" /> : <Play size={15} fill="currentColor" />}
+                  {optimizationState === 'running' ? `${pageText(locale, 'Running', 'מריץ')} ${elapsedSec}s` : copy.runOptimization}
                 </Button>
-              </span>
-            </Tooltip>
+                <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את הלברים האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
+                  <span>
+                    <Button
+                      className="apply-button"
+                      type="button"
+                      variant="outlined"
+                      disabled={optimizationState === 'running' || recomputeState === 'running'}
+                      onClick={handleApplyOptimization}
+                    >
+                      {recomputeState === 'running' ? <RefreshCcw size={15} className="upload-spinner" /> : <CalendarDays size={15} />}
+                      {recomputeState === 'running' ? `${pageText(locale, 'Applying', 'מחיל')} ${elapsedSec}s` : pageText(locale, 'Apply to weekly schedule', 'החל על לוח השבוע')}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </>
+            )}
           </div>
         </header>
+
+        {isBusy && (
+          <div className="rebuild-note" role="status">
+            <RefreshCcw size={14} className="upload-spinner" />
+            <span>{pageText(locale, `Rebuilding the whole weekly schedule. This can take up to a couple of minutes. Elapsed ${elapsedSec}s.`, `בונה מחדש את כל הלוח השבועי. זה יכול להימשך עד כמה דקות. חלפו ${elapsedSec} שניות.`)}</span>
+          </div>
+        )}
 
         <ScheduleStalenessBanner
           freshness={overview?.schedule_freshness}
@@ -1683,6 +1710,7 @@ function TVBreakDashboard() {
 }
 
 function riskLabel(score) {
+  if (score === null || score === undefined || Number.isNaN(Number(score))) return 'Unknown';
   if (score >= 68) return 'High';
   if (score >= 38) return 'Medium';
   return 'Low';
@@ -2476,7 +2504,7 @@ function InventoryPage({ inventory, overview, copy, locale }) {
         <Metric label={pageText(locale, 'Inventory spots', 'ספוטים במלאי')} value={formatNumber(inventory.summary?.spots, locale)} delta={pageText(locale, 'source', 'מקור')} icon={TableProperties} positive />
         <Metric label={pageText(locale, 'Booked value', 'ערך מוזמן')} value={formatCurrency(inventory.summary?.revenue, locale)} icon={CircleDollarSign} positive />
         <Metric label={pageText(locale, 'Booked minutes', 'דקות מוזמנות')} value={formatMinutes(inventory.summary?.seconds, locale)} delta={copy.nav.Schedule} icon={Clock3} />
-        <Metric label={copy.metrics[3]} value={copy.risk[riskLabel(overview.summary?.risk_score)]} delta={`${overview.summary?.risk_score || 0}/100`} icon={ShieldCheck} tone="risk" />
+        <Metric label={copy.metrics[3]} value={finiteNumber(overview.summary?.risk_score) === null ? '-' : copy.risk[riskLabel(finiteNumber(overview.summary?.risk_score))]} delta={finiteNumber(overview.summary?.risk_score) === null ? '-' : `${finiteNumber(overview.summary?.risk_score)}/100`} icon={ShieldCheck} tone="risk" />
       </section>
       <div className="page-grid two-one">
         <section className="page-panel">
@@ -2696,7 +2724,7 @@ function ReportsPage({ reports, files, copy, locale }) {
   );
 }
 
-function DataPage({ files, impact, parameters, overview, copy, locale, notify }) {
+function DataPage({ files, impact, parameters, overview, copy, locale, notify, onGlobalRefresh }) {
   const [dataTab, setDataTab] = useState('upload');
   return (
     <section className="page-workspace">
@@ -2723,7 +2751,7 @@ function DataPage({ files, impact, parameters, overview, copy, locale, notify })
         </div>
       </div>
       {dataTab === 'upload' ? (
-        <UploadCenter copy={copy} locale={locale} notify={notify} />
+        <UploadCenter copy={copy} locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} />
       ) : (
         <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />
       )}
@@ -3392,7 +3420,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
     <aside className="inspector" aria-label="Selected break inspector">
       <div className="inspector-head">
         <span>{copy.selectedBreak}</span>
-        <IconButton className="icon-button small" type="button" aria-label="Close inspector" size="small" onClick={onClose}>
+        <IconButton className="icon-button small" type="button" aria-label={pageText(locale, 'Close inspector', 'סגירת המפקח')} size="small" onClick={onClose}>
           <X size={14} />
         </IconButton>
       </div>
@@ -3457,7 +3485,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
 
       <div className="export-row">
         <FormControl size="small">
-          <Select aria-label="Export scope" value={exportScope} onChange={(event) => setExportScope(event.target.value)}>
+          <Select aria-label={pageText(locale, 'Export scope', 'היקף הייצוא')} value={exportScope} onChange={(event) => setExportScope(event.target.value)}>
             <MenuItem value="Break detail">{copy.exportOptions[0]}</MenuItem>
             <MenuItem value="Weekly traffic plan">{copy.exportOptions[1]}</MenuItem>
             <MenuItem value="Guardrail report">{copy.exportOptions[2]}</MenuItem>

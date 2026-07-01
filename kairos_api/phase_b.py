@@ -165,6 +165,13 @@ def _build_gold_breaks() -> dict[str, Any]:
             retention_floor=settings.min_retention_floor,
             max_breaks_per_hour=settings.max_breaks_per_hour,
             risk_lambda=settings.risk_lambda,
+            # Thread the operator's full saved settings and pacing reference date,
+            # exactly as /api/optimizer-plan and the frontier do (server._pacing_call_kwargs).
+            # Without these the run silently uses default guardrails, default YAML
+            # pricing and an unscoped channel, so the "current plan" claim would be
+            # false whenever the operator's settings deviate from the defaults.
+            today=server._reference_today(settings),
+            settings=server._model_dump(settings),
         )
     except Exception as exc:  # pragma: no cover - data/environment dependent
         return {"available": False, "reason": f"Optimizer run failed: {str(exc)[:200]}", "count": 0, "breaks": [], "by_day": []}
@@ -260,12 +267,23 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
 
     from kairos.service import run_scenario
 
+    # The full saved settings and pacing reference date, threaded into both legs
+    # exactly as /api/optimizer-plan and the frontier do (server._pacing_call_kwargs),
+    # so the A/B baseline honours every operator guardrail, the pricing overrides and
+    # the operator channel scope instead of silently falling back to engine defaults.
+    # The scenario overrides (floor/max_bph/risk) still apply on top of this base,
+    # so the scenario-control semantics are unchanged.
+    reference_today = server._reference_today(saved)
+    settings_map = server._model_dump(saved)
+
     def _run(weight: int) -> dict[str, Any]:
         return run_scenario(
             revenue_weight=weight,
             retention_floor=floor,
             max_breaks_per_hour=max_bph,
             risk_lambda=risk,
+            today=reference_today,
+            settings=settings_map,
         )
 
     try:

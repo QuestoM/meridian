@@ -11,7 +11,7 @@
 }
 .amz-summary-card {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   padding: 14px 16px;
   display: flex;
@@ -19,8 +19,8 @@
   gap: 4px;
 }
 .amz-summary-value {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
   color: var(--ink);
   line-height: 1.1;
 }
@@ -28,7 +28,7 @@
   color: var(--red);
 }
 .amz-summary-label {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -40,7 +40,7 @@
   border: 1px solid var(--line);
   border-inline-start: 3px solid var(--amber);
   background: var(--amber-soft);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 12px 14px;
   margin-bottom: 16px;
 }
@@ -51,7 +51,7 @@
 }
 .amz-status-banner p {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--text-base);
   line-height: 1.45;
   color: var(--ink);
 }
@@ -69,7 +69,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius-lg);
   padding: 7px 11px;
   background: var(--surface);
   flex: 1 1 220px;
@@ -97,12 +97,12 @@
   gap: 6px;
 }
 .amz-sort label {
-  font-size: 0.8rem;
+  font-size: var(--text-base);
   color: var(--muted);
 }
 .amz-sort select {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 6px 9px;
   font: inherit;
   background: var(--surface);
@@ -117,7 +117,7 @@
 }
 .amz-card {
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   padding: 16px;
   display: flex;
@@ -150,12 +150,12 @@
   min-width: 0;
 }
 .amz-card-id {
-  font-size: 1.02rem;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   color: var(--ink);
 }
 .amz-card-notes {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -179,24 +179,24 @@
   align-self: center;
 }
 .amz-rulecount-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
   color: var(--ink);
   line-height: 1;
 }
 .amz-rulecount-label {
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   color: var(--muted);
 }
 .amz-conflict-flag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--red);
   background: #fbe9e9;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 2px 7px;
   margin-inline-start: auto;
 }
@@ -211,18 +211,18 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 3px 10px;
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   border: 1px solid transparent;
 }
 .amz-effect-chip .amz-effect-count {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
 }
 .amz-effect-none,
 .amz-effect-pending {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--subtle);
   font-style: italic;
 }
@@ -269,7 +269,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 .amz-stat-info {
@@ -280,11 +280,11 @@
 }
 .amz-stat-info:focus-visible {
   outline: 2px solid var(--teal);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .amz-stat-figure {
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
   color: var(--ink);
   display: inline-flex;
   align-items: baseline;
@@ -298,18 +298,18 @@
 }
 .amz-stat-figure.empty {
   color: var(--subtle);
-  font-weight: 600;
+  font-weight: var(--weight-medium);
 }
 .amz-stat-delta {
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--muted);
 }
 
 /* ----- Empty states ----- */
 .amz-empty {
   border: 1px dashed var(--line-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 28px;
   text-align: center;
   color: var(--muted);
@@ -320,7 +320,7 @@
 }
 .amz-result-note {
   margin-top: 12px;
-  font-size: 0.8rem;
+  font-size: var(--text-base);
   color: var(--subtle);
 }
 

@@ -133,7 +133,7 @@ function InputCard({ input, locale, onUploaded, notify }) {
           <span className="upload-filename" dir="ltr">{input.filename}</span>
         </div>
         {storedNotInUse ? (
-          <span className="upload-badge stored" style={{ color: '#b7791f', borderColor: '#b7791f' }}>
+          <span className="upload-badge stored" style={{ color: 'var(--amber)', borderColor: 'var(--amber)' }}>
             <AlertTriangle size={13} />
             {pageText(locale, 'Stored, not in use', 'נשמר, לא בשימוש')}
           </span>
@@ -158,7 +158,7 @@ function InputCard({ input, locale, onUploaded, notify }) {
         <p className="upload-empty">{pageText(locale, 'No file uploaded yet for this input.', 'עדיין לא הועלה קובץ עבור קלט זה.')}</p>
       )}
       {storedNotInUse && (
-        <p className="upload-empty" style={{ color: '#b7791f' }}>
+        <p className="upload-empty" style={{ color: 'var(--amber)' }}>
           {inUseReason || pageText(locale, 'Stored but not used by the optimizer: a reference file currently takes priority.', 'נשמר אך לא בשימוש האופטימייזר: קובץ רפרנס מקבל כרגע עדיפות.')}
         </p>
       )}
@@ -197,7 +197,7 @@ function InputCard({ input, locale, onUploaded, notify }) {
   );
 }
 
-function UploadCenter({ copy, locale, notify }) {
+function UploadCenter({ copy, locale, notify, onGlobalRefresh }) {
   const [status, setStatus] = useState({ inputs: [] });
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
@@ -222,6 +222,16 @@ function UploadCenter({ copy, locale, notify }) {
   useEffect(() => {
     loadStatus();
   }, [loadStatus]);
+
+  // A successful upload changes the source data, so refresh this list and also
+  // trigger the app-wide refetch (overview, schedule and the rest) so shared
+  // views and the schedule-staleness banner reflect the new data.
+  const handleUploaded = useCallback(async () => {
+    await loadStatus();
+    if (onGlobalRefresh) {
+      onGlobalRefresh();
+    }
+  }, [loadStatus, onGlobalRefresh]);
 
   const inputs = normalizeRows(status.inputs);
   const groups = cadenceOrder
@@ -282,7 +292,7 @@ function UploadCenter({ copy, locale, notify }) {
                 key={input.kind}
                 input={input}
                 locale={locale}
-                onUploaded={loadStatus}
+                onUploaded={handleUploaded}
                 notify={notify}
               />
             ))}

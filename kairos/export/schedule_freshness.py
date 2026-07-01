@@ -6,8 +6,10 @@ Break-library screens all render from one saved file,
 :func:`kairos.export.schedule.write_weekly_schedule` (the recompute endpoint and
 the export CLI). The CSV itself carries no timestamp and no record of the inputs
 it was built from, so when the operator edits settings, constraints, overrides,
-the coefficients, or the reference data, those screens keep showing the previous
-snapshot with no signal that it is out of date. A number presented as current
+the coefficients, the reference data, the impact model, the inventory, the
+advertiser rules, the campaign flights, or the program classifications, those
+screens keep showing the previous snapshot with no signal that it is out of
+date. A number presented as current
 that is actually stale is a dishonesty risk, so this module detects staleness and
 surfaces it.
 
@@ -36,6 +38,7 @@ deterministic given the filesystem.
 
 from __future__ import annotations
 
+import importlib
 import json
 import logging
 from datetime import datetime, timezone
@@ -75,8 +78,24 @@ GROUP_LABELS = {
     "overrides": "overrides",
     "coefficients": "coefficients",
     "data": "data",
+    "impact_model": "the impact model",
+    "inventory": "inventory data",
+    "advertiser": "advertiser rules",
+    "campaigns": "campaign flights",
+    "classifications": "program classifications",
 }
-_GROUP_ORDER = ("settings", "constraints", "overrides", "coefficients", "data")
+_GROUP_ORDER = (
+    "settings",
+    "constraints",
+    "overrides",
+    "coefficients",
+    "data",
+    "impact_model",
+    "inventory",
+    "advertiser",
+    "campaigns",
+    "classifications",
+)
 
 
 def _meta_path(csv_path: str | Path) -> Path:
@@ -107,6 +126,18 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
                          (``Spots/Programmes/Dayparts`` xlsx) combined into one
                          sha256, the same files the coefficient guard
                          fingerprints.
+      * ``impact_model`` the fitted posterior pickle
+                         (``DEFAULT_IMPACT_MODEL_PATH``) that scores every segment;
+                         the ``coefficients`` group hashes the JSON delta version,
+                         not this pickle, so a retrained posterior is tracked here.
+      * ``inventory``    the booked-spot inventory CSV (``DEFAULT_INVENTORY_PATH``)
+                         the placement steer reads.
+      * ``advertiser``   the two demand-engine CSVs (``DEFAULT_RULES_PATH`` +
+                         ``DEFAULT_CONDITIONS_PATH``) combined into one sha256.
+      * ``campaigns``    the pacing flight file (``DEFAULT_CAMPAIGNS_PATH``).
+      * ``classifications`` the AI genre-override cache
+                         (``AI_CLASSIFICATIONS_PATH``), which shifts program class
+                         and therefore premiums and coefficients.
 
     A group whose source file is missing is recorded as :data:`ABSENT` (so
     freshness can tell a present-then-gone input from an unchanged one), never
@@ -148,7 +179,112 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
     # tied to a reference snapshot that is not fully present.
     prints["data"] = _data_fingerprint(root)
 
+    # impact model: the fitted posterior pickle the schedule scores every segment
+    # with. The coefficients group above tracks the JSON delta version, NOT the
+    # pickle, so a retrained posterior would otherwise move the schedule while
+    # freshness stayed green. Hash the pickle's bytes; ABSENT when not on disk.
+    prints["impact_model"] = checksum_file(
+        _constant_path(
+            "kairos.service",
+            "DEFAULT_IMPACT_MODEL_PATH",
+            root / "models" / "tv_break_posterior.pkl",
+        )
+    ) or ABSENT
+
+    # inventory: the booked-spot inventory CSV the placement steer reads. Present
+    # with real rows today, so a genuine live input; ABSENT when not uploaded.
+    prints["inventory"] = checksum_file(
+        _constant_path(
+            "kairos.optimize.inventory",
+            "DEFAULT_INVENTORY_PATH",
+            root / "data" / "Spots - inventory.csv",
+        )
+    ) or ABSENT
+
+    # advertiser: the two coupled demand-engine CSVs (baseline rules + scoped
+    # conditions) combined into one sha256 so a change in either registers.
+    prints["advertiser"] = _advertiser_fingerprint(root)
+
+    # campaigns: the pacing flight file. Header-only today (an inert seed) but a
+    # genuine future input; hashing its bytes keeps a stable value while it stays
+    # header-only and flips the moment real flights land. ABSENT when not on disk.
+    prints["campaigns"] = checksum_file(
+        _constant_path(
+            "kairos.optimize.pacing",
+            "DEFAULT_CAMPAIGNS_PATH",
+            root / "data" / "campaign_flights.csv",
+        )
+    ) or ABSENT
+
+    # classifications: the AI genre-override cache. Absent today (latent), but when
+    # present it changes program class -> premiums and coefficients, so it belongs
+    # in the fingerprint. ABSENT until the cache is written.
+    prints["classifications"] = checksum_file(
+        _constant_path(
+            "kairos.service",
+            "AI_CLASSIFICATIONS_PATH",
+            root / "models" / "ai_program_classifications.json",
+        )
+    ) or ABSENT
+
     return prints
+
+
+def _constant_path(module: str, attr: str, fallback: Path) -> Path:
+    """Resolve a loader's own path constant by import, never a hardcoded guess.
+
+    Mirrors the try/except the settings/constraints/overrides groups use: import
+    the loader's canonical path constant so this module fingerprints the exact
+    file the engine reads, and fall back to the conventional location only if the
+    import fails, so a loader refactor never silently blinds the freshness check.
+    """
+    try:
+        mod = importlib.import_module(module)
+        return Path(getattr(mod, attr))
+    except Exception:  # pragma: no cover - defensive: never block the stamp
+        return fallback
+
+
+def _advertiser_fingerprint(root: Path) -> str:
+    """Return one combined sha256 over the two advertiser demand-engine CSVs.
+
+    The baseline-rules CSV and the scoped-conditions CSV are hashed together, each
+    file contributing its digest or the :data:`ABSENT` sentinel, so a change in
+    either file (or either one appearing or disappearing) changes the combined
+    value. Unlike the reference-workbook trio, these two files exist
+    independently (conditions ships as a header-only seed), so the whole group is
+    :data:`ABSENT` only when NEITHER file is on disk; that keeps a demand engine
+    with no data on disk stable-not-stale, matching the identity no-op the engine
+    itself falls back to.
+    """
+    import hashlib
+
+    try:
+        from kairos.optimize.advertiser_rules import (
+            DEFAULT_CONDITIONS_PATH,
+            DEFAULT_RULES_PATH,
+        )
+
+        entries = [
+            ("advertiser_rules.csv", Path(DEFAULT_RULES_PATH)),
+            ("advertiser_conditions.csv", Path(DEFAULT_CONDITIONS_PATH)),
+        ]
+    except Exception:  # pragma: no cover - defensive
+        entries = [
+            ("advertiser_rules.csv", root / "data" / "advertiser_rules.csv"),
+            ("advertiser_conditions.csv", root / "data" / "advertiser_conditions.csv"),
+        ]
+
+    combined = hashlib.sha256()
+    present = False
+    for name, path in entries:
+        digest = checksum_file(path)
+        if digest is None:
+            digest = ABSENT
+        else:
+            present = True
+        combined.update(f"{name}:{digest}\n".encode("utf-8"))
+    return combined.hexdigest() if present else ABSENT
 
 
 def _coefficients_fingerprint(root: Path) -> str:
