@@ -36,6 +36,7 @@ decide against byte-identical economics and limits.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from itertools import product
 from typing import Optional, Sequence
 
@@ -180,7 +181,103 @@ def _local_search_group(
     # adopted; trials swap in only the changed segments before the compliance check.
     cur_breaks: dict[str, list[Break]] = {s.segment_id: segment_breaks(s.segment_id, counts[s.segment_id]) for s in group}
 
+    # Incremental guardrail aggregates for the CURRENT adopted counts, so a trial
+    # move can be REJECTED by a localized check on just the hours and day it
+    # touches, instead of rebuilding and fully re-evaluating the whole day's flat
+    # break list on every trial. These mirror kairos.optimize.guardrails exactly:
+    # per (channel, day, hour) break count, ad seconds and protected-break count;
+    # per (channel, day) ad seconds and gold count. The localized check only ever
+    # REJECTS (each branch is a sound necessary condition for compliance); anything
+    # it does not reject falls through to the authoritative is_compliant below, so
+    # the accepted set and the final plan are identical to a full re-evaluate on
+    # every trial. Break and gold counts are integer-exact; the two ad-seconds
+    # aggregates are compared with a tiny tolerance so floating-point accumulation
+    # can never turn a compliant trial into a wrong reject (a knife-edge trial
+    # simply pays for the authoritative check).
+    protected_types = {p.lower() for p in guardrails.protected_program_types}
+    seg_protected = {s.segment_id: str(s.program_type).lower() in protected_types for s in group}
+    seconds_tolerance = 1e-6
+    hour_count: dict[tuple, int] = defaultdict(int)
+    hour_seconds: dict[tuple, float] = defaultdict(float)
+    hour_protected: dict[tuple, int] = defaultdict(int)
+    day_seconds: dict[tuple, float] = defaultdict(float)
+    day_gold: dict[tuple, int] = defaultdict(int)
+
+    def _apply(sid: str, breaks: list[Break], sign: int) -> None:
+        protected = seg_protected[sid]
+        for b in breaks:
+            hkey = (b.channel, b.day, b.hour)
+            dkey = (b.channel, b.day)
+            hour_count[hkey] += sign
+            hour_seconds[hkey] += sign * b.duration_seconds
+            if protected:
+                hour_protected[hkey] += sign
+            day_seconds[dkey] += sign * b.duration_seconds
+            if b.is_gold:
+                day_gold[dkey] += sign
+
+    for s in group:
+        _apply(s.segment_id, cur_breaks[s.segment_id], 1)
+
+    def _localized_reject(changes: dict[str, int]) -> bool:
+        """True only when the trial provably breaches an aggregate guardrail.
+
+        Evaluates ONLY the hours and day the changed segments touch, reusing the
+        maintained aggregates for the untouched remainder. Every branch is a
+        necessary condition for compliance, so a True here is always a real
+        violation the full is_compliant would also reject; spacing (the one
+        guardrail a localized delta cannot settle) is left to that full check.
+        """
+        d_count: dict[tuple, int] = defaultdict(int)
+        d_seconds: dict[tuple, float] = defaultdict(float)
+        d_protected: dict[tuple, int] = defaultdict(int)
+        d_day_seconds: dict[tuple, float] = defaultdict(float)
+        d_day_gold: dict[tuple, int] = defaultdict(int)
+
+        def accumulate(breaks: list[Break], protected: bool, sign: int) -> None:
+            for b in breaks:
+                hkey = (b.channel, b.day, b.hour)
+                dkey = (b.channel, b.day)
+                d_count[hkey] += sign
+                d_seconds[hkey] += sign * b.duration_seconds
+                if protected:
+                    d_protected[hkey] += sign
+                d_day_seconds[dkey] += sign * b.duration_seconds
+                if b.is_gold:
+                    d_day_gold[dkey] += sign
+
+        for sid, k in changes.items():
+            new_breaks = segment_breaks(sid, k)
+            for b in new_breaks:
+                if b.retention < guardrails.min_retention_floor:
+                    return True
+            protected = seg_protected[sid]
+            accumulate(cur_breaks[sid], protected, -1)
+            accumulate(new_breaks, protected, 1)
+
+        for hkey, delta in d_count.items():
+            if delta and hour_count[hkey] + delta > guardrails.max_breaks_per_hour:
+                return True
+        for hkey in set(d_seconds) | set(d_protected):
+            seconds = hour_seconds[hkey] + d_seconds.get(hkey, 0.0)
+            protected = hour_protected[hkey] + d_protected.get(hkey, 0) > 0
+            limit = (guardrails.protected_max_ad_seconds_per_hour if protected
+                     else guardrails.max_ad_seconds_per_hour)
+            if seconds - seconds_tolerance > limit:
+                return True
+        for dkey, delta in d_day_seconds.items():
+            if day_seconds[dkey] + delta - seconds_tolerance > guardrails.max_daily_ad_seconds:
+                return True
+        for dkey, delta in d_day_gold.items():
+            if delta and day_gold[dkey] + delta > guardrails.gold_breaks_max_per_day:
+                return True
+        return False
+
     def compliant_with(changes: dict[str, int]) -> bool:
+        # Cheap localized reject first; only trials it cannot rule out pay for the
+        # authoritative full-list evaluation, which stays the sole gate on adoption.
+        if _localized_reject(changes):
+            return False
         flat: list[Break] = []
         for s in group:
             sid = s.segment_id
@@ -189,8 +286,11 @@ def _local_search_group(
 
     def adopt(changes: dict[str, int]) -> None:
         for sid, k in changes.items():
+            _apply(sid, cur_breaks[sid], -1)
+            new_breaks = segment_breaks(sid, k)
+            _apply(sid, new_breaks, 1)
             counts[sid] = k
-            cur_breaks[sid] = segment_breaks(sid, k)
+            cur_breaks[sid] = new_breaks
 
     for _ in range(_MAX_PASSES):
         improved = False

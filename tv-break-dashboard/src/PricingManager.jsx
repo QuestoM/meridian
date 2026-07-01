@@ -33,7 +33,7 @@ function keyLabel(layerName, key, locale) {
   return key;
 }
 
-function PricingManager({ copy, locale, notify }) {
+function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
@@ -78,12 +78,13 @@ function PricingManager({ copy, locale, notify }) {
       setState(await response.json());
       notify('Rate card saved. It is live in the next optimizer run and forecast.',
         'כרטיס התעריפים נשמר. הוא פעיל בריצת האופטימייזר והתחזית הבאות.');
+      onGlobalRefresh?.();
       return true;
     } catch (error) {
       notify(`Rate-card save failed (${error.message}).`, `שמירת כרטיס התעריפים נכשלה (${error.message}).`);
       return false;
     }
-  }, [notify]);
+  }, [notify, onGlobalRefresh]);
 
   function saveBase(value) {
     const num = Number(value);

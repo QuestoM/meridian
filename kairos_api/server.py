@@ -400,20 +400,6 @@ def _load_spots() -> pd.DataFrame:
     return _read_csv(DATA_DIR / "Spots.csv")
 
 
-def _load_impact(path: Path) -> list[dict[str, Any]]:
-    frame = _read_csv(path)
-    records: list[dict[str, Any]] = []
-    for raw in frame.replace({pd.NA: None}).where(pd.notna(frame), None).to_dict("records"):
-        record: dict[str, Any] = {}
-        for key, value in raw.items():
-            if isinstance(value, float) and not math.isfinite(value):
-                record[key] = None
-            else:
-                record[key] = value
-        records.append(record)
-    return records
-
-
 def _segment_key(channel_name: str) -> tuple[str, str, str] | None:
     parts = str(channel_name or "").split("_")
     if len(parts) < 3:
@@ -466,10 +452,32 @@ def _weighted_impact_rows(items: list[dict[str, Any]], key: str) -> list[dict[st
     return sorted(rows, key=lambda row: abs(float(row["average_coefficient"])), reverse=True)
 
 
+def _pooling_note(metadata: dict[str, Any]) -> str | None:
+    """Honest disclosure that the per-cell retention effects collapse toward one
+    pooled constant. Empirical Bayes shrinks the programme-type x position x length
+    cells because the between-cell variance sits far below the within-cell variance,
+    so the cells share almost all of their signal. Numbers are read straight from
+    the coefficient artifact metadata, never hand-set."""
+    tau2 = _safe_number(metadata.get("between_cell_variance_tau2"), math.nan)
+    within = _safe_number(metadata.get("pooled_within_variance"), math.nan)
+    if not math.isfinite(tau2) or not math.isfinite(within) or within <= 0:
+        return None
+    cells = int(_safe_number(metadata.get("channels"), 0)) or None
+    method = str(metadata.get("pooling_method") or "empirical_bayes").replace("_", " ")
+    cell_phrase = f"{cells} " if cells else ""
+    return (
+        f"The {cell_phrase}(programme type x position x length) cells pool to approximately "
+        f"one shared constant under {method}: between-cell variance tau^2 = {tau2:.2e} sits "
+        f"far below within-cell variance {within:.3f}, so the per-cell effects collapse toward "
+        f"a single pooled value."
+    )
+
+
 def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {
             "source": "legacy_csv",
+            "pooling_note": None,
             "program_type": [],
             "position": [],
             "length": [],
@@ -479,6 +487,7 @@ def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
     except (json.JSONDecodeError, OSError):
         return {
             "source": "legacy_csv",
+            "pooling_note": None,
             "program_type": [],
             "position": [],
             "length": [],
@@ -506,6 +515,7 @@ def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
     return {
         "source": payload.get("method") or "measured_coefficients",
         "metadata": metadata,
+        "pooling_note": _pooling_note(metadata),
         "program_type": _weighted_impact_rows(items, "program_type"),
         "position": _weighted_impact_rows(items, "position"),
         "length": _weighted_impact_rows(items, "length"),
@@ -1706,9 +1716,6 @@ def _break_operations_cached(signature: tuple[tuple[str, int, int], ...]) -> dic
 def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
     return {
-        "program_type_impacts": _load_impact(OUTPUT_DIR / "program_type_impacts.csv"),
-        "position_impacts": _load_impact(OUTPUT_DIR / "position_impacts.csv"),
-        "length_impacts": _load_impact(OUTPUT_DIR / "length_impacts.csv"),
         "coefficient_impacts": _load_measured_impact_summary(MODELS_DIR / "tv_break_coefficients.json"),
     }
 
@@ -2127,14 +2134,7 @@ def create_break_decision(request: BreakDecisionRequest) -> dict[str, Any]:
 @app.get("/api/impact")
 def impact() -> dict[str, Any]:
     return _impact_cached(
-        _signature(
-            [
-                OUTPUT_DIR / "program_type_impacts.csv",
-                OUTPUT_DIR / "position_impacts.csv",
-                OUTPUT_DIR / "length_impacts.csv",
-                MODELS_DIR / "tv_break_coefficients.json",
-            ]
-        )
+        _signature([MODELS_DIR / "tv_break_coefficients.json"])
     )
 
 

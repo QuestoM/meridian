@@ -29,7 +29,7 @@ const FILTERS = [
   { key: 'conflicts', en: 'Has conflicts', he: 'עם התנגשויות' },
 ];
 
-function AdvertisersManager({ copy, locale, notify }) {
+function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
   const [advertisers, setAdvertisers] = useState([]);
   const [statsIndex, setStatsIndex] = useState(() => new Map());
   const [statusNote, setStatusNote] = useState('');
@@ -139,6 +139,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       await putAdvertiser(draft);
       notify(`Advertiser ${draft.advertiser_id} saved.`, `המפרסם ${draft.advertiser_id} נשמר.`);
       await loadAdvertisers();
+      onGlobalRefresh?.();
     } catch (error) {
       notify(`Save failed for ${draft.advertiser_id} (${error.message}).`, `השמירה נכשלה עבור ${draft.advertiser_id} (${error.message}).`);
     }
@@ -161,6 +162,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       notify(`Advertiser ${draft.advertiser_id} created.`, `המפרסם ${draft.advertiser_id} נוצר.`);
       setShowAdd(false);
       await loadAdvertisers();
+      onGlobalRefresh?.();
       return true;
     } catch (error) {
       notify(`Create failed (${error.message}).`, `היצירה נכשלה (${error.message}).`);
@@ -177,6 +179,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       notify(`Advertiser ${advertiserId} deleted.`, `המפרסם ${advertiserId} נמחק.`);
       setOpenId(null);
       await loadAdvertisers();
+      onGlobalRefresh?.();
     } catch (error) {
       notify(`Delete failed for ${advertiserId} (${error.message}).`, `המחיקה נכשלה עבור ${advertiserId} (${error.message}).`);
     }
@@ -195,6 +198,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       }
       notify(`Scoped rule added to ${advertiserId}.`, `כלל ממוקד נוסף ל${advertiserId}.`);
       await loadAdvertisers();
+      onGlobalRefresh?.();
       return true;
     } catch (error) {
       notify(`Add rule failed for ${advertiserId} (${error.message}).`, `הוספת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
@@ -214,6 +218,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       }
       notify(`Scoped rule saved for ${advertiserId}.`, `כלל ממוקד נשמר עבור ${advertiserId}.`);
       await loadAdvertisers();
+      onGlobalRefresh?.();
       return true;
     } catch (error) {
       notify(`Save rule failed for ${advertiserId} (${error.message}).`, `שמירת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
@@ -231,6 +236,7 @@ function AdvertisersManager({ copy, locale, notify }) {
       }
       notify(`Scoped rule removed from ${advertiserId}.`, `כלל ממוקד הוסר מ${advertiserId}.`);
       await loadAdvertisers();
+      onGlobalRefresh?.();
     } catch (error) {
       notify(`Delete rule failed for ${advertiserId} (${error.message}).`, `מחיקת הכלל נכשלה עבור ${advertiserId} (${error.message}).`);
     }

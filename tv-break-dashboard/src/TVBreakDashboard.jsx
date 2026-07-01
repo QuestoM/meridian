@@ -1057,7 +1057,7 @@ function TVBreakDashboard() {
   const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, parameters, online, loading, error } =
     useKairosData(refreshKey);
   const [activeRecommendation, setActiveRecommendation] = useState('rec-1');
-  const [approved, setApproved] = useState(new Set(['rec-1']));
+  const [approved, setApproved] = useState(new Set());
   const [rejected, setRejected] = useState(new Set());
   const [scenario, setScenario] = useState('Balanced');
   const [riskLambda, setRiskLambda] = useState(0);
@@ -1486,11 +1486,11 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Advertisers') {
-      return <AdvertisersManager copy={copy} locale={locale} notify={notify} />;
+      return <AdvertisersManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Pricing') {
-      return <PricingManager copy={copy} locale={locale} notify={notify} />;
+      return <PricingManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     return (

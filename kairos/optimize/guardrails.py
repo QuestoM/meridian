@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Iterable
 
 
@@ -55,8 +56,19 @@ class Violation:
     detail: str
 
 
+@lru_cache(maxsize=None)
+def _lowered_protected(protected_program_types: tuple[str, ...]) -> frozenset[str]:
+    """Lowercased protected-type set, memoised once per unique type tuple.
+
+    Guardrails is a frozen dataclass, so its protected_program_types tuple is
+    hashable and stable. Caching on that tuple keeps the matching semantics
+    identical while avoiding a fresh set build on every _is_protected call.
+    """
+    return frozenset(p.lower() for p in protected_program_types)
+
+
 def _is_protected(program_type: str, guardrails: Guardrails) -> bool:
-    lowered = {p.lower() for p in guardrails.protected_program_types}
+    lowered = _lowered_protected(guardrails.protected_program_types)
     return str(program_type).lower() in lowered
 
 
@@ -184,4 +196,22 @@ def evaluate(breaks: Iterable[Break], guardrails: Guardrails) -> list[Violation]
 
 
 def is_compliant(breaks: Iterable[Break], guardrails: Guardrails) -> bool:
-    return not evaluate(breaks, guardrails)
+    """Return True only when no guardrail is violated.
+
+    Logically identical to (evaluate(breaks, guardrails) == []) but stops at the
+    first rule that reports a violation, in the same rule order evaluate() uses,
+    so the common compliant-checking path does not build every violation list.
+    """
+    items = list(breaks)
+    checks = (
+        check_retention_floor,
+        check_breaks_per_hour,
+        check_hourly_ad_load,
+        check_break_spacing,
+        check_daily_ad_load,
+        check_gold_breaks,
+    )
+    for check in checks:
+        if check(items, guardrails):
+            return False
+    return True
