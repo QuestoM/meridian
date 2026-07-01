@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import pandas as pd
 
@@ -30,6 +30,18 @@ logger = logging.getLogger(__name__)
 from kairos.data import ProgramClassifier
 from kairos.data.loaders import load_programmes
 from kairos.data.transform import build_segments_from_programmes
+# _clock is re-exported (unused here) because kairos_api.overrides documents its
+# anchor clock as matching kairos.export.schedule._clock; the implementation and
+# the shared row construction now live in kairos.export.incremental.
+from kairos.export.incremental import (  # noqa: F401
+    _break_type,
+    _clock,
+    _weekday_abbrev,
+    incremental_weekly_frame,
+    resolve_commit_overrides,
+    rows_from_result as _rows_from_result,
+    unmatched_anchor_reports,
+)
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.day_core import _optimize_one_day
@@ -59,8 +71,6 @@ DEFAULT_OUTPUT_PATH = ROOT / "output" / "weekly_break_schedule.csv"
 # coefficients, matching what the live service returns. Falls back honestly to
 # the declared assumption when the file or Meridian is absent.
 DEFAULT_IMPACT_MODEL_PATH = ROOT / "models" / "tv_break_posterior.pkl"
-
-SECONDS_PER_MINUTE = 60
 
 # The measured first-break multiplier is folded into the assumptions by the shared
 # kairos.service._apply_first_break_multiplier, imported above so the export and the
@@ -106,25 +116,6 @@ COLUMNS = [
     # the refiner), so a real value is not available without an engine change.
     "is_gold",
 ]
-
-
-def _clock(start_seconds: float) -> str:
-    total_minutes = int(start_seconds // SECONDS_PER_MINUTE)
-    return f"{(total_minutes // 60) % 24:02d}:{total_minutes % 60:02d}"
-
-
-def _weekday_abbrev(day: str) -> str:
-    """Map a ``YYYY-MM-DD`` date to the dashboard's day key (``Mon`` .. ``Sun``)."""
-    return pd.Timestamp(day).strftime("%a")
-
-
-def _break_type(break_seconds: float) -> str:
-    """Label a break by its length, the way the operations board groups them."""
-    if break_seconds < 90:
-        return "short"
-    if break_seconds < 180:
-        return "medium"
-    return "long"
 
 
 def _channel_days(programmes: pd.DataFrame) -> list[tuple[str, str]]:
@@ -173,6 +164,9 @@ def build_weekly_schedule(
     constraints_path: Optional[str | Path] = None,
     operator_channel: str = "",
     today: Optional[date] = None,
+    only_days: Optional[list[tuple[str, str]]] = None,
+    progress_cb: Optional[Callable[[int, int], None]] = None,
+    existing_csv: Optional[str | Path] = None,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -203,6 +197,25 @@ def build_weekly_schedule(
     even if campaign data is present, so behaviour is unchanged. The inventory and
     pacing signals fold into demand_weights and steer placement only; with no
     inventory file and no campaign rows the schedule is byte-identical to today.
+
+    ``only_days`` (incremental recompute) re-optimizes ONLY the listed
+    ``(channel, date)`` pairs and merges the fresh rows into the saved CSV at
+    ``existing_csv`` (default: the module's output path), preserving every other
+    day's rows verbatim and the full build's row ordering, so the merged result
+    is byte-comparable to a full rebuild. Callers are responsible for deriving
+    the list from :func:`kairos.export.incremental.classify_change`; a
+    hand-picked list can leave a stale day looking current. When the saved CSV
+    is missing, has a stale schema, or any other precondition fails, this falls
+    back to a FULL build (the honest escape hatch, logged). The merged frame is
+    all-string (the CSV's own text form); a full build returns typed columns.
+
+    ``progress_cb(done, total)`` fires once per completed channel-day, in both
+    full and incremental runs (after an incremental fallback it restarts with
+    the full run's total).
+
+    Overrides whose stored semantic anchor no longer matches their segment are
+    SKIPPED at commit time (same guard as the /api/overrides/effect preview);
+    the skipped list is logged and returned on ``frame.attrs["skipped_overrides"]``.
     """
     pricing = pricing_from_settings(settings, pricing)
     assumptions = assumptions or OptimizerAssumptions()
@@ -252,14 +265,27 @@ def build_weekly_schedule(
     # demand fold, so campaigns and pacing_today are passed through untouched here.
     pacing_knobs = _pacing_knobs_from_settings(settings)
 
-    rows: list[dict[str, Any]] = []
-    for channel, day in _channel_days(programmes):
-        segments = build_segments_from_programmes(
+    skipped_overrides: list[dict[str, Any]] = []
+    seen_segment_ids: set[str] = set()
+
+    def _segments_for(channel: str, day: str) -> list:
+        return build_segments_from_programmes(
             programmes, classifier, pricing, assumptions=assumptions,
             impact_model=impact_model, channel=channel, day=day,
         )
+
+    def _day_rows(channel: str, day: str) -> list[dict[str, Any]]:
+        segments = _segments_for(channel, day)
         if not segments:
-            continue
+            return []
+        # Anchor guard at COMMIT time, the same semantics as the /effect preview:
+        # a stale-anchored override is dropped from this day's set and reported,
+        # a blank-anchor legacy override still binds. With no overrides loaded
+        # (the common case) this passes None through untouched.
+        day_overrides = resolve_commit_overrides(
+            overrides, segments,
+            seen_segment_ids=seen_segment_ids, skipped=skipped_overrides,
+        )
         # One channel-day through the shared core, the same seam the live day plan
         # and scenario slider use. It folds the demand signal (advertiser demand,
         # inventory awareness, delivery pacing; each identity until its data lands)
@@ -278,90 +304,54 @@ def build_weekly_schedule(
             pacing_today=pacing_today,
             pacing_knobs=pacing_knobs,
             constraints=constraints,
-            overrides=overrides,
+            overrides=day_overrides,
             placement_pins=placement_pins,
             operator_channel=operator_channel,
             optimize_fn=optimize_breaks,
         )
-        plans = {plan.segment_id: plan for plan in result.segments}
-        for segment in segments:
-            plan = plans.get(segment.segment_id)
-            num_breaks = plan.num_breaks if plan else 0
-            # A 0-break segment keeps its baseline retention and earns nothing.
-            retention = plan.retention if plan else segment.retention_baseline
-            revenue = plan.revenue if plan else 0.0
+        return _rows_from_result(segments, result)
 
-            # Risk-adjusted retention fields: surface the per-segment uncertainty
-            # the optimizer used so the weekly CSV carries the full risk decision.
-            # ``plan.retention`` is already the risk-adjusted value (computed with
-            # the conservative coefficient when risk_lambda > 0 and a CI exists).
-            # The CI columns translate the per-break coefficient interval into
-            # retention bounds at ``num_breaks`` breaks, so the reader can see the
-            # pessimistic and optimistic retention the decision rests on. All four
-            # auxiliary fields are None (blank in CSV) when the segment has no
-            # measured CI, keeping the export honest.
-            if plan is not None:
-                ret_ci_low: Optional[float] = None
-                ret_ci_high: Optional[float] = None
-                if (
-                    plan.retention_cost_ci_low is not None
-                    and plan.retention_cost_ci_high is not None
-                    and num_breaks > 0
-                ):
-                    from kairos.optimize.objective import clamp, predicted_retention as _pred_ret
-                    ret_ci_low = round(
-                        _pred_ret(
-                            segment.retention_baseline,
-                            plan.retention_cost_ci_low,
-                            num_breaks,
-                        ),
-                        4,
-                    )
-                    ret_ci_high = round(
-                        _pred_ret(
-                            segment.retention_baseline,
-                            plan.retention_cost_ci_high,
-                            num_breaks,
-                        ),
-                        4,
-                    )
-                retention_n: Optional[int] = plan.retention_cost_n if plan.retention_cost_n else None
-                retention_confidence: Optional[str] = plan.retention_confidence or None
-            else:
-                ret_ci_low = None
-                ret_ci_high = None
-                retention_n = None
-                retention_confidence = None
+    pairs = _channel_days(programmes)
+    frame: Optional[pd.DataFrame] = None
+    if only_days is not None:
+        requested = list(dict.fromkeys((str(c), str(d)) for c, d in only_days))
+        frame = incremental_weekly_frame(
+            pairs=pairs,
+            requested=requested,
+            existing_csv_path=Path(existing_csv) if existing_csv is not None else DEFAULT_OUTPUT_PATH,
+            columns=COLUMNS,
+            day_rows=_day_rows,
+            has_segments=lambda channel, day: bool(_segments_for(channel, day)),
+            progress_cb=progress_cb,
+        )
+        if frame is None:
+            # Honest escape hatch: a precondition failed, so rebuild everything.
+            # Reset the accumulators a partial incremental pass may have filled.
+            skipped_overrides.clear()
+            seen_segment_ids.clear()
 
-            rows.append(
-                {
-                    "channel": segment.channel,
-                    "date": segment.day,
-                    "day": _weekday_abbrev(segment.day),
-                    "program_type": segment.program_type,
-                    "start_time": _clock(segment.start_seconds),
-                    "num_breaks": num_breaks,
-                    "break_length": round(segment.break_length_seconds, 1),
-                    "total_break_time": round(num_breaks * segment.break_length_seconds, 1),
-                    "predicted_revenue": round(revenue, 2),
-                    "predicted_retention": round(retention, 4),
-                    "position": "middle",
-                    "break_type": _break_type(segment.break_length_seconds),
-                    "base_rate": round(segment.cpp * segment.premium, 4),
-                    "retention_used": round(retention, 4),
-                    "retention_ci_low": ret_ci_low,
-                    "retention_ci_high": ret_ci_high,
-                    "retention_n": retention_n,
-                    "retention_confidence": retention_confidence,
-                    "segment_id": segment.segment_id,
-                    # Gold is a per-break flag on the plan's placements; a segment
-                    # is gold when the optimizer emitted a gold break for it. False
-                    # (no gold break, honest) for a 0-break or non-gold segment.
-                    "is_gold": bool(plan is not None and any(p.is_gold for p in plan.placements)),
-                }
-            )
+    if frame is None:
+        rows: list[dict[str, Any]] = []
+        total = len(pairs)
+        for done, (channel, day) in enumerate(pairs, start=1):
+            rows.extend(_day_rows(channel, day))
+            if progress_cb is not None:
+                progress_cb(done, total)
+        # A full run covered every channel-day, so an active anchored override
+        # that matched none of them points at nothing in the current schedule.
+        skipped_overrides.extend(unmatched_anchor_reports(overrides, seen_segment_ids))
+        frame = pd.DataFrame(rows, columns=COLUMNS)
 
-    return pd.DataFrame(rows, columns=COLUMNS)
+    if skipped_overrides:
+        logger.warning(
+            "Weekly schedule commit skipped %d stale-anchored override(s): %s",
+            len(skipped_overrides),
+            ", ".join(str(entry.get("override_id", "?")) for entry in skipped_overrides),
+        )
+    # Surfaced on the frame itself (no new API surface): callers that persist or
+    # summarize this build can read frame.attrs["skipped_overrides"].
+    frame.attrs["skipped_overrides"] = skipped_overrides
+    return frame
 
 
 def write_weekly_schedule(
