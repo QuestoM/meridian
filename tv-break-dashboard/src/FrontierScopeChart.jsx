@@ -20,9 +20,15 @@ import {
 //      affordance that saves it through the existing settings PUT path;
 //  (c) the auto-scaled axes (paddedDomain) already used elsewhere.
 //
-// Honest labelling: the axes are PROJECTED revenue vs AVERAGE retention of
-// whole-schedule (or scoped) Pareto scenarios. No revenue-net number is shown
-// because the API does not expose one for the frontier.
+// Honest labelling: the axes are PROJECTED revenue vs AVERAGE retention of a
+// single representative-day estimate for the selected scope. This is NOT a
+// whole-schedule computation and NOT the saved weekly total shown as the
+// headline revenue elsewhere (that total is refined across all channels and
+// days). The backend now returns a `basis` disclosure object describing the
+// scope, channel and method behind these points; we surface basis.disclosure as
+// a caption below the chart, with a bilingual fallback when it is absent on
+// older responses. No revenue-net number is shown because the API does not
+// expose one for the frontier.
 
 const HEIGHT = 224;
 const PAD_X = 46;
@@ -75,12 +81,19 @@ export default function FrontierScopeChart({
   // prop. refetchNonce lets a 'computing' cold cache trigger one re-fetch.
   const [scopeStatus, setScopeStatus] = useState('');
   const [refetchNonce, setRefetchNonce] = useState(0);
+  // The scoped /api/overview response now carries a `basis` disclosure object
+  // (scope, channel, method, disclosure text) that spells out what the frontier
+  // points actually measure. Older responses omit it, so it stays null until a
+  // response provides one. The unscoped view is driven by the parent's frontier
+  // array, which does not include a basis, so basis is cleared there.
+  const [basis, setBasis] = useState(null);
 
   // When no scope is active, mirror the parent-provided frontier so the panel
   // reflects the same overview payload the rest of the page consumes.
   useEffect(() => {
     if (!scope) {
       setData(initialData || []);
+      setBasis(null);
     }
   }, [initialData, scope]);
 
@@ -91,6 +104,7 @@ export default function FrontierScopeChart({
       setScopeError(false);
       setScopeLoading(false);
       setScopeStatus('');
+      setBasis(null);
       return undefined;
     }
     let active = true;
@@ -105,11 +119,13 @@ export default function FrontierScopeChart({
         if (!active) return;
         setData(payload.frontier || []);
         setScopeStatus(payload.frontier_status || '');
+        setBasis(payload.frontier_basis || null);
         setScopeLoading(false);
       })
       .catch(() => {
         if (!active) return;
         setScopeError(true);
+        setBasis(null);
         setScopeLoading(false);
       });
     return () => {
@@ -195,6 +211,20 @@ export default function FrontierScopeChart({
     if (match) return he ? match.labelHe : match.labelEn;
     return he ? 'כל הערוצים' : 'All channels';
   })();
+
+  // Honest disclosure of what the plotted revenue actually is. Prefer the
+  // backend's own basis.disclosure text when present; otherwise fall back to a
+  // bilingual caption so the operator never reads the selected revenue as the
+  // saved weekly plan total (a different, refined figure over all channels and
+  // days) shown as the headline elsewhere.
+  const basisDisclosure =
+    basis && typeof basis.disclosure === 'string' && basis.disclosure.trim()
+      ? basis.disclosure.trim()
+      : pageText(
+          locale,
+          'Selected revenue here is a single representative-day estimate for the chosen scope, not the saved weekly total shown as your headline revenue across all channels and days.',
+          'ההכנסה המסומנת כאן היא הערכה ליום ייצוגי יחיד עבור ההיקף הנבחר, ולא הסך השבועי השמור המוצג ככותרת ההכנסה על פני כל הערוצים והימים.',
+        );
 
   return (
     <div className="analytics-panel frontier-panel frontier-scope-panel">
@@ -318,6 +348,10 @@ export default function FrontierScopeChart({
             <span>{pageText(locale, 'X: average retention', 'ציר X: שימור ממוצע')}</span>
             <span>{pageText(locale, 'Y: projected revenue', 'ציר Y: הכנסה צפויה')}</span>
           </div>
+
+          <p className="frontier-scope-hint frontier-basis-note" dir={he ? 'rtl' : 'ltr'}>
+            {basisDisclosure}
+          </p>
 
           {focusPoint && (
             <div className="frontier-point-readout" dir={he ? 'rtl' : 'ltr'}>

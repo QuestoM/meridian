@@ -6,7 +6,6 @@ import math
 import json
 import logging
 import os
-import subprocess
 import sys
 import threading
 import time
@@ -53,18 +52,6 @@ SETTINGS_PATH = DATA_DIR / "kairos_settings.json"
 # shortfall (for example floor 72%, realised 42%) is already a severe plan, so it
 # anchors the top of the scale; smaller shortfalls scale linearly toward 0.
 _RISK_FULL_SHORTFALL = 30.0
-
-
-class OptimizeRequest(BaseModel):
-    """Parameters for a traffic-ready optimization run."""
-
-    model_path: str = Field(default="models/tv_break_posterior.pkl")
-    programs_path: str = Field(default="data/Programmes.csv")
-    spots_inventory: str | None = Field(default=None)
-    output_path: str = Field(default="optimization_results.csv")
-    min_retention: float = Field(default=0.75, ge=0.0, le=1.0)
-    max_breaks_per_hour: int = Field(default=3, ge=1, le=12)
-    budget: float = Field(default=100_000.0, gt=0)
 
 
 class ScenarioRequest(BaseModel):
@@ -2046,11 +2033,6 @@ def compliance() -> dict[str, Any]:
     return _build_compliance(_load_break_schedule(), _load_settings())
 
 
-@app.get("/api/guardrails")
-def guardrails() -> dict[str, Any]:
-    return compliance()
-
-
 @app.get("/api/optimizer-plan")
 def optimizer_plan() -> dict[str, Any]:
     return _build_optimizer_plan()
@@ -2081,9 +2063,23 @@ def overview(
     ))
     # The frontier is a slow optimizer sweep, computed in the background so the
     # overview never blocks on it. Merge its current state into the response.
-    points, status = _frontier_async(_load_settings(), scope or None)
+    overview_settings = _load_settings()
+    points, status = _frontier_async(overview_settings, scope or None)
     body["frontier"] = points
     body["frontier_status"] = status
+    # Honest disclosure of what the frontier curve actually measures. Each point is
+    # a single representative-day greedy run (run_scenario refine=False) on the
+    # owned channel, not the whole-week refined plan behind the projected_revenue
+    # headline it sits next to. Surfaced as structured metadata so the dashboard can
+    # label the curve and the operator never reads a one-day estimate as the saved
+    # weekly total.
+    owned_channel = str(overview_settings.operator_channel or "").strip()
+    body["frontier_basis"] = {
+        "scope": "representative_day",
+        "channel": owned_channel or None,
+        "method": "greedy",
+        "disclosure": "This frontier is a single representative-day greedy estimate for the owned channel, not the saved weekly plan total.",
+    }
     # Schedule freshness: is the saved schedule the dashboard renders still in
     # step with its inputs? Computed FRESH here (never inside _overview_cached),
     # because a settings/constraints/pricing edit does not clear the overview
@@ -2299,9 +2295,8 @@ class OptimizePlanRequest(BaseModel):
 def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
     """Serve a real optimal break plan, driven by the saved settings.
 
-    This is the engine-backed counterpart to /api/optimize (which shells out to
-    the trained Meridian model). It uses the live KairosSettings as guardrails,
-    so the dashboard's settings page controls the optimizer directly.
+    Runs the optimization engine in process, using the live KairosSettings as
+    guardrails, so the dashboard's settings page controls the optimizer directly.
     """
     if not _ENGINE_AVAILABLE:
         raise HTTPException(status_code=503, detail="Optimization engine is unavailable")
@@ -2394,49 +2389,6 @@ def parameters() -> dict[str, Any]:
         payload["first_break_active"] = False
         payload["first_break_multiplier"] = 1.0
     return payload
-
-
-@app.post("/api/optimize")
-def optimize(request: OptimizeRequest) -> dict[str, Any]:
-    model_path = _safe_path(request.model_path)
-    programs_path = _safe_path(request.programs_path)
-    output_path = _safe_path(request.output_path)
-    command = [
-        sys.executable,
-        str(ROOT / "run_optimization.py"),
-        "--model-path",
-        str(model_path),
-        "--programs-path",
-        str(programs_path),
-        "--output-path",
-        str(output_path),
-        "--min-retention",
-        str(request.min_retention),
-        "--max-breaks-per-hour",
-        str(request.max_breaks_per_hour),
-        "--budget",
-        str(request.budget),
-    ]
-    if request.spots_inventory:
-        command.extend(["--spots-inventory", str(_safe_path(request.spots_inventory))])
-
-    started = time.time()
-    completed = subprocess.run(
-        command,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        timeout=int(os.getenv("KAIROS_OPTIMIZE_TIMEOUT_SECONDS", "300")),
-        check=False,
-    )
-    return {
-        "status": "success" if completed.returncode == 0 else "error",
-        "return_code": completed.returncode,
-        "duration_seconds": round(time.time() - started, 2),
-        "stdout": completed.stdout[-4000:],
-        "stderr": completed.stderr[-4000:],
-        "output_path": str(output_path.relative_to(ROOT)),
-    }
 
 
 # Serve the built dashboard (Vite `dist/`) from the same container in production.

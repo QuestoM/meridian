@@ -1198,7 +1198,7 @@ function TVBreakDashboard() {
       program_type: selectedProgram?.program_type || activeRec?.program_type,
       scenario,
     });
-    notify('Decision state updated.', 'סטטוס ההחלטה עודכן.');
+    notify('Approval recorded in the decision log.', 'האישור נרשם ביומן ההחלטות.');
   }
 
   function rejectRecommendation(id) {
@@ -1215,7 +1215,7 @@ function TVBreakDashboard() {
       program_type: selectedProgram?.program_type || activeRec?.program_type,
       scenario,
     });
-    notify('Recommendation rejected for this plan.', 'ההמלצה נדחתה עבור התוכנית הזו.');
+    notify('Rejection recorded in the decision log.', 'הדחייה נרשמה ביומן ההחלטות.');
   }
 
   function applySimilarRecommendations() {
@@ -1238,7 +1238,7 @@ function TVBreakDashboard() {
       program_type: targetType || selectedProgram?.program_type,
       scenario,
     });
-    notify('Similar recommendations were marked approved.', 'המלצות דומות סומנו כמאושרות.');
+    notify('Similar recommendations recorded as approved in the decision log.', 'המלצות דומות נרשמו כמאושרות ביומן ההחלטות.');
   }
 
   function selectProgram(program) {
