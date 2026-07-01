@@ -92,6 +92,19 @@ COLUMNS = [
     "retention_ci_high",
     "retention_n",
     "retention_confidence",
+    # Row identity: the optimizer's own segment key, so every schedule row is
+    # addressable on the plane the override and constraint engines consume (they
+    # key target_id on this exact segment_id). Additive and non-fabricated: it is
+    # the same key used to join plans to segments below, restored as a column.
+    "segment_id",
+    # Whether the optimizer marked this segment's breaks gold. Sourced honestly
+    # from the plan's placements (each BreakPlacement carries is_gold, set from
+    # the segment / override gold flag); a segment with no gold break reads False.
+    # No per-segment objective_contribution column is emitted: SegmentPlan does
+    # not carry one (the objective is only defined at group level via
+    # _group_objective_contribution, and the greedy decisions are invalidated by
+    # the refiner), so a real value is not available without an engine change.
+    "is_gold",
 ]
 
 
@@ -340,6 +353,11 @@ def build_weekly_schedule(
                     "retention_ci_high": ret_ci_high,
                     "retention_n": retention_n,
                     "retention_confidence": retention_confidence,
+                    "segment_id": segment.segment_id,
+                    # Gold is a per-break flag on the plan's placements; a segment
+                    # is gold when the optimizer emitted a gold break for it. False
+                    # (no gold break, honest) for a 0-break or non-gold segment.
+                    "is_gold": bool(plan is not None and any(p.is_gold for p in plan.placements)),
                 }
             )
 
