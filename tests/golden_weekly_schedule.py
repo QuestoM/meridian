@@ -41,7 +41,7 @@ from kairos.export.schedule import build_weekly_schedule  # noqa: E402
 SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
 
 # Committed golden, captured from a real recompute on the current engine.
-GOLDEN_CSV_SHA256 = "dea402c5caf491ed89085c244ec1b0607dfdbd494b55f8d8d2c968ce1d42bcf0"
+GOLDEN_CSV_SHA256 = "bf3e6808f80ab507adf0fc303ab626c7b909d53299996b8f1ab46ce71eb8ee15"
 GOLDEN_ROWS = 8704
 GOLDEN_AGG_SHA256 = "c62addcb23431fb05b82280e7a2a9e03e1fe487767985ae6c13131576cf73842"
 

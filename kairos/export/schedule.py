@@ -92,6 +92,13 @@ COLUMNS = [
     "position",
     "break_type",
     "base_rate",
+    # Real per-segment audience: the mean planned break rating from the data
+    # (kairos.data.transform, never invented; a segment with no rating reads 0).
+    # Materialized so the persisted schedule can value retention loss in ILS
+    # (retention_cost = base_rate * baseline_tvr * (1 - retention) * ad_seconds)
+    # without re-deriving segments. Does not change any decision or money column,
+    # so the per-channel-day revenue/retention/breaks aggregate is unchanged.
+    "baseline_tvr",
     # Risk-adjusted retention columns: the value the optimizer actually decided
     # with under the active risk_lambda (equals predicted_retention when
     # risk_lambda=0 or no CI is available), plus the per-segment credible

@@ -432,6 +432,7 @@ def rows_from_result(segments: Sequence[Any], result: Any) -> list[dict[str, Any
                 "position": "middle",
                 "break_type": _break_type(segment.break_length_seconds),
                 "base_rate": round(segment.cpp * segment.premium, 4),
+                "baseline_tvr": round(segment.baseline_tvr, 6),
                 "retention_used": round(retention, 4),
                 "retention_ci_low": ret_ci_low,
                 "retention_ci_high": ret_ci_high,
