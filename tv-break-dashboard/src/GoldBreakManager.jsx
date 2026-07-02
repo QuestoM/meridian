@@ -22,7 +22,7 @@ function programTypeText(value, locale) {
   return text || pageText(locale, 'Mixed', 'מעורב');
 }
 
-export default function GoldBreakManager({ locale }) {
+export default function GoldBreakManager({ locale, refreshKey = 0 }) {
   const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
@@ -44,7 +44,7 @@ export default function GoldBreakManager({ locale }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const { status, payload } = state;
   const breaks = normalizeRows(payload?.breaks);

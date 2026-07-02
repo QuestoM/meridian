@@ -38,7 +38,7 @@ function YieldBars({ rows, locale, labelKey }) {
   );
 }
 
-export default function YieldView({ locale }) {
+export default function YieldView({ locale, refreshKey = 0 }) {
   const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
@@ -60,7 +60,7 @@ export default function YieldView({ locale }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const { status, payload } = state;
   const available = status === 'ready' && payload && payload.available !== false;

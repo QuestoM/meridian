@@ -1564,7 +1564,7 @@ function TVBreakDashboard() {
   }
 
   function renderActiveWorkspace() {
-    const common = { overview, schedule, copy, locale, compliance, loading, notify };
+    const common = { overview, schedule, copy, locale, compliance, loading, notify, refreshKey };
 
     if (activeView === 'Overview') {
       return (
@@ -1576,6 +1576,7 @@ function TVBreakDashboard() {
           savedRetentionFloor={finiteNumber(settings.min_retention_floor)}
           onApplyFrontierFloor={handleApplyFrontierFloor}
           applyWeightState={applyWeightState}
+          refreshKey={refreshKey}
         />
       );
     }
@@ -1632,7 +1633,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Campaigns') {
-      return <CampaignsPage campaigns={campaigns} copy={copy} locale={locale} />;
+      return <CampaignsPage campaigns={campaigns} copy={copy} locale={locale} refreshKey={refreshKey} />;
     }
 
     if (activeView === 'Forecasts') {
@@ -2447,7 +2448,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -2516,12 +2517,12 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
           applyState={applyWeightState}
         />
       </div>
-      <YieldView locale={locale} />
+      <YieldView locale={locale} refreshKey={refreshKey} />
     </section>
   );
 }
 
-function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState }) {
+function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState, refreshKey }) {
   const rows = normalizeRows(schedule.break_schedule);
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
@@ -2670,7 +2671,7 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
           ]}
         />
       </section>
-      <GoldBreakManager locale={locale} />
+      <GoldBreakManager locale={locale} refreshKey={refreshKey} />
     </section>
   );
 }
@@ -2768,7 +2769,7 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
   );
 }
 
-function CampaignsPage({ campaigns, copy, locale }) {
+function CampaignsPage({ campaigns, copy, locale, refreshKey }) {
   const rows = normalizeRows(campaigns.campaigns);
   return (
     <section className="page-workspace">
@@ -2799,7 +2800,7 @@ function CampaignsPage({ campaigns, copy, locale }) {
           ]}
         />
       </section>
-      <MakeGoodAlerts locale={locale} />
+      <MakeGoodAlerts locale={locale} refreshKey={refreshKey} />
     </section>
   );
 }

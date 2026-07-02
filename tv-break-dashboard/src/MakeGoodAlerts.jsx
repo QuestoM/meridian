@@ -18,7 +18,7 @@ function pct(value, locale) {
   return formatPercent(number, locale);
 }
 
-export default function MakeGoodAlerts({ locale }) {
+export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
   const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
@@ -40,7 +40,7 @@ export default function MakeGoodAlerts({ locale }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const { status, payload } = state;
   const alerts = normalizeRows(payload?.alerts);
