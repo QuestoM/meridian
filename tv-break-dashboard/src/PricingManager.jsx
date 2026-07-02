@@ -259,6 +259,18 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                       )}
                     </div>
                   </div>
+                  {Array.isArray(layer.warnings) && layer.warnings.map((warning, index) => {
+                    const categories = Array.isArray(warning.categories) ? warning.categories.join(', ') : '';
+                    return (
+                      <p className="pricing-layer-warning" key={`${layer.name}-warn-${index}`} role="status">
+                        {pageText(
+                          locale,
+                          `Turning this layer on would zero the price for ${categories}, because its configured multiplier is 0. That category would earn no revenue until you change the multiplier.`,
+                          `הפעלת השכבה תאפס את המחיר עבור ${categories}, מכיוון שהמכפיל שהוגדר הוא 0. הקטגוריה הזו לא תניב הכנסה עד לשינוי המכפיל.`,
+                        )}
+                      </p>
+                    );
+                  })}
                   {isEmpty ? (
                     <p className="pricing-empty">{pageText(locale,
                       'No values yet; defaults to 1.0 (no effect).',

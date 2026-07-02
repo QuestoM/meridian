@@ -65,6 +65,37 @@ def _table(model: PricingModel, name: str) -> dict[str, Any]:
     return {}
 
 
+def _layer_warnings(name: str, values: dict[str, Any], enabled: bool) -> list[dict[str, Any]]:
+    """Honest hazards for a premium layer that is not yet live.
+
+    A configured multiplier of 0 (or negative) is a trap: it reads as a harmless
+    rate-card entry today, but the moment the layer is activated it zeroes the
+    price of every slot in that category. The clearest real case is the ad-type
+    ``promo`` multiplier, set to 0 because a channel promo carries no direct
+    revenue, which would silently wipe promo-slot revenue if the ad-type layer
+    were turned on. We surface this per layer as structured data (the dashboard
+    renders it in the operator's language) so activation is an informed choice,
+    never a silent revenue cut. Only flagged while the layer is off, since a live
+    layer's effect is already in the numbers.
+    """
+    if enabled:
+        return []
+    zeroed = sorted(
+        str(key) for key, value in values.items() if _is_number(value) and float(value) <= 0.0
+    )
+    if not zeroed:
+        return []
+    return [{"kind": "zeroes_on_activation", "categories": zeroed}]
+
+
+def _is_number(value: Any) -> bool:
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def _state_payload(settings: Any) -> dict[str, Any]:
     """The full pricing hierarchy: effective values, YAML defaults, and activation.
 
@@ -86,14 +117,16 @@ def _state_payload(settings: Any) -> dict[str, Any]:
         enabled = True if meta["always_live"] else bool(
             getattr(effective, f"enable_{meta['name']}", False)
         )
+        layer_values = _table(effective, meta["name"])
         layers.append({
             "name": meta["name"], "kind": "premium",
             "description": meta["description"],
-            "values": _table(effective, meta["name"]),
+            "values": layer_values,
             "defaults": _table(defaults, meta["name"]),
             "activatable": not meta["always_live"],
             "enabled": enabled,
             "live_today": enabled,
+            "warnings": _layer_warnings(meta["name"], layer_values, enabled),
         })
     return {
         "currency": getattr(settings, "currency", "ILS"),
