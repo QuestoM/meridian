@@ -24,23 +24,22 @@ The economics come from :mod:`kairos.optimize.objective` and the limits from
 It needs no trained model, so it runs anywhere, and a fitted impact coefficient
 can be supplied per segment once the Meridian model is available.
 
-Objective form (convex blend, not a subtraction)
--------------------------------------------------
-The scalar this optimizer maximises is:
+Objective form
+--------------
+By default the optimizer maximises a CONVEX BLEND (``objective_mode='blend'``):
 
     objective = revenue_weight * clamp(revenue / revenue_scale, 0, 1)
               + (1 - revenue_weight) * clamp(aggregate_retention, 0, 1)
 
-Both terms are clamped into [0, 1], so the result is also in [0, 1]. This is a
-CONVEX BLEND of the two objectives, not "revenue minus retention cost." The
-per-group contribution returned by
+Both terms are clamped into [0, 1], so the result is too. This is not "revenue
+minus retention cost": the retention term is the audience-weighted RETENTION
+SHARE, not a monetary cost. The per-group contribution from
 :func:`~kairos.optimize._segment_math._group_objective_contribution` is the
-additive share of this same blend (revenue is a sum, retention is a
-tvr-weighted sum, both divided by the same global constants), so summing every
-group's contribution exactly reproduces the global convex-blend objective. Any
-description that calls the objective "revenue minus retention" is imprecise:
-the retention term is the audience-weighted RETENTION SHARE (a number in
-[0, 1]), not a monetary retention cost subtracted from revenue.
+additive share of this same blend, so summing every group reproduces the global
+objective. The opt-in ``objective_mode='revenue_net'`` instead maximises the
+shekel net (revenue minus the ad revenue foregone as breaks shed audience, priced
+at the same CPP; see :mod:`kairos.optimize.revenue_net`); it is never on a default
+path, so it moves no revenue unless a caller opts in.
 """
 
 from __future__ import annotations
@@ -84,6 +83,14 @@ from kairos.optimize._override_logic import (
 
 SECONDS_PER_HOUR = 3600.0
 
+# The two objectives the optimizer can maximise. ``blend`` is the default convex
+# blend that ships everywhere; ``revenue_net`` maximises the ILS net directly.
+# The net-revenue-per-segment primitive lives in kairos.optimize.revenue_net (the
+# monetization owner); it is imported lazily in net mode to avoid an import cycle.
+OBJECTIVE_BLEND = "blend"
+OBJECTIVE_REVENUE_NET = "revenue_net"
+_OBJECTIVE_MODES = (OBJECTIVE_BLEND, OBJECTIVE_REVENUE_NET)
+
 
 def optimize_breaks(
     segments: Iterable[ProgramSegment],
@@ -96,6 +103,7 @@ def optimize_breaks(
     placement_pins: Optional[Mapping[str, Sequence[PlacementPin]]] = None,
     demand_weights: Optional[Mapping[str, float]] = None,
     refine: bool = True,
+    objective_mode: str = OBJECTIVE_BLEND,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -104,61 +112,54 @@ def optimize_breaks(
         revenue_weight * clamp(revenue / revenue_scale, 0, 1)
         + (1 - revenue_weight) * clamp(aggregate_retention, 0, 1)
 
-    Both terms live in [0, 1]. ``revenue_weight`` in [0, 1] sets the balance:
-    1.0 chases revenue only and fills every segment up to the guardrails, 0.0
-    protects retention only and places no breaks. ``revenue_scale`` normalises
-    revenue so it is comparable to retention; when omitted it defaults to the
-    revenue of loading every segment to ``max_breaks`` (the marketing-maximal
-    reference), floored above zero.
+    Both terms live in [0, 1]. ``revenue_weight`` in [0, 1] sets the balance: 1.0
+    chases revenue only (fills to the guardrails), 0.0 protects retention only
+    (places no breaks). ``revenue_scale`` normalises revenue to be comparable to
+    retention; omitted, it defaults to the revenue of loading every segment to
+    ``max_breaks`` (the marketing-maximal reference), floored above zero.
 
     ``overrides`` is an optional :class:`~kairos.optimize.overrides.OverrideSet`
-    of operator overrides honored as HARD constraints at the level the engine
-    genuinely supports (break COUNTS per segment): a pinned segment is fixed at
-    its count, a forced segment is floored at its minimum, a forbidden segment is
-    held at 0, and a gold segment emits is_gold placements. An override that would
-    breach a hard guardrail (for example a force above ``max_breaks`` or a pin
-    that breaks spacing) is kept OUT of the plan and reported in
+    honored as HARD constraints at the level the engine supports (break COUNTS per
+    segment): pinned fixes the count, forced floors it at a minimum, forbidden
+    holds it at 0, gold emits is_gold placements. An override that would breach a
+    hard guardrail is kept OUT of the plan and reported in
     ``result.rejected_overrides`` with a reason, never silently applied.
 
-    ``risk_lambda`` in [0, 1] is the uncertainty preference applied to each
-    segment's retention cost when the impact model gave that cost a credible
-    interval: 0.0 (the default) decides with the point estimate and changes
-    nothing, 1.0 decides with the worst plausible cost in the interval, and
-    values in between apply a partial variance penalty (see
-    :func:`~kairos.optimize.objective.conservative_impact`). A segment with
-    only a point coefficient is unaffected at any ``risk_lambda``.
+    ``risk_lambda`` in [0, 1] is the uncertainty preference on each segment's
+    retention cost when the impact model gave it a credible interval: 0.0 (the
+    default) decides with the point estimate and changes nothing, 1.0 with the
+    worst plausible cost, values between apply a partial variance penalty (see
+    :func:`~kairos.optimize.objective.conservative_impact`). A point-only segment
+    is unaffected.
 
     ``placement_pins`` maps a segment id to an explicit list of
     :class:`PlacementPin` (absolute offset-from-start, per-break duration, gold
-    flag). A pinned segment is fixed at exactly those breaks: its count is forced
-    to ``len(pins)`` and every tier emits the breaks at the pinned positions and
-    durations, with revenue summed over the per-break durations. Pins are
-    validated first (in-bounds and non-overlapping, then the spacing / load
-    guardrails on the pinned geometry); a segment whose pins are invalid or breach
-    a guardrail is dropped to 0 breaks and reported in
-    ``result.rejected_overrides`` with ``kind="placement"``, never silently bent.
+    flag). A pinned segment is fixed at exactly those breaks (count forced to
+    ``len(pins)``, revenue summed over the per-break durations). Pins are validated
+    first (in-bounds, non-overlapping, then spacing / load on the pinned geometry);
+    a segment whose pins are invalid or breach a guardrail is dropped to 0 breaks
+    and reported in ``result.rejected_overrides`` (``kind="placement"``), not bent.
 
     ``demand_weights`` is an optional mapping from segment id to a placement-
-    preference weight >= 1.0. When supplied, the greedy ranking step multiplies
-    each segment's apparent objective gain by its weight before comparing
-    segments, so a higher-demand segment is preferred when two segments have
-    similar gains. This biases WHERE breaks go without changing reported revenue:
-    weights touch only the ranking comparison, never ``total_revenue`` or any
-    ``SegmentPlan`` revenue field. A missing or 1.0 weight leaves a segment's
-    ranking unchanged. Omitting the argument entirely (``None``) gives
-    byte-identical output to today's optimizer. Produced by
+    preference weight >= 1.0 that scales a segment's apparent gain in the greedy
+    ranking step only, biasing WHERE breaks go without touching reported revenue
+    (never ``total_revenue`` or any ``SegmentPlan`` revenue field). A missing or
+    1.0 weight, or ``None``, is byte-identical to today's optimizer. Produced by
     :meth:`~kairos.optimize.advertiser_rules.AdvertiserRuleEngine.segment_demand`.
 
+    ``objective_mode`` is ``'blend'`` (the default, byte-identical to before) or
+    ``'revenue_net'``, whose greedy step values each break by its marginal net
+    revenue in ILS and adds it only while that net is positive and the schedule
+    stays compliant. Net mode requires a real rating and rate on at least one
+    segment (else it raises, never a degenerate plan) and ships pure greedy (the
+    blend refiner optimises the blend, so it runs only in blend mode).
+
     ``refine`` (default ``True``) runs the per-channel-day F1 refiner
-    (:mod:`kairos.optimize.refiner`) after greedy converges: greedy is the
-    warm-start and decision trace, then each channel-day's break counts are
-    refined (exact for tiny groups, guardrail-aware local search for real ones)
-    and adopted only where they STRICTLY beat greedy, recovering the revenue
-    greedy leaves on the table because re-spacing makes feasibility non-monotone
-    in break count. The refiner respects every guardrail and override greedy
-    respects and never regresses a group, so the result is always at least as
-    good as pure greedy. Set ``refine=False`` for pure-greedy output (A/B
-    comparison, or the fast tests that assume the greedy allocation).
+    (:mod:`kairos.optimize.refiner`) after greedy converges, from the greedy
+    warm-start: it climbs each channel-day (exact for tiny groups, guardrail-aware
+    local search for real ones) and adopts refined counts only where they STRICTLY
+    beat greedy, so the result is always at least as good as pure greedy and never
+    regresses a group. Set ``refine=False`` for pure-greedy output (A/B, fast tests).
 
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
@@ -169,6 +170,9 @@ def optimize_breaks(
         raise ValueError("revenue_weight must be in [0, 1]")
     if not 0.0 <= risk_lambda <= 1.0:
         raise ValueError("risk_lambda must be in [0, 1]")
+    if objective_mode not in _OBJECTIVE_MODES:
+        raise ValueError(f"objective_mode must be one of {_OBJECTIVE_MODES}")
+    net_mode = objective_mode == OBJECTIVE_REVENUE_NET
 
     # Sort by id so the search is deterministic regardless of input order.
     originals = sorted(segments, key=lambda s: s.segment_id)
@@ -178,10 +182,17 @@ def optimize_breaks(
     if len(original_by_id) != len(originals):
         raise ValueError("segment_id values must be unique")
 
-    # Decide against the risk-adjusted coefficient: a more conservative (more
-    # negative) retention cost where the estimate is uncertain, the point estimate
-    # otherwise. The originals are kept so the plan can still report the point,
-    # the interval and the confidence behind each segment's decision.
+    # Net mode monetizes lost audience: refuse when nothing has a rating and rate to
+    # value (honest raise), and bind the primitive once (import here breaks a cycle).
+    _net_of = None
+    if net_mode:
+        from kairos.optimize.revenue_net import require_monetizable, segment_net_revenue
+
+        require_monetizable(originals)
+        _net_of = segment_net_revenue
+
+    # Decide against the risk-adjusted coefficient (more conservative where the
+    # estimate is uncertain, else the point); originals kept for reporting.
     segs = [replace(s, impact_coefficient=_risk_adjusted_coefficient(s, risk_lambda)) for s in originals]
     by_id = {s.segment_id: s for s in segs}
 
@@ -237,24 +248,26 @@ def optimize_breaks(
             if k >= caps[segment.segment_id]:
                 continue
             marginal_rev = _marginal_revenue(segment, k + 1, placements.get(segment.segment_id))
-            delta_retention = segment.baseline_tvr * (
-                _segment_retention(segment, k + 1) - _segment_retention(segment, k)
-            )
-            candidate_revenue = total_revenue + marginal_rev
-            candidate_retention = (
-                (retention_weighted + delta_retention) / total_tvr
-                if total_tvr > _EPSILON else 1.0
-            )
-            gain = objective_of(candidate_revenue, candidate_retention) - base_objective
-            # Demand weight scales the apparent gain used for ranking only. It
-            # steers which segment gets the next break (placement bias) without
-            # touching candidate_revenue or total_revenue, so reported revenue is
-            # always real. A weight of 1.0 (or None) leaves ranking unchanged; a
-            # weight above 1.0 boosts a segment, below 1.0 de-prioritizes it
-            # (over-delivered campaign). The bias is applied only to a positive
-            # gain: a non-positive gain never wins the greedy step anyway (best_gain
-            # starts at _EPSILON > 0), so gating on gain > 0 keeps the sign safe and
-            # lets a sub-1.0 weight genuinely lower a candidate's rank.
+            if net_mode:
+                # Value the break by its marginal net revenue in ILS: the extra
+                # revenue it earns minus the extra retention cost it incurs (the ad
+                # revenue foregone as it sheds audience, priced at the same CPP).
+                gain = _net_of(segment, k + 1) - _net_of(segment, k)
+            else:
+                delta_retention = segment.baseline_tvr * (
+                    _segment_retention(segment, k + 1) - _segment_retention(segment, k)
+                )
+                candidate_revenue = total_revenue + marginal_rev
+                candidate_retention = (
+                    (retention_weighted + delta_retention) / total_tvr
+                    if total_tvr > _EPSILON else 1.0
+                )
+                gain = objective_of(candidate_revenue, candidate_retention) - base_objective
+            # Demand weight scales the apparent gain for RANKING only (placement
+            # bias), never touching reported revenue. A 1.0 weight or None leaves
+            # ranking unchanged. It is gated on gain > 0 so the sign stays safe (a
+            # non-positive gain never wins anyway) and a sub-1.0 weight can still
+            # genuinely lower a candidate's rank.
             if demand_weights is not None and gain > 0.0:
                 weight = demand_weights.get(segment.segment_id, 1.0)
                 gain = gain * (weight if weight > 0.0 else _EPSILON)
@@ -286,24 +299,21 @@ def optimize_breaks(
             retention_after=_segment_retention(segment, k + 1),
         ))
 
-    # Greedy gives a fast, compliant warm start, but because breaks are re-spaced
-    # at duration/(k+1) the feasible region is not monotone in break count, so
-    # greedy can stop short of a better compliant allocation it could only reach
-    # through an infeasible intermediate. The objective is separable across
-    # channel-days (groups share no guardrail: every check is scoped to one
-    # channel-day or finer), so the true optimum is the sum of each group's own
-    # optimum. The F1 refiner (kairos.optimize.refiner) climbs each group from the
-    # greedy warm start (exact for tiny groups, guardrail-aware local search for
-    # real ones); adopt the refined counts wherever they STRICTLY beat greedy, and
-    # rebuild that group's decision trace so the explanation matches the shipped
-    # plan. A group greedy already optimised keeps its greedy result. Skipped
-    # entirely when refine is False, giving pure-greedy output for A/B and tests.
+    # Greedy is a fast compliant warm start, but re-spacing at duration/(k+1) makes
+    # feasibility non-monotone in break count, so greedy can stop short of a better
+    # compliant allocation. The blend objective is separable across channel-days
+    # (groups share no guardrail), so the optimum is the sum of each group's own.
+    # The F1 refiner climbs each group from the warm start and its counts are
+    # adopted only where they STRICTLY beat greedy, rebuilding that group's decision
+    # trace to match. Skipped when refine is False (pure-greedy output for A/B/tests).
     decisions_by_group: dict[tuple[str, str], list[Decision]] = defaultdict(list)
     for decision in decisions:
         seg = by_id[decision.segment_id]
         decisions_by_group[(seg.channel, seg.day)].append(decision)
 
-    if refine:
+    # The refiner climbs the convex-blend contribution, so it is only correct in
+    # blend mode; net mode ships the pure-greedy net-ILS allocation above.
+    if refine and not net_mode:
         # Imported here (not at module top) so refiner can import this module's
         # primitives without a circular import at load time.
         from kairos.optimize.refiner import optimize_group, replay_group_decisions
@@ -338,9 +348,9 @@ def optimize_breaks(
                 placements=placements,
             )
 
-    # Roll the (possibly corrected) per-segment counts back up into the totals the
-    # result reports. ``retention_weighted`` is a free variable of the
-    # ``aggregate_retention`` closure, so re-binding it here updates that result too.
+    # Roll the (possibly corrected) counts back up into the reported totals;
+    # ``retention_weighted`` is closed over by ``aggregate_retention``, so re-binding
+    # it here updates that too.
     total_revenue = sum(
         _segment_revenue(by_id[sid], k, placements.get(sid)) for sid, k in state.items()
     )
@@ -400,8 +410,7 @@ def _build_result(
                 is_gold=brk.is_gold,
             ))
         flat_placements.extend(segment_placements)
-        # ``segment`` carries the risk-adjusted coefficient the decision used; the
-        # original carries the point estimate and the interval behind it.
+        # ``original`` holds the point estimate and interval; ``segment`` the used value.
         original = original_by_id.get(segment.segment_id, segment)
         segment_plans.append(SegmentPlan(
             segment_id=segment.segment_id,

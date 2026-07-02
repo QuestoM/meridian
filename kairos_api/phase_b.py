@@ -69,13 +69,21 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
 
     ``predicted_revenue`` and ``total_break_time`` (ad-seconds) are the optimizer's
     own saved outputs. Yield is ``revenue / ad_seconds`` for groups that actually
-    carry ad time. Revenue-net-of-retention is intentionally omitted at the row
-    level because the saved weekly CSV does not persist a per-row retention-cost
-    column; it is surfaced as ``revenue_net_available: false`` so the UI does not
-    imply a number that is not on disk.
+    carry ad time. Revenue-net-of-retention (revenue minus the ad revenue foregone
+    as breaks shed audience, in ILS) is computed by
+    :func:`kairos.optimize.revenue_net.frame_revenue_net` and surfaced ONLY when it
+    is honestly exact: that needs the per-segment ``baseline_tvr`` on the row, since
+    the saved ``retention_used`` is the final share, not the per-break audience, and
+    recovering the audience from it alone overstates the cost materially. When
+    ``baseline_tvr`` is absent (the current CSV schema) the payload stays
+    ``revenue_net_available: false`` with the exact missing input and a basis
+    disclosure, never a fabricated or biased figure.
     """
     if schedule.empty:
         return {"available": False, "reason": "No saved weekly schedule on disk.", "by_daypart": [], "by_programme": []}
+
+    # Imported here (not at module load) so phase_b keeps its engine imports lazy.
+    from kairos.optimize.revenue_net import frame_revenue_net
 
     frame = schedule.copy()
     revenue = pd.to_numeric(
@@ -91,7 +99,7 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
     retention = (
         pd.to_numeric(frame["retention_used"], errors="coerce")
         if "retention_used" in frame.columns
-        else pd.Series(pd.NA, index=frame.index, dtype="float64")
+        else pd.Series(float("nan"), index=frame.index, dtype="float64")
     )
     frame = frame.assign(_revenue=revenue, _ad_seconds=ad_seconds, _retention=retention)
     frame = frame[frame["_ad_seconds"] > 0]
@@ -134,10 +142,27 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
     by_programme = _aggregate("program_type", "Other")
     total_seconds = float(frame["_ad_seconds"].sum())
     total_revenue = float(frame["_revenue"].sum())
+
+    # Revenue net of retention damage (ILS), from the saved schedule. Available
+    # only when the row carries baseline_tvr, so the cost is exact (gross potential
+    # minus delivered revenue); otherwise honest-false with the exact missing input
+    # and a basis disclosure. Computed on the whole saved frame, independent of the
+    # yield ad-seconds filter above.
+    money = frame_revenue_net(schedule)
+    net_block: dict[str, Any] = {
+        "revenue_net_available": bool(money.get("available")),
+        "basis": money.get("basis"),
+    }
+    if money.get("available"):
+        net_block["revenue_net_ils"] = money.get("revenue_net_ils")
+        net_block["retention_cost_ils"] = money.get("retention_cost_ils")
+        net_block["revenue_ils"] = money.get("revenue_ils")
+    else:
+        net_block["revenue_net_reason"] = money.get("reason")
+
     return {
         "available": True,
-        "revenue_net_available": False,
-        "revenue_net_reason": "Saved weekly schedule does not persist a per-row retention-cost column.",
+        **net_block,
         "currency": _server()._load_settings().currency,
         "totals": {
             "revenue": round(total_revenue, 2),

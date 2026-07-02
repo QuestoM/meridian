@@ -48,6 +48,7 @@ def _optimize_one_day(
     placement_pins: Optional[Mapping[str, Any]] = None,
     operator_channel: str = "",
     refine: bool = True,
+    objective_mode: str = "blend",
     optimize_fn: Callable[..., OptimizationResult] = optimize_breaks,
 ) -> OptimizationResult:
     """Fold demand, resolve constraints and place breaks for one channel-day.
@@ -73,6 +74,11 @@ def _optimize_one_day(
     bound in their own module so a test that patches the optimizer there still sees
     the call. ``refine`` is forwarded unchanged (the frontier's ``refine=False`` is a
     deliberate performance choice, not incoherence).
+
+    ``objective_mode`` is forwarded to the primitive: ``'blend'`` (the default,
+    every shipped path) keeps the convex-blend behaviour byte-identical, while
+    ``'revenue_net'`` maximises the ILS net directly. It is a keyword pass-through so
+    no default caller changes.
     """
     # Imported lazily so this core can be imported by kairos.service at module load
     # without the reverse import cycle (service imports _optimize_one_day at top).
@@ -99,4 +105,5 @@ def _optimize_one_day(
         placement_pins=merged_pins,
         demand_weights=demand_weights,
         refine=refine,
+        objective_mode=objective_mode,
     )
