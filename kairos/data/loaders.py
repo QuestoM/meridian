@@ -22,8 +22,56 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[2]
-REFERENCE_DIR = ROOT / "data" / "reference"
-DAILY_DIR = ROOT / "data" / "daily_input"
+DATA_DIR = ROOT / "data"
+REFERENCE_DIR = DATA_DIR / "reference"
+DAILY_DIR = DATA_DIR / "daily_input"
+
+# Uploaded-CSV fallback for each reference workbook. The upload center
+# (kairos_api.uploads) writes an operator-provided programmes/spots/dayparts
+# file as a flat CSV under data/ (data/Programmes.csv, data/Spots.csv,
+# data/Dayparts.csv). The engine reads the reference xlsx, so those uploads were
+# shadowed with no way to take effect. These loaders now resolve the xlsx FIRST
+# and fall back to the CSV only when the xlsx is absent, so the xlsx always wins
+# when both exist (present-day behaviour is unchanged) and an upload becomes the
+# live input the moment the reference workbook is removed. The CSV columns are a
+# superset of the xlsx (the enriched export adds computed columns); the parse
+# reads only the shared columns, so the fallback is value-compatible.
+REFERENCE_CSV_FALLBACK = {
+    "Programmes.xlsx": DATA_DIR / "Programmes.csv",
+    "Spots.xlsx": DATA_DIR / "Spots.csv",
+    "Dayparts.xlsx": DATA_DIR / "Dayparts.csv",
+}
+
+
+def _resolve_reference_path(default_xlsx: Path) -> Path:
+    """Return the reference workbook to read: the xlsx if present, else the CSV.
+
+    The xlsx wins whenever it exists, so a deployment that ships the reference
+    workbooks behaves exactly as before. Only when the xlsx is absent do we adopt
+    the uploaded CSV equivalent (where kairos_api.uploads stores it). If neither
+    exists we return the xlsx path unchanged, so the real FileNotFoundError still
+    surfaces honestly rather than being masked. An explicit caller-supplied path
+    is never rerouted here (this is only consulted for the default location).
+    """
+    if default_xlsx.exists():
+        return default_xlsx
+    fallback = REFERENCE_CSV_FALLBACK.get(default_xlsx.name)
+    if fallback is not None and fallback.exists():
+        return fallback
+    return default_xlsx
+
+
+def _read_reference_table(path_str: str) -> pd.DataFrame:
+    """Read a reference table as a DataFrame, dispatching on the file suffix.
+
+    An ``.xlsx``/``.xls`` path is read with :func:`pandas.read_excel` exactly as
+    before; a ``.csv`` fallback is read with ``utf-8-sig`` so the enriched
+    export's BOM is stripped and the header matches the workbook's. Any other
+    suffix is treated as Excel, preserving the prior default.
+    """
+    if path_str.lower().endswith(".csv"):
+        return pd.read_csv(path_str, encoding="utf-8-sig")
+    return pd.read_excel(path_str)
 
 # The four channels present in the reference data.
 CHANNELS = ("קשת 12", "רשת 13", "כאן 11", "עכשיו 14")
@@ -98,7 +146,7 @@ def _load_programmes_parsed(path_str: str, mtime_ns: int, size: int) -> pd.DataF
     the channel picker, and the dashboard all load it repeatedly, so cache the
     parse and let callers copy it."""
     del mtime_ns, size
-    frame = _drop_index_column(pd.read_excel(path_str))
+    frame = _drop_index_column(_read_reference_table(path_str))
     frame["start_dt"] = _combine_datetime(frame["Date"], frame["Start time"], dayfirst=True)
     frame["end_dt"] = _combine_datetime(frame["Date"], frame["End time"], dayfirst=True)
     # Programmes that cross midnight have end < start; push end to the next day.
@@ -117,7 +165,7 @@ def load_programmes(path: str | Path | None = None) -> pd.DataFrame:
     callers stay free to mutate their copy. A missing file falls through to the
     uncached parse so the real FileNotFoundError surfaces honestly.
     """
-    path = Path(path) if path else REFERENCE_DIR / "Programmes.xlsx"
+    path = Path(path) if path else _resolve_reference_path(REFERENCE_DIR / "Programmes.xlsx")
     try:
         stat = path.stat()
     except OSError:
@@ -131,7 +179,7 @@ def _load_spots_parsed(path_str: str, mtime_ns: int, size: int) -> pd.DataFrame:
     the date-combination is tens of seconds; the dashboard inventory, campaigns,
     and overview builders each load it, so cache the parse and let callers copy."""
     del mtime_ns, size
-    frame = _drop_index_column(pd.read_excel(path_str))
+    frame = _drop_index_column(_read_reference_table(path_str))
     frame["air_dt"] = _combine_datetime(frame["Date"], frame["Start time"], dayfirst=True)
     for column in ("Duration", "Pos. Block 1", "Spots Block 1", "TVR"):
         if column in frame.columns:
@@ -146,7 +194,7 @@ def load_spots(path: str | Path | None = None) -> pd.DataFrame:
     returned so callers may mutate freely. A missing file falls through to the
     uncached parse so the real FileNotFoundError surfaces honestly.
     """
-    path = Path(path) if path else REFERENCE_DIR / "Spots.xlsx"
+    path = Path(path) if path else _resolve_reference_path(REFERENCE_DIR / "Spots.xlsx")
     try:
         stat = path.stat()
     except OSError:
@@ -159,8 +207,8 @@ def load_dayparts(path: str | Path | None = None) -> pd.DataFrame:
 
     Returns columns: date, timeband, channel, tvr (one row per channel-minute).
     """
-    path = Path(path) if path else REFERENCE_DIR / "Dayparts.xlsx"
-    frame = _drop_index_column(pd.read_excel(path))
+    path = Path(path) if path else _resolve_reference_path(REFERENCE_DIR / "Dayparts.xlsx")
+    frame = _drop_index_column(_read_reference_table(str(path)))
     channel_columns = [c for c in CHANNELS if c in frame.columns]
     long = frame.melt(
         id_vars=["Dates", "Timebands"],

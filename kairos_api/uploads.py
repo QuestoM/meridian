@@ -28,16 +28,31 @@ BACKUP_DIR = DATA_DIR / "_backups"
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
 
-# The three channel-source kinds land as flat CSVs under data/, but the engine
-# loaders (kairos.data.loaders) read data/reference/*.xlsx FIRST with no CSV
-# fallback. When the reference xlsx exists, an uploaded CSV is stored and
-# backed up but SHADOWED: the optimizer never reads it. We map each shadowed
-# kind to the reference file that takes precedence so the status can say so
-# honestly instead of reporting a bare green "valid" that implies ingestion.
+# The three channel-source kinds land as flat CSVs under data/. The engine
+# loaders (kairos.data.loaders) read data/reference/*.xlsx FIRST and fall back to
+# the uploaded CSV only when that xlsx is absent. So while the reference xlsx
+# exists, an uploaded CSV is stored and backed up but SHADOWED: the optimizer
+# reads the xlsx, not the upload. We map each shadowed kind to the reference file
+# that takes precedence so the status can say so honestly instead of reporting a
+# bare green "valid" that implies ingestion. Remove the reference xlsx and the
+# upload becomes the live input (the loader adopts the CSV fallback).
 SHADOWING_REFERENCE: dict[str, Path] = {
     "programmes": REFERENCE_DIR / "Programmes.xlsx",
     "spots": REFERENCE_DIR / "Spots.xlsx",
     "dayparts": REFERENCE_DIR / "Dayparts.xlsx",
+}
+
+# Kinds that are stored on disk but which NO engine code reads. The rate card
+# uploads to data/rate_card_premiums.csv, yet the pricing engine
+# (kairos.optimize.pricing.PricingModel) reads its rate card from
+# config/optimization_weights.yaml, deep-merged with the dashboard's
+# pricing_overrides; nothing in the optimizer, forecast, or export path opens
+# data/rate_card_premiums.csv (the only other reference to it is a file-existence
+# count in the data-quality report). Reporting such a kind as in_use would imply
+# an ingestion that never happens, so it is reported in_use False with the real
+# reason. The mapped string names the file the engine actually consumes instead.
+STORED_UNREAD: dict[str, str] = {
+    "rate_card": "config/optimization_weights.yaml",
 }
 
 # Required columns per kind. These are the canonical headers the loaders and
@@ -128,32 +143,49 @@ def _read_header_and_rows(path: Path) -> tuple[list[str], int, list[str]]:
 
 
 def _in_use(kind: str) -> tuple[bool, str]:
-    """Whether the optimizer actually consumes an upload of this kind.
+    """Whether the engine actually consumes an upload of this kind.
 
-    Most kinds land exactly where their consumer reads (the daily Wally file in
-    daily_input/, advertiser rules and the rate card in the config CSVs), so an
-    upload genuinely takes effect: in_use is True with an empty reason.
+    The field is derived from the real read paths, never hardcoded optimism:
 
-    The three channel-source kinds (programmes/spots/dayparts) are the exception.
-    They are written to flat data/*.csv, but the engine loaders read
-    data/reference/*.xlsx first with no CSV fallback. While that reference xlsx
-    exists on disk it shadows the upload: the file is stored and validated but
-    the optimizer never reads it. We report in_use False with a reason the
-    dashboard can surface, so the upload status never implies an ingestion that
-    did not happen.
+      * Most kinds land exactly where their consumer reads (the daily Wally file
+        in daily_input/, the advertiser rules in data/advertiser_rules.csv), so an
+        upload genuinely takes effect: in_use is True with an empty reason.
+
+      * The three channel-source kinds (programmes/spots/dayparts) write to flat
+        data/*.csv, but the engine loaders read data/reference/*.xlsx first and
+        fall back to the CSV only when that xlsx is absent. While the reference
+        xlsx exists it shadows the upload: the file is stored and validated but
+        the optimizer reads the xlsx. We report in_use False with the reason so
+        the status never implies an ingestion that did not happen; remove the
+        xlsx and the same upload becomes live.
+
+      * A kind in STORED_UNREAD (the rate card) is saved on disk but read by NO
+        engine code: the pricing engine takes its rate card from a different file.
+        We report in_use False and name the file the engine really consumes.
     """
     reference = SHADOWING_REFERENCE.get(kind)
-    if reference is None:
+    if reference is not None:
+        if reference.exists():
+            relative = str(reference.relative_to(ROOT)).replace("\\", "/")
+            return (
+                False,
+                f"Stored but not used by the optimizer: the engine reads {relative} "
+                "first and adopts this upload only when that reference file is "
+                "absent, so it is currently shadowed. Remove the reference file to "
+                "make this upload the live optimizer input.",
+            )
+        # No reference file present: the loader now falls back to this upload.
         return True, ""
-    if reference.exists():
-        relative = str(reference.relative_to(ROOT)).replace("\\", "/")
+
+    consumed = STORED_UNREAD.get(kind)
+    if consumed is not None:
         return (
             False,
-            f"Stored but not used by the optimizer: the engine reads {relative} "
-            "first and no CSV fallback exists, so this upload is shadowed by the "
-            "reference file. Replace the reference file to change the optimizer input.",
+            f"Stored, not yet read by the pricing engine: the rate card is read "
+            f"from {consumed} (with the dashboard's pricing overrides), so this "
+            "file is saved and validated but the optimizer does not consume it.",
         )
-    # No reference file present: the upload is the only source, so it is live.
+
     return True, ""
 
 

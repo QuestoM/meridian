@@ -122,10 +122,9 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
                          via ``read_coefficients_metadata``), used as the
                          fingerprint value rather than a file hash, so the
                          schedule tracks the deltas it was actually built with.
-      * ``data``         the reference workbooks
-                         (``Spots/Programmes/Dayparts`` xlsx) combined into one
-                         sha256, the same files the coefficient guard
-                         fingerprints.
+      * ``data``         the three reference tables (``Spots/Programmes/Dayparts``)
+                         combined into one sha256, each hashed as the loaders
+                         resolve it: the xlsx, else the uploaded CSV fallback.
       * ``impact_model`` the fitted posterior pickle
                          (``DEFAULT_IMPACT_MODEL_PATH``) that scores every segment;
                          the ``coefficients`` group hashes the JSON delta version,
@@ -305,25 +304,30 @@ def _coefficients_fingerprint(root: Path) -> str:
 
 
 def _data_fingerprint(root: Path) -> str:
-    """Return one combined sha256 over the three reference workbooks.
+    """Return one combined sha256 over the three reference tables the engine reads.
 
-    Resolves the reference directory from the loaders constant (not a guess). The
-    per-file digests are concatenated in a fixed name order and re-hashed, so the
-    combined value changes if any workbook's bytes change. If a workbook is
-    missing the group is :data:`ABSENT`.
+    Mirrors the loaders' resolution: each table is hashed as its xlsx when
+    present, else the uploaded CSV fallback the loader adopts when the xlsx is
+    absent. With all three xlsx present (the shipped state) the entries equal
+    hashing the xlsx alone, so the value is unchanged; a table with neither file
+    makes the group :data:`ABSENT`. Paths come from the loaders constants.
     """
     import hashlib
 
     try:
-        from kairos.data.loaders import REFERENCE_DIR
+        from kairos.data.loaders import REFERENCE_CSV_FALLBACK, REFERENCE_DIR
 
         reference_dir = Path(REFERENCE_DIR)
+        fallback_map = {k: Path(v) for k, v in REFERENCE_CSV_FALLBACK.items()}
     except Exception:  # pragma: no cover - defensive
         reference_dir = root / "data" / "reference"
+        fallback_map = {f"{s}.xlsx": root / "data" / f"{s}.csv" for s in ("Programmes", "Spots", "Dayparts")}
 
     combined = hashlib.sha256()
     for name in ("Spots.xlsx", "Programmes.xlsx", "Dayparts.xlsx"):
-        digest = checksum_file(reference_dir / name)
+        digest = checksum_file(reference_dir / name) or checksum_file(
+            fallback_map.get(name, reference_dir / name)
+        )
         if digest is None:
             return ABSENT
         combined.update(f"{name}:{digest}\n".encode("utf-8"))
