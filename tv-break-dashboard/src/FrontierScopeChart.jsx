@@ -11,24 +11,25 @@ import {
   pageText,
 } from './surface-helpers';
 
-// FrontierScopeChart: the revenue-front-vs-retention panel, upgraded with
+// FrontierScopeChart: the revenue-vs-retention panel, upgraded with
 //  (a) a SCOPE selector (whole schedule vs the operator's owned channel) wired to
 //      GET /api/overview?scope=channel:<id>, with the active scope always shown as
 //      a breadcrumb label;
-//  (b) CLICKABLE Pareto points - selecting a point reveals its revenue_weight,
-//      projected revenue and average retention, plus an "apply this weight"
-//      affordance that saves it through the existing settings PUT path;
+//  (b) CLICKABLE Pareto points - selecting a point reveals its retention floor,
+//      projected revenue and average retention, plus an "apply this floor"
+//      affordance that saves the retention floor through the settings PUT path;
 //  (c) the auto-scaled axes (paddedDomain) already used elsewhere.
 //
-// Honest labelling: the axes are PROJECTED revenue vs AVERAGE retention of a
-// single representative-day estimate for the selected scope. This is NOT a
-// whole-schedule computation and NOT the saved weekly total shown as the
-// headline revenue elsewhere (that total is refined across all channels and
-// days). The backend now returns a `basis` disclosure object describing the
-// scope, channel and method behind these points; we surface basis.disclosure as
-// a caption below the chart, with a bilingual fallback when it is absent on
-// older responses. No revenue-net number is shown because the API does not
-// expose one for the frontier.
+// The curve sweeps the RETENTION FLOOR at the saved revenue weight, and each
+// point is a REFINED optimum. This is the genuine tradeoff: a revenue-weight
+// sweep collapses onto one point under the real optimizer (the weight barely
+// moves the plan once retention clears the floor), so the floor is the lever
+// that actually trades revenue for retention. The axes are PROJECTED revenue vs
+// AVERAGE retention of a single representative-day estimate for the selected
+// scope, NOT the saved weekly total shown as the headline revenue elsewhere. The
+// backend returns a `basis` disclosure object describing the scope, channel and
+// method; we surface basis.disclosure as a caption, with a bilingual fallback
+// when it is absent on older responses.
 
 const HEIGHT = 224;
 const PAD_X = 46;
@@ -55,8 +56,8 @@ export default function FrontierScopeChart({
   locale,
   loading = false,
   operatorChannel = '',
-  savedRevenueWeight = null,
-  onApplyWeight,
+  savedRetentionFloor = null,
+  onApplyFloor,
   applyState = 'idle',
   // Real backend field overview.frontier_status (the sibling FrontierPanel already
   // consumes the same value, where 'computing' means the optimizer sweep is still
@@ -152,7 +153,8 @@ export default function FrontierScopeChart({
         .map((point) => ({
           retention: finiteNumber(point.retention),
           revenue: finiteNumber(point.revenue),
-          weight: finiteNumber(point.revenue_weight),
+          floor: finiteNumber(point.retention_floor),
+          breaks: finiteNumber(point.num_breaks),
           selected: Boolean(point.selected),
         }))
         .filter((point) => point.retention !== null && point.revenue !== null),
@@ -201,10 +203,13 @@ export default function FrontierScopeChart({
 
   const safeSelected = selectedIndex !== null && points[selectedIndex] ? selectedIndex : null;
   const focusPoint = safeSelected !== null ? points[safeSelected] : savedPoint;
-  const isSavedWeightSelected =
-    focusPoint && savedRevenueWeight !== null && focusPoint.weight === Number(savedRevenueWeight);
+  const isSavedFloorSelected =
+    focusPoint &&
+    focusPoint.floor !== null &&
+    savedRetentionFloor !== null &&
+    Math.abs(focusPoint.floor - Number(savedRetentionFloor)) < 1e-6;
   const canApply =
-    focusPoint && focusPoint.weight !== null && !isSavedWeightSelected && typeof onApplyWeight === 'function';
+    focusPoint && focusPoint.floor !== null && !isSavedFloorSelected && typeof onApplyFloor === 'function';
 
   const activeScopeLabel = (() => {
     const match = scopeOptions.find((option) => option.value === scope);
@@ -308,7 +313,7 @@ export default function FrontierScopeChart({
                 </g>
               )}
               {points.map((point, index) => {
-                const weightLabel = point.weight !== null ? `${point.weight}` : '?';
+                const floorLabel = point.floor !== null ? `${Math.round(point.floor * 100)}%` : '?';
                 return (
                   <circle
                     key={`${point.retention}-${point.revenue}-${index}`}
@@ -322,7 +327,7 @@ export default function FrontierScopeChart({
                     r={safeSelected === index ? 7 : point.selected ? 6 : 4}
                     tabIndex={0}
                     role="button"
-                    aria-label={`${pageText(locale, 'Revenue weight', 'משקל הכנסה')} ${weightLabel}, ${formatCurrency(point.revenue, locale)}, ${formatPercent(point.retention, locale)}`}
+                    aria-label={`${pageText(locale, 'Retention floor', 'רף שימור')} ${floorLabel}, ${formatCurrency(point.revenue, locale)}, ${formatPercent(point.retention, locale)}`}
                     onClick={() => setSelectedIndex((current) => (current === index ? null : index))}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
@@ -357,8 +362,8 @@ export default function FrontierScopeChart({
             <div className="frontier-point-readout" dir={he ? 'rtl' : 'ltr'}>
               <div className="frontier-point-grid">
                 <div>
-                  <span>{pageText(locale, 'Revenue weight', 'משקל הכנסה')}</span>
-                  <strong className="numeric" dir="ltr">{focusPoint.weight !== null ? formatNumber(focusPoint.weight, locale) : '-'}</strong>
+                  <span>{pageText(locale, 'Retention floor', 'רף שימור')}</span>
+                  <strong className="numeric" dir="ltr">{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</strong>
                 </div>
                 <div>
                   <span>{pageText(locale, 'Projected revenue', 'הכנסה צפויה')}</span>
@@ -368,12 +373,16 @@ export default function FrontierScopeChart({
                   <span>{pageText(locale, 'Average retention', 'שימור ממוצע')}</span>
                   <strong className="numeric" dir="ltr">{formatPercent(focusPoint.retention, locale)}</strong>
                 </div>
+                <div>
+                  <span>{pageText(locale, 'Breaks', 'ברייקים')}</span>
+                  <strong className="numeric" dir="ltr">{focusPoint.breaks !== null ? formatNumber(focusPoint.breaks, locale) : '-'}</strong>
+                </div>
               </div>
               <div className="frontier-point-action">
-                {isSavedWeightSelected ? (
+                {isSavedFloorSelected ? (
                   <span className="frontier-point-saved">
                     <Check size={13} />
-                    {pageText(locale, 'Current saved weight', 'המשקל השמור הנוכחי')}
+                    {pageText(locale, 'Current saved floor', 'הרף השמור הנוכחי')}
                   </span>
                 ) : (
                   <Button
@@ -381,16 +390,16 @@ export default function FrontierScopeChart({
                     type="button"
                     variant="outlined"
                     disabled={!canApply || applyState === 'saving'}
-                    onClick={() => canApply && onApplyWeight(focusPoint.weight)}
+                    onClick={() => canApply && onApplyFloor(focusPoint.floor)}
                   >
                     {applyState === 'saving'
                       ? pageText(locale, 'Applying...', 'מחיל...')
-                      : pageText(locale, 'Apply this weight', 'החל תרחיש')}
+                      : pageText(locale, 'Apply this floor', 'החל רף זה')}
                   </Button>
                 )}
                 {safeSelected === null && (
                   <span className="frontier-point-hint">
-                    {pageText(locale, 'Click a point to inspect and apply its weight.', 'לחצו על נקודה כדי לבחון ולהחיל את המשקל שלה.')}
+                    {pageText(locale, 'Click a point to inspect and apply its retention floor.', 'לחצו על נקודה כדי לבחון ולהחיל את רף השימור שלה.')}
                   </span>
                 )}
               </div>

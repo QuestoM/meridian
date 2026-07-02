@@ -1454,15 +1454,16 @@ function TVBreakDashboard() {
     }
   }
 
-  async function handleApplyFrontierWeight(weight) {
-    const nextWeight = finiteNumber(weight);
-    if (nextWeight === null) return;
+  async function handleApplyFrontierFloor(floor) {
+    const nextFloor = finiteNumber(floor);
+    if (nextFloor === null) return;
     setApplyWeightState('saving');
     try {
-      await persistSettings({ ...settings, revenue_weight: Math.round(nextWeight) });
+      await persistSettings({ ...settings, min_retention_floor: nextFloor });
+      const pct = Math.round(nextFloor * 100);
       notify(
-        `Saved revenue weight set to ${Math.round(nextWeight)}.`,
-        `משקל ההכנסה השמור עודכן ל־${Math.round(nextWeight)}.`,
+        `Saved retention floor set to ${pct} percent.`,
+        `רף השימור השמור עודכן ל־${pct} אחוז.`,
       );
     } finally {
       setApplyWeightState('idle');
@@ -1572,8 +1573,8 @@ function TVBreakDashboard() {
           files={files}
           setActiveView={setActiveView}
           operatorChannel={settings.operator_channel || ''}
-          savedRevenueWeight={finiteNumber(settings.revenue_weight)}
-          onApplyFrontierWeight={handleApplyFrontierWeight}
+          savedRetentionFloor={finiteNumber(settings.min_retention_floor)}
+          onApplyFrontierFloor={handleApplyFrontierFloor}
           applyWeightState={applyWeightState}
         />
       );
@@ -2446,7 +2447,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRevenueWeight, onApplyFrontierWeight, applyWeightState }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -2510,8 +2511,8 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
           locale={locale}
           loading={loading}
           operatorChannel={operatorChannel}
-          savedRevenueWeight={savedRevenueWeight}
-          onApplyWeight={onApplyFrontierWeight}
+          savedRetentionFloor={savedRetentionFloor}
+          onApplyFloor={onApplyFrontierFloor}
           applyState={applyWeightState}
         />
       </div>

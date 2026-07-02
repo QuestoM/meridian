@@ -89,8 +89,19 @@ def test_yield_per_second_shape() -> None:
     assert isinstance(body["by_daypart"], list)
     assert isinstance(body["by_programme"], list)
     if body["available"]:
-        assert body["revenue_net_available"] is False
         assert "totals" in body and body["totals"]["ad_seconds"] > 0
+        # Revenue net of retention is now materialized: the saved CSV carries
+        # baseline_tvr, so the endpoint prices retention loss in ILS. When
+        # available it must carry the net, the cost and a basis disclosure, and
+        # the net must equal revenue minus the priced retention cost.
+        if body["revenue_net_available"]:
+            assert body["retention_cost_ils"] >= 0
+            assert body["basis"] and body["basis"].get("formula")
+            expected_net = round(body["revenue_ils"] - body["retention_cost_ils"], 2)
+            assert abs(body["revenue_net_ils"] - expected_net) < 1.0
+        else:
+            # Honest-unavailable path (an older CSV without baseline_tvr).
+            assert "revenue_net_reason" in body
         for row in body["by_programme"]:
             assert {"group", "revenue", "ad_seconds", "yield_per_second"} <= set(row)
             # Yield is a real ratio: revenue / ad_seconds, both non-negative.

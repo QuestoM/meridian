@@ -884,39 +884,45 @@ def _frontier_points_cached(
     signature: tuple[tuple[str, int], ...],
     channel: str,
     day: str | None,
-    retention_floor: float,
+    saved_floor: float,
     max_breaks_per_hour: int,
     risk_lambda: float,
-    saved_weight: int,
+    revenue_weight: int,
 ) -> tuple[dict[str, Any], ...]:
-    """Trace the greedy revenue-vs-retention frontier for one owned-channel scope.
+    """Trace the genuine revenue-vs-retention Pareto frontier for one owned scope.
 
-    Cached on the data-file ``signature`` plus the guardrail inputs, so a
-    whole-channel sweep (one optimization per revenue weight, across all of the
-    channel's broadcast days) runs once and is reused across requests. The sweep
-    uses the pure-greedy optimum (``refine=False``) so it stays interactive on a
-    multi-day scope where the F1 local-search refiner would be too slow: greedy
-    is the same real optimizer, just without the per-group local-search polish,
-    and it still produces a monotone curve with distinct points per weight.
+    The frontier sweeps the RETENTION FLOOR at the saved revenue weight, and each
+    point is the REFINED optimum (``refine=True``), not a greedy approximation.
+    This is a deliberate correctness choice backed by measurement: at a fixed
+    floor the refined optimum is nearly invariant to the revenue weight above a
+    low threshold (once retention already clears the floor, the weight barely
+    moves the plan), so a revenue-weight sweep collapses onto a single point, and
+    any spread it appears to show is an artifact of the weaker greedy optimizer
+    leaving a different amount of revenue on the table at each weight. The
+    retention floor is the binding lever: tightening it sheds the lowest-value
+    breaks, trading revenue for retention, which is the real tradeoff the
+    operator is choosing between. Cached on the data-file ``signature`` plus the
+    guardrail inputs so the sweep runs once and is reused across requests.
     """
     del signature  # part of the cache key only
-    weights = sorted({0, 20, 40, 60, 80, 100, saved_weight})
+    anchor = round(float(saved_floor), 4)
+    floors = sorted({0.72, 0.80, 0.85, 0.90, 0.93, 0.97, anchor})
     pacing = _pacing_call_kwargs()
     points: list[dict[str, Any]] = []
-    for weight in weights:
+    for floor in floors:
         try:
             payload = run_scenario(
-                revenue_weight=weight,
-                retention_floor=retention_floor,
+                revenue_weight=revenue_weight,
+                retention_floor=floor,
                 max_breaks_per_hour=max_breaks_per_hour,
                 risk_lambda=risk_lambda,
                 channel=channel,
                 day=day,
-                refine=False,
+                refine=True,
                 **pacing,
             )
         except Exception:
-            logger.exception("frontier scenario failed at revenue_weight=%s", weight)
+            logger.exception("frontier scenario failed at retention_floor=%s", floor)
             continue
         summary = payload.get("summary", {})
         retention = summary.get("average_retention")
@@ -927,8 +933,9 @@ def _frontier_points_cached(
             {
                 "retention": round(_safe_number(retention), 1),
                 "revenue": round(_safe_number(revenue), 2),
-                "revenue_weight": weight,
-                "selected": weight == saved_weight,
+                "retention_floor": round(float(floor), 4),
+                "num_breaks": int(_safe_number(summary.get("total_breaks", 0))),
+                "selected": abs(float(floor) - anchor) < 1e-9,
             }
         )
     points.sort(key=lambda point: point["retention"])
@@ -941,11 +948,12 @@ def _owned_representative_day(signature: tuple[tuple[str, int], ...], owned: str
 
     The frontier is traced on this single representative day, not across every
     broadcast day of the channel. A real owned channel spans dozens of broadcast
-    days and each day is a full optimization per revenue weight, so a whole-channel
-    sweep is many minutes of compute; one full day is interactive. The busiest day
-    gives the richest, most distinct curve (a thin day collapses the Pareto points
-    on top of each other). Ties break to the latest date for a deterministic,
-    recent forecast. Returns ``None`` when the channel has no dated programmes.
+    days and each day is a full refined optimization per retention-floor step, so a
+    whole-channel sweep is many minutes of compute; one full day is interactive.
+    The busiest day gives the richest, most distinct curve (a thin day collapses
+    the Pareto points on top of each other). Ties break to the latest date for a
+    deterministic, recent forecast. Returns ``None`` when the channel has no dated
+    programmes.
     """
     del signature  # cache key only
     try:
@@ -2020,17 +2028,18 @@ def overview(
     body["frontier"] = points
     body["frontier_status"] = status
     # Honest disclosure of what the frontier curve actually measures. Each point is
-    # a single representative-day greedy run (run_scenario refine=False) on the
-    # owned channel, not the whole-week refined plan behind the projected_revenue
-    # headline it sits next to. Surfaced as structured metadata so the dashboard can
-    # label the curve and the operator never reads a one-day estimate as the saved
-    # weekly total.
+    # a single representative-day REFINED optimum (run_scenario refine=True) on the
+    # owned channel, swept across the retention floor at the saved revenue weight,
+    # not the whole-week plan behind the projected_revenue headline it sits next to.
+    # Surfaced as structured metadata so the dashboard can label the curve and the
+    # operator never reads a one-day estimate as the saved weekly total.
     owned_channel = str(overview_settings.operator_channel or "").strip()
     body["frontier_basis"] = {
         "scope": "representative_day",
         "channel": owned_channel or None,
-        "method": "greedy",
-        "disclosure": "This frontier is a single representative-day greedy estimate for the owned channel, not the saved weekly plan total.",
+        "method": "refined_floor_sweep",
+        "swept": "retention_floor",
+        "disclosure": "This frontier sweeps the retention floor at your saved revenue weight, each point a refined single representative-day optimum for the owned channel, not the saved weekly plan total.",
     }
     # Schedule freshness: is the saved schedule the dashboard renders still in
     # step with its inputs? Computed FRESH here (never inside _overview_cached),
