@@ -954,15 +954,48 @@ async function fetchJson(path, fallback) {
   }
 }
 
+// Backend segment overrides accept the kinds pin | force | forbid | gold. The
+// recommendation payload speaks a slightly richer intent vocabulary, so map its
+// proposed_kind onto the override kind the store expects: a "lower_count" intent
+// resolves to a forced break count (force), everything else passes through.
+function mapProposedKind(proposedKind) {
+  const value = String(proposedKind || '').trim();
+  if (value === 'lower_count') return 'force';
+  if (value === 'gold' || value === 'pin' || value === 'forbid' || value === 'force') return value;
+  return '';
+}
+
+// Posts a break decision. Returns { ok, status, error, decision }. A 404 means an
+// older backend without the decision route, which is treated as ok so the annotation
+// only decision log keeps working; a real error surfaces its status honestly.
 async function postBreakDecision(payload) {
   try {
-    await fetch(`${API_BASE}/api/break-decisions`, {
+    const response = await fetch(`${API_BASE}/api/break-decisions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-  } catch {
-    // The UI keeps the local decision state when the API is offline.
+    if (response.status === 404) return { ok: true, status: 404, error: null, decision: null };
+    if (!response.ok) {
+      let detail = `${response.status} ${response.statusText}`;
+      try {
+        const body = await response.json();
+        if (body && body.detail) detail = String(body.detail);
+      } catch {
+        // Non-JSON error body: keep the status line as the honest message.
+      }
+      return { ok: false, status: response.status, error: detail, decision: null };
+    }
+    let decision = null;
+    try {
+      decision = await response.json();
+    } catch {
+      decision = null;
+    }
+    return { ok: true, status: response.status, error: null, decision };
+  } catch (error) {
+    // Network unreachable: the UI keeps its local decision state offline.
+    return { ok: true, status: 0, error: error.message, decision: null, offline: true };
   }
 }
 
@@ -1081,6 +1114,7 @@ function TVBreakDashboard() {
   const [optimizationState, setOptimizationState] = useState('idle');
   const [optimizationPlan, setOptimizationPlan] = useState(null);
   const [actionMessage, setActionMessage] = useState('');
+  const [overridePrefill, setOverridePrefill] = useState(null);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [recomputeProgress, setRecomputeProgress] = useState(null);
   const toastTimer = useRef(null);
@@ -1184,42 +1218,127 @@ function TVBreakDashboard() {
     overview.recommendations?.find((rec) => rec.id === activeRecommendation) ||
     overview.recommendations?.[0];
 
-  function toggleApproval(id) {
-    setApproved((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function markApprovedLocal(id) {
+    setApproved((current) => new Set(current).add(id));
     setRejected((current) => {
       const next = new Set(current);
       next.delete(id);
       return next;
     });
-    postBreakDecision({
+  }
+
+  // Send an actionable recommendation to the Overrides workspace with a prefill so
+  // the operator sets the exact break count against the live segment state and the
+  // projected-delta preview, instead of the model guessing a target it cannot know.
+  function openRecommendationInOverrides(rec) {
+    if (!rec?.segment_id) return;
+    setOverridePrefill({
+      segment_id: rec.segment_id,
+      kind: mapProposedKind(rec.proposed_kind) || 'pin',
+      anchor: rec.anchor || null,
+      rec_id: rec.id || '',
+    });
+    setActiveView('Overrides');
+  }
+
+  async function approveRecommendation(id) {
+    const rec = normalizeRows(overview.recommendations).find((item) => item.id === id) || (activeRec?.id === id ? activeRec : null);
+    const kind = rec && rec.actionable ? mapProposedKind(rec.proposed_kind) : '';
+    const anchor = rec?.anchor || {};
+
+    // A forced break count needs a target the recommendation does not carry, so route
+    // it to Overrides where the live segment state and preview are available rather
+    // than committing a silent no-op. Everything else creates a real override inline.
+    if (rec && rec.actionable && rec.segment_id && kind === 'force') {
+      openRecommendationInOverrides(rec);
+      notify('Set the break count in overrides, where the live segment and preview are available.',
+        'קבעו את מספר הברייקים בעקיפות, שם זמינים המשבצת החיה והתצוגה המקדימה.');
+      return;
+    }
+
+    if (rec && rec.actionable && rec.segment_id && kind) {
+      const payload = {
+        action: 'approve',
+        recommendation_id: id,
+        break_id: selectedProgram?.selected_break?.id,
+        program_type: rec.program_type || selectedProgram?.program_type,
+        scenario,
+        target_id: rec.segment_id,
+        kind,
+        anchor_date: anchor.date,
+        anchor_start: anchor.start_clock,
+        anchor_title: anchor.program,
+      };
+      if (kind === 'gold') payload.gold = true;
+      const result = await postBreakDecision(payload);
+      if (result.status === 404) {
+        // Older backend without the anchored decision route: keep the honest log-only
+        // behavior so approvals still register on the command surface.
+        markApprovedLocal(id);
+        notify('Approval recorded in the decision log.', 'האישור נרשם ביומן ההחלטות.');
+        return;
+      }
+      if (!result.ok) {
+        notify(`Approval failed (${result.error}).`, `האישור נכשל (${result.error}).`);
+        return;
+      }
+      markApprovedLocal(id);
+      setRefreshKey((current) => current + 1);
+      notify('Override created from this recommendation. The schedule is now marked stale; recompute when ready.',
+        'נוצרה עקיפה מההמלצה הזו. לוח השידורים מסומן כעת כלא מעודכן; הריצו חישוב מחדש כשתרצו.');
+      return;
+    }
+
+    // Non-actionable recommendation: annotate the decision log only, no override.
+    markApprovedLocal(id);
+    await postBreakDecision({
       action: 'approve',
       recommendation_id: id,
       break_id: selectedProgram?.selected_break?.id,
-      program_type: selectedProgram?.program_type || activeRec?.program_type,
+      program_type: selectedProgram?.program_type || rec?.program_type,
       scenario,
     });
     notify('Approval recorded in the decision log.', 'האישור נרשם ביומן ההחלטות.');
   }
 
-  function rejectRecommendation(id) {
+  function markRejectedLocal(id) {
     setRejected((current) => new Set(current).add(id));
     setApproved((current) => {
       const next = new Set(current);
       next.delete(id);
       return next;
     });
-    postBreakDecision({
+  }
+
+  async function rejectRecommendation(id) {
+    const rec = normalizeRows(overview.recommendations).find((item) => item.id === id) || (activeRec?.id === id ? activeRec : null);
+    const anchor = rec?.anchor || {};
+    const actionable = Boolean(rec && rec.actionable && rec.segment_id);
+    const payload = {
       action: 'reject',
       recommendation_id: id,
       break_id: selectedProgram?.selected_break?.id,
-      program_type: selectedProgram?.program_type || activeRec?.program_type,
+      program_type: rec?.program_type || selectedProgram?.program_type,
       scenario,
-    });
+    };
+    if (actionable) {
+      // A rejection is a dismissed, anchored record. Kind is left for the backend to
+      // default (forbid), since rejecting means "do not do this", not dismissing the
+      // rec's specific proposed kind.
+      payload.target_id = rec.segment_id;
+      payload.anchor_date = anchor.date;
+      payload.anchor_start = anchor.start_clock;
+      payload.anchor_title = anchor.program;
+    }
+    const result = await postBreakDecision(payload);
+    // Only an actionable rejection can create an anchored record, so only it surfaces a
+    // real server error and stays unmarked on failure. A non-actionable rejection is a
+    // decision-log annotation, and a 400 (no target to anchor) is expected there.
+    if (actionable && !result.ok) {
+      notify(`Rejection failed (${result.error}).`, `הדחייה נכשלה (${result.error}).`);
+      return;
+    }
+    markRejectedLocal(id);
     notify('Rejection recorded in the decision log.', 'הדחייה נרשמה ביומן ההחלטות.');
   }
 
@@ -1487,8 +1606,9 @@ function TVBreakDashboard() {
             setInspectorOpen(false);
             notify('Break detail panel closed.', 'פאנל פרטי הברייק נסגר.');
           }}
-          onApprove={() => activeRec && toggleApproval(activeRec.id)}
+          onApprove={() => activeRec && approveRecommendation(activeRec.id)}
           onReject={() => activeRec && rejectRecommendation(activeRec.id)}
+          onOpenInOverrides={() => activeRec && openRecommendationInOverrides(activeRec)}
           onApplySimilar={applySimilarRecommendations}
           onExport={(exportScope) => {
             downloadJson('kairos-break-detail.json', { exportScope, selectedProgram, recommendation: activeRec, scenario });
@@ -1546,7 +1666,16 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Overrides') {
-      return <OverrideConsole copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      return (
+        <OverrideConsole
+          copy={copy}
+          locale={locale}
+          notify={notify}
+          onGlobalRefresh={() => setRefreshKey((k) => k + 1)}
+          prefill={overridePrefill}
+          onPrefillConsumed={() => setOverridePrefill(null)}
+        />
+      );
     }
 
     return (
@@ -2085,6 +2214,7 @@ function OptimizerWorkspace({
   onCloseInspector,
   onApprove,
   onReject,
+  onOpenInOverrides,
   onApplySimilar,
   onExport,
   copy,
@@ -2195,6 +2325,7 @@ function OptimizerWorkspace({
             rejected={rejected.has(activeRec?.id)}
             onApprove={onApprove}
             onReject={onReject}
+            onOpenInOverrides={onOpenInOverrides}
             onApplySimilar={onApplySimilar}
             onExport={onExport}
             onClose={onCloseInspector}
@@ -3463,7 +3594,8 @@ function ProgramCell({
   );
 }
 
-function Inspector({ selectedProgram, recommendation, approved, rejected, onApprove, onReject, onApplySimilar, onExport, onClose, copy, locale }) {
+function Inspector({ selectedProgram, recommendation, approved, rejected, onApprove, onReject, onOpenInOverrides, onApplySimilar, onExport, onClose, copy, locale }) {
+  const recActionable = Boolean(recommendation?.actionable && recommendation?.segment_id && recommendation?.proposed_kind);
   const approvalLabel = rejected ? pageText(locale, 'Rejected', 'נדחה') : approved ? copy.approved : copy.pending;
   const [exportScope, setExportScope] = useState('Break detail');
   const selectedBreak = selectedProgram?.selected_break;
@@ -3537,6 +3669,11 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
         </Button>
         <Button className={rejected ? 'secondary-button active' : 'secondary-button'} type="button" variant="outlined" onClick={onReject}>{copy.reject}</Button>
         <Button className="secondary-button" type="button" variant="outlined" onClick={onApplySimilar}>{copy.applySimilar}</Button>
+        {recActionable && (
+          <Button className="secondary-button" type="button" variant="outlined" onClick={onOpenInOverrides}>
+            {pageText(locale, 'Open in overrides', 'פתיחה בעקיפות')}
+          </Button>
+        )}
       </div>
 
       <div className="export-row">

@@ -2,21 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
-import { asList, isNum, fmtNum, anchorText, isStale, runDayRecomputeJob } from './override-console-lib';
+import { asList, isNum, fmtNum, anchorText, isStale, runDayRecomputeJob, KINDS, kindLabel } from './override-console-lib';
 import './override-console.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
-// Backend override kinds are pin | force | forbid | gold. "force" carries a
-// target break count (the lower-count lever); "gold" carries gold:true.
-const KINDS = [
-  { key: 'pin', en: 'Pin current plan', he: 'נעילת התוכנית הנוכחית' },
-  { key: 'force', en: 'Force a break count', he: 'קיבוע מספר ברייקים' },
-  { key: 'forbid', en: 'Forbid breaks here', he: 'מניעת ברייקים כאן' },
-  { key: 'gold', en: 'Mark as gold', he: 'סימון כזהב' },
-];
-
-function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
+function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPrefillConsumed }) {
   const [overrides, setOverrides] = useState([]);
   const [segments, setSegments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +18,10 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   const [kind, setKind] = useState('pin');
   const [countValue, setCountValue] = useState('');
   const [notes, setNotes] = useState('');
+  // When an override arrives from an approved recommendation the create POST is
+  // stamped source=recommendation with the originating rec_id, so its provenance is
+  // preserved exactly like the anchored break-decision route.
+  const [prefillRecId, setPrefillRecId] = useState('');
   const [preview, setPreview] = useState(null);
   const [lastCreated, setLastCreated] = useState(null);
   const [dayJobState, setDayJobState] = useState('idle');
@@ -61,6 +56,18 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
   }, [loadOverrides, loadSegments]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Consume a recommendation prefill once: preselect its segment and kind, stamp the
+  // originating rec_id on the next create, and seed the search so the segment is
+  // visible in the (capped) dropdown. Cleared immediately so it applies a single time.
+  useEffect(() => {
+    if (!prefill || !prefill.segment_id) return;
+    setSegId(prefill.segment_id);
+    if (prefill.kind) setKind(prefill.kind);
+    setPrefillRecId(prefill.rec_id || '');
+    setSearch(prefill.segment_id);
+    onPrefillConsumed?.();
+  }, [prefill, onPrefillConsumed]);
 
   const segById = useMemo(() => {
     const map = new Map();
@@ -131,16 +138,21 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
       return;
     }
     const seg = selectedSeg;
+    // A create carrying a rec_id came from an approved recommendation; stamp its
+    // provenance so the store records source=recommendation, matching the anchored
+    // break-decision route. A plain manual create keeps source=manual.
+    const fromRecommendation = Boolean(prefillRecId);
     const body = {
       scope: 'segment',
       target_id: seg.segment_id,
       kind,
-      source: 'manual',
+      source: fromRecommendation ? 'recommendation' : 'manual',
       notes: notes.trim() || undefined,
       anchor_date: seg.anchor?.date,
       anchor_start: seg.anchor?.start_clock,
       anchor_title: seg.anchor?.program || seg.anchor?.title || '',
     };
+    if (fromRecommendation) body.rec_id = prefillRecId;
     if (kind === 'force') body.value = Number(countValue);
     if (kind === 'gold') body.gold = true;
     try {
@@ -153,6 +165,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
       notify('Override saved. Recompute when ready to apply it to the plan.',
         'העקיפה נשמרה. הריצו חישוב מחדש כשתרצו להחיל אותה על התוכנית.');
       setNotes('');
+      setPrefillRecId('');
       const day = seg.day || seg.anchor?.date || '';
       if (seg.channel && day) setLastCreated({ channel: seg.channel, day });
       await loadOverrides();
@@ -198,11 +211,6 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
     }
   }
 
-  const kindLabel = (k) => {
-    const found = KINDS.find((entry) => entry.key === k);
-    return found ? pageText(locale, found.en, found.he) : k;
-  };
-
   return (
     <section className="page-workspace">
       <div className="page-header">
@@ -231,6 +239,15 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
           <p className="oc-sub">{pageText(locale,
             'Pick an owned-channel segment, choose the decision, and read the projected delta before you commit.',
             'בחרו משבצת בערוץ שבבעלותכם, בחרו את ההחלטה וקראו את הדלתא הצפויה לפני האישור.')}</p>
+          {prefillRecId && (
+            <p className="oc-sub">
+              <span className="oc-chip rec">{pageText(locale, 'From recommendation', 'מהמלצה')}</span>
+              {' '}
+              {pageText(locale,
+                'This segment and decision came from an approved recommendation. Saving records the override with that provenance.',
+                'המשבצת וההחלטה הגיעו מהמלצה שאושרה. שמירה תרשום את העקיפה עם ייחוס זה.')}
+            </p>
+          )}
 
           {!segOnline && (
             <div className="oc-empty">{pageText(locale,
@@ -384,7 +401,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh }) {
                     <div className="oc-row-main">
                       <p className="oc-row-title">{o.anchor_title || o.target_id}</p>
                       <div style={{ marginBottom: 4 }}>
-                        <span className="oc-chip kind">{kindLabel(o.kind)}{o.kind === 'force' && isNum(o.value) ? ` (${o.value})` : ''}</span>
+                        <span className="oc-chip kind">{kindLabel(o.kind, locale)}{o.kind === 'force' && isNum(o.value) ? ` (${o.value})` : ''}</span>
                         {stale
                           ? <span className="oc-chip staleflag">{pageText(locale, 'Stale', 'לא מעודכן')}</span>
                           : o.status === 'dismissed'

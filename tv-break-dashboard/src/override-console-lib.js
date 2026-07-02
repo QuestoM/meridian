@@ -3,6 +3,22 @@
 // async jobs API and reports an honest terminal status; errors come from
 // the server record, never invented here.
 
+import { pageText } from './advertisers-helpers';
+
+// Backend segment override kinds are pin | force | forbid | gold. "force" carries a
+// target break count (the lower-count lever); "gold" carries gold:true.
+export const KINDS = [
+  { key: 'pin', en: 'Pin current plan', he: 'נעילת התוכנית הנוכחית' },
+  { key: 'force', en: 'Force a break count', he: 'קיבוע מספר ברייקים' },
+  { key: 'forbid', en: 'Forbid breaks here', he: 'מניעת ברייקים כאן' },
+  { key: 'gold', en: 'Mark as gold', he: 'סימון כזהב' },
+];
+
+export function kindLabel(k, locale) {
+  const found = KINDS.find((entry) => entry.key === k);
+  return found ? pageText(locale, found.en, found.he) : k;
+}
+
 const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 // Returns {status: 'done'|'failed'|'missing'|'timeout', error?: string}.
