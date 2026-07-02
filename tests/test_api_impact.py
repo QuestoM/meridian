@@ -1,22 +1,17 @@
-"""Impact API helpers should expose model effects without raw CSV artifacts."""
+"""Impact API helpers should expose model effects without raw CSV artifacts.
+
+The former ``_load_impact`` raw-CSV reader was removed in the phase 0 honesty
+pass: ``/api/impact`` no longer serves a raw impact CSV, it serves the measured
+coefficient summary built by ``_load_measured_impact_summary``. The obsolete
+sanitizer test was retired with it; the coefficient-grouping test below is the
+live contract.
+"""
 
 from __future__ import annotations
 
 import json
 
-from kairos_api.server import _load_impact, _load_measured_impact_summary
-
-
-def test_load_impact_sanitizes_non_finite_csv_values(tmp_path) -> None:
-    path = tmp_path / "impact.csv"
-    path.write_text("segment,total,count,average\nNews,inf,9,\nOther,-0.1,3,-0.033\n", encoding="utf-8")
-
-    rows = _load_impact(path)
-
-    assert rows[0]["total"] is None
-    assert rows[0]["average"] is None
-    assert rows[1]["total"] == -0.1
-    assert rows[1]["average"] == -0.033
+from kairos_api.server import _load_measured_impact_summary
 
 
 def test_measured_impact_summary_groups_coefficients_for_dashboard(tmp_path) -> None:
