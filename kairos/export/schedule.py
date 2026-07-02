@@ -174,6 +174,7 @@ def build_weekly_schedule(
     only_days: Optional[list[tuple[str, str]]] = None,
     progress_cb: Optional[Callable[[int, int], None]] = None,
     existing_csv: Optional[str | Path] = None,
+    objective_mode: str = "blend",
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -314,6 +315,7 @@ def build_weekly_schedule(
             overrides=day_overrides,
             placement_pins=placement_pins,
             operator_channel=operator_channel,
+            objective_mode=objective_mode,
             optimize_fn=optimize_breaks,
         )
         return _rows_from_result(segments, result)

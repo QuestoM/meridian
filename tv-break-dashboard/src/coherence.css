@@ -14,3 +14,15 @@
   font-size: 13px;
   line-height: 1.4;
 }
+
+.optimizer-objective { margin-top: 16px; }
+.optimizer-objective-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.optimizer-objective-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--amber-strong, #b45309);
+  background: var(--amber-soft, rgba(180, 83, 9, 0.08));
+  border-radius: 8px;
+}

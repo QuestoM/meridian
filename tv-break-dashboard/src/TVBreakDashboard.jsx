@@ -4165,6 +4165,37 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
                 );
               })}
             </div>
+            <div className="optimizer-objective">
+              <span className="settings-field-label">{he ? 'מטרת האופטימיזציה' : 'Optimization objective'}</span>
+              <div className="optimizer-objective-options">
+                {[
+                  { key: 'blend', label: he ? 'איזון הכנסה מול צפייה' : 'Revenue and retention balance',
+                    desc: he ? 'ברירת המחדל: ממקסם את הציון המשוקלל של הכנסה מול צפייה.' : 'The default: maximizes the weighted revenue-vs-retention score.' },
+                  { key: 'revenue_net', label: he ? 'הכנסה בניכוי שימור' : 'Revenue net of retention',
+                    desc: he ? 'ממקסם הכנסה פחות עלות השימור בשקלים. מפיל ברייקים שעלות אובדן הצופים שלהם עולה על ההכנסה: פחות ברייקים, שימור גבוה יותר, הכנסה-ברוטו נמוכה יותר אך נטו גבוה יותר.' : 'Maximizes revenue minus the retention cost in ILS. Drops breaks whose lost-audience cost outweighs their revenue: fewer breaks, higher retention, lower gross revenue but higher net.' },
+                ].map((mode) => {
+                  const active = (draft.objective_mode || 'blend') === mode.key;
+                  return (
+                    <button
+                      key={mode.key}
+                      type="button"
+                      className={`optimizer-template${active ? ' is-active' : ''}`}
+                      onClick={() => updateField('objective_mode', mode.key)}
+                    >
+                      <strong>{mode.label}</strong>
+                      <small>{mode.desc}</small>
+                    </button>
+                  );
+                })}
+              </div>
+              {(draft.objective_mode || 'blend') === 'revenue_net' && (
+                <p className="optimizer-objective-note" role="status">
+                  {he
+                    ? 'שימו לב: מצב זה משנה את התוכנית השמורה בעת חישוב מחדש, וההכנסה-ברוטו המוצגת ככותרת תרד. זו בחירה מכוונת לטובת ההכנסה נטו.'
+                    : 'Note: this mode changes the saved plan on recompute, and the gross revenue shown as the headline will fall. It is a deliberate choice in favor of net revenue.'}
+                </p>
+              )}
+            </div>
             <div className="optimizer-recompute">
               <p>
                 {he

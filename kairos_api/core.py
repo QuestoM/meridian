@@ -112,6 +112,14 @@ class KairosSettings(BaseModel):
     pacing_ahead_k: float = Field(default=1.0, ge=0, le=10)
     pacing_weight_floor: float = Field(default=0.5, ge=0, le=1)
     pacing_epsilon: float = Field(default=0.05, ge=0.001, le=1)
+    # How the optimizer scores a plan. 'blend' (default) maximizes the unitless
+    # revenue-vs-retention convex blend, the shipped behavior. 'revenue_net'
+    # maximizes revenue minus the retention cost priced in ILS (lost baseline_tvr
+    # valued at the real CPP), so it drops breaks whose retention cost outweighs
+    # their revenue. Off by default: switching to revenue_net moves the saved plan
+    # (fewer breaks, higher retention, lower gross but higher net), so it is a
+    # deliberate operator choice made on the optimizer page, never silent.
+    objective_mode: Literal["blend", "revenue_net"] = "blend"
     # Pricing hierarchy overrides: the operator's dashboard edits to the rate card, in
     # the same nested shape as config/optimization_weights.yaml (base_price_per_second_
     # per_tvr_point, premiums.{program_type,day_of_week,position_in_break,ad_type,show},

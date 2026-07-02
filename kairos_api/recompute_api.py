@@ -49,6 +49,7 @@ def _run_recompute(
         today=_reference_today(saved),
         only_days=only_days,
         progress_cb=progress_cb,
+        objective_mode=getattr(saved, "objective_mode", "blend"),
     )
     if frame.empty:
         raise ValueError("No segments produced (is data/reference/Programmes.xlsx present?)")

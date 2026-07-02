@@ -483,6 +483,7 @@ def run_scenario(
     refine: bool = True,
     today: Optional[date] = None,
     settings: Optional[Mapping[str, Any]] = None,
+    objective_mode: str = "blend",
 ) -> dict[str, Any]:
     """Run a real optimization for the dashboard scenario slider.
 
@@ -538,6 +539,7 @@ def run_scenario(
         placement_pins=placement_pins,
         operator_channel=_operator_channel(settings),
         refine=refine,
+        objective_mode=objective_mode,
         optimize_fn=optimize_breaks,
     )
 
