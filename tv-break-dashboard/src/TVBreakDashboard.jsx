@@ -72,6 +72,7 @@ import YieldView from './YieldView';
 import ScenarioCompare from './ScenarioCompare';
 import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
+import ActivityFeed from './ActivityFeed';
 import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
@@ -1150,6 +1151,29 @@ function TVBreakDashboard() {
   const [elapsedSec, setElapsedSec] = useState(0);
   const [recomputeProgress, setRecomputeProgress] = useState(null);
   const toastTimer = useRef(null);
+  // Persistent activity feed: every notify() lands here as a dated entry (not
+  // only a transient toast), so nothing scrolls away unseen. Loaded from and
+  // saved to localStorage so the record survives a reload. Entries are real
+  // events, never fabricated.
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem('kairos.activity');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.slice(-100) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [feedOpen, setFeedOpen] = useState(false);
+  const notifyId = useRef(0);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('kairos.activity', JSON.stringify(notifications.slice(-100)));
+    } catch {
+      // localStorage may be unavailable (private mode); the in-memory feed still works.
+    }
+  }, [notifications]);
 
   // Honest progress affordance: a full-week rebuild is a synchronous call with no
   // percentage available, so we surface an elapsed-seconds timer (not a fake
@@ -1224,11 +1248,18 @@ function TVBreakDashboard() {
   const compliance = overview.compliance || fallbackCompliance;
   const theme = useMemo(() => createKairosTheme(isHebrew ? 'rtl' : 'ltr'), [isHebrew]);
   const muiCache = isHebrew ? rtlCache : ltrCache;
+  const activeNotificationCount = notifications.filter((n) => !n.dismissed).length;
 
   function notify(en, he) {
     setActionMessage(pageText(locale, en, he));
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setActionMessage(''), 2600);
+    // Also record the event in the persistent activity feed. A stable id avoids
+    // Math.random; the bilingual pair is stored so the feed renders in whatever
+    // language the operator later views it in.
+    notifyId.current += 1;
+    const entry = { id: `n${Date.now()}-${notifyId.current}`, en, he, ts: Date.now(), dismissed: false };
+    setNotifications((current) => [...current, entry].slice(-100));
   }
 
   useEffect(() => () => {
@@ -1412,18 +1443,17 @@ function TVBreakDashboard() {
     notify('Data refreshed from the Kairos API.', 'הנתונים רועננו מה־API של Kairos.');
   }
 
-  function handleNotifications() {
-    const checks = overview?.compliance?.checks || [];
-    if (checks.length === 0) {
-      notify('No compliance checks available to evaluate.', 'אין בדיקות תאימות זמינות להערכה.');
-      return;
-    }
-    const atRisk = checks.filter((check) => check.status === 'at_risk').length;
-    if (atRisk === 0) {
-      notify('No open operational alerts. All compliance checks pass.', 'אין התראות תפעוליות פתוחות. כל בדיקות התאימות תקינות.');
-      return;
-    }
-    notify(`${atRisk} compliance check(s) need review.`, `${atRisk} בדיקות תאימות דורשות בדיקה.`);
+  function dismissNotification(id) {
+    setNotifications((current) => current.map((n) => (n.id === id ? { ...n, dismissed: true } : n)));
+  }
+  function restoreNotification(id) {
+    setNotifications((current) => current.map((n) => (n.id === id ? { ...n, dismissed: false } : n)));
+  }
+  function dismissAllNotifications() {
+    setNotifications((current) => current.map((n) => ({ ...n, dismissed: true })));
+  }
+  function restoreAllNotifications() {
+    setNotifications((current) => current.map((n) => ({ ...n, dismissed: false })));
   }
 
   function scenarioControls() {
@@ -1864,9 +1894,14 @@ function TVBreakDashboard() {
               type="button"
               aria-label={copy.notifications}
               size="small"
-              onClick={handleNotifications}
+              onClick={() => setFeedOpen((v) => !v)}
             >
-              <Bell size={15} />
+              <span className="bell-wrap">
+                <Bell size={15} />
+                {activeNotificationCount > 0 && (
+                  <span className="bell-badge" dir="ltr">{activeNotificationCount > 9 ? '9+' : activeNotificationCount}</span>
+                )}
+              </span>
             </IconButton>
             <Button
               className="secondary-button compact"
@@ -1920,6 +1955,17 @@ function TVBreakDashboard() {
 
         {actionMessage && <div className="toast">{actionMessage}</div>}
         {loading && <div className="toast">{copy.loading}</div>}
+        {feedOpen && (
+          <ActivityFeed
+            notifications={notifications}
+            locale={locale}
+            onDismiss={dismissNotification}
+            onRestore={restoreNotification}
+            onClearAll={dismissAllNotifications}
+            onRestoreAll={restoreAllNotifications}
+            onClose={() => setFeedOpen(false)}
+          />
+        )}
         {!loading && error && <div className="toast muted">{copy.apiUnavailable}</div>}
       </main>
     </div>

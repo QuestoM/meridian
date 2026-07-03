@@ -1,0 +1,120 @@
+/* Persistent activity feed panel. Slides from the inline-end edge under the
+   header bell; readable, dismissible, restorable. */
+
+.activity-feed {
+  position: fixed;
+  top: 0;
+  inset-inline-end: 0;
+  height: 100vh;
+  width: min(380px, 92vw);
+  background: var(--surface, #ffffff);
+  border-inline-start: 1px solid var(--border-soft, #e5e7eb);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.12);
+  z-index: 1350;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.af-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--border-soft, #e5e7eb);
+}
+.af-kicker {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b7280);
+  text-transform: uppercase;
+}
+.af-head h3 { margin: 4px 0 0; font-size: 1.1rem; font-weight: 680; color: var(--text-strong, #111827); }
+.af-close { border: none; background: transparent; cursor: pointer; color: var(--text-muted, #6b7280); padding: 4px; border-radius: 8px; }
+.af-close:hover { background: var(--surface-2, #f3f4f6); }
+
+.af-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-faint, #f1f2f4);
+}
+.af-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--surface, #ffffff);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 0.78rem;
+  color: var(--text, #374151);
+  cursor: pointer;
+}
+.af-action:disabled { opacity: 0.45; cursor: default; }
+.af-action:not(:disabled):hover { background: var(--surface-2, #f3f4f6); }
+
+.af-body { padding: 8px 14px 24px; overflow-y: auto; flex: 1; }
+.af-empty { padding: 24px 6px; font-size: 0.85rem; color: var(--text-muted, #6b7280); line-height: 1.45; }
+
+.af-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px dashed var(--border-faint, #f1f2f4);
+}
+.af-item.dismissed { opacity: 0.6; }
+.af-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.af-item-time { font-size: 0.72rem; color: var(--text-muted, #6b7280); }
+.af-item-text { font-size: 0.86rem; line-height: 1.4; color: var(--text-strong, #111827); }
+.af-item-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted, #6b7280);
+  padding: 3px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.af-item-btn:hover { background: var(--surface-2, #f3f4f6); color: var(--text-strong, #111827); }
+.af-item-btn.restore { color: var(--teal-strong, #0f766e); }
+
+.af-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 8px 6px;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted, #6b7280);
+}
+.af-restore-all {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--teal-strong, #0f766e);
+  font-size: 0.76rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Unread count badge on the header bell. */
+.bell-wrap { position: relative; display: inline-flex; }
+.bell-badge {
+  position: absolute;
+  top: -2px;
+  inset-inline-end: -2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--teal-strong, #0f766e);
+  color: #ffffff;
+  font-size: 0.62rem;
+  line-height: 15px;
+  text-align: center;
+  font-weight: 700;
+}
