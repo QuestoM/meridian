@@ -1938,6 +1938,103 @@ def schedule_segments() -> dict[str, Any]:
     ]))
 
 
+def _segment_overrides(segment_id: str) -> list[dict[str, Any]]:
+    """The saved manual overrides targeting one segment, newest first.
+
+    Read straight from data/manual_overrides.csv so the inspector shows the real
+    edit state of a segment (what is pinned/forbidden/gold and where it came from,
+    manual or a recommendation). Honest empty list when the store is absent or the
+    segment carries no override.
+    """
+    path = DATA_DIR / "manual_overrides.csv"
+    if not path.exists():
+        return []
+    try:
+        frame = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    except Exception:
+        logger.exception("override store read failed for segment detail")
+        return []
+    if "target_id" not in frame.columns:
+        return []
+    rows = frame[frame["target_id"].astype(str).str.strip() == segment_id.strip()]
+    records = [{str(k): (None if v == "" else v) for k, v in row.items()} for _, row in rows.iterrows()]
+    records.reverse()
+    return records
+
+
+@app.get("/api/schedule/segment/{segment_id:path}")
+def schedule_segment_detail(segment_id: str) -> dict[str, Any]:
+    """Full inspector detail for one owned-channel segment.
+
+    Composes the complete saved-plan row (identity, timing, plan, economics, and
+    the risk-adjusted retention with its credible interval) with the segment's
+    current manual overrides, so a click-to-open inspector can show everything the
+    engine knows about a programme and its breaks and what the operator has already
+    decided. Enforces the competitor boundary: a segment on any channel other than
+    settings.operator_channel returns 404, never a competitor's plan. Honest 404
+    when no saved schedule exists or the id is unknown.
+    """
+    settings = _load_settings()
+    owned = str(settings.operator_channel or "").strip()
+    schedule = _load_break_schedule()
+    if schedule.empty:
+        raise HTTPException(status_code=404, detail="No saved weekly schedule on disk")
+    frame = _augment_segment_ids(schedule)
+    match = frame[frame["segment_id"].astype(str).str.strip() == segment_id.strip()]
+    if match.empty:
+        raise HTTPException(status_code=404, detail="Unknown segment id")
+    row = match.iloc[0]
+    channel = str(row.get("channel", "")).strip()
+    if owned and channel != owned:
+        # Competitor boundary: the operator only inspects and edits their own channel.
+        raise HTTPException(status_code=404, detail="Segment is not on the owned channel")
+
+    def _opt_num(value: Any) -> float | None:
+        parsed = _safe_number(value, float("nan"))
+        return None if math.isnan(parsed) else parsed
+
+    def _opt_int(value: Any) -> int | None:
+        num = _opt_num(value)
+        return None if num is None else int(round(num))
+
+    detail = {
+        "segment_id": segment_id,
+        "found": True,
+        "owned_channel": owned or None,
+        "anchor": _row_anchor(row),
+        "identity": {
+            "channel": channel,
+            "date": str(row.get("date", "")).strip(),
+            "day": str(row.get("day", "")).strip(),
+            "program_type": str(row.get("program_type", "")).strip(),
+            "start_clock": str(row.get("start_time", "")).strip(),
+        },
+        "plan": {
+            "num_breaks": int(_safe_number(row.get("num_breaks", 0))),
+            "break_length_seconds": _opt_num(row.get("break_length")),
+            "total_break_seconds": _opt_num(row.get("total_break_time")),
+            "position": str(row.get("position", "")).strip() or None,
+            "break_type": str(row.get("break_type", "")).strip() or None,
+            "is_gold": bool(str(row.get("is_gold", "")).strip().lower() in ("true", "1", "yes")),
+        },
+        "economics": {
+            "predicted_revenue": _money(row.get("predicted_revenue", 0)),
+            "base_rate": _opt_num(row.get("base_rate")),
+            "baseline_tvr": _opt_num(row.get("baseline_tvr")),
+        },
+        "retention": {
+            "predicted_retention": round(_percent(row.get("predicted_retention", 0)), 2),
+            "retention_used": round(_percent(row.get("retention_used", row.get("predicted_retention", 0))), 2),
+            "ci_low": (round(_percent(row.get("retention_ci_low")), 2) if _opt_num(row.get("retention_ci_low")) is not None else None),
+            "ci_high": (round(_percent(row.get("retention_ci_high")), 2) if _opt_num(row.get("retention_ci_high")) is not None else None),
+            "sample_n": _opt_int(row.get("retention_n")),
+            "confidence": str(row.get("retention_confidence", "")).strip() or None,
+        },
+        "overrides": _segment_overrides(segment_id),
+    }
+    return detail
+
+
 @app.get("/api/break-operations")
 def break_operations() -> dict[str, Any]:
     return _break_operations_cached(_signature([
