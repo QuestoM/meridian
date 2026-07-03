@@ -51,6 +51,10 @@
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
 }
+/* The grid stretches every tile to the row's height, and the value below carries
+   margin-top:auto, so the value is bottom-anchored to a shared baseline. A label
+   that wraps to two lines therefore cannot push its value below its siblings.
+   Keep the full-height tile + margin-top:auto value pairing if you restyle this. */
 .amz-drawer-stat {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -59,6 +63,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  height: 100%;
 }
 .amz-drawer-stat-label {
   display: inline-flex;
@@ -68,6 +73,9 @@
   color: var(--muted);
 }
 .amz-drawer-stat-value {
+  /* margin-top:auto pins the value to the tile's bottom edge so a one-line and a
+     two-line label leave the value at the same offset. Do not remove. */
+  margin-top: auto;
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
   color: var(--ink);

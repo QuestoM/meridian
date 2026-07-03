@@ -1027,11 +1027,64 @@ button {
   color: #d7f2ee;
 }
 
-/* P3 schedule editor: drag-and-drop break editor plus constraint builder. */
+/* Schedule editor: drag-and-drop break editor plus constraint builder. */
 .schedule-editor {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 502px;
+}
+
+/* The editor reuses the timeline layout but needs more vertical room so the
+   taller, more legible programme band and break chips fit comfortably. These
+   overrides are scoped to the editor so the read-only timeline is untouched. */
+.schedule-editor .timeline-row,
+.schedule-editor .timeline-track {
+  min-height: 138px;
+}
+
+.schedule-editor .timeline-lane {
+  padding: 18px 16px;
+}
+
+.schedule-editor .timeline-program-band {
+  top: 16px;
+  height: 44px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 12px;
+  background: #eef2f6;
+  border-color: #cbd3dc;
+}
+
+.schedule-editor .timeline-program-title {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.schedule-editor .timeline-program-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.schedule-editor .timeline-program-class,
+.schedule-editor .timeline-program-window {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .schedule-editor-empty {
@@ -1082,17 +1135,17 @@ button {
 
 .editor-break {
   position: absolute;
-  top: 48px;
-  min-width: 44px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  padding: 0 8px;
+  top: 72px;
+  min-width: 64px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
   background: var(--primary);
   color: var(--surface);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 6px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -1114,22 +1167,30 @@ button {
   cursor: grabbing;
 }
 
-.editor-break span,
-.editor-break strong,
-.editor-break em {
-  font-size: var(--text-2xs);
-  line-height: 1;
+.editor-break-clock {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
-.editor-break strong {
-  font-weight: var(--weight-bold);
+.editor-break-offset {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.1;
+  color: #d7f2ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.editor-break em {
-  grid-column: 1 / -1;
+.editor-break-length {
+  font-size: var(--text-2xs);
   font-style: normal;
-  color: #d7f2ee;
+  line-height: 1.1;
+  color: #aecbe6;
+  white-space: nowrap;
 }
 
 /* Pinned (constrained) breaks get a lock badge and a teal frame. */
@@ -1163,12 +1224,16 @@ button {
   position: absolute;
   top: 0;
   inset-inline-end: 0;
-  width: 8px;
+  width: 12px;
   height: 100%;
   cursor: ew-resize;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.35));
-  border-start-end-radius: 5px;
-  border-end-end-radius: 5px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4));
+  border-start-end-radius: 7px;
+  border-end-end-radius: 7px;
+}
+
+.editor-break-resize:hover {
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6));
 }
 
 .schedule-editor-readout {
@@ -1179,7 +1244,8 @@ button {
 
 .schedule-editor-readout > p {
   color: var(--muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
+  line-height: 1.4;
 }
 
 .schedule-editor-edit-list {
@@ -1194,8 +1260,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 16px;
+  padding: 12px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -1209,14 +1275,58 @@ button {
   border-color: #c98a00;
 }
 
-.schedule-editor-edit-list strong {
-  display: block;
-  color: var(--ink);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+.editor-row-detail {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
 }
 
-.schedule-editor-edit-list span {
+.editor-row-title {
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  line-height: 1.25;
+}
+
+.editor-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.editor-row-class {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.editor-row-position {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.editor-row-clock {
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.editor-row-into {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.editor-row-length {
   color: var(--muted);
   font-size: var(--text-xs);
 }

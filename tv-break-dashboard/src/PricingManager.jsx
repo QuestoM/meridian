@@ -20,17 +20,40 @@ const DAY_NAMES = {
   5: ['Fri', 'שישי'], 6: ['Sat', 'שבת'], 7: ['Sun', 'ראשון'],
 };
 
+// Position-in-break keys are internal engine keys; these are the human labels.
+const POSITION_NAMES = {
+  1: ['First', 'ראשון'], 2: ['Second', 'שני'], 3: ['Third', 'שלישי'],
+  default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last', 'אחרון'],
+};
+
 function layerLabel(name) {
   if (name === 'ad_type') return 'Ad type';
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-// A day layer key is an ISO weekday; everything else shows its own key verbatim.
+// Humanizes a multiplier's provenance for the breakdown. The engine tags each layer
+// "rate_card" or "override:<rule_id>"; the operator reads plain words, never the raw
+// tag, while the rule id (real, useful) is kept.
+function sourceLabel(source, locale) {
+  if (source === 'rate_card') return pageText(locale, 'rate card', 'כרטיס תעריפים');
+  if (typeof source === 'string' && source.startsWith('override:')) {
+    return pageText(locale, `override ${source.slice(9)}`, `עקיפה ${source.slice(9)}`);
+  }
+  return pageText(locale, 'rate card', 'כרטיס תעריפים');
+}
+
+// Turns a layer's raw key into a human, bilingual label so no snake_case key
+// reaches the operator. Day keys are ISO weekdays; position keys are named engine
+// slots. Program, show and ad-type keys are already human (class or show names), so
+// they pass through as their own value.
 function keyLabel(layerName, key, locale) {
   if (layerName === 'day' && DAY_NAMES[key]) {
     return pageText(locale, DAY_NAMES[key][0], DAY_NAMES[key][1]);
   }
-  return key;
+  if (layerName === 'position' && POSITION_NAMES[key]) {
+    return pageText(locale, POSITION_NAMES[key][0], POSITION_NAMES[key][1]);
+  }
+  return String(key);
 }
 
 function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
@@ -151,6 +174,20 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
     () => (state?.layers || []).filter((layer) => layer.kind === 'premium'),
     [state],
   );
+
+  // Known program classes and show names, sourced from the live rate card so the
+  // tester's typeahead offers exactly what the engine prices. Free entry stays open;
+  // anything off-list resolves to the Other/base rate on the backend.
+  const layerKeys = useCallback(
+    (name) => Object.keys(premiumLayers.find((layer) => layer.name === name)?.values || {}),
+    [premiumLayers],
+  );
+  const classOptions = useMemo(
+    () => Array.from(new Set([...layerKeys('program'), 'Other'])),
+    [layerKeys],
+  );
+  const showOptions = useMemo(() => layerKeys('show'), [layerKeys]);
+  const adTypeOptions = useMemo(() => layerKeys('ad_type'), [layerKeys]);
 
   if (loading) {
     return (
@@ -279,15 +316,16 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                     <div className="pricing-multipliers">
                       {entries.map(([key, value]) => {
                         const edited = defaults[key] !== undefined && Number(defaults[key]) !== Number(value);
+                        const label = keyLabel(layer.name, key, locale);
                         return (
                           <div className={`pricing-mult${edited ? ' edited' : ''}`} key={key}>
-                            <span>{keyLabel(layer.name, key, locale)}</span>
+                            <span className="pricing-mult-label" title={label}>{label}</span>
                             <input
                               type="number" min="0" step="0.01" dir="ltr"
                               defaultValue={value}
                               key={`${layer.name}-${key}-${value}`}
                               onBlur={(event) => saveMultiplier(layer.name, key, event.target.value)}
-                              aria-label={`${layerLabel(layer.name)} ${key}`}
+                              aria-label={`${layerLabel(layer.name)} ${label}`}
                             />
                           </div>
                         );
@@ -308,7 +346,14 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
           <div className="pricing-tester-form">
             <label>
               {pageText(locale, 'Program class', 'מחלקת תוכנית')}
-              <input value={slot.pricing_class} onChange={(e) => setSlot({ ...slot, pricing_class: e.target.value })} />
+              <input
+                list="pricing-class-options"
+                value={slot.pricing_class}
+                onChange={(e) => setSlot({ ...slot, pricing_class: e.target.value })}
+              />
+              <datalist id="pricing-class-options">
+                {classOptions.map((option) => <option key={option} value={option} />)}
+              </datalist>
             </label>
             <label>
               {pageText(locale, 'Weekday', 'יום')}
@@ -320,7 +365,16 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
             </label>
             <label>
               {pageText(locale, 'Show', 'תוכנית')}
-              <input value={slot.show} onChange={(e) => setSlot({ ...slot, show: e.target.value })} />
+              <input
+                list={showOptions.length ? 'pricing-show-options' : undefined}
+                value={slot.show}
+                onChange={(e) => setSlot({ ...slot, show: e.target.value })}
+              />
+              {showOptions.length > 0 && (
+                <datalist id="pricing-show-options">
+                  {showOptions.map((option) => <option key={option} value={option} />)}
+                </datalist>
+              )}
             </label>
             <label>
               {pageText(locale, 'Position', 'מיקום')}
@@ -332,7 +386,16 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
             </label>
             <label>
               {pageText(locale, 'Ad type', 'סוג פרסומת')}
-              <input value={slot.ad_type} onChange={(e) => setSlot({ ...slot, ad_type: e.target.value })} />
+              <input
+                list={adTypeOptions.length ? 'pricing-ad-type-options' : undefined}
+                value={slot.ad_type}
+                onChange={(e) => setSlot({ ...slot, ad_type: e.target.value })}
+              />
+              {adTypeOptions.length > 0 && (
+                <datalist id="pricing-ad-type-options">
+                  {adTypeOptions.map((option) => <option key={option} value={option} />)}
+                </datalist>
+              )}
             </label>
             <label>
               {pageText(locale, 'Advertiser base', 'בסיס מפרסם')}
@@ -356,7 +419,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
               </div>
               {(breakdown.layers || []).map((layer, idx) => (
                 <div className="pricing-break-row" key={`live-${layer.name}-${idx}`}>
-                  <span>x {layerLabel(layer.name)} <span className="src">({layer.source})</span></span>
+                  <span>x {layerLabel(layer.name)} <span className="src">({sourceLabel(layer.source, locale)})</span></span>
                   <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
                 </div>
               ))}

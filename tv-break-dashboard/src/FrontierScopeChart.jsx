@@ -5,6 +5,7 @@ import {
   API_BASE,
   finiteNumber,
   formatCurrency,
+  formatCurrencyAxis,
   formatNumber,
   formatPercent,
   normalizeRows,
@@ -340,7 +341,7 @@ export default function FrontierScopeChart({
               })}
               <text className="axis-label" x={PAD_X} y={HEIGHT - 6}>{formatPercent(retMin, locale)}</text>
               <text className="axis-label axis-label-end" x={width - PAD_X} y={HEIGHT - 6}>{formatPercent(retMax, locale)}</text>
-              <text className="axis-label" x={4} y={PAD_Y + 4}>{formatCurrency(revMax, locale)}</text>
+              <text className="axis-label" x={4} y={PAD_Y + 4}>{formatCurrencyAxis(revMax, locale)}</text>
             </svg>
           </div>
 

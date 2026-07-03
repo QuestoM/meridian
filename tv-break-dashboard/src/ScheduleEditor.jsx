@@ -1,7 +1,15 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Button, MenuItem, Select } from '@mui/material';
-import { Lock, Save, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import ConstraintBuilder from './ConstraintBuilder';
+import ScheduleEditorRow from './ScheduleEditorRow';
+import ScheduleEditorBreak from './ScheduleEditorBreak';
+import {
+  secondsToClock,
+  humanOffset,
+  windowRange,
+  programClassLabel,
+} from './schedule-editor-format';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
@@ -17,20 +25,6 @@ function timeToSeconds(time) {
   const safeHour = Number.isFinite(hour) ? Math.max(0, Math.min(47, hour)) : 0;
   const safeMinute = Number.isFinite(minute) ? Math.max(0, Math.min(59, minute)) : 0;
   return (safeHour * 60 + safeMinute) * 60;
-}
-
-function secondsToTime(seconds) {
-  const safe = Math.max(0, Math.min((47 * 60 + 59) * 60 + 59, Math.round(seconds)));
-  const hour = Math.floor(safe / 3600) % 24;
-  const minute = Math.floor((safe % 3600) / 60);
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-}
-
-function formatOffset(seconds) {
-  const safe = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(safe / 60);
-  const remainder = safe % 60;
-  return `+${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
 function normalizeRows(value) {
@@ -256,8 +250,8 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
         { ...body, id: savedId || `pin-${item.id}`, break_id: item.id },
       ]);
       notify(
-        `Break pinned at ${formatOffset(offsetSeconds)} from ${item.program_title}.`,
-        `הברייק נעוץ ב-${formatOffset(offsetSeconds)} מתחילת ${item.program_title}.`,
+        `Break pinned at ${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'en')} into ${item.program_title}.`,
+        `הברייק נעוץ ב-${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'he')} בתוך ${item.program_title}.`,
       );
     } catch (error) {
       if (error.message === 'not-found') {
@@ -375,42 +369,36 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
                   style={positionStyle(timeToSeconds(lane.program.start_time), timeToSeconds(lane.program.end_time))}
                   title={`${lane.program.title} / ${lane.program.start_time}-${lane.program.end_time}`}
                 >
-                  <span>{lane.program.title}</span>
+                  <span className="timeline-program-title">{lane.program.title}</span>
+                  <span className="timeline-program-meta">
+                    {programClassLabel(lane.program.program_type, locale) && (
+                      <span className="timeline-program-class">{programClassLabel(lane.program.program_type, locale)}</span>
+                    )}
+                    <span className="timeline-program-window" dir="ltr">
+                      {windowRange(lane.program.start_time, lane.program.end_time)}
+                    </span>
+                  </span>
                 </div>
               )}
               {lane.items.map((item) => {
                 const { startSec, durationSec } = currentState(item);
-                const edited = Boolean(edits[item.id]);
-                const pinned = Boolean(constraintIdFor(item));
                 const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
-                const className = [
-                  'editor-break',
-                  pinned ? 'pinned' : '',
-                  edited && !pinned ? 'unsaved' : '',
-                  item.is_gold ? 'gold' : '',
-                ].filter(Boolean).join(' ');
                 return (
-                  <div
+                  <ScheduleEditorBreak
                     key={item.id}
-                    className={className}
-                    role="button"
-                    tabIndex={0}
-                    style={positionStyle(startSec, startSec + durationSec)}
-                    title={`${item.program_title} ${formatOffset(offsetSeconds)} / ${Math.round(durationSec)}s`}
-                    onPointerDown={(event) => handleMovePointerDown(event, lane.lane, item)}
-                    onKeyDown={(event) => handleKeyDown(event, lane.lane, item)}
-                    aria-label={`${item.program_title} ${formatOffset(offsetSeconds)} ${Math.round(durationSec)} ${editorPageText(locale, 'seconds', 'שניות')}`}
-                  >
-                    {pinned && <Lock className="editor-break-lock" size={11} />}
-                    <span>{secondsToTime(startSec)}</span>
-                    <strong>{formatOffset(offsetSeconds)}</strong>
-                    <em>{Math.round(durationSec)}s</em>
-                    <i
-                      className="editor-break-resize"
-                      onPointerDown={(event) => handleResizePointerDown(event, lane.lane, item)}
-                      aria-hidden="true"
-                    />
-                  </div>
+                    item={item}
+                    laneKey={lane.lane}
+                    startSec={startSec}
+                    durationSec={durationSec}
+                    offsetSeconds={offsetSeconds}
+                    edited={Boolean(edits[item.id])}
+                    pinned={Boolean(constraintIdFor(item))}
+                    locale={locale}
+                    positionStyle={positionStyle}
+                    onMovePointerDown={handleMovePointerDown}
+                    onResizePointerDown={handleResizePointerDown}
+                    onKeyDown={handleKeyDown}
+                  />
                 );
               })}
             </div>
@@ -428,24 +416,17 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
               const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
               const pinned = Boolean(constraintIdFor(item));
               return (
-                <li key={item.id} className={pinned ? 'is-pinned' : 'is-unsaved'}>
-                  <div>
-                    <strong>{item.program_title}</strong>
-                    <span>{formatOffset(offsetSeconds)} {editorPageText(locale, 'from start', 'מההתחלה')} / {Math.round(durationSec)}s</span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="contained"
-                    className="run-button compact"
-                    disabled={savingPin === item.id}
-                    onClick={() => savePin(item, scopeChoice)}
-                  >
-                    <Save size={13} />
-                    {pinned
-                      ? editorPageText(locale, 'Update pin', 'עדכון נעיצה')
-                      : editorPageText(locale, 'Save as pin', 'שמור כנעיצה')}
-                  </Button>
-                </li>
+                <ScheduleEditorRow
+                  key={item.id}
+                  item={item}
+                  startSec={startSec}
+                  durationSec={durationSec}
+                  offsetSeconds={offsetSeconds}
+                  pinned={pinned}
+                  saving={savingPin === item.id}
+                  locale={locale}
+                  onSave={() => savePin(item, scopeChoice)}
+                />
               );
             }))}
           </ul>

@@ -260,10 +260,15 @@
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
+/* The grid stretches every block to the row's height, and the value below carries
+   margin-top:auto, so the value is bottom-anchored to a shared baseline. A label
+   that wraps to two lines therefore cannot push its value below its siblings.
+   Keep the full-height block + margin-top:auto value pairing if you restyle this. */
 .amz-stat-block {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  height: 100%;
 }
 .amz-stat-label {
   display: inline-flex;
@@ -283,6 +288,9 @@
   border-radius: var(--radius-xs);
 }
 .amz-stat-figure {
+  /* margin-top:auto pins the value to the block's bottom edge so a one-line and a
+     two-line label leave the value at the same offset. Do not remove. */
+  margin-top: auto;
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
   color: var(--ink);

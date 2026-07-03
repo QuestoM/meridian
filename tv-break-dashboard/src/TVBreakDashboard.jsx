@@ -541,15 +541,44 @@ function gridAxisFromLocation() {
 // a real zero should pass 0 (or value || 0) to opt into the numeric path.
 const EMPTY_VALUE = '-';
 
+// Precise currency for DATA VALUES (tooltips, readout cards, deltas, stat
+// figures). Compact notation with zero decimals hides material differences: it
+// renders 1,571,836 and 1,100,000 both as "1M" and makes a 465,000 delta
+// invisible, which is a legibility AND honesty failure. So the compact branch
+// carries two fraction digits (1,571,836 -> "1.57M", 2,040,000 -> "2.04M") while
+// minimumFractionDigits:0 keeps round values clean (2,000,000 -> "2M"). A 10,000
+// ILS gap at the millions scale stays distinguishable (1.57M vs 1.58M). Axis
+// ticks are the ONLY place compact-coarse is acceptable: use formatCurrencyAxis
+// there, never this. Do not lower the fraction digits here or widen the compact
+// threshold to swallow the 100K band; that reintroduces the trap.
 function formatCurrency(value, locale = 'en') {
   const number = finiteNumber(value);
   if (number === null) return EMPTY_VALUE;
-  const magnitude = Math.abs(number);
+  const compact = Math.abs(number) >= 100000;
   const formatter = new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     style: 'currency',
     currency: 'ILS',
-    maximumFractionDigits: magnitude >= 100000 ? 0 : 1,
-    notation: magnitude >= 100000 ? 'compact' : 'standard',
+    notation: compact ? 'compact' : 'standard',
+    maximumFractionDigits: compact ? 2 : 0,
+    minimumFractionDigits: 0,
+  });
+  return formatter.format(number);
+}
+
+// Coarse currency for CHART AXIS TICKS ONLY, where space is tight and the label
+// just conveys scale (1.6M, 465K, 12.5M). This is the deliberate compact-coarse
+// exception to formatCurrency. Never use it for a data value the operator reads
+// as a figure (tooltip point, readout card, delta, stat) - those must stay
+// precise via formatCurrency so a 10,000 ILS difference is not rounded away.
+function formatCurrencyAxis(value, locale = 'en') {
+  const number = finiteNumber(value);
+  if (number === null) return EMPTY_VALUE;
+  const formatter = new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
+    style: 'currency',
+    currency: 'ILS',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
   });
   return formatter.format(number);
 }
@@ -564,6 +593,9 @@ function formatMinutes(seconds, locale = 'en') {
 function formatNumber(value, locale = 'en') {
   const number = finiteNumber(value);
   if (number === null) return EMPTY_VALUE;
+  // Full grouped digits, never compact. Compact notation on a data count (e.g.
+  // "2M" for 1,571,836) hides material differences and reads as dishonest, so do
+  // not add notation:'compact' or drop precision here for large counts.
   return number.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', {
     maximumFractionDigits: 1,
   });
@@ -3871,7 +3903,7 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
               />
               <text className="axis-label" x={padX} y={height - 6}>{minRetentionLabel}</text>
               <text className="axis-label axis-label-end" x={width - padX} y={height - 6}>{maxRetentionLabel}</text>
-              <text className="axis-label" x={4} y={padY + 4}>{formatCurrency(maxRevenue, locale)}</text>
+              <text className="axis-label" x={4} y={padY + 4}>{formatCurrencyAxis(maxRevenue, locale)}</text>
             </svg>
             {safeActiveIndex !== null && activePoint && (
               <div

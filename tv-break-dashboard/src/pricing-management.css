@@ -118,7 +118,18 @@
   opacity: 0.85;
 }
 
+/* Label may shrink and ellipsis (full text on hover via title) so even the longest
+   key never pushes the numeric input out of its field box. */
+.pricing-mult-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pricing-mult input {
+  flex: 0 0 auto;
   width: 64px;
   text-align: right;
   background: var(--surface);
