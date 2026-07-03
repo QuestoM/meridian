@@ -1,0 +1,143 @@
+/* Click-to-inspect drawer for a programme on the Schedule page. Slides in from the
+   inline edge; readable, honest, matches the dashboard token palette. */
+
+.schedule-inspector {
+  position: fixed;
+  top: 0;
+  inset-inline-end: 0;
+  height: 100vh;
+  width: min(420px, 92vw);
+  background: var(--surface, #ffffff);
+  border-inline-start: 1px solid var(--border-soft, #e5e7eb);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.12);
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.si-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-soft, #e5e7eb);
+}
+
+.si-kicker {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b7280);
+  text-transform: uppercase;
+}
+
+.si-head h3 {
+  margin: 4px 0 0;
+  font-size: 1.15rem;
+  font-weight: 680;
+  color: var(--text-strong, #111827);
+}
+
+.si-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted, #6b7280);
+  padding: 4px;
+  border-radius: 8px;
+}
+.si-close:hover { background: var(--surface-2, #f3f4f6); }
+
+.si-body {
+  padding: 12px 20px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.si-section { margin-bottom: 18px; }
+.si-section h4 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 640;
+  color: var(--text-muted, #6b7280);
+}
+
+.si-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border-faint, #f1f2f4);
+}
+.si-row-label { font-size: 0.85rem; color: var(--text, #374151); }
+.si-row-value { font-size: 0.9rem; font-weight: 600; color: var(--text-strong, #111827); }
+
+.si-note, .si-sub, .si-empty, .si-footnote {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-muted, #6b7280);
+}
+.si-note { padding: 20px; }
+.si-footnote {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--surface-2, #f3f4f6);
+  border-radius: 10px;
+}
+
+.si-override {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.si-override-kind { font-size: 0.86rem; font-weight: 600; color: var(--text-strong, #111827); }
+.si-override-src { font-size: 0.76rem; color: var(--text-muted, #6b7280); }
+.si-override-remove {
+  margin-inline-start: auto;
+  border: none;
+  background: transparent;
+  color: var(--amber-strong, #b45309);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.si-edit { border-top: 1px solid var(--border-soft, #e5e7eb); padding-top: 14px; }
+.si-field { display: block; margin: 8px 0; }
+.si-field span { display: block; font-size: 0.78rem; color: var(--text-muted, #6b7280); margin-bottom: 4px; }
+.si-field select, .si-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--surface, #ffffff);
+}
+
+.si-preview { margin: 10px 0; }
+.si-preview-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.82rem;
+}
+.si-preview-row.head { color: var(--text-muted, #6b7280); border-bottom: 1px solid var(--border-soft, #e5e7eb); }
+.si-preview-row .num { text-align: end; }
+.si-delta.up { color: var(--teal-strong, #0f766e); }
+.si-delta.down { color: var(--amber-strong, #b45309); }
+
+.si-apply {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--border-soft, #e5e7eb);
+  padding-top: 14px;
+}
+.si-stale { font-size: 0.78rem; color: var(--amber-strong, #b45309); }
+
+.si-apply .spin { animation: si-spin 0.9s linear infinite; }
+@keyframes si-spin { to { transform: rotate(360deg); } }

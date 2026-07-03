@@ -5369,3 +5369,8 @@ button {
     transform: rotate(90deg);
   }
 }
+
+/* The programme band opens the click-to-inspect drawer. */
+.timeline-program-clickable { cursor: pointer; }
+.timeline-program-clickable:hover { filter: brightness(0.97); outline: 1px solid var(--border-soft, #e5e7eb); }
+.timeline-program-clickable:focus-visible { outline: 2px solid var(--teal-strong, #0f766e); outline-offset: 1px; }

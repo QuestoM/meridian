@@ -1,9 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, MenuItem, Select } from '@mui/material';
 import { Send } from 'lucide-react';
 import ConstraintBuilder from './ConstraintBuilder';
 import ScheduleEditorRow from './ScheduleEditorRow';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
+import ScheduleInspector from './ScheduleInspector';
 import {
   secondsToClock,
   humanOffset,
@@ -43,7 +44,7 @@ function snapSeconds(value, grid, min, max) {
 // break becomes a draggable / resizable handle. Drag is constrained to the
 // horizontal axis, snapped to a configurable grid, and the new offset from the
 // programme start is computed by inverting the same percent math TimelineView uses.
-function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState }) {
+function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState, onGlobalRefresh }) {
   const breaks = useMemo(() => normalizeRows(schedule?.break_operations?.breaks), [schedule]);
   const programs = useMemo(() => normalizeRows(schedule?.break_operations?.programs), [schedule]);
   const he = locale === 'he';
@@ -53,6 +54,44 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
   const [constraints, setConstraints] = useState([]);
   const [savingPin, setSavingPin] = useState(null);
   const trackRefs = useRef({});
+
+  // Owned-channel segments (segment_id + anchor), fetched once so a click on a
+  // programme band can resolve to its addressable segment and open the inspector.
+  // Keyed by channel|date|start_clock, the same trio the segment anchor carries.
+  const [segMap, setSegMap] = useState(() => new Map());
+  const [inspect, setInspect] = useState(null); // {segmentId, channel, day} | null
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE}/api/schedule/segments`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (!active || !payload) return;
+        const map = new Map();
+        (payload.segments || []).forEach((seg) => {
+          const a = seg.anchor || {};
+          const key = `${seg.channel || ''}|${a.date || seg.day || ''}|${a.start_clock || ''}`;
+          map.set(key, { segmentId: seg.segment_id, channel: seg.channel, day: seg.day });
+        });
+        setSegMap(map);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const openInspector = (program) => {
+    if (!program) return;
+    const key = `${program.channel || ''}|${program.date || ''}|${program.start_time || ''}`;
+    const hit = segMap.get(key);
+    if (hit && hit.segmentId) {
+      setInspect(hit);
+    } else {
+      notify(
+        'This programme is not on your owned channel, so it has no editable segment.',
+        'התוכנית אינה בערוץ שבבעלותכם, ולכן אין לה מקטע לעריכה.',
+      );
+    }
+  };
 
   // Build the per-lane model from the break list, attaching the matching
   // programme band so we can show a REAL programme name and start time.
@@ -365,9 +404,18 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
               ))}
               {lane.program && (
                 <div
-                  className="timeline-program-band"
+                  className="timeline-program-band timeline-program-clickable"
                   style={positionStyle(timeToSeconds(lane.program.start_time), timeToSeconds(lane.program.end_time))}
                   title={`${lane.program.title} / ${lane.program.start_time}-${lane.program.end_time}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openInspector(lane.program)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openInspector(lane.program);
+                    }
+                  }}
                 >
                   <span className="timeline-program-title">{lane.program.title}</span>
                   <span className="timeline-program-meta">
@@ -432,6 +480,18 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState 
           </ul>
         )}
       </div>
+
+      {inspect && (
+        <ScheduleInspector
+          segmentId={inspect.segmentId}
+          channel={inspect.channel}
+          day={inspect.day}
+          locale={locale}
+          notify={notify}
+          onClose={() => setInspect(null)}
+          onGlobalRefresh={onGlobalRefresh}
+        />
+      )}
     </div>
   );
 }

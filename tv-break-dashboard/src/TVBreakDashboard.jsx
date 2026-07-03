@@ -1653,7 +1653,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Schedule') {
-      return <SchedulePage {...common} onRecompute={handleRecomputeSchedule} recomputeState={recomputeState} />;
+      return <SchedulePage {...common} onRecompute={handleRecomputeSchedule} recomputeState={recomputeState} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Inventory') {
@@ -2554,7 +2554,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
   );
 }
 
-function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState, refreshKey }) {
+function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState, refreshKey, onGlobalRefresh }) {
   const rows = normalizeRows(schedule.break_schedule);
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
@@ -2672,6 +2672,7 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
             notify={notify}
             onRecompute={onRecompute}
             recomputeState={recomputeState}
+            onGlobalRefresh={onGlobalRefresh}
           />
         ) : (
           <DaypartView
