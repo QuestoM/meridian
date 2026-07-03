@@ -184,7 +184,18 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     const { durationSec } = currentState(item);
+    // Click-vs-drag discriminator: a pointer that barely moves is a CLICK that
+    // opens the inspector for this break's programme; a real drag re-places the
+    // break as before. The threshold keeps a small hand-tremor from stealing a
+    // drag or a click.
+    const downX = event.clientX;
+    const downY = event.clientY;
+    let moved = false;
     function onMove(moveEvent) {
+      if (!moved && Math.hypot(moveEvent.clientX - downX, moveEvent.clientY - downY) > 5) {
+        moved = true;
+      }
+      if (!moved) return;
       const startSec = pixelToStartSec(laneKey, moveEvent.clientX, durationSec, item);
       applyEdit(item, startSec, durationSec);
     }
@@ -196,6 +207,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       } catch (releaseError) {
         // Pointer capture may already be released; ignore.
       }
+      if (!moved) openInspector(item.program);
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
