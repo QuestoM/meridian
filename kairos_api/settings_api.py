@@ -86,13 +86,14 @@ def settings_controls() -> dict[str, Any]:
             "label_he": "זהירות מול אי-ודאות",
             "label_en": "Uncertainty caution",
             "help_he": (
-                "כמה להעניש עלות צפייה לא-ודאית. 0 משתמש באומדן הנקודתי (התנהגות רגילה), "
-                "1 מתמחר את התרחיש הגרוע ביותר בטווח הסביר. מעלה זהירות כשהמדידה רועשת."
+                "קובע איזו עלות צפייה נכנסת למספרים המדווחים: 0 מדווח לפי האומדן הנקודתי, "
+                "1 מתמחר את עלות הצפייה הסבירה הגרועה ביותר בטווח המדידה. זהו כלי דיווח שקוף, "
+                "ובנתונים הנוכחיים הוא אינו משנה את התוכנית שנבחרת."
             ),
             "help_en": (
-                "How much to penalize an uncertain retention cost. 0 uses the point estimate "
-                "(normal behavior), 1 prices the worst plausible cost in the interval. Raise it to "
-                "stay cautious where the measurement is noisy."
+                "Sets which retention cost the reported numbers carry: 0 reports at the point "
+                "estimate, 1 prices the worst plausible cost in the measured interval. A "
+                "reporting lever: on current data it does not change which plan is chosen."
             ),
             "default": 0.0,
             "min": 0.0,
@@ -160,8 +161,8 @@ def settings_controls() -> dict[str, Any]:
             "key": "conservative_uncertainty",
             "label_he": "זהיר באי-ודאות",
             "label_en": "Conservative under uncertainty",
-            "description_he": "מתמחר את התרחיש הגרוע ביותר של עלות הצפייה. לערוצים עם מדידה רועשת.",
-            "description_en": "Prices the worst-case retention cost. For channels with noisy measurement.",
+            "description_he": "מדווח את המספרים לפי עלות הצפייה הסבירה הגרועה ביותר. בנתונים הנוכחיים התוכנית עצמה אינה משתנה.",
+            "description_en": "Reports the numbers at the worst plausible retention cost. On current data the plan itself is unchanged.",
             "values": {"revenue_weight": 60, "risk_lambda": 1.0, "min_retention_floor": 0.74},
         },
     ]

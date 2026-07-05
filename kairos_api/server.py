@@ -1785,8 +1785,26 @@ def _break_operations_cached(signature: tuple[tuple[str, int, int], ...]) -> dic
 @lru_cache(maxsize=16)
 def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
+    summary = _load_measured_impact_summary(MODELS_DIR / "tv_break_coefficients.json")
+    # Weekly level drift of the coefficient measurement base, measured at
+    # rebuild time and carried in the artifact metadata (see
+    # kairos.model.drift_monitor and docs/model-validation/
+    # uncertainty-calibration.md finding 4). Echoed here for the Data page;
+    # when the artifact predates the monitor (or carries no metadata) the
+    # block is an honest "unavailable", never a fabricated verdict.
+    metadata = summary.get("metadata")
+    drift = metadata.get("level_drift") if isinstance(metadata, dict) else None
+    if not isinstance(drift, dict) or not drift:
+        drift = {
+            "status": "unavailable",
+            "reason": (
+                "the coefficients artifact carries no level-drift measurement; "
+                "rebuild the measured coefficients to compute it"
+            ),
+        }
     return {
-        "coefficient_impacts": _load_measured_impact_summary(MODELS_DIR / "tv_break_coefficients.json"),
+        "coefficient_impacts": summary,
+        "drift": drift,
     }
 
 

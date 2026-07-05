@@ -150,6 +150,57 @@ def _baseline_levels(frame: pd.DataFrame) -> dict[tuple[str, int], float]:
     return {(str(ch), int(mod)): float(v) for (ch, mod), v in grouped.items()}
 
 
+def _content_only_baseline_levels(
+    frame: pd.DataFrame, spots: pd.DataFrame
+) -> dict[tuple[str, int], float]:
+    """Map (channel, broadcast-minute) -> mean TVR over CONTENT minutes only.
+
+    Same shape as :func:`_baseline_levels`, but every minute lying inside ANY
+    ad-air run (single-spot runs included, via
+    ``identify_breaks(spots, min_spots=1)``) is excluded before averaging, so
+    the typical curve stops encoding the break schedule itself. Motivation,
+    measured in docs/model-validation/causal-identification.md section 5: 12.1
+    percent of channel-minutes sit inside a detected break at -9.2 percent
+    audience, and the contamination is spatially structured (breaks recur at
+    similar clock minutes across days), which depresses the expected level
+    exactly where real after-windows sit. A (channel, minute) cell whose every
+    observation is ad airtime drops out of the map; a break that then finds no
+    baseline is dropped by the positive-audience rules rather than measured
+    against a fabricated level. Exclusion is by wall-clock minute, so a
+    content minute on one day still feeds the curve even when the same clock
+    minute carries ads on another day.
+    """
+    from kairos.model.prepare import identify_breaks
+
+    runs = identify_breaks(spots, min_spots=1)
+    if runs.empty:
+        return _baseline_levels(frame)
+    ns_per_minute = 60_000_000_000
+    minutes = frame["ts"].map(lambda t: int(pd.Timestamp(t).value // ns_per_minute))
+    keep = np.ones(len(frame), dtype=bool)
+    for channel, group in runs.groupby("channel", sort=False):
+        pairs = sorted(
+            (
+                int(pd.Timestamp(s).floor("min").value // ns_per_minute),
+                int(pd.Timestamp(e).floor("min").value // ns_per_minute),
+            )
+            for s, e in zip(group["break_start"], group["break_end"])
+        )
+        starts = np.array([p[0] for p in pairs], dtype=np.int64)
+        ends = np.array([p[1] for p in pairs], dtype=np.int64)
+        rows = (frame["channel"] == channel).to_numpy()
+        if not rows.any():
+            continue
+        m = minutes.to_numpy()[rows]
+        # Ad-air runs are disjoint and sorted, so only the latest span starting
+        # at or before each minute can contain it.
+        j = np.searchsorted(starts, m, side="right") - 1
+        inside = (j >= 0) & (ends[np.clip(j, 0, len(ends) - 1)] >= m)
+        keep[np.flatnonzero(rows)[inside]] = False
+    grouped = frame[keep].groupby(["channel", "mod"])["tvr"].mean()
+    return {(str(ch), int(mod)): float(v) for (ch, mod), v in grouped.items()}
+
+
 # Detrend-baseline seasonality. "global" is the shipped behavior: one typical
 # curve per channel, averaged over the whole data window. On a multi-year
 # window that average smears winter into summer, so "month_minute" keeps one
@@ -345,6 +396,7 @@ def break_effects(
     min_window_minutes: int = _MIN_WINDOW_MINUTES,
     clip_to_all_ad_airtime: bool = False,
     baseline_seasonality: str = "global",
+    baseline_content_only: bool = False,
 ) -> pd.DataFrame:
     """Measure the detrended retention effect of every real break.
 
@@ -383,11 +435,28 @@ def break_effects(
     winter into summer. Switching modes changes measured coefficients and is
     owner-gated on held-out skill (kairos.model.detrend_gate); no shipped
     caller passes anything but the default.
+
+    ``baseline_content_only`` (default False, shipped behavior unchanged)
+    rebuilds the detrend baseline from content-only minutes: every minute
+    inside any ad-air run is excluded from the typical curve (see
+    :func:`_content_only_baseline_levels`). Measured standalone effect
+    (causal-identification review, section 5): pooled -0.0391 -> -0.0360,
+    every cell +0.0031 toward zero on average, which is AWAY from the causal
+    -0.049 to -0.053, so this option must ship together with the placebo-drift
+    correction (:mod:`kairos.model.placebo_correction`), never alone. Gated at
+    the rebuild by --placebo-correction (default OFF). Only measured against
+    the global baseline; combining with ``month_minute`` raises.
     """
     if baseline_seasonality not in BASELINE_SEASONALITY_MODES:
         raise ValueError(
             f"unknown baseline_seasonality {baseline_seasonality!r}; "
             f"expected one of {BASELINE_SEASONALITY_MODES}"
+        )
+    if baseline_content_only and baseline_seasonality != "global":
+        raise ValueError(
+            "baseline_content_only is only measured against the global baseline; "
+            f"combining it with baseline_seasonality={baseline_seasonality!r} is "
+            "an unmeasured configuration"
         )
     breaks = keyed_breaks(spots, programmes, classifier)
     columns = [
@@ -411,7 +480,11 @@ def break_effects(
 
     frame = _dayparts_frame(dayparts)
     observed = _minute_lookup(frame)
-    baseline = _baseline_levels(frame)
+    baseline = (
+        _content_only_baseline_levels(frame, spots)
+        if baseline_content_only
+        else _baseline_levels(frame)
+    )
     seasonal = (
         _seasonal_baseline_levels(frame)
         if baseline_seasonality == "month_minute"

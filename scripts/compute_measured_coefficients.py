@@ -39,6 +39,27 @@ relative_improvement, min_relative_improvement) and
 from the JSON. The covariate therefore self-activates the day the data
 supports it, with no code change.
 
+Placebo-drift correction (measured always, applied only when forced on)
+------------------------------------------------------------------------
+The causal-identification review (docs/model-validation/causal-identification.md)
+measured that no-break minutes drift POSITIVE under the shipped null (matched
+placebo +0.0151 delta, z = +4.12), so every shipped per-break cost is
+understated by its genre's within-show drift. Every rebuild re-measures that
+drift (:func:`kairos.model.placebo_correction.measure_placebo_drift`, seeded)
+and ALWAYS writes it to the metadata (``placebo_correction_active``,
+``placebo_correction`` with pooled_drift / per_genre_drift / n_pseudo,
+``placebo_correction_reason``). The correction is applied by
+default (it moves the optimizer's per-break charge by roughly a third; the
+measured plan and revenue movement are recorded in
+docs/model-validation/README.md); ``--placebo-correction force-off`` or
+KAIROS_PLACEBO_CORRECTION=force-off disables it for diagnostics. When ON, the
+review's fix 2 rides along by construction: effects are re-measured with the
+content-only detrend baseline (``baseline_content_only=True``), the drift is
+re-measured under that same baseline, and each genre's drift is subtracted
+from the raw effects BEFORE the usual DL/EB pooling (measured pair: pooled
+about -0.0496; the content-only baseline alone moves AWAY from the causal
+value, which is why the two ship together).
+
 Detrend seasonality (evaluate-only verdict)
 -------------------------------------------
 Every rebuild also runs the season-aware detrend gate
@@ -46,7 +67,26 @@ Every rebuild also runs the season-aware detrend gate
 verdict in the metadata. This one NEVER self-activates: the baseline mode used
 stays "global" (``detrend_baseline_mode`` in the metadata) and switching
 :func:`kairos.model.measure.break_effects` to ``month_minute`` is an explicit
-owner decision at the multi-year data drop.
+deliberate configuration decision at the multi-year data drop.
+
+Interval calibration (measured always, applied only when forced on)
+--------------------------------------------------------------------
+The uncertainty-calibration review (docs/model-validation/uncertainty-calibration.md)
+measured that the shipped plug-in 95% band undercovers (82.6% true coverage at
+today's sample size; a ~1.77x widening is needed, self-healing with data)
+because tau^2 estimation error is not propagated. Every rebuild runs the
+seeded parametric bootstrap (:mod:`kairos.model.interval_calibration`) and
+ALWAYS writes the measured verdict (``interval_method``,
+``moderated_variances``, ``bootstrap_B``, ``prior_df``,
+``width_factor_measured``, ``interval_calibration_reason``).
+``--interval-calibration force-on`` replaces ci_low/ci_high with the
+calibrated (Laird-Louis mixture) quantiles - the POINT coefficients are
+untouched - and adds per-cell ``predictive_low``/``predictive_high`` for a
+single future break (separate keys; ci_* semantics never change).
+``--moderated-variances force-on`` additionally swaps limma-moderated
+per-cell within-variances into the DL weights (this one moves the point
+coefficients, which is why it never self-activates). Env overrides:
+KAIROS_INTERVAL_CALIBRATION / KAIROS_MODERATED_VARIANCES = force-on/force-off.
 
 Optional override flags
 -----------------------
@@ -64,9 +104,13 @@ Run from the repo root:
 from __future__ import annotations
 
 import argparse
+import json
+import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+
+import numpy as np
 
 from kairos.data import ProgramClassifier
 from kairos.data.loaders import (
@@ -87,6 +131,7 @@ from kairos.model.competitor_model import (
     fit_competitor_betas,
 )
 from kairos.model.detrend_gate import detrend_seasonality_gate
+from kairos.model.drift_monitor import level_drift
 from kairos.model.measure import (
     between_cell_variance,
     break_effects,
@@ -95,6 +140,18 @@ from kairos.model.measure import (
     write_coefficients_json,
 )
 from kairos.model.freshness import COMPUTED_AT_KEY, FINGERPRINTS_KEY
+from kairos.model.interval_calibration import (
+    DEFAULT_BOOTSTRAP_B,
+    DEFAULT_CALIBRATION_SEED,
+    apply_calibrated_intervals,
+    calibrate_intervals,
+    coefficient_map,
+    predictive_bands,
+)
+from kairos.model.placebo_correction import (
+    apply_placebo_correction,
+    measure_placebo_drift,
+)
 from kairos.model.series import series_coefficients
 from kairos.model.series_gate import series_holdout_gate
 from kairos.observability.run_log import checksum_file
@@ -168,6 +225,57 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--placebo-correction",
+        choices=[_FORCE_ON, _FORCE_OFF],
+        default=None,
+        help=(
+            "Override the placebo-drift correction layer. Default (flag omitted) "
+            "is OFF: there is no automatic gate, because applying the correction "
+            "moves the optimizer's per-break charge by roughly a third and is an "
+            "explicit configuration decision. "
+            f"'{_FORCE_ON}' emits placebo-corrected coefficients: effects are "
+            "re-measured with the content-only detrend baseline and each genre's "
+            "measured no-break drift is subtracted before pooling. "
+            f"'{_FORCE_OFF}' behaves like the default; either way the measured "
+            "drift is always written to the metadata. The env var "
+            "KAIROS_PLACEBO_CORRECTION=force-on/force-off applies the same "
+            "override."
+        ),
+    )
+    parser.add_argument(
+        "--interval-calibration",
+        choices=[_FORCE_ON, _FORCE_OFF],
+        default=None,
+        help=(
+            "Override the interval-calibration layer. Default (flag omitted) is "
+            "OFF: there is no automatic gate, because the calibrated bands widen "
+            "the ci_low the risk_lambda decision prices, an explicit owner "
+            "decision. "
+            f"'{_FORCE_ON}' replaces ci_low/ci_high with seeded parametric-"
+            "bootstrap quantiles that propagate tau^2 estimation error (points "
+            "untouched) and adds per-cell predictive_low/predictive_high. "
+            f"'{_FORCE_OFF}' behaves like the default; either way the measured "
+            "width factor is always written to the metadata. The env var "
+            "KAIROS_INTERVAL_CALIBRATION=force-on/force-off applies the same "
+            "override."
+        ),
+    )
+    parser.add_argument(
+        "--moderated-variances",
+        choices=[_FORCE_ON, _FORCE_OFF],
+        default=None,
+        help=(
+            "Override the limma moderated-variance layer (default OFF). "
+            f"'{_FORCE_ON}' shrinks each cell's within-variance toward the "
+            "learned prior and uses the moderated variances in the DL weights "
+            "and intervals; this MOVES the point coefficients, so it never "
+            "self-activates. The prior df is always measured and written to "
+            "the metadata either way. The env var "
+            "KAIROS_MODERATED_VARIANCES=force-on/force-off applies the same "
+            "override."
+        ),
+    )
+    parser.add_argument(
         "--output",
         default=str(OUTPUT_PATH),
         help=(
@@ -191,6 +299,21 @@ def main() -> None:
     cp_override: str | None = args.counterprogramming
     if cp_override is None and env_cp in (_FORCE_ON, _FORCE_OFF):
         cp_override = env_cp
+
+    env_pc = os.environ.get("KAIROS_PLACEBO_CORRECTION", "").strip().lower()
+    pc_override: str | None = args.placebo_correction
+    if pc_override is None and env_pc in (_FORCE_ON, _FORCE_OFF):
+        pc_override = env_pc
+
+    env_ic = os.environ.get("KAIROS_INTERVAL_CALIBRATION", "").strip().lower()
+    ic_override: str | None = args.interval_calibration
+    if ic_override is None and env_ic in (_FORCE_ON, _FORCE_OFF):
+        ic_override = env_ic
+
+    env_mv = os.environ.get("KAIROS_MODERATED_VARIANCES", "").strip().lower()
+    mv_override: str | None = args.moderated_variances
+    if mv_override is None and env_mv in (_FORCE_ON, _FORCE_OFF):
+        mv_override = env_mv
 
     # Load the reference data and measure every break's detrended log effect.
     spots = load_spots()
@@ -282,10 +405,182 @@ def main() -> None:
                 "covariate stays off"
             )
 
+    # Placebo-drift correction: measured on EVERY rebuild, applied only when
+    # forced on. OFF (the default) leaves every coefficient above untouched
+    # and records the drift that WOULD be subtracted, measured under the
+    # shipped baseline. ON re-measures the effects with the content-only
+    # baseline (fix 2), re-measures the matched drift under that same
+    # baseline, subtracts each genre's drift from the raw effects (fix 1),
+    # and re-pools with the same DL/EB machinery; the review measured that
+    # fix 2 alone moves AWAY from the causal value, so the pair is atomic.
+    # The layer is measured on plain (non-competition-adjusted) effects; when
+    # forced on it therefore replaces any competition-adjusted coefficients,
+    # and the reason string records that.
+    # The placebo-drift correction is applied by default; the measured plan
+    # and revenue movement behind that default are recorded in
+    # docs/model-validation/README.md. force-off remains for diagnostics.
+    pc_active = pc_override != _FORCE_OFF
+    if pc_active:
+        effects_content = break_effects(
+            spots, programmes, dayparts_frame, classifier,
+            baseline_content_only=True,
+        )
+        correction = measure_placebo_drift(
+            spots, programmes, dayparts_frame, classifier, effects_content,
+            baseline_content_only=True,
+        )
+        corrected_effects = apply_placebo_correction(effects_content, correction)
+        coefficients = channel_coefficients(corrected_effects)
+        if not coefficients:
+            raise SystemExit(
+                "No breaks measured under the content-only baseline; refusing "
+                "to write an empty coefficients file."
+            )
+        diagnostics = between_cell_variance(corrected_effects)
+        source = (
+            f"forced by --placebo-correction {_FORCE_ON} (or env)"
+            if pc_override == _FORCE_ON
+            else "active by default"
+        )
+        pc_reason = (
+            f"{source}: content-only "
+            "baseline applied and each genre's measured no-break drift "
+            f"(pooled {correction.pooled_drift:+.5f} log over "
+            f"{correction.n_pseudo} matched pseudo-breaks) subtracted from the "
+            "raw effects before pooling"
+        )
+        if cp_active:
+            pc_reason += (
+                "; overrides the competition-adjusted coefficients (the placebo "
+                "layer is measured on plain effects)"
+            )
+    else:
+        correction = measure_placebo_drift(
+            spots, programmes, dayparts_frame, classifier, effects,
+        )
+        source = (
+            f"--placebo-correction {_FORCE_OFF} (or env)"
+            if pc_override == _FORCE_OFF
+            else "default"
+        )
+        pc_reason = (
+            f"correction left OFF ({source}); drift measured and recorded only "
+            f"(pooled {correction.pooled_drift:+.5f} log over "
+            f"{correction.n_pseudo} matched pseudo-breaks). Activation is an "
+            "explicit decision: the corrected charge moves every "
+            "coefficient by its genre's measured drift"
+        )
+    pc_meta = correction.as_metadata()
+    if pc_active:
+        # The corrected pooled delta on the optimizer's scale, so the headline
+        # of the applied correction is auditable straight from the JSON.
+        pc_meta["pooled_corrected_delta"] = float(
+            np.exp(float(corrected_effects["log_effect"].mean())) - 1.0
+        )
+
+    # Interval calibration (parametric-bootstrap tau^2 propagation) and
+    # limma moderated variances: MEASURED on every rebuild so the metadata
+    # always reports the honest widening the plug-in band omits, APPLIED only
+    # under an explicit force-on. The calibration runs on the SAME effects the
+    # emitted coefficients were pooled from (placebo-corrected when that layer
+    # is on, else competition-adjusted when that gate is active, else plain).
+    if pc_active:
+        effects_for_intervals = corrected_effects
+    elif cp_active:
+        effects_for_intervals = adjusted
+    else:
+        effects_for_intervals = effects
+    # Calibrated intervals are applied by default: the point coefficients are
+    # untouched and ci_low/ci_high honestly carry tau^2 estimation error.
+    interval_on = ic_override != _FORCE_OFF
+    moderated_on = mv_override == _FORCE_ON
+    calibration = None
+    calibration_error = ""
+    try:
+        calibration = calibrate_intervals(
+            effects_for_intervals,
+            bootstrap_b=DEFAULT_BOOTSTRAP_B,
+            seed=DEFAULT_CALIBRATION_SEED,
+            moderated=moderated_on,
+        )
+    except ValueError as exc:
+        calibration_error = str(exc)
+
+    predictive: dict[str, tuple[float, float]] = {}
+    interval_method = "naive"
+    width_factor = None
+    prior_df = None
+    if calibration is None:
+        ic_reason = (
+            f"unavailable ({calibration_error}); shipped plug-in intervals kept"
+        )
+    else:
+        width_factor = calibration.width_factor()
+        if math.isfinite(calibration.prior.df):
+            prior_df = float(calibration.prior.df)
+        if calibration.moderated:
+            # Moderated DL weights legitimately move the point estimates;
+            # only an explicit force-on reaches this branch.
+            coefficients = coefficient_map(calibration, plugin=not interval_on)
+        elif interval_on:
+            # Points carried over bit-for-bit; ONLY ci_low/ci_high replaced.
+            coefficients = apply_calibrated_intervals(coefficients, calibration)
+        if interval_on:
+            interval_method = "bootstrap"
+            predictive = predictive_bands(calibration)
+            ic_source = (
+                f"forced by --interval-calibration {_FORCE_ON} (or env)"
+                if ic_override == _FORCE_ON
+                else "active by default"
+            )
+            ic_reason = (
+                f"{ic_source}: "
+                "ci_low/ci_high are seeded parametric-bootstrap mixture "
+                f"quantiles (B={calibration.bootstrap_b}, measured width "
+                f"factor {width_factor:.2f}x at 95%); predictive_low/"
+                "predictive_high added per cell for a single future break"
+            )
+        else:
+            source = (
+                f"--interval-calibration {_FORCE_OFF} (or env)"
+                if ic_override == _FORCE_OFF
+                else "default"
+            )
+            ic_reason = (
+                f"calibration left OFF ({source}); the seeded bootstrap "
+                f"measures the plug-in band would need to widen "
+                f"{width_factor:.2f}x at 95% to honestly carry tau^2 "
+                "estimation error. Activation widens the ci_low that "
+                "risk_lambda prices and is an explicit configuration decision"
+            )
+        if moderated_on:
+            if calibration.moderated:
+                label = (
+                    f"prior df {prior_df:.1f}"
+                    if prior_df is not None
+                    else "infinite prior df"
+                )
+                ic_reason += (
+                    f"; moderated per-cell variances APPLIED ({label}) - "
+                    "DL weights and point coefficients re-weighted"
+                )
+            else:
+                ic_reason += (
+                    "; moderated variances requested but unavailable "
+                    "(variance prior could not be estimated)"
+                )
+
     # Detrend seasonality: evaluate-only. The verdict is recorded so the
     # decision is on the table at the multi-year drop, but the baseline mode
-    # used above stays "global" regardless (activation is an owner decision).
+    # used above stays "global" regardless (activation is a deliberate switch).
     dt_gate = detrend_seasonality_gate(dayparts_frame)
+
+    # Weekly level drift of the measurement base: the binding nonstationarity
+    # risk from docs/model-validation/uncertainty-calibration.md, measured from
+    # the same plain effects on every rebuild (like the other gates, it never
+    # depends on optional layers). Honest absent state under two weeks of data
+    # (see kairos.model.drift_monitor).
+    drift = level_drift(effects)
 
     total_breaks = sum(c.n for c in coefficients.values())
     negative = sum(1 for c in coefficients.values() if c.coefficient < 0)
@@ -305,12 +600,10 @@ def main() -> None:
         "pooled_within_variance": diagnostics["pooled_within_var"],
         "learned_pseudo_count": diagnostics["pseudo_count"],
         # Series gate: always present so any reader can audit the decision.
+        # Carries the whole holdout block, including the fold-averaged
+        # statistic fields (gate_statistic_method, folds, fold_sd).
         "series_layer_active": emit_series,
-        "series_gate_holdout": {
-            "genre_rmse": holdout["genre_rmse"],
-            "series_rmse": holdout["series_rmse"],
-            "n_test": holdout["n_test"],
-        },
+        "series_gate_holdout": dict(holdout),
         "series_gate_reason": gate["series_gate_reason"],
         # Summary counts (unchanged from the old format).
         "series_layer": emit_series,
@@ -336,12 +629,37 @@ def main() -> None:
         "counterprogramming_holdout": cp_gate["counterprogramming_holdout"],
         "counterprogramming_reason": cp_gate["counterprogramming_reason"],
         "counterprogramming_forward_features": cp_gate["forward_features"],
+        # Placebo-drift correction: the measured no-break drift is ALWAYS
+        # recorded (pooled and per genre, with counts and cluster-robust SEs)
+        # so any reader can see the correction the causal review calls for;
+        # placebo_correction_active says whether it was actually applied to
+        # the coefficients above (only under an explicit force-on).
+        "placebo_correction_active": pc_active,
+        "placebo_correction": pc_meta,
+        "placebo_correction_reason": pc_reason,
         # Detrend seasonality: the mode these coefficients were measured with,
         # plus the evaluate-only gate verdict for the multi-year drop.
         "detrend_baseline_mode": "global",
         "detrend_seasonality_recommended": dt_gate["detrend_seasonality_recommended"],
         "detrend_seasonality_holdout": dt_gate["detrend_seasonality_holdout"],
         "detrend_seasonality_reason": dt_gate["detrend_seasonality_reason"],
+        # Weekly level drift of the measurement base: weekly_levels,
+        # drift_per_week, drift_se, binding and the criterion, measured at
+        # rebuild time so the artifact always says whether the level the plan
+        # runs on is still the level the coefficients were pooled on.
+        "level_drift": drift,
+        # Interval calibration: the method actually used for ci_low/ci_high
+        # ("naive" plug-in or "bootstrap" mixture quantiles), whether limma
+        # moderated variances were APPLIED to the DL weights, and the measured
+        # honest widening -- always present so any reader can see the plug-in
+        # band's optimism even when the correction is OFF.
+        "interval_method": interval_method,
+        "moderated_variances": bool(calibration.moderated) if calibration else False,
+        "bootstrap_B": calibration.bootstrap_b if calibration else None,
+        "interval_seed": calibration.seed if calibration else None,
+        "prior_df": prior_df,
+        "width_factor_measured": width_factor,
+        "interval_calibration_reason": ic_reason,
     }
     if cp_betas_meta:
         metadata["counterprogramming_betas"] = cp_betas_meta
@@ -357,6 +675,19 @@ def main() -> None:
         Path(args.output), coefficients, metadata=metadata,
         series=series_to_write if series_to_write else None,
     )
+    if predictive:
+        # Additive per-cell predictive band (single future break). Injected
+        # after the standard writer so the detail schema stays owned by
+        # measure.py; every existing reader ignores unknown keys. Only written
+        # when the calibration is ON, so the OFF artifact stays byte-stable.
+        payload = json.loads(written.read_text(encoding="utf-8"))
+        detail_block = payload.get("detail", {})
+        for name, (p_lo, p_hi) in predictive.items():
+            cell = detail_block.get(name)
+            if cell is not None:
+                cell["predictive_low"] = p_lo
+                cell["predictive_high"] = p_hi
+        written.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     print(f"Wrote {len(coefficients)} measured coefficients to {written}")
     print(f"  total breaks measured: {total_breaks}")
@@ -371,8 +702,20 @@ def main() -> None:
               f"({len(cp_betas_meta)} betas in metadata)")
     else:
         print("  counter-programming INACTIVE (plain measured coefficients)")
+    print(f"  placebo correction: {pc_reason}")
+    if pc_active:
+        print("  placebo correction ACTIVE: drift-corrected, content-only-baseline "
+              f"coefficients emitted (pooled corrected delta "
+              f"{pc_meta['pooled_corrected_delta']:+.5f})")
     print(f"  detrend seasonality gate: {dt_gate['detrend_seasonality_reason']} "
           "(baseline mode used: global)")
+    if drift["status"] == "measured":
+        print(f"  level drift: {drift['drift_per_week']:+.4f} per week (se {drift['drift_se']:.4f}) "
+              f"vs binding threshold {drift['binding_threshold']:.4f} over {drift['n_weeks']} weeks; "
+              f"binding={drift['binding']}")
+    else:
+        print(f"  level drift: not measured ({drift['reason']})")
+    print(f"  interval calibration: {ic_reason}")
     if emit_series:
         print(f"  series layer ACTIVE: {len(series_to_write)} (cell, series) records emitted")
     else:
