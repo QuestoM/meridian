@@ -1,0 +1,636 @@
+{
+  "review_item": "1+2 decision sensitivity and regret",
+  "scope": {
+    "channel": "עכשיו 14",
+    "day": "2024-11-06",
+    "segments": 45,
+    "shipped_breaks": 73
+  },
+  "k": 50,
+  "seed": 42,
+  "decision_process": {
+    "entry": "kairos.service.run_scenario",
+    "objective_mode": "blend",
+    "revenue_weight": 60,
+    "risk_lambda": 0.0,
+    "refine": true
+  },
+  "baseline": {
+    "replay_equals_shipped_csv": true,
+    "shipped_plan_at_point": {
+      "gross_ils": 2129539.659711178,
+      "retention_cost_ils": 192568.34028882193,
+      "net_ils": 1936971.319422356,
+      "breaks": 73.0
+    }
+  },
+  "summary": {
+    "breaks_opt": {
+      "p0": 73.0,
+      "p10": 73.0,
+      "p50": 73.0,
+      "p90": 73.0,
+      "p100": 73.0,
+      "mean": 73.0
+    },
+    "gross_opt_ils": {
+      "p10": 2109870.2878782325,
+      "p50": 2126950.4640553864,
+      "p90": 2147687.1672224966,
+      "mean": 2127512.172141813
+    },
+    "net_opt_ils": {
+      "p10": 1900060.2113058583,
+      "p50": 1931792.9281107727,
+      "p90": 1971299.119976477,
+      "mean": 1933246.1042836267
+    },
+    "net_shipped_ils": {
+      "p10": 1898315.3219263118,
+      "p50": 1931792.9281107727,
+      "p90": 1972881.7112101372,
+      "mean": 1932932.1705015283
+    },
+    "regret_ils_per_day": {
+      "p10": -3358.9018568055703,
+      "p50": 0.0,
+      "p90": 4281.978667460592,
+      "p100": 4980.717192093609,
+      "mean": 313.9337820983352
+    },
+    "regret_ils_per_week_x7": {
+      "mean": 2197.5364746883465,
+      "p90": 29973.850672224144
+    },
+    "hamming_share": {
+      "p10": 0.0,
+      "p50": 0.0,
+      "p90": 0.06666666666666667,
+      "mean": 0.016888888888888887,
+      "max": 0.06666666666666667
+    },
+    "hamming_segments_mean": 0.76,
+    "identical_plan_share": 0.68,
+    "zero_regret_share": 0.68,
+    "negative_regret_share": 0.12
+  },
+  "draws": [
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2131158.7216846077,
+      "net_opt_ils": 1940209.4433692158,
+      "net_shipped_ils": 1940209.4433692158,
+      "gross_shipped_ils": 2131158.7216846077,
+      "cost_shipped_ils": 190949.27831539194,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2131517.1021028953,
+      "net_opt_ils": 1940926.204205791,
+      "net_shipped_ils": 1940926.204205791,
+      "gross_shipped_ils": 2131517.1021028953,
+      "cost_shipped_ils": 190590.89789710427,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2131549.6091948696,
+      "net_opt_ils": 1940991.2183897393,
+      "net_shipped_ils": 1940991.2183897393,
+      "gross_shipped_ils": 2131549.6091948696,
+      "cost_shipped_ils": 190558.3908051303,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2130097.030839671,
+      "net_opt_ils": 1938086.061679342,
+      "net_shipped_ils": 1938086.061679342,
+      "gross_shipped_ils": 2130097.030839671,
+      "cost_shipped_ils": 192010.96916032894,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2120467.9035061426,
+      "net_opt_ils": 1924839.807012285,
+      "net_shipped_ils": 1920962.7948856344,
+      "gross_shipped_ils": 2121535.397442817,
+      "cost_shipped_ils": 200572.6025571829,
+      "regret_ils": 3877.0121266506612,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2120460.7048121155,
+      "net_opt_ils": 1918813.409624231,
+      "net_shipped_ils": 1918813.409624231,
+      "gross_shipped_ils": 2120460.7048121155,
+      "cost_shipped_ils": 201647.2951878844,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2144465.940720382,
+      "net_opt_ils": 1959551.881440764,
+      "net_shipped_ils": 1966695.0520090754,
+      "gross_shipped_ils": 2144401.526004538,
+      "cost_shipped_ils": 177706.47399546255,
+      "regret_ils": -7143.170568311354,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2113641.5158919254,
+      "net_opt_ils": 1905175.0317838506,
+      "net_shipped_ils": 1905175.0317838506,
+      "gross_shipped_ils": 2113641.5158919254,
+      "cost_shipped_ils": 208466.48410807486,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2117045.424956094,
+      "net_opt_ils": 1917994.849912188,
+      "net_shipped_ils": 1913633.9362859286,
+      "gross_shipped_ils": 2117870.9681429644,
+      "cost_shipped_ils": 204237.03185703576,
+      "regret_ils": 4360.913626259426,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2116185.616486679,
+      "net_opt_ils": 1916275.232973358,
+      "net_shipped_ils": 1911571.9010676173,
+      "gross_shipped_ils": 2116839.9505338087,
+      "cost_shipped_ils": 205268.04946619135,
+      "regret_ils": 4703.331905740546,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2142342.954796332,
+      "net_opt_ils": 1955305.909592664,
+      "net_shipped_ils": 1958657.3819167318,
+      "gross_shipped_ils": 2140382.690958366,
+      "cost_shipped_ils": 181725.30904163388,
+      "regret_ils": -3351.4723240677267,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2134727.928047578,
+      "net_opt_ils": 1947347.8560951562,
+      "net_shipped_ils": 1947347.8560951562,
+      "gross_shipped_ils": 2134727.928047578,
+      "cost_shipped_ils": 187380.07195242165,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2144257.707181775,
+      "net_opt_ils": 1966407.41436355,
+      "net_shipped_ils": 1966407.41436355,
+      "gross_shipped_ils": 2144257.707181775,
+      "cost_shipped_ils": 177850.29281822496,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2152574.1627576775,
+      "net_opt_ils": 1983040.3255153548,
+      "net_shipped_ils": 1983040.3255153548,
+      "gross_shipped_ils": 2152574.1627576775,
+      "cost_shipped_ils": 169533.83724232265,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2150262.0590839563,
+      "net_opt_ils": 1971144.1181679126,
+      "net_shipped_ils": 1974569.8858193588,
+      "gross_shipped_ils": 2148338.9429096794,
+      "cost_shipped_ils": 173769.0570903206,
+      "regret_ils": -3425.7676514461637,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2128106.5625607497,
+      "net_opt_ils": 1934105.1251214994,
+      "net_shipped_ils": 1934105.1251214994,
+      "gross_shipped_ils": 2128106.5625607497,
+      "cost_shipped_ils": 194001.4374392504,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2100938.7589657074,
+      "net_opt_ils": 1879769.517931415,
+      "net_shipped_ils": 1879769.517931415,
+      "gross_shipped_ils": 2100938.7589657074,
+      "cost_shipped_ils": 221169.2410342923,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2099425.8141904008,
+      "net_opt_ils": 1876743.6283808018,
+      "net_shipped_ils": 1876743.6283808018,
+      "gross_shipped_ils": 2099425.8141904008,
+      "cost_shipped_ils": 222682.185809599,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2114680.984182422,
+      "net_opt_ils": 1907253.968364844,
+      "net_shipped_ils": 1907253.968364844,
+      "gross_shipped_ils": 2114680.984182422,
+      "cost_shipped_ils": 207427.01581757786,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2119341.4723729626,
+      "net_opt_ils": 1916574.944745925,
+      "net_shipped_ils": 1916574.944745925,
+      "gross_shipped_ils": 2119341.4723729626,
+      "cost_shipped_ils": 202766.52762703755,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2120276.152646211,
+      "net_opt_ils": 1924456.3052924222,
+      "net_shipped_ils": 1920633.4953685098,
+      "gross_shipped_ils": 2121370.747684255,
+      "cost_shipped_ils": 200737.25231574496,
+      "regret_ils": 3822.8099239123985,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2147401.0681267786,
+      "net_opt_ils": 1972694.136253557,
+      "net_shipped_ils": 1972694.136253557,
+      "gross_shipped_ils": 2147401.0681267786,
+      "cost_shipped_ils": 174706.93187322156,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2120848.4606364337,
+      "net_opt_ils": 1919588.9212728671,
+      "net_shipped_ils": 1919588.9212728671,
+      "gross_shipped_ils": 2120848.4606364337,
+      "cost_shipped_ils": 201259.53936356652,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2136010.010280556,
+      "net_opt_ils": 1949912.0205611123,
+      "net_shipped_ils": 1949912.0205611123,
+      "gross_shipped_ils": 2136010.010280556,
+      "cost_shipped_ils": 186097.9897194437,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2111178.222217481,
+      "net_opt_ils": 1900248.4444349625,
+      "net_shipped_ils": 1900248.4444349625,
+      "gross_shipped_ils": 2111178.222217481,
+      "cost_shipped_ils": 210929.77778251874,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2159178.3336096667,
+      "net_opt_ils": 1988976.667219333,
+      "net_shipped_ils": 1994051.9143442265,
+      "gross_shipped_ils": 2158079.9571721135,
+      "cost_shipped_ils": 164028.0428278869,
+      "regret_ils": -5075.247124893591,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2108748.515016754,
+      "net_opt_ils": 1888117.0300335083,
+      "net_shipped_ils": 1892491.006274816,
+      "gross_shipped_ils": 2107299.5031374083,
+      "cost_shipped_ils": 214808.49686259206,
+      "regret_ils": -4373.976241307799,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2114456.1687387535,
+      "net_opt_ils": 1906804.3374775073,
+      "net_shipped_ils": 1906804.3374775073,
+      "gross_shipped_ils": 2114456.1687387535,
+      "cost_shipped_ils": 207651.8312612462,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2110269.8266722234,
+      "net_opt_ils": 1904443.6533444468,
+      "net_shipped_ils": 1900170.4452279638,
+      "gross_shipped_ils": 2111139.222613982,
+      "cost_shipped_ils": 210968.777386018,
+      "regret_ils": 4273.208116482943,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2150321.049659923,
+      "net_opt_ils": 1978534.0993198464,
+      "net_shipped_ils": 1978534.0993198464,
+      "gross_shipped_ils": 2150321.049659923,
+      "cost_shipped_ils": 171786.95034007684,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2132355.3431374235,
+      "net_opt_ils": 1942602.6862748472,
+      "net_shipped_ils": 1942602.6862748472,
+      "gross_shipped_ils": 2132355.3431374235,
+      "cost_shipped_ils": 189752.65686257632,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2140257.030475762,
+      "net_opt_ils": 1958406.0609515244,
+      "net_shipped_ils": 1958406.0609515244,
+      "gross_shipped_ils": 2140257.030475762,
+      "cost_shipped_ils": 181850.96952423776,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2142185.080904463,
+      "net_opt_ils": 1962262.1618089247,
+      "net_shipped_ils": 1962262.1618089247,
+      "gross_shipped_ils": 2142185.080904463,
+      "cost_shipped_ils": 179922.91909553815,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2123618.1441540923,
+      "net_opt_ils": 1925128.2883081844,
+      "net_shipped_ils": 1925128.2883081844,
+      "gross_shipped_ils": 2123618.1441540923,
+      "cost_shipped_ils": 198489.85584590788,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2125430.4933700156,
+      "net_opt_ils": 1928752.9867400306,
+      "net_shipped_ils": 1928752.9867400306,
+      "gross_shipped_ils": 2125430.4933700156,
+      "cost_shipped_ils": 196677.506629985,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2156118.0729883597,
+      "net_opt_ils": 1990128.1459767194,
+      "net_shipped_ils": 1990128.1459767194,
+      "gross_shipped_ils": 2156118.0729883597,
+      "cost_shipped_ils": 165989.9270116403,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2109467.459079965,
+      "net_opt_ils": 1902838.9181599303,
+      "net_shipped_ils": 1897858.2009678367,
+      "gross_shipped_ils": 2109983.100483918,
+      "cost_shipped_ils": 212124.8995160815,
+      "regret_ils": 4980.717192093609,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2134735.9824850066,
+      "net_opt_ils": 1947363.9649700134,
+      "net_shipped_ils": 1947363.9649700134,
+      "gross_shipped_ils": 2134735.9824850066,
+      "cost_shipped_ils": 187372.0175149933,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2121284.884714867,
+      "net_opt_ils": 1926473.769429734,
+      "net_shipped_ils": 1922366.949126599,
+      "gross_shipped_ils": 2122237.4745632997,
+      "cost_shipped_ils": 199870.52543670082,
+      "regret_ils": 4106.820303135086,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2121182.6780619565,
+      "net_opt_ils": 1920257.356123913,
+      "net_shipped_ils": 1920257.356123913,
+      "gross_shipped_ils": 2121182.6780619565,
+      "cost_shipped_ils": 200925.3219380434,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2126476.1626304607,
+      "net_opt_ils": 1930844.3252609216,
+      "net_shipped_ils": 1930844.3252609216,
+      "gross_shipped_ils": 2126476.1626304607,
+      "cost_shipped_ils": 195631.83736953916,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2127424.765480312,
+      "net_opt_ils": 1932741.5309606239,
+      "net_shipped_ils": 1932741.5309606239,
+      "gross_shipped_ils": 2127424.765480312,
+      "cost_shipped_ils": 194683.23451968827,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2132307.7573732464,
+      "net_opt_ils": 1942507.514746493,
+      "net_shipped_ils": 1942507.514746493,
+      "gross_shipped_ils": 2132307.7573732464,
+      "cost_shipped_ils": 189800.24262675334,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2107011.0697221854,
+      "net_opt_ils": 1897926.139444371,
+      "net_shipped_ils": 1893875.7175641246,
+      "gross_shipped_ils": 2107991.8587820623,
+      "cost_shipped_ils": 214116.14121793772,
+      "regret_ils": 4050.421880246373,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2134892.663049993,
+      "net_opt_ils": 1953689.3260999862,
+      "net_shipped_ils": 1949216.31468469,
+      "gross_shipped_ils": 2135662.157342345,
+      "cost_shipped_ils": 186445.8426576551,
+      "regret_ils": 4473.011415296234,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2142111.4499658714,
+      "net_opt_ils": 1954842.8999317428,
+      "net_shipped_ils": 1958792.3077063179,
+      "gross_shipped_ils": 2140450.153853159,
+      "cost_shipped_ils": 181657.84614684098,
+      "regret_ils": -3949.4077745750546,
+      "hamming_share": 0.06666666666666667,
+      "hamming_count": 3.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2133800.0901758997,
+      "net_opt_ils": 1945492.1803517996,
+      "net_shipped_ils": 1945492.1803517996,
+      "gross_shipped_ils": 2133800.0901758997,
+      "cost_shipped_ils": 188307.90982410012,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2110237.05657196,
+      "net_opt_ils": 1898366.1131439202,
+      "net_shipped_ils": 1898366.1131439202,
+      "gross_shipped_ils": 2110237.05657196,
+      "cost_shipped_ils": 211870.9434280397,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2109915.0466335956,
+      "net_opt_ils": 1903734.0932671914,
+      "net_shipped_ils": 1899366.6089674903,
+      "gross_shipped_ils": 2110737.304483745,
+      "cost_shipped_ils": 211370.6955162546,
+      "regret_ils": 4367.484299701173,
+      "hamming_share": 0.044444444444444446,
+      "hamming_count": 2.0
+    },
+    {
+      "breaks_opt": 73.0,
+      "gross_opt_ils": 2122861.594175509,
+      "net_opt_ils": 1923615.1883510184,
+      "net_shipped_ils": 1923615.1883510184,
+      "gross_shipped_ils": 2122861.594175509,
+      "cost_shipped_ils": 199246.40582449094,
+      "regret_ils": 0.0,
+      "hamming_share": 0.0,
+      "hamming_count": 0.0
+    }
+  ],
+  "provenance": {
+    "generated_at": "2026-07-05T20:26:57.018734+00:00",
+    "git_head": "79c2c768e62d5ec41f1fc4efbc2523f4b9abdb30",
+    "kairos_dirty": "M kairos/model/competitor_gate.py\n M kairos/model/measure.py\n M kairos_api/assistant.py\n?? kairos/model/detrend_gate.py\n?? kairos_api/assistant_context.py",
+    "coefficients_computed_at": "2026-06-17T23:03:37.978707+00:00",
+    "python": "3.12.13"
+  }
+}

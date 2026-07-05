@@ -155,3 +155,32 @@ data lands.
 * The optimizer applies the coefficient linearly per break
   (`baseline + coefficient x k`); nonlinearity in k was probed earlier and
   found flat, but only within the observed 0-6 breaks-per-programme range.
+
+## Validation panel verdict (2026-07-05)
+
+Three independent computed referee reviews (causal identification, uncertainty
+calibration, decision robustness) were run against the real month; the full
+synthesis lives in docs/model-validation/README.md. The headlines the owner
+should know:
+
+- KNOWN BIAS, DISCLOSED: a matched placebo experiment shows the per-break
+  retention cost is understated by a factor of about 1.365 (within-show
+  audience-build drift absorbed into the estimate; corrected pooled cost
+  -0.0533 vs shipped -0.0391, permutation p = 0.0005). Until the correction
+  layer ships, the retention-cost headline (16.8M ILS per week) reads about
+  6.1M per week LOW. The decision layer is largely insensitive to this level
+  shift (see next bullet), so plans are not expected to move materially, but
+  the money disclosure is.
+- DECISIONS ARE ROBUST: across 200 coefficient draws the plan is identical to
+  shipped in 98.5 percent of draws and break counts never move; the 36-cell
+  structure and one pooled constant currently produce the same plan (only 12
+  cells are reachable and they collapse to 4 class coefficients). Retention
+  modeling as a whole earns +11,926 ILS per day against ignoring retention.
+  risk_lambda does not alter the plan at any setting today; it is honest
+  bookkeeping of the worst plausible cost, not tail protection.
+- INTERVALS: the per-cell ci is a latent-cell-mean band, holdout-consistent as
+  such, but it covers only 4.9 percent of individual break outcomes at nominal
+  95 percent, and honest cell coverage today needs about 1.77x wider intervals
+  (self-heals to about 1.07x at 24 months of data). tau2 is on a knife edge at
+  this sample size; the pooling machinery itself recovers correctly at 12x and
+  24x data with no code change.

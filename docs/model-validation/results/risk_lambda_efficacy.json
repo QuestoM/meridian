@@ -1,0 +1,60 @@
+{
+  "review_item": "4 risk_lambda efficacy",
+  "scope": {
+    "channel": "עכשיו 14",
+    "day": "2024-11-04"
+  },
+  "k": 200,
+  "seed": 42,
+  "lambdas": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "rows": {
+    "0.0": {
+      "breaks": 74.0,
+      "hamming_vs_lambda0_share": 0.0,
+      "segments_changed_vs_lambda0": 0.0,
+      "net_at_point_ils": 1416718.2472755576,
+      "gross_at_point_ils": 1558103.1236377787,
+      "retention_cost_at_point_ils": 141384.87636222117,
+      "net_mean_ils": 1416116.7829784453,
+      "net_p10_ils": 1385461.1178327731,
+      "net_p50_ils": 1415986.829378596,
+      "net_p90_ils": 1447062.1624836859
+    },
+    "0.5": {
+      "breaks": 74.0,
+      "hamming_vs_lambda0_share": 0.0,
+      "segments_changed_vs_lambda0": 0.0,
+      "net_at_point_ils": 1416718.2472755576,
+      "gross_at_point_ils": 1558103.1236377787,
+      "retention_cost_at_point_ils": 141384.87636222117,
+      "net_mean_ils": 1416116.7829784453,
+      "net_p10_ils": 1385461.1178327731,
+      "net_p50_ils": 1415986.829378596,
+      "net_p90_ils": 1447062.1624836859
+    },
+    "1.0": {
+      "breaks": 74.0,
+      "hamming_vs_lambda0_share": 0.0,
+      "segments_changed_vs_lambda0": 0.0,
+      "net_at_point_ils": 1416718.2472755576,
+      "gross_at_point_ils": 1558103.1236377787,
+      "retention_cost_at_point_ils": 141384.87636222117,
+      "net_mean_ils": 1416116.7829784453,
+      "net_p10_ils": 1385461.1178327731,
+      "net_p50_ils": 1415986.829378596,
+      "net_p90_ils": 1447062.1624836859
+    }
+  },
+  "replay_lambda0_equals_shipped_csv": true,
+  "provenance": {
+    "generated_at": "2026-07-05T20:25:15.527538+00:00",
+    "git_head": "79c2c768e62d5ec41f1fc4efbc2523f4b9abdb30",
+    "kairos_dirty": "M kairos/model/competitor_gate.py\n M kairos/model/measure.py\n?? kairos/model/detrend_gate.py\n?? kairos_api/assistant_context.py",
+    "coefficients_computed_at": "2026-06-17T23:03:37.978707+00:00",
+    "python": "3.12.13"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "review_item": "3 value of the model",
+  "scope": {
+    "channel": "עכשיו 14",
+    "day": "2024-11-04"
+  },
+  "reference_truth": "shipped 36-cell coefficients",
+  "pooled_mean": -0.039093121792211125,
+  "effective_class_coefficients": {
+    "News": -0.042497330022074085,
+    "PrimeShow1": -0.037063413633726484,
+    "PrimeShow2": -0.038554431455027384,
+    "Other": -0.03765953209572803
+  },
+  "plans_evaluated_at_reference": {
+    "36cell_shipped": {
+      "gross_ils": 1558103.1236377787,
+      "retention_cost_ils": 141384.87636222117,
+      "net_ils": 1416718.2472755576,
+      "breaks": 74.0,
+      "hamming_vs_shipped": 0.0,
+      "segments_changed": 0.0
+    },
+    "global_constant": {
+      "gross_ils": 1558103.1236377787,
+      "retention_cost_ils": 141384.87636222117,
+      "net_ils": 1416718.2472755576,
+      "breaks": 74.0,
+      "hamming_vs_shipped": 0.0,
+      "segments_changed": 0.0
+    },
+    "zero_retention_cost": {
+      "gross_ils": 1553345.935195655,
+      "retention_cost_ils": 148554.06480434467,
+      "net_ils": 1404791.8703913104,
+      "breaks": 74.0,
+      "hamming_vs_shipped": 0.11320754716981132,
+      "segments_changed": 6.0
+    }
+  },
+  "deltas_ils_per_day": {
+    "structure_36cell_minus_constant": 0.0,
+    "model_minus_none": 11926.376884247176
+  },
+  "replay_equals_shipped_csv": true,
+  "provenance": {
+    "generated_at": "2026-07-05T20:25:21.656006+00:00",
+    "git_head": "79c2c768e62d5ec41f1fc4efbc2523f4b9abdb30",
+    "kairos_dirty": "M kairos/model/competitor_gate.py\n M kairos/model/measure.py\n?? kairos/model/detrend_gate.py\n?? kairos_api/assistant_context.py",
+    "coefficients_computed_at": "2026-06-17T23:03:37.978707+00:00",
+    "python": "3.12.13"
+  }
+}
