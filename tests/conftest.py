@@ -1,0 +1,14 @@
+"""Shared pytest configuration.
+
+The API suites exercise endpoints with TestClient and no session. Once an
+operator seeds the real account store (data/auth/users.json exists), the auth
+middleware would wall every request with 401 and the suites would fail for a
+reason unrelated to what they test. So the test session disables enforcement by
+default; the dedicated auth suite (tests/test_auth.py) re-enables it per test by
+deleting this variable and pointing KAIROS_AUTH_DIR at a tmp store, so the auth
+behavior itself is still fully tested.
+"""
+
+import os
+
+os.environ.setdefault("KAIROS_AUTH_DISABLED", "1")
