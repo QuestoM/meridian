@@ -15,7 +15,10 @@ Produces every number the adoption decision needs:
 
 Writes ``models/candidates/tv_break_coefficients_competitor.json``: the
 competition-adjusted coefficients with the gate verdict, betas and future-EPG
-status in the metadata. Shipped artifacts untouched; the lead decides adoption.
+status in the metadata. Shipped artifacts untouched. The same gate also runs
+inside every coefficient rebuild (scripts/compute_measured_coefficients.py),
+where a passing verdict self-activates the covariate; this script remains the
+deep-measurement tool that additionally proves the future-EPG round trip.
 
     PYTHONUTF8=1 python scripts/measure_counterprogramming.py
 """

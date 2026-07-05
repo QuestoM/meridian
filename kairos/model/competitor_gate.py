@@ -72,6 +72,7 @@ def counterprogramming_holdout_gate(
     if effects.empty or missing:
         return _result(
             active=False, rmse_without=None, rmse_with=None, n_test=0, betas={},
+            min_relative_improvement=min_relative_improvement,
             reason=(
                 "no measured effects with competitor features available"
                 if effects.empty
@@ -85,6 +86,7 @@ def counterprogramming_holdout_gate(
     if n_test < _MIN_TEST_BREAKS:
         return _result(
             active=False, rmse_without=None, rmse_with=None, n_test=n_test, betas={},
+            min_relative_improvement=min_relative_improvement,
             reason=(
                 f"too few test breaks ({n_test} < {_MIN_TEST_BREAKS}) after the holdout split; "
                 "covariate left off"
@@ -114,6 +116,7 @@ def counterprogramming_holdout_gate(
         return _result(
             active=False, rmse_without=_rmse(y_true, y_without), rmse_with=None,
             n_test=n_test, betas=_beta_summary(betas),
+            min_relative_improvement=min_relative_improvement,
             reason="forward competitor betas could not be fitted on the training split; covariate left off",
         )
     adjusted_train = adjust_effects_for_forward_competition(train, betas)
@@ -151,7 +154,8 @@ def counterprogramming_holdout_gate(
     logger.info("Counter-programming gate: %s", reason)
     return _result(
         active=active, rmse_without=rmse_without, rmse_with=rmse_with,
-        n_test=n_test, betas=_beta_summary(betas), reason=reason,
+        n_test=n_test, betas=_beta_summary(betas),
+        min_relative_improvement=min_relative_improvement, reason=reason,
     )
 
 
@@ -170,14 +174,25 @@ def _beta_summary(betas) -> dict[str, dict[str, float | str]]:
 
 
 def _result(
-    *, active: bool, rmse_without, rmse_with, n_test: int, betas, reason: str
+    *, active: bool, rmse_without, rmse_with, n_test: int, betas, reason: str,
+    min_relative_improvement: float = COUNTERPROGRAMMING_MIN_RELATIVE_IMPROVEMENT,
 ) -> dict[str, object]:
+    # relative_improvement is the gate's delta (positive = WITH is better) and
+    # min_relative_improvement its pass threshold, carried alongside the raw
+    # RMSEs so an artifact reader can audit pass/fail without recomputing.
+    relative = (
+        (rmse_without - rmse_with) / rmse_without
+        if rmse_without and rmse_with is not None and rmse_without > 0
+        else None
+    )
     return {
         "counterprogramming_active": active,
         "counterprogramming_holdout": {
             "rmse_without": rmse_without,
             "rmse_with": rmse_with,
             "n_test": n_test,
+            "relative_improvement": relative,
+            "min_relative_improvement": min_relative_improvement,
         },
         "counterprogramming_betas": betas,
         "counterprogramming_reason": reason,

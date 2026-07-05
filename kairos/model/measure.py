@@ -43,6 +43,7 @@ and unit-tests without Meridian.
 
 from __future__ import annotations
 
+import bisect
 import json
 import logging
 from dataclasses import asdict, dataclass
@@ -149,6 +150,68 @@ def _baseline_levels(frame: pd.DataFrame) -> dict[tuple[str, int], float]:
     return {(str(ch), int(mod)): float(v) for (ch, mod), v in grouped.items()}
 
 
+# Detrend-baseline seasonality. "global" is the shipped behavior: one typical
+# curve per channel, averaged over the whole data window. On a multi-year
+# window that average smears winter into summer, so "month_minute" keeps one
+# curve per calendar month of the broadcast day. A (channel, month, minute)
+# cell observed on fewer than _SEASONAL_MIN_SAMPLES days falls back to the
+# global curve rather than detrending against a handful of days. Every shipped
+# caller uses "global" today; switching is owner-gated on held-out skill
+# (see kairos.model.detrend_gate), never automatic.
+BASELINE_SEASONALITY_MODES: tuple[str, ...] = ("global", "month_minute")
+_SEASONAL_MIN_SAMPLES = 8
+
+
+def _broadcast_month(timestamp: pd.Timestamp) -> int:
+    """Calendar month of the timestamp's broadcast day (02:00 start).
+
+    Shifting by the broadcast-day start keeps a post-midnight minute in its
+    evening's month at a month boundary, matching how the daypart rows carry
+    their broadcast date.
+    """
+    return int((timestamp - pd.Timedelta(hours=_BROADCAST_DAY_START_HOUR)).month)
+
+
+def _seasonal_baseline_levels(
+    frame: pd.DataFrame, *, min_samples: int = _SEASONAL_MIN_SAMPLES
+) -> dict[tuple[str, int, int], float]:
+    """Map (channel, month, broadcast-minute) -> that month's mean TVR there.
+
+    The month is the calendar month of the BROADCAST day (the daypart row's
+    own date), so a post-midnight minute stays with its evening. Only cells
+    observed on at least ``min_samples`` days are emitted; the caller (see
+    :func:`_baseline_at`) falls back to the global curve for the rest.
+    """
+    grouped = frame.groupby(["channel", frame["date"].dt.month, "mod"])["tvr"].agg(
+        ["mean", "count"]
+    )
+    kept = grouped[grouped["count"] >= min_samples]
+    return {
+        (str(ch), int(month), int(mod)): float(mean)
+        for (ch, month, mod), mean in kept["mean"].items()
+    }
+
+
+def _baseline_at(
+    baseline: dict[tuple[str, int], float],
+    seasonal: Optional[dict[tuple[str, int, int], float]],
+    channel: str,
+    timestamp: pd.Timestamp,
+) -> Optional[float]:
+    """The detrend level for one minute: the seasonal cell when one exists, else global.
+
+    With ``seasonal`` None (mode "global") this is exactly the shipped lookup,
+    value for value.
+    """
+    if seasonal is not None:
+        value = seasonal.get(
+            (channel, _broadcast_month(timestamp), _broadcast_minute(timestamp))
+        )
+        if value is not None:
+            return value
+    return baseline.get((channel, _broadcast_minute(timestamp)))
+
+
 def _window_mean(values: list[Optional[float]]) -> Optional[float]:
     clean = [v for v in values if v is not None and v == v]
     return float(np.mean(clean)) if clean else None
@@ -207,15 +270,22 @@ def _clipped_offsets(
     return ts_list
 
 
-def _programme_title_lookup(programmes: pd.DataFrame) -> dict[str, list[tuple]]:
-    """Map channel -> sorted (start, end, title) spans for title matching.
+def _programme_title_lookup(
+    programmes: pd.DataFrame,
+) -> dict[str, tuple[list, list, list, list]]:
+    """Map channel -> (starts, ends, titles, prefix_max_ends), start-sorted.
 
     Built once and reused for every break, so the series layer can recover the
     programme Title behind each break without re-running break detection. The
-    genre cell apparatus is unaffected; this only adds the title feature.
+    parallel lists are sorted by span start (stable, so equal starts keep the
+    source order); ``prefix_max_ends[i]`` is the largest end among spans 0..i,
+    which lets :func:`_title_for_break` answer containment by binary search
+    (the same sorted-starts bisect pattern as
+    :func:`kairos.model.competitor_features._in_break`) instead of a linear
+    span scan that grows O(breaks x programmes) per channel.
     """
     frame = programmes[programmes["start_dt"].notna()].copy()
-    lookup: dict[str, list[tuple]] = {}
+    lookup: dict[str, tuple[list, list, list, list]] = {}
     for channel, group in frame.groupby("Channel", sort=False):
         spans = []
         for row in group.itertuples(index=False):
@@ -225,17 +295,42 @@ def _programme_title_lookup(programmes: pd.DataFrame) -> dict[str, list[tuple]]:
             if pd.notna(start) and pd.notna(end):
                 spans.append((start, end, "" if title is None or pd.isna(title) else str(title)))
         spans.sort(key=lambda s: s[0])
-        lookup[str(channel)] = spans
+        prefix_max_ends: list = []
+        running = None
+        for _start, span_end, _title in spans:
+            running = span_end if running is None or span_end > running else running
+            prefix_max_ends.append(running)
+        lookup[str(channel)] = (
+            [s[0] for s in spans],
+            [s[1] for s in spans],
+            [s[2] for s in spans],
+            prefix_max_ends,
+        )
     return lookup
 
 
 def _title_for_break(
-    lookup: dict[str, list[tuple]], channel: str, start: pd.Timestamp, end: pd.Timestamp
+    lookup: dict[str, tuple[list, list, list, list]],
+    channel: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
 ) -> str:
-    """Return the Title of the programme whose span contains the break, or ""."""
-    for s_start, s_end, title in lookup.get(channel, []):
-        if s_start <= start and s_end >= end:
-            return title
+    """Return the Title of the programme whose span contains the break, or "".
+
+    Identical result to the retired linear span scan, in O(log n): that scan
+    walked the start-sorted spans and returned the FIRST whose span contains
+    the break. Only positions [0, hi) can qualify (``hi`` is the first span
+    starting after the break), and among those the first covering span is the
+    first position whose prefix-max end reaches the break end. The prefix-max
+    is non-decreasing, so both positions come from binary search; at the found
+    position the span's own end equals the prefix-max (the running max just
+    rose to it), so the containment test the scan applied still holds there.
+    """
+    starts, ends, titles, prefix_max_ends = lookup.get(channel, ((), (), (), ()))
+    hi = bisect.bisect_right(starts, start)
+    idx = bisect.bisect_left(prefix_max_ends, end, 0, hi)
+    if idx < hi and ends[idx] >= end:
+        return titles[idx]
     return ""
 
 
@@ -249,6 +344,7 @@ def break_effects(
     after_minutes: int = _AFTER_MINUTES,
     min_window_minutes: int = _MIN_WINDOW_MINUTES,
     clip_to_all_ad_airtime: bool = False,
+    baseline_seasonality: str = "global",
 ) -> pd.DataFrame:
     """Measure the detrended retention effect of every real break.
 
@@ -278,7 +374,21 @@ def break_effects(
     least one such minute (2.39 percent of window minutes). Turning this on is
     a measurement behavior change and is gated on held-out skill like any other
     (see scripts/measure_spotlevel_clip.py for the measured verdict).
+
+    ``baseline_seasonality`` (default "global", shipped behavior unchanged)
+    selects the detrend baseline: "global" divides by the channel's whole-window
+    typical curve; "month_minute" divides by the calendar-month curve of the
+    break's broadcast day (thin cells fall back to global, see
+    :func:`_seasonal_baseline_levels`), so a multi-year window does not smear
+    winter into summer. Switching modes changes measured coefficients and is
+    owner-gated on held-out skill (kairos.model.detrend_gate); no shipped
+    caller passes anything but the default.
     """
+    if baseline_seasonality not in BASELINE_SEASONALITY_MODES:
+        raise ValueError(
+            f"unknown baseline_seasonality {baseline_seasonality!r}; "
+            f"expected one of {BASELINE_SEASONALITY_MODES}"
+        )
     breaks = keyed_breaks(spots, programmes, classifier)
     columns = [
         "channel_name", "program_type", "break_position", "break_length",
@@ -302,6 +412,11 @@ def break_effects(
     frame = _dayparts_frame(dayparts)
     observed = _minute_lookup(frame)
     baseline = _baseline_levels(frame)
+    seasonal = (
+        _seasonal_baseline_levels(frame)
+        if baseline_seasonality == "month_minute"
+        else None
+    )
     titles = _programme_title_lookup(programmes)
 
     # Build per-channel sorted break spans so we can find each break's
@@ -372,8 +487,8 @@ def break_effects(
 
         obs_before = _window_mean([observed.get((channel, t)) for t in before_ts])
         obs_after = _window_mean([observed.get((channel, t)) for t in after_ts])
-        base_before = _window_mean([baseline.get((channel, _broadcast_minute(t))) for t in before_ts])
-        base_after = _window_mean([baseline.get((channel, _broadcast_minute(t))) for t in after_ts])
+        base_before = _window_mean([_baseline_at(baseline, seasonal, channel, t) for t in before_ts])
+        base_after = _window_mean([_baseline_at(baseline, seasonal, channel, t) for t in after_ts])
 
         if not obs_before or obs_before <= 0 or obs_after is None or obs_after <= 0:
             continue

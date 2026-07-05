@@ -22,10 +22,39 @@ The gate decision is transparent: ``series_layer_active`` (bool),
 ``series_gate_reason`` (one-line explanation) are always written to the JSON
 metadata so any reader can audit why the layer was activated or not.
 
+Counter-programming covariate (automatic gate)
+----------------------------------------------
+The rival-context covariate (docs/competitor-counterprogramming.md) follows
+the same discipline. Every rebuild attaches the competitor features to the
+measured breaks and re-runs the deterministic held-out gate
+(:func:`kairos.model.competitor_gate.counterprogramming_holdout_gate`, fixed
+seed): out-of-sample RMSE WITH vs WITHOUT the covariate. Only when WITH beats
+WITHOUT by the required margin do the emitted coefficients become the
+competition-adjusted ones and the fitted forward betas ship in the metadata;
+otherwise the coefficients are exactly the plain measured ones (today's
+verdict on one November). ``counterprogramming_active`` (bool),
+``counterprogramming_holdout`` (rmse_without, rmse_with, n_test,
+relative_improvement, min_relative_improvement) and
+``counterprogramming_reason`` are always written so the decision is auditable
+from the JSON. The covariate therefore self-activates the day the data
+supports it, with no code change.
+
+Detrend seasonality (evaluate-only verdict)
+-------------------------------------------
+Every rebuild also runs the season-aware detrend gate
+(:func:`kairos.model.detrend_gate.detrend_seasonality_gate`) and records its
+verdict in the metadata. This one NEVER self-activates: the baseline mode used
+stays "global" (``detrend_baseline_mode`` in the metadata) and switching
+:func:`kairos.model.measure.break_effects` to ``month_minute`` is an explicit
+owner decision at the multi-year data drop.
+
 Optional override flags
 -----------------------
-``--series force-on``  / ``--series force-off`` bypass the gate for debugging.
-The default (omitting ``--series``) is the automatic gate.
+``--series force-on`` / ``--series force-off`` and ``--counterprogramming
+force-on`` / ``--counterprogramming force-off`` bypass the respective gate for
+debugging. The default (omitting the flag) is the automatic gate. ``--output``
+writes the JSON somewhere other than the shipped artifact (used by the
+rebuild-equivalence test).
 
 Run from the repo root:
 
@@ -48,6 +77,16 @@ from kairos.data.loaders import (
     load_programmes,
     load_spots,
 )
+from kairos.model.competitor_features import (
+    EXTENDED_ALL_FEATURES,
+    attach_competitor_features,
+)
+from kairos.model.competitor_gate import counterprogramming_holdout_gate
+from kairos.model.competitor_model import (
+    adjust_effects_for_forward_competition,
+    fit_competitor_betas,
+)
+from kairos.model.detrend_gate import detrend_seasonality_gate
 from kairos.model.measure import (
     between_cell_variance,
     break_effects,
@@ -115,6 +154,27 @@ def main() -> None:
             "The env var KAIROS_SERIES_LAYER=force-on/force-off applies the same override."
         ),
     )
+    parser.add_argument(
+        "--counterprogramming",
+        choices=[_FORCE_ON, _FORCE_OFF],
+        default=None,
+        help=(
+            "Override the automatic counter-programming gate. "
+            f"'{_FORCE_ON}' always emits competition-adjusted coefficients; "
+            f"'{_FORCE_OFF}' always emits the plain measured ones. "
+            "Omit this flag (the default) to let the held-out gate decide. "
+            "The env var KAIROS_COUNTERPROGRAMMING=force-on/force-off applies "
+            "the same override."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        default=str(OUTPUT_PATH),
+        help=(
+            "Where to write the coefficients JSON. Defaults to the shipped "
+            "artifact; the rebuild-equivalence test points this at a temp path."
+        ),
+    )
     args = parser.parse_args()
 
     # Honor the env var as well, so CI pipelines can override without editing
@@ -126,6 +186,11 @@ def main() -> None:
     # Back-compat: the old "1" / "true" env value maps to force-on.
     if series_override is None and env_series in ("1", "true", "yes"):
         series_override = _FORCE_ON
+
+    env_cp = os.environ.get("KAIROS_COUNTERPROGRAMMING", "").strip().lower()
+    cp_override: str | None = args.counterprogramming
+    if cp_override is None and env_cp in (_FORCE_ON, _FORCE_OFF):
+        cp_override = env_cp
 
     # Load the reference data and measure every break's detrended log effect.
     spots = load_spots()
@@ -164,6 +229,63 @@ def main() -> None:
         emit_series = bool(gate["series_layer_active"])
 
     series_to_write = series_all if emit_series else {}
+
+    # Counter-programming gate: attach the rival-context features to the SAME
+    # measured breaks and re-measure WITH vs WITHOUT on the deterministic
+    # held-out split. Only a passing gate switches the emitted coefficients to
+    # the competition-adjusted ones; a failing gate leaves every number above
+    # untouched, so today's artifact is byte-equivalent to the pre-gate one.
+    # The first-break and series gates stay measured on the raw effects: each
+    # optional layer earns its way in against the same plain baseline,
+    # independently.
+    effects_cp = attach_competitor_features(
+        effects, programmes, dayparts_frame, spots, classifier
+    )
+    cp_gate = counterprogramming_holdout_gate(effects_cp)
+    if cp_override == _FORCE_ON:
+        cp_active = True
+        cp_gate["counterprogramming_reason"] = (
+            f"forced by --counterprogramming {_FORCE_ON}; gate result: "
+            f"{cp_gate['counterprogramming_reason']}"
+        )
+    elif cp_override == _FORCE_OFF:
+        cp_active = False
+        cp_gate["counterprogramming_reason"] = (
+            f"forced by --counterprogramming {_FORCE_OFF}; gate result: "
+            f"{cp_gate['counterprogramming_reason']}"
+        )
+    else:
+        cp_active = bool(cp_gate["counterprogramming_active"])
+
+    cp_betas_meta: dict[str, dict[str, object]] = {}
+    if cp_active:
+        # Full-data betas (the gate's are training-split only), applied the
+        # same way the candidate artifact applies them: de-confound the log
+        # effects by the forward features, then pool as usual.
+        betas = fit_competitor_betas(effects_cp, feature_names=EXTENDED_ALL_FEATURES)
+        if any(cb.role == "forward" for cb in betas.values()):
+            adjusted = adjust_effects_for_forward_competition(effects_cp, betas)
+            coefficients = channel_coefficients(adjusted)
+            diagnostics = between_cell_variance(adjusted)
+            cp_betas_meta = {
+                name: {
+                    "beta": cb.beta, "se": cb.se, "ci_low": cb.ci_low,
+                    "ci_high": cb.ci_high, "role": cb.role,
+                    "reference": cb.reference,
+                }
+                for name, cb in betas.items()
+            }
+        else:
+            cp_active = False
+            cp_gate["counterprogramming_reason"] += (
+                "; no forward betas could be fitted on the full data, so the "
+                "covariate stays off"
+            )
+
+    # Detrend seasonality: evaluate-only. The verdict is recorded so the
+    # decision is on the table at the multi-year drop, but the baseline mode
+    # used above stays "global" regardless (activation is an owner decision).
+    dt_gate = detrend_seasonality_gate(dayparts_frame)
 
     total_breaks = sum(c.n for c in coefficients.values())
     negative = sum(1 for c in coefficients.values() if c.coefficient < 0)
@@ -204,7 +326,25 @@ def main() -> None:
         "first_break_mean_later": fb_gate["first_break_mean_later"],
         "first_break_p_value": fb_gate["first_break_p_value"],
         "first_break_reason": fb_gate["first_break_reason"],
+        # Counter-programming gate: verdict always present (pass/fail, both
+        # RMSEs, the relative improvement and its pass threshold) so any
+        # reader can audit why the covariate is on or off. The fitted betas
+        # are written only when the covariate is ACTIVE, because only then are
+        # they load-bearing (they de-confounded these coefficients and they
+        # are what a forward adjustment would apply).
+        "counterprogramming_active": cp_active,
+        "counterprogramming_holdout": cp_gate["counterprogramming_holdout"],
+        "counterprogramming_reason": cp_gate["counterprogramming_reason"],
+        "counterprogramming_forward_features": cp_gate["forward_features"],
+        # Detrend seasonality: the mode these coefficients were measured with,
+        # plus the evaluate-only gate verdict for the multi-year drop.
+        "detrend_baseline_mode": "global",
+        "detrend_seasonality_recommended": dt_gate["detrend_seasonality_recommended"],
+        "detrend_seasonality_holdout": dt_gate["detrend_seasonality_holdout"],
+        "detrend_seasonality_reason": dt_gate["detrend_seasonality_reason"],
     }
+    if cp_betas_meta:
+        metadata["counterprogramming_betas"] = cp_betas_meta
     # Freshness stamp: when these coefficients were computed and a sha256 of every
     # source file they were measured from. The freshness checker
     # (kairos.model.freshness) re-hashes those files later and reports stale when
@@ -214,7 +354,7 @@ def main() -> None:
     metadata[COMPUTED_AT_KEY] = datetime.now(timezone.utc).isoformat()
     metadata[FINGERPRINTS_KEY] = _source_fingerprints()
     written = write_coefficients_json(
-        OUTPUT_PATH, coefficients, metadata=metadata,
+        Path(args.output), coefficients, metadata=metadata,
         series=series_to_write if series_to_write else None,
     )
 
@@ -225,6 +365,14 @@ def main() -> None:
           f"learned pseudo-count={diagnostics['pseudo_count']}")
     print(f"  series gate: {gate['series_gate_reason']}")
     print(f"  first-break gate: {fb_gate['first_break_reason']}")
+    print(f"  counter-programming gate: {cp_gate['counterprogramming_reason']}")
+    if cp_active:
+        print("  counter-programming ACTIVE: coefficients are competition-adjusted "
+              f"({len(cp_betas_meta)} betas in metadata)")
+    else:
+        print("  counter-programming INACTIVE (plain measured coefficients)")
+    print(f"  detrend seasonality gate: {dt_gate['detrend_seasonality_reason']} "
+          "(baseline mode used: global)")
     if emit_series:
         print(f"  series layer ACTIVE: {len(series_to_write)} (cell, series) records emitted")
     else:
