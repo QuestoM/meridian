@@ -89,6 +89,15 @@ COLUMNS = [
     "total_break_time",
     "predicted_revenue",
     "predicted_retention",
+    # Where the plan's breaks sit in the programme, measured from the plan's own
+    # placements (kairos.export.incremental.rows_from_result), never a constant.
+    # "middle" = every break starts strictly inside the programme (the even
+    # duration/(k+1) layout produces this whenever the programme is long enough);
+    # "start" = the first break is clamped or pinned to the programme's first
+    # second (kairos.optimize._segment_math._segment_break_objects clamps at the
+    # segment start when duration/(k+1) <= break_length/2, which real short
+    # programmes hit); blank = the segment carries no breaks, so there is no
+    # position to report (honest absence, not a synthesized value).
     "position",
     "break_type",
     "base_rate",

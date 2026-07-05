@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import pandas as pd
 
+from kairos.export.incremental import rows_from_result
 from kairos.export.schedule import COLUMNS, build_weekly_schedule, write_weekly_schedule
-from kairos.optimize.optimizer import ProgramSegment, optimize_breaks
+from kairos.optimize.optimizer import PlacementPin, ProgramSegment, optimize_breaks
 from kairos.optimize.guardrails import Guardrails
 
 
@@ -205,3 +206,69 @@ class TestRiskAdjustedRetentionColumns:
         # Verify the plan fields that schedule.py reads are non-zero when present.
         assert plan.retention_cost_ci_low is not None
         assert plan.retention_cost_ci_high is not None
+
+
+# ---------------------------------------------------------------------------
+# QA BUG-5: the position column reports the plan's real break geometry
+# ---------------------------------------------------------------------------
+
+class TestPositionColumnHonesty:
+    """position is measured from the plan's placements, never a stamped constant."""
+
+    @staticmethod
+    def _segment(segment_id: str, duration_seconds: float) -> ProgramSegment:
+        return ProgramSegment(
+            segment_id=segment_id,
+            channel="Test",
+            day="2026-06-15",
+            start_seconds=20 * 3600.0,
+            duration_seconds=duration_seconds,
+            program_type="Drama",
+            baseline_tvr=10.0,
+            cpp=1000.0,
+            impact_coefficient=-0.01,
+            retention_baseline=1.0,
+        )
+
+    def test_interior_breaks_read_middle(self):
+        # Hour-long programmes lay every break strictly inside the show, so the
+        # honest layout label is "middle" for every row that carries breaks.
+        schedule = build_weekly_schedule(programmes=make_frame(), revenue_weight=1.0)
+        with_breaks = schedule[schedule["num_breaks"] > 0]
+        assert not with_breaks.empty
+        assert (with_breaks["position"] == "middle").all()
+
+    def test_zero_break_rows_carry_no_position(self):
+        # No breaks means there is no position to describe: the column must be
+        # blank (absent), never a synthesized constant dressed as data.
+        schedule = build_weekly_schedule(programmes=make_frame(), revenue_weight=0.0)
+        assert (schedule["num_breaks"] == 0).all()
+        assert schedule["position"].isna().all()
+
+    def test_clamped_short_programme_reads_start(self):
+        # duration/(k+1) <= break_length/2 clamps the first break to the
+        # programme's first second (_segment_break_objects), which real short
+        # programmes hit; the row must say so instead of claiming "middle".
+        seg = self._segment("short", duration_seconds=100.0)
+        result = optimize_breaks([seg], Guardrails(), revenue_weight=1.0)
+        assert result.segments[0].num_breaks >= 1
+        row = rows_from_result([seg], result)[0]
+        assert row["position"] == "start"
+
+    def test_pin_at_offset_zero_reads_start(self):
+        # An operator pin at offset 0 places a real break on the programme's
+        # first second; the exported row must report that geometry.
+        seg = self._segment("pinned", duration_seconds=3600.0)
+        pins = {"pinned": [PlacementPin(offset_seconds=0.0, duration_seconds=120.0)]}
+        result = optimize_breaks([seg], Guardrails(), revenue_weight=1.0, placement_pins=pins)
+        row = rows_from_result([seg], result)[0]
+        assert row["num_breaks"] == 1
+        assert row["position"] == "start"
+
+    def test_interior_pin_reads_middle(self):
+        seg = self._segment("pinned-mid", duration_seconds=3600.0)
+        pins = {"pinned-mid": [PlacementPin(offset_seconds=600.0, duration_seconds=120.0)]}
+        result = optimize_breaks([seg], Guardrails(), revenue_weight=1.0, placement_pins=pins)
+        row = rows_from_result([seg], result)[0]
+        assert row["num_breaks"] == 1
+        assert row["position"] == "middle"

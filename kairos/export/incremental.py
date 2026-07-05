@@ -21,9 +21,8 @@ THE LAW-9 HAZARD this module is designed against: an incremental run that skips
 a channel-day it should have rebuilt presents a stale number as current. Two
 defenses: :func:`classify_change` is a conservative allowlist, and every
 precondition failure in :func:`incremental_weekly_frame` falls back to a full
-rebuild rather than guessing. Callers of ``only_days`` are responsible for
-deriving the day list from :func:`classify_change`; a hand-picked list can
-leave stale days looking current.
+rebuild rather than guessing. Callers of ``only_days`` must derive the day list
+from :func:`classify_change`; a hand-picked list can leave stale days current.
 """
 
 from __future__ import annotations
@@ -40,10 +39,8 @@ from kairos.optimize.overrides import SEGMENT, STATUS_ACTIVE, OverrideSet
 
 logger = logging.getLogger(__name__)
 
-# The one column whose CSV text depends on whole-frame dtype context: it holds
-# Optional[int] values, which pandas renders as "229" when the frame has no
-# missing value in the column (int64) but as "229.0" when any row is missing
-# (float64); :func:`retention_n_style_conflict` guards the mix explicitly.
+# Optional[int] column whose CSV text depends on whole-frame dtype (int64 "229"
+# vs float64 "229.0"); :func:`retention_n_style_conflict` guards the mix.
 _OPTIONAL_INT_COLUMN = "retention_n"
 
 SECONDS_PER_MINUTE = 60
@@ -376,13 +373,10 @@ def rows_from_result(segments: Sequence[Any], result: Any) -> list[dict[str, Any
         retention = plan.retention if plan else segment.retention_baseline
         revenue = plan.revenue if plan else 0.0
 
-        # Risk-adjusted retention fields: surface the per-segment uncertainty
-        # the optimizer used so the weekly CSV carries the full risk decision.
-        # ``plan.retention`` is already the risk-adjusted value (computed with
-        # the conservative coefficient when risk_lambda > 0 and a CI exists);
-        # the CI columns translate the per-break coefficient interval into
-        # retention bounds at ``num_breaks`` breaks. All four auxiliary fields
-        # are None (blank in CSV) when the segment has no measured CI.
+        # Risk-adjusted retention fields: ``plan.retention`` is already the
+        # risk-adjusted value; the CI columns translate the per-break coefficient
+        # interval into retention bounds at ``num_breaks`` breaks. All four
+        # auxiliary fields are None (blank in CSV) without a measured CI.
         if plan is not None:
             ret_ci_low: Optional[float] = None
             ret_ci_high: Optional[float] = None
@@ -417,6 +411,13 @@ def rows_from_result(segments: Sequence[Any], result: Any) -> list[dict[str, Any
             retention_n = None
             retention_confidence = None
 
+        # Break position measured from the plan's real placements (clamped and
+        # pinned geometry included); semantics live at kairos.export.schedule.COLUMNS.
+        position: Optional[str] = None
+        if plan is not None and plan.placements:
+            earliest = min(p.start_seconds for p in plan.placements)
+            position = "start" if earliest <= segment.start_seconds + 1e-6 else "middle"
+
         rows.append(
             {
                 "channel": segment.channel,
@@ -429,7 +430,7 @@ def rows_from_result(segments: Sequence[Any], result: Any) -> list[dict[str, Any
                 "total_break_time": round(num_breaks * segment.break_length_seconds, 1),
                 "predicted_revenue": round(revenue, 2),
                 "predicted_retention": round(retention, 4),
-                "position": "middle",
+                "position": position,
                 "break_type": _break_type(segment.break_length_seconds),
                 "base_rate": round(segment.cpp * segment.premium, 4),
                 "baseline_tvr": round(segment.baseline_tvr, 6),
@@ -439,9 +440,8 @@ def rows_from_result(segments: Sequence[Any], result: Any) -> list[dict[str, Any
                 "retention_n": retention_n,
                 "retention_confidence": retention_confidence,
                 "segment_id": segment.segment_id,
-                # Gold is a per-break flag on the plan's placements; a segment
-                # is gold when the optimizer emitted a gold break for it. False
-                # (no gold break, honest) for a 0-break or non-gold segment.
+                # Gold: True only when the optimizer emitted a gold break for
+                # this segment (per-break flag on the plan's placements).
                 "is_gold": bool(plan is not None and any(p.is_gold for p in plan.placements)),
             }
         )

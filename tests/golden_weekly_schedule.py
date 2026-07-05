@@ -41,7 +41,11 @@ from kairos.export.schedule import build_weekly_schedule  # noqa: E402
 SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
 
 # Committed golden, captured from a real recompute on the current engine.
-GOLDEN_CSV_SHA256 = "bf3e6808f80ab507adf0fc303ab626c7b909d53299996b8f1ab46ce71eb8ee15"
+# Full-CSV hash rebased when the position column became honest per-row geometry
+# ("middle" / "start" / blank, measured from the plan's real placements instead
+# of a stamped constant); the aggregate hash covers revenue / retention /
+# num_breaks only and is byte-identical across that change: no decision moved.
+GOLDEN_CSV_SHA256 = "75b9d08d86430f6216e312c10059bc8b88bf921f4cc3e47de52077ee2bcd869f"
 GOLDEN_ROWS = 8704
 GOLDEN_AGG_SHA256 = "c62addcb23431fb05b82280e7a2a9e03e1fe487767985ae6c13131576cf73842"
 

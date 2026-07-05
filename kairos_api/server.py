@@ -767,27 +767,68 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
     # Medium; clear of the band is Low. This mirrors the honest _risk_from_retention
     # scale so the recommendation risk and the headline risk score agree.
     floor_percent = round(settings.min_retention_floor * 100, 1)
+
+    def _risk_label(retention_percent: float) -> str:
+        if retention_percent < floor_percent:
+            return "High"
+        if retention_percent < floor_percent + 2.0:
+            return "Medium"
+        return "Low"
+
+    # Identity and grouping key on the segment's REAL distinguishing facts (its
+    # programme type, clock, weekday and canonical daypart), never on the
+    # constant position/break_type template the CSV once stamped on every row.
+    from kairos.data.dayparts import daypart_for_hour
+
+    def _row_hour(value: Any) -> int | None:
+        text = str(value or "").strip()
+        return int(text[:2]) if len(text) >= 4 and text[:2].isdigit() else None
+
+    scoped = scoped.copy()
+    scoped["_daypart"] = scoped["start_time"].map(lambda v: daypart_for_hour(_row_hour(v)) or "")
+    scoped["_risk"] = scoped["predicted_retention"].map(lambda v: _risk_label(_percent(v)))
+
+    weekday_he = {"Mon": "ביום שני", "Tue": "ביום שלישי", "Wed": "ביום רביעי", "Thu": "ביום חמישי", "Fri": "ביום שישי", "Sat": "בשבת", "Sun": "ביום ראשון"}
+    # Honest per-risk rationale: the copy states what the risk band actually
+    # means against the configured floor, instead of one constant sentence.
+    rationale_by_risk = {
+        "High": ("Predicted retention is below the configured floor; review whether this segment should shed break load.", "השימור החזוי נמוך מרצפת השימור שהוגדרה; כדאי לבחון הפחתת עומס ברייקים במקטע הזה."),
+        "Medium": ("Predicted retention is within two points of the floor; review before committing.", "השימור החזוי קרוב לרצפת השימור, בטווח שתי נקודות; מומלץ לבדוק לפני אישור."),
+        "Low": ("Revenue is strong and retention clears the floor; consider protecting this placement.", "ההכנסה גבוהה והשימור מעל הרצפה; שקלו להגן על השיבוץ הזה."),
+    }
+
     actions = []
     for idx, row in scoped.head(5).iterrows():
         retention = _percent(row.get("predicted_retention", 0.0))
         revenue = _money(row.get("predicted_revenue", 0))
         num_breaks = int(row.get("num_breaks", 0))
-        risk = "High" if retention < floor_percent else "Medium" if retention < floor_percent + 2.0 else "Low"
+        risk = str(row.get("_risk", "Low"))
         program_type = str(row.get("program_type", "Other"))
-        position = row.get("position", "middle")
-        break_type = row.get("break_type", "medium")
+        daypart = str(row.get("_daypart", "")).strip()
+        start_clock = str(row.get("start_time", "")).strip()
+        date = str(row.get("date", "")).strip()
+        weekday = str(row.get("day", "")).strip()
         segment_id = str(row.get("segment_id", "")).strip()
         anchor = _row_anchor(row)
         proposed_kind = _proposed_kind(risk, num_breaks, bool(row.get("is_gold", False)))
-        # Candidate owned-channel segments of the same program_type / position /
-        # break_type this review resolves to. Only produced for the owned channel
-        # with a real segment_id; never fabricated for an aggregate advisory.
+        # The title carries the real programme identity (type, clock, weekday,
+        # date), so five recommendations can never render one generic label.
+        unit = "break" if num_breaks == 1 else "breaks" if num_breaks > 1 else "segment"
+        title = " ".join(part for part in ["Review the", start_clock, program_type, unit, "on", weekday, date] if part)
+        unit_he = "הברייק" if num_breaks == 1 else "הברייקים" if num_breaks > 1 else "המקטע"
+        day_phrase_he = weekday_he.get(weekday, "")
+        title_he = f"בדיקת {unit_he} בתוכנית {program_type} בשעה {start_clock} {day_phrase_he}, {date}".replace("  ", " ")
+        rationale, rationale_he = rationale_by_risk[risk]
+        # Candidate owned-channel segments this review resolves to, grouped on the
+        # same real facts (programme type, daypart, risk band). Only produced for
+        # the owned channel with a real segment_id; never fabricated for an
+        # aggregate advisory.
         candidates: list[dict[str, Any]] = []
         if owned and segment_id:
             same = scoped[
                 (scoped["program_type"].astype(str) == program_type)
-                & (scoped["position"].astype(str) == str(position))
-                & (scoped["break_type"].astype(str) == str(break_type))
+                & (scoped["_daypart"] == daypart)
+                & (scoped["_risk"] == risk)
             ]
             candidates = [
                 {"segment_id": str(cand.get("segment_id", "")).strip(), "anchor": _row_anchor(cand)}
@@ -797,14 +838,21 @@ def _build_recommendations(schedule: pd.DataFrame) -> list[dict[str, Any]]:
         actions.append(
             {
                 "id": f"rec-{idx}",
-                "title": f"Review {position} {break_type} break",
-                "title_he": f"בדיקת ברייק {break_type} במיקום {position}",
+                "title": title,
+                "title_he": title_he,
                 "program_type": program_type,
+                # Real identity fields behind the title, so consumers can group
+                # or render without re-parsing display copy.
+                "start_clock": start_clock,
+                "date": date,
+                "weekday": weekday,
+                "daypart": daypart or None,
+                "num_breaks": num_breaks,
                 "impact": revenue,
                 "retention": round(retention, 1),
                 "risk": risk,
-                "rationale": "Revenue opportunity is strong while guardrails remain within the selected scenario.",
-                "rationale_he": "פוטנציאל ההכנסה גבוה, והבקרות עדיין עומדות בתרחיש שנבחר.",
+                "rationale": rationale,
+                "rationale_he": rationale_he,
                 # Decision-plane enrichment: the owned channel, the concrete
                 # owned-channel segment(s) this resolves to, and the override kind the
                 # review implies. non_actionable marks an advisory that cannot honestly
@@ -2119,7 +2167,9 @@ def schedule_segment_detail(segment_id: str) -> dict[str, Any]:
             "num_breaks": int(_safe_number(row.get("num_breaks", 0))),
             "break_length_seconds": _opt_num(row.get("break_length")),
             "total_break_seconds": _opt_num(row.get("total_break_time")),
-            "position": str(row.get("position", "")).strip() or None,
+            # Blank for a 0-break segment (the CSV honestly omits a position when
+            # there are no breaks); the isna guard keeps NaN from rendering "nan".
+            "position": None if pd.isna(row.get("position")) else (str(row.get("position", "")).strip() or None),
             "break_type": str(row.get("break_type", "")).strip() or None,
             "is_gold": bool(str(row.get("is_gold", "")).strip().lower() in ("true", "1", "yes")),
         },

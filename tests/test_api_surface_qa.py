@@ -175,6 +175,35 @@ def test_compliance_payload_carries_the_full_rule_set(client):
     assert isinstance(body["violations"], list)
 
 
+def test_recommendations_are_individually_identifiable(client):
+    """BUG-5 regression: the five recommendations must carry five DISTINCT real
+    identities (programme type + clock + weekday + date) built from the plan,
+    each bound to a real owned segment with its semantic anchor, and grouped on
+    real distinguishing fields (daypart plus risk), never on stamped constants."""
+    from kairos.data.dayparts import daypart_keys
+
+    body = client.get("/api/overview").json()
+    recs = body["recommendations"]
+    assert len(recs) == 5
+    for key in ("title", "title_he"):
+        labels = [rec[key] for rec in recs]
+        assert len(set(labels)) == len(labels), f"duplicate {key}: {labels}"
+    for rec in recs:
+        assert rec["segment_id"], "top recommendations must bind to a real segment"
+        anchor = rec["anchor"]
+        assert anchor["date"] and anchor["start_clock"] and anchor["program"]
+        # The displayed identity is built from the same fields the anchor carries.
+        assert anchor["start_clock"] in rec["title"] and anchor["date"] in rec["title"]
+        assert rec["program_type"] in rec["title"]
+        assert anchor["start_clock"] in rec["title_he"] and anchor["date"] in rec["title_he"]
+        # Grouping keys on real fields, resolved to real owned candidate segments.
+        assert rec["daypart"] in daypart_keys()
+        assert rec["risk"] in {"High", "Medium", "Low"}
+        assert rec["candidates"], "grouping must resolve to real candidate segments"
+        for cand in rec["candidates"][:3]:
+            assert cand["segment_id"] and cand["anchor"]["date"]
+
+
 def test_recommendations_bind_only_to_owned_channel(client):
     """The competitor boundary on the decision surface: an actionable
     recommendation may only carry an owned-channel segment_id."""
