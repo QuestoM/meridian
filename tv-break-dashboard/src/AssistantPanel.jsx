@@ -20,16 +20,25 @@ const SECTION_LABELS = {
   recommendations: ['Recommendations', 'המלצות'],
   settings: ['Saved settings', 'הגדרות שמורות'],
   counts: ['Plan counts', 'ספירות התוכנית'],
+  per_day_plan: ['Per-day plan', 'תוכנית לפי יום'],
 };
 
 const ABSENT_SUFFIX = ' (absent)';
+const DAY_DETAIL_PREFIX = 'day_detail';
 
 function sourceLabel(source, locale) {
   const raw = String(source || '');
   const absent = raw.endsWith(ABSENT_SUFFIX);
   const key = absent ? raw.slice(0, -ABSENT_SUFFIX.length) : raw;
-  const pair = SECTION_LABELS[key];
-  const base = pair ? pageText(locale, pair[0], pair[1]) : key;
+  let base;
+  if (key === DAY_DETAIL_PREFIX || key.startsWith(`${DAY_DETAIL_PREFIX} `)) {
+    const daySuffix = key.slice(DAY_DETAIL_PREFIX.length).trim();
+    const label = pageText(locale, 'Day detail', 'פירוט יום');
+    base = daySuffix ? `${label} ${daySuffix}` : label;
+  } else {
+    const pair = SECTION_LABELS[key];
+    base = pair ? pageText(locale, pair[0], pair[1]) : key;
+  }
   return absent ? `${base} ${pageText(locale, '(unavailable)', '(לא זמין)')}` : base;
 }
 

@@ -2,12 +2,16 @@
 
 The ask endpoint composes a compact context from the SAME internal builders the
 dashboard endpoints use (overview summary, schedule freshness verdict, yield
-totals, top recommendations, saved settings essentials, plan counts), sends it
-to Claude with a system prompt that forbids answering beyond that context, and
-returns the answer together with a grounding manifest naming every section that
-was included. A section whose builder fails is omitted and listed as absent,
-never fabricated. Without an API key both routes stay up and report
-available false honestly instead of guessing.
+totals, top recommendations, saved settings essentials, plan counts), plus the
+day-level grounding built in kairos_api.assistant_context: an always-included
+per-day table of the operator's own channel and, when the question names a date
+the saved plan contains, that day's segment detail, all kept under a serialized
+character budget with honest truncation flags. The context goes to Claude with
+a system prompt that forbids answering beyond it, and the response carries a
+grounding manifest naming every section that was included. A section whose
+builder fails is omitted and listed as absent, never fabricated. Without an API
+key both routes stay up and report available false honestly instead of
+guessing.
 """
 
 from __future__ import annotations
@@ -22,6 +26,8 @@ from typing import Any, Callable
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
+from kairos_api import assistant_context
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
@@ -51,11 +57,23 @@ SYSTEM_PROMPT = (
     "marked absent failed to load and its data is unavailable. "
     "3. Competitor boundary: never state, estimate or speculate about competitor "
     "revenue or competitor performance. The context covers only the operator's own "
-    "channel; say so when asked about competitors. "
-    "4. Language: answer in the language of the question. When the question is in "
+    "channel; say so when asked about competitors. Competitor channels appear in "
+    "CONTEXT only as aggregate counts, never by name or by figure. "
+    "4. Context layout: per_day_plan is a per-day table of the operator's own "
+    "channel (date, weekday, breaks, revenue in ILS, average retention percent). "
+    "When the question names a date, weekday or time found in the saved plan, "
+    "day_detail sections carry that day's segments ordered by revenue, highest "
+    "first; the start field is each segment's clock time, and matched_full_rows "
+    "carries the complete saved fields for segments matching a time or programme "
+    "type named in the question. "
+    "5. Truncation: when a day_detail section carries truncated true, or the "
+    "context carries day_detail_truncated true, rows were cut to fit the context "
+    "budget. When your answer relies on such a section, state that it is based on "
+    "a truncated list. "
+    "6. Language: answer in the language of the question. When the question is in "
     "Hebrew, answer in natural Hebrew. "
-    "5. Currency: monetary amounts are in ILS unless the context states otherwise. "
-    "6. Style: keep answers short and concrete, plain text only, no markdown "
+    "7. Currency: monetary amounts are in ILS unless the context states otherwise. "
+    "8. Style: keep answers short and concrete, plain text only, no markdown "
     "formatting. Prefer two to six sentences, or a short plain list when the "
     "operator asks for several figures."
 )
@@ -195,12 +213,15 @@ _SECTIONS: tuple[tuple[str, Callable[[], Any]], ...] = (
 )
 
 
-def _compose_context() -> tuple[dict[str, Any], list[str]]:
+def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
     """Build the grounding context from the real payload builders.
 
     A failing section is omitted from the context and listed in sources with an
     absent marker, so the model (and the operator) can see exactly which data
-    was and was not available. Nothing is ever substituted or fabricated.
+    was and was not available. Nothing is ever substituted or fabricated. After
+    the base sections, assistant_context adds the always-on per-day table of
+    the operator's own channel, any day_detail sections the question's dates
+    resolve to, and finally enforces the serialized character budget.
     """
     context: dict[str, Any] = {}
     sources: list[str] = []
@@ -210,6 +231,8 @@ def _compose_context() -> tuple[dict[str, Any], list[str]]:
             sources.append(name)
         except Exception:
             sources.append(f"{name} (absent)")
+    assistant_context.extend_with_day_grounding(context, sources, question)
+    assistant_context.enforce_budget(context)
     return context, sources
 
 
@@ -298,7 +321,7 @@ def assistant_ask(request: AskRequest) -> dict[str, Any]:
             "error": KEY_MISSING_REASON,
         }
 
-    context, sources = _compose_context()
+    context, sources = _compose_context(question)
     grounding = {"sources": sources, "generated_at": generated_at}
     context_json = json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str)
     try:
