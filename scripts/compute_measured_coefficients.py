@@ -40,7 +40,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from kairos.data import ProgramClassifier
-from kairos.data.loaders import DAILY_DIR, REFERENCE_DIR, load_dayparts, load_programmes, load_spots
+from kairos.data.loaders import (
+    DAILY_DIR,
+    REFERENCE_DIR,
+    _resolve_reference_path,
+    load_dayparts,
+    load_programmes,
+    load_spots,
+)
 from kairos.model.measure import (
     between_cell_variance,
     break_effects,
@@ -75,11 +82,18 @@ def _source_fingerprints() -> dict[str, str]:
     """Map each source file's relative POSIX path to its current sha256.
 
     Used at write time so the coefficients JSON records exactly what data it was
-    computed from. A missing file is skipped here (the compute would already have
-    failed to read it), so only files that fed the measurement are fingerprinted.
+    computed from. Each default xlsx is RESOLVED through the same
+    :func:`kairos.data.loaders._resolve_reference_path` the loaders use, so when
+    the reference workbooks are replaced by uploaded CSVs (the expected shape of
+    the two-year data drop) the fingerprints follow the files that actually fed
+    the measurement instead of pointing at absent xlsx and degrading freshness
+    to ``unknown``. While the xlsx exist (today) the resolved paths are the xlsx
+    and the fingerprints are byte-identical to before. A missing file is skipped
+    (the compute would already have failed to read it).
     """
     prints: dict[str, str] = {}
-    for path in SOURCE_FILES:
+    for default_xlsx in SOURCE_FILES:
+        path = _resolve_reference_path(default_xlsx)
         digest = checksum_file(path)
         if digest is not None:
             rel = path.relative_to(ROOT).as_posix()

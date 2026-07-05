@@ -49,12 +49,37 @@ from kairos.model.prepare import identify_breaks
 
 logger = logging.getLogger(__name__)
 
-# The two forward-usable competitor features (from the rival EPG, published ahead).
+# The two original forward-usable competitor features (from the rival EPG,
+# published ahead). This tuple is a pinned public contract (the Stage 3a
+# diagnostics and their tests key on it), so the newer forward feature below
+# extends it in EXTENDED_FORWARD_FEATURES rather than mutating it.
 FORWARD_FEATURES: tuple[str, ...] = ("competitor_strength", "competitor_genre_contrast")
+# The counter-programming junction signal: a rival programme STARTING during or
+# just after the break window is a capture point for viewers surfing away
+# during the break (see docs/competitor-counterprogramming.md). Forward-usable:
+# it reads only rival programme start times from the published EPG.
+PROG_START_FEATURE = "competitor_prog_start"
+# The full forward set the counter-programming gate and the future-EPG
+# prediction path use. The original Stage 3a path keeps FORWARD_FEATURES.
+EXTENDED_FORWARD_FEATURES: tuple[str, ...] = FORWARD_FEATURES + (PROG_START_FEATURE,)
 # The training-only feature (from rival aired-spots, known only historically).
 TRAINING_ONLY_FEATURES: tuple[str, ...] = ("competitor_in_break",)
-# Every competitor feature this module produces.
+# The original Stage 3a feature set (pinned contract, see FORWARD_FEATURES).
 ALL_FEATURES: tuple[str, ...] = FORWARD_FEATURES + TRAINING_ONLY_FEATURES
+# Every competitor feature the extractor produces today.
+EXTENDED_ALL_FEATURES: tuple[str, ...] = EXTENDED_FORWARD_FEATURES + TRAINING_ONLY_FEATURES
+
+# competitor_prog_start window, in minutes around the break: a rival programme
+# start counts when it falls in [break_start - LEAD, break_end + TAIL]. The
+# 3-minute tail matches the retention measurement's after-window, where a
+# freshly-started rival show is exactly what a shed viewer lands on.
+_PROG_START_LEAD_MINUTES = 1
+_PROG_START_TAIL_MINUTES = 3
+
+
+def is_forward_feature(name: str) -> bool:
+    """True when ``name`` is legitimately available before the week airs."""
+    return name in EXTENDED_FORWARD_FEATURES
 
 
 class ForwardBoundaryError(ValueError):
@@ -191,16 +216,70 @@ def _genre_contrast(
     return float(same) / float(len(rivals))
 
 
+def _prog_start(
+    break_start: pd.Timestamp,
+    break_end: pd.Timestamp,
+    rivals: tuple[str, ...],
+    category_lookup: dict[str, list[tuple[pd.Timestamp, pd.Timestamp, str]]],
+) -> float:
+    """Fraction of rivals with a programme STARTING in/near the break window.
+
+    The window is ``[break_start - _PROG_START_LEAD_MINUTES, break_end +
+    _PROG_START_TAIL_MINUTES]``. Forward-usable: it reads only rival programme
+    start times from the EPG, which is published before the week airs. A rival
+    with no EPG rows contributes 0 (honest absence, no fabricated junction).
+    """
+    if not rivals:
+        return 0.0
+    lo = pd.Timestamp(break_start) - pd.Timedelta(minutes=_PROG_START_LEAD_MINUTES)
+    hi = pd.Timestamp(break_end) + pd.Timedelta(minutes=_PROG_START_TAIL_MINUTES)
+    hits = 0
+    for rival in rivals:
+        for start, _end, _category in category_lookup.get(rival, []):
+            if lo <= start <= hi:
+                hits += 1
+                break
+            if start > hi:  # records are air-ordered; nothing later can match
+                break
+    return float(hits) / float(len(rivals))
+
+
+def _interval_index(
+    intervals: dict[str, list[tuple[pd.Timestamp, pd.Timestamp]]],
+) -> dict[str, tuple[list[pd.Timestamp], list[pd.Timestamp]]]:
+    """Per channel: interval starts (sorted) and the prefix-max of interval ends.
+
+    Lets :func:`_in_break` answer "does any interval overlap [t, t+1)" in
+    O(log n): among intervals starting before t+1, one overlaps iff the largest
+    end seen so far exceeds t. Same boolean as the linear scan, at 24-months
+    scale (tens of thousands of rival breaks) instead of O(n) per minute.
+    """
+    out: dict[str, tuple[list[pd.Timestamp], list[pd.Timestamp]]] = {}
+    for channel, spans in intervals.items():
+        ordered = sorted(spans)
+        starts = [s for s, _ in ordered]
+        prefix_max_end: list[pd.Timestamp] = []
+        running = None
+        for _, end in ordered:
+            running = end if running is None or end > running else running
+            prefix_max_end.append(running)
+        out[channel] = (starts, prefix_max_end)
+    return out
+
+
 def _in_break(
     minutes: list[pd.Timestamp],
     rivals: tuple[str, ...],
-    intervals: dict[str, list[tuple[pd.Timestamp, pd.Timestamp]]],
+    indexed: dict[str, tuple[list[pd.Timestamp], list[pd.Timestamp]]],
 ) -> float:
     """Fraction of break minutes where at least one rival was itself in a break.
 
     TRAINING-ONLY: derived from rival ad placement, known only historically. Never
-    a forward input (see :func:`assert_forward_only`).
+    a forward input (see :func:`assert_forward_only`). ``indexed`` is the
+    :func:`_interval_index` of the rival break intervals.
     """
+    import bisect
+
     if not minutes:
         return 0.0
     covered = 0
@@ -208,11 +287,10 @@ def _in_break(
         minute_end = stamp + pd.Timedelta(minutes=1)
         hit = False
         for rival in rivals:
-            for start, end in intervals.get(rival, ()):  # rival break spans
-                if start < minute_end and end > stamp:  # overlaps this minute
-                    hit = True
-                    break
-            if hit:
+            starts, prefix_max_end = indexed.get(rival, ([], []))
+            idx = bisect.bisect_left(starts, minute_end)
+            if idx > 0 and prefix_max_end[idx - 1] > stamp:
+                hit = True
                 break
         covered += 1 if hit else 0
     return float(covered) / float(len(minutes))
@@ -229,35 +307,42 @@ def attach_competitor_features(
 
     ``breaks`` is the frame from :func:`kairos.model.prepare.keyed_breaks` (one row
     per break with ``channel``, ``break_start``, ``break_end``). Returns a copy with
-    three added columns: the two :data:`FORWARD_FEATURES` and the one
-    :data:`TRAINING_ONLY_FEATURES`. The forward columns read only the rival EPG and
-    the rivals' historical audience curve; the training-only column reads the rival
-    aired-spots log and is tagged as such by its name so the estimator can keep it
-    out of the forward path. An empty input returns the same columns, empty.
+    the :data:`EXTENDED_ALL_FEATURES` columns added: the three forward features
+    (rival audience strength, same-genre contrast, rival programme start near the
+    window) and the one :data:`TRAINING_ONLY_FEATURES`. The forward columns read
+    only the rival EPG and the rivals' historical audience curve; the training-only
+    column reads the rival aired-spots log and is tagged as such by its name so the
+    estimator can keep it out of the forward path. An empty input returns the same
+    columns, empty.
     """
     out = breaks.copy()
     if out.empty:
-        for name in ALL_FEATURES:
+        for name in EXTENDED_ALL_FEATURES:
             out[name] = pd.Series(dtype=float)
         return out
 
     baseline = _baseline_levels(_dayparts_frame(dayparts))
     category_lookup = _programme_category_lookup(programmes, classifier)
-    rival_intervals = _rival_break_intervals(spots)
+    rival_intervals = _interval_index(_rival_break_intervals(spots))
 
     strength: list[float] = []
     contrast: list[float] = []
+    prog_start: list[float] = []
     in_break: list[float] = []
     for row in out.itertuples(index=False):
         channel = str(getattr(row, "channel"))
         rivals = _rivals(channel)
-        minutes = _break_minutes(getattr(row, "break_start"), getattr(row, "break_end"))
+        b_start = getattr(row, "break_start")
+        b_end = getattr(row, "break_end")
+        minutes = _break_minutes(b_start, b_end)
         own_category = _category_at(category_lookup, channel, minutes[len(minutes) // 2])
         strength.append(_strength(minutes, rivals, baseline))
         contrast.append(_genre_contrast(minutes, own_category, rivals, category_lookup))
+        prog_start.append(_prog_start(b_start, b_end, rivals, category_lookup))
         in_break.append(_in_break(minutes, rivals, rival_intervals))
 
     out["competitor_strength"] = strength
     out["competitor_genre_contrast"] = contrast
+    out["competitor_prog_start"] = prog_start
     out["competitor_in_break"] = in_break
     return out

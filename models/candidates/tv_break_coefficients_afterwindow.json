@@ -1,0 +1,357 @@
+{
+  "method": "measured_detrended_pooled",
+  "metadata": {
+    "candidate": true,
+    "purpose": "after-window de-bias verification recompute (post-clip code, reference data)",
+    "verification_matches_shipped": true,
+    "max_abs_coefficient_diff_vs_shipped": 0.0,
+    "total_breaks_measured": 2532,
+    "unclipped_breaks": 5696,
+    "clip_dropped": 3164,
+    "clip_shortened": 273,
+    "holdout_clean_test": {
+      "n_test": 452,
+      "rmse_train_unclipped": 0.24113882584120547,
+      "rmse_train_clipped": 0.24175635216023045,
+      "r2_train_unclipped": -0.001830640447627152,
+      "r2_train_clipped": -0.009951261852103155
+    },
+    "residual_spot_overlap_breaks_pct": 9.4391785150079,
+    "residual_spot_overlap_minutes_pct": 2.3857936830689983,
+    "after_window_programme_start_pct": 4.265402843601896,
+    "computed_at": "2026-07-05T17:47:58.285153+00:00",
+    "source_fingerprints": {
+      "data/reference/Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "data/reference/Programmes.xlsx": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "data/reference/Dayparts.xlsx": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0"
+    }
+  },
+  "coefficients": {
+    "News_first_long": -0.03814012352107243,
+    "News_first_short": -0.038552377132038074,
+    "News_first_standard": -0.04065272428170452,
+    "News_last_long": -0.040912264369941775,
+    "News_last_short": -0.036568584779580804,
+    "News_last_standard": -0.04497928612714319,
+    "News_middle_long": -0.04303169297461351,
+    "News_middle_short": -0.03802756854251643,
+    "News_middle_standard": -0.041859979657374535,
+    "Other_first_long": -0.04771189816215282,
+    "Other_first_short": -0.04016927010816829,
+    "Other_first_standard": -0.035515293088614786,
+    "Other_last_long": -0.04024317045734305,
+    "Other_last_short": -0.03129168016613748,
+    "Other_last_standard": -0.04117663689275264,
+    "Other_middle_long": -0.03703713522990559,
+    "Other_middle_short": -0.036278415919850926,
+    "Other_middle_standard": -0.03628666630581667,
+    "PrimeShow1_first_long": -0.03908034599330368,
+    "PrimeShow1_first_short": -0.038320542011516134,
+    "PrimeShow1_first_standard": -0.03841643992530852,
+    "PrimeShow1_last_long": -0.038616580827055436,
+    "PrimeShow1_last_short": -0.04001552055756974,
+    "PrimeShow1_last_standard": -0.03494337111340651,
+    "PrimeShow1_middle_long": -0.03857688422125949,
+    "PrimeShow1_middle_short": -0.038392486064427356,
+    "PrimeShow1_middle_standard": -0.03783042986246443,
+    "PrimeShow2_first_long": -0.03885348719455728,
+    "PrimeShow2_first_short": -0.04241249749498688,
+    "PrimeShow2_first_standard": -0.03744861794988341,
+    "PrimeShow2_last_long": -0.03737993137492124,
+    "PrimeShow2_last_short": -0.03967783853138929,
+    "PrimeShow2_last_standard": -0.03776138663891626,
+    "PrimeShow2_middle_long": -0.039404253194441186,
+    "PrimeShow2_middle_short": -0.039796823224403255,
+    "PrimeShow2_middle_standard": -0.040453289776282486
+  },
+  "detail": {
+    "News_first_long": {
+      "channel_name": "News_first_long",
+      "coefficient": -0.03814012352107243,
+      "raw_delta": -0.03814012352107243,
+      "n": 27,
+      "ci_low": -0.058038374793520475,
+      "ci_high": -0.017821536225259615
+    },
+    "News_first_short": {
+      "channel_name": "News_first_short",
+      "coefficient": -0.038552377132038074,
+      "raw_delta": -0.038552377132038074,
+      "n": 21,
+      "ci_low": -0.05855448139085495,
+      "ci_high": -0.01812530492035258
+    },
+    "News_first_standard": {
+      "channel_name": "News_first_standard",
+      "coefficient": -0.04065272428170452,
+      "raw_delta": -0.04065272428170452,
+      "n": 44,
+      "ci_low": -0.06019097913646443,
+      "ci_high": -0.020708276898148803
+    },
+    "News_last_long": {
+      "channel_name": "News_last_long",
+      "coefficient": -0.040912264369941775,
+      "raw_delta": -0.040912264369941775,
+      "n": 96,
+      "ci_low": -0.05958338893627746,
+      "ci_high": -0.021870441446654065
+    },
+    "News_last_short": {
+      "channel_name": "News_last_short",
+      "coefficient": -0.036568584779580804,
+      "raw_delta": -0.036568584779580804,
+      "n": 67,
+      "ci_low": -0.05579296851196658,
+      "ci_high": -0.01695278590457794
+    },
+    "News_last_standard": {
+      "channel_name": "News_last_standard",
+      "coefficient": -0.04497928612714319,
+      "raw_delta": -0.04497928612714319,
+      "n": 58,
+      "ci_low": -0.06418706738506719,
+      "ci_high": -0.02537726062659973
+    },
+    "News_middle_long": {
+      "channel_name": "News_middle_long",
+      "coefficient": -0.04303169297461351,
+      "raw_delta": -0.04303169297461351,
+      "n": 105,
+      "ci_low": -0.06152369149589121,
+      "ci_high": -0.024175322964985813
+    },
+    "News_middle_short": {
+      "channel_name": "News_middle_short",
+      "coefficient": -0.03802756854251643,
+      "raw_delta": -0.03802756854251643,
+      "n": 20,
+      "ci_low": -0.05805951184235991,
+      "ci_high": -0.0175696123921657
+    },
+    "News_middle_standard": {
+      "channel_name": "News_middle_standard",
+      "coefficient": -0.041859979657374535,
+      "raw_delta": -0.041859979657374535,
+      "n": 51,
+      "ci_low": -0.06125096102040728,
+      "ci_high": -0.0220684544401184
+    },
+    "Other_first_long": {
+      "channel_name": "Other_first_long",
+      "coefficient": -0.04771189816215282,
+      "raw_delta": -0.04771189816215282,
+      "n": 238,
+      "ci_low": -0.06438061749410373,
+      "ci_high": -0.030746213836356784
+    },
+    "Other_first_short": {
+      "channel_name": "Other_first_short",
+      "coefficient": -0.04016927010816829,
+      "raw_delta": -0.04016927010816829,
+      "n": 100,
+      "ci_low": -0.0587930307854152,
+      "ci_high": -0.021176999131796936
+    },
+    "Other_first_standard": {
+      "channel_name": "Other_first_standard",
+      "coefficient": -0.035515293088614786,
+      "raw_delta": -0.035515293088614786,
+      "n": 207,
+      "ci_low": -0.05276296111996048,
+      "ci_high": -0.0179535726708977
+    },
+    "Other_last_long": {
+      "channel_name": "Other_last_long",
+      "coefficient": -0.04024317045734305,
+      "raw_delta": -0.04024317045734305,
+      "n": 159,
+      "ci_low": -0.05801804182270898,
+      "ci_high": -0.02213289346205749
+    },
+    "Other_last_short": {
+      "channel_name": "Other_last_short",
+      "coefficient": -0.03129168016613748,
+      "raw_delta": -0.03129168016613748,
+      "n": 146,
+      "ci_low": -0.04941098665496502,
+      "ci_high": -0.012826999111617443
+    },
+    "Other_last_standard": {
+      "channel_name": "Other_last_standard",
+      "coefficient": -0.04117663689275264,
+      "raw_delta": -0.04117663689275264,
+      "n": 224,
+      "ci_low": -0.058120996824866045,
+      "ci_high": -0.023927448705055143
+    },
+    "Other_middle_long": {
+      "channel_name": "Other_middle_long",
+      "coefficient": -0.03703713522990559,
+      "raw_delta": -0.03703713522990559,
+      "n": 292,
+      "ci_low": -0.05330807378477054,
+      "ci_high": -0.020486545571946846
+    },
+    "Other_middle_short": {
+      "channel_name": "Other_middle_short",
+      "coefficient": -0.036278415919850926,
+      "raw_delta": -0.036278415919850926,
+      "n": 134,
+      "ci_low": -0.05447319894039904,
+      "ci_high": -0.01773351048204941
+    },
+    "Other_middle_standard": {
+      "channel_name": "Other_middle_standard",
+      "coefficient": -0.03628666630581667,
+      "raw_delta": -0.03628666630581667,
+      "n": 255,
+      "ci_low": -0.052964545322257806,
+      "ci_high": -0.01931507954368017
+    },
+    "PrimeShow1_first_long": {
+      "channel_name": "PrimeShow1_first_long",
+      "coefficient": -0.03908034599330368,
+      "raw_delta": -0.03908034599330368,
+      "n": 12,
+      "ci_low": -0.05924346299211414,
+      "ci_high": -0.018485075433912312
+    },
+    "PrimeShow1_first_short": {
+      "channel_name": "PrimeShow1_first_short",
+      "coefficient": -0.038320542011516134,
+      "raw_delta": -0.038320542011516134,
+      "n": 13,
+      "ci_low": -0.058480263228708584,
+      "ci_high": -0.017729162971675483
+    },
+    "PrimeShow1_first_standard": {
+      "channel_name": "PrimeShow1_first_standard",
+      "coefficient": -0.03841643992530852,
+      "raw_delta": -0.03841643992530852,
+      "n": 28,
+      "ci_low": -0.05829042027155651,
+      "ci_high": -0.01812303611422017
+    },
+    "PrimeShow1_last_long": {
+      "channel_name": "PrimeShow1_last_long",
+      "coefficient": -0.038616580827055436,
+      "raw_delta": -0.038616580827055436,
+      "n": 11,
+      "ci_low": -0.058808816026814426,
+      "ci_high": -0.017991143139528543
+    },
+    "PrimeShow1_last_short": {
+      "channel_name": "PrimeShow1_last_short",
+      "coefficient": -0.04001552055756974,
+      "raw_delta": -0.04001552055756974,
+      "n": 8,
+      "ci_low": -0.0602367758616561,
+      "ci_high": -0.01935915654144793
+    },
+    "PrimeShow1_last_standard": {
+      "channel_name": "PrimeShow1_last_standard",
+      "coefficient": -0.03494337111340651,
+      "raw_delta": -0.03494337111340651,
+      "n": 23,
+      "ci_low": -0.054982750715744655,
+      "ci_high": -0.01447905034184549
+    },
+    "PrimeShow1_middle_long": {
+      "channel_name": "PrimeShow1_middle_long",
+      "coefficient": -0.03857688422125949,
+      "raw_delta": -0.03857688422125949,
+      "n": 15,
+      "ci_low": -0.05869272547572357,
+      "ci_high": -0.018031165199645094
+    },
+    "PrimeShow1_middle_short": {
+      "channel_name": "PrimeShow1_middle_short",
+      "coefficient": -0.038392486064427356,
+      "raw_delta": -0.038392486064427356,
+      "n": 18,
+      "ci_low": -0.05845481436150435,
+      "ci_high": -0.01790267215875818
+    },
+    "PrimeShow1_middle_standard": {
+      "channel_name": "PrimeShow1_middle_standard",
+      "coefficient": -0.03783042986246443,
+      "raw_delta": -0.03783042986246443,
+      "n": 22,
+      "ci_low": -0.05782868083743964,
+      "ci_high": -0.017407701901272388
+    },
+    "PrimeShow2_first_long": {
+      "channel_name": "PrimeShow2_first_long",
+      "coefficient": -0.03885348719455728,
+      "raw_delta": -0.03885348719455728,
+      "n": 24,
+      "ci_low": -0.058792923667857044,
+      "ci_high": -0.018491634510340194
+    },
+    "PrimeShow2_first_short": {
+      "channel_name": "PrimeShow2_first_short",
+      "coefficient": -0.04241249749498688,
+      "raw_delta": -0.04241249749498688,
+      "n": 14,
+      "ci_low": -0.06246723591489578,
+      "ci_high": -0.021928768698956547
+    },
+    "PrimeShow2_first_standard": {
+      "channel_name": "PrimeShow2_first_standard",
+      "coefficient": -0.03744861794988341,
+      "raw_delta": -0.03744861794988341,
+      "n": 9,
+      "ci_low": -0.0577043685557902,
+      "ci_high": -0.016757446209762272
+    },
+    "PrimeShow2_last_long": {
+      "channel_name": "PrimeShow2_last_long",
+      "coefficient": -0.03737993137492124,
+      "raw_delta": -0.03737993137492124,
+      "n": 13,
+      "ci_low": -0.057559370646867,
+      "ci_high": -0.01676841207942048
+    },
+    "PrimeShow2_last_short": {
+      "channel_name": "PrimeShow2_last_short",
+      "coefficient": -0.03967783853138929,
+      "raw_delta": -0.03967783853138929,
+      "n": 10,
+      "ci_low": -0.059867203582808504,
+      "ci_high": -0.0190549065809823
+    },
+    "PrimeShow2_last_standard": {
+      "channel_name": "PrimeShow2_last_standard",
+      "coefficient": -0.03776138663891626,
+      "raw_delta": -0.03776138663891626,
+      "n": 23,
+      "ci_low": -0.05774225021105406,
+      "ci_high": -0.017356822747860656
+    },
+    "PrimeShow2_middle_long": {
+      "channel_name": "PrimeShow2_middle_long",
+      "coefficient": -0.039404253194441186,
+      "raw_delta": -0.039404253194441186,
+      "n": 8,
+      "ci_low": -0.0596383843248286,
+      "ci_high": -0.01873473629779443
+    },
+    "PrimeShow2_middle_short": {
+      "channel_name": "PrimeShow2_middle_short",
+      "coefficient": -0.039796823224403255,
+      "raw_delta": -0.039796823224403255,
+      "n": 13,
+      "ci_low": -0.0599255971052014,
+      "ci_high": -0.019237054162057232
+    },
+    "PrimeShow2_middle_standard": {
+      "channel_name": "PrimeShow2_middle_standard",
+      "coefficient": -0.040453289776282486,
+      "raw_delta": -0.040453289776282486,
+      "n": 24,
+      "ci_low": -0.060359537592574064,
+      "ci_high": -0.020125328849522783
+    }
+  }
+}

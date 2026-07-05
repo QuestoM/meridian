@@ -248,6 +248,7 @@ def break_effects(
     before_minutes: int = _BEFORE_MINUTES,
     after_minutes: int = _AFTER_MINUTES,
     min_window_minutes: int = _MIN_WINDOW_MINUTES,
+    clip_to_all_ad_airtime: bool = False,
 ) -> pd.DataFrame:
     """Measure the detrended retention effect of every real break.
 
@@ -268,6 +269,15 @@ def break_effects(
     clipped window shrinks below ``min_window_minutes`` (default 1 minute),
     the break is dropped entirely rather than measured on contaminated audience.
     Unaffected breaks (gap > window) keep the full window unchanged.
+
+    ``clip_to_all_ad_airtime`` (default False, shipped behavior unchanged)
+    extends the clip boundaries from detected breaks (runs of >= 2 spots) to
+    EVERY ad-air run including single-spot runs, which the break detector does
+    not call a break but which still put commercial audience inside a window.
+    Measured on the reference month, 9.44 percent of surviving breaks carry at
+    least one such minute (2.39 percent of window minutes). Turning this on is
+    a measurement behavior change and is gated on held-out skill like any other
+    (see scripts/measure_spotlevel_clip.py for the measured verdict).
     """
     breaks = keyed_breaks(spots, programmes, classifier)
     columns = [
@@ -295,8 +305,21 @@ def break_effects(
     titles = _programme_title_lookup(programmes)
 
     # Build per-channel sorted break spans so we can find each break's
-    # neighbours without scanning the full frame on every iteration.
-    neighbours = _neighbour_lookup(breaks)
+    # neighbours without scanning the full frame on every iteration. With
+    # clip_to_all_ad_airtime the clip boundaries come from EVERY ad-air run
+    # (min_spots=1), so single-spot runs also bound the windows; the set of
+    # breaks measured is unchanged (still runs of >= 2 spots), only the clip
+    # spans grow. A measured break's own run appears identically in both span
+    # sets; when a single-spot run floors to the same minute as a break start,
+    # the self-location search lands on the earlier span and the break's
+    # windows clip to nothing, so it is dropped conservatively rather than
+    # ever measured on contaminated audience.
+    if clip_to_all_ad_airtime:
+        from kairos.model.prepare import identify_breaks
+
+        neighbours = _neighbour_lookup(identify_breaks(spots, min_spots=1))
+    else:
+        neighbours = _neighbour_lookup(breaks)
 
     # Signed-minute offsets for the full windows; clipping may shorten them.
     before_offsets_full = [-(k + 1) for k in range(before_minutes)]

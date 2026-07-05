@@ -127,7 +127,11 @@ def _within_cell_demean(effects: pd.DataFrame, columns: list[str]) -> tuple[np.n
     return x, y
 
 
-def fit_competitor_betas(effects: pd.DataFrame) -> dict[str, CompetitorBeta]:
+def fit_competitor_betas(
+    effects: pd.DataFrame,
+    *,
+    feature_names: Optional[tuple[str, ...]] = None,
+) -> dict[str, CompetitorBeta]:
     """Fit the within-cell betas for every competitor feature with finite spread.
 
     Uses a within-cell (fixed-effects) OLS so the betas are free of the confound
@@ -135,10 +139,22 @@ def fit_competitor_betas(effects: pd.DataFrame) -> dict[str, CompetitorBeta]:
     feature actually fitted, tagged ``forward`` or ``training_only``. Returns an
     empty dict when there are too few rows, too few cells, or no within-cell feature
     spread to identify any slope (so the caller falls back to plain Stage 2 pooling).
+
+    ``feature_names`` selects which features to fit; the default is the original
+    Stage 3a set (:data:`~kairos.model.competitor_features.ALL_FEATURES`), so the
+    shipped path is unchanged. The counter-programming gate passes the extended
+    set that adds the rival programme-start feature.
     """
     if effects.empty or len(effects) < _MIN_ROWS_FOR_BETAS:
         return {}
-    usable = effects.dropna(subset=["log_effect", *ALL_FEATURES])
+    wanted = tuple(feature_names) if feature_names is not None else ALL_FEATURES
+    # Fit whatever competitor features the frame actually carries, so a frame
+    # produced before a feature existed (or with a feature deliberately
+    # omitted) still fits the rest instead of raising.
+    present = [name for name in wanted if name in effects.columns]
+    if not present:
+        return {}
+    usable = effects.dropna(subset=["log_effect", *present])
     if usable["channel_name"].nunique() < 2 or len(usable) < _MIN_ROWS_FOR_BETAS:
         return {}
 
@@ -146,7 +162,7 @@ def fit_competitor_betas(effects: pd.DataFrame) -> dict[str, CompetitorBeta]:
     # within every cell is wiped out by demeaning and cannot be identified.
     grouped = usable.groupby("channel_name")
     columns = [
-        name for name in ALL_FEATURES
+        name for name in present
         if float(np.nanmax(grouped[name].transform("std").fillna(0.0).to_numpy())) > 1e-12
     ]
     if not columns:
@@ -158,22 +174,34 @@ def fit_competitor_betas(effects: pd.DataFrame) -> dict[str, CompetitorBeta]:
     if dof <= 0:
         return {}
 
-    xtx = x.T @ x
-    try:
-        xtx_inv = np.linalg.inv(xtx)
-    except np.linalg.LinAlgError:
-        logger.info("Competitor design matrix is singular; skipping beta fit.")
+    # np.errstate: macOS Accelerate BLAS raises spurious floating-point-flag
+    # warnings on ANY matmul (even clean float64 data), so the flags are
+    # silenced locally and replaced by an explicit finiteness guard below,
+    # which also catches a genuinely degenerate fit instead of letting NaNs
+    # propagate into the betas.
+    with np.errstate(all="ignore"):
+        xtx = x.T @ x
+        try:
+            xtx_inv = np.linalg.inv(xtx)
+        except np.linalg.LinAlgError:
+            logger.info("Competitor design matrix is singular; skipping beta fit.")
+            return {}
+        beta = xtx_inv @ (x.T @ y)
+        resid = y - x @ beta
+        sigma2 = float(resid @ resid) / dof
+        cov = sigma2 * xtx_inv
+    if not (np.isfinite(beta).all() and np.isfinite(cov).all()):
+        logger.info("Competitor beta fit produced non-finite values; skipping beta fit.")
         return {}
-    beta = xtx_inv @ (x.T @ y)
-    resid = y - x @ beta
-    sigma2 = float(resid @ resid) / dof
-    cov = sigma2 * xtx_inv
 
     betas: dict[str, CompetitorBeta] = {}
     for idx, name in enumerate(columns):
         b = float(beta[idx])
         se = float(np.sqrt(max(0.0, cov[idx, idx])))
-        role = "forward" if name in FORWARD_FEATURES else "training_only"
+        # Role by the training-only list, so every forward-usable feature
+        # (including extensions beyond the original pinned pair) is labelled
+        # forward, and anything derived from rival ad placement never is.
+        role = "training_only" if name in TRAINING_ONLY_FEATURES else "forward"
         reference = float(usable[name].mean())
         betas[name] = CompetitorBeta(
             feature=name, beta=b, se=se,

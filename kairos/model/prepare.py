@@ -111,14 +111,17 @@ def length_bucket(break_seconds: float) -> str:
     return "long"
 
 
-def identify_breaks(spots: pd.DataFrame) -> pd.DataFrame:
+def identify_breaks(spots: pd.DataFrame, *, min_spots: int = _MIN_SPOTS_PER_BREAK) -> pd.DataFrame:
     """Group adjacent spots per channel into commercial breaks.
 
     ``spots`` must carry the columns produced by
     :func:`kairos.data.loaders.load_spots` (``Channel``, ``air_dt``,
     ``Duration`` in seconds). Spots within :data:`_MAX_SPOT_GAP_SECONDS` of the
-    previous spot's end join the same break; a run of fewer than
-    :data:`_MIN_SPOTS_PER_BREAK` spots is dropped (it is not a break).
+    previous spot's end join the same break; a run of fewer than ``min_spots``
+    spots is dropped (it is not a break). The default keeps the engine's
+    definition of a break (:data:`_MIN_SPOTS_PER_BREAK`); ``min_spots=1``
+    returns EVERY ad-air run, which the measurement layer uses to clip
+    audience windows against all ad airtime, not only full breaks.
 
     Returns one row per break with columns: channel, break_start, break_end,
     break_seconds, num_spots. Returns an empty frame when there are no breaks.
@@ -143,16 +146,21 @@ def identify_breaks(spots: pd.DataFrame) -> pd.DataFrame:
             if gap <= _MAX_SPOT_GAP_SECONDS:
                 current.append(spot)
             else:
-                _append_break(breaks, channel, current)
+                _append_break(breaks, channel, current, min_spots)
                 current = [spot]
-        _append_break(breaks, channel, current)
+        _append_break(breaks, channel, current, min_spots)
 
     return pd.DataFrame(breaks, columns=columns)
 
 
-def _append_break(breaks: list[dict[str, Any]], channel: str, spots: list[pd.Series]) -> None:
+def _append_break(
+    breaks: list[dict[str, Any]],
+    channel: str,
+    spots: list[pd.Series],
+    min_spots: int = _MIN_SPOTS_PER_BREAK,
+) -> None:
     """Append one break to ``breaks`` if the run is long enough to count."""
-    if len(spots) < _MIN_SPOTS_PER_BREAK:
+    if len(spots) < min_spots:
         return
     break_start = spots[0]["air_dt"]
     break_end = spots[-1]["end_dt"]
