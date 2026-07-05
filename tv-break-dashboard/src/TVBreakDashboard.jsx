@@ -345,7 +345,7 @@ const copyByLocale = {
     gold: 'Gold breaks enabled',
     approval: 'Manual approval required',
     riskCaution: 'Caution level',
-    riskCautionHelp: 'How cautious to be when the retention estimate is uncertain. 0 uses the central estimate; higher values treat an uncertain break at its worst plausible cost, for a more conservative plan.',
+    riskCautionHelp: 'Sets which retention cost the reported numbers carry. 0 uses the central estimate; higher values price each break at the worst plausible cost in its measured range. A reporting choice: on current data it does not change the chosen plan.',
     riskCautionSetting: 'Default caution level',
     retentionCostTitle: 'Retention cost confidence',
     retentionCostIntro: 'How trustworthy the retention cost is behind each segment in this plan.',
@@ -442,7 +442,7 @@ const copyByLocale = {
     gold: 'ברייקי זהב פעילים',
     approval: 'נדרש אישור ידני',
     riskCaution: 'רמת זהירות',
-    riskCautionHelp: 'כמה להיזהר כשאומדן השימור אינו ודאי. 0 = שימוש באומדן המרכזי; ככל שעולה, ברייק עם חוסר ודאות מתומחר לפי העלות הגרועה הסבירה שלו, כלומר תוכנית שמרנית יותר.',
+    riskCautionHelp: 'קובע איזו עלות צפייה נכנסת למספרים המדווחים. 0 משתמש באומדן המרכזי, וערכים גבוהים מתמחרים כל ברייק לפי העלות הסבירה הגרועה ביותר בטווח המדידה שלו. זו בחירת דיווח: בנתונים הנוכחיים היא אינה משנה את התוכנית שנבחרת.',
     riskCautionSetting: 'רמת זהירות כברירת מחדל',
     retentionCostTitle: 'מהימנות עלות השימור',
     retentionCostIntro: 'עד כמה אפשר לסמוך על עלות השימור שמאחורי כל סגמנט בתוכנית הזו.',
@@ -1221,6 +1221,33 @@ function TVBreakDashboard() {
     // session cookie in place.
     setRefreshKey((key) => key + 1);
   }
+
+  // Session-expiry guard. Sessions live in the server process, so a server
+  // restart invalidates them mid-session; without this, every panel quietly
+  // renders its offline state while the operator wonders what died. Any API
+  // 401 outside the auth routes flips the app to the sign-in screen instead.
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      try {
+        const url = String(args[0] || '');
+        if (
+          response.status === 401 &&
+          url.includes('/api/') &&
+          !url.includes('/api/auth/')
+        ) {
+          setAuth((current) => (current.status === 'login' ? current : { status: 'login', user: null }));
+        }
+      } catch {
+        // The guard must never break a fetch.
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
 
   async function handleLogout() {
     setUserMenuAnchor(null);
@@ -4315,7 +4342,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
     { key: 'balanced', label: he ? 'מאוזן' : 'Balanced', desc: he ? 'נוטה-להכנסה אך שומר על הצופים' : 'Revenue-leaning, viewer-protective', values: { revenue_weight: 60, risk_lambda: 0, min_retention_floor: 0.72 } },
     { key: 'revenue', label: he ? 'עדיפות להכנסה' : 'Revenue priority', desc: he ? 'ממקסם הכנסה עד גבול הרגולציה' : 'Maximize revenue to the guardrails', values: { revenue_weight: 85, risk_lambda: 0, min_retention_floor: 0.70 } },
     { key: 'retention', label: he ? 'שמירה על צפייה' : 'Retention guardrail', desc: he ? 'פחות הפסקות, רצפת צפייה גבוהה' : 'Fewer breaks, higher floor', values: { revenue_weight: 35, risk_lambda: 0, min_retention_floor: 0.78 } },
-    { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מתמחר את התרחיש הגרוע ביותר' : 'Prices the worst-case cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
+    { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מדווח לפי עלות הצפייה הסבירה הגרועה ביותר' : 'Reports at the worst plausible retention cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
   ];
   const revenueWeight = Number.isFinite(finiteNumber(draft.revenue_weight)) ? finiteNumber(draft.revenue_weight) : 60;
   const recomputeText =
