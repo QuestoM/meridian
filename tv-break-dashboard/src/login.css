@@ -1,0 +1,390 @@
+/* Kairos login screen and account dialogs. Uses the app's design tokens from
+   styles.css with safe fallbacks, and logical properties so RTL and LTR both
+   lay out correctly. */
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg, #f7f8fa);
+  color: var(--ink, #111827);
+  z-index: 60;
+}
+
+.login-card {
+  width: min(400px, 100%);
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(13, 27, 42, 0.08);
+  padding: 30px 28px 24px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.login-brand strong {
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 640;
+}
+
+.login-brand small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted, #5b6573);
+  font-size: 11px;
+}
+
+.login-brand-mark {
+  width: 24px;
+  display: grid;
+  gap: 3px;
+}
+
+.login-brand-mark span {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ink, #111827);
+}
+
+.login-brand-mark span:nth-child(1) { width: 10px; }
+.login-brand-mark span:nth-child(2) { width: 18px; }
+.login-brand-mark span:nth-child(3) { width: 24px; }
+
+.login-card h1 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 620;
+}
+
+.login-sub {
+  margin: 0 0 18px;
+  color: var(--muted, #5b6573);
+  font-size: 12px;
+}
+
+.login-field,
+.auth-field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.login-field > span,
+.auth-field > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink, #111827);
+}
+
+.login-field input,
+.auth-field input,
+.auth-field select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 6px;
+  background: var(--surface, #ffffff);
+  color: var(--ink, #111827);
+  font: inherit;
+  font-size: 13px;
+}
+
+.login-field input:focus,
+.auth-field input:focus,
+.auth-field select:focus {
+  outline: 2px solid rgba(13, 27, 42, 0.35);
+  outline-offset: 1px;
+}
+
+.login-field input[dir='ltr'],
+.auth-field input[dir='ltr'] {
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+.login-error,
+.auth-error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #e5b8b4;
+  border-radius: 6px;
+  background: #fdf3f2;
+  color: #8f2b21;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.login-hint,
+.auth-hint {
+  margin: 8px 0 0;
+  color: var(--muted, #5b6573);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.login-submit,
+.auth-primary {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  background: var(--ink, #0d1b2a);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.login-submit:disabled,
+.auth-primary:disabled,
+.auth-secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.login-loading {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: var(--muted, #5b6573);
+  font-size: 13px;
+}
+
+/* Shared overlay dialogs (change password, manage accounts) */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(13, 27, 42, 0.42);
+  z-index: 70;
+}
+
+.auth-dialog {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 10px;
+  box-shadow: 0 24px 48px rgba(13, 27, 42, 0.18);
+  padding: 24px;
+}
+
+.auth-dialog-wide {
+  width: min(760px, 100%);
+}
+
+.auth-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 640;
+}
+
+.auth-dialog h3 {
+  margin: 22px 0 10px;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.auth-note {
+  margin: 0 0 16px;
+  padding: 8px 10px;
+  border: 1px solid #ecd9a8;
+  border-radius: 6px;
+  background: #fdf8ec;
+  color: #7a5a12;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.auth-secondary {
+  appearance: none;
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  background: var(--surface, #ffffff);
+  color: var(--ink, #111827);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.auth-close {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 14px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted, #5b6573);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Accounts table */
+
+.auth-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.auth-table th {
+  text-align: start;
+  color: var(--muted, #5b6573);
+  font-weight: 600;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line, #dde2e8);
+}
+
+.auth-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line, #dde2e8);
+  vertical-align: middle;
+}
+
+.auth-mono {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-flag {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid #ecd9a8;
+  background: #fdf8ec;
+  color: #7a5a12;
+  font-size: 10px;
+}
+
+.auth-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.auth-mini {
+  appearance: none;
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  background: var(--surface, #ffffff);
+  color: var(--ink, #111827);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.auth-mini:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.auth-mini.auth-danger {
+  border-color: #e5b8b4;
+  color: #8f2b21;
+}
+
+.auth-mini.auth-danger.auth-confirming {
+  background: #8f2b21;
+  border-color: #8f2b21;
+  color: #ffffff;
+}
+
+.auth-reset-row td {
+  background: #f8f9fb;
+}
+
+.auth-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-inline-form input {
+  flex: 1 1 220px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--line, #dde2e8);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.auth-create-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.auth-empty {
+  margin: 14px 0 0;
+  color: var(--muted, #5b6573);
+  font-size: 12px;
+}
+
+/* Sidebar chip: same visual card, but interactive when signed in */
+
+button.operator-card {
+  width: calc(100% - 28px);
+  background: var(--surface, #ffffff);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+button.operator-card:hover {
+  background: #f3f5f7;
+}
+
+.operator-card.operator-open {
+  cursor: default;
+}
+
+.operator-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
