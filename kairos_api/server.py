@@ -541,18 +541,13 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                 if candidate > max_start:
                     candidate = max_start
             break_end = candidate + pd.Timedelta(seconds=break_seconds)
-            is_prime = 20 <= int(candidate.hour) <= 23
-            # Gold: settings guardrail only; the old revenue >= 20 000 threshold
-            # was a magic constant unrelated to the guardrail configuration.
-            # sponsorships_enabled is the parent switch: gold breaks are the
-            # sponsorship inventory, so the parent must actually gate them.
-            is_gold = bool(
-                settings.sponsorships_enabled
-                and settings.gold_breaks_enabled
-                and is_prime
-                and break_index == 1
-                and settings.gold_breaks_max_per_day > 0
-            )
+            # Gold comes from the PLAN, never a heuristic: the saved row's
+            # is_gold flag (set only when the optimizer actually emitted a gold
+            # break for the segment) marks this programme's first break. The old
+            # prime-time+settings synthesis showed gold that did not exist and
+            # even exceeded the daily cap on busy evenings.
+            row_gold = str(schedule_row.get("is_gold", "")).strip().lower() in ("true", "1", "yes")
+            is_gold = bool(row_gold and break_index == 1)
             reference_revenue = _money(revenue_for_breaks / max(break_count, 1))
             rating_points = _safe_number(row.get("viewing_points"), 0.0)
             # base_rate comes from the optimizer's weekly schedule CSV. Absent
@@ -1088,6 +1083,89 @@ def _infer_hourly_break_counts(schedule: pd.DataFrame) -> pd.Series:
     return frame.groupby(group_columns)["break_count"].sum()
 
 
+@lru_cache(maxsize=2)
+def _plan_guardrail_items_cached(signature: tuple[tuple[str, int], ...]) -> tuple[GuardrailBreak, ...]:
+    """The exact break geometry of the FULL committed plan, for compliance.
+
+    Rebuilds the engine's own segments from the reference EPG, joins them to the
+    saved weekly CSV by segment_id, and lays each row's breaks with the same
+    _segment_break_objects the optimizer's guardrail check uses, carrying the
+    row's true is_gold. This covers every channel-day of the plan (the previous
+    source, the break-operations board, truncated to the first 12 programmes per
+    channel and synthesized gold flags, so the compliance verdict watched under
+    one percent of the plan). Cached on the plan+EPG signature; empty result
+    means the geometry could not be joined and callers fall back honestly.
+    """
+    del signature  # cache key only
+    schedule = _load_break_schedule()
+    if schedule.empty or "segment_id" not in schedule.columns:
+        return ()
+    try:
+        from kairos.data import ProgramClassifier
+        from kairos.data.loaders import load_programmes as _load_prog
+        from kairos.data.transform import build_segments_from_programmes
+        from kairos.model.impact import load_impact_model
+        from kairos.optimize._segment_math import _segment_break_objects
+        from kairos.optimize.pricing import OptimizerAssumptions
+        from kairos.service import pricing_from_settings
+
+        # segment_id indexes reset per channel-day build, so segments must be
+        # rebuilt per (channel, date) pair exactly like the export loop, with
+        # the shared resources loaded once.
+        programmes = _load_prog()
+        settings_map = _model_dump(_load_settings())
+        pricing = pricing_from_settings(settings_map)
+        assumptions = OptimizerAssumptions()
+        impact = load_impact_model(MODELS_DIR / "tv_break_posterior.pkl", assumptions=assumptions)
+        classifier = ProgramClassifier.from_yaml()
+        pairs = (
+            schedule[["channel", "date"]].astype(str).drop_duplicates().itertuples(index=False)
+        )
+        by_id: dict[str, Any] = {}
+        for channel_name, date_str in pairs:
+            day_segments = build_segments_from_programmes(
+                programmes, classifier, pricing,
+                assumptions=assumptions, impact_model=impact,
+                channel=channel_name, day=date_str,
+            )
+            for segment in day_segments:
+                by_id[segment.segment_id] = segment
+    except Exception:
+        logger.exception("plan guardrail geometry unavailable")
+        return ()
+    frame = _augment_segment_ids(schedule)
+    items: list[GuardrailBreak] = []
+    joined = 0
+    for row in frame.itertuples(index=False):
+        segment = by_id.get(str(getattr(row, "segment_id", "")))
+        if segment is None:
+            continue
+        joined += 1
+        count = int(_safe_number(getattr(row, "num_breaks", 0)))
+        if count <= 0:
+            continue
+        gold = str(getattr(row, "is_gold", "")).strip().lower() in ("true", "1", "yes")
+        items.extend(_segment_break_objects(segment, count, is_gold=gold))
+    if joined < len(frame) * 0.99:
+        # The EPG no longer matches the saved plan (a re-ingest happened without
+        # a recompute). A partial verdict would be dishonest; report nothing and
+        # let the caller fall back, with the freshness banner telling the story.
+        logger.warning(
+            "plan guardrail geometry joined %s of %s rows; falling back", joined, len(frame)
+        )
+        return ()
+    return tuple(items)
+
+
+def _plan_guardrail_items() -> list[GuardrailBreak]:
+    return list(_plan_guardrail_items_cached(_signature([
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        SETTINGS_PATH,
+    ])))
+
+
 def _guardrail_breaks_from_operations(operations: dict[str, Any]) -> list[GuardrailBreak]:
     out: list[GuardrailBreak] = []
     for item in operations.get("breaks", []):
@@ -1263,9 +1341,13 @@ def _build_compliance(
     settings: KairosSettings,
     operations: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if operations is None:
-        operations = _build_break_operations(_load_programmes(), schedule)
-    guardrail_items = _guardrail_breaks_from_operations(operations)
+    # The verdict is computed from the FULL committed plan's break geometry, not
+    # from the break-operations display board (which is truncated to the first
+    # programmes per channel for the editor and would silently grade under one
+    # percent of the plan). The operations argument is kept for signature
+    # compatibility but no longer feeds the verdict.
+    del operations
+    guardrail_items = _plan_guardrail_items()
     break_level = _guardrail_compliance_from_breaks(guardrail_items, settings)
     if break_level is not None:
         return {
@@ -1753,6 +1835,26 @@ app = FastAPI(
     description="Operational API for TV ad break revenue optimization.",
 )
 
+# Login / user system: one session guard in front of every /api route. It is
+# registered before CORSMiddleware is added below, which keeps CORS outermost
+# so denial responses still carry CORS headers. Enforcement only activates
+# once the operator seeds data/auth/users.json (scripts/init_auth.py); see the
+# kairos_api.auth module docstring for the full lifecycle and the
+# KAIROS_AUTH_DISABLED escape hatch.
+from kairos_api.auth import enforce_request as _auth_enforce_request  # noqa: E402
+from kairos_api.auth import router as _auth_router  # noqa: E402
+
+
+@app.middleware("http")
+async def _auth_session_guard(request, call_next):
+    denial = _auth_enforce_request(request)
+    if denial is not None:
+        return denial
+    return await call_next(request)
+
+
+app.include_router(_auth_router)
+
 # Default to the local dashboard origins: the Vite dev server (5173/5174) and a
 # 3000 fallback, on both localhost and 127.0.0.1. Without the dev port here the
 # browser blocks the cross-origin fetch and the dashboard shows its offline "demo
@@ -1842,6 +1944,10 @@ app.include_router(recompute_router)
 from kairos_api.settings_api import router as settings_router  # noqa: E402
 
 app.include_router(settings_router)
+
+from kairos_api.assistant import router as assistant_router  # noqa: E402
+
+app.include_router(assistant_router)
 
 
 @app.get("/api/compliance")

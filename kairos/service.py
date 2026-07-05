@@ -139,6 +139,14 @@ def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
         return float(value) * SECONDS_PER_MINUTE if value is not None else default_seconds
 
     protected = settings.get("protected_program_types")
+    # The sponsorship/gold enable switches gate the gold capacity: with either
+    # switch off the engine may not emit a single gold break, so the cap maps to
+    # zero. Both default True, so a settings object without the switches keeps
+    # today's behavior exactly.
+    gold_enabled = bool(settings.get("sponsorships_enabled", True)) and bool(
+        settings.get("gold_breaks_enabled", True)
+    )
+    gold_cap = int(settings.get("gold_breaks_max_per_day", base.gold_breaks_max_per_day))
     return Guardrails(
         max_ad_seconds_per_hour=minutes("max_ad_minutes_per_hour", base.max_ad_seconds_per_hour),
         max_breaks_per_hour=int(settings.get("max_breaks_per_hour", base.max_breaks_per_hour)),
@@ -149,7 +157,7 @@ def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
         protected_max_ad_seconds_per_hour=minutes(
             "protected_program_max_ad_minutes_per_hour", base.protected_max_ad_seconds_per_hour
         ),
-        gold_breaks_max_per_day=int(settings.get("gold_breaks_max_per_day", base.gold_breaks_max_per_day)),
+        gold_breaks_max_per_day=gold_cap if gold_enabled else 0,
     )
 
 

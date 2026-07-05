@@ -16,6 +16,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
   MenuItem,
   Select,
   Slider,
@@ -31,6 +32,7 @@ import {
   ArrowDown,
   ArrowUp,
   Bell,
+  Bot,
   BookOpen,
   CalendarDays,
   Check,
@@ -45,9 +47,11 @@ import {
   Gauge,
   GitCompare,
   Info,
+  KeyRound,
   Languages,
   LayoutGrid,
   ListChecks,
+  LogOut,
   Save,
   Play,
   Printer,
@@ -73,7 +77,19 @@ import ScenarioCompare from './ScenarioCompare';
 import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
 import ActivityFeed from './ActivityFeed';
+import AssistantPanel from './AssistantPanel';
 import ScheduleStalenessBanner from './ScheduleStalenessBanner';
+import Login, {
+  ChangePasswordDialog,
+  MIN_PASSWORD_LENGTH,
+  createAccount,
+  deleteAccount,
+  fetchAccounts,
+  fetchMe,
+  requestLogout,
+  resetAccountPassword,
+  roleLabel,
+} from './Login';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -258,6 +274,7 @@ const copyByLocale = {
       Advertisers: 'Advertisers',
       Pricing: 'Pricing',
       Overrides: 'Overrides',
+      Assistant: 'AI assistant',
       Settings: 'Settings',
     },
     workspace: 'Revenue operations',
@@ -354,6 +371,7 @@ const copyByLocale = {
       Advertisers: 'מפרסמים',
       Pricing: 'תמחור',
       Overrides: 'עקיפות',
+      Assistant: 'עוזר AI',
       Settings: 'הגדרות',
     },
     workspace: 'ניהול הכנסות מפרסום',
@@ -515,6 +533,7 @@ const navItems = [
   ['Advertisers', Users],
   ['Pricing', Coins],
   ['Overrides', SlidersHorizontal],
+  ['Assistant', Bot],
   ['Settings', Settings],
 ];
 
@@ -1167,6 +1186,49 @@ function TVBreakDashboard() {
   const [feedOpen, setFeedOpen] = useState(false);
   const notifyId = useRef(0);
 
+  // Login / session state. The wall only renders when the backend says
+  // authentication is set up; an uninitialized store keeps today's open
+  // single-operator flow and shows an honest "open access" chip instead.
+  const [auth, setAuth] = useState({ status: 'checking', user: null });
+  const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [accountsDialogOpen, setAccountsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchMe().then((result) => {
+      if (!active) return;
+      if (result.ok && result.data && result.data.auth_disabled) {
+        setAuth({ status: 'open', user: null });
+      } else if (result.ok && result.data && result.data.username) {
+        setAuth({ status: 'ready', user: result.data });
+      } else if (result.status === 0) {
+        // Server unreachable: render the app and let its offline states tell
+        // the truth about connectivity; there is no session to pretend about.
+        setAuth({ status: 'open', user: null });
+      } else {
+        setAuth({ status: 'login', user: null });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function handleLoggedIn(user) {
+    setAuth({ status: 'ready', user });
+    // The pre-login data fetches were rejected by the wall; refetch with the
+    // session cookie in place.
+    setRefreshKey((key) => key + 1);
+  }
+
+  async function handleLogout() {
+    setUserMenuAnchor(null);
+    await requestLogout();
+    notify('Signed out.', 'יצאת מהמערכת.');
+    setAuth({ status: 'login', user: null });
+  }
+
   useEffect(() => {
     try {
       window.localStorage.setItem('kairos.activity', JSON.stringify(notifications.slice(-100)));
@@ -1742,6 +1804,10 @@ function TVBreakDashboard() {
       );
     }
 
+    if (activeView === 'Assistant') {
+      return <AssistantPanel locale={locale} notify={notify} />;
+    }
+
     return (
       <SettingsPanel
         settings={settings}
@@ -1755,6 +1821,58 @@ function TVBreakDashboard() {
         recomputeState={recomputeState}
         notify={notify}
       />
+    );
+  }
+
+  // Auth gate: nothing from the workspace renders before the session check
+  // resolves, so the app never flashes behind the login wall.
+  if (auth.status === 'checking') {
+    return (
+      <CacheProvider value={muiCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <div className="login-screen" dir="rtl" lang="he">
+            <div className="login-loading">
+              <div className="login-brand-mark" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span>רק רגע...</span>
+            </div>
+          </div>
+        </ThemeProvider>
+      </CacheProvider>
+    );
+  }
+
+  if (auth.status === 'login') {
+    return (
+      <CacheProvider value={muiCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Login onLoggedIn={handleLoggedIn} />
+        </ThemeProvider>
+      </CacheProvider>
+    );
+  }
+
+  if (auth.status === 'ready' && auth.user && auth.user.must_change_password) {
+    return (
+      <CacheProvider value={muiCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <div className="login-screen" dir="rtl" lang="he">
+            <ChangePasswordDialog
+              locale="he"
+              forced
+              onDone={(user) =>
+                setAuth({ status: 'ready', user: { ...auth.user, ...user, must_change_password: false } })
+              }
+            />
+          </div>
+        </ThemeProvider>
+      </CacheProvider>
     );
   }
 
@@ -1796,15 +1914,85 @@ function TVBreakDashboard() {
           ))}
         </List>
 
-        <div className="operator-card">
-          <span className="operator-avatar">AK</span>
-          <div>
-            <strong>Alex Kim</strong>
-            <small>{copy.operatorRole}</small>
+        {auth.status === 'ready' && auth.user ? (
+          <>
+            <button
+              type="button"
+              className="operator-card"
+              onClick={(event) => setUserMenuAnchor(event.currentTarget)}
+              aria-haspopup="menu"
+            >
+              <span className="operator-avatar">{operatorInitials(auth.user.display_name || auth.user.username)}</span>
+              <div>
+                <strong>{auth.user.display_name || auth.user.username}</strong>
+                <small>{roleLabel(auth.user.role, locale)}</small>
+              </div>
+              <ChevronDown size={14} />
+            </button>
+            <Menu anchorEl={userMenuAnchor} open={Boolean(userMenuAnchor)} onClose={() => setUserMenuAnchor(null)}>
+              <MenuItem
+                onClick={() => {
+                  setUserMenuAnchor(null);
+                  setPasswordDialogOpen(true);
+                }}
+              >
+                <KeyRound size={14} style={{ marginInlineEnd: 8 }} />
+                {pageText(locale, 'Change password', 'החלפת סיסמה')}
+              </MenuItem>
+              {auth.user.role === 'admin' && (
+                <MenuItem
+                  onClick={() => {
+                    setUserMenuAnchor(null);
+                    setAccountsDialogOpen(true);
+                  }}
+                >
+                  <Users size={14} style={{ marginInlineEnd: 8 }} />
+                  {pageText(locale, 'Manage accounts', 'ניהול חשבונות')}
+                </MenuItem>
+              )}
+              <MenuItem onClick={handleLogout}>
+                <LogOut size={14} style={{ marginInlineEnd: 8 }} />
+                {pageText(locale, 'Sign out', 'יציאה מהמערכת')}
+              </MenuItem>
+            </Menu>
+          </>
+        ) : (
+          <div
+            className="operator-card operator-open"
+            title={pageText(
+              locale,
+              'To set up sign-in and roles, run python scripts/init_auth.py on the server.',
+              'להגדרת כניסה ותפקידים יש להריץ בשרת את python scripts/init_auth.py.',
+            )}
+          >
+            <span className="operator-avatar">?</span>
+            <div>
+              <strong>{pageText(locale, 'Open access', 'גישה פתוחה')}</strong>
+              <small>{pageText(locale, 'Sign-in is not set up yet', 'כניסה למערכת טרם הוגדרה')}</small>
+            </div>
+            <Info size={14} />
           </div>
-          <ChevronDown size={14} />
-        </div>
+        )}
       </aside>
+
+      {passwordDialogOpen && (
+        <ChangePasswordDialog
+          locale={locale}
+          onClose={() => setPasswordDialogOpen(false)}
+          onDone={() => {
+            setPasswordDialogOpen(false);
+            notify('Password updated.', 'הסיסמה עודכנה.');
+          }}
+        />
+      )}
+      {accountsDialogOpen && auth.user && auth.user.role === 'admin' && (
+        <UserAdminDialog
+          locale={locale}
+          selfUsername={auth.user.username}
+          notify={notify}
+          onClose={() => setAccountsDialogOpen(false)}
+        />
+      )}
 
       <main className="workspace">
         <header className="top-bar">
@@ -4517,6 +4705,323 @@ function ToggleControl({ label, checked, onChange }) {
     <div className="toggle-control">
       <span>{label}</span>
       <Switch size="small" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} />
+    </div>
+  );
+}
+
+function operatorInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0][0] || '';
+  const second = parts.length > 1 ? parts[parts.length - 1][0] || '' : '';
+  return (first + second).toUpperCase() || '?';
+}
+
+// Admin-only account management over /api/auth/users*: list, create, delete
+// and reset passwords. Every failure surfaces honestly; nothing is optimistic.
+function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
+  const t = (en, he) => pageText(locale, en, he);
+  const [accounts, setAccounts] = useState([]);
+  const [loadState, setLoadState] = useState('loading');
+  const [reloadKey, setReloadKey] = useState(0);
+  const [form, setForm] = useState({ username: '', display_name: '', role: 'viewer', password: '' });
+  const [formError, setFormError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [resetFor, setResetFor] = useState('');
+  const [resetValue, setResetValue] = useState('');
+  const [rowError, setRowError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setLoadState('loading');
+    fetchAccounts().then((result) => {
+      if (!active) return;
+      if (result.ok && result.data && Array.isArray(result.data.users)) {
+        setAccounts(result.data.users);
+        setLoadState('ready');
+      } else {
+        setLoadState('error');
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
+  const adminTotal = accounts.filter((account) => account.role === 'admin').length;
+
+  function describeFailure(result) {
+    if (result.status === 0) return t('No connection to the server.', 'אין חיבור לשרת.');
+    if (result.status === 409) return t('That username is already taken.', 'שם המשתמש הזה כבר תפוס.');
+    if (result.status === 422) {
+      return t(
+        `The password needs at least ${MIN_PASSWORD_LENGTH} characters.`,
+        `הסיסמה צריכה להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים.`,
+      );
+    }
+    const detail = result.data && result.data.detail ? String(result.data.detail) : '';
+    if (detail.toLowerCase().includes('last admin')) {
+      return t('The last admin account cannot be deleted.', 'אי אפשר למחוק את חשבון הניהול האחרון.');
+    }
+    if (detail.toLowerCase().includes('signed in with')) {
+      return t('You cannot delete the account you are signed in with.', 'אי אפשר למחוק את החשבון שאיתו נכנסת למערכת.');
+    }
+    if (detail) return detail;
+    return t(`The request failed (status ${result.status}).`, `הפעולה נכשלה (סטטוס ${result.status}).`);
+  }
+
+  async function submitCreate(event) {
+    event.preventDefault();
+    if (busy) return;
+    if (form.password.length < MIN_PASSWORD_LENGTH) {
+      setFormError(t(
+        `The temporary password needs at least ${MIN_PASSWORD_LENGTH} characters.`,
+        `הסיסמה הזמנית צריכה להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים.`,
+      ));
+      return;
+    }
+    setBusy(true);
+    setFormError('');
+    const result = await createAccount({
+      username: form.username.trim().toLowerCase(),
+      password: form.password,
+      role: form.role,
+      display_name: form.display_name.trim(),
+      must_change_password: true,
+    });
+    setBusy(false);
+    if (result.ok && result.data) {
+      setForm({ username: '', display_name: '', role: 'viewer', password: '' });
+      setReloadKey((key) => key + 1);
+      notify('Account created.', 'החשבון נוצר.');
+    } else {
+      setFormError(describeFailure(result));
+    }
+  }
+
+  async function submitReset(username) {
+    if (busy) return;
+    setBusy(true);
+    setRowError('');
+    const result = await resetAccountPassword(username, resetValue);
+    setBusy(false);
+    if (result.ok) {
+      setResetFor('');
+      setResetValue('');
+      setReloadKey((key) => key + 1);
+      notify('Temporary password set.', 'נקבעה סיסמה זמנית חדשה.');
+    } else {
+      setRowError(describeFailure(result));
+    }
+  }
+
+  async function submitDelete(username) {
+    if (busy) return;
+    if (confirmDelete !== username) {
+      setConfirmDelete(username);
+      return;
+    }
+    setBusy(true);
+    setRowError('');
+    const result = await deleteAccount(username);
+    setBusy(false);
+    setConfirmDelete('');
+    if (result.ok) {
+      setReloadKey((key) => key + 1);
+      notify('Account deleted.', 'החשבון נמחק.');
+    } else {
+      setRowError(describeFailure(result));
+    }
+  }
+
+  return (
+    <div className="auth-overlay" dir={locale === 'he' ? 'rtl' : 'ltr'} role="dialog" aria-modal="true">
+      <div className="auth-dialog auth-dialog-wide">
+        <button type="button" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
+          ×
+        </button>
+        <h2>{t('Manage accounts', 'ניהול חשבונות')}</h2>
+        <p className="auth-hint">
+          {t(
+            'Each teammate signs in with a personal account; the role decides what the account can change.',
+            'לכל אחד ואחת בצוות חשבון אישי; התפקיד קובע אילו פעולות פתוחות בחשבון.',
+          )}
+        </p>
+        {loadState === 'loading' && <p className="auth-empty">{t('Loading accounts...', 'רק רגע...')}</p>}
+        {loadState === 'error' && (
+          <div>
+            <p className="auth-error">{t('Could not load the account list.', 'טעינת רשימת החשבונות נכשלה.')}</p>
+            <div className="auth-actions">
+              <button type="button" className="auth-secondary" onClick={() => setReloadKey((key) => key + 1)}>
+                {t('Try again', 'לנסות שוב')}
+              </button>
+            </div>
+          </div>
+        )}
+        {loadState === 'ready' && (
+          <table className="auth-table">
+            <thead>
+              <tr>
+                <th>{t('Name', 'שם')}</th>
+                <th>{t('Display name', 'שם תצוגה')}</th>
+                <th>{t('Role', 'תפקיד')}</th>
+                <th aria-label={t('Actions', 'פעולות')} />
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((account) => {
+                const isSelf = account.username === selfUsername;
+                const lastAdmin = account.role === 'admin' && adminTotal <= 1;
+                return (
+                  <React.Fragment key={account.username}>
+                    <tr>
+                      <td className="auth-mono">{account.username}</td>
+                      <td>{account.display_name}</td>
+                      <td>
+                        {roleLabel(account.role, locale)}
+                        {account.must_change_password && (
+                          <span className="auth-flag">{t('Temporary password', 'סיסמה זמנית')}</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="auth-row-actions">
+                          <button
+                            type="button"
+                            className="auth-mini"
+                            disabled={busy}
+                            onClick={() => {
+                              setResetFor(resetFor === account.username ? '' : account.username);
+                              setResetValue('');
+                              setRowError('');
+                            }}
+                          >
+                            {t('Reset password', 'איפוס סיסמה')}
+                          </button>
+                          <button
+                            type="button"
+                            className={`auth-mini auth-danger${confirmDelete === account.username ? ' auth-confirming' : ''}`}
+                            disabled={busy || isSelf || lastAdmin}
+                            title={
+                              isSelf
+                                ? t(
+                                    'You cannot delete the account you are signed in with.',
+                                    'אי אפשר למחוק את החשבון שאיתו נכנסת למערכת.',
+                                  )
+                                : lastAdmin
+                                  ? t('The last admin account cannot be deleted.', 'אי אפשר למחוק את חשבון הניהול האחרון.')
+                                  : undefined
+                            }
+                            onClick={() => submitDelete(account.username)}
+                          >
+                            {confirmDelete === account.username ? t('Confirm delete', 'לאשר מחיקה') : t('Delete', 'מחיקה')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {resetFor === account.username && (
+                      <tr className="auth-reset-row">
+                        <td colSpan={4}>
+                          <div className="auth-inline-form">
+                            <input
+                              type="password"
+                              dir="ltr"
+                              autoComplete="new-password"
+                              placeholder={t('New temporary password', 'סיסמה זמנית חדשה')}
+                              value={resetValue}
+                              onChange={(event) => setResetValue(event.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="auth-mini"
+                              disabled={busy || resetValue.length < MIN_PASSWORD_LENGTH}
+                              onClick={() => submitReset(account.username)}
+                            >
+                              {t('Set password', 'קביעת הסיסמה')}
+                            </button>
+                            <span className="auth-hint">
+                              {t('A change is required at the next sign-in.', 'בכניסה הבאה תידרש החלפת סיסמה.')}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {loadState === 'ready' && accounts.length === 0 && (
+          <p className="auth-empty">{t('No accounts yet.', 'אין עדיין חשבונות.')}</p>
+        )}
+        {loadState === 'ready' && rowError && (
+          <p className="auth-error" role="alert">
+            {rowError}
+          </p>
+        )}
+        {loadState === 'ready' && (
+          <form onSubmit={submitCreate}>
+            <h3>{t('New account', 'חשבון חדש')}</h3>
+            <div className="auth-create-grid">
+              <label className="auth-field">
+                <span>{t('Username', 'שם משתמש')}</span>
+                <input
+                  dir="ltr"
+                  autoComplete="off"
+                  value={form.username}
+                  onChange={(event) => setForm({ ...form, username: event.target.value })}
+                />
+              </label>
+              <label className="auth-field">
+                <span>{t('Display name', 'שם תצוגה')}</span>
+                <input
+                  value={form.display_name}
+                  onChange={(event) => setForm({ ...form, display_name: event.target.value })}
+                />
+              </label>
+              <label className="auth-field">
+                <span>{t('Role', 'תפקיד')}</span>
+                <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
+                  <option value="viewer">{roleLabel('viewer', locale)}</option>
+                  <option value="operator">{roleLabel('operator', locale)}</option>
+                  <option value="admin">{roleLabel('admin', locale)}</option>
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>{t('Temporary password', 'סיסמה זמנית')}</span>
+                <input
+                  type="password"
+                  dir="ltr"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(event) => setForm({ ...form, password: event.target.value })}
+                />
+              </label>
+            </div>
+            <p className="auth-hint">
+              {t(
+                'At least 10 characters; a password change is required at the first sign-in. The viewer role reads only, operator edits and runs, admin also manages accounts.',
+                'לפחות 10 תווים; בכניסה הראשונה תידרש החלפת סיסמה. תפקיד צפייה מאפשר קריאה בלבד, תפעול מאפשר עריכה והרצה, וניהול מוסיף ניהול חשבונות.',
+              )}
+            </p>
+            {formError && (
+              <p className="auth-error" role="alert">
+                {formError}
+              </p>
+            )}
+            <div className="auth-actions">
+              <button
+                type="submit"
+                className="auth-primary"
+                disabled={busy || form.username.trim() === '' || form.password === ''}
+              >
+                {t('Create account', 'יצירת חשבון')}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

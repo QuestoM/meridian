@@ -1,0 +1,227 @@
+"""API surface gate: every read endpoint answers 200 with a sane payload.
+
+Runs the real FastAPI app in process (no live server) and sweeps every GET
+route that takes no path parameter, asserting:
+
+  * status 200 and a parseable JSON body (CSV endpoints excepted),
+  * no raw NaN / Infinity tokens leaking into the wire format,
+  * no Unicode replacement characters (Hebrew mojibake canary),
+  * the two safe POST bodies (scenario, price-slot) answer with real numbers.
+
+It then ties the headline surfaces to the committed plan: the overview summary
+totals must equal the CSV's own sums, and the compliance payload must carry the
+full seven-rule check set with observed/limit pairs. These are the standing
+tri-state honesty checks: empty data must surface as null or an empty list,
+never as a fabricated zero-shaped plan.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+import pandas as pd
+import pytest
+from fastapi.testclient import TestClient
+
+ROOT = Path(__file__).resolve().parents[1]
+CSV_PATH = ROOT / "output" / "weekly_break_schedule.csv"
+
+# Raw JSON text must never carry bare NaN / Infinity tokens (invalid JSON that
+# json.loads on some clients still accepts, so it can hide in manual testing).
+BAD_TOKENS = re.compile(r"(?<![\w\"])(NaN|Infinity|-Infinity)(?![\w\"])")
+REPLACEMENT_CHAR = "�"
+
+# GET routes that need a path parameter or heavy implicit compute are exercised
+# by the journey suites instead of the blind sweep.
+SWEEP_EXCLUDED = {
+    "/api/schedule/segment/{segment_id:path}",
+    "/api/jobs/{job_id}",
+    "/api/advertisers/{advertiser_id}/conditions",
+    # Without a target the effect preview optimizes the ENTIRE grid twice;
+    # the journey suite covers it with a scoped candidate instead.
+    "/api/overrides/effect",
+    "/api/constraints/effect",
+}
+
+# Session-gated by design (kairos_api/auth.py): /api/auth/* answers 401 without
+# a signed-in session, which is the contract, not a failure. The public-path
+# promise (health stays open, /api/auth/me reports the honest auth state) has
+# its own test below.
+SWEEP_EXCLUDED_PREFIXES = ("/api/auth/",)
+
+
+@pytest.fixture(scope="module")
+def client() -> TestClient:
+    from kairos_api.server import app
+
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture(scope="module")
+def get_routes() -> list[str]:
+    from kairos_api.server import app
+
+    routes = []
+    for route in app.routes:
+        methods = getattr(route, "methods", None) or set()
+        path = getattr(route, "path", "")
+        if "GET" in methods and path.startswith("/api") and "{" not in path:
+            if path in SWEEP_EXCLUDED or path.startswith(SWEEP_EXCLUDED_PREFIXES):
+                continue
+            routes.append(path)
+    assert len(routes) >= 25, f"route surface shrank unexpectedly: {sorted(routes)}"
+    return sorted(routes)
+
+
+def test_every_get_endpoint_is_healthy(client, get_routes):
+    failures = []
+    for path in get_routes:
+        response = client.get(path)
+        body = response.text
+        if response.status_code != 200:
+            failures.append(f"{path}: status {response.status_code} {body[:120]}")
+            continue
+        if BAD_TOKENS.search(body):
+            failures.append(f"{path}: raw NaN/Infinity token in body")
+        if REPLACEMENT_CHAR in body:
+            failures.append(f"{path}: unicode replacement character (mojibake)")
+        if not path.endswith(".csv"):
+            try:
+                json.loads(body)
+            except ValueError as exc:
+                failures.append(f"{path}: body is not JSON ({exc})")
+    assert not failures, "\n".join(failures)
+
+
+def test_hebrew_round_trips_uncorrupted(client):
+    """The owned channel name and Hebrew labels must survive the wire intact."""
+    settings_file = json.loads(
+        (ROOT / "data" / "kairos_settings.json").read_text(encoding="utf-8")
+    )
+    api_settings = client.get("/api/settings").json()
+    assert api_settings["operator_channel"] == settings_file["operator_channel"]
+    compliance = client.get("/api/compliance").json()
+    labels = [check.get("label_he", "") for check in compliance.get("checks", [])]
+    assert labels and all(labels), "compliance checks must carry Hebrew labels"
+    assert any("א" <= ch <= "ת" for label in labels for ch in label), (
+        "Hebrew labels contain no Hebrew letters (encoding corruption)"
+    )
+
+
+def test_scenario_post_returns_real_summary(client):
+    response = client.post("/api/scenario", json={
+        "revenue_weight": 60, "retention_floor": 0.72,
+        "max_breaks_per_hour": 4, "risk_lambda": 0.0,
+    })
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body.get("engine") == "kairos", f"engine fell back: {body.get('detail')}"
+    summary = body["summary"]
+    for key in ("total_breaks", "total_ad_seconds", "projected_revenue", "average_retention"):
+        assert key in summary
+    assert summary["total_breaks"] >= 0
+    assert isinstance(body["compliant"], bool)
+
+
+def test_price_slot_post_returns_traceable_breakdown(client):
+    response = client.post("/api/pricing/price-slot", json={
+        "pricing_class": "Other", "weekday_iso": 1,
+    })
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["base_cpp"] > 0
+    assert body["final_cpp"] > 0
+    assert isinstance(body["layers"], list)
+
+
+def test_overview_summary_equals_committed_plan(client):
+    """The morning-check headline tiles must be the committed plan's own sums,
+    not an approximation from a different engine path."""
+    plan = pd.read_csv(CSV_PATH, encoding="utf-8")
+    summary = client.get("/api/overview").json()["summary"]
+    assert summary["total_breaks"] == int(plan["num_breaks"].sum())
+    assert summary["total_ad_seconds"] == int(plan["total_break_time"].sum())
+    assert summary["projected_revenue"] == pytest.approx(
+        plan["predicted_revenue"].sum(), abs=0.05
+    )
+    assert summary["average_retention"] is not None
+    assert 0 <= summary["risk_score"] <= 100
+
+
+def test_overview_source_counts_are_real(client):
+    body = client.get("/api/overview").json()
+    counts = body["source_counts"]
+    plan = pd.read_csv(CSV_PATH, encoding="utf-8")
+    assert counts["planned_break_rows"] == len(plan)
+    assert counts["programmes"] > 0
+    assert counts["spots"] > 0
+
+
+def test_compliance_payload_carries_the_full_rule_set(client):
+    """/api/compliance is the per-rule promise surface: all seven rules must be
+    present with observed/limit pairs and a tri-state status."""
+    body = client.get("/api/compliance").json()
+    check_ids = {check["id"] for check in body["checks"]}
+    assert check_ids == {
+        "hourly_ad_load", "break_density", "retention_floor", "protected_programs",
+        "break_spacing", "daily_ad_load", "gold_breaks",
+    }, f"rule set drifted: {sorted(check_ids)}"
+    for check in body["checks"]:
+        assert check["status"] in {"compliant", "at_risk"}
+        assert "observed" in check and "limit" in check
+    assert body["status"] in {"compliant", "at_risk"}
+    assert isinstance(body["violations"], list)
+
+
+def test_recommendations_bind_only_to_owned_channel(client):
+    """The competitor boundary on the decision surface: an actionable
+    recommendation may only carry an owned-channel segment_id."""
+    body = client.get("/api/overview").json()
+    settings = json.loads((ROOT / "data" / "kairos_settings.json").read_text(encoding="utf-8"))
+    owned = str(settings["operator_channel"]).strip()
+    plan = pd.read_csv(CSV_PATH, encoding="utf-8")
+    owned_ids = set(plan[plan["channel"] == owned]["segment_id"])
+    for rec in body["recommendations"]:
+        if rec.get("actionable"):
+            assert rec["channel"] == owned
+            assert rec["segment_id"] in owned_ids, (
+                f"recommendation {rec['id']} binds outside the owned channel"
+            )
+            assert rec.get("proposed_kind") in {"pin", "force", "forbid", "gold",
+                                                "lower_count"}
+        else:
+            assert rec.get("segment_id") is None
+
+
+def test_empty_schedule_summary_is_honest(client):
+    """Tri-state honesty: with no plan rows the summary must report null for
+    revenue / retention / risk (unknown), not confident zeros. Exercises the
+    builder directly with an empty frame (the fresh-deploy state)."""
+    from kairos_api.server import _summarize_schedule
+
+    summary = _summarize_schedule(pd.DataFrame())
+    assert summary["projected_revenue"] is None
+    assert summary["average_retention"] is None
+    assert summary["risk_score"] is None
+    assert summary["total_breaks"] == 0
+
+
+def test_jobs_endpoint_unknown_id_is_404(client):
+    assert client.get("/api/jobs/does-not-exist").status_code == 404
+
+
+def test_auth_public_paths_stay_open(client):
+    """The auth middleware must keep /api/health public in every auth state,
+    and /api/auth/me must report the honest auth state instead of walling the
+    dashboard when no user store has been seeded."""
+    assert client.get("/api/health").status_code == 200
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200, me.text
+    body = me.json()
+    users_store = ROOT / "data" / "auth" / "users.json"
+    if not users_store.exists():
+        assert body.get("auth_disabled") is True, (
+            "with no seeded user store, auth must report itself disabled"
+        )

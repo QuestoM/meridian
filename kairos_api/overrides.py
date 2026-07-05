@@ -210,7 +210,12 @@ def delete_override(override_id: str) -> dict[str, Any]:
 
 
 def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Optional[str]):
-    """Build real ProgramSegments for the preview, or raise if data is absent."""
+    """Build real ProgramSegments for the preview, or raise if data is absent.
+
+    Pricing comes from the SAVED settings (the operator's rate-card overrides
+    deep-merged onto the YAML), the same seam the commit path uses, so the
+    preview prices slots exactly like the plan it previews.
+    """
     from kairos.data import ProgramClassifier
     from kairos.data.loaders import load_daily_input, load_programmes
     from kairos.data.transform import (
@@ -218,9 +223,11 @@ def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Opt
         build_segments_from_programmes,
     )
     from kairos.model.impact import load_impact_model
-    from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+    from kairos.optimize.pricing import OptimizerAssumptions
+    from kairos.service import pricing_from_settings
+    from kairos_api.core import _load_settings, _model_dump
 
-    pricing = PricingModel.from_yaml()
+    pricing = pricing_from_settings(_model_dump(_load_settings()))
     assumptions = OptimizerAssumptions()
     impact = load_impact_model(ROOT / "models" / "tv_break_posterior.pkl", assumptions=assumptions)
     classifier = ProgramClassifier.from_yaml()
@@ -307,16 +314,31 @@ def override_effect(
         for segment in segments
     }
     active_overrides, stale_overrides = overrides.resolve_against_segments(anchors)
+    # The preview must run under the SAME rules the commit path runs under: the
+    # saved guardrails, revenue weight, risk aversion and objective mode. A
+    # preview on engine defaults would quote a plan the recompute could never
+    # produce whenever the operator's settings differ from the defaults.
+    from kairos.service import guardrails_from_settings
+    from kairos_api.core import _load_settings, _model_dump
+
+    saved = _load_settings()
+    settings_map = _model_dump(saved)
+    engine_kwargs = {
+        "guardrails": guardrails_from_settings(settings_map),
+        "revenue_weight": saved.revenue_weight / 100.0,
+        "risk_lambda": saved.risk_lambda,
+        "objective_mode": getattr(saved, "objective_mode", "blend"),
+    }
     if candidate is not None:
         # Candidate mode: the baseline is the CURRENT plan (stored overrides
         # applied), and the comparison adds only the candidate, so the delta is
         # exactly what this one decision would change.
-        baseline = optimize_breaks(segments, overrides=active_overrides)
+        baseline = optimize_breaks(segments, overrides=active_overrides, **engine_kwargs)
         with_candidate = OverrideSet(overrides=list(active_overrides.overrides) + [candidate])
-        overridden = optimize_breaks(segments, overrides=with_candidate)
+        overridden = optimize_breaks(segments, overrides=with_candidate, **engine_kwargs)
     else:
-        baseline = optimize_breaks(segments)
-        overridden = optimize_breaks(segments, overrides=active_overrides)
+        baseline = optimize_breaks(segments, **engine_kwargs)
+        overridden = optimize_breaks(segments, overrides=active_overrides, **engine_kwargs)
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
     new_counts = {s.segment_id: s.num_breaks for s in overridden.segments}
