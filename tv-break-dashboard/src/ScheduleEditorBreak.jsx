@@ -1,13 +1,15 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
 import { secondsToClock, humanOffset } from './schedule-editor-format';
+import BreakChip from './BreakChip';
 
 // One draggable break chip on the editor timeline. This is a presentation shell:
 // the drag, resize and keyboard handlers all live in the editor and are passed in
 // unchanged, and positionStyle is the editor's own second to percent mapping. The
-// chip's job is legibility, showing the exact clock second, the human offset into
-// the programme and the break length, with the clock kept left to right so a time
-// is never mirrored in a right to left layout.
+// chip shares its visual language with the read-only timeline chip through the
+// break-chip base class and the BreakChip body, showing the exact clock second,
+// the human offset into the programme and the break length, with the clock kept
+// left to right so a time is never mirrored in a right to left layout.
 function ScheduleEditorBreak({
   item,
   laneKey,
@@ -24,6 +26,7 @@ function ScheduleEditorBreak({
 }) {
   const label = (en, he) => (locale === 'he' ? he : en);
   const className = [
+    'break-chip',
     'editor-break',
     pinned ? 'pinned' : '',
     edited && !pinned ? 'unsaved' : '',
@@ -46,9 +49,7 @@ function ScheduleEditorBreak({
       aria-label={`${intoTitle} ${seconds} ${label('seconds', 'שניות')}`}
     >
       {pinned && <Lock className="editor-break-lock" size={12} />}
-      <span className="editor-break-clock" dir="ltr">{clock}</span>
-      <strong className="editor-break-offset">{offsetText}</strong>
-      <em className="editor-break-length" dir="ltr">{seconds}s</em>
+      <BreakChip clock={clock} detail={offsetText} meta={`${seconds}s`} />
       <i
         className="editor-break-resize"
         onPointerDown={(event) => onResizePointerDown(event, laneKey, item)}

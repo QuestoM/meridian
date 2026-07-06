@@ -1089,61 +1089,43 @@ button {
   white-space: nowrap;
 }
 
+/* The read-only timeline break chip reuses the editor chip's visual language
+   through the shared break-chip base classes below. It is anchored at the break
+   start time with a fixed, legible width rather than scaled to the invisible
+   120s span, so it never collapses to a sliver at low zoom. */
 .timeline-break.MuiButton-root {
   position: absolute;
   top: 74px;
-  min-width: 42px;
-  height: 30px;
-  min-height: 30px;
-  border-radius: var(--radius-sm);
-  padding: 0 7px;
+  min-width: 68px;
+  width: auto;
+  height: 46px;
+  min-height: 46px;
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
   background: var(--primary);
   color: var(--surface);
   box-shadow: none;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 6px;
-  align-items: center;
-  justify-content: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2px;
   text-transform: none;
-  transition: background 140ms ease, outline-color 140ms ease, transform 140ms ease;
 }
 
 .timeline-break.MuiButton-root:hover {
   background: #18304a;
   box-shadow: none;
-  transform: translateY(-1px);
 }
 
-.timeline-break.MuiButton-root.risk {
+.timeline-break.MuiButton-root.risk,
+.timeline-break.MuiButton-root.gold {
   background: #7a4a00;
 }
 
 .timeline-break.MuiButton-root.selected {
   outline: 2px solid #315d8c;
   outline-offset: 2px;
-}
-
-.timeline-break span,
-.timeline-break strong,
-.timeline-break em {
-  font-size: var(--text-2xs);
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.timeline-break span {
-  font-weight: var(--weight-medium);
-}
-
-.timeline-break strong {
-  font-weight: var(--weight-bold);
-}
-
-.timeline-break em {
-  grid-column: 1 / -1;
-  font-style: normal;
-  color: #d7f2ee;
 }
 
 /* Schedule editor: drag-and-drop break editor plus constraint builder. */
@@ -1211,29 +1193,66 @@ button {
   font-weight: var(--weight-medium);
 }
 
+/* Shared break chip lines used by both the editor and the read-only timeline.
+   The clock is the prominent first line and every line is a single unwrapped
+   row, so the three lines stack cleanly and the full HH:MM:SS is never clipped. */
+.break-chip-clock {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.break-chip-detail {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.15;
+  color: #d7f2ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.break-chip-meta {
+  font-size: var(--text-2xs);
+  font-style: normal;
+  line-height: 1.15;
+  color: #aecbe6;
+  white-space: nowrap;
+}
+
+.break-chip-gold {
+  font-size: var(--text-2xs);
+  font-style: normal;
+  font-weight: var(--weight-medium);
+  line-height: 1.15;
+  color: #f2dcae;
+  white-space: nowrap;
+}
+
 .editor-break {
   position: absolute;
   top: 72px;
   min-width: 64px;
-  height: 52px;
+  height: 62px;
   border-radius: var(--radius-md);
-  padding: 6px 10px;
+  padding: 8px 10px;
   background: var(--primary);
   color: var(--surface);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   cursor: grab;
   touch-action: none;
   user-select: none;
   border: 1px solid transparent;
-  transition: background 140ms ease, outline-color 140ms ease, transform 140ms ease;
+  transition: background 140ms ease;
 }
 
 .editor-break:hover {
   background: #18304a;
-  transform: translateY(-1px);
 }
 
 .editor-break:focus-visible {
@@ -1243,32 +1262,6 @@ button {
 
 .editor-break:active {
   cursor: grabbing;
-}
-
-.editor-break-clock {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.editor-break-offset {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  line-height: 1.1;
-  color: #d7f2ee;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.editor-break-length {
-  font-size: var(--text-2xs);
-  font-style: normal;
-  line-height: 1.1;
-  color: #aecbe6;
-  white-space: nowrap;
 }
 
 /* Pinned (constrained) breaks get a lock badge and a teal frame. */

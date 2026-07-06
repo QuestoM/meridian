@@ -80,6 +80,7 @@ import {
   useSegmentAnchors,
 } from './schedule-track-view';
 import { timeWindow, spanStyle } from './schedule-track';
+import BreakChip from './BreakChip';
 import FrontierScopeChart from './FrontierScopeChart';
 import YieldView from './YieldView';
 import ScenarioCompare from './ScenarioCompare';
@@ -3734,21 +3735,38 @@ function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRefresh, s
                     program_type: breakItem.program_type,
                     selected_break: breakItem,
                   };
+                  const className = [
+                    'break-chip',
+                    'break-chip-readonly',
+                    'timeline-break',
+                    selected ? 'selected' : '',
+                    breakItem.status === 'at_risk' ? 'risk' : '',
+                    breakItem.is_gold ? 'gold' : '',
+                  ].filter(Boolean).join(' ');
+                  // Anchor the chip at its start time and let the shared chip
+                  // width govern legibility. A break is a fixed 120s span, so
+                  // scaling the width to that duration collapses it to a few
+                  // pixels at low zoom; keeping only the left keeps every chip
+                  // as readable as the editor's.
+                  const { left } = positionStyle(breakItem.start_time, breakItem.end_time);
                   return (
                     <Button
-                      className={selected ? 'timeline-break selected' : `timeline-break ${breakItem.status === 'at_risk' ? 'risk' : ''}`}
+                      className={className}
                       key={breakItem.id}
                       type="button"
                       variant="contained"
                       disableRipple
-                      style={positionStyle(breakItem.start_time, breakItem.end_time)}
+                      style={{ left }}
                       title={`${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`}
                       aria-pressed={selected}
                       onClick={() => onSelectProgram(selectedProgram)}
                     >
-                      <span>{breakItem.start_time}</span>
-                      <strong>{breakItem.break_num_in_program}/{breakItem.breaks_in_program}</strong>
-                      {breakItem.is_gold && <em>Gold</em>}
+                      <BreakChip
+                        clock={breakItem.start_time}
+                        detail={`${breakItem.break_num_in_program}/${breakItem.breaks_in_program}`}
+                        gold={Boolean(breakItem.is_gold)}
+                        goldLabel={pageText(locale, 'gold', 'זהב')}
+                      />
                     </Button>
                   );
                 })}
