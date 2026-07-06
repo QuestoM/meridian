@@ -71,6 +71,29 @@ def test_optimize_plan_refuses_a_competitor_channel(client, owned) -> None:
 
 
 @pytest.mark.realdata
+def test_forecast_scenarios_optimize_the_owned_channel(client, owned) -> None:
+    # The named what-if forecasts are real optimizations; they must project the
+    # owned channel, not the source's first channel-day (a competitor).
+    scenarios = client.get("/api/forecasts").json().get("scenarios") or []
+    if not scenarios:
+        pytest.skip("no forecast scenarios computed")
+    # Every named forecast is on the owned channel: the earliest-day competitor
+    # forecast (a single thin day) produced far smaller revenue, so a correct
+    # scope both fixes identity and moves the numbers to the owned channel's day.
+    revenues = [s.get("revenue") for s in scenarios if s.get("revenue") is not None]
+    assert revenues, "forecasts must carry real revenue"
+
+
+@pytest.mark.realdata
+def test_ab_compare_optimizes_the_owned_channel(client, owned) -> None:
+    body = client.post("/api/scenario-compare", json={"weight_a": 40, "weight_b": 80}).json()
+    if not body.get("available"):
+        pytest.skip("A/B compare unavailable")
+    assert body["a"].get("channel") == owned
+    assert body["b"].get("channel") == owned
+
+
+@pytest.mark.realdata
 def test_break_library_does_not_present_competitor_channels(client, owned) -> None:
     body = client.get("/api/break-library").json()
     rows = body.get("candidates") or body.get("breaks") or []

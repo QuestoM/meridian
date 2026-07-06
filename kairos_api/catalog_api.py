@@ -308,6 +308,14 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
         ("Balanced", "מאוזן", saved_weight),
         ("Revenue priority", "עדיפות להכנסה", 90),
     ]
+    # Scope every named forecast to the operator's owned channel-day (the shared
+    # selector the scenario slider and frontier use), so these what-if revenue
+    # points are the owned channel's forecast, never the source's first
+    # channel-day (a competitor). Imported at call time to keep the module graph
+    # acyclic.
+    from kairos_api.dashboard_api import _owned_scope
+
+    channel, day = _owned_scope(settings)
     scenarios: list[dict[str, Any]] = []
     for name, name_he, weight in named:
         try:
@@ -318,6 +326,8 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
                 risk_lambda=settings.risk_lambda,
                 today=_reference_today(settings),
                 settings=_model_dump(settings),
+                channel=channel,
+                day=day,
             )
         except Exception:
             logger.exception("forecast scenario '%s' failed at revenue_weight=%s", name, weight)

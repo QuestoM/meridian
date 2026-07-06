@@ -510,6 +510,12 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
     # so the scenario-control semantics are unchanged.
     reference_today = server._reference_today(saved)
     settings_map = server._model_dump(saved)
+    # Scope both A/B legs to the operator's owned channel-day (the shared selector
+    # the scenario slider and frontier use), so the comparison is the owned
+    # channel's, never the source's first channel-day (a competitor).
+    from kairos_api.dashboard_api import _owned_scope
+
+    channel, day = _owned_scope(saved)
 
     def _run(weight: int) -> dict[str, Any]:
         return run_scenario(
@@ -519,6 +525,8 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
             risk_lambda=risk,
             today=reference_today,
             settings=settings_map,
+            channel=channel,
+            day=day,
         )
 
     try:
