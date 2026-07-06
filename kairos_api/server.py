@@ -98,6 +98,25 @@ async def _auth_session_guard(request, call_next):
 
 app.include_router(_auth_router)
 
+# System-wide activity log. Registered after the auth guard above, which makes
+# it the outer of the two (Starlette stacks later middleware outside earlier
+# ones), so it observes every mutating /api request with its final status,
+# including requests the guard denies (recorded as "anonymous"). CORSMiddleware
+# is added below and therefore stays outermost. Login and logout are excluded
+# inside the recorder and appended as dedicated events by kairos_api.auth, so
+# the two requests whose bodies carry credentials never transit the recorder;
+# and a recording failure is swallowed there, never failing the request.
+from kairos_api.activity_log import record_api_mutation as _record_api_mutation  # noqa: E402
+from kairos_api.activity_log import router as _activity_log_router  # noqa: E402
+
+
+@app.middleware("http")
+async def _activity_recorder(request, call_next):
+    return await _record_api_mutation(request, call_next)
+
+
+app.include_router(_activity_log_router)
+
 # Default to the local dashboard origins: the Vite dev server (5173/5174) and a
 # 3000 fallback, on both localhost and 127.0.0.1. Without the dev port here the
 # browser blocks the cross-origin fetch and the dashboard shows its offline "demo

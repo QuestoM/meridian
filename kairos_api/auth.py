@@ -53,6 +53,22 @@ def auth_bypassed() -> bool:
     return os.getenv("KAIROS_AUTH_DISABLED", "").strip().lower() in {"1", "true", "yes"}
 
 
+def _activity(event: str, user: str, role: str = "") -> None:
+    """Best-effort activity log hook for login, login_failed and logout.
+
+    The activity log module is imported lazily to avoid a module cycle, and
+    the call is wrapped so a logging failure can never break the sign-in
+    flow. Only the event name, the username and the role are recorded here;
+    the password never reaches the logger.
+    """
+    try:
+        from kairos_api import activity_log
+
+        activity_log.record_auth_event(event, user=user, role=role)
+    except Exception:
+        logger.debug("activity log hook failed for %s", event, exc_info=True)
+
+
 def auth_active() -> bool:
     """Enforcement is on whenever the store is seeded and the escape hatch is unset."""
     return not auth_bypassed() and store.store_initialized()
@@ -190,12 +206,15 @@ def login(payload: LoginRequest, response: Response) -> dict[str, Any]:
     if user is None:
         store.burn_password_check(payload.password)
         store.record_login_failure(username)
+        _activity("login_failed", username)
         raise HTTPException(status_code=401, detail="The username or password is incorrect.")
     if not store.verify_password(payload.password, user.get("password_scrypt") or {}):
         store.record_login_failure(username)
+        _activity("login_failed", username)
         raise HTTPException(status_code=401, detail="The username or password is incorrect.")
     store.clear_login_failures(username)
     token = store.create_session(username, user.get("role", "viewer"))
+    _activity("login", username, user.get("role", "viewer"))
     # Secure flag stays off for plain-HTTP localhost; production requires TLS
     # plus Secure. No Max-Age: the server enforces the 12h sliding expiry.
     response.set_cookie(store.COOKIE_NAME, token, httponly=True, samesite="lax", path="/")
@@ -204,8 +223,11 @@ def login(payload: LoginRequest, response: Response) -> dict[str, Any]:
 
 @router.post("/logout")
 def logout(request: Request, response: Response) -> dict[str, Any]:
+    session = _session_from_request(request)
     store.drop_session(request.cookies.get(store.COOKIE_NAME))
     response.delete_cookie(store.COOKIE_NAME, path="/")
+    if session is not None:
+        _activity("logout", session["username"], session.get("role", ""))
     return {"signed_out": True}
 
 

@@ -70,3 +70,6 @@ data/auth/
 
 # Assistant action-plane runtime state (proposals, restore points, audit log)
 data/assistant/
+
+# System-wide activity log runtime state (append-only JSONL, metadata only)
+data/audit/
