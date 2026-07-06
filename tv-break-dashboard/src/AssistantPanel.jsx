@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { Bot, RefreshCcw, Send, Sparkles } from 'lucide-react';
-import { API_BASE, pageText } from './surface-helpers';
+import { pageText } from './surface-helpers';
+import { postJson, requestJson, streamAsk } from './assistant-stream';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantHistory from './AssistantHistory';
+import AssistantThread, { AssistantExchange, StreamProgress } from './AssistantThread';
 import './assistant-console.css';
 
 // The assistant console: a chat column grounded in the saved data plus a side
 // rail for pending proposals, the audit history and restore points. Answers
-// come only from the server; proposed actions apply only after an explicit
+// come only from the server; asks stream live (step names and answer text as
+// they are produced) and fall back quietly to the plain ask endpoint when the
+// stream is unavailable. Proposed actions apply only after an explicit
 // operator confirm, with an automatic restore point first. Every surface has
 // honest loading, error and empty states, and nothing is polled in a loop:
 // rail data refreshes on mount, after actions, and via the manual refresh.
@@ -23,20 +27,6 @@ const SUGGESTIONS = [
   ['Get me to a higher net without dropping retention below 0.75', 'הבא אותי לנטו גבוה יותר בלי לרדת מתחת ל-0.75 שימור'],
   ['Suggest settings that raise the weekly net, and show me the effect before I approve', 'הצע הגדרות שמגדילות את הנטו השבועי, ותראה לי את ההשפעה לפני שאאשר'],
 ];
-
-async function requestJson(path, options) {
-  const response = await fetch(`${API_BASE}${path}`, options);
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    const detail = body && (body.detail || body.error);
-    throw new Error(detail ? String(detail) : `HTTP ${response.status}`);
-  }
-  return body || {};
-}
-
-function postJson(path, payload) {
-  return requestJson(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-}
 
 function asArray(value, ...keys) {
   if (Array.isArray(value)) return value;
@@ -64,12 +54,6 @@ function normalizeBatch(raw) {
   return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
 }
 
-function timeLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
 export default function AssistantPanel({ locale, notify }) {
   const he = locale === 'he';
   const [status, setStatus] = useState(null);
@@ -88,6 +72,7 @@ export default function AssistantPanel({ locale, notify }) {
   const [applyResults, setApplyResults] = useState({});
   const [restoringId, setRestoringId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [live, setLive] = useState(null);
   const idRef = useRef(0);
   const threadRef = useRef(null);
   const composerRef = useRef(null);
@@ -165,7 +150,7 @@ export default function AssistantPanel({ locale, notify }) {
   useEffect(() => {
     const node = threadRef.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [thread, asking]);
+  }, [thread, asking, live]);
 
   const appendEntry = useCallback((entry) => {
     idRef.current += 1;
@@ -173,38 +158,55 @@ export default function AssistantPanel({ locale, notify }) {
     setThread((prev) => [...prev, row].slice(-HISTORY_CAP));
   }, []);
 
+  const finishAsk = useCallback((trimmed, body) => {
+    if (body.available === false) {
+      setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
+      appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
+      return;
+    }
+    const batch = body.proposals ? normalizeBatch(body.proposals) : null;
+    if (batch) mergeBatches([batch], false);
+    appendEntry({
+      question: trimmed,
+      answer: body.answer ? String(body.answer) : null,
+      error: body.error ? String(body.error) : !body.answer && !batch ? pageText(locale, 'The server returned no answer.', 'השרת לא החזיר תשובה.') : null,
+      disclosure: typeof body.context_disclosure === 'string' ? body.context_disclosure : '',
+      sources: asArray(body.grounding && body.grounding.sources),
+      toolTrace: asArray(body.tool_trace),
+      truncated: Boolean(body.truncated),
+      batchId: batch ? batch.batch_id : null,
+      at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
+    });
+    if (batch) refreshRail();
+  }, [locale, appendEntry, mergeBatches, refreshRail]);
+
   const ask = useCallback(async () => {
     const trimmed = question.trim();
     if (!trimmed || asking) return;
     setAsking(true);
+    setLive({ question: trimmed, text: '', step: null });
     try {
-      const body = await postJson('/api/assistant/ask', { question: trimmed });
-      if (body.available === false) {
-        setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
-        appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
-      } else {
-        const batch = body.proposals ? normalizeBatch(body.proposals) : null;
-        if (batch) mergeBatches([batch], false);
-        appendEntry({
-          question: trimmed,
-          answer: body.answer ? String(body.answer) : null,
-          error: body.error ? String(body.error) : !body.answer && !batch ? pageText(locale, 'The server returned no answer.', 'השרת לא החזיר תשובה.') : null,
-          disclosure: typeof body.context_disclosure === 'string' ? body.context_disclosure : '',
-          sources: asArray(body.grounding && body.grounding.sources),
-          toolTrace: asArray(body.tool_trace),
-          truncated: Boolean(body.truncated),
-          batchId: batch ? batch.batch_id : null,
-          at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
+      let body;
+      try {
+        body = await streamAsk(trimmed, {
+          onStep: (step) => setLive((prev) => (prev ? { ...prev, step } : prev)),
+          onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
         });
-        if (batch) refreshRail();
+      } catch {
+        // The stream endpoint is unavailable or broke mid-flight; the plain
+        // ask returns the same answer without live updates, so retry there.
+        setLive({ question: trimmed, text: '', step: null });
+        body = await postJson('/api/assistant/ask', { question: trimmed });
       }
+      finishAsk(trimmed, body);
       setQuestion('');
     } catch (error) {
       appendEntry({ question: trimmed, error: error.message });
     } finally {
+      setLive(null);
       setAsking(false);
     }
-  }, [question, asking, locale, appendEntry, mergeBatches, refreshRail]);
+  }, [question, asking, finishAsk, appendEntry]);
 
   const applyItems = useCallback(async (batchId, itemIds) => {
     if (!itemIds.length || applyBusyId) return;
@@ -324,8 +326,10 @@ export default function AssistantPanel({ locale, notify }) {
         <section className="page-panel asst-chat">
           <div className="panel-head">
             <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
-            <span>{pageText(locale, 'History is kept for this session only, up to 20 exchanges', 'ההיסטוריה נשמרת להפעלה הנוכחית בלבד, עד 20 שאלות')}</span>
+            <span>{pageText(locale, 'Previous conversations are saved to your account and appear above the thread', 'שיחות קודמות נשמרות לחשבון שלכם ומופיעות מעל השיחה')}</span>
           </div>
+
+          <AssistantThread locale={locale} />
 
           <div className="asst-thread" ref={threadRef}>
             {thread.length === 0 && !asking ? (
@@ -346,36 +350,15 @@ export default function AssistantPanel({ locale, notify }) {
             ) : null}
 
             {thread.map((entry) => (
-              <article className="asst-exchange" key={entry.id}>
-                <p className="asst-q" dir="auto">{entry.question}</p>
-                {entry.answer ? <div className="asst-a" dir="auto">{entry.answer}</div> : null}
-                {entry.truncated ? <p className="asst-truncated">{pageText(locale, 'The answer was shortened by the server.', 'התשובה קוצרה על ידי השרת.')}</p> : null}
-                {entry.error ? <div className="asst-a error" dir="auto">{entry.error}</div> : null}
-                {entry.batchId && batchMap[entry.batchId] ? renderProposalCard(batchMap[entry.batchId]) : null}
-                {entry.disclosure || entry.sources.length || entry.toolTrace.length ? (
-                  <details className="asst-disclosure">
-                    <summary>{pageText(locale, 'What data this is based on', 'על בסיס אילו נתונים')}</summary>
-                    {entry.disclosure ? <p dir="auto">{entry.disclosure}</p> : null}
-                    {entry.sources.length ? <p dir="ltr">{entry.sources.map(String).join(', ')}</p> : null}
-                    {entry.toolTrace.length ? (
-                      <div className="asst-trace">
-                        {entry.toolTrace.map((step, index) => (
-                          <code dir="ltr" key={index} className={step && step.ok === false ? 'fail' : ''}>{String((step && step.tool) || '?')}</code>
-                        ))}
-                      </div>
-                    ) : null}
-                    {entry.toolTrace.some((step) => step && step.source) ? (
-                      <div className="asst-sources"><span className="asst-sources-head">{pageText(locale, 'Sources', 'מקורות')}</span>
-                        {entry.toolTrace.filter((step) => step && step.source).map((step, index) => (
-                          <div className="asst-source-row" dir="ltr" key={index}><code>{String(step.tool || '?')}</code><span className="asst-source-sep" aria-hidden="true">→</span><span className="asst-source-text" dir="auto">{String(step.source)}</span></div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </details>
-                ) : null}
-                <footer className="asst-meta"><time dir="ltr">{timeLabel(entry.at, locale)}</time></footer>
-              </article>
+              <AssistantExchange key={entry.id} entry={entry} locale={locale} proposalCard={entry.batchId && batchMap[entry.batchId] ? renderProposalCard(batchMap[entry.batchId]) : null} />
             ))}
+
+            {live ? (
+              <article className="asst-exchange">
+                <p className="asst-q" dir="auto">{live.question}</p>
+                {live.text ? <div className="asst-a" dir="auto">{live.text}</div> : null}
+              </article>
+            ) : null}
 
             {asking ? (
               <div className="asst-thinking">
@@ -383,6 +366,7 @@ export default function AssistantPanel({ locale, notify }) {
                 {pageText(locale, 'Working on an answer from the saved data', 'מכין תשובה מהנתונים השמורים')}
               </div>
             ) : null}
+            {asking && live && live.step ? <StreamProgress locale={locale} step={live.step} /> : null}
           </div>
 
           {unavailable ? (
