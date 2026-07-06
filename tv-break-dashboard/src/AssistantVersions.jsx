@@ -388,7 +388,7 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
         </div>
       ) : null}
 
-      {state === 'ready' && note ? <p className="asst-ver-scope" dir="auto">{note}</p> : null}
+      {state === 'ready' && note ? <p className="asst-ver-scope" dir="auto">{pageText(locale, note, 'הגרסאות שומרות את קבצי מצב התפעול שהמפעילים עורכים: הגדרות (כולל עקיפות תמחור), אילוצי שיבוץ, עקיפות ידניות וכללי מפרסמים. ההיסטוריה נשמרת תמיד; שחזור מתעד קודם את המצב הנוכחי, ולכן ניתן לבטל אותו.')}</p> : null}
     </div>
   );
 }

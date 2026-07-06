@@ -8,10 +8,10 @@
   margin: 0 0 12px;
   padding: 8px 12px;
   border: 1px solid var(--amber);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--amber-soft);
   color: var(--amber);
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.4;
 }
 
@@ -20,9 +20,10 @@
 .optimizer-objective-note {
   margin: 10px 0 0;
   padding: 8px 10px;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   line-height: 1.4;
-  color: var(--amber-strong, #b45309);
-  background: var(--amber-soft, rgba(180, 83, 9, 0.08));
-  border-radius: 8px;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
 }

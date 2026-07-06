@@ -21,6 +21,8 @@
   --amber: #b86e00;
   --amber-soft: #fff5e5;
   --red: #c24141;
+  --red-soft: #f8e8e8;
+  --teal-deep: #0f3d36;
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
   --primary: #0d1b2a;
   --primary-hover: #18304a;
@@ -88,11 +90,6 @@ button {
   flex-direction: row;
 }
 
-.kairos-shell.rtl .side-rail {
-  border-right: 0;
-  border-left: 1px solid var(--line);
-}
-
 .kairos-shell.rtl .nav-item,
 .kairos-shell.rtl .program-cell {
   text-align: right;
@@ -125,7 +122,7 @@ button {
   flex: 0 0 216px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--line);
+  border-inline-end: 1px solid var(--line);
   background: var(--surface);
   height: 100vh;
   position: sticky;
@@ -201,7 +198,7 @@ button {
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: #4b5563;
+  color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -215,13 +212,13 @@ button {
 }
 
 .side-rail .nav-item.MuiListItemButton-root:hover {
-  background: #f3f5f7;
+  background: var(--surface-muted);
 }
 
 .side-rail .nav-item.MuiListItemButton-root.Mui-selected,
 .side-rail .nav-item.MuiListItemButton-root.Mui-selected:hover,
 .side-rail .nav-item.active {
-  background: #f5f6f7;
+  background: var(--surface-muted);
   color: var(--ink);
   font-weight: var(--weight-semibold);
 }
@@ -352,8 +349,8 @@ button {
 }
 
 .secondary-button.active {
-  border-color: #9fb1c3;
-  background: #f5f6f7;
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
   color: var(--ink);
 }
 
@@ -367,13 +364,13 @@ button {
 /* Apply is the commit to the saved weekly schedule; secondary to the preview Run. */
 .apply-button {
   background: var(--surface);
-  color: var(--teal, #0f766e);
-  border-color: var(--teal, #0f766e);
+  color: var(--teal);
+  border-color: var(--teal);
   font-weight: var(--weight-medium);
 }
 
 .apply-button:hover {
-  background: var(--teal-soft, #e8f4f2);
+  background: var(--teal-soft);
 }
 
 .apply-button:disabled {
@@ -413,7 +410,7 @@ button {
 .api-state {
   border-radius: var(--radius-xs);
   padding: 5px 9px;
-  background: #f0f2f5;
+  background: var(--surface-muted);
 }
 
 .api-state.online {
@@ -430,7 +427,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
-  padding: 20px 24px 16px;
+  padding: var(--space-5) var(--space-6) var(--space-4);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -438,32 +435,20 @@ button {
 .metric {
   min-height: 66px;
   display: flex;
-  gap: 14px;
+  gap: var(--space-4);
   align-items: center;
-  padding: 0 22px;
-  border-right: 1px solid var(--line);
+  padding-block: 0;
+  padding-inline: var(--space-6);
+  border-inline-end: 1px solid var(--line);
   text-align: start;
 }
 
 .metric:first-of-type {
-  padding-left: 0;
+  padding-inline-start: 0;
 }
 
 .metric:last-child {
-  border-right: 0;
-}
-
-.kairos-shell.rtl .metric {
-  border-right: 0;
-  border-left: 1px solid var(--line);
-}
-
-.kairos-shell.rtl .metric:first-of-type {
-  padding-left: 22px;
-}
-
-.kairos-shell.rtl .metric:last-child {
-  border-left: 0;
+  border-inline-end: 0;
 }
 
 .metric-icon {
@@ -593,9 +578,8 @@ button {
 }
 
 .segmented.active {
-  border-color: #9fb1c3;
-  box-shadow: inset 0 0 0 1px #9fb1c3;
-  background: #f5f6f7;
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
   color: var(--ink);
 }
 
@@ -621,7 +605,7 @@ button {
 }
 
 .axis-segment.MuiButton-root.active {
-  background: #f3f5f7;
+  background: var(--surface-muted);
   color: var(--ink);
   box-shadow: none;
 }
@@ -734,12 +718,12 @@ button {
 }
 
 .program-cell:focus-visible {
-  outline: 2px solid #315d8c;
+  outline: 2px solid var(--blue);
   outline-offset: -2px;
 }
 
 .program-cell.selected {
-  outline: 2px solid #315d8c;
+  outline: 2px solid var(--blue);
   outline-offset: -2px;
   background: #fbfdff;
 }
@@ -972,13 +956,13 @@ button {
   inset-inline-start: 0;
   width: 1px;
   height: 14px;
-  background: #d7dee6;
+  background: var(--line);
 }
 
 .timeline-tick.major > i {
   top: 20px;
   height: 20px;
-  background: #c4ccd6;
+  background: var(--line-strong);
 }
 
 .timeline-tick > b {
@@ -1037,7 +1021,7 @@ button {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #edf1f5;
+  background: var(--line);
 }
 
 /* The shared programme band: the legible hierarchy both the read-only timeline
@@ -1047,7 +1031,7 @@ button {
   position: absolute;
   top: 16px;
   height: 46px;
-  border: 1px solid #cbd3dc;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: #eef2f6;
   color: var(--muted);
@@ -1114,17 +1098,20 @@ button {
 }
 
 .timeline-break.MuiButton-root:hover {
-  background: #18304a;
+  background: var(--primary-hover);
   box-shadow: none;
 }
 
-.timeline-break.MuiButton-root.risk,
+.timeline-break.MuiButton-root.risk {
+  background: var(--red);
+}
+
 .timeline-break.MuiButton-root.gold {
-  background: #7a4a00;
+  background: var(--amber);
 }
 
 .timeline-break.MuiButton-root.selected {
-  outline: 2px solid #315d8c;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -1252,11 +1239,11 @@ button {
 }
 
 .editor-break:hover {
-  background: #18304a;
+  background: var(--primary-hover);
 }
 
 .editor-break:focus-visible {
-  outline: 2px solid #315d8c;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 
@@ -1266,29 +1253,29 @@ button {
 
 /* Pinned (constrained) breaks get a lock badge and a teal frame. */
 .editor-break.pinned {
-  background: #0f3d36;
-  border-color: #1f7a6b;
+  background: var(--teal-deep);
+  border-color: var(--teal);
 }
 
 .editor-break-lock {
   position: absolute;
   top: -6px;
   inset-inline-start: -6px;
-  color: #0f3d36;
-  background: #d7f2ee;
+  color: var(--teal-deep);
+  background: var(--teal-soft);
   border-radius: 50%;
   padding: 1px;
 }
 
 /* Dragged-but-unsaved breaks get a dashed amber outline. */
 .editor-break.unsaved {
-  outline: 2px dashed #c98a00;
+  outline: 2px dashed var(--amber);
   outline-offset: 2px;
 }
 
 /* Gold breaks keep their amber accent. */
 .editor-break.gold {
-  background: #7a4a00;
+  background: var(--amber);
 }
 
 .editor-break-resize {
@@ -1298,13 +1285,13 @@ button {
   width: 12px;
   height: 100%;
   cursor: ew-resize;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.4));
-  border-start-end-radius: 7px;
-  border-end-end-radius: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  border-start-end-radius: var(--radius-md);
+  border-end-end-radius: var(--radius-md);
 }
 
 .editor-break-resize:hover {
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6));
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .schedule-editor-readout {
@@ -1339,11 +1326,11 @@ button {
 }
 
 .schedule-editor-edit-list li.is-pinned {
-  border-color: #1f7a6b;
+  border-color: var(--teal);
 }
 
 .schedule-editor-edit-list li.is-unsaved {
-  border-color: #c98a00;
+  border-color: var(--amber);
 }
 
 .editor-row-detail {
@@ -1406,10 +1393,10 @@ button {
 .constraint-builder-warning {
   margin: 0 0 12px;
   padding: 8px 12px;
-  border: 1px solid #e0b400;
+  border: 1px solid var(--amber);
   border-radius: var(--radius-md);
-  background: #fff8e1;
-  color: #7a4a00;
+  background: var(--amber-soft);
+  color: var(--amber);
   font-size: var(--text-sm);
 }
 
@@ -1477,7 +1464,7 @@ button {
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
   color: var(--primary);
-  background: #eef2f6;
+  background: var(--surface-muted);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
 }
@@ -1496,7 +1483,7 @@ button {
 
 .constraint-delete.MuiButton-root {
   min-width: 0;
-  color: #b3261e;
+  color: var(--red);
 }
 
 .daypart-card,
@@ -1611,7 +1598,7 @@ button {
 .inventory-program:hover,
 .daypart-program.active,
 .inventory-program.active {
-  background: #f5f7f9;
+  background: var(--surface-muted);
 }
 
 .inventory-pressure {
@@ -1620,7 +1607,7 @@ button {
   margin: 14px;
   border-radius: var(--radius-pill);
   background:
-    linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), #edf1f5 0);
+    linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), var(--line) 0);
 }
 
 .inventory-channel-meta {
@@ -1716,7 +1703,7 @@ button {
 
 .approval {
   border-radius: var(--radius-xs);
-  background: #f2f4f7;
+  background: var(--surface-muted);
   color: var(--muted);
   padding: 5px 9px;
   font-size: var(--text-xs);
@@ -1730,7 +1717,7 @@ button {
 
 .approval.rejected {
   color: var(--red);
-  background: #fff1f1;
+  background: var(--red-soft);
 }
 
 .detail-list {
@@ -1895,11 +1882,11 @@ button {
 }
 
 .frontier-skeleton {
-  border: 1px solid #e8edf2;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(#e8edf2 1px, transparent 1px),
-    linear-gradient(90deg, #e8edf2 1px, transparent 1px),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
     var(--surface-muted);
   background-size: 100% 52px, 25% 100%, auto;
 }
@@ -1911,7 +1898,7 @@ button {
 }
 
 .frontier-svg line {
-  stroke: #e8edf2;
+  stroke: var(--line);
   stroke-width: 1;
 }
 
@@ -1991,7 +1978,7 @@ button {
 
 .frontier-readout span {
   color: var(--muted);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
 }
 
@@ -2008,7 +1995,7 @@ button {
   gap: 3px;
   min-width: 150px;
   padding: 8px 10px;
-  border: 1px solid #d8e0e8;
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
   box-shadow: 0 10px 22px rgba(17, 24, 39, 0.12);
@@ -2078,7 +2065,7 @@ button {
   display: grid;
   align-items: center;
   padding: 0 8px;
-  background: #f6f8fa;
+  background: var(--surface-muted);
 }
 
 .heatmap b {
@@ -2100,8 +2087,8 @@ button {
       rgba(15, 139, 126, calc(var(--heat) * 0.72)),
       rgba(15, 139, 126, calc(var(--heat) * 0.55))
     ),
-    #f5f7f9;
-  color: #0c2f2b;
+    var(--surface-muted);
+  color: var(--teal-deep);
 }
 
 .ledger-list {
@@ -2438,7 +2425,7 @@ button {
   align-items: center;
   justify-content: flex-start;
   min-height: 26px;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   color: var(--muted);
   padding: 0 9px;
   font-size: var(--text-xs);
@@ -2463,18 +2450,18 @@ button {
 
 .status-badge.ready,
 .status-badge.compliant {
-  color: #075f56;
-  background: #e5f2f0;
+  color: var(--teal);
+  background: var(--teal-soft);
 }
 
 .status-badge.at_risk {
-  color: #8a5200;
-  background: #fff0d6;
+  color: var(--amber);
+  background: var(--amber-soft);
 }
 
 .status-badge.error {
-  color: #9f2f2f;
-  background: #fde9e9;
+  color: var(--red);
+  background: var(--red-soft);
 }
 
 .bar-list,
@@ -2491,7 +2478,7 @@ button {
   align-items: center;
   gap: 10px;
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .scenario-row {
@@ -2503,7 +2490,7 @@ button {
   height: 8px;
   border-radius: var(--radius-pill);
   background:
-    linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), #e8edf2 0);
+    linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), var(--line) 0);
 }
 
 .bar-row strong,
@@ -2515,7 +2502,7 @@ button {
 
 .scenario-row small {
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .report-grid {
@@ -2560,7 +2547,7 @@ button {
 
 .impact-preview header small {
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   white-space: nowrap;
 }
 
@@ -2584,7 +2571,7 @@ button {
 
 .impact-meter {
   height: 4px;
-  background: #edf0f3;
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -2635,7 +2622,7 @@ button {
 
 .drift-stat small {
   color: var(--muted);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   white-space: nowrap;
 }
 
@@ -2665,7 +2652,7 @@ button {
 
 .drift-strip-caption {
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
 }
 
 .drift-week-strip {
@@ -2698,8 +2685,8 @@ button {
 
 .drift-week-bar {
   height: 3px;
-  border-radius: 2px;
-  background: #edf0f3;
+  border-radius: var(--radius-pill);
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -2713,14 +2700,14 @@ button {
 .drift-note {
   margin: 0;
   color: var(--muted);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
 .drift-reason {
   margin: 0;
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -2863,7 +2850,7 @@ button {
   margin-top: 16px;
   border-color: var(--teal);
   border-inline-start-width: 3px;
-  background: linear-gradient(180deg, var(--teal-soft) 0%, var(--surface) 64px);
+  background: var(--surface);
 }
 
 .settings-channel-kicker {
@@ -3021,7 +3008,7 @@ button {
   gap: 4px;
   text-align: inherit;
   padding: 12px 14px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: transparent;
   color: inherit;
@@ -3035,7 +3022,7 @@ button {
 
 .optimizer-template.is-active {
   border-color: var(--teal);
-  background: rgba(15, 139, 126, 0.1);
+  background: var(--teal-soft);
 }
 
 .optimizer-template strong {
@@ -3484,7 +3471,7 @@ button {
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   word-break: break-all;
 }
 
@@ -3500,12 +3487,13 @@ button {
 }
 
 .upload-badge.valid {
-  background: rgba(15, 139, 126, 0.12);
+  background: var(--teal-soft);
   color: var(--teal);
 }
 
-.upload-badge.invalid {
-  background: rgba(184, 110, 0, 0.12);
+.upload-badge.invalid,
+.upload-badge.stored {
+  background: var(--amber-soft);
   color: var(--amber);
 }
 
@@ -3522,7 +3510,7 @@ button {
 
 .upload-card-meta span {
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .upload-card-meta strong {
@@ -3551,7 +3539,7 @@ button {
 }
 
 .upload-errors {
-  color: #b3261e;
+  color: var(--red);
 }
 
 .upload-state {
@@ -3568,7 +3556,9 @@ button {
 }
 
 .upload-state.error {
-  color: #b3261e;
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: var(--red);
 }
 
 .upload-spinner {
@@ -3632,8 +3622,8 @@ button {
 
 .secondary-button.danger,
 .secondary-button.danger.MuiButton-root {
-  color: #b3261e;
-  border-color: rgba(179, 38, 30, 0.4);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
 }
 
 /* Advertisers Manager - rebuilt UX */
@@ -3820,7 +3810,7 @@ button {
 
 .adv-chip.any.active {
   border-color: var(--line-strong);
-  background: #eef1f4;
+  background: var(--surface-muted);
   color: var(--ink);
 }
 
@@ -4067,7 +4057,7 @@ button {
 }
 
 .adv-scoped-toggle:hover {
-  background: #eef1f4;
+  background: var(--surface-muted);
 }
 
 .adv-scoped-toggle:focus-visible {
@@ -4103,14 +4093,14 @@ button {
 }
 
 .adv-scoped-badge.muted {
-  background: #eef1f4;
+  background: var(--surface-muted);
   color: var(--subtle);
   font-weight: var(--weight-soft);
 }
 
 .adv-scoped-badge.conflict {
-  background: rgba(220, 38, 38, 0.1);
-  color: #b91c1c;
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .adv-scoped-body {
@@ -4156,16 +4146,16 @@ button {
 }
 
 .adv-overlap.conflict {
-  border-color: rgba(220, 38, 38, 0.4);
-  background: rgba(220, 38, 38, 0.08);
-  color: #991b1b;
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+  background: var(--red-soft);
+  color: var(--red);
   font-weight: var(--weight-medium);
 }
 
 .adv-overlap.stacked {
-  border-color: rgba(180, 120, 0, 0.35);
-  background: rgba(245, 158, 11, 0.08);
-  color: #92600a;
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+  background: var(--amber-soft);
+  color: var(--amber);
 }
 
 .adv-overlap.overlap {
@@ -4388,7 +4378,7 @@ button {
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-soft);
   max-width: 60ch;
 }
@@ -4490,7 +4480,7 @@ button {
   font-weight: var(--weight-medium);
   border-radius: var(--radius-xs);
   padding: 2px 7px;
-  background: #f0f2f5;
+  background: var(--surface-muted);
   color: var(--muted);
   text-transform: capitalize;
 }
@@ -4556,7 +4546,7 @@ button {
   font-weight: var(--weight-medium);
   border-radius: var(--radius-xs);
   padding: 3px 10px;
-  background: #f0f2f5;
+  background: var(--surface-muted);
   color: var(--muted);
 }
 
@@ -4571,7 +4561,7 @@ button {
 }
 
 .coefficient-freshness.unknown .coefficient-freshness-chip {
-  background: #f0f2f5;
+  background: var(--surface-muted);
   color: var(--muted);
 }
 
@@ -4687,8 +4677,8 @@ button {
 }
 
 .cb-group-nested {
-  border-color: #c4cdd8;
-  background: #f9fafb;
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
   margin-top: 6px;
 }
 
@@ -4719,7 +4709,7 @@ button {
 }
 
 .cb-combinator-btn:hover {
-  background: #f3f5f7;
+  background: var(--surface-muted);
 }
 
 .cb-combinator-btn.active {
@@ -4792,8 +4782,8 @@ button {
 }
 
 .cb-delete-btn:hover {
-  background: #fde9e9;
-  color: #b3261e;
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .cb-between-pair {
@@ -4819,7 +4809,7 @@ button {
   align-items: center;
   gap: 4px;
   min-height: 36px;
-  border: 1px solid #c4cdd8;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   padding: 4px 7px;
@@ -4830,7 +4820,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #eef2f6;
+  background: var(--surface-muted);
   border-radius: var(--radius-xs);
   padding: 2px 6px 2px 8px;
   font-size: var(--text-xs);
@@ -4851,7 +4841,7 @@ button {
 }
 
 .cb-chip-remove:hover {
-  color: #b3261e;
+  color: var(--red);
 }
 
 .cb-chip-text {
@@ -4893,7 +4883,7 @@ button {
 }
 
 .cb-chip-option:hover {
-  background: #f5f7f9;
+  background: var(--surface-muted);
 }
 
 /* Operator-channel note below the channel select */
@@ -4905,12 +4895,12 @@ button {
 
 .cb-operator-channel-warning {
   margin: 8px 0 0;
-  color: #b45309;
+  color: var(--amber);
   font-size: var(--text-sm);
   font-weight: var(--weight-soft);
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: var(--radius-xs);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
   padding: 6px 10px;
 }
 
@@ -5036,7 +5026,7 @@ button {
 
 .frontier-point-grid span {
   color: var(--muted);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
 }
 
@@ -5157,7 +5147,7 @@ button {
 .yield-bar-row i {
   height: 8px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), #e8edf2 0);
+  background: linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), var(--line) 0);
 }
 
 .yield-bar-row strong {
@@ -5529,7 +5519,7 @@ button {
 .makegood-bar i {
   height: 7px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--blue) calc(var(--bar) * 100%), #e8edf2 0);
+  background: linear-gradient(90deg, var(--blue) calc(var(--bar) * 100%), var(--line) 0);
 }
 
 .makegood-bar small {
@@ -5552,8 +5542,8 @@ button {
 
 /* The programme band opens the click-to-inspect drawer. */
 .timeline-program-clickable { cursor: pointer; }
-.timeline-program-clickable:hover { filter: brightness(0.97); outline: 1px solid var(--border-soft, #e5e7eb); }
-.timeline-program-clickable:focus-visible { outline: 2px solid var(--teal-strong, #0f766e); outline-offset: 1px; }
+.timeline-program-clickable:hover { background: var(--surface-muted); outline: 1px solid var(--line); }
+.timeline-program-clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
 
 /* Money story: the gross-to-net waterfall, the frontier plan markers, and the
    engine focus comparison card. Gross stays the dominant figure, the retention
@@ -5616,7 +5606,7 @@ button {
 
 .money-waterfall .mw-band {
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   white-space: nowrap;
 }
@@ -5638,7 +5628,7 @@ button {
 .mw-chip {
   display: inline-flex;
   align-items: center;
-  padding: 1px 7px;
+  padding: 1px var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface-muted);
@@ -5664,12 +5654,12 @@ button {
 .money-waterfall .mw-unavailable small,
 .money-waterfall .mw-basis {
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
 .money-story-panel .money-story-body {
-  padding: 14px 16px 16px;
+  padding: var(--space-4);
 }
 
 .money-story-panel .money-waterfall {
@@ -5747,7 +5737,7 @@ button {
   gap: 9px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface-muted);
 }
 
@@ -5776,7 +5766,7 @@ button {
   gap: 6px;
   min-width: 0;
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .net-compare-row strong {
@@ -5791,17 +5781,17 @@ button {
 .net-compare-empty {
   margin: 0;
   color: var(--subtle);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
 .net-compare-note {
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 .net-compare-empty {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 /* Shared honest-basis footnote: says what a figure is computed over (source has
@@ -5809,8 +5799,8 @@ button {
    Inventory, Campaigns and Forecasts pages and the optimizer run summary. */
 .data-basis-note {
   margin: 0;
-  color: var(--subtle);
-  font-size: var(--text-xs);
+  color: var(--muted);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 

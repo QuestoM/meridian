@@ -6,12 +6,12 @@
 .amz-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 .amz-summary-card {
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 14px 16px;
   display: flex;
@@ -40,8 +40,8 @@
   border: 1px solid var(--line);
   border-inline-start: 3px solid var(--amber);
   background: var(--amber-soft);
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
   margin-bottom: 16px;
 }
 .amz-status-banner svg {
@@ -69,7 +69,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-sm);
   padding: 7px 11px;
   background: var(--surface);
   flex: 1 1 220px;
@@ -102,7 +102,7 @@
 }
 .amz-sort select {
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 6px 9px;
   font: inherit;
   background: var(--surface);
@@ -117,25 +117,25 @@
 }
 .amz-card {
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   cursor: pointer;
   text-align: start;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .amz-card:hover,
 .amz-card:focus-visible {
   border-color: var(--teal);
   box-shadow: var(--shadow);
-  transform: translateY(-1px);
   outline: none;
 }
 .amz-card.has-conflict {
   border-inline-start: 3px solid var(--red);
+  background: #fbe9e9;
 }
 .amz-card-head {
   display: flex;
@@ -229,12 +229,12 @@
 .amz-effect-chip.teal {
   color: var(--teal);
   background: var(--teal-soft);
-  border-color: #bfe3dd;
+  border-color: var(--teal-soft);
 }
 .amz-effect-chip.amber {
   color: var(--amber);
   background: var(--amber-soft);
-  border-color: #f0dcb8;
+  border-color: var(--amber-soft);
 }
 .amz-effect-chip.red {
   color: var(--red);
@@ -316,8 +316,9 @@
 
 /* ----- Empty states ----- */
 .amz-empty {
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
   padding: 28px;
   text-align: center;
   color: var(--muted);

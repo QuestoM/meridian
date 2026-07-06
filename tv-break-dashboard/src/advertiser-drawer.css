@@ -57,7 +57,7 @@
    Keep the full-height tile + margin-top:auto value pairing if you restyle this. */
 .amz-drawer-stat {
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface-muted);
   padding: 10px 12px;
   display: flex;
