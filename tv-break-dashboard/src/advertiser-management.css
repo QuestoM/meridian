@@ -38,7 +38,6 @@
   align-items: flex-start;
   gap: 10px;
   border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--amber);
   background: var(--amber-soft);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -134,7 +133,6 @@
   outline: none;
 }
 .amz-card.has-conflict {
-  border-inline-start: 3px solid var(--red);
   background: #fbe9e9;
 }
 .amz-card-head {

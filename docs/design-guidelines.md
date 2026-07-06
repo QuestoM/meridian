@@ -57,19 +57,18 @@ Reuse these; do not reinvent them per screen.
   treatment. Never mix bordered and borderless rows in one list.
 - Notice and callout: an inline message (unavailable, stale, empty, warning)
   uses a full box: `1px solid var(--line)`, a soft semantic fill, `--radius-md`,
-  even padding on all four sides. A one-sided accent bar is allowed ONLY as a
-  full box plus a thicker inline-start edge in the same semantic colour; a bar
-  on one side with no box is forbidden, it reads as unfinished. Applied
-  consistently, every notice of the same kind looks identical across screens.
+  even padding on all four sides. No accent edge on any single side, ever; the
+  semantic colour lives in the fill (and, when emphasis is needed, an evenly
+  coloured full border), so the box is always symmetric. Applied consistently,
+  every notice of the same kind looks identical across screens.
 
 ## The rules that keep it coherent
 
 These are the lines to hold. Most patchwork is one of these broken.
 
-1. No lopsided borders. An element is either fully bounded or not bounded; a
-   border or accent on a single side without a full box is not allowed. The
-   accent-edge callout above is the one sanctioned exception and only as a box
-   plus edge.
+1. No lopsided borders, absolutely. An element is either fully bounded or not
+   bounded; a border or accent on any single side is not allowed, with no
+   exceptions. Differentiate with the fill or an evenly coloured full border.
 2. One radius, one border weight per element. Do not nest a 10px card inside a
    6px card inside an 8px panel; pick the token for the level and hold it.
 3. Numbers are `dir="ltr"` inside the RTL layout, always, with their unit. A

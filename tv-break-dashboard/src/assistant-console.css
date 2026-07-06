@@ -30,7 +30,7 @@
 .asst-exchange { display: flex; flex-direction: column; gap: var(--space-2); }
 .asst-q { margin: 0; align-self: flex-start; max-width: 82%; font-size: var(--text-sm); font-weight: var(--weight-soft); color: var(--surface); background: var(--primary); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); white-space: pre-wrap; overflow-wrap: anywhere; }
 .asst-a { max-width: 94%; font-size: var(--text-sm); line-height: 1.55; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); padding: var(--space-3); white-space: pre-wrap; overflow-wrap: anywhere; }
-.asst-a.error { border-inline-start: 3px solid var(--amber); color: var(--muted); background: var(--amber-soft); }
+.asst-a.error { border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--muted); background: var(--amber-soft); }
 .asst-truncated { margin: 0; font-size: var(--text-sm); color: var(--amber); }
 .asst-meta { display: flex; justify-content: flex-end; font-size: var(--text-2xs); color: var(--subtle); }
 
@@ -81,7 +81,7 @@
 .asst-prior-clear:hover { color: var(--red); }
 
 /* Honest unavailable callout: full box plus a single inline-start amber edge */
-.asst-unavailable { margin: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); border: 1px solid var(--line); border-inline-start: 3px solid var(--amber); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
+.asst-unavailable { margin: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
 
 /* Composer with the send action */
 .asst-composer { display: flex; align-items: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-2); }
@@ -102,7 +102,7 @@
 
 /* Honest loading, error and empty states share one notice box */
 .asst-loading { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-muted); padding: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
-.asst-error-note { border: 1px solid var(--line); border-inline-start: 3px solid var(--amber); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.asst-error-note { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .asst-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-muted); padding: var(--space-4); color: var(--muted); font-size: var(--text-sm); text-align: center; line-height: 1.5; }
 
 /* Proposal card */
@@ -148,7 +148,7 @@
 .asst-batch-bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3); background: var(--surface-muted); }
 .asst-select-all { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); cursor: pointer; }
 .asst-busy-note { font-size: var(--text-xs); color: var(--subtle); }
-.asst-confirm { display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-inline-start: 3px solid var(--amber); border-radius: var(--radius-md); background: var(--amber-soft); font-size: var(--text-sm); color: var(--ink); }
+.asst-confirm { display: flex; flex-direction: column; gap: var(--space-2); margin: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); font-size: var(--text-sm); color: var(--ink); }
 .asst-confirm p { margin: 0; line-height: 1.5; }
 .asst-confirm-actions { display: flex; gap: var(--space-2); }
 .asst-result { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--line); background: var(--surface-muted); font-size: var(--text-xs); color: var(--muted); }
@@ -211,7 +211,7 @@
 .asst-ver-toggle:hover { color: var(--ink); }
 
 /* Restore file picker inside a version row: full box plus inline-start amber edge */
-.asst-ver-restore { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-inline-start: 3px solid var(--amber); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
+.asst-ver-restore { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
 .asst-ver-restore-h { font-size: var(--text-2xs); font-weight: var(--weight-semibold); color: var(--subtle); letter-spacing: 0.02em; }
 .asst-ver-restore-files { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .asst-ver-file-opt { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--ink); cursor: pointer; }
