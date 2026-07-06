@@ -10,10 +10,11 @@ coordinated multi-segment move (lower segment A, raise segment B) can be both
 feasible and better, yet unreachable one break at a time through an infeasible
 intermediate.
 
-The weighted objective is a SUM of per-segment contributions and every guardrail
-is scoped to one channel-day or finer, so channel-days are INDEPENDENT and the
-global optimum is the sum of each channel-day's own optimum. This module refines
-ONE channel-day group at a time, seeded from the greedy counts, and is tiered:
+Either objective the optimizer maximises is a SUM of per-segment contributions,
+and every guardrail is scoped to one channel-day or finer, so channel-days are
+INDEPENDENT and the global optimum is the sum of each channel-day's own optimum.
+This module refines ONE channel-day group at a time, seeded from the greedy
+counts, and is tiered:
 
   * EXACT enumeration when the break-count box is small enough to be provably
     optimal (synthetic / tiny groups, the brute-force test oracle);
@@ -22,6 +23,14 @@ ONE channel-day group at a time, seeded from the greedy counts, and is tiered:
     then time-adjacent pairwise 2-opt, climbing to a local (not proven-global)
     optimum, so the recovered gain is a lower bound.
 
+Both tiers climb whichever objective the run selected: the convex-blend share
+(``objective_mode='blend'``, the default everywhere) or the pure-ILS net
+(``objective_mode='revenue_net'``, revenue minus the retention cost priced at the
+same CPP). The two are captured by a small :class:`_Objective` descriptor, so
+there is ONE climb implementation, not a fork per objective; the blend descriptor
+defers to the optimizer's own scorer verbatim, so the blend plan does not move by
+a byte from the pre-net refiner.
+
 Every adopted move stays guardrail-compliant and STRICTLY improves the group's
 objective contribution, so the refined plan never regresses below greedy. The
 caller (:func:`~kairos.optimize.optimizer.optimize_breaks`) keeps greedy as the
@@ -29,16 +38,20 @@ warm start, adopts the refined counts only where they strictly beat greedy, and
 rebuilds that group's placements / totals / decision trace from the real breaks.
 
 The compliance and objective math is NOT forked here: this module calls the
-optimizer's own primitives (``_group_breaks`` for the guardrail geometry and
-``_group_objective_contribution`` for the score), so the refiner and greedy
-decide against byte-identical economics and limits.
+optimizer's own primitives (``_group_breaks`` for the guardrail geometry, and for
+the blend score :func:`~kairos.optimize._segment_math._group_objective_contribution`;
+for the net score the same per-segment
+:func:`~kairos.optimize.revenue_net.segment_net_revenue` the greedy step values a
+break by), so the refiner and greedy decide against byte-identical economics and
+limits.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from itertools import product
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 from kairos.optimize.guardrails import Break, Guardrails, is_compliant
 from kairos.optimize._types import Decision, PlacementPin, ProgramSegment
@@ -66,23 +79,101 @@ _PAIRWISE_WINDOW = 6
 _MAX_PASSES = 20
 
 
+@dataclass(frozen=True)
+class _Objective:
+    """The scalar the refiner climbs, abstracted over what the optimizer maximises.
+
+    The refiner's climb (exact enumeration, local search, decision replay) is
+    identical for either objective the optimizer supports; the ONLY thing that
+    changes is the number a break-count vector scores. This descriptor captures
+    that number in two separable pieces, so one climb implementation serves both:
+
+      * ``segment_term(segment, k)`` is the segment's own additive contribution at
+        ``k`` breaks. The group score is the SUM of these across the group, which
+        is what makes the search's cheap per-segment early-reject gate valid.
+      * ``group_contribution(group, counts)`` is that group score. It is a distinct
+        callable (not just ``sum(segment_term)``) so the blend objective can defer
+        to :func:`_group_objective_contribution` verbatim and stay byte-identical:
+        the blend rolls revenue up and divides by the global scale once, an order
+        of operations a per-segment sum would not reproduce to the last bit.
+
+    ``blend`` is the convex-blend share that ships everywhere (byte-identical to
+    the pre-net refiner); ``revenue_net`` is the pure ILS net (revenue minus the
+    retention cost priced at the same CPP), separable per segment by construction.
+    """
+
+    segment_term: Callable[[ProgramSegment, int], float]
+    group_contribution: Callable[[list, dict], float]
+
+
+def _blend_objective(
+    *,
+    revenue_weight: float,
+    revenue_scale: float,
+    total_tvr: float,
+    placements: dict,
+) -> _Objective:
+    """The convex-blend share objective, byte-identical to the pre-net refiner.
+
+    ``segment_term`` reproduces the per-count contribution the local search has
+    always precomputed (``rev_w * revenue + ret_w * baseline_tvr * retention``),
+    and ``group_contribution`` defers to :func:`_group_objective_contribution`, so
+    the refined counts and adopted decisions do not move by a byte from before.
+    """
+    rev_w = revenue_weight / revenue_scale
+    ret_w = (1.0 - revenue_weight) / total_tvr if total_tvr > _EPSILON else 0.0
+
+    def segment_term(segment: ProgramSegment, k: int) -> float:
+        revenue = _segment_revenue(segment, k, placements.get(segment.segment_id))
+        retention = _segment_retention(segment, k)
+        return rev_w * revenue + ret_w * segment.baseline_tvr * retention
+
+    def group_contribution(group: list, counts: dict) -> float:
+        contribution, _, _ = _group_objective_contribution(
+            group, counts,
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale,
+            total_tvr=total_tvr, placements=placements,
+        )
+        return contribution
+
+    return _Objective(segment_term=segment_term, group_contribution=group_contribution)
+
+
+def _net_objective(net_of: Callable[[ProgramSegment, int], float]) -> _Objective:
+    """The pure-ILS net-revenue objective (revenue minus retention cost).
+
+    ``net_of`` is :func:`kairos.optimize.revenue_net.segment_net_revenue`, the same
+    per-segment primitive the net-mode greedy step values a break by. Net revenue
+    is a per-segment quantity with no normalisation, so the group score is exactly
+    the sum of each segment's net and the search's separable early-reject gate
+    holds unchanged.
+    """
+    def segment_term(segment: ProgramSegment, k: int) -> float:
+        return net_of(segment, k)
+
+    def group_contribution(group: list, counts: dict) -> float:
+        return sum(net_of(segment, counts[segment.segment_id]) for segment in group)
+
+    return _Objective(segment_term=segment_term, group_contribution=group_contribution)
+
+
 def _enumerate_group_exact(
     group: list[ProgramSegment],
     ranges: list[range],
     gold_by_id: dict[str, bool],
     guardrails: Guardrails,
+    objective: _Objective,
     *,
-    revenue_weight: float,
-    revenue_scale: float,
-    total_tvr: float,
     placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> dict[str, int]:
     """Globally optimal compliant break counts by exhaustive enumeration.
 
     Used only for groups small enough to enumerate (``<= _MAX_EXACT_COMBOS``
-    break-count vectors). Returns the counts that maximise the group's objective
-    contribution among all guardrail-compliant vectors in the box. The all-floors
-    vector is always compliant (verified upstream), so a result always exists.
+    break-count vectors). Returns the counts that maximise the ``objective``'s
+    group contribution among all guardrail-compliant vectors in the box. The
+    all-floors vector is always compliant (verified upstream), so a result always
+    exists. The objective is the convex-blend share or the pure-ILS net; the
+    enumeration and compliance geometry are identical for either.
     """
     placements = placements or {}
     best_counts: dict[str, int] = {s.segment_id: r.start for s, r in zip(group, ranges)}
@@ -91,11 +182,7 @@ def _enumerate_group_exact(
         counts = {segment.segment_id: k for segment, k in zip(group, vector)}
         if not is_compliant(_group_breaks(group, counts, gold_by_id, placements), guardrails):
             continue
-        contribution, _, _ = _group_objective_contribution(
-            group, counts,
-            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-            placements=placements,
-        )
+        contribution = objective.group_contribution(group, counts)
         if contribution > best_contribution + _EPSILON:
             best_contribution = contribution
             best_counts = counts
@@ -109,10 +196,8 @@ def _local_search_group(
     caps: dict[str, int],
     gold_by_id: dict[str, bool],
     guardrails: Guardrails,
+    objective: _Objective,
     *,
-    revenue_weight: float,
-    revenue_scale: float,
-    total_tvr: float,
     placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
 ) -> dict[str, int]:
     """Refine a large group's break counts by guardrail-aware local search.
@@ -133,6 +218,11 @@ def _local_search_group(
     (the only ones that share an hour) to keep the search linear in segment count.
     A segment whose floor equals its cap (a pin / forbid / count override) is
     fixed, so the search never touches it.
+
+    ``objective`` decides what is climbed: the convex-blend share (byte-identical
+    to the pre-net refiner) or the pure-ILS net. Both are separable across
+    segments, so the precomputed per-segment term table and the cheap early-reject
+    gate below are valid for either without any change to the search itself.
     """
     placements = placements or {}
     order = sorted(range(len(group)), key=lambda i: group[i].start_seconds)
@@ -140,23 +230,19 @@ def _local_search_group(
     counts = dict(seed_counts)
 
     # Precompute each segment's per-count contribution to the group objective. The
-    # objective is separable across segments (revenue is a sum, retention is a
-    # tvr-weighted sum, both over the same global constants), so the group
-    # contribution is the sum of these and a single segment's move changes it by
-    # exactly its own term delta. This lets the search GATE on the cheap objective
-    # delta before the expensive (full group-rebuild) compliance check, which is
-    # what makes the 120-channel-day weekly export land in minutes, not tens.
-    rev_w = revenue_weight / revenue_scale
-    ret_w = (1.0 - revenue_weight) / total_tvr if total_tvr > _EPSILON else 0.0
+    # objective is separable across segments (blend: revenue is a sum and retention
+    # a tvr-weighted sum, both over the same global constants; net: net revenue is
+    # itself per-segment), so the group contribution is the sum of these and a
+    # single segment's move changes it by exactly its own term delta. This lets the
+    # search GATE on the cheap objective delta before the expensive (full
+    # group-rebuild) compliance check, which is what makes the 120-channel-day
+    # weekly export land in minutes, not tens.
     term: dict[str, dict[int, float]] = {}
     for segment in group:
         sid = segment.segment_id
-        pins = placements.get(sid)
         cell: dict[int, float] = {}
         for k in range(floors[sid], caps[sid] + 1):
-            revenue = _segment_revenue(segment, k, pins)
-            retention = _segment_retention(segment, k)
-            cell[k] = rev_w * revenue + ret_w * segment.baseline_tvr * retention
+            cell[k] = objective.segment_term(segment, k)
         term[sid] = cell
 
     seg_by_id = {s.segment_id: s for s in group}
@@ -340,6 +426,7 @@ def optimize_group(
     revenue_scale: float,
     total_tvr: float,
     placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
+    net_of: Optional[Callable[[ProgramSegment, int], float]] = None,
 ) -> dict[str, int]:
     """Best compliant break counts for one channel-day.
 
@@ -351,20 +438,31 @@ def optimize_group(
     greedy cannot reach a feasible-and-better allocation through an infeasible
     intermediate one. The returned counts are guaranteed compliant and never worse
     than ``seed_counts`` on the group's objective contribution.
+
+    ``net_of`` selects the objective: ``None`` (the default) climbs the convex
+    blend share, byte-identical to before; a
+    :func:`kairos.optimize.revenue_net.segment_net_revenue` callable climbs the
+    pure-ILS net directly, for ``objective_mode='revenue_net'``. Only the scalar
+    scored changes; the tiering, enumeration and local search are the same.
     """
+    if net_of is None:
+        objective = _blend_objective(
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale,
+            total_tvr=total_tvr, placements=placements or {},
+        )
+    else:
+        objective = _net_objective(net_of)
     ranges = [range(floors[s.segment_id], caps[s.segment_id] + 1) for s in group]
     combos = 1
     for r in ranges:
         combos *= len(r)
     if combos <= _MAX_EXACT_COMBOS:
         return _enumerate_group_exact(
-            group, ranges, gold_by_id, guardrails,
-            revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+            group, ranges, gold_by_id, guardrails, objective,
             placements=placements,
         )
     return _local_search_group(
-        group, seed_counts, floors, caps, gold_by_id, guardrails,
-        revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
+        group, seed_counts, floors, caps, gold_by_id, guardrails, objective,
         placements=placements,
     )
 
@@ -378,6 +476,7 @@ def replay_group_decisions(
     revenue_scale: float,
     total_tvr: float,
     placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
+    net_of: Optional[Callable[[ProgramSegment, int], float]] = None,
 ) -> list[Decision]:
     """Reconstruct a marginal-gain-ordered decision trace reaching the target.
 
@@ -389,14 +488,25 @@ def replay_group_decisions(
     objective is separable, a single break only moves its own group's
     contribution, so the contribution delta here is the same marginal gain the
     greedy loop records globally.
+
+    ``net_of`` mirrors :func:`optimize_group`: ``None`` orders and scores by the
+    convex-blend contribution (byte-identical to before), a
+    :func:`kairos.optimize.revenue_net.segment_net_revenue` callable by the pure
+    ILS net, so ``marginal_objective_gain`` reports the gain on the objective the
+    plan was actually chosen against. ``marginal_revenue`` and ``retention_after``
+    are the break's ILS revenue and retained share either way, so they are
+    unchanged.
     """
     placements = placements or {}
+    if net_of is None:
+        objective = _blend_objective(
+            revenue_weight=revenue_weight, revenue_scale=revenue_scale,
+            total_tvr=total_tvr, placements=placements,
+        )
+    else:
+        objective = _net_objective(net_of)
     counts = {s.segment_id: floors[s.segment_id] for s in group}
-    base, _, _ = _group_objective_contribution(
-        group, counts,
-        revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-        placements=placements,
-    )
+    base = objective.group_contribution(group, counts)
     seg_by_id = {s.segment_id: s for s in group}
     decisions: list[Decision] = []
     pending = sum(target_counts[s.segment_id] - counts[s.segment_id] for s in group)
@@ -409,11 +519,7 @@ def replay_group_decisions(
                 continue
             trial = dict(counts)
             trial[sid] += 1
-            contribution, _, _ = _group_objective_contribution(
-                group, trial,
-                revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-                placements=placements,
-            )
+            contribution = objective.group_contribution(group, trial)
             gain = contribution - base
             if best_gain is None or gain > best_gain:
                 best_gain = gain

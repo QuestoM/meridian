@@ -299,41 +299,52 @@ def optimize_breaks(
             retention_after=_segment_retention(segment, k + 1),
         ))
 
-    # Greedy is a fast compliant warm start, but re-spacing at duration/(k+1) makes
-    # feasibility non-monotone in break count, so greedy can stop short of a better
-    # compliant allocation. The blend objective is separable across channel-days
-    # (groups share no guardrail), so the optimum is the sum of each group's own.
-    # The F1 refiner climbs each group from the warm start and its counts are
-    # adopted only where they STRICTLY beat greedy, rebuilding that group's decision
-    # trace to match. Skipped when refine is False (pure-greedy output for A/B/tests).
+    # Index the greedy decision trace by channel-day; the refiner below rewrites
+    # only the groups whose counts it improves, leaving the rest as greedy chose.
+    # Either objective is separable across channel-days (groups share no guardrail),
+    # so a group can be re-decided on its own without touching any other.
     decisions_by_group: dict[tuple[str, str], list[Decision]] = defaultdict(list)
     for decision in decisions:
         seg = by_id[decision.segment_id]
         decisions_by_group[(seg.channel, seg.day)].append(decision)
 
-    # The refiner climbs the convex-blend contribution, so it is only correct in
-    # blend mode; net mode ships the pure-greedy net-ILS allocation above.
-    if refine and not net_mode:
+    # Greedy leaves value on the table in EITHER objective: re-spacing at
+    # duration/(k+1) makes feasibility non-monotone, so a feasible-and-better
+    # coordinated move can be unreachable one break at a time. The F1 refiner
+    # climbs each channel-day from the greedy warm start and its counts are adopted
+    # only where they STRICTLY beat greedy ON THE ACTIVE OBJECTIVE, so the plan
+    # never regresses a group. Net mode threads its own per-segment net primitive
+    # (``_net_of``) into the same refiner so it climbs the pure-ILS net; blend mode
+    # passes ``net_of=None`` and is byte-identical to before. Skipped when refine is
+    # False (pure-greedy output for A/B / fast tests).
+    if refine:
         # Imported here (not at module top) so refiner can import this module's
         # primitives without a circular import at load time.
         from kairos.optimize.refiner import optimize_group, replay_group_decisions
-        for key, group in groups.items():
-            greedy_counts = {s.segment_id: state[s.segment_id] for s in group}
-            greedy_contribution, _, _ = _group_objective_contribution(
-                group, greedy_counts,
+
+        def _group_score(group: list[ProgramSegment], counts: dict[str, int]) -> float:
+            # The strictly-beats gate scores the ACTIVE objective: the pure ILS net
+            # in net mode (the sum of each segment's net, separable by
+            # construction), else the convex-blend contribution. Both are the same
+            # scalar the refiner itself climbs, so the gate and the search agree.
+            if net_mode:
+                return sum(_net_of(s, counts[s.segment_id]) for s in group)
+            contribution, _, _ = _group_objective_contribution(
+                group, counts,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
                 placements=placements,
             )
+            return contribution
+
+        for key, group in groups.items():
+            greedy_counts = {s.segment_id: state[s.segment_id] for s in group}
+            greedy_contribution = _group_score(group, greedy_counts)
             refined_counts = optimize_group(
                 group, greedy_counts, floors, caps, gold_by_id, guardrails,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-                placements=placements,
+                placements=placements, net_of=_net_of,
             )
-            refined_contribution, _, _ = _group_objective_contribution(
-                group, refined_counts,
-                revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-                placements=placements,
-            )
+            refined_contribution = _group_score(group, refined_counts)
             # Pure improvement guarantee: never adopt a worse-or-equal group.
             if refined_contribution <= greedy_contribution + _EPSILON:
                 continue  # greedy already reached this group's optimum
@@ -345,7 +356,7 @@ def optimize_breaks(
             decisions_by_group[key] = replay_group_decisions(
                 group, refined_counts, floors,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
-                placements=placements,
+                placements=placements, net_of=_net_of,
             )
 
     # Roll the (possibly corrected) counts back up into the reported totals;
