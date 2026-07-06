@@ -135,8 +135,14 @@ def test_loop_executes_reads_and_captures_proposals_without_mutating(
     assert set(body) == {"available", "answer", "grounding", "error", "proposals", "tool_trace"}
     assert body["available"] is True and body["error"] is None
     assert body["answer"] == "הצעתי שני שינויים לאישורך"
-    assert body["tool_trace"] == [{"tool": name, "ok": True} for name in (
-        "get_settings", "get_day_detail", "propose_settings_change", "propose_recompute")]
+    # Same tools in order, all ok; read steps now additively carry a provenance
+    # source, propose steps do not (a proposal captures no figure to attribute).
+    assert [(step["tool"], step["ok"]) for step in body["tool_trace"]] == [
+        (name, True) for name in (
+            "get_settings", "get_day_detail", "propose_settings_change", "propose_recompute")]
+    assert body["tool_trace"][0]["source"] == "saved settings"
+    assert body["tool_trace"][1]["source"] == "saved weekly plan, owned channel"
+    assert "source" not in body["tool_trace"][2] and "source" not in body["tool_trace"][3]
 
     # Read-tool results were really executed and fed back to the model.
     second_call = recorder["calls"][1]["messages"]

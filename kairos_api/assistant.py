@@ -1,17 +1,17 @@
 """In-product AI assistant grounded in the saved Kairos payloads.
 
-The ask endpoint composes a compact context from the SAME internal builders the
-dashboard endpoints use (overview summary, schedule freshness verdict, yield
-totals, top recommendations, saved settings essentials, plan counts), plus the
-day-level grounding built in kairos_api.assistant_context, all kept under a
-serialized character budget with honest truncation flags. With an API key
-present the question runs through an Anthropic tool-use loop: READ tools are
-executed immediately against the real routers' builders, and PROPOSE tools are
-captured as pending proposal items (kairos_api.assistant_actions) that only an
-operator's explicit approval ever applies. The response carries a grounding
-manifest, the tool trace (names only) and the captured proposal batch; a
-section whose builder fails is omitted and listed as absent, never fabricated.
-Without an API key both routes stay up and report available false honestly.
+The ask endpoint composes context from the SAME dashboard builders plus the
+day-level grounding in kairos_api.assistant_context, under a character budget
+with honest truncation flags. With an API key the question runs an Anthropic
+tool-use loop: READ tools (including simulate_settings_change, a side-effect-free
+owned-channel what-if) execute immediately and are stamped with a provenance
+source; PROPOSE tools are captured as pending items
+(kairos_api.assistant_actions) that only an operator's approval applies, each
+settings change carrying its simulated effect. The loop searches with adaptive
+thinking so a stated goal can be met by trying settings against the real
+optimizer. The response carries the grounding manifest, the tool trace (with
+sources) and the proposal batch; a failed section is listed absent, never
+fabricated. Without a key both routes report available false honestly.
 """
 
 from __future__ import annotations
@@ -41,8 +41,12 @@ ACTIONS_DISABLED_REASON = f"disabled by {ACTIONS_ENV}"
 ASK_TIMEOUT_SECONDS = 30.0
 MAX_ANSWER_TOKENS = 1000  # plain Q&A call when the action plane is off
 LOOP_MAX_TOKENS = 1500
-MAX_TOOL_ITERATIONS = 6
+# The goal-seeker searches by calling simulate_settings_change repeatedly, so the
+# loop needs room to try several settings before it converges; the ceiling stays
+# hard so a runaway conversation still terminates.
+MAX_TOOL_ITERATIONS = 10
 ANSWER_TEMPERATURE = 0.2
+LOOP_EFFORT = "medium"
 RATE_LIMIT_ASKS = 10
 RATE_LIMIT_WINDOW_SECONDS = 60.0
 
@@ -87,7 +91,18 @@ SYSTEM_PROMPT = (
     "8. Currency and units: monetary amounts are in ILS unless the context states "
     "otherwise; attach units to every number. "
     "9. Style: short and concrete, plain text only, no markdown formatting. Prefer "
-    "two to six sentences, or a short plain list for several figures."
+    "two to six sentences, or a short plain list for several figures. "
+    "10. Provenance: every read tool result carries a source field; name that source "
+    "for each figure you state, and never give a number without a context section or "
+    "tool result behind it. "
+    "11. Simulation: simulate_settings_change runs the owned-channel optimizer under "
+    "proposed settings and returns the before and after (gross, retention cost, net, "
+    "breaks) plus deltas, changing nothing; use it for any settings what-if and say the "
+    "numbers are a simulation, not the saved plan. "
+    "12. Goal-seek: on a stated goal, call simulate_settings_change repeatedly to try "
+    "settings against the optimizer, compare each result to the goal, and only when one "
+    "meets it emit ONE propose_settings_change for it, never applying mid-search; if "
+    "nothing meets it, say so and report the closest result and its settings."
 )
 
 
@@ -126,10 +141,8 @@ def _client_factory(api_key: str) -> Any:
     return anthropic.Anthropic(api_key=api_key, timeout=ASK_TIMEOUT_SECONDS, max_retries=1)
 
 
-# ---------------------------------------------------------------------------
-# Context sections. Each one reuses a real dashboard builder, so the assistant
-# reads exactly what the operator's own pages render, nothing else.
-# ---------------------------------------------------------------------------
+# Context sections. Each reuses a real dashboard builder, so the assistant reads
+# exactly what the operator's own pages render, nothing else.
 def _overview_body() -> dict[str, Any]:
     server = _server()
     return server._overview_cached(
@@ -232,12 +245,10 @@ _SECTIONS: tuple[tuple[str, Callable[[], Any]], ...] = (
 def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
     """Build the grounding context from the real payload builders.
 
-    A failing section is omitted from the context and listed in sources with an
-    absent marker, so the model (and the operator) can see exactly which data
-    was and was not available. Nothing is ever substituted or fabricated. After
-    the base sections, assistant_context adds the always-on per-day table of
-    the operator's own channel, any day_detail sections the question's dates
-    resolve to, and finally enforces the serialized character budget.
+    A failing section is omitted and listed in sources with an absent marker,
+    never substituted or fabricated. assistant_context then adds the always-on
+    per-day owned-channel table and any day_detail sections the question's dates
+    resolve to, and enforces the serialized character budget.
     """
     context: dict[str, Any] = {}
     sources: list[str] = []
@@ -252,9 +263,7 @@ def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
     return context, sources
 
 
-# ---------------------------------------------------------------------------
 # Basic protection: a simple in-process sliding-window rate limit.
-# ---------------------------------------------------------------------------
 _RATE_LOCK = threading.Lock()
 _ASK_TIMES: deque[float] = deque()
 
@@ -306,6 +315,27 @@ def _extract_answer(response: Any) -> str:
     return "".join(parts).strip()
 
 
+def _echo_block(block: Any) -> dict[str, Any] | None:
+    """One assistant content block as a plain dict, or None to drop it.
+
+    Preserves text, tool_use, and (unchanged, in order) thinking blocks: with
+    adaptive thinking on, the API requires the thinking that preceded a tool_use
+    to be echoed in the assistant turn sent back with the tool results.
+    """
+    kind = getattr(block, "type", "")
+    if kind == "text":
+        return {"type": "text", "text": getattr(block, "text", "")}
+    if kind == "thinking":
+        return {"type": "thinking", "thinking": getattr(block, "thinking", ""),
+                "signature": getattr(block, "signature", "")}
+    if kind == "redacted_thinking":
+        return {"type": "redacted_thinking", "data": getattr(block, "data", "")}
+    if kind == "tool_use":
+        return {"type": "tool_use", "id": block.id, "name": block.name,
+                "input": dict(block.input or {})}
+    return None
+
+
 def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
                    items: list[dict[str, Any]], actions_on: bool) -> str:
     """One Anthropic conversation, with the tool loop when the action plane is on.
@@ -313,38 +343,38 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
     READ tools execute immediately and their results go back to the model;
     PROPOSE tools are captured into items and never executed here. trace and
     items are caller-owned lists, so a failure mid-loop loses nothing already
-    captured. With the action plane off this is a single plain call. Returns
-    the final text answer (empty when the model gave none).
+    captured. The opening call stays byte-identical to a plain answer; once the
+    loop iterates to search it enters goal-seek mode (adaptive thinking at a
+    medium effort, temperature dropped since thinking rejects it, and a
+    cache_control breakpoint on the stable tools+system prefix). Returns the
+    final text answer (empty when the model gave none).
     """
     messages: list[dict[str, Any]] = [{"role": "user", "content": user_content}]
     response = None
-    for _ in range(MAX_TOOL_ITERATIONS):
+    for iteration in range(MAX_TOOL_ITERATIONS):
+        searching = actions_on and iteration > 0
         kwargs: dict[str, Any] = {
             "model": _model_name(),
             "max_tokens": LOOP_MAX_TOKENS if actions_on else MAX_ANSWER_TOKENS,
-            "temperature": ANSWER_TEMPERATURE,
-            "system": SYSTEM_PROMPT,
+            "system": ([{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}]
+                       if searching else SYSTEM_PROMPT),
             "messages": messages,
         }
         if actions_on:
             kwargs["tools"] = assistant_tools.anthropic_tools()
+        if searching:
+            kwargs["thinking"] = {"type": "adaptive"}
+            kwargs["output_config"] = {"effort": LOOP_EFFORT}
+        else:
+            kwargs["temperature"] = ANSWER_TEMPERATURE
         response = client.messages.create(**kwargs)
         blocks = list(getattr(response, "content", []) or [])
         tool_uses = [block for block in blocks if getattr(block, "type", "") == "tool_use"]
         if not actions_on or not tool_uses or getattr(response, "stop_reason", None) != "tool_use":
             break
-        # Echo the assistant turn as plain dicts (SDK-object and mock safe),
-        # then answer every tool_use block in one user turn.
-        echoed: list[dict[str, Any]] = []
-        results: list[dict[str, Any]] = []
-        for block in blocks:
-            kind = getattr(block, "type", "")
-            if kind == "text":
-                echoed.append({"type": "text", "text": getattr(block, "text", "")})
-            elif kind == "tool_use":
-                echoed.append({"type": "tool_use", "id": block.id, "name": block.name,
-                               "input": dict(block.input or {})})
-                results.append(assistant_tools.handle_tool_use(block, trace, items))
+        echoed = [echo for echo in (_echo_block(block) for block in blocks) if echo is not None]
+        results = [assistant_tools.handle_tool_use(block, trace, items)
+                   for block in tool_uses]
         messages.append({"role": "assistant", "content": echoed})
         messages.append({"role": "user", "content": results})
     return _extract_answer(response) if response is not None else ""
@@ -361,9 +391,7 @@ def _audit_ask(user: str, question: str, body: dict[str, Any], batch_id: str | N
     )
 
 
-# ---------------------------------------------------------------------------
 # Routes
-# ---------------------------------------------------------------------------
 @router.get("/status")
 def assistant_status() -> dict[str, Any]:
     """Honest availability: the answer path, the model, and the action plane."""

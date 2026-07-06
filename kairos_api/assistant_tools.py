@@ -1,17 +1,15 @@
 """Tool registry for the assistant's action plane.
 
-Two tool families for the Anthropic tool-use loop in kairos_api.assistant:
-READ tools execute immediately in-loop, each reusing a real, already-shipped
-builder (the same payloads the dashboard renders), and a failing executor
-returns an honest ``{"error": ...}`` instead of fabricating or crashing the
-loop. PROPOSE tools are NEVER executed in-loop: each call is validated through
-the SAME validation the manual UI path uses (pydantic models and validators
-imported from the owning routers) and captured as a proposal item, ``pending``
-when valid or ``rejected`` with an honest reason when not. Nothing mutates
-until the operator approves the item and kairos_api.assistant_actions replays
-it through the real seam. The settings allowlist below is the contract for
-propose_settings_change: only operator-tunable optimizer levers may be
-proposed; identity and infrastructure fields are rejected at proposal time.
+READ tools execute immediately in-loop, each reusing a real dashboard builder
+(plus simulate_settings_change, the side-effect-free owned-channel what-if), and
+a failing executor returns an honest ``{"error": ...}`` rather than fabricating
+or crashing; every read result is stamped with a provenance source. PROPOSE
+tools are NEVER executed in-loop: each is validated through the SAME validators
+the manual UI path uses and captured as a ``pending`` (or honestly ``rejected``)
+proposal item, and a settings change also carries its simulated effect. Nothing
+mutates until the operator approves and kairos_api.assistant_actions replays it
+through the real seam. The settings allowlist below is the contract for
+propose_settings_change: only operator-tunable levers may be proposed.
 """
 
 from __future__ import annotations
@@ -102,6 +100,15 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "retention cost, net, breaks and the deltas), or its honest status.",
     ),
     _tool("get_compliance", "Read the regulatory compliance verdict summary for the saved plan."),
+    _tool(
+        "simulate_settings_change",
+        "Simulate a settings change on the owned channel WITHOUT applying it: returns "
+        "before/after gross, retention cost, net and breaks plus the deltas, on the plan's "
+        "own basis. Use it for what-ifs and to search toward a goal. Allowed fields only: "
+        + ", ".join(sorted(ALLOWED_SETTINGS_FIELDS)) + ".",
+        {"changes": {"type": "object", "description": "Allowed settings fields to simulate."}},
+        ["changes"],
+    ),
 ]
 
 PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -162,9 +169,7 @@ def anthropic_tools() -> list[dict[str, Any]]:
     return [*READ_TOOL_SCHEMAS, *PROPOSE_TOOL_SCHEMAS]
 
 
-# ---------------------------------------------------------------------------
 # READ executors. Each one calls the real builder of the owning module.
-# ---------------------------------------------------------------------------
 def _read_get_settings(args: dict[str, Any]) -> dict[str, Any]:
     from kairos_api.core import _load_settings, _model_dump
 
@@ -248,6 +253,14 @@ def _read_get_compliance(args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _read_simulate_settings_change(args: dict[str, Any]) -> dict[str, Any]:
+    # The primitive validates the changes against the SAME allowlist and returns an
+    # honest unavailable for a forbidden/unknown field or a bad value, never crashing.
+    from kairos_api import assistant_simulate
+
+    return assistant_simulate.simulate_settings_change(args.get("changes"))
+
+
 _READ_EXECUTORS = {
     "get_settings": _read_get_settings,
     "get_day_detail": _read_get_day_detail,
@@ -256,25 +269,44 @@ _READ_EXECUTORS = {
     "get_pricing": _read_get_pricing,
     "get_net_comparison": _read_get_net_comparison,
     "get_compliance": _read_get_compliance,
+    "simulate_settings_change": _read_simulate_settings_change,
+}
+
+# The provenance stamp for each read tool result: the endpoint or dataset the
+# figures came from. Attached uniformly in execute_read_tool and surfaced on the trace.
+SOURCE_BY_TOOL = {
+    "get_settings": "saved settings",
+    "get_day_detail": "saved weekly plan, owned channel",
+    "list_constraints": "stored placement constraints",
+    "list_overrides": "stored manual overrides",
+    "get_pricing": "pricing hierarchy (rate card and operator overrides)",
+    "get_net_comparison": "owned-channel scenario runner, net comparison",
+    "get_compliance": "compliance verdict over the committed plan",
+    "simulate_settings_change": "owned-channel scenario runner, representative day",
 }
 
 
 def execute_read_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
-    """Run one READ tool. Failures come back as {"error": ...}, never raised."""
+    """Run one READ tool, stamping the result with its provenance source.
+
+    Failures come back as {"error": ...}, never raised. Every result dict carries
+    a non-empty "source" so the model can name where each figure came from.
+    """
     executor = _READ_EXECUTORS.get(name)
     if executor is None:
-        return {"error": f"unknown read tool {name!r}"}
+        return {"error": f"unknown read tool {name!r}", "source": "unknown tool"}
     try:
-        return executor(args)
+        result = executor(args)
     except HTTPException as exc:
-        return {"error": str(exc.detail)}
+        result = {"error": str(exc.detail)}
     except Exception as exc:  # noqa: BLE001 - surfaced honestly to the model
-        return {"error": f"{name} failed ({type(exc).__name__}): {str(exc)[:200]}"}
+        result = {"error": f"{name} failed ({type(exc).__name__}): {str(exc)[:200]}"}
+    if isinstance(result, dict):
+        result.setdefault("source", SOURCE_BY_TOOL.get(name, name))
+    return result
 
 
-# ---------------------------------------------------------------------------
 # PROPOSE validation. Same validators as the manual paths; nothing mutates.
-# ---------------------------------------------------------------------------
 def _validate_settings_change(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
     from kairos_api.core import KairosSettings, _load_settings, _model_dump
 
@@ -413,6 +445,12 @@ def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
         return item
     item["payload"] = payload
     item["summary"] = summary
+    # Additive: attach the simulated owned-channel effect of a settings change so
+    # the operator sees the before/after before approving. The apply engine ignores it.
+    if kind == "settings":
+        from kairos_api import assistant_simulate
+
+        item["effect"] = assistant_simulate.settings_effect(payload.get("changes"))
     return item
 
 
@@ -427,9 +465,13 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
     name = str(getattr(block, "name", ""))
     args_raw = getattr(block, "input", None)
     args = dict(args_raw) if isinstance(args_raw, dict) else {}
+    source: str | None = None
     if name in READ_TOOL_NAMES:
         payload = execute_read_tool(name, args)
         ok = "error" not in payload
+        # Surface the read result's provenance on the trace step so the response's
+        # source trail names, for every figure, where it came from.
+        source = payload.get("source") if isinstance(payload, dict) else None
     elif name in PROPOSE_TOOL_NAMES:
         item = build_proposal_item(name, args)
         items.append(item)
@@ -440,7 +482,10 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
             payload["reason"] = item.get("error")
     else:
         payload, ok = {"error": f"unknown tool {name!r}"}, False
-    trace.append({"tool": name, "ok": ok})
+    step: dict[str, Any] = {"tool": name, "ok": ok}
+    if source:
+        step["source"] = source
+    trace.append(step)
     return {
         "type": "tool_result",
         "tool_use_id": str(getattr(block, "id", "")),
