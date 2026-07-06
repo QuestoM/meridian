@@ -433,3 +433,51 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
         "average_retention": avg_retention_pct,
         "risk_score": risk_score,
     }
+
+
+def _augment_segment_ids(schedule: pd.DataFrame) -> pd.DataFrame:
+    """Return the schedule with a populated segment_id and a boolean is_gold column.
+
+    The weekly CSV carries both (kairos.export.schedule). This restores them when an
+    older CSV predates the columns: segment_id is rebuilt as
+    ``f"{date}|{channel}|{index:03d}"`` with index the row's position within its
+    channel-day, exactly the build-order key the exporter writes and the override /
+    constraint engines key their target_id on. Nothing is fabricated; a segment with
+    no gold break reads False.
+
+    Shared across the dashboard reads (segment list, segment detail, recommendations,
+    compliance geometry) and the assistant context, so it lives in the kernel: a pure
+    pandas transform with no engine or filesystem dependency.
+    """
+    frame = schedule.copy()
+    if "segment_id" in frame.columns:
+        sid = frame["segment_id"].astype(str).str.strip()
+    else:
+        sid = pd.Series([""] * len(frame), index=frame.index)
+    blank = sid == ""
+    if bool(blank.any()) and {"date", "channel"}.issubset(frame.columns):
+        order = frame.groupby(["date", "channel"], sort=False).cumcount()
+        rebuilt = (
+            frame["date"].astype(str).str.strip() + "|"
+            + frame["channel"].astype(str).str.strip() + "|"
+            + order.map(lambda i: f"{int(i):03d}")
+        )
+        sid = sid.where(~blank, rebuilt)
+    frame["segment_id"] = sid
+    if "is_gold" in frame.columns:
+        frame["is_gold"] = frame["is_gold"].map(
+            lambda v: str(v).strip().lower() in {"true", "1", "yes", "y"}
+        )
+    else:
+        frame["is_gold"] = False
+    return frame
+
+
+def _row_anchor(row: Any) -> dict[str, str]:
+    """The semantic anchor for a schedule row: the trio the override store records
+    beside the build-order segment_id so a re-ingest cannot silently rebind."""
+    return {
+        "date": str(row.get("date", "")).strip(),
+        "start_clock": str(row.get("start_time", "")).strip(),
+        "program": str(row.get("program_type", "")).strip(),
+    }
