@@ -831,6 +831,24 @@ button {
   overflow: hidden;
 }
 
+/* The timeline header: the summary metrics on one side, the shared zoom control
+   on the other, above the scrolling track surface. */
+.timeline-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding-inline-end: 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.timeline-topbar .timeline-summary {
+  flex: 1 1 480px;
+  border-bottom: 0;
+}
+
 .timeline-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -864,6 +882,46 @@ button {
   font-size: var(--text-xs);
 }
 
+/* Shared video-editor zoom control: a slider between minus and plus buttons that
+   scales the minutes-to-pixels factor for the track surface. Used by both the
+   timeline header and the editor toolbar. */
+.track-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.track-zoom-label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.track-zoom-slider {
+  width: 140px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.track-zoom-btn.MuiButton-root {
+  min-width: 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.track-zoom-readout {
+  min-width: 40px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-align: end;
+}
+
 .timeline-scroll {
   overflow: auto;
   min-height: 440px;
@@ -873,38 +931,69 @@ button {
 .timeline-ruler,
 .timeline-row {
   display: grid;
-  grid-template-columns: 164px minmax(680px, 1fr);
+  grid-template-columns: 172px max-content;
 }
 
 .timeline-ruler {
   position: sticky;
   top: 0;
   z-index: 2;
-  height: 38px;
+  height: 40px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 
-.timeline-hours {
-  position: relative;
-  height: 38px;
+.timeline-ruler-gutter {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 3;
+  height: 40px;
+  background: var(--surface);
+  border-inline-end: 1px solid var(--line);
 }
 
-.timeline-hours span {
+.timeline-hours {
+  position: relative;
+  height: 40px;
+}
+
+/* One ruler tick: a hairline mark plus, on major ticks, a clock label. Ticks are
+   placed in absolute pixels from the shared axis so they stay aligned with the
+   tracks at any zoom. Minor ticks show only the line; major ticks add the time. */
+.timeline-tick {
   position: absolute;
   top: 0;
+  height: 40px;
+}
+
+.timeline-tick > i {
+  position: absolute;
+  top: 26px;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 14px;
+  background: #d7dee6;
+}
+
+.timeline-tick.major > i {
+  top: 20px;
+  height: 20px;
+  background: #c4ccd6;
+}
+
+.timeline-tick > b {
+  position: absolute;
+  top: 5px;
+  inset-inline-start: 0;
   transform: translateX(-50%);
-  height: 38px;
-  display: grid;
-  align-items: center;
   color: var(--muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 
 .timeline-row {
-  min-height: 92px;
+  min-height: 128px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -917,6 +1006,9 @@ button {
   padding: 16px 14px;
   border-inline-end: 1px solid var(--line);
   background: var(--surface-muted);
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
 }
 
 .timeline-lane strong {
@@ -937,7 +1029,7 @@ button {
 
 .timeline-track {
   position: relative;
-  min-height: 92px;
+  min-height: 128px;
 }
 
 .timeline-track > i {
@@ -948,31 +1040,58 @@ button {
   background: #edf1f5;
 }
 
+/* The shared programme band: the legible hierarchy both the read-only timeline
+   and the editor render, a title over a muted class and clock window. The editor
+   layers its drag affordances on top; the timeline stays read-only. */
 .timeline-program-band {
   position: absolute;
-  top: 14px;
-  height: 25px;
-  border: 1px solid #d6dde5;
+  top: 16px;
+  height: 46px;
+  border: 1px solid #cbd3dc;
   border-radius: var(--radius-sm);
-  background: #f6f8fa;
+  background: #eef2f6;
   color: var(--muted);
   display: flex;
-  align-items: center;
-  padding: 0 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 12px;
   overflow: hidden;
 }
 
-.timeline-program-band span {
+.timeline-program-title {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+.timeline-program-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.timeline-program-class,
+.timeline-program-window {
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .timeline-break.MuiButton-root {
   position: absolute;
-  top: 48px;
+  top: 74px;
   min-width: 42px;
   height: 30px;
   min-height: 30px;
@@ -1034,9 +1153,9 @@ button {
   min-height: 502px;
 }
 
-/* The editor reuses the timeline layout but needs more vertical room so the
-   taller, more legible programme band and break chips fit comfortably. These
-   overrides are scoped to the editor so the read-only timeline is untouched. */
+/* The editor shares the timeline's programme band and ruler but stacks taller
+   draggable break chips under the band, so it needs a little more vertical room.
+   The band itself is the shared base style, unchanged here. */
 .schedule-editor .timeline-row,
 .schedule-editor .timeline-track {
   min-height: 138px;
@@ -1044,47 +1163,6 @@ button {
 
 .schedule-editor .timeline-lane {
   padding: 18px 16px;
-}
-
-.schedule-editor .timeline-program-band {
-  top: 16px;
-  height: 44px;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
-  padding: 4px 12px;
-  background: #eef2f6;
-  border-color: #cbd3dc;
-}
-
-.schedule-editor .timeline-program-title {
-  color: var(--ink);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.schedule-editor .timeline-program-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.schedule-editor .timeline-program-class,
-.schedule-editor .timeline-program-window {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  line-height: 1.2;
-  color: var(--muted);
-  white-space: nowrap;
 }
 
 .schedule-editor-empty {
@@ -3259,11 +3337,6 @@ button {
 
   .timeline-summary {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .timeline-ruler,
-  .timeline-row {
-    grid-template-columns: 138px minmax(620px, 1fr);
   }
 
   .page-grid.two-one,

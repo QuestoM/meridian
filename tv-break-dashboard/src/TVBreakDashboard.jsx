@@ -71,6 +71,15 @@ import AdvertisersManager from './AdvertisersManager';
 import PricingManager from './PricingManager';
 import OverrideConsole from './OverrideConsole';
 import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
+import ScheduleInspector from './ScheduleInspector';
+import {
+  ScheduleTrackSurface,
+  ProgrammeBand,
+  ZoomControl,
+  useScheduleZoom,
+  useSegmentAnchors,
+} from './schedule-track-view';
+import { timeWindow, spanStyle } from './schedule-track';
 import FrontierScopeChart from './FrontierScopeChart';
 import YieldView from './YieldView';
 import ScenarioCompare from './ScenarioCompare';
@@ -2820,6 +2829,9 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
   const [selectedProgramKey, setSelectedProgramKey] = useState(null);
+  // Zoom is shared across the timeline and editor so switching modes keeps one
+  // scale (the video-editor style time scale, held in state per page visit).
+  const zoom = useScheduleZoom();
   function handleSelectProgram(program) {
     setSelectedProgramKey(program.key);
   }
@@ -2923,6 +2935,9 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
             timeline={schedule.break_operations}
             rows={schedule.rows || []}
             locale={locale}
+            notify={notify}
+            zoom={zoom}
+            onGlobalRefresh={onGlobalRefresh}
             selectedProgramKey={selectedProgramKey}
             onSelectProgram={handleSelectProgram}
           />
@@ -2934,6 +2949,7 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
             onRecompute={onRecompute}
             recomputeState={recomputeState}
             onGlobalRefresh={onGlobalRefresh}
+            zoom={zoom}
           />
         ) : (
           <DaypartView
@@ -3621,62 +3637,64 @@ function normalizedTimeline(timeline, rows) {
   return { programs, breaks, summary };
 }
 
-function TimelineView({ timeline, rows, locale, selectedProgramKey, onSelectProgram }) {
+function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRefresh, selectedProgramKey, onSelectProgram }) {
   const { programs, breaks, summary } = normalizedTimeline(timeline, rows);
   const lanes = Array.from(new Set([...programs.map((item) => item.lane), ...breaks.map((item) => item.lane)].filter(Boolean)));
-  const allTimes = [
+  const allMinutes = [
     ...programs.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
     ...breaks.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
   ].filter((value) => Number.isFinite(value));
-  const startHour = Math.max(0, Math.floor((Math.min(...allTimes, 20 * 60) - 30) / 60));
-  const endHour = Math.min(24, Math.max(startHour + 4, Math.ceil((Math.max(...allTimes, 23 * 60) + 30) / 60)));
-  const totalMinutes = Math.max(60, (endHour - startHour) * 60);
-  const hours = Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index);
-  const minWidth = 164 + Math.max(680, totalMinutes * 3.8);
-  const positionStyle = (startTime, endTime) => {
-    const start = timeToMinutes(startTime);
-    const end = Math.max(start + 5, timeToMinutes(endTime));
-    const left = ((start - startHour * 60) / totalMinutes) * 100;
-    const width = ((end - start) / totalMinutes) * 100;
-    return {
-      left: `${Math.max(0, Math.min(99, left))}%`,
-      width: `${Math.max(1.2, Math.min(100 - Math.max(0, left), width))}%`,
-    };
+  // Shared time axis and zoom, so the timeline and the editor line up on the
+  // same hour window and pixel mapping at whatever scale is set.
+  const axis = timeWindow(allMinutes.length ? allMinutes : [20 * 60, 23 * 60]);
+  const localZoom = useScheduleZoom();
+  const { pxPerMin, setZoom, zoomBy } = zoom || localZoom;
+  const positionStyle = (startTime, endTime) => spanStyle(axis, pxPerMin, timeToMinutes(startTime), timeToMinutes(endTime));
+
+  // Owned-channel segment anchors, resolved through the shared hook so a click
+  // on a programme band opens the same inspector the editor uses. A programme
+  // that is not on the owned channel has no editable segment; we say so plainly.
+  const { resolve } = useSegmentAnchors();
+  const [inspect, setInspect] = useState(null);
+  const openInspector = (program) => {
+    if (!program) return;
+    const hit = resolve(program.channel, program.date, program.start_time);
+    if (hit) {
+      setInspect(hit);
+    } else if (notify) {
+      notify(
+        'This programme is not on your owned channel, so it has no editable segment.',
+        'התוכנית אינה בערוץ שבבעלותכם, ולכן אין לה מקטע לעריכה.',
+      );
+    }
   };
 
   return (
     <div className="timeline-view">
-      <div className="timeline-summary" dir={locale === 'he' ? 'rtl' : 'ltr'}>
-        <div>
-          <strong>{formatNumber(summary.programs, locale)}</strong>
-          <span>{pageText(locale, 'programs on timeline', 'תוכניות בציר')}</span>
-        </div>
-        <div>
-          <strong>{formatNumber(summary.breaks, locale)}</strong>
-          <span>{pageText(locale, 'planned breaks', 'ברייקים מתוכננים')}</span>
-        </div>
-        <div>
-          <strong><Numeric>{formatMinutes(summary.ad_seconds, locale)}</Numeric></strong>
-          <span>{pageText(locale, 'commercial time', 'זמן פרסום')}</span>
-        </div>
-        <div>
-          <strong><Numeric>{formatCurrency(summary.revenue, locale)}</Numeric></strong>
-          <span>{pageText(locale, 'modelled revenue', 'הכנסה מחושבת')}</span>
-        </div>
-      </div>
-
-      <div className="timeline-scroll chart-ltr" dir="ltr">
-        <div className="timeline-ruler" style={{ minWidth }}>
-          <span />
-          <div className="timeline-hours">
-            {hours.map((hour) => (
-              <span key={hour} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }}>
-                {String(hour % 24).padStart(2, '0')}:00
-              </span>
-            ))}
+      <div className="timeline-topbar no-print">
+        <div className="timeline-summary" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+          <div>
+            <strong>{formatNumber(summary.programs, locale)}</strong>
+            <span>{pageText(locale, 'programs on timeline', 'תוכניות בציר')}</span>
+          </div>
+          <div>
+            <strong>{formatNumber(summary.breaks, locale)}</strong>
+            <span>{pageText(locale, 'planned breaks', 'ברייקים מתוכננים')}</span>
+          </div>
+          <div>
+            <strong><Numeric>{formatMinutes(summary.ad_seconds, locale)}</Numeric></strong>
+            <span>{pageText(locale, 'commercial time', 'זמן פרסום')}</span>
+          </div>
+          <div>
+            <strong><Numeric>{formatCurrency(summary.revenue, locale)}</Numeric></strong>
+            <span>{pageText(locale, 'modelled revenue', 'הכנסה מחושבת')}</span>
           </div>
         </div>
-        {lanes.map((lane) => {
+        <ZoomControl pxPerMin={pxPerMin} onZoom={setZoom} onStep={zoomBy} locale={locale} />
+      </div>
+
+      <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale}>
+        {({ width, minWidth, ticks }) => lanes.map((lane) => {
           const lanePrograms = programs.filter((item) => item.lane === lane);
           const laneBreaks = breaks.filter((item) => item.lane === lane);
           const laneRevenue = laneBreaks.reduce((sum, item) => sum + Number(item.revenue_calculated || 0), 0);
@@ -3686,19 +3704,20 @@ function TimelineView({ timeline, rows, locale, selectedProgramKey, onSelectProg
                 <strong>{lane}</strong>
                 <span>{laneBreaks.length} {pageText(locale, 'breaks', 'ברייקים')} / <Numeric>{formatCurrency(laneRevenue, locale)}</Numeric></span>
               </div>
-              <div className="timeline-track">
-                {hours.map((hour) => (
-                  <i key={`${lane}-${hour}`} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }} />
+              <div className="timeline-track" style={{ width }}>
+                {ticks.filter((tick) => tick.major).map((tick) => (
+                  <i key={`${lane}-${tick.minute}`} style={{ left: `${tick.left}px` }} />
                 ))}
                 {lanePrograms.map((program) => (
-                  <div
-                    className="timeline-program-band"
+                  <ProgrammeBand
                     key={program.key || `${program.title}-${program.start_time}`}
+                    title={program.title}
+                    classLabel={programTypeLabel(program.program_type, locale)}
+                    windowText={`${program.start_time} - ${program.end_time}`}
                     style={positionStyle(program.start_time, program.end_time)}
-                    title={`${program.title} / ${program.start_time}-${program.end_time}`}
-                  >
-                    <span>{program.title}</span>
-                  </div>
+                    clickable
+                    onOpen={() => openInspector(program)}
+                  />
                 ))}
                 {laneBreaks.map((breakItem) => {
                   const selected = selectedProgramKey === breakItem.program_key;
@@ -3737,7 +3756,19 @@ function TimelineView({ timeline, rows, locale, selectedProgramKey, onSelectProg
             </div>
           );
         })}
-      </div>
+      </ScheduleTrackSurface>
+
+      {inspect && (
+        <ScheduleInspector
+          segmentId={inspect.segmentId}
+          channel={inspect.channel}
+          day={inspect.day}
+          locale={locale}
+          notify={notify}
+          onClose={() => setInspect(null)}
+          onGlobalRefresh={onGlobalRefresh}
+        />
+      )}
     </div>
   );
 }

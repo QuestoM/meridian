@@ -1,10 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, MenuItem, Select } from '@mui/material';
-import { Send } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
 import ConstraintBuilder from './ConstraintBuilder';
 import ScheduleEditorRow from './ScheduleEditorRow';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
+import ScheduleEditorToolbar from './ScheduleEditorToolbar';
 import ScheduleInspector from './ScheduleInspector';
+import {
+  ScheduleTrackSurface,
+  ProgrammeBand,
+  useScheduleZoom,
+  useSegmentAnchors,
+} from './schedule-track-view';
+import {
+  timeWindow,
+  spanStyle,
+  pixelToMinute,
+} from './schedule-track';
 import {
   secondsToClock,
   humanOffset,
@@ -44,7 +54,7 @@ function snapSeconds(value, grid, min, max) {
 // break becomes a draggable / resizable handle. Drag is constrained to the
 // horizontal axis, snapped to a configurable grid, and the new offset from the
 // programme start is computed by inverting the same percent math TimelineView uses.
-function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState, onGlobalRefresh }) {
+function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState, onGlobalRefresh, zoom }) {
   const breaks = useMemo(() => normalizeRows(schedule?.break_operations?.breaks), [schedule]);
   const programs = useMemo(() => normalizeRows(schedule?.break_operations?.programs), [schedule]);
   const he = locale === 'he';
@@ -55,35 +65,20 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
   const [savingPin, setSavingPin] = useState(null);
   const trackRefs = useRef({});
 
-  // Owned-channel segments (segment_id + anchor), fetched once so a click on a
-  // programme band can resolve to its addressable segment and open the inspector.
-  // Keyed by channel|date|start_clock, the same trio the segment anchor carries.
-  const [segMap, setSegMap] = useState(() => new Map());
-  const [inspect, setInspect] = useState(null); // {segmentId, channel, day} | null
+  // Shared zoom (passed from the page so the timeline and editor keep one
+  // scale). A stand-alone fallback keeps the editor usable in isolation.
+  const localZoom = useScheduleZoom();
+  const { pxPerMin, setZoom, zoomBy } = zoom || localZoom;
 
-  useEffect(() => {
-    let active = true;
-    fetch(`${API_BASE}/api/schedule/segments`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (!active || !payload) return;
-        const map = new Map();
-        (payload.segments || []).forEach((seg) => {
-          const a = seg.anchor || {};
-          const key = `${seg.channel || ''}|${a.date || seg.day || ''}|${a.start_clock || ''}`;
-          map.set(key, { segmentId: seg.segment_id, channel: seg.channel, day: seg.day });
-        });
-        setSegMap(map);
-      })
-      .catch(() => {});
-    return () => { active = false; };
-  }, []);
+  // Owned-channel segment anchors, resolved through the shared hook so a click
+  // on a programme band opens the inspector for its addressable segment.
+  const { resolve } = useSegmentAnchors();
+  const [inspect, setInspect] = useState(null); // {segmentId, channel, day} | null
 
   const openInspector = (program) => {
     if (!program) return;
-    const key = `${program.channel || ''}|${program.date || ''}|${program.start_time || ''}`;
-    const hit = segMap.get(key);
-    if (hit && hit.segmentId) {
+    const hit = resolve(program.channel, program.date, program.start_time);
+    if (hit) {
       setInspect(hit);
     } else {
       notify(
@@ -122,7 +117,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
     return Array.from(grouped.values());
   }, [breaks, programs, locale]);
 
-  const allTimes = useMemo(() => {
+  const allMinutes = useMemo(() => {
     const values = [];
     lanes.forEach((lane) => {
       lane.items.forEach((item) => {
@@ -133,33 +128,23 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
     return values.filter((value) => Number.isFinite(value));
   }, [lanes]);
 
-  const startHour = allTimes.length ? Math.max(0, Math.floor((Math.min(...allTimes) - 30) / 60)) : 18;
-  const endHour = allTimes.length ? Math.min(28, Math.max(startHour + 4, Math.ceil((Math.max(...allTimes) + 30) / 60))) : 24;
-  const totalMinutes = Math.max(60, (endHour - startHour) * 60);
-  const hours = Array.from({ length: endHour - startHour + 1 }, (_, index) => startHour + index);
-  const minWidth = 200 + Math.max(680, totalMinutes * 3.8);
+  // Shared time axis, so the editor and the read-only timeline resolve the same
+  // hour window and the same pixel mapping at any zoom.
+  const axis = useMemo(() => timeWindow(allMinutes), [allMinutes]);
 
-  // positionStyle: same mapping as TimelineView, but in seconds.
+  // positionStyle: the shared pixel mapping, bridged from seconds to minutes.
   function positionStyle(startSec, endSec) {
-    const startMin = startSec / 60;
-    const endMin = Math.max(startMin + 0.25, endSec / 60);
-    const left = ((startMin - startHour * 60) / totalMinutes) * 100;
-    const width = ((endMin - startMin) / totalMinutes) * 100;
-    return {
-      left: `${Math.max(0, Math.min(99, left))}%`,
-      width: `${Math.max(0.8, Math.min(100 - Math.max(0, left), width))}%`,
-    };
+    return spanStyle(axis, pxPerMin, startSec / 60, endSec / 60);
   }
 
-  // Invert positionStyle: a pixel x within a track maps back to an absolute
-  // second-of-day, which we snap and clamp to the programme window.
+  // Invert the mapping: a client x within a track maps back to an absolute
+  // second-of-day, which we snap and clamp to the programme window. The track's
+  // own scroll offset is folded in so the drop lands where the pointer is.
   function pixelToStartSec(laneKey, clientX, durationSec, item) {
     const track = trackRefs.current[laneKey];
     if (!track) return timeToSeconds(item.start_time);
     const rect = track.getBoundingClientRect();
-    const ratio = rect.width ? (clientX - rect.left) / rect.width : 0;
-    const absoluteMin = startHour * 60 + ratio * totalMinutes;
-    const absoluteSec = absoluteMin * 60;
+    const absoluteSec = pixelToMinute(axis, pxPerMin, clientX - rect.left) * 60;
     const minStart = item.program_start_sec;
     const maxStart = Math.max(minStart, item.program_end_sec - durationSec);
     return snapSeconds(absoluteSec, snapGrid, minStart, maxStart);
@@ -222,8 +207,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       const track = trackRefs.current[laneKey];
       if (!track) return;
       const rect = track.getBoundingClientRect();
-      const ratio = rect.width ? (moveEvent.clientX - rect.left) / rect.width : 0;
-      const absoluteSec = (startHour * 60 + ratio * totalMinutes) * 60;
+      const absoluteSec = pixelToMinute(axis, pxPerMin, moveEvent.clientX - rect.left) * 60;
       const maxEnd = item.program_end_sec;
       const rawDuration = Math.max(30, absoluteSec - startSec);
       const durationSec = snapSeconds(rawDuration, 30, 30, Math.max(30, maxEnd - startSec));
@@ -340,66 +324,21 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
 
   return (
     <div className="schedule-editor">
-      <div className="schedule-editor-toolbar" dir={he ? 'rtl' : 'ltr'}>
-        <div className="schedule-editor-snap" role="group" aria-label={editorPageText(locale, 'Snap grid', 'רשת הצמדה')}>
-          <span>{editorPageText(locale, 'Snap', 'הצמדה')}</span>
-          <Button
-            type="button"
-            variant="outlined"
-            className={snapGrid === 30 ? 'segmented active' : 'segmented'}
-            aria-pressed={snapGrid === 30}
-            onClick={() => setSnapGrid(30)}
-          >
-            30s
-          </Button>
-          <Button
-            type="button"
-            variant="outlined"
-            className={snapGrid === 60 ? 'segmented active' : 'segmented'}
-            aria-pressed={snapGrid === 60}
-            onClick={() => setSnapGrid(60)}
-          >
-            60s
-          </Button>
-        </div>
-        <div className="schedule-editor-scope">
-          <span>{editorPageText(locale, 'Pin scope', 'היקף הנעיצה')}</span>
-          <Select
-            size="small"
-            value={scopeChoice}
-            onChange={(event) => setScopeChoice(event.target.value)}
-            aria-label={editorPageText(locale, 'Pin scope', 'היקף הנעיצה')}
-          >
-            <MenuItem value="date">{editorPageText(locale, 'This date', 'תאריך זה')}</MenuItem>
-            <MenuItem value="programme">{editorPageText(locale, 'Every airing of this programme', 'כל שידור של התוכנית')}</MenuItem>
-          </Select>
-        </div>
-        <Button
-          type="button"
-          variant="outlined"
-          className="run-button"
-          disabled={recomputeState === 'running'}
-          onClick={() => onRecompute && onRecompute()}
-        >
-          <Send size={14} />
-          {recomputeState === 'running'
-            ? editorPageText(locale, 'Recomputing...', 'מחשב מחדש...')
-            : editorPageText(locale, 'Recompute weekly schedule', 'חשב מחדש את הלוח השבועי')}
-        </Button>
-      </div>
+      <ScheduleEditorToolbar
+        locale={locale}
+        snapGrid={snapGrid}
+        onSnapGrid={setSnapGrid}
+        scopeChoice={scopeChoice}
+        onScopeChoice={setScopeChoice}
+        recomputeState={recomputeState}
+        onRecompute={onRecompute}
+        pxPerMin={pxPerMin}
+        onZoom={setZoom}
+        onZoomStep={zoomBy}
+      />
 
-      <div className="timeline-scroll chart-ltr" dir="ltr">
-        <div className="timeline-ruler" style={{ minWidth }}>
-          <span />
-          <div className="timeline-hours">
-            {hours.map((hour) => (
-              <span key={hour} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }}>
-                {String(hour % 24).padStart(2, '0')}:00
-              </span>
-            ))}
-          </div>
-        </div>
-        {lanes.map((lane) => (
+      <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale}>
+        {({ width, minWidth, ticks }) => lanes.map((lane) => (
           <div className="timeline-row" key={lane.lane} style={{ minWidth }}>
             <div className="timeline-lane" dir={he ? 'rtl' : 'ltr'}>
               <strong>{lane.lane}</strong>
@@ -407,38 +346,23 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
             </div>
             <div
               className="timeline-track"
+              style={{ width }}
               ref={(node) => {
                 trackRefs.current[lane.lane] = node;
               }}
             >
-              {hours.map((hour) => (
-                <i key={`${lane.lane}-${hour}`} style={{ left: `${((hour - startHour) / Math.max(1, endHour - startHour)) * 100}%` }} />
+              {ticks.filter((tick) => tick.major).map((tick) => (
+                <i key={`${lane.lane}-${tick.minute}`} style={{ left: `${tick.left}px` }} />
               ))}
               {lane.program && (
-                <div
-                  className="timeline-program-band timeline-program-clickable"
+                <ProgrammeBand
+                  title={lane.program.title}
+                  classLabel={programClassLabel(lane.program.program_type, locale)}
+                  windowText={windowRange(lane.program.start_time, lane.program.end_time)}
                   style={positionStyle(timeToSeconds(lane.program.start_time), timeToSeconds(lane.program.end_time))}
-                  title={`${lane.program.title} / ${lane.program.start_time}-${lane.program.end_time}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openInspector(lane.program)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      openInspector(lane.program);
-                    }
-                  }}
-                >
-                  <span className="timeline-program-title">{lane.program.title}</span>
-                  <span className="timeline-program-meta">
-                    {programClassLabel(lane.program.program_type, locale) && (
-                      <span className="timeline-program-class">{programClassLabel(lane.program.program_type, locale)}</span>
-                    )}
-                    <span className="timeline-program-window" dir="ltr">
-                      {windowRange(lane.program.start_time, lane.program.end_time)}
-                    </span>
-                  </span>
-                </div>
+                  clickable
+                  onOpen={() => openInspector(lane.program)}
+                />
               )}
               {lane.items.map((item) => {
                 const { startSec, durationSec } = currentState(item);
@@ -464,7 +388,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
             </div>
           </div>
         ))}
-      </div>
+      </ScheduleTrackSurface>
 
       <div className="schedule-editor-readout" dir={he ? 'rtl' : 'ltr'}>
         {Object.keys(edits).length === 0 ? (
