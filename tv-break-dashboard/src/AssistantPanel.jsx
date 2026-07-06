@@ -5,11 +5,13 @@ import { pageText } from './surface-helpers';
 import { postJson, requestJson, streamAsk } from './assistant-stream';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantHistory from './AssistantHistory';
+import AssistantVersions from './AssistantVersions';
+import AssistantUpload from './AssistantUpload';
 import AssistantThread, { AssistantExchange, StreamProgress } from './AssistantThread';
 import './assistant-console.css';
 
 // The assistant console: a chat column grounded in the saved data plus a side
-// rail for pending proposals, the audit history and restore points. Answers
+// rail for pending proposals, the audit history and the versions timeline. Answers
 // come only from the server; asks stream live (step names and answer text as
 // they are produced) and fall back quietly to the plain ask endpoint when the
 // stream is unavailable. Proposed actions apply only after an explicit
@@ -50,6 +52,7 @@ function normalizeBatch(raw) {
     status: item && item.status ? String(item.status) : 'pending',
     error: item && item.error ? String(item.error) : '',
     effect: item && item.effect && typeof item.effect === 'object' ? item.effect : null,
+    diff: item && Array.isArray(item.diff) ? item.diff : null,
   }));
   return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
 }
@@ -67,10 +70,9 @@ export default function AssistantPanel({ locale, notify }) {
   const [proposalsState, setProposalsState] = useState('loading');
   const [proposalsError, setProposalsError] = useState('');
   const [audit, setAudit] = useState({ state: 'loading', entries: [], error: '' });
-  const [restore, setRestore] = useState({ state: 'loading', points: [], error: '' });
   const [applyBusyId, setApplyBusyId] = useState(null);
   const [applyResults, setApplyResults] = useState({});
-  const [restoringId, setRestoringId] = useState(null);
+  const [railTick, setRailTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [live, setLive] = useState(null);
   const idRef = useRef(0);
@@ -89,7 +91,8 @@ export default function AssistantPanel({ locale, notify }) {
         } else {
           const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
           const effectByKey = new Map(existing.items.map((item) => [item.key, item.effect]));
-          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null })) };
+          const diffByKey = new Map(existing.items.map((item) => [item.key, item.diff]));
+          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null, diff: item.diff || diffByKey.get(item.key) || null })) };
         }
       }
       return next;
@@ -103,10 +106,9 @@ export default function AssistantPanel({ locale, notify }) {
 
   const refreshRail = useCallback(async () => {
     setRefreshing(true);
-    const [proposalsResult, auditResult, restoreResult] = await Promise.allSettled([
+    const [proposalsResult, auditResult] = await Promise.allSettled([
       requestJson('/api/assistant/proposals'),
       requestJson('/api/assistant/audit?limit=50'),
-      requestJson('/api/assistant/restore'),
     ]);
     if (proposalsResult.status === 'fulfilled') {
       mergeBatches(asArray(proposalsResult.value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
@@ -121,11 +123,7 @@ export default function AssistantPanel({ locale, notify }) {
     } else {
       setAudit((prev) => ({ ...prev, state: 'error', error: auditResult.reason && auditResult.reason.message ? auditResult.reason.message : 'unknown' }));
     }
-    if (restoreResult.status === 'fulfilled') {
-      setRestore({ state: 'ready', points: asArray(restoreResult.value, 'restore_points', 'points', 'items'), error: '' });
-    } else {
-      setRestore((prev) => ({ ...prev, state: 'error', error: restoreResult.reason && restoreResult.reason.message ? restoreResult.reason.message : 'unknown' }));
-    }
+    setRailTick((tick) => tick + 1);
     setRefreshing(false);
   }, [mergeBatches]);
 
@@ -254,23 +252,6 @@ export default function AssistantPanel({ locale, notify }) {
     }
   }, [applyBusyId, notify, refreshRail]);
 
-  const restorePoint = useCallback(async (restoreId) => {
-    if (restoringId) return;
-    setRestoringId(restoreId);
-    try {
-      const body = await postJson(`/api/assistant/restore/${encodeURIComponent(restoreId)}`, {});
-      const restored = asArray(body, 'restored');
-      if (restored.length === 1) notify('Restored one file. A recompute may be needed.', 'שוחזר קובץ אחד. ייתכן שיידרש חישוב מחדש.');
-      else if (restored.length) notify(`Restored ${restored.length} files. A recompute may be needed.`, `שוחזרו ${restored.length} קבצים. ייתכן שיידרש חישוב מחדש.`);
-      else notify('The restore completed. A recompute may be needed.', 'השחזור הושלם. ייתכן שיידרש חישוב מחדש.');
-      refreshRail();
-    } catch (error) {
-      notify(`The restore failed (${error.message}).`, `השחזור נכשל (${error.message}).`);
-    } finally {
-      setRestoringId(null);
-    }
-  }, [restoringId, notify, refreshRail]);
-
   function onComposerKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -299,7 +280,7 @@ export default function AssistantPanel({ locale, notify }) {
   const TABS = [
     ['proposals', pageText(locale, 'Pending actions', 'פעולות ממתינות')],
     ['history', pageText(locale, 'History', 'היסטוריה')],
-    ['restore', pageText(locale, 'Restore points', 'נקודות שחזור')],
+    ['restore', pageText(locale, 'Versions and restore', 'גרסאות ושחזור')],
   ];
 
   function renderProposalCard(batch) {
@@ -377,6 +358,13 @@ export default function AssistantPanel({ locale, notify }) {
             </div>
           ) : null}
 
+          <AssistantUpload
+            locale={locale}
+            notify={notify}
+            disabled={asking || unavailable}
+            onSuggest={(text) => { setQuestion(text); if (composerRef.current) composerRef.current.focus(); }}
+          />
+
           <div className="asst-composer">
             <textarea
               ref={composerRef}
@@ -420,8 +408,10 @@ export default function AssistantPanel({ locale, notify }) {
               ) : (
                 visibleBatches.map((batch) => renderProposalCard(batch))
               )
+            ) : railTab === 'restore' ? (
+              <AssistantVersions locale={locale} notify={notify} reloadKey={railTick} onChanged={refreshRail} />
             ) : (
-              <AssistantHistory tab={railTab} locale={locale} audit={audit} restore={restore} restoringId={restoringId} onRestorePoint={restorePoint} />
+              <AssistantHistory locale={locale} audit={audit} />
             )}
           </div>
         </aside>

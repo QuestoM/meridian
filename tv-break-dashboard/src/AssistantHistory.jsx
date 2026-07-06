@@ -1,12 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Button } from '@mui/material';
-import { RotateCcw } from 'lucide-react';
+import React, { useMemo } from 'react';
 import { pageText } from './surface-helpers';
 
-// The assistant rail's history and restore surfaces. The history tab shows the
-// server audit log grouped by day; the restore tab lists restore points with
-// an inline confirm before restoring. Both render honest loading, error and
-// empty states: nothing here is ever fabricated on the client.
+// The assistant rail's history surface: the server audit log grouped by day.
+// Questions, approvals, applies and restores are recorded here. It renders
+// honest loading, error and empty states and never fabricates a row on the
+// client. The versions timeline and restore live in their own surface.
 
 const EVENT_LABELS = {
   ask: ['Question asked', 'שאלה נשאלה'],
@@ -23,12 +21,6 @@ function timeLabel(ts, locale) {
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-function dateTimeLabel(ts, locale) {
-  const date = new Date(ts);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function groupByDay(entries, locale) {
@@ -58,12 +50,6 @@ function resultsSummary(results, locale) {
   if (applied) parts.push(applied === 1 ? pageText(locale, 'one applied', 'אחת הוחלה') : pageText(locale, `${applied} applied`, `${applied} הוחלו`));
   if (failed) parts.push(failed === 1 ? pageText(locale, 'one failed', 'אחת נכשלה') : pageText(locale, `${failed} failed`, `${failed} נכשלו`));
   return parts.join(', ');
-}
-
-function filesCount(files) {
-  if (Array.isArray(files)) return files.length;
-  const number = Number(files);
-  return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
 function AuditLog({ audit, locale }) {
@@ -105,60 +91,6 @@ function AuditLog({ audit, locale }) {
   );
 }
 
-function RestoreList({ restore, locale, restoringId, onRestorePoint }) {
-  const [confirmId, setConfirmId] = useState(null);
-  const points = Array.isArray(restore.points) ? restore.points : [];
-  if (restore.state === 'loading') {
-    return <div className="asst-loading">{pageText(locale, 'Loading restore points', 'טוען נקודות שחזור')}</div>;
-  }
-  if (restore.state === 'error') {
-    return <div className="asst-error-note">{pageText(locale, `Restore points could not be loaded (${restore.error}).`, `לא ניתן לטעון את נקודות השחזור (${restore.error}).`)}</div>;
-  }
-  if (points.length === 0) {
-    return <div className="asst-empty">{pageText(locale, 'No restore points yet. One is created automatically before every apply.', 'אין עדיין נקודות שחזור. נקודת שחזור נוצרת אוטומטית לפני כל החלת פעולות.')}</div>;
-  }
-  return (
-    <div className="asst-restore-list">
-      {points.map((point, index) => {
-        const id = point && point.restore_id ? String(point.restore_id) : '';
-        const count = filesCount(point && point.files);
-        const busy = restoringId === id;
-        return (
-          <div className="asst-restore-row" key={id || `point-${index}`}>
-            <div className="asst-restore-main">
-              <time dir="ltr">{dateTimeLabel(point && point.created_at, locale)}</time>
-              <span className="asst-restore-meta">
-                {count !== null ? (count === 1 ? pageText(locale, 'One file', 'קובץ אחד') : pageText(locale, `${count} files`, `${count} קבצים`)) : pageText(locale, 'File count unknown', 'מספר הקבצים אינו ידוע')}
-                {point && point.batch_id ? <code dir="ltr">{String(point.batch_id).slice(0, 8)}</code> : null}
-              </span>
-            </div>
-            {confirmId === id ? (
-              <div className="asst-confirm" role="alertdialog">
-                <p>{pageText(locale, 'This restores the files to their previous state; a recompute may be needed afterwards.', 'ישחזר את הקבצים למצבם הקודם; ייתכן שיידרש חישוב מחדש.')}</p>
-                <div className="asst-confirm-actions">
-                  <Button variant="contained" size="small" disabled={busy || !id} onClick={async () => { setConfirmId(null); await onRestorePoint(id); }}>
-                    {pageText(locale, 'Restore now', 'שחזר עכשיו')}
-                  </Button>
-                  <Button variant="outlined" size="small" disabled={busy} onClick={() => setConfirmId(null)}>
-                    {pageText(locale, 'Cancel', 'ביטול')}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button variant="outlined" size="small" startIcon={<RotateCcw size={13} />} disabled={busy || !id} onClick={() => setConfirmId(id)}>
-                {busy ? pageText(locale, 'Restoring', 'משחזר') : pageText(locale, 'Restore', 'שחזר')}
-              </Button>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function AssistantHistory({ tab, locale, audit, restore, restoringId, onRestorePoint }) {
-  if (tab === 'restore') {
-    return <RestoreList restore={restore} locale={locale} restoringId={restoringId} onRestorePoint={onRestorePoint} />;
-  }
+export default function AssistantHistory({ locale, audit }) {
   return <AuditLog audit={audit} locale={locale} />;
 }

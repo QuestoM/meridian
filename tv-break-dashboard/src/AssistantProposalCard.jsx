@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@mui/material';
-import { Layers, Lock, RefreshCcw, RotateCcw, SlidersHorizontal, Tag, TriangleAlert } from 'lucide-react';
+import { Layers, Lock, RefreshCcw, RotateCcw, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
 import { pageText, formatCurrency, formatNumber, finiteNumber } from './surface-helpers';
 
 // One proposal batch from the assistant, rendered for explicit operator
@@ -14,6 +14,7 @@ const KINDS = {
   constraint: { Icon: Lock, en: 'New constraint', he: 'אילוץ חדש' },
   override: { Icon: Layers, en: 'Override', he: 'עקיפה' },
   pricing_change: { Icon: Tag, en: 'Pricing change', he: 'שינוי תמחור' },
+  advertiser_change: { Icon: Users, en: 'Advertiser change', he: 'שינוי מפרסם' },
   recompute: { Icon: RefreshCcw, en: 'Recompute', he: 'חישוב מחדש' },
 };
 
@@ -89,6 +90,49 @@ function PayloadView({ item, locale }) {
           <span className="asst-field-value" dir="ltr">{shortValue(value)}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// The clear before-and-after view of exactly which variables will change versus
+// what was there. Any item may carry item.diff = [{field, before, after}]; it
+// renders as a field | before | after table with ltr values. A null before means
+// a fresh value, so the whole card carries a "new" badge (a creation, for example
+// a brand-new advertiser), and each such before cell shows the empty sentinel
+// rather than a fabricated prior value. For an advertiser change the header names
+// the advertiser so the operator sees whose record is being touched.
+function advertiserName(item) {
+  const payload = item && item.payload && typeof item.payload === 'object' ? item.payload : {};
+  const name = payload.advertiser_name ?? payload.advertiser ?? payload.name;
+  return name ? String(name) : '';
+}
+
+function DiffView({ item, locale }) {
+  const rows = Array.isArray(item.diff) ? item.diff.filter((row) => row && typeof row === 'object') : [];
+  if (!rows.length) return null;
+  const isCreation = rows.every((row) => row.before === null || row.before === undefined);
+  const advName = item.kind === 'advertiser_change' ? advertiserName(item) : '';
+  const header = advName || pageText(locale, 'Changes to apply', 'השינויים שיוחלו');
+  return (
+    <div className="asst-pdiff">
+      <div className="asst-pdiff-head">
+        <span dir="auto">{header}</span>
+        {isCreation ? <span className="asst-pdiff-new">{pageText(locale, 'New', 'חדש')}</span> : null}
+      </div>
+      <div className="asst-pdiff-grid">
+        <div className="asst-pdiff-row head">
+          <span dir="auto">{pageText(locale, 'Field', 'שדה')}</span>
+          <span dir="auto">{pageText(locale, 'Before', 'לפני')}</span>
+          <span dir="auto">{pageText(locale, 'After', 'אחרי')}</span>
+        </div>
+        {rows.map((row, index) => (
+          <div className="asst-pdiff-row" key={index}>
+            <span className="asst-pdiff-field" dir="ltr">{String(row.field ?? '')}</span>
+            <span className="asst-pdiff-before" dir="ltr">{row.before === null || row.before === undefined ? '-' : shortValue(row.before)}</span>
+            <span className="asst-pdiff-after" dir="ltr">{shortValue(row.after)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -219,7 +263,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               {!item.summary && !item.reason && !item.payload ? (
                 <p className="asst-item-reason">{pageText(locale, 'No details were provided for this action.', 'לא סופקו פרטים לפעולה הזו.')}</p>
               ) : null}
-              <PayloadView item={item} locale={locale} />
+              {Array.isArray(item.diff) && item.diff.length ? <DiffView item={item} locale={locale} /> : <PayloadView item={item} locale={locale} />}
               {item.kind === 'settings_change' && item.effect ? <EffectView effect={item.effect} locale={locale} /> : null}
               {item.status === 'failed' && item.error ? (
                 <p className="asst-item-error"><TriangleAlert size={12} /><span dir="auto">{item.error}</span></p>
