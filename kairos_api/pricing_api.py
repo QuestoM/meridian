@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
@@ -195,7 +195,7 @@ def get_pricing() -> dict[str, Any]:
 
 
 @router.put("/api/pricing")
-def put_pricing(update: PricingUpdate) -> dict[str, Any]:
+def put_pricing(update: PricingUpdate, request: Request = None) -> dict[str, Any]:
     """Apply an operator edit to the rate card and persist it.
 
     The edit is deep-merged onto the saved overrides, validated by constructing the
@@ -210,6 +210,9 @@ def put_pricing(update: PricingUpdate) -> dict[str, Any]:
         PricingModel.from_config(merged)  # validate before persisting
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"Invalid pricing edit: {exc}") from exc
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "settings")
     settings.pricing_overrides = merged
     save(settings)
     return _state_payload(settings)

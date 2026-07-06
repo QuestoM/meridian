@@ -207,6 +207,10 @@ from kairos_api.assistant import router as assistant_router  # noqa: E402
 
 app.include_router(assistant_router)
 
+from kairos_api.version_store import router as version_store_router  # noqa: E402
+
+app.include_router(version_store_router)
+
 # Catalog and scenario endpoints live in their own domain routers. The moved
 # builders are imported back under their original names so existing references
 # (tests, the startup warm-up below) keep working against the SAME objects,

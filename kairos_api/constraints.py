@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from kairos.optimize.constraints_store import (
@@ -146,6 +146,13 @@ def _write_frame(frame: pd.DataFrame) -> None:
     frame[list(COLUMNS)].to_csv(CONSTRAINTS_PATH, index=False, encoding="utf-8-sig")
 
 
+def _snapshot_before_write(request: "Request | None") -> None:
+    """Record a version of the constraints store before a manual edit writes it."""
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "constraints")
+
+
 def _record(row: "pd.Series[Any]") -> dict[str, Any]:
     result = {column: str(row.get(column, "")) for column in COLUMNS}
     # Also expose the parsed where predicate (convenience for API consumers).
@@ -190,7 +197,7 @@ def list_constraints() -> dict[str, Any]:
 
 
 @router.post("", status_code=201)
-def create_constraint(payload: ConstraintCreate) -> dict[str, Any]:
+def create_constraint(payload: ConstraintCreate, request: Request = None) -> dict[str, Any]:
     scope_type = _validate_scope(payload.scope_type)
     effect = _validate_effect(payload.effect)
     where = _validate_where(payload.where)
@@ -213,6 +220,7 @@ def create_constraint(payload: ConstraintCreate) -> dict[str, Any]:
         "where_json": _where_json_cell(where),
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _record(frame.iloc[-1])
 
@@ -225,7 +233,8 @@ def _locate(frame: pd.DataFrame, constraint_id: str) -> int:
 
 
 @router.put("/{constraint_id}")
-def update_constraint(constraint_id: str, payload: ConstraintUpdate) -> dict[str, Any]:
+def update_constraint(constraint_id: str, payload: ConstraintUpdate,
+                      request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     index = _locate(frame, constraint_id)
     if payload.scope_type is not None:
@@ -245,15 +254,17 @@ def update_constraint(constraint_id: str, payload: ConstraintUpdate) -> dict[str
     if payload.where is not None:
         where = _validate_where(payload.where)
         frame.at[index, "where_json"] = _where_json_cell(where)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _record(frame.loc[index])
 
 
 @router.delete("/{constraint_id}")
-def delete_constraint(constraint_id: str) -> dict[str, Any]:
+def delete_constraint(constraint_id: str, request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     index = _locate(frame, constraint_id)
     frame = frame.drop(index=index).reset_index(drop=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return {"deleted": constraint_id}
 

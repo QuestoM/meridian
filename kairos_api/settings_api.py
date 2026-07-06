@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from kairos_api.core import (
     MODELS_DIR,
@@ -44,7 +44,10 @@ def get_settings() -> dict[str, Any]:
 
 
 @router.put("/api/settings")
-def update_settings(settings: KairosSettings) -> dict[str, Any]:
+def update_settings(settings: KairosSettings, request: Request = None) -> dict[str, Any]:
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "settings")
     return _model_dump(_save_settings(settings))
 
 

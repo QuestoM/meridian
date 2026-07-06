@@ -73,3 +73,6 @@ data/assistant/
 
 # System-wide activity log runtime state (append-only JSONL, metadata only)
 data/audit/
+
+# Operation-state version history (immutable snapshots of the mutable state files)
+data/versions/

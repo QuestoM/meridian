@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from kairos.optimize.overrides import (
@@ -113,6 +113,13 @@ def _write_frame(frame: pd.DataFrame) -> None:
     frame[list(COLUMNS)].to_csv(OVERRIDES_PATH, index=False, encoding="utf-8-sig")
 
 
+def _snapshot_before_write(request: "Request | None") -> None:
+    """Record a version of the overrides store before a manual edit writes it."""
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "overrides")
+
+
 def _record(row: "pd.Series[Any]") -> dict[str, Any]:
     return {column: str(row.get(column, "")) for column in COLUMNS}
 
@@ -145,7 +152,7 @@ def list_overrides() -> dict[str, Any]:
 
 
 @router.post("", status_code=201)
-def create_override(payload: OverrideCreate) -> dict[str, Any]:
+def create_override(payload: OverrideCreate, request: Request = None) -> dict[str, Any]:
     scope, kind = _validate(payload.scope, payload.kind)
     if not str(payload.target_id or "").strip():
         raise HTTPException(status_code=400, detail="target_id is required")
@@ -167,6 +174,7 @@ def create_override(payload: OverrideCreate) -> dict[str, Any]:
         "anchor_title": str(payload.anchor_title or "").strip(),
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _record(frame.iloc[-1])
 
@@ -179,7 +187,8 @@ def _locate(frame: pd.DataFrame, override_id: str) -> int:
 
 
 @router.put("/{override_id}")
-def update_override(override_id: str, payload: OverrideUpdate) -> dict[str, Any]:
+def update_override(override_id: str, payload: OverrideUpdate,
+                    request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     index = _locate(frame, override_id)
     scope = payload.scope if payload.scope is not None else str(frame.at[index, "scope"])
@@ -196,15 +205,17 @@ def update_override(override_id: str, payload: OverrideUpdate) -> dict[str, Any]
         frame.at[index, "gold"] = str(bool(payload.gold))
     if payload.notes is not None:
         frame.at[index, "notes"] = str(payload.notes)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _record(frame.loc[index])
 
 
 @router.delete("/{override_id}")
-def delete_override(override_id: str) -> dict[str, Any]:
+def delete_override(override_id: str, request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     index = _locate(frame, override_id)
     frame = frame.drop(index=index).reset_index(drop=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return {"deleted": override_id}
 

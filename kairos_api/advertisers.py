@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,6 +132,13 @@ def _write_frame(frame: pd.DataFrame) -> None:
     frame[COLUMNS].to_csv(RULES_PATH, index=False, encoding="utf-8-sig")
 
 
+def _snapshot_before_write(request: "Request | None") -> None:
+    """Record a version of the advertiser rules before a manual edit writes them."""
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "advertisers")
+
+
 @router.get("")
 def list_advertisers() -> dict[str, Any]:
     # Each advertiser carries its baseline fields plus its scoped conditions and
@@ -211,7 +218,8 @@ def advertiser_stats() -> dict[str, Any]:
 
 
 @router.put("/{advertiser_id}")
-def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate) -> dict[str, Any]:
+def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate,
+                      request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     mask = frame["advertiser_id"].astype(str) == advertiser_id
     if not mask.any():
@@ -237,12 +245,13 @@ def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate) -> dict[str
     if payload.notes is not None:
         frame.at[index, "notes"] = payload.notes
 
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _row_to_record(frame.loc[index])
 
 
 @router.post("")
-def create_advertiser(payload: AdvertiserCreate) -> dict[str, Any]:
+def create_advertiser(payload: AdvertiserCreate, request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     if (frame["advertiser_id"].astype(str) == payload.advertiser_id).any():
         raise HTTPException(status_code=409, detail=f"Advertiser '{payload.advertiser_id}' already exists")
@@ -258,16 +267,18 @@ def create_advertiser(payload: AdvertiserCreate) -> dict[str, Any]:
         "notes": payload.notes,
     }
     frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return _row_to_record(frame.iloc[-1])
 
 
 @router.delete("/{advertiser_id}")
-def delete_advertiser(advertiser_id: str) -> dict[str, Any]:
+def delete_advertiser(advertiser_id: str, request: Request = None) -> dict[str, Any]:
     frame = _load_frame()
     mask = frame["advertiser_id"].astype(str) == advertiser_id
     if not mask.any():
         raise HTTPException(status_code=404, detail=f"Advertiser '{advertiser_id}' not found")
     frame = frame[~mask].reset_index(drop=True)
+    _snapshot_before_write(request)
     _write_frame(frame)
     return {"deleted": advertiser_id}
