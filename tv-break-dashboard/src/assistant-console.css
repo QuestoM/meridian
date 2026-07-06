@@ -43,6 +43,14 @@
 .asst-trace code { direction: ltr; unicode-bidi: isolate; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 4px; background: var(--surface); }
 .asst-trace code.fail { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
 
+/* Provenance: per-tool source trail, one quiet tool to source row each */
+.asst-sources { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.asst-sources-head { font-size: var(--text-2xs); font-weight: var(--weight-semibold); color: var(--subtle); letter-spacing: 0.02em; }
+.asst-source-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; font-size: var(--text-2xs); }
+.asst-source-row code { direction: ltr; unicode-bidi: isolate; flex: none; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 4px; background: var(--surface); color: var(--muted); }
+.asst-source-sep { flex: none; color: var(--subtle); }
+.asst-source-text { unicode-bidi: isolate; color: var(--muted); overflow-wrap: anywhere; }
+
 /* Thinking indicator */
 .asst-thinking { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--text-sm); }
 .asst-thinking-dots { display: inline-flex; gap: 3px; }
@@ -100,6 +108,18 @@
 .asst-field-name { unicode-bidi: isolate; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--text-2xs); }
 .asst-field-value { unicode-bidi: isolate; background: #eef2f6; border-radius: var(--radius-xs); padding: 1px 6px; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .asst-field-more { font-size: var(--text-2xs); color: var(--subtle); }
+
+/* Pre-approval effect: before to after with a signed delta, the money bottom
+   line the operator reads elsewhere. Numbers stay ltr and tabular. */
+.asst-effect { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-muted); }
+.asst-effect-head { font-size: var(--text-2xs); font-weight: var(--weight-semibold); color: var(--subtle); letter-spacing: 0.02em; }
+.asst-effect-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: var(--text-xs); }
+.asst-effect-row.net { margin-top: 2px; padding-top: 5px; border-top: 1px dashed var(--line); }
+.asst-effect-label { color: var(--muted); }
+.asst-effect-row.net .asst-effect-label { color: var(--ink); font-weight: var(--weight-medium); }
+.asst-effect-flow { unicode-bidi: isolate; margin-inline-start: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
+.asst-effect-delta { unicode-bidi: isolate; min-width: 60px; text-align: end; color: var(--muted); font-variant-numeric: tabular-nums; }
+.asst-effect-note { margin: 0; font-size: var(--text-xs); color: var(--muted); overflow-wrap: anywhere; }
 
 /* Batch action bar, inline confirm, apply results */
 .asst-batch-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: var(--surface-muted); }

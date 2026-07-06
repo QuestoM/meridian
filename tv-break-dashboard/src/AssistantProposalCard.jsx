@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@mui/material';
 import { Layers, Lock, RefreshCcw, RotateCcw, SlidersHorizontal, Tag, TriangleAlert } from 'lucide-react';
-import { pageText } from './surface-helpers';
+import { pageText, formatCurrency, formatNumber, finiteNumber } from './surface-helpers';
 
 // One proposal batch from the assistant, rendered for explicit operator
 // approval. The card never applies anything by itself: selection, an inline
@@ -93,6 +93,67 @@ function PayloadView({ item, locale }) {
   );
 }
 
+// A settings_change item may carry a measured before/after effect on the owned
+// channel, so the operator sees what a change would do before approving it. The
+// three money lines use the same vocabulary as the rest of the product (gross
+// revenue, retention cost, net) plus the breaks change, each with a signed
+// delta. A missing figure is dropped rather than invented; an unavailable
+// effect shows a quiet reason instead.
+const EFFECT_METRICS = [
+  ['gross', 'Gross revenue', 'הכנסות ברוטו'],
+  ['retention_cost', 'Retention cost', 'עלות שימור'],
+  ['net', 'Net', 'נטו'],
+];
+
+function signedFigure(value, locale, money) {
+  const body = money ? formatCurrency(Math.abs(value), locale) : formatNumber(Math.abs(value), locale);
+  return `${value > 0 ? '+' : value < 0 ? '-' : ''}${body}`;
+}
+
+function metricCells(beforeVal, afterVal, deltaVal, locale, money) {
+  const fmt = (value) => (money ? formatCurrency(value, locale) : formatNumber(value, locale));
+  const before = finiteNumber(beforeVal);
+  const after = finiteNumber(afterVal);
+  let delta = finiteNumber(deltaVal);
+  if (delta === null && before !== null && after !== null) delta = after - before;
+  const flow = before !== null && after !== null ? `${fmt(before)} → ${fmt(after)}` : after !== null ? fmt(after) : before !== null ? fmt(before) : '';
+  return { shown: before !== null || after !== null || delta !== null, flow, delta: delta !== null ? signedFigure(delta, locale, money) : '' };
+}
+
+function EffectView({ effect, locale }) {
+  if (!effect || typeof effect !== 'object') return null;
+  const header = pageText(locale, 'What this change would do', 'מה השינוי הזה יעשה');
+  if (effect.status === 'unavailable') {
+    const reason = effect.reason ? String(effect.reason) : pageText(locale, 'A preview is not available for this change.', 'אין תצוגה מקדימה לשינוי הזה.');
+    return <div className="asst-effect"><span className="asst-effect-head">{header}</span><p className="asst-effect-note" dir="auto">{reason}</p></div>;
+  }
+  const before = effect.before && typeof effect.before === 'object' ? effect.before : {};
+  const after = effect.after && typeof effect.after === 'object' ? effect.after : {};
+  const delta = effect.delta && typeof effect.delta === 'object' ? effect.delta : {};
+  const rows = EFFECT_METRICS.map(([key, en, he]) => ({ key, label: pageText(locale, en, he), ...metricCells(before[key], after[key], delta[key], locale, true) })).filter((row) => row.shown);
+  const breaks = metricCells(before.breaks, after.breaks, delta.breaks, locale, false);
+  if (!rows.length && !breaks.shown) return null;
+  return (
+    <div className="asst-effect">
+      <span className="asst-effect-head">{header}</span>
+      {rows.map((row) => (
+        <div className={`asst-effect-row${row.key === 'net' ? ' net' : ''}`} key={row.key}>
+          <span className="asst-effect-label" dir="auto">{row.label}</span>
+          <span className="asst-effect-flow" dir="ltr">{row.flow || '-'}</span>
+          <span className="asst-effect-delta" dir="ltr">{row.delta}</span>
+        </div>
+      ))}
+      {breaks.shown ? (
+        <div className="asst-effect-row" key="breaks">
+          <span className="asst-effect-label" dir="auto">{pageText(locale, 'Breaks', 'הפסקות')}</span>
+          <span className="asst-effect-flow" dir="ltr">{breaks.flow || '-'}</span>
+          <span className="asst-effect-delta" dir="ltr">{breaks.delta}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AssistantProposalCard({ batch, locale, busy, applyResult, onApply, onReject, onShowRestore }) {
   const items = Array.isArray(batch.items) ? batch.items : [];
   const pendingIds = items.filter((item) => item.status === 'pending' && item.id).map((item) => item.id);
@@ -159,6 +220,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
                 <p className="asst-item-reason">{pageText(locale, 'No details were provided for this action.', 'לא סופקו פרטים לפעולה הזו.')}</p>
               ) : null}
               <PayloadView item={item} locale={locale} />
+              {item.kind === 'settings_change' && item.effect ? <EffectView effect={item.effect} locale={locale} /> : null}
               {item.status === 'failed' && item.error ? (
                 <p className="asst-item-error"><TriangleAlert size={12} /><span dir="auto">{item.error}</span></p>
               ) : null}

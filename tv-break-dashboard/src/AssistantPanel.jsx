@@ -20,6 +20,8 @@ const SUGGESTIONS = [
   ['Suggest a way to raise the net without hurting retention', 'הצע דרך להעלות את הנטו בלי לפגוע בשימור'],
   ['Create a constraint that blocks a break in the first 15 minutes of the evening news', 'צור אילוץ שאין הפסקה ב-15 הדקות הראשונות של מהדורת הערב'],
   ['Raise the revenue weight to 65 and recompute', 'העלה את משקל ההכנסות ל-65 והרץ חישוב מחדש'],
+  ['Get me to a higher net without dropping retention below 0.75', 'הבא אותי לנטו גבוה יותר בלי לרדת מתחת ל-0.75 שימור'],
+  ['Suggest settings that raise the weekly net, and show me the effect before I approve', 'הצע הגדרות שמגדילות את הנטו השבועי, ותראה לי את ההשפעה לפני שאאשר'],
 ];
 
 async function requestJson(path, options) {
@@ -57,6 +59,7 @@ function normalizeBatch(raw) {
     reason: item && item.reason ? String(item.reason) : '',
     status: item && item.status ? String(item.status) : 'pending',
     error: item && item.error ? String(item.error) : '',
+    effect: item && item.effect && typeof item.effect === 'object' ? item.effect : null,
   }));
   return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
 }
@@ -100,7 +103,8 @@ export default function AssistantPanel({ locale, notify }) {
           next[batch.batch_id] = batch;
         } else {
           const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
-          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '' })) };
+          const effectByKey = new Map(existing.items.map((item) => [item.key, item.effect]));
+          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null })) };
         }
       }
       return next;
@@ -297,18 +301,7 @@ export default function AssistantPanel({ locale, notify }) {
   ];
 
   function renderProposalCard(batch) {
-    return (
-      <AssistantProposalCard
-        key={batch.batch_id}
-        batch={batch}
-        locale={locale}
-        busy={applyBusyId === batch.batch_id}
-        applyResult={applyResults[batch.batch_id] || null}
-        onApply={(ids) => applyItems(batch.batch_id, ids)}
-        onReject={(ids) => rejectItems(batch.batch_id, ids)}
-        onShowRestore={() => setRailTab('restore')}
-      />
-    );
+    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => setRailTab('restore')} />;
   }
 
   return (
@@ -368,6 +361,13 @@ export default function AssistantPanel({ locale, notify }) {
                       <div className="asst-trace">
                         {entry.toolTrace.map((step, index) => (
                           <code dir="ltr" key={index} className={step && step.ok === false ? 'fail' : ''}>{String((step && step.tool) || '?')}</code>
+                        ))}
+                      </div>
+                    ) : null}
+                    {entry.toolTrace.some((step) => step && step.source) ? (
+                      <div className="asst-sources"><span className="asst-sources-head">{pageText(locale, 'Sources', 'מקורות')}</span>
+                        {entry.toolTrace.filter((step) => step && step.source).map((step, index) => (
+                          <div className="asst-source-row" dir="ltr" key={index}><code>{String(step.tool || '?')}</code><span className="asst-source-sep" aria-hidden="true">→</span><span className="asst-source-text" dir="auto">{String(step.source)}</span></div>
                         ))}
                       </div>
                     ) : null}
