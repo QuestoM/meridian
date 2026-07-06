@@ -5,8 +5,9 @@ The API is a modular monolith: one FastAPI process composed of domain routers
 share this kernel. Everything here moved verbatim from server.py so the names
 and cache objects stay identical; server.py re-exports them for compatibility.
 Keep this module dependency-light and side-effect free: it owns the engine
-availability probe, the operator settings contract, and the file loaders with
-their mtime-keyed caches, nothing else.
+availability probe, the operator settings contract, the file loaders with
+their mtime-keyed caches, and the small shared response helpers (records,
+series, signature, schedule summary), nothing else.
 """
 
 from __future__ import annotations
@@ -307,3 +308,128 @@ def _load_programmes() -> pd.DataFrame:
         except Exception:
             logger.exception("reference xlsx load failed, falling back to legacy CSV")
     return _read_csv(DATA_DIR / "Programmes.csv")
+
+
+@lru_cache(maxsize=4)
+def _load_spots_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Parse the spots xlsx once per (path, mtime, size). The reference parse is
+    tens-of-seconds slow on the real 50k-row file (date combination), and the
+    overview, inventory, and campaigns builders each load it per request, so
+    memoize on the file signature and hand back a copy."""
+    del mtime_ns, size
+    from kairos.data.loaders import load_spots as _ls
+    return _ls(Path(path))
+
+
+def _load_spots() -> pd.DataFrame:
+    """Load spots from the authoritative reference xlsx; fall back to legacy CSV."""
+    xlsx = DATA_DIR / "reference" / "Spots.xlsx"
+    if xlsx.exists() and _ENGINE_AVAILABLE:
+        try:
+            stat = xlsx.stat()
+            return _load_spots_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
+        except Exception:
+            logger.exception("reference xlsx load failed, falling back to legacy CSV")
+    return _read_csv(DATA_DIR / "Spots.csv")
+
+
+def _signature(paths: list[Path]) -> tuple[tuple[str, int, int], ...]:
+    result = []
+    for path in paths:
+        if path.exists():
+            stat = path.stat()
+            result.append((str(path), stat.st_mtime_ns, stat.st_size))
+        else:
+            result.append((str(path), 0, 0))
+    return tuple(result)
+
+
+def _records(frame: pd.DataFrame, limit: int = 200) -> list[dict[str, Any]]:
+    if frame.empty:
+        return []
+    cleaned = frame.head(limit).replace({pd.NA: None}).where(pd.notna(frame.head(limit)), None)
+    return cleaned.to_dict("records")
+
+
+def _series(frame: pd.DataFrame, name: str, default: Any) -> pd.Series:
+    """Return frame[name] if present, else a Series of `default` aligned to frame.
+
+    DataFrame.get(name, default) returns the bare scalar default when the column
+    is missing, which then has no .fillna/.astype and raises AttributeError. This
+    guarantees a Series so the builders degrade to honest zeros on a restructured
+    CSV (for example a Spots export without a revenue_ils column) instead of
+    crashing the endpoint into a 500.
+    """
+    if name in frame.columns:
+        return frame[name]
+    return pd.Series([default] * len(frame), index=frame.index)
+
+
+# Retention shortfall (in percentage points below the configured floor) that the
+# honest schedule risk score treats as the worst case (reads as 100). A 30-point
+# shortfall (for example floor 72%, realised 42%) is already a severe plan, so it
+# anchors the top of the scale; smaller shortfalls scale linearly toward 0.
+_RISK_FULL_SHORTFALL = 30.0
+
+
+def _risk_from_retention(average_retention_percent: float, floor_percent: float) -> float:
+    """Honest schedule risk: the measured average-retention shortfall below the
+    operator's configured floor, on a 0-100 scale.
+
+    The earlier formula added ``total_breaks * 0.8``; over a whole schedule the
+    break count is in the hundreds, so that term saturated the score to 100 for
+    every channel regardless of the real plan. This version is sourced entirely
+    from quantities the optimizer actually produces: the realised average
+    retention (``average_retention_percent``) and the operator-configured
+    ``min_retention_floor``. At or above the floor the risk is 0; a shortfall of
+    ``_RISK_FULL_SHORTFALL`` retention points or more reads as 100. Nothing is
+    fabricated and the score no longer saturates.
+    """
+    shortfall = max(0.0, floor_percent - average_retention_percent)
+    return round(max(0.0, min(100.0, shortfall / _RISK_FULL_SHORTFALL * 100.0)), 1)
+
+
+def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
+    if schedule.empty:
+        # No saved schedule yet (fresh deploy, or post-upload pre-recompute). The
+        # break/second counts are honestly zero, but revenue, retention and risk
+        # are unknown, not measured lows. Report them as null so the dashboard
+        # renders an honest "-" rather than a confident "Low risk / 0% / 0" that
+        # no computation produced. The frontend guards each on null (formatCurrency
+        # and formatPercent return "-", and the risk metric is gated on === null).
+        return {
+            "total_breaks": 0,
+            "total_ad_seconds": 0,
+            "projected_revenue": None,
+            "average_retention": None,
+            "risk_score": None,
+        }
+
+    num_breaks = pd.to_numeric(schedule.get("num_breaks", 1), errors="coerce").fillna(1)
+    break_time = pd.to_numeric(
+        schedule.get("total_break_time", schedule.get("break_length", 0)),
+        errors="coerce",
+    ).fillna(0)
+    revenue = pd.to_numeric(
+        schedule.get("predicted_revenue", schedule.get("revenue_ils", 0)),
+        errors="coerce",
+    ).fillna(0)
+    retention = pd.to_numeric(schedule.get("predicted_retention", 0), errors="coerce")
+    retention = retention[retention > 0]
+    avg_retention = retention.mean() if not retention.empty else 0.0
+    total_breaks = int(num_breaks.sum())
+    avg_retention_pct = round(_percent(avg_retention), 1)
+    # Honest risk score: the measured average-retention shortfall below the
+    # operator's configured floor (see _risk_from_retention). Sourced from the
+    # optimizer plan and operator settings, not the old saturating break-count
+    # formula. Falls back to the guardrail default floor when settings are absent.
+    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
+    risk_score = _risk_from_retention(avg_retention_pct, floor_percent)
+
+    return {
+        "total_breaks": total_breaks,
+        "total_ad_seconds": int(break_time.sum()),
+        "projected_revenue": _money(revenue.sum()),
+        "average_retention": avg_retention_pct,
+        "risk_score": risk_score,
+    }

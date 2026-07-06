@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import math
-import json
 import logging
 import os
 import sys
 import threading
 import time
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
@@ -41,6 +39,8 @@ from kairos_api.core import (  # noqa: F401  (re-exported for domain routers and
     _load_break_schedule,
     _load_programmes,
     _load_settings,
+    _load_spots,
+    _load_spots_cached,
     _model_dump,
     _money,
     _pacing_call_kwargs,
@@ -48,11 +48,16 @@ from kairos_api.core import (  # noqa: F401  (re-exported for domain routers and
     _ratio,
     _read_csv,
     _read_csv_cached,
+    _records,
     _reference_today,
+    _risk_from_retention,
     _safe_number,
     _safe_path,
     _save_settings,
+    _series,
     _settings_to_guardrails,
+    _signature,
+    _summarize_schedule,
     _time_to_seconds,
     build_weekly_schedule,
     guardrails_from_settings,
@@ -60,24 +65,6 @@ from kairos_api.core import (  # noqa: F401  (re-exported for domain routers and
     run_scenario,
     write_weekly_schedule,
 )
-
-# Retention shortfall (in percentage points below the configured floor) that the
-# honest schedule risk score treats as the worst case (reads as 100). A 30-point
-# shortfall (for example floor 72%, realised 42%) is already a severe plan, so it
-# anchors the top of the scale; smaller shortfalls scale linearly toward 0.
-_RISK_FULL_SHORTFALL = 30.0
-
-
-class ScenarioRequest(BaseModel):
-    """Lightweight scenario controls used by the dashboard simulation."""
-
-    revenue_weight: int = Field(default=60, ge=0, le=100)
-    retention_floor: float = Field(default=0.72, ge=0.0, le=1.0)
-    max_breaks_per_hour: int = Field(default=3, ge=1, le=12)
-    # How conservatively to value an uncertain retention cost: 0 uses the point
-    # estimate (today's behavior), 1 uses the worst plausible cost in the interval.
-    risk_lambda: float = Field(default=0.0, ge=0.0, le=1.0)
-
 
 class BreakDecisionRequest(BaseModel):
     """Operator decision captured from the dashboard command surface."""
@@ -157,197 +144,6 @@ def _program_datetime_columns(frame: pd.DataFrame) -> pd.DataFrame:
         result["start_dt"] + pd.to_timedelta(duration.clip(lower=1800), unit="s")
     )
     return result
-
-
-@lru_cache(maxsize=4)
-def _load_spots_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
-    """Parse the spots xlsx once per (path, mtime, size). The reference parse is
-    tens-of-seconds slow on the real 50k-row file (date combination), and the
-    overview, inventory, and campaigns builders each load it per request, so
-    memoize on the file signature and hand back a copy."""
-    del mtime_ns, size
-    from kairos.data.loaders import load_spots as _ls
-    return _ls(Path(path))
-
-
-def _load_spots() -> pd.DataFrame:
-    """Load spots from the authoritative reference xlsx; fall back to legacy CSV."""
-    xlsx = DATA_DIR / "reference" / "Spots.xlsx"
-    if xlsx.exists() and _ENGINE_AVAILABLE:
-        try:
-            stat = xlsx.stat()
-            return _load_spots_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
-        except Exception:
-            logger.exception("reference xlsx load failed, falling back to legacy CSV")
-    return _read_csv(DATA_DIR / "Spots.csv")
-
-
-def _segment_key(channel_name: str) -> tuple[str, str, str] | None:
-    parts = str(channel_name or "").split("_")
-    if len(parts) < 3:
-        return None
-    return "_".join(parts[:-2]), parts[-2], parts[-1]
-
-
-def _weighted_impact_rows(items: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
-    grouped: dict[str, list[dict[str, Any]]] = {}
-    for item in items:
-        segment = str(item.get(key) or "")
-        coefficient = _safe_number(item.get("coefficient"), math.nan)
-        if not segment or not math.isfinite(coefficient):
-            continue
-        grouped.setdefault(segment, []).append(item)
-
-    rows: list[dict[str, Any]] = []
-    for segment, values in grouped.items():
-        total_weight = 0
-        weighted_coefficient = 0.0
-        weighted_raw = 0.0
-        ci_low: list[float] = []
-        ci_high: list[float] = []
-        for item in values:
-            sample_count = max(1, int(_safe_number(item.get("n"), 1)))
-            coefficient = _safe_number(item.get("coefficient"), 0.0)
-            raw_delta = _safe_number(item.get("raw_delta"), coefficient)
-            weighted_coefficient += coefficient * sample_count
-            weighted_raw += raw_delta * sample_count
-            total_weight += sample_count
-            low = _safe_number(item.get("ci_low"), math.nan)
-            high = _safe_number(item.get("ci_high"), math.nan)
-            if math.isfinite(low):
-                ci_low.append(low)
-            if math.isfinite(high):
-                ci_high.append(high)
-        if total_weight <= 0:
-            continue
-        rows.append(
-            {
-                "segment": segment,
-                "average_coefficient": round(weighted_coefficient / total_weight, 6),
-                "average_raw_delta": round(weighted_raw / total_weight, 6),
-                "sample_count": total_weight,
-                "channel_count": len(values),
-                "ci_low": round(min(ci_low), 6) if ci_low else None,
-                "ci_high": round(max(ci_high), 6) if ci_high else None,
-            }
-        )
-    return sorted(rows, key=lambda row: abs(float(row["average_coefficient"])), reverse=True)
-
-
-def _pooling_note(metadata: dict[str, Any]) -> str | None:
-    """Honest disclosure that the per-cell retention effects collapse toward one
-    pooled constant. Empirical Bayes shrinks the programme-type x position x length
-    cells because the between-cell variance sits far below the within-cell variance,
-    so the cells share almost all of their signal. Numbers are read straight from
-    the coefficient artifact metadata, never hand-set."""
-    tau2 = _safe_number(metadata.get("between_cell_variance_tau2"), math.nan)
-    within = _safe_number(metadata.get("pooled_within_variance"), math.nan)
-    if not math.isfinite(tau2) or not math.isfinite(within) or within <= 0:
-        return None
-    cells = int(_safe_number(metadata.get("channels"), 0)) or None
-    method = str(metadata.get("pooling_method") or "empirical_bayes").replace("_", " ")
-    cell_phrase = f"{cells} " if cells else ""
-    return (
-        f"The {cell_phrase}(programme type x position x length) cells pool to approximately "
-        f"one shared constant under {method}: between-cell variance tau^2 = {tau2:.2e} sits "
-        f"far below within-cell variance {within:.3f}, so the per-cell effects collapse toward "
-        f"a single pooled value."
-    )
-
-
-def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {
-            "source": "legacy_csv",
-            "pooling_note": None,
-            "program_type": [],
-            "position": [],
-            "length": [],
-        }
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {
-            "source": "legacy_csv",
-            "pooling_note": None,
-            "program_type": [],
-            "position": [],
-            "length": [],
-        }
-
-    details = payload.get("detail", {})
-    items: list[dict[str, Any]] = []
-    for name, raw in details.items():
-        if not isinstance(raw, dict):
-            continue
-        segment = _segment_key(str(raw.get("channel_name") or name))
-        if not segment:
-            continue
-        program_type, position, length = segment
-        items.append(
-            {
-                **raw,
-                "program_type": program_type,
-                "position": position,
-                "length": length,
-            }
-        )
-
-    metadata = payload.get("metadata", {}) if isinstance(payload.get("metadata"), dict) else {}
-    return {
-        "source": payload.get("method") or "measured_coefficients",
-        "metadata": metadata,
-        "pooling_note": _pooling_note(metadata),
-        "program_type": _weighted_impact_rows(items, "program_type"),
-        "position": _weighted_impact_rows(items, "position"),
-        "length": _weighted_impact_rows(items, "length"),
-    }
-
-
-def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
-    if schedule.empty:
-        # No saved schedule yet (fresh deploy, or post-upload pre-recompute). The
-        # break/second counts are honestly zero, but revenue, retention and risk
-        # are unknown, not measured lows. Report them as null so the dashboard
-        # renders an honest "-" rather than a confident "Low risk / 0% / 0" that
-        # no computation produced. The frontend guards each on null (formatCurrency
-        # and formatPercent return "-", and the risk metric is gated on === null).
-        return {
-            "total_breaks": 0,
-            "total_ad_seconds": 0,
-            "projected_revenue": None,
-            "average_retention": None,
-            "risk_score": None,
-        }
-
-    num_breaks = pd.to_numeric(schedule.get("num_breaks", 1), errors="coerce").fillna(1)
-    break_time = pd.to_numeric(
-        schedule.get("total_break_time", schedule.get("break_length", 0)),
-        errors="coerce",
-    ).fillna(0)
-    revenue = pd.to_numeric(
-        schedule.get("predicted_revenue", schedule.get("revenue_ils", 0)),
-        errors="coerce",
-    ).fillna(0)
-    retention = pd.to_numeric(schedule.get("predicted_retention", 0), errors="coerce")
-    retention = retention[retention > 0]
-    avg_retention = retention.mean() if not retention.empty else 0.0
-    total_breaks = int(num_breaks.sum())
-    avg_retention_pct = round(_percent(avg_retention), 1)
-    # Honest risk score: the measured average-retention shortfall below the
-    # operator's configured floor (see _risk_from_retention). Sourced from the
-    # optimizer plan and operator settings, not the old saturating break-count
-    # formula. Falls back to the guardrail default floor when settings are absent.
-    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
-    risk_score = _risk_from_retention(avg_retention_pct, floor_percent)
-
-    return {
-        "total_breaks": total_breaks,
-        "total_ad_seconds": int(break_time.sum()),
-        "projected_revenue": _money(revenue.sum()),
-        "average_retention": avg_retention_pct,
-        "risk_score": risk_score,
-    }
 
 
 def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> list[dict[str, Any]]:
@@ -608,38 +404,6 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
             "revenue": _money(sum(item["revenue_calculated"] for item in breaks)),
         },
     }
-
-
-def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
-    if request is None:
-        # The default plan is the operator's SAVED decision, not a static default:
-        # it honors the persisted revenue/retention balance, floor, and risk.
-        saved = _load_settings()
-        request = ScenarioRequest(
-            revenue_weight=saved.revenue_weight,
-            retention_floor=saved.min_retention_floor,
-            max_breaks_per_hour=saved.max_breaks_per_hour,
-            risk_lambda=saved.risk_lambda,
-        )
-    if not _ENGINE_AVAILABLE:
-        return {
-            "summary": {
-                **_summarize_schedule(_load_break_schedule()),
-                "is_compliant": False,
-            },
-            "controls": _model_dump(request),
-            "engine": "unavailable",
-        }
-    payload = run_scenario(
-        revenue_weight=request.revenue_weight,
-        retention_floor=request.retention_floor,
-        max_breaks_per_hour=request.max_breaks_per_hour,
-        risk_lambda=request.risk_lambda,
-        **_pacing_call_kwargs(),
-    )
-    summary = payload.setdefault("summary", {})
-    summary["is_compliant"] = bool(summary.get("is_compliant", summary.get("compliant", False)))
-    return payload
 
 
 def _augment_segment_ids(schedule: pd.DataFrame) -> pd.DataFrame:
@@ -1477,215 +1241,6 @@ def _build_compliance(
     }
 
 
-def _records(frame: pd.DataFrame, limit: int = 200) -> list[dict[str, Any]]:
-    if frame.empty:
-        return []
-    cleaned = frame.head(limit).replace({pd.NA: None}).where(pd.notna(frame.head(limit)), None)
-    return cleaned.to_dict("records")
-
-
-def _series(frame: pd.DataFrame, name: str, default: Any) -> pd.Series:
-    """Return frame[name] if present, else a Series of `default` aligned to frame.
-
-    DataFrame.get(name, default) returns the bare scalar default when the column
-    is missing, which then has no .fillna/.astype and raises AttributeError. This
-    guarantees a Series so the builders degrade to honest zeros on a restructured
-    CSV (for example a Spots export without a revenue_ils column) instead of
-    crashing the endpoint into a 500.
-    """
-    if name in frame.columns:
-        return frame[name]
-    return pd.Series([default] * len(frame), index=frame.index)
-
-
-def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
-    if spots.empty:
-        return {"summary": {"spots": 0, "revenue": 0, "seconds": 0}, "by_channel": [], "by_hour": []}
-
-    frame = spots.copy()
-    frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
-    frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
-    frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", 0), errors="coerce").fillna(0).astype(int)
-    frame["target"] = _series(frame, "is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
-    valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
-
-    by_channel = (
-        frame.groupby("Channel", dropna=False)
-        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"), target_spots=("target", "sum"))
-        .reset_index()
-        .sort_values("revenue", ascending=False)
-        .head(12)
-    )
-    by_hour = (
-        valid_hours.groupby("hour_of_day", dropna=False)
-        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"))
-        .reset_index()
-        .sort_values("hour_of_day")
-    )
-
-    return {
-        "summary": {
-            "spots": int(len(frame)),
-            "revenue": _money(frame["revenue_ils"].sum()),
-            "seconds": int(frame["Duration"].sum()),
-        },
-        "by_channel": _records(by_channel),
-        "by_hour": _records(by_hour, 24),
-    }
-
-
-def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
-    if spots.empty:
-        return {"campaigns": []}
-
-    frame = spots.copy()
-    frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
-    frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
-    # The restructured Spots export may omit the identity/grouping columns. Backfill
-    # any that are missing with honest neutral defaults so the rollup degrades to a
-    # single bucket instead of crashing the endpoint (KeyError) into a 500.
-    frame["Campaign"] = _series(frame, "Campaign", "Unknown campaign")
-    frame["advertiser_id"] = _series(frame, "advertiser_id", "")
-    frame["Channel"] = _series(frame, "Channel", "")
-    frame["Date"] = _series(frame, "Date", "")
-    grouped = (
-        frame.groupby(["Campaign", "advertiser_id"], dropna=False)
-        .agg(
-            spots=("Campaign", "count"),
-            seconds=("Duration", "sum"),
-            revenue=("revenue_ils", "sum"),
-            channels=("Channel", "nunique"),
-            last_airing=("Date", "max"),
-        )
-        .reset_index()
-        .sort_values("revenue", ascending=False)
-        .head(50)
-    )
-    return {"campaigns": _records(grouped)}
-
-
-def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
-    if schedule.empty:
-        return {"breaks": []}
-
-    frame = schedule.copy()
-    frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
-    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
-    frame["total_break_time"] = pd.to_numeric(frame.get("total_break_time", 0), errors="coerce").fillna(0)
-    frame["priority"] = frame["predicted_revenue"] * frame["predicted_retention"].clip(lower=0.1)
-    frame = frame.sort_values("priority", ascending=False).head(80)
-    floor_percent = _load_settings().min_retention_floor * 100
-    frame["status"] = frame["predicted_retention"].map(lambda value: "at_risk" if _percent(value) < floor_percent else "ready")
-    return {"breaks": _records(frame)}
-
-
-def _build_forecasts(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
-    if schedule.empty:
-        return {"by_day": [], "scenarios": []}
-
-    frame = schedule.copy()
-    frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
-    frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
-    by_day = (
-        frame.groupby("day", dropna=False)
-        .agg(revenue=("predicted_revenue", "sum"), retention=("predicted_retention", "mean"), breaks=("num_breaks", "sum"))
-        .reset_index()
-    )
-    return {"by_day": _records(by_day), "scenarios": _build_forecast_scenarios(settings)}
-
-
-def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
-    """Three named what-if points, each a REAL optimization at a different revenue
-    weight under the operator's saved guardrails (not a percentage nudge off the
-    current plan). 'Retention guardrail' leans retention-first, 'Revenue priority'
-    leans revenue-first, 'Balanced' uses the saved weight; each value comes from
-    :func:`kairos.service.run_scenario`. Empty (honest) when no plan computes."""
-    saved_weight = settings.revenue_weight
-    named = [
-        ("Retention guardrail", "ריסון לטובת צפייה", 20),
-        ("Balanced", "מאוזן", saved_weight),
-        ("Revenue priority", "עדיפות להכנסה", 90),
-    ]
-    scenarios: list[dict[str, Any]] = []
-    for name, name_he, weight in named:
-        try:
-            payload = run_scenario(
-                revenue_weight=weight,
-                retention_floor=settings.min_retention_floor,
-                max_breaks_per_hour=settings.max_breaks_per_hour,
-                risk_lambda=settings.risk_lambda,
-                today=_reference_today(settings),
-                settings=_model_dump(settings),
-            )
-        except Exception:
-            logger.exception("forecast scenario '%s' failed at revenue_weight=%s", name, weight)
-            continue
-        summary = payload.get("summary", {})
-        revenue = summary.get("projected_revenue")
-        retention = summary.get("average_retention")
-        if revenue is None or retention is None:
-            continue
-        scenarios.append(
-            {
-                "name": name,
-                "name_he": name_he,
-                "revenue_weight": weight,
-                "revenue": round(_safe_number(revenue), 2),
-                "retention": round(_safe_number(retention), 1),
-            }
-        )
-    return scenarios
-
-
-def _source_file_paths() -> list[Path]:
-    """The real source files the data-quality report audits.
-
-    Single source of truth shared with ``/api/files`` so the report's row count
-    reflects the actual file set, not a magic constant.
-    """
-    return [
-        DATA_DIR / "Dayparts.csv",
-        DATA_DIR / "Programmes.csv",
-        DATA_DIR / "Spots.csv",
-        DATA_DIR / "rate_card_premiums.csv",
-        DATA_DIR / "advertiser_rules.csv",
-        OUTPUT_DIR / "weekly_break_schedule.csv",
-        ROOT / "optimization_results.csv",
-        MODELS_DIR / "tv_break_posterior.pkl",
-    ]
-
-
-def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
-    summary = _summarize_schedule(schedule)
-    compliance = _build_compliance(schedule, settings)
-    source_files = _source_file_paths()
-    present = sum(1 for path in source_files if path.exists())
-    # Status is sourced from the real plan state, not a fixed "ready". An empty
-    # schedule (no plan run yet) reports "empty" so the operator sees the honest
-    # state instead of a green light backed by zero rows.
-    plan_rows = int(len(schedule))
-    revenue_rows = int(summary["total_breaks"])
-    return {
-        "reports": [
-            {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready" if plan_rows else "empty", "rows": plan_rows, "owner": "Traffic"},
-            {"id": "compliance", "title": "Compliance and guardrails", "status": compliance["status"], "rows": len(compliance["checks"]), "owner": "Legal / Ops"},
-            {"id": "revenue", "title": "Revenue forecast", "status": "ready" if revenue_rows else "empty", "rows": revenue_rows, "owner": "Revenue"},
-            {"id": "data-quality", "title": "Source file audit", "status": "ready" if present == len(source_files) else "attention", "rows": present, "owner": "Data"},
-        ]
-    }
-
-
-def _signature(paths: list[Path]) -> tuple[tuple[str, int, int], ...]:
-    result = []
-    for path in paths:
-        if path.exists():
-            stat = path.stat()
-            result.append((str(path), stat.st_mtime_ns, stat.st_size))
-        else:
-            result.append((str(path), 0, 0))
-    return tuple(result)
-
-
 @lru_cache(maxsize=16)
 def _overview_cached(signature: tuple[tuple[str, int, int], ...], scope: str | None = None) -> dict[str, Any]:
     del signature
@@ -1747,65 +1302,9 @@ def _schedule_segments_cached(signature: tuple[tuple[str, int, int], ...]) -> di
 
 
 @lru_cache(maxsize=16)
-def _inventory_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    return _build_inventory(_load_spots())
-
-
-@lru_cache(maxsize=16)
-def _break_library_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    return _build_break_library(_load_break_schedule())
-
-
-@lru_cache(maxsize=16)
-def _campaigns_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    return _build_campaigns(_load_spots())
-
-
-@lru_cache(maxsize=16)
-def _forecasts_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    return _build_forecasts(_load_break_schedule(), _load_settings())
-
-
-@lru_cache(maxsize=16)
-def _reports_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    return _build_reports(_load_break_schedule(), _load_settings())
-
-
-@lru_cache(maxsize=16)
 def _break_operations_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
     return _build_break_operations(_load_programmes(), _load_break_schedule())
-
-
-@lru_cache(maxsize=16)
-def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
-    summary = _load_measured_impact_summary(MODELS_DIR / "tv_break_coefficients.json")
-    # Weekly level drift of the coefficient measurement base, measured at
-    # rebuild time and carried in the artifact metadata (see
-    # kairos.model.drift_monitor and docs/model-validation/
-    # uncertainty-calibration.md finding 4). Echoed here for the Data page;
-    # when the artifact predates the monitor (or carries no metadata) the
-    # block is an honest "unavailable", never a fabricated verdict.
-    metadata = summary.get("metadata")
-    drift = metadata.get("level_drift") if isinstance(metadata, dict) else None
-    if not isinstance(drift, dict) or not drift:
-        drift = {
-            "status": "unavailable",
-            "reason": (
-                "the coefficients artifact carries no level-drift measurement; "
-                "rebuild the measured coefficients to compute it"
-            ),
-        }
-    return {
-        "coefficient_impacts": summary,
-        "drift": drift,
-    }
 
 
 def _decision_log() -> list[dict[str, Any]]:
@@ -2015,20 +1514,45 @@ from kairos_api.assistant import router as assistant_router  # noqa: E402
 
 app.include_router(assistant_router)
 
+# Catalog and scenario endpoints live in their own domain routers. The moved
+# builders are imported back under their original names so existing references
+# (tests, the startup warm-up above) keep working against the SAME objects,
+# including the single lru_cache instances.
+from kairos_api.catalog_api import (  # noqa: E402,F401  (re-exported for tests and warm-up)
+    _break_library_cached,
+    _build_break_library,
+    _build_campaigns,
+    _build_forecast_scenarios,
+    _build_forecasts,
+    _build_inventory,
+    _build_reports,
+    _campaigns_cached,
+    _forecasts_cached,
+    _impact_cached,
+    _inventory_cached,
+    _load_measured_impact_summary,
+    _pooling_note,
+    _reports_cached,
+    _segment_key,
+    _source_file_paths,
+    _weighted_impact_rows,
+)
+from kairos_api.catalog_api import router as catalog_router  # noqa: E402
+from kairos_api.scenario_api import (  # noqa: E402,F401  (re-exported for compatibility)
+    OptimizePlanRequest,
+    ScenarioRequest,
+    _build_optimizer_plan,
+    _scenario_cached,
+)
+from kairos_api.scenario_api import router as scenario_router  # noqa: E402
+
+app.include_router(catalog_router)
+app.include_router(scenario_router)
+
 
 @app.get("/api/compliance")
 def compliance() -> dict[str, Any]:
     return _build_compliance(_load_break_schedule(), _load_settings())
-
-
-@app.get("/api/optimizer-plan")
-def optimizer_plan() -> dict[str, Any]:
-    return _build_optimizer_plan()
-
-
-@app.post("/api/optimizer-plan")
-def create_optimizer_plan(request: ScenarioRequest) -> dict[str, Any]:
-    return _build_optimizer_plan(request)
 
 
 @app.get("/api/overview")
@@ -2230,266 +1754,6 @@ def create_break_decision(request: BreakDecisionRequest) -> dict[str, Any]:
     # Approve/Reject shortcut: persists a real Override (source=recommendation, rec_id,
     # anchor) rather than a display-only log entry.
     return {"decision": _resolve_decision(request)}
-
-
-@app.get("/api/impact")
-def impact() -> dict[str, Any]:
-    return _impact_cached(
-        _signature([MODELS_DIR / "tv_break_coefficients.json"])
-    )
-
-
-@app.get("/api/inventory")
-def inventory() -> dict[str, Any]:
-    return _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))
-
-
-@app.get("/api/break-library")
-def break_library() -> dict[str, Any]:
-    return _break_library_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
-
-
-@app.get("/api/campaigns")
-def campaigns() -> dict[str, Any]:
-    return _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))
-
-
-@app.get("/api/forecasts")
-def forecasts() -> dict[str, Any]:
-    return _forecasts_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
-
-
-@app.get("/api/reports")
-def reports() -> dict[str, Any]:
-    return _reports_cached(
-        _signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", DATA_DIR / "Programmes.csv", SETTINGS_PATH])
-    )
-
-
-@app.get("/api/files")
-def files() -> dict[str, Any]:
-    paths = _source_file_paths()
-    return {
-        "files": [
-            {
-                "path": str(path.relative_to(ROOT)),
-                "exists": path.exists(),
-                "size": path.stat().st_size if path.exists() else 0,
-                "modified": datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
-                if path.exists()
-                else None,
-            }
-            for path in paths
-        ]
-    }
-
-
-def _risk_from_retention(average_retention_percent: float, floor_percent: float) -> float:
-    """Honest schedule risk: the measured average-retention shortfall below the
-    operator's configured floor, on a 0-100 scale.
-
-    The earlier formula added ``total_breaks * 0.8``; over a whole schedule the
-    break count is in the hundreds, so that term saturated the score to 100 for
-    every channel regardless of the real plan. This version is sourced entirely
-    from quantities the optimizer actually produces: the realised average
-    retention (``average_retention_percent``) and the operator-configured
-    ``min_retention_floor``. At or above the floor the risk is 0; a shortfall of
-    ``_RISK_FULL_SHORTFALL`` retention points or more reads as 100. Nothing is
-    fabricated and the score no longer saturates.
-    """
-    shortfall = max(0.0, floor_percent - average_retention_percent)
-    return round(max(0.0, min(100.0, shortfall / _RISK_FULL_SHORTFALL * 100.0)), 1)
-
-
-@lru_cache(maxsize=128)
-def _scenario_cached(
-    revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
-    pacing_today: str = "", settings_json: str = "",
-) -> dict[str, Any]:
-    # The full saved settings (guardrails, pricing and pacing) are threaded in as
-    # a JSON string, exactly as /api/optimizer-plan threads them, so the scenario
-    # preview honours every operator setting instead of silently dropping the
-    # guardrails and pricing to defaults. Both the settings JSON and the reference
-    # date are part of the cache key, so any settings edit invalidates the cached
-    # scenario honestly. The scenario controls (revenue_weight, retention_floor,
-    # max_breaks_per_hour, risk_lambda) remain the explicit per-request overrides.
-    today = None
-    if pacing_today:
-        try:
-            today = date.fromisoformat(pacing_today)
-        except ValueError:
-            today = None
-    settings = json.loads(settings_json) if settings_json else None
-    result = run_scenario(
-        revenue_weight=revenue_weight,
-        retention_floor=retention_floor,
-        max_breaks_per_hour=max_breaks_per_hour,
-        risk_lambda=risk_lambda,
-        today=today,
-        settings=settings,
-    )
-    summary = result["summary"]
-    return {
-        "summary": {
-            "total_breaks": summary["total_breaks"],
-            "total_ad_seconds": summary["total_ad_seconds"],
-            "projected_revenue": summary["projected_revenue"],
-            "average_retention": summary["average_retention"],
-            "risk_score": _risk_from_retention(
-                summary["average_retention"], round(retention_floor * 100, 1)
-            ),
-        },
-        "controls": result["controls"],
-        "guardrails": result["guardrails"],
-        "channel": result["channel"],
-        "day": result["day"],
-        "compliant": summary["compliant"],
-        "engine": "kairos",
-    }
-
-
-@app.post("/api/scenario")
-def scenario(request: ScenarioRequest) -> dict[str, Any]:
-    """Run a real optimization for the scenario controls (no placeholder math).
-
-    Falls back to the stored schedule summary only if the engine or its data is
-    unavailable, reporting that honestly instead of inventing numbers.
-    """
-    if _ENGINE_AVAILABLE:
-        try:
-            pacing = _pacing_call_kwargs()
-            return _scenario_cached(
-                request.revenue_weight, request.retention_floor, request.max_breaks_per_hour,
-                request.risk_lambda,
-                pacing_today=pacing["today"].isoformat(),
-                settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
-            )
-        except Exception as exc:  # pragma: no cover - data/environment dependent
-            return {
-                "summary": _summarize_schedule(_load_break_schedule()),
-                "controls": _model_dump(request),
-                "engine": "unavailable",
-                "detail": str(exc)[:300],
-            }
-    return {
-        "summary": _summarize_schedule(_load_break_schedule()),
-        "controls": _model_dump(request),
-        "engine": "unavailable",
-    }
-
-
-class OptimizePlanRequest(BaseModel):
-    """Controls for a real, in-process optimization of one channel-day."""
-
-    channel: str | None = Field(default=None)
-    day: str | None = Field(default=None)
-    revenue_weight: float | None = Field(default=None, ge=0.0, le=1.0)
-    # When None, the saved settings' risk_lambda applies; set it to override the
-    # uncertainty preference for this run only.
-    risk_lambda: float | None = Field(default=None, ge=0.0, le=1.0)
-    # When set, the day's real daily plan (the Wally csv) drives the decision
-    # instead of the Programmes EPG; channel and day are read from the file.
-    daily_input: str | None = Field(default=None)
-
-
-@app.post("/api/optimize-plan")
-def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
-    """Serve a real optimal break plan, driven by the saved settings.
-
-    Runs the optimization engine in process, using the live KairosSettings as
-    guardrails, so the dashboard's settings page controls the optimizer directly.
-    """
-    if not _ENGINE_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Optimization engine is unavailable")
-    settings = _load_settings()
-    risk = request.risk_lambda if request.risk_lambda is not None else getattr(settings, "risk_lambda", 0.0)
-    try:
-        return optimize_day_plan(
-            channel=request.channel,
-            day=request.day,
-            revenue_weight=request.revenue_weight,
-            risk_lambda=risk,
-            daily_input_path=request.daily_input,
-            settings=_model_dump(settings),
-            today=_reference_today(settings),
-        )
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")
-    except Exception as exc:  # pragma: no cover - data/environment dependent
-        raise HTTPException(status_code=503, detail=f"Optimization failed: {exc}")
-
-
-@app.get("/api/parameters")
-def parameters() -> dict[str, Any]:
-    """Every adjustable parameter the optimizer uses, in one place.
-
-    Surfaces the guardrails (derived from the saved settings), the declared
-    optimizer assumptions, the pricing model, and the known channels, so the
-    dashboard can show and edit each one.
-    """
-    settings = _load_settings()
-    payload: dict[str, Any] = {"settings": _model_dump(settings)}
-    if not _ENGINE_AVAILABLE:
-        payload["engine"] = "unavailable"
-        return payload
-    payload["guardrails"] = _asdict(guardrails_from_settings(_model_dump(settings)))
-    payload["assumptions"] = _asdict(OptimizerAssumptions())
-    payload["channels"] = list(KAIROS_CHANNELS)
-    payload["operator_channel"] = settings.operator_channel
-    # Honest flag: when no channel is selected the competitor-boundary filter is
-    # inactive (constraints match any channel). The dashboard uses this to warn
-    # the operator so they know to visit OperatorChannelPanel and pick a channel.
-    payload["operator_channel_unset"] = not bool(settings.operator_channel)
-    # available_channels drives the operator-channel picker. Derive it from the
-    # real loaded EPG (the same channel_options the constraint engine uses) so the
-    # picker can never drift from the channel ids the optimizer actually schedules
-    # on. Fall back to the canonical channel constant only if the EPG is missing.
-    try:
-        from kairos_api._constraint_options import channel_options as _channel_options
-
-        _data_channels = _channel_options()
-    except Exception:
-        _data_channels = []
-    payload["available_channels"] = _data_channels or list(KAIROS_CHANNELS)
-    try:
-        pricing = PricingModel.from_yaml()
-        payload["pricing"] = {
-            "base_price_per_second_per_tvr_point": pricing.base_price,
-            "program_type_premiums": pricing.program_type_premiums,
-            "ad_type_premiums": pricing.ad_type_premiums,
-            "position_premiums": {str(k): v for k, v in pricing.position_premiums.items()},
-            "day_of_week_premiums": {str(k): v for k, v in pricing.day_of_week_premiums.items()},
-        }
-    except Exception as exc:  # pragma: no cover - config dependent
-        payload["pricing"] = {"error": str(exc)[:200]}
-    # Honest freshness of the measured retention coefficients: re-hash the source
-    # files the coefficients were computed from and report fresh/stale/unknown so
-    # the dashboard can warn when the data has moved on from the stored deltas.
-    try:
-        from kairos.model.freshness import coefficient_freshness
-        from kairos.model.measure import read_coefficients_metadata
-
-        metadata = read_coefficients_metadata(MODELS_DIR / "tv_break_coefficients.json")
-        payload["coefficient_freshness"] = coefficient_freshness(metadata, root=ROOT)
-        # Surface the self-activating first-break retention lever from the measured
-        # coefficients metadata so the dashboard can show, honestly, when a show's
-        # first break is charged extra retention cost. Off (multiplier 1.0) when the
-        # gate found no real first-break contrast.
-        payload["first_break_active"] = bool(metadata.get("first_break_active", False))
-        try:
-            payload["first_break_multiplier"] = float(metadata.get("first_break_multiplier", 1.0) or 1.0)
-        except (TypeError, ValueError):
-            payload["first_break_multiplier"] = 1.0
-    except Exception as exc:  # pragma: no cover - defensive, never blocks parameters
-        payload["coefficient_freshness"] = {
-            "status": "unknown",
-            "computed_at": None,
-            "changed_files": [],
-            "reason": f"freshness check unavailable: {str(exc)[:160]}",
-        }
-        payload["first_break_active"] = False
-        payload["first_break_multiplier"] = 1.0
-    return payload
 
 
 # Serve the built dashboard (Vite `dist/`) from the same container in production.
