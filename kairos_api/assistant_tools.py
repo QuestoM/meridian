@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+import logging
 from typing import Any
 
 from fastapi import HTTPException
@@ -54,6 +55,9 @@ _REASON_PROPERTY = {
     "type": "string",
     "description": "Why this change is being proposed, in the operator's language.",
 }
+
+
+logger = logging.getLogger(__name__)
 
 
 def _tool(name: str, description: str, properties: dict[str, Any] | None = None,
@@ -164,9 +168,9 @@ KIND_BY_TOOL = {
 }
 
 
-def anthropic_tools() -> list[dict[str, Any]]:
+def anthropic_tools(include_propose: bool = True) -> list[dict[str, Any]]:
     """The full tool list for the messages.create tools parameter."""
-    return [*READ_TOOL_SCHEMAS, *PROPOSE_TOOL_SCHEMAS]
+    return [*READ_TOOL_SCHEMAS, *PROPOSE_TOOL_SCHEMAS] if include_propose else list(READ_TOOL_SCHEMAS)
 
 
 # READ executors. Each one calls the real builder of the owning module.
@@ -299,8 +303,9 @@ def execute_read_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         result = executor(args)
     except HTTPException as exc:
         result = {"error": str(exc.detail)}
-    except Exception as exc:  # noqa: BLE001 - surfaced honestly to the model
-        result = {"error": f"{name} failed ({type(exc).__name__}): {str(exc)[:200]}"}
+    except Exception as exc:  # noqa: BLE001 - surfaced honestly, without internals
+        logger.exception("assistant read tool %s failed", name)
+        result = {"error": f"{name} failed ({type(exc).__name__}); details are in the server log"}
     if isinstance(result, dict):
         result.setdefault("source", SOURCE_BY_TOOL.get(name, name))
     return result
@@ -454,7 +459,7 @@ def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
     return item
 
 
-def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[str, Any]]) -> dict[str, Any]:
+def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[str, Any]], propose_allowed: bool = True) -> dict[str, Any]:
     """Dispatch one tool_use block and return its tool_result message block.
 
     READ tools run now; PROPOSE tools are captured into ``items`` untouched by
@@ -472,6 +477,10 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
         # Surface the read result's provenance on the trace step so the response's
         # source trail names, for every figure, where it came from.
         source = payload.get("source") if isinstance(payload, dict) else None
+    elif name in PROPOSE_TOOL_NAMES and not propose_allowed:
+        result = {"error": "the account role does not allow proposing changes"}
+        trace.append({"tool": name, "ok": False})
+        return {"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result, ensure_ascii=False)}
     elif name in PROPOSE_TOOL_NAMES:
         item = build_proposal_item(name, args)
         items.append(item)

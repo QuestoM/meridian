@@ -248,7 +248,11 @@ def test_goal_seek_simulates_then_proposes_one_effect_bearing_change(
     # thinking with a medium effort, drop temperature, and cache the tools+system prefix.
     opening = recorder["calls"][0]
     assert opening["temperature"] == assistant.ANSWER_TEMPERATURE
-    assert isinstance(opening["system"], str) and "thinking" not in opening
+    # Every call (opening included) sends the cache-controlled system list, so
+    # the stable tools+system prefix is written once and read across turns.
+    assert isinstance(opening["system"], list)
+    assert opening["system"][0]["cache_control"] == {"type": "ephemeral"}
+    assert "thinking" not in opening
     for call in recorder["calls"][1:]:
         assert call["thinking"] == {"type": "adaptive"}
         assert call["output_config"] == {"effort": assistant.LOOP_EFFORT}

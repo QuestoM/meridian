@@ -83,6 +83,13 @@ def _owned_rows(frame: Any, owned: str) -> Any:
 
 
 # --- status ------------------------------------------------------------------
+def _system_text(kwargs):
+    system = kwargs["system"]
+    if isinstance(system, str):
+        return system
+    return "".join(block.get("text", "") for block in system)
+
+
 def test_status_honest_without_key(client: TestClient) -> None:
     response = client.get("/api/assistant/status")
     assert response.status_code == 200
@@ -155,12 +162,12 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
     assert kwargs["max_tokens"] == 1500  # the tool-use loop budget
     assert kwargs["temperature"] == 0.2
     assert {tool["name"] for tool in kwargs["tools"]} >= {"get_settings", "propose_settings_change"}
-    assert "must be taken from the CONTEXT block" in kwargs["system"]
-    assert "Never invent" in kwargs["system"]
-    assert "never state, estimate or speculate about competitor" in kwargs["system"]
-    assert "per_day_plan" in kwargs["system"]
-    assert "day_detail" in kwargs["system"]
-    assert "truncated" in kwargs["system"]
+    assert "must be taken from the CONTEXT block" in _system_text(kwargs)
+    assert "Never invent" in _system_text(kwargs)
+    assert "never state, estimate or speculate about competitor" in _system_text(kwargs)
+    assert "per_day_plan" in _system_text(kwargs)
+    assert "day_detail" in _system_text(kwargs)
+    assert "truncated" in _system_text(kwargs)
 
     user_text = kwargs["messages"][0]["content"]
     assert user_text.startswith("CONTEXT:\n")
