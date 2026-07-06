@@ -157,20 +157,30 @@ def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
 
 def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
     if spots.empty:
-        return {"summary": {"spots": 0, "revenue": 0, "seconds": 0}, "by_channel": [], "by_hour": []}
+        return {
+            "summary": {"spots": 0, "revenue": None, "seconds": 0},
+            "revenue_available": False,
+            "by_channel": [],
+            "by_hour": [],
+        }
 
     frame = spots.copy()
+    # Revenue is reported only when the spots source actually carries it. The
+    # reference airings export has no revenue column, so fabricating a zero
+    # would misstate a real quantity; report an honest unavailable instead.
+    has_revenue = "revenue_ils" in frame.columns
     frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
     frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
     frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", 0), errors="coerce").fillna(0).astype(int)
     frame["target"] = _series(frame, "is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
     valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
 
+    sort_key = "revenue" if has_revenue else "seconds"
     by_channel = (
         frame.groupby("Channel", dropna=False)
         .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"), target_spots=("target", "sum"))
         .reset_index()
-        .sort_values("revenue", ascending=False)
+        .sort_values(sort_key, ascending=False)
         .head(12)
     )
     by_hour = (
@@ -179,13 +189,17 @@ def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
         .reset_index()
         .sort_values("hour_of_day")
     )
+    if not has_revenue:
+        by_channel["revenue"] = None
+        by_hour["revenue"] = None
 
     return {
         "summary": {
             "spots": int(len(frame)),
-            "revenue": _money(frame["revenue_ils"].sum()),
+            "revenue": _money(frame["revenue_ils"].sum()) if has_revenue else None,
             "seconds": int(frame["Duration"].sum()),
         },
+        "revenue_available": has_revenue,
         "by_channel": _records(by_channel),
         "by_hour": _records(by_hour, 24),
     }
@@ -196,6 +210,10 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
         return {"campaigns": []}
 
     frame = spots.copy()
+    # Revenue is reported only when the spots source actually carries it (the
+    # reference airings export does not); otherwise the rollup ranks by spot
+    # volume and reports revenue as unavailable rather than a fabricated zero.
+    has_revenue = "revenue_ils" in frame.columns
     frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
     frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
     # The restructured Spots export may omit the identity/grouping columns. Backfill
@@ -215,10 +233,12 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
             last_airing=("Date", "max"),
         )
         .reset_index()
-        .sort_values("revenue", ascending=False)
+        .sort_values("revenue" if has_revenue else "spots", ascending=False)
         .head(50)
     )
-    return {"campaigns": _records(grouped)}
+    if not has_revenue:
+        grouped["revenue"] = None
+    return {"campaigns": _records(grouped), "revenue_available": has_revenue}
 
 
 def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:

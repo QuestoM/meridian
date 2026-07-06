@@ -296,9 +296,13 @@ def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Opt
         build_segments_from_programmes,
     )
     from kairos.model.impact import load_impact_model
-    from kairos.optimize.pricing import OptimizerAssumptions, PricingModel
+    from kairos.optimize.pricing import OptimizerAssumptions
+    from kairos.service import pricing_from_settings
+    from kairos_api.core import _load_settings, _model_dump
 
-    pricing = PricingModel.from_yaml()
+    # Price with the operator's saved rate-card overrides, so the preview values
+    # the same slots the weekly recompute would, not the bare YAML defaults.
+    pricing = pricing_from_settings(_model_dump(_load_settings()))
     assumptions = OptimizerAssumptions()
     impact = load_impact_model(ROOT / "models" / "tv_break_posterior.pkl", assumptions=assumptions)
     classifier = ProgramClassifier.from_yaml()
@@ -331,6 +335,8 @@ def constraint_effect(
     """
     from kairos.optimize.constraints_store import count_pins_to_overrides
     from kairos.optimize.optimizer import optimize_breaks
+    from kairos.service import guardrails_from_settings
+    from kairos_api.core import _load_settings, _model_dump
 
     try:
         segments = _build_segments(channel, day, daily_input)
@@ -346,9 +352,21 @@ def constraint_effect(
     )
     overrides = count_pins_to_overrides(count_pins, forbids)
 
-    baseline = optimize_breaks(segments)
+    # Optimize both plans under the operator's saved settings (guardrails,
+    # revenue weight, risk aversion, objective mode) so the preview reports the
+    # same absolute breaks and revenue the weekly recompute would write, not the
+    # engine defaults.
+    saved = _load_settings()
+    settings_map = _model_dump(saved)
+    engine_kwargs = {
+        "guardrails": guardrails_from_settings(settings_map),
+        "revenue_weight": saved.revenue_weight / 100.0,
+        "risk_lambda": saved.risk_lambda,
+        "objective_mode": getattr(saved, "objective_mode", "blend"),
+    }
+    baseline = optimize_breaks(segments, **engine_kwargs)
     constrained = optimize_breaks(
-        segments, overrides=overrides, placement_pins=placement_pins or None,
+        segments, overrides=overrides, placement_pins=placement_pins or None, **engine_kwargs,
     )
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
