@@ -1,54 +1,70 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@mui/material';
-import { Bot, Send } from 'lucide-react';
+import { Bot, RefreshCcw, Send, Sparkles } from 'lucide-react';
 import { API_BASE, pageText } from './surface-helpers';
-import './assistant-panel.css';
+import AssistantProposalCard from './AssistantProposalCard';
+import AssistantHistory from './AssistantHistory';
+import './assistant-console.css';
 
-// AssistantPanel: the in-product AI assistant. The operator asks questions in
-// Hebrew or English about the saved schedule and plan; the server composes a
-// compact context from the real saved payloads and Claude answers ONLY from
-// that context. Every answer is footed with the grounding sources the server
-// actually included, and a standing disclosure explains exactly what is sent.
-// History lives in component state only (session-local, capped at 20).
+// The assistant console: a chat column grounded in the saved data plus a side
+// rail for pending proposals, the audit history and restore points. Answers
+// come only from the server; proposed actions apply only after an explicit
+// operator confirm, with an automatic restore point first. Every surface has
+// honest loading, error and empty states, and nothing is polled in a loop:
+// rail data refreshes on mount, after actions, and via the manual refresh.
 
 const HISTORY_CAP = 20;
 
-const SECTION_LABELS = {
-  overview_summary: ['Overview summary', 'תמצית הסקירה'],
-  schedule_freshness: ['Schedule freshness', 'טריות הלוח'],
-  yield_totals: ['Yield totals', 'סיכומי תשואה'],
-  recommendations: ['Recommendations', 'המלצות'],
-  settings: ['Saved settings', 'הגדרות שמורות'],
-  counts: ['Plan counts', 'ספירות התוכנית'],
-  per_day_plan: ['Per-day plan', 'תוכנית לפי יום'],
-};
+const SUGGESTIONS = [
+  ['What is the weekly net and why', 'מה הנטו השבועי ולמה'],
+  ['Suggest a way to raise the net without hurting retention', 'הצע דרך להעלות את הנטו בלי לפגוע בשימור'],
+  ['Create a constraint that blocks a break in the first 15 minutes of the evening news', 'צור אילוץ שאין הפסקה ב-15 הדקות הראשונות של מהדורת הערב'],
+  ['Raise the revenue weight to 65 and recompute', 'העלה את משקל ההכנסות ל-65 והרץ חישוב מחדש'],
+];
 
-const ABSENT_SUFFIX = ' (absent)';
-const DAY_DETAIL_PREFIX = 'day_detail';
-
-function sourceLabel(source, locale) {
-  const raw = String(source || '');
-  const absent = raw.endsWith(ABSENT_SUFFIX);
-  const key = absent ? raw.slice(0, -ABSENT_SUFFIX.length) : raw;
-  let base;
-  if (key === DAY_DETAIL_PREFIX || key.startsWith(`${DAY_DETAIL_PREFIX} `)) {
-    const daySuffix = key.slice(DAY_DETAIL_PREFIX.length).trim();
-    const label = pageText(locale, 'Day detail', 'פירוט יום');
-    base = daySuffix ? `${label} ${daySuffix}` : label;
-  } else {
-    const pair = SECTION_LABELS[key];
-    base = pair ? pageText(locale, pair[0], pair[1]) : key;
+async function requestJson(path, options) {
+  const response = await fetch(`${API_BASE}${path}`, options);
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = body && (body.detail || body.error);
+    throw new Error(detail ? String(detail) : `HTTP ${response.status}`);
   }
-  return absent ? `${base} ${pageText(locale, '(unavailable)', '(לא זמין)')}` : base;
+  return body || {};
+}
+
+function postJson(path, payload) {
+  return requestJson(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+}
+
+function asArray(value, ...keys) {
+  if (Array.isArray(value)) return value;
+  for (const key of keys) {
+    if (value && Array.isArray(value[key])) return value[key];
+  }
+  return [];
+}
+
+// Normalizes a batch from either the ask response or GET /proposals into one
+// shape. Items without an id stay visible but cannot be selected or applied.
+function normalizeBatch(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.batch_id) return null;
+  const items = asArray(raw.items).map((item, index) => ({
+    id: item && item.id != null ? String(item.id) : null,
+    key: item && item.id != null ? String(item.id) : `row-${index}`,
+    kind: item && item.kind ? String(item.kind) : '',
+    summary: item && item.summary ? String(item.summary) : '',
+    payload: item && item.payload && typeof item.payload === 'object' ? item.payload : null,
+    reason: item && item.reason ? String(item.reason) : '',
+    status: item && item.status ? String(item.status) : 'pending',
+    error: item && item.error ? String(item.error) : '',
+  }));
+  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
 }
 
 function timeLabel(iso, locale) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function AssistantPanel({ locale, notify }) {
@@ -58,16 +74,75 @@ export default function AssistantPanel({ locale, notify }) {
   const [question, setQuestion] = useState('');
   const [thread, setThread] = useState([]);
   const [asking, setAsking] = useState(false);
+  const [railTab, setRailTab] = useState('proposals');
+  const [batchMap, setBatchMap] = useState({});
+  const [batchOrder, setBatchOrder] = useState([]);
+  const [proposalsState, setProposalsState] = useState('loading');
+  const [proposalsError, setProposalsError] = useState('');
+  const [audit, setAudit] = useState({ state: 'loading', entries: [], error: '' });
+  const [restore, setRestore] = useState({ state: 'loading', points: [], error: '' });
+  const [applyBusyId, setApplyBusyId] = useState(null);
+  const [applyResults, setApplyResults] = useState({});
+  const [restoringId, setRestoringId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const idRef = useRef(0);
   const threadRef = useRef(null);
+  const composerRef = useRef(null);
+
+  const mergeBatches = useCallback((incoming, fromServer) => {
+    const clean = incoming.filter(Boolean);
+    if (!clean.length) return;
+    setBatchMap((prev) => {
+      const next = { ...prev };
+      for (const batch of clean) {
+        const existing = prev[batch.batch_id];
+        if (!existing) {
+          next[batch.batch_id] = batch;
+        } else {
+          const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
+          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '' })) };
+        }
+      }
+      return next;
+    });
+    setBatchOrder((prev) => {
+      const ids = clean.map((batch) => batch.batch_id);
+      if (fromServer) return [...ids, ...prev.filter((id) => !ids.includes(id))];
+      return [...ids.filter((id) => !prev.includes(id)), ...prev];
+    });
+  }, []);
+
+  const refreshRail = useCallback(async () => {
+    setRefreshing(true);
+    const [proposalsResult, auditResult, restoreResult] = await Promise.allSettled([
+      requestJson('/api/assistant/proposals'),
+      requestJson('/api/assistant/audit?limit=50'),
+      requestJson('/api/assistant/restore'),
+    ]);
+    if (proposalsResult.status === 'fulfilled') {
+      mergeBatches(asArray(proposalsResult.value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
+      setProposalsState('ready');
+      setProposalsError('');
+    } else {
+      setProposalsState('error');
+      setProposalsError(proposalsResult.reason && proposalsResult.reason.message ? proposalsResult.reason.message : 'unknown');
+    }
+    if (auditResult.status === 'fulfilled') {
+      setAudit({ state: 'ready', entries: asArray(auditResult.value, 'entries', 'audit', 'items'), error: '' });
+    } else {
+      setAudit((prev) => ({ ...prev, state: 'error', error: auditResult.reason && auditResult.reason.message ? auditResult.reason.message : 'unknown' }));
+    }
+    if (restoreResult.status === 'fulfilled') {
+      setRestore({ state: 'ready', points: asArray(restoreResult.value, 'restore_points', 'points', 'items'), error: '' });
+    } else {
+      setRestore((prev) => ({ ...prev, state: 'error', error: restoreResult.reason && restoreResult.reason.message ? restoreResult.reason.message : 'unknown' }));
+    }
+    setRefreshing(false);
+  }, [mergeBatches]);
 
   useEffect(() => {
     let active = true;
-    fetch(`${API_BASE}/api/assistant/status`)
-      .then((response) => {
-        if (!response.ok) throw new Error(String(response.status));
-        return response.json();
-      })
+    requestJson('/api/assistant/status')
       .then((body) => {
         if (!active) return;
         setStatus(body);
@@ -77,26 +152,20 @@ export default function AssistantPanel({ locale, notify }) {
         if (!active) return;
         setStatusState('error');
       });
+    refreshRail();
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshRail]);
 
   useEffect(() => {
     const node = threadRef.current;
     if (node) node.scrollTop = node.scrollHeight;
   }, [thread, asking]);
 
-  const appendExchange = useCallback((entry) => {
+  const appendEntry = useCallback((entry) => {
     idRef.current += 1;
-    const row = {
-      id: `ask-${idRef.current}`,
-      at: new Date().toISOString(),
-      sources: [],
-      answer: null,
-      error: null,
-      ...entry,
-    };
+    const row = { id: `ask-${idRef.current}`, at: new Date().toISOString(), answer: null, error: null, disclosure: '', sources: [], toolTrace: [], truncated: false, batchId: null, ...entry };
     setThread((prev) => [...prev, row].slice(-HISTORY_CAP));
   }, []);
 
@@ -105,34 +174,96 @@ export default function AssistantPanel({ locale, notify }) {
     if (!trimmed || asking) return;
     setAsking(true);
     try {
-      const response = await fetch(`${API_BASE}/api/assistant/ask`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: trimmed }),
-      });
-      const body = await response.json().catch(() => null);
-      if (!response.ok) {
-        const detail = body && body.detail ? String(body.detail) : `${response.status}`;
-        appendExchange({ question: trimmed, error: detail });
-      } else if (body && body.available === false) {
-        setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.error }));
-        appendExchange({ question: trimmed, error: String(body.error || '') });
-      } else if (body) {
-        appendExchange({
+      const body = await postJson('/api/assistant/ask', { question: trimmed });
+      if (body.available === false) {
+        setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
+        appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
+      } else {
+        const batch = body.proposals ? normalizeBatch(body.proposals) : null;
+        if (batch) mergeBatches([batch], false);
+        appendEntry({
           question: trimmed,
-          answer: body.answer || null,
-          error: body.error || null,
-          sources: (body.grounding && body.grounding.sources) || [],
+          answer: body.answer ? String(body.answer) : null,
+          error: body.error ? String(body.error) : !body.answer && !batch ? pageText(locale, 'The server returned no answer.', 'השרת לא החזיר תשובה.') : null,
+          disclosure: typeof body.context_disclosure === 'string' ? body.context_disclosure : '',
+          sources: asArray(body.grounding && body.grounding.sources),
+          toolTrace: asArray(body.tool_trace),
+          truncated: Boolean(body.truncated),
+          batchId: batch ? batch.batch_id : null,
           at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
         });
+        if (batch) refreshRail();
       }
       setQuestion('');
     } catch (error) {
-      notify(`Assistant request failed (${error.message}).`, `הפנייה לעוזר נכשלה (${error.message}).`);
+      appendEntry({ question: trimmed, error: error.message });
     } finally {
       setAsking(false);
     }
-  }, [question, asking, appendExchange, notify]);
+  }, [question, asking, locale, appendEntry, mergeBatches, refreshRail]);
+
+  const applyItems = useCallback(async (batchId, itemIds) => {
+    if (!itemIds.length || applyBusyId) return;
+    setApplyBusyId(batchId);
+    try {
+      const body = await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/apply`, { item_ids: itemIds });
+      const results = asArray(body, 'results', 'items');
+      const restoreId = body.restore_id || null;
+      setApplyResults((prev) => ({ ...prev, [batchId]: { results, restoreId } }));
+      setBatchMap((prev) => {
+        const batch = prev[batchId];
+        if (!batch) return prev;
+        const byId = new Map(results.filter((row) => row && row.id != null).map((row) => [String(row.id), row]));
+        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
+      });
+      const applied = results.filter((row) => row && row.status === 'applied').length;
+      const failed = results.filter((row) => row && row.status === 'failed').length;
+      if (failed) notify(`Applied ${applied} of ${itemIds.length} actions, ${failed} failed. Details are on the action card.`, `הוחלו ${applied} מתוך ${itemIds.length} פעולות, ${failed === 1 ? 'אחת נכשלה' : `${failed} נכשלו`}. הפרטים מופיעים בכרטיס הפעולות.`);
+      else if (applied === 1) notify('Applied one action and created a restore point.', 'הוחלה פעולה אחת ונוצרה נקודת שחזור.');
+      else notify(`Applied ${applied} actions and created a restore point.`, `הוחלו ${applied} פעולות ונוצרה נקודת שחזור.`);
+      refreshRail();
+    } catch (error) {
+      notify(`Applying the actions failed (${error.message}).`, `החלת הפעולות נכשלה (${error.message}).`);
+    } finally {
+      setApplyBusyId(null);
+    }
+  }, [applyBusyId, notify, refreshRail]);
+
+  const rejectItems = useCallback(async (batchId, itemIds) => {
+    if (!itemIds.length || applyBusyId) return;
+    setApplyBusyId(batchId);
+    try {
+      await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/reject`, { item_ids: itemIds });
+      setBatchMap((prev) => {
+        const batch = prev[batchId];
+        if (!batch) return prev;
+        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && itemIds.includes(item.id) ? { ...item, status: 'rejected' } : item)) } };
+      });
+      notify('The selected actions were rejected.', 'הפעולות שנבחרו נדחו.');
+      refreshRail();
+    } catch (error) {
+      notify(`Rejecting the actions failed (${error.message}).`, `דחיית הפעולות נכשלה (${error.message}).`);
+    } finally {
+      setApplyBusyId(null);
+    }
+  }, [applyBusyId, notify, refreshRail]);
+
+  const restorePoint = useCallback(async (restoreId) => {
+    if (restoringId) return;
+    setRestoringId(restoreId);
+    try {
+      const body = await postJson(`/api/assistant/restore/${encodeURIComponent(restoreId)}`, {});
+      const restored = asArray(body, 'restored');
+      if (restored.length === 1) notify('Restored one file. A recompute may be needed.', 'שוחזר קובץ אחד. ייתכן שיידרש חישוב מחדש.');
+      else if (restored.length) notify(`Restored ${restored.length} files. A recompute may be needed.`, `שוחזרו ${restored.length} קבצים. ייתכן שיידרש חישוב מחדש.`);
+      else notify('The restore completed. A recompute may be needed.', 'השחזור הושלם. ייתכן שיידרש חישוב מחדש.');
+      refreshRail();
+    } catch (error) {
+      notify(`The restore failed (${error.message}).`, `השחזור נכשל (${error.message}).`);
+    } finally {
+      setRestoringId(null);
+    }
+  }, [restoringId, notify, refreshRail]);
 
   function onComposerKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -141,106 +272,176 @@ export default function AssistantPanel({ locale, notify }) {
     }
   }
 
+  function pickSuggestion(text) {
+    setQuestion(text);
+    if (composerRef.current) composerRef.current.focus();
+  }
+
+  const pendingCount = useMemo(() => Object.values(batchMap).reduce((sum, batch) => sum + batch.items.filter((item) => item.status === 'pending').length, 0), [batchMap]);
+  const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id])), [batchOrder, batchMap, applyResults]);
+
   const unavailable = statusState === 'ready' && status && status.available === false;
   const reasonLabel = status && status.reason === 'API key not configured'
     ? pageText(locale, 'The API key is not configured on the server.', 'מפתח ה-API אינו מוגדר בשרת.')
     : String((status && status.reason) || '');
+  const statusText = statusState === 'loading' ? pageText(locale, 'Checking availability', 'בודק זמינות')
+    : statusState === 'error' ? pageText(locale, 'No connection to the Kairos server', 'אין חיבור לשרת Kairos')
+    : unavailable ? pageText(locale, 'Not available', 'לא זמין')
+    : pageText(locale, 'Connected', 'מחובר');
+  const dotClass = statusState === 'loading' ? 'loading' : statusState === 'error' ? 'error' : unavailable ? 'off' : 'on';
+
+  const TABS = [
+    ['proposals', pageText(locale, 'Pending actions', 'פעולות ממתינות')],
+    ['history', pageText(locale, 'History', 'היסטוריה')],
+    ['restore', pageText(locale, 'Restore points', 'נקודות שחזור')],
+  ];
+
+  function renderProposalCard(batch) {
+    return (
+      <AssistantProposalCard
+        key={batch.batch_id}
+        batch={batch}
+        locale={locale}
+        busy={applyBusyId === batch.batch_id}
+        applyResult={applyResults[batch.batch_id] || null}
+        onApply={(ids) => applyItems(batch.batch_id, ids)}
+        onReject={(ids) => rejectItems(batch.batch_id, ids)}
+        onShowRestore={() => setRailTab('restore')}
+      />
+    );
+  }
 
   return (
-    <section className="page-panel assistant-panel">
-      <div className="panel-head">
-        <h2>{pageText(locale, 'AI assistant', 'עוזר AI')}</h2>
-        <span>{pageText(locale, 'Grounded answers about the saved schedule and plan', 'תשובות מבוססות נתונים על הלוח והתוכנית השמורים')}</span>
-      </div>
-
-      <div className="assistant-statusline">
-        <Bot size={14} />
-        {statusState === 'loading' ? (
-          <span>{pageText(locale, 'Checking assistant availability', 'בודק את זמינות העוזר')}</span>
-        ) : statusState === 'error' ? (
-          <span>{pageText(locale, 'Could not reach the Kairos server to check availability.', 'לא ניתן להגיע לשרת Kairos כדי לבדוק זמינות.')}</span>
-        ) : unavailable ? (
-          <span>{pageText(locale, 'Not available', 'לא זמין')}</span>
-        ) : (
-          <span>{pageText(locale, 'Connected', 'מחובר')}</span>
-        )}
-        {status && status.model ? <code dir="ltr">{status.model}</code> : null}
-      </div>
-
-      <p className="assistant-disclosure">
-        {pageText(locale,
-          'Answers are generated from the current saved data. When you ask a question, only the compact data summary named in the sources line is sent to Anthropic, and no other data leaves this machine.',
-          'התשובות נוצרות מהנתונים השמורים הנוכחיים. בשליחת שאלה נשלח אל Anthropic רק תקציר הנתונים הקומפקטי ששמותיו מופיעים בשורת המקורות, ושום נתון אחר אינו יוצא מהמחשב הזה.')}
-      </p>
-
-      {unavailable ? (
-        <div className="assistant-status-strip" role="status">
-          <strong>{pageText(locale, 'The assistant is not available.', 'העוזר אינו זמין.')}</strong>
-          <span>{reasonLabel}</span>
-          <span>
-            {pageText(locale,
-              'To enable it, set the ANTHROPIC_API_KEY or KAIROS_ASSISTANT_API_KEY environment variable and restart the server.',
-              'להפעלה, הגדירו את משתנה הסביבה ANTHROPIC_API_KEY או KAIROS_ASSISTANT_API_KEY והפעילו מחדש את השרת.')}
-          </span>
+    <section className="page-workspace asst-workspace">
+      <div className="page-header">
+        <div>
+          <h1>{pageText(locale, 'AI assistant', 'עוזר AI')}</h1>
+          <p>{pageText(locale, 'The assistant answers from the saved data only, and any action it proposes applies only after your approval, with an automatic restore point first.', 'העוזר עונה מהנתונים השמורים בלבד, וכל פעולה שהוא מציע מוחלת רק לאחר אישור שלכם, עם נקודת שחזור אוטומטית לפני כן.')}</p>
         </div>
-      ) : null}
-
-      <div className="assistant-thread" ref={threadRef}>
-        {thread.length === 0 && !asking ? (
-          <div className="assistant-empty">
-            {pageText(locale, 'No questions asked yet in this session.', 'עוד לא נשאלו שאלות בהפעלה הנוכחית.')}
-          </div>
-        ) : null}
-        {thread.map((entry) => (
-          <article className="assistant-exchange" key={entry.id}>
-            <p className="assistant-question">{entry.question}</p>
-            {entry.answer ? <p className="assistant-answer">{entry.answer}</p> : null}
-            {entry.error ? <p className="assistant-error">{entry.error}</p> : null}
-            <footer className="assistant-meta">
-              {entry.sources.length ? (
-                <span>
-                  {pageText(locale, 'Based on: ', 'מבוסס על: ')}
-                  {entry.sources.map((source) => sourceLabel(source, locale)).join(', ')}
-                </span>
-              ) : null}
-              <time dir="ltr">{timeLabel(entry.at, locale)}</time>
-            </footer>
-          </article>
-        ))}
-        {asking ? (
-          <div className="assistant-thinking">
-            {pageText(locale, 'Computing an answer from the saved data...', 'מחשב תשובה מהנתונים השמורים...')}
-          </div>
-        ) : null}
+        <div className="asst-status" role="status">
+          <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
+          <span>{statusText}</span>
+          {status && status.model ? <code dir="ltr">{status.model}</code> : null}
+          {status && status.actions_enabled === true ? <span className="asst-chip on">{pageText(locale, 'Actions enabled', 'פעולות מופעלות')}</span> : null}
+          {status && status.actions_enabled === false ? <span className="asst-chip">{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
+        </div>
       </div>
 
-      <div className="assistant-composer">
-        <textarea
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={onComposerKeyDown}
-          rows={2}
-          maxLength={2000}
-          dir={he ? 'rtl' : 'ltr'}
-          placeholder={pageText(locale, 'Ask about the weekly plan, in Hebrew or English', 'שאלו על התוכנית השבועית, בעברית או באנגלית')}
-          disabled={asking || unavailable}
-          aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          onClick={ask}
-          disabled={asking || unavailable || !question.trim()}
-          startIcon={<Send size={14} />}
-        >
-          {pageText(locale, 'Ask', 'שאלו')}
-        </Button>
+      <div className="asst-layout">
+        <section className="page-panel asst-chat">
+          <div className="panel-head">
+            <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
+            <span>{pageText(locale, 'History is kept for this session only, up to 20 exchanges', 'ההיסטוריה נשמרת להפעלה הנוכחית בלבד, עד 20 שאלות')}</span>
+          </div>
+
+          <div className="asst-thread" ref={threadRef}>
+            {thread.length === 0 && !asking ? (
+              <div className="asst-thread-empty">
+                <Bot size={18} />
+                <p>{pageText(locale, 'No questions asked yet in this session.', 'עוד לא נשאלו שאלות בהפעלה הנוכחית.')}</p>
+                {!unavailable && statusState !== 'loading' ? (
+                  <div className="asst-suggestions">
+                    <span className="asst-suggestions-label"><Sparkles size={12} />{pageText(locale, 'You can start with one of these', 'אפשר להתחיל מאחת מאלה')}</span>
+                    {SUGGESTIONS.map((pair) => (
+                      <button type="button" className="asst-suggestion" key={pair[1]} onClick={() => pickSuggestion(pageText(locale, pair[0], pair[1]))}>
+                        {pageText(locale, pair[0], pair[1])}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {thread.map((entry) => (
+              <article className="asst-exchange" key={entry.id}>
+                <p className="asst-q" dir="auto">{entry.question}</p>
+                {entry.answer ? <div className="asst-a" dir="auto">{entry.answer}</div> : null}
+                {entry.truncated ? <p className="asst-truncated">{pageText(locale, 'The answer was shortened by the server.', 'התשובה קוצרה על ידי השרת.')}</p> : null}
+                {entry.error ? <div className="asst-a error" dir="auto">{entry.error}</div> : null}
+                {entry.batchId && batchMap[entry.batchId] ? renderProposalCard(batchMap[entry.batchId]) : null}
+                {entry.disclosure || entry.sources.length || entry.toolTrace.length ? (
+                  <details className="asst-disclosure">
+                    <summary>{pageText(locale, 'What data this is based on', 'על בסיס אילו נתונים')}</summary>
+                    {entry.disclosure ? <p dir="auto">{entry.disclosure}</p> : null}
+                    {entry.sources.length ? <p dir="ltr">{entry.sources.map(String).join(', ')}</p> : null}
+                    {entry.toolTrace.length ? (
+                      <div className="asst-trace">
+                        {entry.toolTrace.map((step, index) => (
+                          <code dir="ltr" key={index} className={step && step.ok === false ? 'fail' : ''}>{String((step && step.tool) || '?')}</code>
+                        ))}
+                      </div>
+                    ) : null}
+                  </details>
+                ) : null}
+                <footer className="asst-meta"><time dir="ltr">{timeLabel(entry.at, locale)}</time></footer>
+              </article>
+            ))}
+
+            {asking ? (
+              <div className="asst-thinking">
+                <span className="asst-thinking-dots" aria-hidden="true"><span /><span /><span /></span>
+                {pageText(locale, 'Working on an answer from the saved data', 'מכין תשובה מהנתונים השמורים')}
+              </div>
+            ) : null}
+          </div>
+
+          {unavailable ? (
+            <div className="asst-unavailable" role="status">
+              <strong>{pageText(locale, 'The assistant is not available.', 'העוזר אינו זמין.')}</strong>
+              {reasonLabel ? <span>{reasonLabel}</span> : null}
+              <span>{pageText(locale, 'To enable it, set the ANTHROPIC_API_KEY or KAIROS_ASSISTANT_API_KEY environment variable and restart the server.', 'להפעלה, הגדירו את משתנה הסביבה ANTHROPIC_API_KEY או KAIROS_ASSISTANT_API_KEY והפעילו מחדש את השרת.')}</span>
+            </div>
+          ) : null}
+
+          <div className="asst-composer">
+            <textarea
+              ref={composerRef}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={onComposerKeyDown}
+              rows={2}
+              maxLength={2000}
+              dir={he ? 'rtl' : 'ltr'}
+              placeholder={unavailable ? pageText(locale, 'The assistant is not available right now', 'העוזר אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
+              disabled={asking || unavailable}
+              aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}
+            />
+            <Button variant="contained" size="small" onClick={ask} disabled={asking || unavailable || !question.trim()} startIcon={<Send size={14} />}>
+              {pageText(locale, 'Ask', 'שאלו')}
+            </Button>
+          </div>
+          <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line.', 'מקש Enter שולח, Shift+Enter יורד שורה.')}</p>
+        </section>
+
+        <aside className="page-panel asst-rail">
+          <div className="asst-rail-tabs" role="tablist">
+            {TABS.map(([key, label]) => (
+              <button type="button" role="tab" aria-selected={railTab === key} className={`asst-tab${railTab === key ? ' active' : ''}`} key={key} onClick={() => setRailTab(key)}>
+                {label}
+                {key === 'proposals' && pendingCount > 0 ? <span className="asst-badge" dir="ltr">{pendingCount}</span> : null}
+              </button>
+            ))}
+            <button type="button" className="asst-refresh" onClick={refreshRail} disabled={refreshing} aria-label={pageText(locale, 'Refresh', 'רענון')}>
+              <RefreshCcw size={13} className={refreshing ? 'asst-spin' : ''} />
+            </button>
+          </div>
+          <div className="asst-rail-body">
+            {railTab === 'proposals' ? (
+              proposalsState === 'loading' ? (
+                <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
+              ) : proposalsState === 'error' ? (
+                <div className="asst-error-note">{pageText(locale, `Pending actions could not be loaded (${proposalsError}).`, `לא ניתן לטעון את הפעולות הממתינות (${proposalsError}).`)}</div>
+              ) : visibleBatches.length === 0 ? (
+                <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
+              ) : (
+                visibleBatches.map((batch) => renderProposalCard(batch))
+              )
+            ) : (
+              <AssistantHistory tab={railTab} locale={locale} audit={audit} restore={restore} restoringId={restoringId} onRestorePoint={restorePoint} />
+            )}
+          </div>
+        </aside>
       </div>
-      <p className="assistant-hint">
-        {pageText(locale,
-          'Enter sends, Shift+Enter adds a line. History is kept for this session only, up to 20 exchanges.',
-          'מקש Enter שולח, Shift+Enter יורד שורה. ההיסטוריה נשמרת להפעלה הנוכחית בלבד, עד 20 שאלות.')}
-      </p>
     </section>
   );
 }
