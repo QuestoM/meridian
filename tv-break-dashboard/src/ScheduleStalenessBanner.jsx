@@ -29,7 +29,7 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
   const changedLabels = {
     settings: t('settings', 'הגדרות'),
     constraints: t('constraints', 'אילוצים'),
-    overrides: t('manual overrides', 'התאמות ידניות'),
+    overrides: t('manual overrides', 'עקיפות ידניות'),
     coefficients: t('model coefficients', 'מקדמי המודל'),
     data: t('source data', 'נתוני מקור'),
   };

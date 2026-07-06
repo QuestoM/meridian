@@ -171,7 +171,14 @@ def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
     has_revenue = "revenue_ils" in frame.columns
     frame["revenue_ils"] = pd.to_numeric(_series(frame, "revenue_ils", 0), errors="coerce").fillna(0)
     frame["Duration"] = pd.to_numeric(_series(frame, "Duration", 0), errors="coerce").fillna(0)
-    frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", 0), errors="coerce").fillna(0).astype(int)
+    if "hour_of_day" not in frame.columns and "Start time" in frame.columns:
+        # The reference airings export carries the real airing time but no
+        # precomputed hour; derive it rather than collapse every spot into a
+        # fabricated midnight bucket.
+        frame["hour_of_day"] = frame["Start time"].map(
+            lambda value: getattr(value, "hour", None)
+        )
+    frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", -1), errors="coerce").fillna(-1).astype(int)
     frame["target"] = _series(frame, "is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
     valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
 

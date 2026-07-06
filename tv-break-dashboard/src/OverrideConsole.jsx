@@ -31,7 +31,11 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
     try {
       const response = await fetch(`${API_BASE}/api/overrides`);
       if (!response.ok) throw new Error(`${response.status}`);
-      setOverrides(asList(await response.json(), 'overrides'));
+      const payload = await response.json();
+      // The store groups overrides by scope ({segment: [...], spot: [...]}); flatten
+      // to one list, tolerating a flat array from older backends.
+      const grouped = payload && payload.overrides ? payload.overrides : payload;
+      setOverrides(Array.isArray(grouped) ? grouped : [...asList(grouped, 'segment'), ...asList(grouped, 'spot')]);
       setOnline(true);
     } catch {
       setOnline(false);
@@ -393,15 +397,17 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
           {!loading && online && overrides.length > 0 && (
             <div className="oc-list">
               {overrides.map((o) => {
+                const id = o.override_id || o.id;
+                const forceCount = String(o.value ?? '').trim();
                 const stale = isStale(o, segById);
                 const anchor = anchorText(o);
                 const fromRec = o.source && o.source !== 'manual';
                 return (
-                  <div className={`oc-row${stale ? ' stale' : ''}`} key={o.id}>
+                  <div className={`oc-row${stale ? ' stale' : ''}`} key={id}>
                     <div className="oc-row-main">
                       <p className="oc-row-title">{o.anchor_title || o.target_id}</p>
                       <div style={{ marginBottom: 4 }}>
-                        <span className="oc-chip kind">{kindLabel(o.kind, locale)}{o.kind === 'force' && isNum(o.value) ? ` (${o.value})` : ''}</span>
+                        <span className="oc-chip kind">{kindLabel(o.kind, locale)}{o.kind === 'force' && forceCount ? ` (${forceCount})` : ''}</span>
                         {stale
                           ? <span className="oc-chip staleflag">{pageText(locale, 'Stale', 'לא מעודכן')}</span>
                           : o.status === 'dismissed'
@@ -425,7 +431,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
                       </div>
                     </div>
                     <Button className="secondary-button compact" type="button" variant="outlined"
-                      onClick={() => handleDelete(o.id)}
+                      onClick={() => handleDelete(id)}
                       aria-label={pageText(locale, 'Delete override', 'מחיקת עקיפה')}>
                       <Trash2 size={14} />
                     </Button>

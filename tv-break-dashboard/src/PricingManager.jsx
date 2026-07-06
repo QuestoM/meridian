@@ -26,14 +26,20 @@ const POSITION_NAMES = {
   default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last', 'אחרון'],
 };
 
-function layerLabel(name) {
-  if (name === 'ad_type') return 'Ad type';
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
+// Bilingual titles + Hebrew descriptions for the stable engine layers; the API text is English-only.
+const LAYER_TEXT = {
+  program: { en: 'Programme type', he: 'סוג תוכנית', descHe: 'פרמיית מחלקת תוכנית (חדשות, תוכניות פריים, אחר). חלה תמיד.' },
+  day: { en: 'Day of week', he: 'יום בשבוע', descHe: 'פרמיית יום בשבוע. חלה תמיד.' },
+  show: { en: 'Specific show', he: 'תוכנית ספציפית', descHe: 'פרמיה לתוכנית ספציפית (למשל האח הגדול). נערמת על מחלקת התוכנית.' },
+  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (ראשון, שני, אחרון). כבויה עד להפעלה.' },
+  ad_type: { en: 'Ad type', he: 'סוג פרסומת', descHe: 'פרמיית סוג פרסומת (פרסומת, חסות, פרומו). כבויה עד להפעלה.' },
+};
 
-// Humanizes a multiplier's provenance for the breakdown. The engine tags each layer
-// "rate_card" or "override:<rule_id>"; the operator reads plain words, never the raw
-// tag, while the rule id (real, useful) is kept.
+const layerLabel = (name, locale) =>
+  (LAYER_TEXT[name] ? pageText(locale, LAYER_TEXT[name].en, LAYER_TEXT[name].he) : name.charAt(0).toUpperCase() + name.slice(1));
+
+// Humanizes a multiplier's provenance ("rate_card" / "override:<rule_id>"):
+// the operator reads plain words, never the raw tag; the rule id is kept.
 function sourceLabel(source, locale) {
   if (source === 'rate_card') return pageText(locale, 'rate card', 'כרטיס תעריפים');
   if (typeof source === 'string' && source.startsWith('override:')) {
@@ -44,8 +50,7 @@ function sourceLabel(source, locale) {
 
 // Turns a layer's raw key into a human, bilingual label so no snake_case key
 // reaches the operator. Day keys are ISO weekdays; position keys are named engine
-// slots. Program, show and ad-type keys are already human (class or show names), so
-// they pass through as their own value.
+// slots; program, show and ad-type keys are already human and pass through.
 function keyLabel(layerName, key, locale) {
   if (layerName === 'day' && DAY_NAMES[key]) {
     return pageText(locale, DAY_NAMES[key][0], DAY_NAMES[key][1]);
@@ -279,8 +284,8 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                 <div className="pricing-layer-card" key={layer.name}>
                   <div className="pricing-layer-head">
                     <div>
-                      <span className="pricing-layer-title">{layerLabel(layer.name)}</span>
-                      <p className="pricing-layer-desc">{layer.description}</p>
+                      <span className="pricing-layer-title">{layerLabel(layer.name, locale)}</span>
+                      <p className="pricing-layer-desc">{(locale === 'he' && LAYER_TEXT[layer.name] && LAYER_TEXT[layer.name].descHe) || layer.description}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span className={`pricing-chip ${chip}`}>{chipText}</span>
@@ -325,7 +330,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                               defaultValue={value}
                               key={`${layer.name}-${key}-${value}`}
                               onBlur={(event) => saveMultiplier(layer.name, key, event.target.value)}
-                              aria-label={`${layerLabel(layer.name)} ${label}`}
+                              aria-label={`${layerLabel(layer.name, locale)} ${label}`}
                             />
                           </div>
                         );
@@ -419,13 +424,13 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
               </div>
               {(breakdown.layers || []).map((layer, idx) => (
                 <div className="pricing-break-row" key={`live-${layer.name}-${idx}`}>
-                  <span>x {layerLabel(layer.name)} <span className="src">({sourceLabel(layer.source, locale)})</span></span>
+                  <span>x {layerLabel(layer.name, locale)} <span className="src">({sourceLabel(layer.source, locale)})</span></span>
                   <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
                 </div>
               ))}
               {(breakdown.wired_off_layers || []).map((layer, idx) => (
                 <div className="pricing-break-row off" key={`off-${layer.name}-${idx}`}>
-                  <span>x {layerLabel(layer.name)} <span className="src">({pageText(locale, 'wired off', 'כבוי')})</span></span>
+                  <span>x {layerLabel(layer.name, locale)} <span className="src">({pageText(locale, 'wired off', 'כבוי')})</span></span>
                   <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
                 </div>
               ))}

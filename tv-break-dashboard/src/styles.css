@@ -5803,3 +5803,35 @@ button {
 .net-compare-empty {
   font-size: var(--text-xs);
 }
+
+/* Shared honest-basis footnote: says what a figure is computed over (source has
+   no revenue column, scenario runs one channel-day, preview scope). Used on the
+   Inventory, Campaigns and Forecasts pages and the optimizer run summary. */
+.data-basis-note {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* Inside the 4-column run-summary grid the scope note spans the full row. */
+.optimizer-run-summary .optimizer-run-scope {
+  grid-column: 1 / -1;
+  padding: 8px 24px 0;
+}
+
+/* Inspector guardrail block: the measured value line under the single real
+   check, and the pointer to the schedule-wide compliance ledger. */
+.guardrail-measure {
+  display: block;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  margin-top: 2px;
+}
+
+.guardrail-footnote {
+  margin: 8px 0 0;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}

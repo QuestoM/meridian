@@ -729,7 +729,9 @@ function impactSegmentLabel(segment, locale) {
     Promo: pageText(locale, 'Promo', 'פרומו'),
     Other: pageText(locale, 'Other', 'אחר'),
   };
-  return labels[segment] || segment;
+  // Fall back to the shared genre map so classifier vocabulary stays localized
+  // here too; configured class names (for example rate-card tiers) pass through.
+  return labels[segment] || programTypeLabel(segment, locale) || segment;
 }
 
 function impactSourceLabel(source, metadata, locale) {
@@ -835,6 +837,8 @@ function daypartLabel(daypart, locale) {
 }
 
 function programTypeLabel(type, locale) {
+  // Covers the full classifier vocabulary observed in the live payloads, so
+  // genre names never leak as raw English into the Hebrew planning surfaces.
   const labels = {
     News: 'חדשות',
     Reality: 'ריאליטי',
@@ -844,6 +848,14 @@ function programTypeLabel(type, locale) {
     Promo: 'פרומו',
     Kids: 'ילדים',
     Children: 'ילדים',
+    Digital: 'דיגיטל',
+    Documentary: 'דוקומנטרי',
+    Lifestyle: 'לייפסטייל',
+    'Morning Program': 'תוכנית בוקר',
+    Music: 'מוזיקה',
+    Religious: 'תוכן דתי',
+    'Special Event': 'אירוע מיוחד',
+    'Talk Show': 'תוכנית אירוח',
     Other: 'אחר',
     Mixed: 'מעורב',
   };
@@ -2280,8 +2292,16 @@ function SummaryMetrics({ overview, copy, locale }) {
 function OptimizationRunSummary({ plan, locale }) {
   if (!plan?.summary) return null;
   const summary = plan.summary;
+  // The preview optimizes one channel-day (that is what keeps it responsive).
+  // Name that scope, so these figures are never read as weekly totals next to
+  // the whole-week metrics above.
+  const scopeParts = [plan.channel, plan.day ? dayLabel(plan.day, locale) : ''].filter(Boolean);
+  const scopeLabel = scopeParts.length
+    ? pageText(locale, `Preview scope: ${scopeParts.join(', ')} (one channel-day, not the weekly total)`, `היקף התצוגה המקדימה: ${scopeParts.join(', ')} (יום-ערוץ אחד, לא הסך השבועי)`)
+    : pageText(locale, 'Preview scope: one channel-day, not the weekly total', 'היקף התצוגה המקדימה: יום-ערוץ אחד, לא הסך השבועי');
   return (
     <section className="optimizer-run-summary">
+      <p className="data-basis-note optimizer-run-scope">{scopeLabel}</p>
       <div>
         <span>{pageText(locale, 'Optimized breaks', 'ברייקים באופטימום')}</span>
         <strong><Numeric>{formatNumber(summary.total_breaks, locale)}</Numeric></strong>
@@ -2320,12 +2340,18 @@ function RetentionCostSegment({ segment, copy, locale }) {
   const isAssumption = count === 0 || String(cost.confidence || '').toLowerCase() === 'low';
   const hasInterval = ciLow !== null && ciHigh !== null;
 
-  const name = impactSegmentLabel(segment.segment ?? segment.name ?? segment.program_type ?? '', locale) || segment.label || '';
+  // Live-plan segments carry only segment_id; fall back to it so a confidence
+  // row is never a nameless block of numbers.
+  const name =
+    impactSegmentLabel(segment.segment ?? segment.name ?? segment.program_type ?? '', locale) ||
+    segment.label ||
+    segment.segment_id ||
+    '';
 
   return (
     <div className={isAssumption ? 'retention-cost-row assumption' : 'retention-cost-row'}>
       <div className="retention-cost-row-head">
-        <strong>{name}</strong>
+        <strong dir="auto">{name}</strong>
         <span className={`retention-cost-confidence ${String(cost.confidence || '').toLowerCase()}`}>
           {isAssumption ? copy.retentionCostAssumption : confidenceWord || copy.retentionCostAssumption}
         </span>
@@ -2629,6 +2655,7 @@ function OptimizerWorkspace({
             recommendation={activeRec}
             approved={approved.has(activeRec?.id)}
             rejected={rejected.has(activeRec?.id)}
+            retentionFloor={overview.settings?.min_retention_floor}
             onApprove={onApprove}
             onReject={onReject}
             onOpenInOverrides={onOpenInOverrides}
@@ -2672,6 +2699,8 @@ function StatusBadge({ status, locale, mode = 'inline' }) {
     ready: pageText(locale, 'Ready', 'מוכן'),
     compliant: pageText(locale, 'Compliant', 'תקין'),
     at_risk: pageText(locale, 'Needs review', 'דורש בדיקה'),
+    attention: pageText(locale, 'Needs attention', 'דורש טיפול'),
+    empty: pageText(locale, 'No rows yet', 'אין שורות עדיין'),
     error: pageText(locale, 'Error', 'שגיאה'),
   };
   return <span className={`status-badge ${mode} ${normalized}`}>{labelMap[normalized] || status}</span>;
@@ -2820,6 +2849,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
           savedRetentionFloor={savedRetentionFloor}
           onApplyFloor={onApplyFrontierFloor}
           applyState={applyWeightState}
+          status={overview.frontier_status || ''}
         />
       </div>
       <YieldView locale={locale} refreshKey={refreshKey} />
@@ -2992,7 +3022,14 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
 function InventoryPage({ inventory, overview, copy, locale }) {
   const channels = normalizeRows(inventory.by_channel);
   const hours = normalizeRows(inventory.by_hour);
-  const maxRevenue = Math.max(...hours.map((row) => Number(row.revenue || 0)), 1);
+  // The spots source may carry no revenue column; the API then reports
+  // revenue: null with revenue_available: false. Say so once instead of
+  // leaving the operator to guess why every money figure is a dash.
+  const revenueAvailable = inventory.revenue_available !== false;
+  const maxHourValue = Math.max(
+    ...hours.map((row) => Number((revenueAvailable ? row.revenue : row.seconds) || 0)),
+    1,
+  );
   return (
     <section className="page-workspace">
       <PageHeader
@@ -3003,11 +3040,20 @@ function InventoryPage({ inventory, overview, copy, locale }) {
         bodyHe="בדיקת היצע ספוטים, תמהיל ערוצים ולחץ ביקוש שעתי לפני אישור תוכנית."
       />
       <section className="metric-strip page-metrics">
-        <Metric label={pageText(locale, 'Inventory spots', 'ספוטים במלאי')} value={formatNumber(inventory.summary?.spots, locale)} delta={pageText(locale, 'source', 'מקור')} icon={TableProperties} positive />
+        <Metric label={pageText(locale, 'Inventory spots', 'ספוטים במלאי')} value={formatNumber(inventory.summary?.spots, locale)} icon={TableProperties} positive />
         <Metric label={pageText(locale, 'Booked value', 'ערך מוזמן')} value={formatCurrency(inventory.summary?.revenue, locale)} icon={CircleDollarSign} positive />
-        <Metric label={pageText(locale, 'Booked minutes', 'דקות מוזמנות')} value={formatMinutes(inventory.summary?.seconds, locale)} delta={copy.nav.Schedule} icon={Clock3} />
+        <Metric label={pageText(locale, 'Booked minutes', 'דקות מוזמנות')} value={formatMinutes(inventory.summary?.seconds, locale)} icon={Clock3} positive />
         <Metric label={copy.metrics[3]} value={finiteNumber(overview.summary?.risk_score) === null ? '-' : copy.risk[riskLabel(finiteNumber(overview.summary?.risk_score))]} delta={finiteNumber(overview.summary?.risk_score) === null ? '-' : `${finiteNumber(overview.summary?.risk_score)}/100`} icon={ShieldCheck} tone="risk" />
       </section>
+      {!revenueAvailable && (
+        <p className="data-basis-note">
+          {pageText(
+            locale,
+            'The loaded spots source carries no revenue column, so money figures on this page show a dash. Upload a spots file with revenue to see booked value.',
+            'למקור הספוטים שנטען אין עמודת הכנסה, ולכן ערכים כספיים בעמוד זה מוצגים כמקף. העלו קובץ ספוטים עם הכנסה כדי לראות ערך מוזמן.',
+          )}
+        </p>
+      )}
       <div className="page-grid two-one">
         <section className="page-panel">
           <div className="panel-head">
@@ -3030,14 +3076,20 @@ function InventoryPage({ inventory, overview, copy, locale }) {
         <section className="page-panel">
           <div className="panel-head">
             <h2>{pageText(locale, 'Hourly pressure', 'לחץ לפי שעה')}</h2>
-            <span>{pageText(locale, 'Booked value', 'ערך מוזמן')}</span>
+            <span>
+              {revenueAvailable
+                ? pageText(locale, 'Booked value', 'ערך מוזמן')
+                : pageText(locale, 'Booked minutes', 'דקות מוזמנות')}
+            </span>
           </div>
           <div className="bar-list chart-ltr" dir="ltr">
             {hours.slice(0, 24).map((row) => (
               <div className="bar-row" key={row.hour_of_day}>
                 <span>{String(row.hour_of_day).padStart(2, '0')}:00</span>
-                <i style={{ '--bar': Number(row.revenue || 0) / maxRevenue }} />
-                <strong>{formatCurrency(row.revenue, locale)}</strong>
+                <i style={{ '--bar': Number((revenueAvailable ? row.revenue : row.seconds) || 0) / maxHourValue }} />
+                <strong>
+                  {revenueAvailable ? formatCurrency(row.revenue, locale) : formatMinutes(row.seconds, locale)}
+                </strong>
               </div>
             ))}
           </div>
@@ -3069,6 +3121,8 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
           rows={rows}
           columns={[
             { key: 'status', label: pageText(locale, 'Status', 'סטטוס'), status: true, minWidth: 104, flex: 0.55, render: (row) => <StatusBadge status={row.status} locale={locale} mode="cell" /> },
+            { key: 'channel', label: pageText(locale, 'Channel', 'ערוץ') },
+            { key: 'date', label: pageText(locale, 'Airing', 'שידור'), numeric: true, render: (row) => [row.date, row.start_time].filter(Boolean).join(' ') || '-' },
             { key: 'program_type', label: pageText(locale, 'Programme type', 'סוג תוכנית'), render: (row) => programTypeLabel(row.program_type, locale) },
             { key: 'position', label: pageText(locale, 'Position', 'מיקום'), render: (row) => breakPositionLabel(row.position, locale) },
             { key: 'break_type', label: pageText(locale, 'Type', 'סוג'), render: (row) => breakLengthLabel(row.break_type, locale) },
@@ -3084,6 +3138,7 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
 
 function CampaignsPage({ campaigns, copy, locale, refreshKey }) {
   const rows = normalizeRows(campaigns.campaigns);
+  const revenueAvailable = campaigns.revenue_available !== false;
   return (
     <section className="page-workspace">
       <PageHeader
@@ -3093,6 +3148,15 @@ function CampaignsPage({ campaigns, copy, locale, refreshKey }) {
         bodyEn="Track advertiser demand, booked value, channel spread, and the campaigns that constrain optimization."
         bodyHe="מעקב אחר ביקוש מפרסמים, ערך מוזמן, פיזור ערוצים והקמפיינים שמגבילים את האופטימיזציה."
       />
+      {!revenueAvailable && (
+        <p className="data-basis-note">
+          {pageText(
+            locale,
+            'The loaded spots source carries no revenue column, so campaign revenue shows a dash and campaigns are ranked by spot count.',
+            'למקור הספוטים שנטען אין עמודת הכנסה, ולכן הכנסת הקמפיינים מוצגת כמקף והקמפיינים מדורגים לפי מספר ספוטים.',
+          )}
+        </p>
+      )}
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Advertiser demand', 'ביקוש מפרסמים')}</h2>
@@ -3119,7 +3183,11 @@ function CampaignsPage({ campaigns, copy, locale, refreshKey }) {
 }
 
 function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
-  const days = normalizeRows(forecasts.by_day);
+  // The API returns days in arbitrary (alphabetical) order; present them as a
+  // week so the table reads Mon through Sun instead of a scrambled sequence.
+  const days = normalizeRows(forecasts.by_day)
+    .slice()
+    .sort((a, b) => dayKeys.indexOf(a.day) - dayKeys.indexOf(b.day));
   const scenarios = normalizeRows(forecasts.scenarios);
   const maxRevenue = Math.max(...scenarios.map((item) => Number(item.revenue || 0)), 1);
   return (
@@ -3138,15 +3206,28 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
             <span>{copy.frontierMode}</span>
           </div>
           <div className="scenario-bars chart-ltr" dir="ltr">
-            {scenarios.map((item) => (
-              <div className="scenario-row" key={item.name}>
-                <span>{scenarioNameLabel(item.name, locale)}</span>
-                <i style={{ '--bar': Number(item.revenue || 0) / maxRevenue }} />
-                <strong>{formatCurrency(item.revenue, locale)}</strong>
-                <small>{formatPercent(item.retention, locale)}</small>
-              </div>
-            ))}
+            {scenarios.map((item) => {
+              const weight = finiteNumber(item.revenue_weight);
+              const weightTitle = weight === null
+                ? undefined
+                : pageText(locale, `Revenue weight ${weight}`, `משקל הכנסה ${weight}`);
+              return (
+                <div className="scenario-row" key={item.name} title={weightTitle}>
+                  <span>{scenarioNameLabel(item.name, locale)}</span>
+                  <i style={{ '--bar': Number(item.revenue || 0) / maxRevenue }} />
+                  <strong>{formatCurrency(item.revenue, locale)}</strong>
+                  <small>{formatPercent(item.retention, locale)}</small>
+                </div>
+              );
+            })}
           </div>
+          <p className="data-basis-note">
+            {pageText(
+              locale,
+              'Each scenario is a real optimizer run on one representative channel-day under the saved guardrails. These figures are not weekly totals; the daily forecast below sums the whole saved weekly plan.',
+              'כל תרחיש הוא ריצת אופטימיזציה אמיתית על יום-ערוץ מייצג אחד תחת הבקרות השמורות. אלה אינם סכומים שבועיים; התחזית היומית מטה מסכמת את התוכנית השבועית השמורה כולה.',
+            )}
+          </p>
         </section>
         <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} netPoint={overview.frontier_net_point || null} />
       </div>
@@ -3178,6 +3259,26 @@ function ReportsPage({ reports, files, copy, locale }) {
   function exportReports() {
     downloadJson('kairos-report-package.json', { reports: reportRows, sources: fileRows });
   }
+  // The API sends English-only titles/owners with stable report ids; localize
+  // the known ids and fall back to the raw payload text for any new report.
+  function reportTitle(report) {
+    const titles = {
+      'weekly-plan': pageText(locale, 'Weekly traffic plan', 'תוכנית טראפיק שבועית'),
+      compliance: pageText(locale, 'Compliance and guardrails', 'תאימות ובקרות'),
+      revenue: pageText(locale, 'Revenue forecast', 'תחזית הכנסה'),
+      'data-quality': pageText(locale, 'Source file audit', 'בקרת קבצי מקור'),
+    };
+    return titles[report.id] || report.title;
+  }
+  function reportOwner(report) {
+    const owners = {
+      'weekly-plan': pageText(locale, 'Traffic', 'טראפיק'),
+      compliance: pageText(locale, 'Legal / Ops', 'משפטי / תפעול'),
+      revenue: pageText(locale, 'Revenue', 'הכנסות'),
+      'data-quality': pageText(locale, 'Data', 'נתונים'),
+    };
+    return owners[report.id] || report.owner;
+  }
   return (
     <section className="page-workspace">
       <PageHeader
@@ -3197,8 +3298,8 @@ function ReportsPage({ reports, files, copy, locale }) {
         {reportRows.map((report) => (
           <article className="report-card" key={report.id}>
             <div>
-              <strong>{report.title}</strong>
-              <span>{report.owner}</span>
+              <strong>{reportTitle(report)}</strong>
+              <span>{reportOwner(report)}</span>
             </div>
             <StatusBadge status={report.status} locale={locale} />
             <small>{formatNumber(report.rows, locale)} {pageText(locale, 'rows', 'שורות')}</small>
@@ -3287,10 +3388,10 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
         bodyHe="מעקב אחר רעננות מקורות, תוצרי מודל וקבצי הסבר שתומכים בהחלטות האופטימיזציה."
       />
       <section className="metric-strip page-metrics">
-        <Metric label={pageText(locale, 'Programmes', 'תוכניות')} value={formatNumber(overview.source_counts?.programmes, locale)} delta={copy.nav.Schedule} icon={CalendarDays} positive />
-        <Metric label={pageText(locale, 'Spots', 'ספוטים')} value={formatNumber(overview.source_counts?.spots, locale)} delta={copy.nav.Inventory} icon={TableProperties} positive />
-        <Metric label={pageText(locale, 'Plan rows', 'שורות תכנון')} value={formatNumber(overview.source_counts?.planned_break_rows, locale)} delta={copy.nav['Break Library']} icon={ClipboardCheck} />
-        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length}`} delta={copy.data} icon={Database} positive />
+        <Metric label={pageText(locale, 'Programmes', 'תוכניות')} value={formatNumber(overview.source_counts?.programmes, locale)} icon={CalendarDays} positive />
+        <Metric label={pageText(locale, 'Spots', 'ספוטים')} value={formatNumber(overview.source_counts?.spots, locale)} icon={TableProperties} positive />
+        <Metric label={pageText(locale, 'Plan rows', 'שורות תכנון')} value={formatNumber(overview.source_counts?.planned_break_rows, locale)} icon={ClipboardCheck} positive />
+        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length}`} icon={Database} positive />
       </section>
       <div className="page-grid two-one">
         <section className="page-panel">
@@ -3319,6 +3420,12 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
             <ImpactPreview title={pageText(locale, 'Position impact', 'השפעת מיקום')} rows={positionImpacts} locale={locale} />
             <ImpactPreview title={pageText(locale, 'Length impact', 'השפעת אורך')} rows={lengthImpacts} locale={locale} />
             <DriftMonitorCard drift={impact.drift} locale={locale} />
+            {typeof measuredImpacts.pooling_note === 'string' && measuredImpacts.pooling_note.trim() && (
+              <p className="data-basis-note">
+                {pageText(locale, 'Model reliability note:', 'הערת מהימנות מהמודל:')}{' '}
+                <span dir="ltr">{measuredImpacts.pooling_note}</span>
+              </p>
+            )}
           </div>
         </section>
       </div>
@@ -3981,7 +4088,12 @@ function ProgramCell({
   onSelect,
 }) {
   if (!program) return <div className="program-cell empty" />;
-  const markers = Array.from({ length: Math.max(1, Math.min(10, markerCount || program.break_markers || 1)) });
+  // Marker dots mirror the planned break count; zero breaks shows zero dots
+  // (the fixed-height strip keeps the cell layout stable) instead of a
+  // fabricated minimum of one.
+  const markers = Array.from({
+    length: Math.max(0, Math.min(10, Number(markerCount ?? program.break_markers ?? 0) || 0)),
+  });
   const revenue = totalRevenue ?? program.revenue;
   const retention = averageRetention ?? program.retention;
   const meta = programCount > 1
@@ -4018,16 +4130,31 @@ function ProgramCell({
   );
 }
 
-function Inspector({ selectedProgram, recommendation, approved, rejected, onApprove, onReject, onOpenInOverrides, onApplySimilar, onExport, onClose, copy, locale }) {
+function Inspector({ selectedProgram, recommendation, approved, rejected, retentionFloor, onApprove, onReject, onOpenInOverrides, onApplySimilar, onExport, onClose, copy, locale }) {
   const recActionable = Boolean(recommendation?.actionable && recommendation?.segment_id && recommendation?.proposed_kind);
   const approvalLabel = rejected ? pageText(locale, 'Rejected', 'נדחה') : approved ? copy.approved : copy.pending;
   const [exportScope, setExportScope] = useState('Break detail');
   const selectedBreak = selectedProgram?.selected_break;
-  const durationSeconds = Number(selectedBreak?.duration_sec || selectedProgram?.duration_minutes * 60 || 120);
-  const breakNumber = selectedBreak?.break_num_in_program || 1;
-  const breakTotal = selectedBreak?.breaks_in_program || selectedProgram?.break_markers || 1;
-  const retentionValue = Number(selectedProgram?.retention ?? recommendation?.retention ?? 0);
-  const retentionAtRisk = retentionValue > 0 && retentionValue < 72;
+  // Real values only: a missing duration, retention or spot count renders as a
+  // dash, never a stand-in number dressed up as data.
+  const durationSeconds =
+    finiteNumber(selectedBreak?.duration_sec) ??
+    (finiteNumber(selectedProgram?.duration_minutes) !== null ? Number(selectedProgram.duration_minutes) * 60 : null);
+  const breakNumber = finiteNumber(selectedBreak?.break_num_in_program);
+  const breakTotal = finiteNumber(selectedBreak?.breaks_in_program) ?? finiteNumber(selectedProgram?.break_markers);
+  const breakContext = breakNumber !== null && breakTotal !== null
+    ? pageText(locale, `break ${breakNumber} of ${breakTotal}`, `ברייק ${breakNumber} מתוך ${breakTotal}`)
+    : breakTotal !== null
+      ? pageText(locale, `${formatNumber(breakTotal, locale)} breaks`, `${formatNumber(breakTotal, locale)} ברייקים`)
+      : '';
+  const retentionValue = finiteNumber(selectedProgram?.retention ?? recommendation?.retention);
+  const floorPercent = finiteNumber(retentionFloor) !== null ? Math.round(Number(retentionFloor) * 100) : null;
+  const retentionState =
+    retentionValue === null || floorPercent === null
+      ? 'unknown'
+      : retentionValue < floorPercent
+        ? 'at_risk'
+        : 'compliant';
   return (
     <aside className="inspector" aria-label="Selected break inspector">
       <div className="inspector-head">
@@ -4038,12 +4165,12 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
       </div>
 
       <div className="selected-program">
-        <span className="channel-badge">{selectedProgram?.channel?.slice(0, 2) || 'K1'}</span>
+        <span className="channel-badge">{selectedProgram?.channel?.slice(0, 2) || '?'}</span>
         <div>
-          <strong>{selectedProgram?.title || 'Selected program'}</strong>
+          <strong>{selectedProgram?.title || pageText(locale, 'No program selected', 'לא נבחרה תוכנית')}</strong>
           <small>
-            {selectedProgram?.channel || 'KAI 1'} / {selectedProgram?.time || '20:00'} /{' '}
-            {locale === 'he' ? `ברייק ${breakNumber} מתוך ${breakTotal}` : `break ${breakNumber} of ${breakTotal}`}
+            {[selectedProgram?.channel, selectedProgram?.time, breakContext].filter(Boolean).join(' / ') ||
+              pageText(locale, 'Select a cell in the planner', 'בחרו תא במשטח התכנון')}
           </small>
         </div>
         <span className={rejected ? 'approval rejected' : approved ? 'approval approved' : 'approval'}>{approvalLabel}</span>
@@ -4051,48 +4178,68 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
 
       <dl className="detail-list">
         <div><dt>{copy.detail[0]}</dt><dd>{formatCurrency(selectedProgram?.revenue, locale)}</dd></div>
-        <div><dt>{copy.detail[1]}</dt><dd>{formatPercent(retentionValue || 72.3, locale)}</dd></div>
+        <div><dt>{copy.detail[1]}</dt><dd>{formatPercent(retentionValue, locale)}</dd></div>
         <div><dt>{copy.detail[2]}</dt><dd>{formatMinutes(durationSeconds, locale)}</dd></div>
-        <div><dt>{copy.detail[3]}</dt><dd>{formatNumber(selectedBreak?.sponsorships_count ?? selectedProgram?.break_markers ?? 0, locale)}</dd></div>
+        <div><dt>{copy.detail[3]}</dt><dd>{formatNumber(selectedBreak?.sponsorships_count, locale)}</dd></div>
       </dl>
 
       <div className="guardrail-block">
         <h3>{copy.guardrails}</h3>
-        {[
-          locale === 'he' ? 'דקות פרסום בשעה' : 'Max ads per hour',
-          locale === 'he' ? 'אורך ברייק מינימלי' : 'Minimum break length',
-          locale === 'he' ? 'הגנת תוכנית' : 'Program protection',
-          locale === 'he' ? 'רף שימור' : 'Retention floor',
-        ].map((item, index) => {
-          const isAtRisk = index === 3 && retentionAtRisk;
-          return (
-            <div className="guardrail-row" key={item}>
-              <span>{item}</span>
-              <strong className={isAtRisk ? 'guardrail-state at-risk' : 'guardrail-state'}>{isAtRisk ? copy.atRisk : copy.compliant}</strong>
-              <span className={isAtRisk ? 'guardrail-indicator at-risk' : 'guardrail-indicator'}>
-                {isAtRisk ? <Numeric>{`${formatNumber(retentionValue - 72, locale)}pp`}</Numeric> : <Check size={14} />}
-              </span>
-            </div>
-          );
-        })}
+        <div className="guardrail-row">
+          <span>{pageText(locale, 'Retention floor', 'רף שימור')}</span>
+          <strong className={retentionState === 'at_risk' ? 'guardrail-state at-risk' : 'guardrail-state'}>
+            {retentionState === 'at_risk'
+              ? copy.atRisk
+              : retentionState === 'compliant'
+                ? copy.compliant
+                : pageText(locale, 'Not measured', 'לא נמדד')}
+          </strong>
+          <span className={retentionState === 'at_risk' ? 'guardrail-indicator at-risk' : 'guardrail-indicator'}>
+            {retentionState === 'at_risk' ? (
+              <Numeric>{`${formatNumber(retentionValue - floorPercent, locale)}pp`}</Numeric>
+            ) : retentionState === 'compliant' ? (
+              <Check size={14} />
+            ) : (
+              <Numeric>-</Numeric>
+            )}
+          </span>
+        </div>
+        {retentionState !== 'unknown' && (
+          <small className="guardrail-measure">
+            <Numeric>{`${formatNumber(retentionValue, locale)}% / ${formatNumber(floorPercent, locale)}%`}</Numeric>
+          </small>
+        )}
+        <p className="guardrail-footnote">
+          {pageText(
+            locale,
+            'Schedule-wide checks (ad minutes, spacing, protected content) live in the compliance ledger below.',
+            'בדיקות לכלל הלוח (דקות פרסום, מרווחים, תוכן מוגן) מוצגות ביומן התאימות מטה.',
+          )}
+        </p>
       </div>
 
       <div className="recommendation-block">
         <h3>{copy.recommendation}</h3>
-        <strong>{recommendationTitle(recommendation, locale)}</strong>
-        <p>{recommendationRationale(recommendation, locale)}</p>
-        <div className="recommendation-meta">
-          <span>{copy.risk[recommendation?.risk || 'Medium'] || recommendation?.risk}</span>
-          <span>{formatCurrency(recommendation?.impact || 0, locale)}</span>
-        </div>
+        {recommendation ? (
+          <>
+            <strong>{recommendationTitle(recommendation, locale)}</strong>
+            <p>{recommendationRationale(recommendation, locale)}</p>
+            <div className="recommendation-meta">
+              <span>{copy.risk[recommendation.risk] || recommendation.risk || copy.risk.Unknown}</span>
+              <span>{formatCurrency(recommendation.impact, locale)}</span>
+            </div>
+          </>
+        ) : (
+          <p>{pageText(locale, 'No recommendation for the current selection.', 'אין המלצה עבור הבחירה הנוכחית.')}</p>
+        )}
       </div>
 
       <div className="inspector-actions">
-        <Button className="primary-action" type="button" variant="contained" onClick={onApprove}>
+        <Button className="primary-action" type="button" variant="contained" disabled={!recommendation} onClick={onApprove}>
           {approved ? copy.approved : copy.approve}
         </Button>
-        <Button className={rejected ? 'secondary-button active' : 'secondary-button'} type="button" variant="outlined" onClick={onReject}>{copy.reject}</Button>
-        <Button className="secondary-button" type="button" variant="outlined" onClick={onApplySimilar}>{copy.applySimilar}</Button>
+        <Button className={rejected ? 'secondary-button active' : 'secondary-button'} type="button" variant="outlined" disabled={!recommendation} onClick={onReject}>{copy.reject}</Button>
+        <Button className="secondary-button" type="button" variant="outlined" disabled={!recommendation} onClick={onApplySimilar}>{copy.applySimilar}</Button>
         {recActionable && (
           <Button className="secondary-button" type="button" variant="outlined" onClick={onOpenInOverrides}>
             {pageText(locale, 'Open in overrides', 'פתיחה בעקיפות')}

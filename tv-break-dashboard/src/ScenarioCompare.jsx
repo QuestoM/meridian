@@ -173,6 +173,15 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
 
       {status === 'ready' && payload && (
         <>
+          {payload.a?.channel && payload.a?.day && (
+            <p className="data-basis-note">
+              {pageText(
+                locale,
+                `Both runs optimize one representative channel-day (${payload.a.channel}, ${payload.a.day}), not the weekly total.`,
+                `שני התרחישים מחושבים על יום-ערוץ מייצג אחד (${payload.a.channel}, ${payload.a.day}), לא על הסך השבועי.`,
+              )}
+            </p>
+          )}
           <div className="scenario-grid">
             <SummaryCard title={pageText(locale, 'Scenario A', 'תרחיש A')} summary={payload.a} accent="accent-a" locale={locale} />
             <div className="scenario-arrow" aria-hidden="true"><Flow size={18} /></div>

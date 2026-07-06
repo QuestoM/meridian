@@ -62,8 +62,8 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
           <p>
             {pageText(
               locale,
-              'Under-delivery alerts need real campaign flights. Upload campaign_flights.csv with flight dates and goals to start tracking pacing and make-good risk.',
-              'התראות תת-אספקה דורשות נתוני טיסות קמפיין אמיתיים. העלו את campaign_flights.csv עם תאריכי טיסה ויעדים כדי להתחיל לעקוב אחר קצב ואחר סיכון פיצוי.',
+              'Under-delivery alerts need real campaign flights. Upload campaign_flights.csv with start and end dates and delivery goals to start tracking pacing and make-good risk.',
+              'התראות תת-אספקה דורשות נתוני קמפיינים אמיתיים. העלו את campaign_flights.csv עם תאריכי התחלה וסיום ויעדי אספקה כדי להתחיל לעקוב אחר קצב ואחר סיכון פיצוי.',
             )}
           </p>
           {payload?.reason && <small className="makegood-reason">{payload.reason}</small>}
