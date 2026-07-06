@@ -2539,6 +2539,120 @@ button {
   text-align: end;
 }
 
+/* Audience level stability card: the weekly level-drift monitor shown with the
+   model explainability extracts on the Data page. */
+.drift-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.drift-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.drift-stat strong {
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.drift-stat small {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.drift-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.drift-chip.binding {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.drift-week-block {
+  display: grid;
+  gap: 6px;
+}
+
+.drift-strip-caption {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.drift-week-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drift-week {
+  display: grid;
+  gap: 3px;
+  min-width: 64px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.drift-week small {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.drift-week strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.drift-week-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: #edf0f3;
+  overflow: hidden;
+}
+
+.drift-week-bar i {
+  display: block;
+  width: var(--drift-week-width);
+  height: 100%;
+  background: var(--teal);
+}
+
+.drift-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+.drift-reason {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
 .parameter-ledger {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);

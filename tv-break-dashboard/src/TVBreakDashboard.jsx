@@ -3299,6 +3299,7 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
             <ImpactPreview title={pageText(locale, 'Programme type impact', 'השפעת סוג תוכנית')} rows={programImpacts} locale={locale} />
             <ImpactPreview title={pageText(locale, 'Position impact', 'השפעת מיקום')} rows={positionImpacts} locale={locale} />
             <ImpactPreview title={pageText(locale, 'Length impact', 'השפעת אורך')} rows={lengthImpacts} locale={locale} />
+            <DriftMonitorCard drift={impact.drift} locale={locale} />
           </div>
         </section>
       </div>
@@ -3344,6 +3345,82 @@ function ImpactPreview({ title, rows, locale }) {
           );
         })
       )}
+    </div>
+  );
+}
+
+// Log-effect values are close enough to fractional level changes at the drift
+// monitor's magnitudes, so value * 100 is shown as a signed percent-like figure.
+function formatDriftPercent(value, locale) {
+  const number = finiteNumber(value);
+  if (number === null) return EMPTY_VALUE;
+  const points = number * 100;
+  const sign = points > 0 ? '+' : '';
+  return `${sign}${points.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { maximumFractionDigits: 2 })}%`;
+}
+
+// Audience level stability: surfaces the weekly level-drift measurement the
+// coefficient rebuild stores in the artifact metadata and /api/impact echoes
+// as `drift`. Renders the measured block or the honest absent reason; when the
+// backend sends no verdict, none is invented here.
+function DriftMonitorCard({ drift, locale }) {
+  const block = drift && typeof drift === 'object' ? drift : null;
+  const title = pageText(locale, 'Audience level stability', 'יציבות רמת הצפייה');
+  if (!block || block.status !== 'measured') {
+    const reason = typeof block?.reason === 'string' && block.reason.trim() ? block.reason : null;
+    return (
+      <div className="impact-preview drift-card">
+        <header>
+          <strong>{title}</strong>
+          <small>{pageText(locale, 'Weekly monitor', 'ניטור שבועי')}</small>
+        </header>
+        <p className="drift-note">{pageText(locale, 'No level-drift measurement is available for the current coefficients.', 'מדידת סחיפת הרמה אינה זמינה עבור המקדמים הנוכחיים.')}</p>
+        {reason ? <p className="drift-reason" dir="ltr">{reason}</p> : null}
+      </div>
+    );
+  }
+  const driftLabel = formatDriftPercent(block.drift_per_week, locale);
+  const seNumber = finiteNumber(block.drift_se);
+  const seLabel = seNumber === null ? null : `± ${(seNumber * 100).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { maximumFractionDigits: 2 })}%`;
+  const bindingState = block.binding === true ? 'binding' : block.binding === false ? 'stable' : 'unknown';
+  const chipLabel = bindingState === 'binding' ? pageText(locale, 'Needs attention', 'דורש תשומת לב') : bindingState === 'stable' ? pageText(locale, 'Stable', 'יציב') : pageText(locale, 'Not determined', 'לא נקבע');
+  const weeks = normalizeRows(block.weekly_levels);
+  const means = weeks.map((week) => finiteNumber(week.mean_log_effect)).filter((value) => value !== null);
+  const minMean = means.length ? Math.min(...means) : 0;
+  const meanSpan = means.length ? Math.max(...means) - minMean : 0;
+  return (
+    <div className="impact-preview drift-card">
+      <header>
+        <strong>{title}</strong>
+        <small><Numeric>{formatNumber(block.n_weeks, locale)}</Numeric> {pageText(locale, 'weeks', 'שבועות')}, <Numeric>{formatNumber(block.n_breaks, locale)}</Numeric> {pageText(locale, 'breaks', 'ברייקים')}</small>
+      </header>
+      <div className="drift-headline">
+        <div className="drift-stat">
+          <strong><Numeric>{seLabel ? `${driftLabel} ${seLabel}` : driftLabel}</Numeric></strong>
+          <small>{pageText(locale, 'Drift per week', 'סחיפה לשבוע')}</small>
+        </div>
+        <span className={`drift-chip ${bindingState}`} title={typeof block.criterion === 'string' ? block.criterion : undefined}>{chipLabel}</span>
+      </div>
+      {weeks.length > 0 ? (
+        <div className="drift-week-block">
+          <small className="drift-strip-caption">{pageText(locale, 'Weekly mean level', 'רמה שבועית ממוצעת')}</small>
+          <div className="drift-week-strip">
+            {weeks.map((week, index) => {
+              const mean = finiteNumber(week.mean_log_effect);
+              const ratio = mean === null || meanSpan <= 0 ? 1 : (mean - minMean) / meanSpan;
+              return (
+                <div className="drift-week" key={`drift-week-${week.week ?? index}`}>
+                  <small>{pageText(locale, `Week ${week.week ?? index + 1}`, `שבוע ${week.week ?? index + 1}`)}</small>
+                  <span className="drift-week-bar" aria-hidden="true"><i style={{ '--drift-week-width': `${Math.round(12 + ratio * 88)}%` }} /></span>
+                  <strong><Numeric>{formatDriftPercent(mean, locale)}</Numeric></strong>
+                  <small><Numeric>{`n=${formatNumber(week.n, locale)}`}</Numeric></small>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+      <p className="drift-note">{pageText(locale, "The plan's coefficients assume a steady audience level. A drift above the threshold means the weekly level moves more than the measurement's own precision, so recompute the coefficients when new data lands.", 'מקדמי התוכנית מניחים רמת צפייה יציבה. סחיפה מעל הסף פירושה שהרמה השבועית זזה יותר מדיוק המדידה עצמה, ולכן מומלץ לחשב את המקדמים מחדש כשנקלטים נתונים חדשים.')}</p>
     </div>
   );
 }
