@@ -231,7 +231,7 @@ def test_composed_context_excludes_competitor_channel_names() -> None:
 
 # --- invariant 2: secret and internals containment ----------------------------------
 def test_poisoned_executor_crash_surfaces_type_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    def boom(args: dict[str, Any]) -> dict[str, Any]:
+    def boom(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
         raise Exception(f"ANTHROPIC_API_KEY={FAKE_SECRET} loaded at {FAKE_PATH}")
 
     monkeypatch.setitem(tools._READ_EXECUTORS, "get_settings", boom)

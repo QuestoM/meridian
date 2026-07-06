@@ -3,18 +3,16 @@
 The action plane is review-first: the model only CAPTURES proposals
 (kairos_api.assistant_tools); nothing mutates until an operator or admin
 approves items here, and the apply engine then replays each approved item
-through the SAME validated code path the manual UI uses (route functions
-imported from the owning routers), never raw file writes. Safety invariants,
-each covered by tests: a restore point is snapshotted BEFORE the first
-mutation, copying exactly the state files the approved items touch and
-restorable byte-for-byte, pruned beyond the newest 20; a failed item records
-{status: 'failed', error} and the rest continue; recompute runs through the
-async job registry and records the job id; apply/reject/restore require the
-operator or admin role via the auth seam (403 for a viewer; allowed and
-logged as 'auth-disabled' when auth is off); every transition is appended to
-the audit log exactly as it happened, including failures. Runtime state lives
-under data/assistant/ (gitignored); tests relocate it with
-KAIROS_ASSISTANT_DATA_DIR, mirroring the KAIROS_AUTH_DIR pattern.
+through the SAME validated code path the manual UI uses, never raw file writes.
+Safety invariants, each covered by tests: a restore point is snapshotted BEFORE
+the first mutation, copying exactly the state files the approved items touch and
+restorable byte-for-byte, pruned beyond the newest 20; the same pre-apply state
+is also recorded in the unified version timeline (kairos_api.version_store); a
+failed item records {status: 'failed', error} and the rest continue; recompute
+runs through the async job registry; apply/reject/restore require the operator
+or admin role via the auth seam (403 for a viewer, 'auth-disabled' when off);
+every transition is audited. Runtime state lives under data/assistant/
+(gitignored); tests relocate it with KAIROS_ASSISTANT_DATA_DIR.
 """
 
 from __future__ import annotations
@@ -192,6 +190,10 @@ def _state_files_for(kinds: set[str]) -> list[Path]:
         files.append(Path(constraints_api.CONSTRAINTS_PATH))
     if "override" in kinds:
         files.append(Path(overrides_api.OVERRIDES_PATH))
+    if "advertiser_change" in kinds:
+        from kairos_api import advertisers as advertisers_api
+
+        files.append(Path(advertisers_api.RULES_PATH))
     return files
 
 
@@ -345,6 +347,28 @@ def _expand_days(days: list[str]) -> list[dict[str, str]]:
     return pairs
 
 
+def _apply_advertiser(payload: dict[str, Any]) -> dict[str, Any]:
+    """Create or edit one advertiser through the real advertisers store. request is
+    None (programmatic), so the store skips its own manual-edit snapshot; the assistant
+    restore point taken before this apply covers the advertiser rules file."""
+    from kairos_api.advertisers import (
+        AdvertiserCreate,
+        AdvertiserUpdate,
+        create_advertiser,
+        update_advertiser,
+    )
+
+    name = str(payload.get("advertiser_name") or "").strip()
+    changes = dict(payload.get("changes") or {})
+    if not name or not changes:
+        raise ValueError("advertiser change needs an advertiser_name and non-empty changes")
+    if payload.get("create"):
+        record = create_advertiser(AdvertiserCreate(advertiser_id=name, **changes), request=None)
+    else:
+        record = update_advertiser(name, AdvertiserUpdate(**changes), request=None)
+    return {"advertiser_id": record.get("advertiser_id")}
+
+
 def _apply_recompute(payload: dict[str, Any]) -> dict[str, Any]:
     from kairos_api.recompute_api import RecomputeJobRequest, start_recompute_job
 
@@ -358,7 +382,8 @@ def _apply_recompute(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 _APPLIERS = {"settings": _apply_settings, "constraint": _apply_constraint,
-             "override": _apply_override, "pricing": _apply_pricing, "recompute": _apply_recompute}
+             "override": _apply_override, "pricing": _apply_pricing,
+             "recompute": _apply_recompute, "advertiser_change": _apply_advertiser}
 
 
 class ItemIdsRequest(BaseModel):
@@ -411,6 +436,8 @@ def _resolve_items(
             kinds = {str(by_id[item_id].get("kind")) for item_id in approved}
             extra["restore_id"] = _snapshot(_state_files_for(kinds), batch_id, approved)
             extra["pruned_restore_points"] = _prune_restore_points() or None
+            from kairos_api import version_store  # unified version timeline
+            version_store.snapshot_assistant_apply(kinds, batch, user)
         results: list[dict[str, Any]] = []
         for item_id in requested:
             item = by_id.get(item_id)
