@@ -67,3 +67,6 @@ output/*.meta.json
 
 # Kairos login store (per-deployment credentials, never committed)
 data/auth/
+
+# Assistant action-plane runtime state (proposals, restore points, audit log)
+data/assistant/

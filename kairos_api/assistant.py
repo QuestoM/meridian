@@ -3,15 +3,15 @@
 The ask endpoint composes a compact context from the SAME internal builders the
 dashboard endpoints use (overview summary, schedule freshness verdict, yield
 totals, top recommendations, saved settings essentials, plan counts), plus the
-day-level grounding built in kairos_api.assistant_context: an always-included
-per-day table of the operator's own channel and, when the question names a date
-the saved plan contains, that day's segment detail, all kept under a serialized
-character budget with honest truncation flags. The context goes to Claude with
-a system prompt that forbids answering beyond it, and the response carries a
-grounding manifest naming every section that was included. A section whose
-builder fails is omitted and listed as absent, never fabricated. Without an API
-key both routes stay up and report available false honestly instead of
-guessing.
+day-level grounding built in kairos_api.assistant_context, all kept under a
+serialized character budget with honest truncation flags. With an API key
+present the question runs through an Anthropic tool-use loop: READ tools are
+executed immediately against the real routers' builders, and PROPOSE tools are
+captured as pending proposal items (kairos_api.assistant_actions) that only an
+operator's explicit approval ever applies. The response carries a grounding
+manifest, the tool trace (names only) and the captured proposal batch; a
+section whose builder fails is omitted and listed as absent, never fabricated.
+Without an API key both routes stay up and report available false honestly.
 """
 
 from __future__ import annotations
@@ -24,58 +24,70 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from kairos_api import assistant_context
+from kairos_api import assistant_actions, assistant_context, assistant_tools
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
+router.include_router(assistant_actions.router)
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
 MODEL_ENV = "KAIROS_ASSISTANT_MODEL"
 KEY_ENVS = ("ANTHROPIC_API_KEY", "KAIROS_ASSISTANT_API_KEY")
 KEY_MISSING_REASON = "API key not configured"
+ACTIONS_ENV = "KAIROS_ASSISTANT_ACTIONS"
+ACTIONS_DISABLED_REASON = f"disabled by {ACTIONS_ENV}"
 ASK_TIMEOUT_SECONDS = 30.0
-MAX_ANSWER_TOKENS = 1000
+MAX_ANSWER_TOKENS = 1000  # plain Q&A call when the action plane is off
+LOOP_MAX_TOKENS = 1500
+MAX_TOOL_ITERATIONS = 6
 ANSWER_TEMPERATURE = 0.2
 RATE_LIMIT_ASKS = 10
 RATE_LIMIT_WINDOW_SECONDS = 60.0
 
-# The grounding contract. Every rule here is load-bearing: the assistant may
-# only restate what the composed context carries, must name missing data
-# instead of guessing, and never crosses the competitor-information boundary.
+# The grounding contract. Every rule is load-bearing: the assistant may only
+# restate what the composed context and this turn's tool results carry, must
+# name missing data instead of guessing, never crosses the competitor boundary,
+# and never presents a proposal as an executed change.
 SYSTEM_PROMPT = (
     "You are the Kairos schedule analyst, the in-product assistant of a TV ad-break "
     "revenue optimizer. The user message contains a CONTEXT block of JSON computed "
-    "from the operator's saved data, followed by the operator's QUESTION. "
+    "from the operator's saved data, followed by the operator's QUESTION. Tools let "
+    "you read more saved state and propose changes for review. "
     "Rules, in priority order: "
-    "1. Grounding: every number, count, date, currency amount and verdict in your "
-    "answer must be taken from the CONTEXT block. Never invent, estimate, extrapolate "
-    "or recall figures from memory or general knowledge. "
-    "2. Missing data: when the question needs data that is not present in CONTEXT, "
-    "say exactly that, name the specific missing data, and stop. A source section "
-    "marked absent failed to load and its data is unavailable. "
-    "3. Competitor boundary: never state, estimate or speculate about competitor "
-    "revenue or competitor performance. The context covers only the operator's own "
-    "channel; say so when asked about competitors. Competitor channels appear in "
-    "CONTEXT only as aggregate counts, never by name or by figure. "
-    "4. Context layout: per_day_plan is a per-day table of the operator's own "
+    "1. Language: Hebrew first. Mirror the language of the question; when the "
+    "question is in Hebrew, answer in natural Hebrew. "
+    "2. Grounding: every number, count, date, currency amount and verdict in your "
+    "answer must be taken from the CONTEXT block or from a tool result in this "
+    "conversation, and when you state a figure, name the context section or tool "
+    "it came from. Never invent, estimate, extrapolate or recall figures from "
+    "memory or general knowledge. "
+    "3. Missing data: when the question needs data that is in neither CONTEXT nor "
+    "a read tool's result, say exactly that, name the specific missing data, and "
+    "stop. A source section marked absent failed to load and is unavailable. "
+    "4. Proposals: you never change anything yourself. A propose_* tool only "
+    "records a proposal; the operator reviews and approves or rejects it, and only "
+    "approved items are applied. Say this plainly whenever you propose. Propose "
+    "related changes together in one turn (for example a settings change plus the "
+    "recompute that makes it take effect), each with a concrete reason. "
+    "5. Competitor boundary: the operator owns exactly one channel; never state, "
+    "estimate or speculate about competitor revenue or competitor performance, and "
+    "never propose or discuss actions on another channel. Competitor channels "
+    "appear in CONTEXT only as aggregate counts, never by name or by figure. "
+    "6. Context layout: per_day_plan is a per-day table of the operator's own "
     "channel (date, weekday, breaks, revenue in ILS, average retention percent). "
     "When the question names a date, weekday or time found in the saved plan, "
     "day_detail sections carry that day's segments ordered by revenue, highest "
-    "first; the start field is each segment's clock time, and matched_full_rows "
-    "carries the complete saved fields for segments matching a time or programme "
-    "type named in the question. "
-    "5. Truncation: when a day_detail section carries truncated true, or the "
+    "first, and matched_full_rows carries the complete saved fields for segments "
+    "matching a time or programme type named in the question. "
+    "7. Truncation: when a day_detail section carries truncated true, or the "
     "context carries day_detail_truncated true, rows were cut to fit the context "
-    "budget. When your answer relies on such a section, state that it is based on "
-    "a truncated list. "
-    "6. Language: answer in the language of the question. When the question is in "
-    "Hebrew, answer in natural Hebrew. "
-    "7. Currency: monetary amounts are in ILS unless the context states otherwise. "
-    "8. Style: keep answers short and concrete, plain text only, no markdown "
-    "formatting. Prefer two to six sentences, or a short plain list when the "
-    "operator asks for several figures."
+    "budget. When your answer relies on such a section, say so. "
+    "8. Currency and units: monetary amounts are in ILS unless the context states "
+    "otherwise; attach units to every number. "
+    "9. Style: short and concrete, plain text only, no markdown formatting. Prefer "
+    "two to six sentences, or a short plain list for several figures."
 )
 
 
@@ -100,6 +112,11 @@ def _api_key() -> str | None:
 
 def _model_name() -> str:
     return os.environ.get(MODEL_ENV, "").strip() or DEFAULT_MODEL
+
+
+def _actions_enabled() -> bool:
+    """The action plane (tool loop + proposals) is on unless explicitly disabled."""
+    return os.environ.get(ACTIONS_ENV, "").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _client_factory(api_key: str) -> Any:
@@ -131,8 +148,7 @@ def _overview_body() -> dict[str, Any]:
 
 
 def _section_overview_summary() -> dict[str, Any]:
-    body = _overview_body()
-    return dict(body["summary"])
+    return dict(_overview_body()["summary"])
 
 
 def _section_schedule_freshness() -> dict[str, Any]:
@@ -290,19 +306,84 @@ def _extract_answer(response: Any) -> str:
     return "".join(parts).strip()
 
 
+def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
+                   items: list[dict[str, Any]], actions_on: bool) -> str:
+    """One Anthropic conversation, with the tool loop when the action plane is on.
+
+    READ tools execute immediately and their results go back to the model;
+    PROPOSE tools are captured into items and never executed here. trace and
+    items are caller-owned lists, so a failure mid-loop loses nothing already
+    captured. With the action plane off this is a single plain call. Returns
+    the final text answer (empty when the model gave none).
+    """
+    messages: list[dict[str, Any]] = [{"role": "user", "content": user_content}]
+    response = None
+    for _ in range(MAX_TOOL_ITERATIONS):
+        kwargs: dict[str, Any] = {
+            "model": _model_name(),
+            "max_tokens": LOOP_MAX_TOKENS if actions_on else MAX_ANSWER_TOKENS,
+            "temperature": ANSWER_TEMPERATURE,
+            "system": SYSTEM_PROMPT,
+            "messages": messages,
+        }
+        if actions_on:
+            kwargs["tools"] = assistant_tools.anthropic_tools()
+        response = client.messages.create(**kwargs)
+        blocks = list(getattr(response, "content", []) or [])
+        tool_uses = [block for block in blocks if getattr(block, "type", "") == "tool_use"]
+        if not actions_on or not tool_uses or getattr(response, "stop_reason", None) != "tool_use":
+            break
+        # Echo the assistant turn as plain dicts (SDK-object and mock safe),
+        # then answer every tool_use block in one user turn.
+        echoed: list[dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
+        for block in blocks:
+            kind = getattr(block, "type", "")
+            if kind == "text":
+                echoed.append({"type": "text", "text": getattr(block, "text", "")})
+            elif kind == "tool_use":
+                echoed.append({"type": "tool_use", "id": block.id, "name": block.name,
+                               "input": dict(block.input or {})})
+                results.append(assistant_tools.handle_tool_use(block, trace, items))
+        messages.append({"role": "assistant", "content": echoed})
+        messages.append({"role": "user", "content": results})
+    return _extract_answer(response) if response is not None else ""
+
+
+def _audit_ask(user: str, question: str, body: dict[str, Any], batch_id: str | None) -> None:
+    assistant_actions.audit_append(
+        "ask", user, model=_model_name(), question=question, batch_id=batch_id,
+        results={
+            "answered": bool(body.get("answer")),
+            "error": body.get("error"),
+            "tools": [step.get("tool") for step in body.get("tool_trace") or []],
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 @router.get("/status")
 def assistant_status() -> dict[str, Any]:
-    """Honest availability: configured or not, and which model would answer."""
-    if not _api_key():
-        return {"available": False, "reason": KEY_MISSING_REASON, "model": _model_name()}
-    return {"available": True, "reason": None, "model": _model_name()}
+    """Honest availability: the answer path, the model, and the action plane."""
+    available = bool(_api_key())
+    if not _actions_enabled():
+        action_reason: str | None = ACTIONS_DISABLED_REASON
+    elif not available:
+        action_reason = KEY_MISSING_REASON
+    else:
+        action_reason = None
+    return {
+        "available": available,
+        "reason": None if available else KEY_MISSING_REASON,
+        "model": _model_name(),
+        "action_plane": {"enabled": action_reason is None, "reason": action_reason},
+    }
 
 
 @router.post("/ask")
-def assistant_ask(request: AskRequest) -> dict[str, Any]:
+def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
     question = request.question.strip()
     if not question:
         raise HTTPException(status_code=422, detail="Question must not be empty.")
@@ -312,41 +393,49 @@ def assistant_ask(request: AskRequest) -> dict[str, Any]:
             detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
         )
     generated_at = datetime.now(timezone.utc).isoformat()
+    user = assistant_actions._actor(http_request)
     api_key = _api_key()
     if not api_key:
-        return {
+        body = {
             "available": False,
             "answer": None,
             "grounding": {"sources": [], "generated_at": generated_at},
             "error": KEY_MISSING_REASON,
+            "proposals": None,
+            "tool_trace": [],
         }
+        _audit_ask(user, question, body, None)
+        return body
 
     context, sources = _compose_context(question)
     grounding = {"sources": sources, "generated_at": generated_at}
     context_json = json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str)
+    trace: list[dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
+    answer, error = "", None
     try:
         client = _client_factory(api_key)
-        response = client.messages.create(
-            model=_model_name(),
-            max_tokens=MAX_ANSWER_TOKENS,
-            temperature=ANSWER_TEMPERATURE,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"CONTEXT:\n{context_json}\n\nQUESTION:\n{question}",
-                }
-            ],
+        answer = _run_tool_loop(
+            client, f"CONTEXT:\n{context_json}\n\nQUESTION:\n{question}",
+            trace, items, _actions_enabled(),
         )
     except Exception as exc:  # noqa: BLE001 - every SDK failure surfaces honestly
-        return {"available": True, "answer": None, "grounding": grounding, "error": _describe_error(exc)}
-
-    answer = _extract_answer(response)
-    if not answer:
-        return {
-            "available": True,
-            "answer": None,
-            "grounding": grounding,
-            "error": "The model returned no text answer.",
-        }
-    return {"available": True, "answer": answer, "grounding": grounding, "error": None}
+        error = _describe_error(exc)
+    # Items captured before a mid-loop failure are still real proposals: store
+    # them so the operator sees exactly what was proposed, error and all.
+    proposals = None
+    if items:
+        batch = assistant_actions.create_batch(question, items, user, _model_name())
+        proposals = {key: batch[key] for key in ("batch_id", "status", "created_at", "items")}
+    if error is None and not answer:
+        error = "The model returned no text answer."
+    body = {
+        "available": True,
+        "answer": answer or None,
+        "grounding": grounding,
+        "error": error,
+        "proposals": proposals,
+        "tool_trace": trace,
+    }
+    _audit_ask(user, question, body, proposals["batch_id"] if proposals else None)
+    return body

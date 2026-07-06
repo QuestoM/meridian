@@ -25,16 +25,19 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import kairos_api.assistant as assistant
+import kairos_api.assistant_actions as assistant_actions
 import kairos_api.assistant_context as assistant_context
 
 
 @pytest.fixture(autouse=True)
-def _clean_slate(monkeypatch: pytest.MonkeyPatch):
-    """No ambient API keys, a known default model and budget, a fresh rate window."""
+def _clean_slate(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    """No ambient API keys, a known default model and budget, a fresh rate
+    window, and the action-plane state (audit log) redirected to tmp."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("KAIROS_ASSISTANT_API_KEY", raising=False)
     monkeypatch.delenv("KAIROS_ASSISTANT_MODEL", raising=False)
     monkeypatch.delenv(assistant_context.BUDGET_ENV, raising=False)
+    monkeypatch.setenv(assistant_actions.DATA_DIR_ENV, str(tmp_path / "assistant"))
     assistant._reset_rate_limit()
     yield
     assistant._reset_rate_limit()
@@ -87,6 +90,7 @@ def test_status_honest_without_key(client: TestClient) -> None:
         "available": False,
         "reason": "API key not configured",
         "model": "claude-sonnet-4-6",
+        "action_plane": {"enabled": False, "reason": "API key not configured"},
     }
 
 
@@ -94,7 +98,12 @@ def test_status_reports_key_and_model_override(client: TestClient, monkeypatch: 
     monkeypatch.setenv("KAIROS_ASSISTANT_API_KEY", "test-key")
     monkeypatch.setenv("KAIROS_ASSISTANT_MODEL", "claude-opus-4-8")
     body = client.get("/api/assistant/status").json()
-    assert body == {"available": True, "reason": None, "model": "claude-opus-4-8"}
+    assert body == {
+        "available": True,
+        "reason": None,
+        "model": "claude-opus-4-8",
+        "action_plane": {"enabled": True, "reason": None},
+    }
 
 
 # --- ask: honest no-key path --------------------------------------------------
@@ -143,8 +152,9 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
     kwargs = recorder["kwargs"]
     assert recorder["api_key"] == "test-key"
     assert kwargs["model"] == "claude-sonnet-4-6"
-    assert kwargs["max_tokens"] == 1000
+    assert kwargs["max_tokens"] == 1500  # the tool-use loop budget
     assert kwargs["temperature"] == 0.2
+    assert {tool["name"] for tool in kwargs["tools"]} >= {"get_settings", "propose_settings_change"}
     assert "must be taken from the CONTEXT block" in kwargs["system"]
     assert "Never invent" in kwargs["system"]
     assert "never state, estimate or speculate about competitor" in kwargs["system"]
