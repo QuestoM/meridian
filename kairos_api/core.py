@@ -18,7 +18,7 @@ import math
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
 from fastapi import HTTPException
@@ -481,3 +481,43 @@ def _row_anchor(row: Any) -> dict[str, str]:
         "start_clock": str(row.get("start_time", "")).strip(),
         "program": str(row.get("program_type", "")).strip(),
     }
+
+
+def _plan_segment_index(
+    pairs: Sequence[tuple[str, str]],
+    settings_map: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The engine's own ProgramSegment objects for the given (channel, day)
+    pairs, keyed by segment_id.
+
+    Rebuilds segments through the exact seams the live scenario runner and the
+    weekly export share (the AI-wrapped classifier, the settings pricing overlay,
+    the measured first-break fold, and the measured impact model with its
+    per-cell credible intervals), so a caller can join saved or freshly computed
+    plan rows back to the segment objects that priced them and value retention
+    in ILS on the same basis the optimizer decided with. Read-only: no optimizer
+    run and nothing written. Honest empty dict when the engine is unavailable.
+    """
+    if not _ENGINE_AVAILABLE:
+        return {}
+    from kairos.data.transform import build_segments_from_programmes
+    from kairos.model.impact import load_impact_model
+    from kairos.optimize.pricing import pricing_from_settings
+    from kairos.service import _apply_first_break_multiplier, _build_classifier
+
+    assumptions = _apply_first_break_multiplier(OptimizerAssumptions())
+    pricing = pricing_from_settings(settings_map)
+    classifier = _build_classifier()
+    impact_model = load_impact_model(
+        MODELS_DIR / "tv_break_posterior.pkl", assumptions=assumptions
+    )
+    programmes = _load_programmes()
+    index: dict[str, Any] = {}
+    for channel_name, date_str in pairs:
+        for segment in build_segments_from_programmes(
+            programmes, classifier, pricing,
+            assumptions=assumptions, impact_model=impact_model,
+            channel=str(channel_name), day=str(date_str),
+        ):
+            index[segment.segment_id] = segment
+    return index

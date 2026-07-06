@@ -5554,3 +5554,252 @@ button {
 .timeline-program-clickable { cursor: pointer; }
 .timeline-program-clickable:hover { filter: brightness(0.97); outline: 1px solid var(--border-soft, #e5e7eb); }
 .timeline-program-clickable:focus-visible { outline: 2px solid var(--teal-strong, #0f766e); outline-offset: 1px; }
+
+/* Money story: the gross-to-net waterfall, the frontier plan markers, and the
+   engine focus comparison card. Gross stays the dominant figure, the retention
+   cost is a clearly marked model estimate, and the net is the bottom line. */
+.money-waterfall {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  text-align: start;
+}
+
+.money-waterfall .mw-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.money-waterfall .mw-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.money-waterfall .mw-cost .mw-label {
+  cursor: help;
+}
+
+.money-waterfall .mw-value {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.money-waterfall .mw-gross .mw-value {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.money-waterfall.headline .mw-gross .mw-value {
+  font-size: var(--text-3xl);
+}
+
+.money-waterfall .mw-cost .mw-value {
+  color: var(--muted);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+.money-waterfall .mw-money {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.money-waterfall .mw-band {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.money-waterfall .mw-net {
+  padding-top: 8px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.money-waterfall .mw-net .mw-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.money-waterfall.headline .mw-net .mw-value {
+  font-size: var(--text-2xl);
+}
+
+.mw-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.mw-info {
+  flex: 0 0 auto;
+  color: var(--subtle);
+}
+
+.money-waterfall .mw-unavailable {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.money-waterfall .mw-unavailable small,
+.money-waterfall .mw-basis {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+.money-story-panel .money-story-body {
+  padding: 14px 16px 16px;
+}
+
+.money-story-panel .money-waterfall {
+  max-width: 460px;
+}
+
+.money-story-empty {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.money-story-empty small {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.yield-total-card.yield-money-card {
+  grid-column: 1 / -1;
+  background: var(--surface);
+}
+
+.frontier-svg .current-plan-ring {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 3;
+  opacity: 0.85;
+}
+
+.frontier-svg .net-focused-point {
+  fill: var(--blue);
+  stroke: var(--surface);
+  stroke-width: 2.5;
+}
+
+.frontier-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 10px 0;
+}
+
+.frontier-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.frontier-legend-chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.frontier-legend-chip.net i {
+  background: var(--blue);
+}
+
+.frontier-net-caption {
+  margin: 8px 10px 0;
+  color: var(--subtle);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.net-compare-card {
+  display: grid;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+}
+
+.net-compare-head {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.net-compare-rows {
+  display: grid;
+  gap: 6px;
+}
+
+.net-compare-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.net-compare-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.net-compare-row strong {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.net-compare-basis,
+.net-compare-note,
+.net-compare-empty {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  line-height: 1.5;
+}
+
+.net-compare-note {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.net-compare-empty {
+  font-size: var(--text-xs);
+}

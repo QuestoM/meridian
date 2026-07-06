@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { CircleDollarSign, Gauge } from 'lucide-react';
+import { Gauge } from 'lucide-react';
 import {
   API_BASE,
+  finiteNumber,
   formatCurrency,
   formatRate,
   formatSeconds,
   normalizeRows,
   pageText,
 } from './surface-helpers';
+import MoneyWaterfall from './MoneyWaterfall';
 
 // YieldView: revenue and yield-per-second by daypart and programme, sourced from
 // GET /api/yield-per-second. Surfaces where each ad-second earns the most and
-// where inventory is under-monetized. Revenue net of retention is shown in ILS
-// when the endpoint computes it exactly (revenue_net_available:true), with the
-// retention cost and a basis disclosure; when the endpoint cannot compute it
-// honestly, the reason is shown and no figure is fabricated.
+// where inventory is under-monetized. The money stats render through the shared
+// MoneyWaterfall: gross stays the dominant figure, the retention cost is an
+// explicitly marked model estimate, and the net after retention cost is the
+// bottom line, shown only when the endpoint computes it exactly
+// (revenue_net_available:true); otherwise the reason is shown and no figure is
+// fabricated.
 
 function YieldBars({ rows, locale, labelKey }) {
   const maxYield = Math.max(...rows.map((row) => Number(row.yield_per_second || 0)), 1e-9);
@@ -89,32 +93,26 @@ export default function YieldView({ locale, refreshKey = 0 }) {
       ) : (
         <>
           <div className="yield-totals" dir={he ? 'rtl' : 'ltr'}>
+            <div className="yield-total-card yield-money-card">
+              <MoneyWaterfall
+                variant="panel"
+                locale={locale}
+                gross={netAvailable ? (finiteNumber(payload.revenue_ils) ?? totals.revenue) : totals.revenue}
+                retentionCost={netAvailable ? payload.retention_cost_ils : null}
+                net={netAvailable ? payload.revenue_net_ils : null}
+                retentionCostLow={payload.retention_cost_low}
+                retentionCostHigh={payload.retention_cost_high}
+                unavailableReason={netAvailable ? '' : String(payload.revenue_net_reason || '')}
+              />
+            </div>
             <div className="yield-total-card">
               <span><Gauge size={13} /> {pageText(locale, 'Yield per second', 'תשואה לשנייה')}</span>
               <strong className="numeric" dir="ltr">{formatRate(totals.yield_per_second, locale)} {currency}/s</strong>
             </div>
             <div className="yield-total-card">
-              <span><CircleDollarSign size={13} /> {pageText(locale, 'Total revenue', 'הכנסה כוללת')}</span>
-              <strong className="numeric" dir="ltr">{formatCurrency(totals.revenue, locale)}</strong>
-            </div>
-            <div className="yield-total-card">
               <span>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</span>
               <strong className="numeric" dir="ltr">{formatSeconds(totals.ad_seconds, locale)}</strong>
             </div>
-            <div className={netAvailable ? 'yield-total-card' : 'yield-total-card muted'}>
-              <span>{pageText(locale, 'Revenue net of retention', 'הכנסה בניכוי שימור')}</span>
-              {netAvailable ? (
-                <strong className="numeric" dir="ltr">{formatCurrency(payload.revenue_net_ils, locale)}</strong>
-              ) : (
-                <strong>{pageText(locale, 'Not available', 'לא זמין')}</strong>
-              )}
-            </div>
-            {netAvailable && (
-              <div className="yield-total-card muted">
-                <span>{pageText(locale, 'Retention cost priced in', 'עלות שימור מתומחרת')}</span>
-                <strong className="numeric" dir="ltr">{formatCurrency(payload.retention_cost_ils, locale)}</strong>
-              </div>
-            )}
           </div>
 
           <div className="yield-split">
@@ -138,13 +136,13 @@ export default function YieldView({ locale, refreshKey = 0 }) {
             {netAvailable
               ? pageText(
                   locale,
-                  `Yield per second = revenue / ad-seconds (${currency}/s). Revenue net of retention prices the audience lost to breaks in ILS and subtracts it: ${basisFormula}`,
-                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הכנסה בניכוי שימור מתמחרת בשקלים את הקהל שאבד לברייקים ומחסירה אותו: ${basisFormula}`,
+                  `Yield per second = revenue / ad-seconds (${currency}/s). The net after retention cost prices the audience lost to breaks in ILS and subtracts it: ${basisFormula}`,
+                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הנטו אחרי עלות שימור מתמחר בשקלים את הקהל שאבד לברייקים ומחסיר אותו: ${basisFormula}`,
                 )
               : pageText(
                   locale,
-                  `Yield per second = revenue / ad-seconds (${currency}/s). Revenue net of retention is not available: ${payload?.revenue_net_reason || 'the saved schedule lacks the per-segment audience needed to price it.'}`,
-                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הכנסה בניכוי שימור אינה זמינה: ${payload?.revenue_net_reason || 'ללוח השמור חסר הקהל לכל מקטע הדרוש לתמחור.'}`,
+                  `Yield per second = revenue / ad-seconds (${currency}/s). The net after retention cost is not available: ${payload?.revenue_net_reason || 'the saved schedule lacks the per-segment audience needed to price it.'}`,
+                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הנטו אחרי עלות שימור אינו זמין: ${payload?.revenue_net_reason || 'ללוח השמור חסר הקהל לכל מקטע הדרוש לתמחור.'}`,
                 )}
           </p>
         </>

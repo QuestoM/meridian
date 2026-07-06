@@ -13,11 +13,15 @@ from server.py rather than re-deriving them, so the data contracts stay aligned.
 
 from __future__ import annotations
 
+import logging
+from functools import lru_cache
 from typing import Any, Optional
 
 import pandas as pd
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["phase-b"])
 
@@ -59,6 +63,136 @@ def _daypart_for_start(start_time: object) -> Optional[str]:
     if not hour_part.isdigit():
         return None
     return daypart_for_hour(int(hour_part))
+
+
+# One honest sentence shipped with the retention-cost band, naming its source.
+_RETENTION_BAND_BASIS = (
+    "The retention-cost band re-prices the committed plan's per-break audience loss at "
+    "each segment's calibrated 95 percent coefficient interval bounds, the same interval "
+    "seam risk_lambda uses for worst-plausible pricing: ci_low (the more damaging bound) "
+    "yields retention_cost_high and ci_high yields retention_cost_low."
+)
+
+
+def _optimistic_impact(point: float, ci_low: float, ci_high: float) -> float:
+    """The least-damaging plausible per-break coefficient in the credible band.
+
+    Exact mirror of :func:`kairos.optimize.objective.conservative_impact` at
+    ``risk_lambda=1``: where that returns the most damaging bound for
+    worst-plausible pricing, this returns the least damaging one for the low
+    edge of the retention-cost band. Same guards, mirrored: a non-finite value
+    degrades to the point, bounds are clamped non-positive, and the result is
+    never MORE damaging than the point, so the band always brackets the point
+    estimate. No new statistics; only the opposite end of the same interval.
+    """
+    if ci_low != ci_low or ci_high != ci_high or point != point:  # NaN guard
+        return min(0.0, point)
+    best = max(min(0.0, ci_low), min(0.0, ci_high), point)
+    return min(0.0, best)
+
+
+@lru_cache(maxsize=4)
+def _plan_cost_band_cached(signature: tuple) -> dict[str, Any]:
+    """Retention-cost band for the committed weekly plan, in ILS.
+
+    Rebuilds the plan's own ProgramSegment objects
+    (:func:`kairos_api.core._plan_segment_index`, the same seams that priced the
+    plan), joins them to the saved CSV by ``segment_id``, and re-prices each
+    committed row's per-break retention cost through
+    :func:`kairos.optimize.revenue_net.segment_retention_cost_ils` three times:
+    at the measured point coefficient and at the two calibrated interval bounds,
+    each swapped onto the segment exactly the way ``risk_lambda`` pricing swaps
+    in the conservative coefficient
+    (:func:`kairos.optimize.objective.conservative_impact` at ``risk_lambda=1``
+    for the damaging bound; its mirror for the optimistic one). A segment
+    without a measured interval contributes its point cost to both bounds, the
+    same certainty treatment the optimizer's risk path applies. Honest
+    ``available: False`` with the reason when the saved plan no longer joins the
+    EPG rebuild; nothing is proxied.
+    """
+    del signature  # cache key only
+    from dataclasses import replace
+
+    from kairos.optimize.objective import conservative_impact
+    from kairos.optimize.revenue_net import segment_retention_cost_ils
+    from kairos_api.core import _plan_segment_index
+
+    server = _server()
+    schedule = server._load_break_schedule()
+    if schedule.empty or "segment_id" not in schedule.columns:
+        return {"available": False, "reason": "No saved weekly schedule with segment ids on disk."}
+    try:
+        pairs = tuple(
+            (str(channel), str(day))
+            for channel, day in schedule[["channel", "date"]]
+            .astype(str)
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        )
+        index = _plan_segment_index(pairs, server._model_dump(server._load_settings()))
+    except Exception:
+        logger.exception("plan segment rebuild failed for the retention-cost band")
+        return {"available": False, "reason": "Plan segment rebuild failed; see the server log."}
+    if not index:
+        return {"available": False, "reason": "The optimization engine is unavailable."}
+
+    joined = 0
+    cost_point = cost_low = cost_high = 0.0
+    for row in schedule.itertuples(index=False):
+        segment = index.get(str(getattr(row, "segment_id", "")).strip())
+        if segment is None:
+            continue
+        joined += 1
+        try:
+            num_breaks = int(float(getattr(row, "num_breaks", 0) or 0))
+        except (TypeError, ValueError):
+            num_breaks = 0
+        if num_breaks <= 0:
+            continue
+        cost_point += segment_retention_cost_ils(segment, num_breaks)
+        if segment.impact_ci_low is None or segment.impact_ci_high is None:
+            worst = best = segment.impact_coefficient
+        else:
+            worst = conservative_impact(
+                segment.impact_coefficient,
+                segment.impact_ci_low,
+                segment.impact_ci_high,
+                risk_lambda=1.0,
+            )
+            best = _optimistic_impact(
+                segment.impact_coefficient, segment.impact_ci_low, segment.impact_ci_high
+            )
+        cost_high += segment_retention_cost_ils(replace(segment, impact_coefficient=worst), num_breaks)
+        cost_low += segment_retention_cost_ils(replace(segment, impact_coefficient=best), num_breaks)
+
+    if joined < len(schedule) * 0.99:
+        # The EPG no longer reproduces the saved plan (a re-ingest without a
+        # recompute); a partial band would be dishonest.
+        return {
+            "available": False,
+            "reason": "Saved plan no longer joins the EPG rebuild; recompute the schedule.",
+        }
+    return {"available": True, "low": cost_low, "high": cost_high, "point": cost_point}
+
+
+def _plan_cost_band() -> dict[str, Any]:
+    """The cached committed-plan retention-cost band, keyed on its real inputs."""
+    from kairos_api.core import (
+        DATA_DIR,
+        MODELS_DIR,
+        OUTPUT_DIR,
+        SETTINGS_PATH,
+        _signature,
+    )
+
+    return dict(_plan_cost_band_cached(_signature([
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        SETTINGS_PATH,
+        MODELS_DIR / "tv_break_coefficients.json",
+        MODELS_DIR / "tv_break_posterior.pkl",
+    ])))
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +291,36 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
         net_block["revenue_net_ils"] = money.get("revenue_net_ils")
         net_block["retention_cost_ils"] = money.get("retention_cost_ils")
         net_block["revenue_ils"] = money.get("revenue_ils")
+        # Additive uncertainty band on the retention cost: the committed plan
+        # re-priced at the calibrated coefficient-interval bounds through the
+        # engine's own per-break cost primitive (see _plan_cost_band_cached).
+        # Attached only when the band's own point re-pricing brackets THIS
+        # frame's point estimate, so a stale rebuild or a synthetic frame can
+        # never ship a band that does not contain the number beside it.
+        try:
+            band = _plan_cost_band()
+        except Exception:
+            logger.exception("retention-cost band computation failed")
+            band = {"available": False, "reason": "Band computation failed; see the server log."}
+        cost_point = money.get("retention_cost_ils")
+        if (
+            band.get("available")
+            and cost_point is not None
+            and float(band["low"]) - 0.01 <= float(cost_point) <= float(band["high"]) + 0.01
+        ):
+            net_block["retention_cost_low"] = round(float(band["low"]), 2)
+            net_block["retention_cost_high"] = round(float(band["high"]), 2)
+            net_block["retention_cost_basis"] = _RETENTION_BAND_BASIS
+        else:
+            net_block["retention_cost_low"] = None
+            net_block["retention_cost_high"] = None
+            net_block["retention_cost_basis"] = (
+                "Retention-cost band unavailable: "
+                + str(
+                    band.get("reason")
+                    or "the interval re-pricing does not bracket this schedule's point estimate."
+                )
+            )
     else:
         net_block["revenue_net_reason"] = money.get("reason")
 

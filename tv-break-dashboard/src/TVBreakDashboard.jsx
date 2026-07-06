@@ -83,6 +83,7 @@ import { timeWindow, spanStyle } from './schedule-track';
 import BreakChip from './BreakChip';
 import FrontierScopeChart from './FrontierScopeChart';
 import YieldView from './YieldView';
+import { NetComparisonCard, YieldMoneyPanel } from './MoneyWaterfall';
 import ScenarioCompare from './ScenarioCompare';
 import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
@@ -2644,7 +2645,7 @@ function OptimizerWorkspace({
 
       {showMetrics && (
         <section className="analytics-strip" aria-label="Analytics and constraint ledger">
-          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} />
+          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} netPoint={overview.frontier_net_point || null} />
           <InventoryHeatmap copy={copy} locale={locale} />
           <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
         </section>
@@ -2773,6 +2774,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
         }
       />
       <SummaryMetrics overview={overview} copy={copy} locale={locale} />
+      <YieldMoneyPanel locale={locale} refreshKey={refreshKey} />
       <div className="page-grid two-one">
         <section className="page-panel">
           <div className="panel-head">
@@ -3146,7 +3148,7 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
             ))}
           </div>
         </section>
-        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} />
+        <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} netPoint={overview.frontier_net_point || null} />
       </div>
       <ScenarioCompare locale={locale} savedRevenueWeight={finiteNumber(overview.settings?.revenue_weight)} />
       <section className="page-panel">
@@ -4115,7 +4117,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, onAppr
   );
 }
 
-function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = '', status = '' }) {
+function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = '', status = '', netPoint = null }) {
   const chartFrameRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(760);
   const [activePointIndex, setActivePointIndex] = useState(null);
@@ -4123,14 +4125,29 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
   const padX = 46;
   const padY = 30;
   const ownedChannel = String(operatorChannel || '').trim();
-  const points = normalizeRows(data)
+  // The frontier payload is an array of sweep points today; the net-focused
+  // point may arrive as a net_point key on an object payload, as a sibling prop,
+  // or embedded in the array under id 'net_focused'. Accept all three shapes and
+  // render honestly from whichever is present, without inventing a point.
+  const rawRows = Array.isArray(data) ? data : normalizeRows(data?.points);
+  const netSource = (!Array.isArray(data) && data && typeof data === 'object' ? data.net_point : null) || netPoint || rawRows.find((row) => String(row?.id || '') === 'net_focused') || null;
+  const points = rawRows
+    .filter((row) => String(row?.id || '') !== 'net_focused')
     .map((point) => ({
       retention: finiteNumber(point.retention),
       revenue: finiteNumber(point.revenue),
       selected: Boolean(point.selected),
     }))
     .filter((point) => point.retention !== null && point.revenue !== null);
+  const netFocusPoint = netSource
+    ? { retention: finiteNumber(netSource.retention), revenue: finiteNumber(netSource.revenue) }
+    : null;
+  const hasNetPoint = Boolean(netFocusPoint && netFocusPoint.retention !== null && netFocusPoint.revenue !== null);
+  // The saved settings anchor the sweep, so the point flagged selected is the
+  // current plan's operating point (the sweep runs at the saved revenue weight).
   const selectedPoint = points.find((point) => point.selected) || points[points.length - 1];
+  const currentPlanLabel = pageText(locale, 'Current plan', 'התוכנית הנוכחית');
+  const netFocusLabel = pageText(locale, 'Net focused', 'ממוקד נטו');
   const showSkeleton = loading || points.length < 2 || !selectedPoint;
   // Honest empty state: when no channel is owned the backend returns no frontier
   // (it never forecasts an arbitrary or all-channels number). Direct the operator
@@ -4178,8 +4195,9 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
   }
 
   const width = chartWidth;
-  const [retentionMin, retentionMax] = paddedDomain(points.map((point) => point.retention), 0.8);
-  const [revenueMin, revenueMax] = paddedDomain(points.map((point) => point.revenue), 1);
+  const domainPoints = hasNetPoint ? points.concat([netFocusPoint]) : points;
+  const [retentionMin, retentionMax] = paddedDomain(domainPoints.map((point) => point.retention), 0.8);
+  const [revenueMin, revenueMax] = paddedDomain(domainPoints.map((point) => point.revenue), 1);
   // Frame to the data range (auto-scale). Do not pin to 0 or a fixed window, so
   // small revenue/retention differences are visible rather than flattened.
   const minRetention = retentionMin;
@@ -4208,7 +4226,7 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
     activeY < 96 ? 'below' : '',
   ].filter(Boolean).join(' ');
   const hoverLabel = activePoint?.selected
-    ? pageText(locale, 'Selected plan', 'תוכנית נבחרת')
+    ? currentPlanLabel
     : pageText(locale, `Alternative ${safeActiveIndex + 1}`, `חלופה ${safeActiveIndex + 1}`);
 
   function handleChartPointerMove(event) {
@@ -4264,6 +4282,15 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
                   <line x1={padX} x2={width - padX} y1={activeY} y2={activeY} />
                 </g>
               )}
+              {selectedPoint && (
+                <circle
+                  className="current-plan-ring"
+                  cx={xFor(selectedPoint.retention)}
+                  cy={yFor(selectedPoint.revenue)}
+                  r={10}
+                  aria-hidden="true"
+                />
+              )}
               {points.map((point, index) => (
                 <circle
                   key={`${point.retention}-${point.revenue}-${index}`}
@@ -4275,11 +4302,21 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
                   cy={yFor(point.revenue)}
                   r={safeActiveIndex === index ? 7 : point.selected ? 6 : 4}
                   tabIndex={0}
-                  aria-label={`${formatCurrency(point.revenue, locale)}, ${formatPercent(point.retention, locale)}`}
+                  aria-label={`${point.selected ? `${currentPlanLabel}: ` : ''}${formatCurrency(point.revenue, locale)}, ${formatPercent(point.retention, locale)}`}
                   onFocus={() => setActivePointIndex(index)}
                   onBlur={() => setActivePointIndex(null)}
                 />
               ))}
+              {hasNetPoint && (
+                <circle
+                  className="net-focused-point"
+                  cx={xFor(netFocusPoint.retention)}
+                  cy={yFor(netFocusPoint.revenue)}
+                  r={6}
+                  tabIndex={0}
+                  aria-label={`${netFocusLabel}: ${formatCurrency(netFocusPoint.revenue, locale)}, ${formatPercent(netFocusPoint.retention, locale)}`}
+                />
+              )}
               <rect
                 className="frontier-hit-area"
                 x={padX}
@@ -4311,9 +4348,20 @@ function FrontierPanel({ data, copy, locale, loading = false, operatorChannel = 
               </div>
             )}
           </div>
+          <div className="frontier-legend" aria-hidden="true">
+            {selectedPoint && (
+              <span className="frontier-legend-chip current"><i />{currentPlanLabel}</span>
+            )}
+            {hasNetPoint && (
+              <span className="frontier-legend-chip net"><i />{netFocusLabel}</span>
+            )}
+          </div>
+          {hasNetPoint && (
+            <p className="frontier-net-caption">{pageText(locale, 'Past the net focused point, toward higher gross, every additional gross shekel costs more than a shekel in retention cost.', 'מעבר לנקודה ממוקדת הנטו, לכיוון ברוטו גבוה יותר, כל שקל ברוטו נוסף עולה יותר משקל בעלות שימור.')}</p>
+          )}
           <div className="frontier-readout">
             <div>
-              <span>{safeActiveIndex !== null ? pageText(locale, 'Hovered revenue', 'הכנסה בחלופה') : pageText(locale, 'Selected revenue', 'הכנסה בתוכנית')}</span>
+              <span>{safeActiveIndex !== null ? pageText(locale, 'Hovered revenue', 'הכנסה בחלופה') : pageText(locale, 'Current plan revenue', 'הכנסה בתוכנית הנוכחית')}</span>
               <strong><Numeric>{formatCurrency(activePoint.revenue, locale)}</Numeric></strong>
             </div>
             <div>
@@ -4586,13 +4634,13 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
               })}
             </div>
             <div className="optimizer-objective">
-              <span className="settings-field-label">{he ? 'מטרת האופטימיזציה' : 'Optimization objective'}</span>
+              <span className="settings-field-label">{he ? 'מיקוד המנוע' : 'Engine focus'}</span>
               <div className="optimizer-objective-options">
                 {[
-                  { key: 'blend', label: he ? 'איזון הכנסה מול צפייה' : 'Revenue and retention balance',
-                    desc: he ? 'ברירת המחדל: ממקסם את הציון המשוקלל של הכנסה מול צפייה.' : 'The default: maximizes the weighted revenue-vs-retention score.' },
-                  { key: 'revenue_net', label: he ? 'הכנסה בניכוי שימור' : 'Revenue net of retention',
-                    desc: he ? 'ממקסם הכנסה פחות עלות השימור בשקלים. מפיל ברייקים שעלות אובדן הצופים שלהם עולה על ההכנסה: פחות ברייקים, שימור גבוה יותר, הכנסה-ברוטו נמוכה יותר אך נטו גבוה יותר.' : 'Maximizes revenue minus the retention cost in ILS. Drops breaks whose lost-audience cost outweighs their revenue: fewer breaks, higher retention, lower gross revenue but higher net.' },
+                  { key: 'blend', label: he ? 'מאוזן, ברירת המחדל' : 'Balanced, the default',
+                    desc: he ? 'המנוע מאזן בין הכנסות ברוטו לשמירה על הצופים, לפי המשקל שנקבע למעלה.' : 'The engine balances gross revenue against keeping viewers, using the weight set above.' },
+                  { key: 'revenue_net', label: he ? 'ממוקד נטו' : 'Net focused',
+                    desc: he ? 'המנוע מוותר על ברייקים שההכנסה שלהם נמוכה מעלות השימור שלהם: פחות ברייקים, ברוטו נמוך יותר, נטו גבוה יותר.' : 'The engine drops breaks whose revenue is below their retention cost: fewer breaks, lower gross, higher net.' },
                 ].map((mode) => {
                   const active = (draft.objective_mode || 'blend') === mode.key;
                   return (
@@ -4611,10 +4659,11 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
               {(draft.objective_mode || 'blend') === 'revenue_net' && (
                 <p className="optimizer-objective-note" role="status">
                   {he
-                    ? 'שימו לב: מצב זה משנה את התוכנית השמורה בעת חישוב מחדש, וההכנסה-ברוטו המוצגת ככותרת תרד. זו בחירה מכוונת לטובת ההכנסה נטו.'
-                    : 'Note: this mode changes the saved plan on recompute, and the gross revenue shown as the headline will fall. It is a deliberate choice in favor of net revenue.'}
+                    ? 'שימו לב: מיקוד נטו משנה את התוכנית השמורה בעת חישוב מחדש, וההכנסות ברוטו בכותרת יירדו. זו בחירה מכוונת לטובת הנטו.'
+                    : 'Note: net focus changes the saved plan on recompute, and the gross revenue headline will fall. It is a deliberate choice in favor of the net.'}
                 </p>
               )}
+              <NetComparisonCard locale={locale} refreshSignal={recomputeState || ''} currentFocus={draft.objective_mode || 'blend'} />
             </div>
             <div className="optimizer-recompute">
               <p>

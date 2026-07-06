@@ -12,6 +12,7 @@ the one frontier background-thread state and its lock.
 
 from __future__ import annotations
 
+import copy
 import logging
 import math
 import threading
@@ -47,6 +48,7 @@ from kairos_api.core import (
     _money,
     _pacing_call_kwargs,
     _percent,
+    _plan_segment_index,
     _ratio,
     _row_anchor,
     _safe_number,
@@ -739,11 +741,191 @@ def _owned_representative_day(signature: tuple[tuple[str, int], ...], owned: str
     return max(busiest)  # YYYY-MM-DD sorts lexicographically; latest of the busiest
 
 
+# Label id of the additive net-focused scenario point served beside the frontier
+# sweep (the whole-schedule optimum under objective_mode='revenue_net').
+NET_POINT_ID = "net_focused"
+
+
+def _scenario_plan_money(
+    payload: dict[str, Any], segments: list[Any], risk_lambda: float
+) -> dict[str, Any]:
+    """Price one run_scenario plan in ILS on the engine's own plan money model.
+
+    Joins the payload's per-segment break counts back to the rebuilt
+    ProgramSegment objects and prices the plan with
+    :func:`kairos.optimize.revenue_net.plan_revenue_net`: gross is the runner's
+    own projected revenue, the retention cost is the per-break audience loss
+    priced at the same CPP, and net is their difference. This is the SAME
+    per-break cost model the committed plan's /api/yield-per-second money uses,
+    so the comparison and the committed story share one basis. Coefficients are
+    first risk-adjusted exactly as the optimizer decided
+    (:func:`kairos.optimize._segment_math._risk_adjusted_coefficient`, an exact
+    identity at risk_lambda 0). Returns the money block, or an honest
+    ``{"available": False, "reason": ...}`` when the plan cannot be priced;
+    nothing is proxied.
+    """
+    from dataclasses import replace as _dataclass_replace
+    from types import SimpleNamespace
+
+    from kairos.optimize._segment_math import _risk_adjusted_coefficient
+    from kairos.optimize.revenue_net import plan_revenue_net
+
+    summary = payload.get("summary", {})
+    plan_rows = payload.get("segments", [])
+    adjusted = [
+        _dataclass_replace(s, impact_coefficient=_risk_adjusted_coefficient(s, risk_lambda))
+        for s in segments
+    ]
+    shim = SimpleNamespace(
+        segments=[
+            SimpleNamespace(
+                segment_id=str(row.get("segment_id", "")),
+                num_breaks=int(_safe_number(row.get("num_breaks", 0))),
+                revenue=float(_safe_number(row.get("revenue", 0.0))),
+            )
+            for row in plan_rows
+        ],
+        total_revenue=float(_safe_number(summary.get("projected_revenue", 0.0))),
+    )
+    money = plan_revenue_net(shim, segments=adjusted)
+    if not money.get("available"):
+        return {"available": False, "reason": str(money.get("reason") or "plan money unavailable")}
+    if int(money.get("priced_segments") or 0) < len(plan_rows):
+        return {
+            "available": False,
+            "reason": (
+                "scenario plan and rebuilt segments no longer join; "
+                "retention cannot be priced honestly"
+            ),
+        }
+    return {
+        "available": True,
+        "gross": money["revenue_ils"],
+        "retention_cost": money["retention_cost_ils"],
+        "net": money["revenue_net_ils"],
+        "breaks": int(_safe_number(summary.get("total_breaks", 0))),
+    }
+
+
+def _net_bundle_failure(channel: str, day: str | None, reason: str) -> dict[str, Any]:
+    """Honest empty net bundle: no point, no money, the reason named."""
+    return {
+        "channel": channel,
+        "day": day,
+        "net_point": None,
+        "comparison_available": False,
+        "reason": reason,
+        "current": None,
+        "net_focused": None,
+    }
+
+
+@lru_cache(maxsize=32)
+def _frontier_net_bundle_cached(
+    signature: tuple[tuple[str, int], ...],
+    channel: str,
+    day: str | None,
+    saved_floor: float,
+    max_breaks_per_hour: int,
+    risk_lambda: float,
+    revenue_weight: int,
+    objective_mode: str,
+) -> dict[str, Any]:
+    """One net-focused whole-schedule scenario beside the sweep, with money.
+
+    Runs the SAME scenario runner as the frontier sweep on the same owned scope,
+    refined, under the saved guardrails: once at the operator's saved
+    ``objective_mode`` (the 'current' side, the saved decision re-evaluated so a
+    money block exists on the sweep's own anchor basis) and once under
+    ``objective_mode='revenue_net'`` (the net-focused side). When the saved mode
+    already is ``revenue_net`` the single run serves both sides. Each plan is
+    priced with the per-break retention-cost model
+    (:func:`_scenario_plan_money`), so the operator sees gross, the
+    model-estimated retention cost, and net on one shared basis. Cached beside
+    the point sweep on the same data signature and computed in the same single
+    background thread, never inline in a request.
+    """
+    del signature  # part of the cache key only
+    if day is None:
+        return _net_bundle_failure(
+            channel, day, "owned channel has no dated programmes to scope the comparison"
+        )
+    pacing = _pacing_call_kwargs()
+
+    def _run(mode: str) -> dict[str, Any]:
+        return run_scenario(
+            revenue_weight=revenue_weight,
+            retention_floor=saved_floor,
+            max_breaks_per_hour=max_breaks_per_hour,
+            risk_lambda=risk_lambda,
+            channel=channel,
+            day=day,
+            objective_mode=mode,
+            **pacing,
+        )
+
+    try:
+        net_payload = _run("revenue_net")
+        current_payload = (
+            net_payload if objective_mode == "revenue_net" else _run(objective_mode)
+        )
+    except Exception:
+        logger.exception("net-focused frontier scenario failed")
+        return _net_bundle_failure(
+            channel, day, "net-focused scenario run failed; see the server log"
+        )
+
+    summary = net_payload.get("summary", {})
+    net_point: dict[str, Any] | None = None
+    if summary.get("average_retention") is not None and summary.get("projected_revenue") is not None:
+        # Same fields as a frontier sweep point, plus the label id. 'selected' is
+        # honest: True only when the saved objective_mode IS revenue_net.
+        net_point = {
+            "retention": round(_safe_number(summary.get("average_retention")), 1),
+            "revenue": round(_safe_number(summary.get("projected_revenue")), 2),
+            "retention_floor": round(float(saved_floor), 4),
+            "num_breaks": int(_safe_number(summary.get("total_breaks", 0))),
+            "selected": objective_mode == "revenue_net",
+            "id": NET_POINT_ID,
+        }
+
+    try:
+        segments = list(_plan_segment_index(((channel, str(day)),), pacing["settings"]).values())
+        money_current = _scenario_plan_money(current_payload, segments, risk_lambda)
+        money_net = _scenario_plan_money(net_payload, segments, risk_lambda)
+    except Exception:
+        logger.exception("net-focused plan pricing failed")
+        bundle = _net_bundle_failure(
+            channel, day, "plan money pricing failed; see the server log"
+        )
+        bundle["net_point"] = net_point
+        return bundle
+
+    available = bool(money_current.get("available") and money_net.get("available"))
+    reason = None
+    if not available:
+        reason = str(
+            (money_current if not money_current.get("available") else money_net).get("reason")
+            or "comparison money unavailable"
+        )
+    return {
+        "channel": channel,
+        "day": day,
+        "net_point": net_point,
+        "comparison_available": available,
+        "reason": reason,
+        "current": money_current if money_current.get("available") else None,
+        "net_focused": money_net if money_net.get("available") else None,
+    }
+
+
 # The frontier is a real optimizer sweep and is too slow to trace inline on a cold
 # cache, so it is computed in a background thread. These guard the single in-flight
 # computation and its result so /api/overview never blocks on the sweep.
 _frontier_bg_lock = threading.Lock()
-_frontier_bg_state: dict[str, Any] = {"key": None, "status": "idle", "points": ()}
+_frontier_bg_state: dict[str, Any] = {
+    "key": None, "status": "idle", "points": (), "net_bundle": None,
+}
 
 
 def _frontier_async(settings: KairosSettings, scope: str | None = None) -> tuple[list[dict[str, Any]], str]:
@@ -773,9 +955,30 @@ def _frontier_async(settings: KairosSettings, scope: str | None = None) -> tuple
     the finished sweep). The sweep itself is cached on the data-file signature plus
     the guardrails, so it runs once and is reused across requests and weights.
     """
+    points, _net_bundle, status = _frontier_state(settings, scope)
+    return points, status
+
+
+def _frontier_state(
+    settings: KairosSettings, scope: str | None = None
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None, str]:
+    """``(points, net_bundle, status)`` for the frontier machinery, never blocking.
+
+    The single shared engine behind :func:`_frontier_async` (whose points/status
+    contract is unchanged), the overview's additive ``net_point``, and the
+    ``/api/optimizer/net-comparison`` endpoint. ONE background thread computes
+    the point sweep and the net-focused bundle together under one key, so their
+    statuses can never disagree and no second background machine exists. The key
+    extends the sweep key with the saved ``objective_mode`` (the 'current' side
+    of the bundle is evaluated at it), so a mode edit honestly re-enters
+    ``computing``; the sweep points themselves are cached without the mode and
+    are byte-identical across that transition. ``net_bundle`` is ``None`` until
+    status is ``ready``; a ready bundle may still report
+    ``comparison_available: False`` with a reason, never invented numbers.
+    """
     owned = str(settings.operator_channel or "").strip()
     if not owned:
-        return [], "no_channel"
+        return [], None, "no_channel"
     signature = _frontier_data_signature()
     scope_kwargs = _parse_frontier_scope(scope, settings)
     effective_day = scope_kwargs["day"] or _owned_representative_day(signature, owned)
@@ -787,31 +990,45 @@ def _frontier_async(settings: KairosSettings, scope: str | None = None) -> tuple
         int(settings.max_breaks_per_hour),
         float(settings.risk_lambda),
         int(settings.revenue_weight),
+        str(getattr(settings, "objective_mode", "blend") or "blend"),
     )
     with _frontier_bg_lock:
         state = _frontier_bg_state
         if state["key"] == key and state["status"] == "ready":
-            return [dict(point) for point in state["points"]], "ready"
+            return (
+                [dict(point) for point in state["points"]],
+                copy.deepcopy(state.get("net_bundle")),
+                "ready",
+            )
         if state["key"] == key and state["status"] == "computing":
-            return [], "computing"
+            return [], None, "computing"
         # New (or stale) key: start a fresh single in-flight computation.
         state["key"] = key
         state["status"] = "computing"
         state["points"] = ()
+        state["net_bundle"] = None
 
     def _compute() -> None:
         try:
-            points = _frontier_points_cached(*key)
+            points = _frontier_points_cached(*key[:7])
         except Exception:
             logger.exception("frontier background compute failed")
             points = ()
+        try:
+            net_bundle = _frontier_net_bundle_cached(*key)
+        except Exception:
+            logger.exception("frontier net-focused bundle compute failed")
+            net_bundle = _net_bundle_failure(
+                key[1], key[2], "net-focused computation failed; see the server log"
+            )
         with _frontier_bg_lock:
             if _frontier_bg_state["key"] == key:
                 _frontier_bg_state["points"] = points
+                _frontier_bg_state["net_bundle"] = net_bundle
                 _frontier_bg_state["status"] = "ready"
 
     threading.Thread(target=_compute, name="kairos-frontier", daemon=True).start()
-    return [], "computing"
+    return [], None, "computing"
 
 
 def _infer_hourly_ad_seconds(schedule: pd.DataFrame) -> pd.Series:
@@ -1411,9 +1628,14 @@ def overview(
     # The frontier is a slow optimizer sweep, computed in the background so the
     # overview never blocks on it. Merge its current state into the response.
     overview_settings = _load_settings()
-    points, status = _frontier_async(overview_settings, scope or None)
+    points, net_bundle, status = _frontier_state(overview_settings, scope or None)
     body["frontier"] = points
     body["frontier_status"] = status
+    # Additive: the single net-focused scenario computed beside the sweep (the
+    # same runner and saved guardrails under objective_mode='revenue_net'),
+    # carrying the frontier-point fields plus its label id. Null while the
+    # background sweep is computing or when the run failed; never fabricated.
+    body["frontier_net_point"] = (net_bundle or {}).get("net_point") if status == "ready" else None
     # Honest disclosure of what the frontier curve actually measures. Each point is
     # a single representative-day REFINED optimum (run_scenario refine=True) on the
     # owned channel, swept across the retention floor at the saved revenue weight,

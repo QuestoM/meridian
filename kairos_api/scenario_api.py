@@ -38,6 +38,11 @@ from kairos_api.core import (
     run_scenario,
 )
 
+# The single frontier background machine and its net-focused bundle live in
+# dashboard_api; importing the accessor (dashboard_api never imports this
+# module, so there is no cycle) keeps exactly one state/lock/thread instance.
+from kairos_api.dashboard_api import _frontier_state
+
 router = APIRouter(tags=["scenario"])
 
 
@@ -210,6 +215,64 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")
     except Exception as exc:  # pragma: no cover - data/environment dependent
         raise HTTPException(status_code=503, detail=f"Optimization failed: {exc}")
+
+
+@router.get("/api/optimizer/net-comparison")
+def optimizer_net_comparison() -> dict[str, Any]:
+    """The saved-plan objective versus a net-focused plan, computed not quoted.
+
+    Both sides come from the SAME scenario runner on the frontier's owned scope
+    under the saved guardrails, refined: 'current' at the saved
+    revenue_weight/objective_mode and 'net_focused' under
+    objective_mode='revenue_net'. Each side is priced with the per-break
+    retention-cost model, so gross minus retention_cost equals net on both
+    sides and the deltas (net_focused minus current) are internally consistent.
+    While the shared background sweep is computing this reports
+    status='computing' with no numbers; when the scope or pricing cannot
+    produce an honest comparison it reports status='unavailable' with the
+    reason. Nothing is fabricated.
+    """
+    settings = _load_settings()
+    _points, bundle, status = _frontier_state(settings, None)
+    channel = (bundle or {}).get("channel") or (settings.operator_channel or None)
+    day = (bundle or {}).get("day")
+    scope_text = f" ({channel}, {day})" if channel and day else ""
+    basis = (
+        "Both sides are the same refined scenario-runner optimization of the owned "
+        f"channel's representative broadcast day{scope_text} under the saved guardrails, "
+        "with retention cost priced per break from the measured coefficients; a modeled "
+        "forecast, not the saved weekly plan total."
+    )
+    response: dict[str, Any] = {
+        "status": "unavailable",
+        "basis": basis,
+        "current": None,
+        "net_focused": None,
+        "delta": None,
+    }
+    if status == "computing":
+        response["status"] = "computing"
+        return response
+    if status == "no_channel":
+        response["reason"] = (
+            "No operator channel is configured; pick your channel in settings first."
+        )
+        return response
+    if not bundle or not bundle.get("comparison_available"):
+        response["reason"] = str((bundle or {}).get("reason") or "Comparison could not be computed.")
+        return response
+    current = {key: bundle["current"][key] for key in ("gross", "retention_cost", "net", "breaks")}
+    net_focused = {key: bundle["net_focused"][key] for key in ("gross", "retention_cost", "net", "breaks")}
+    response["status"] = "ready"
+    response["current"] = current
+    response["net_focused"] = net_focused
+    response["delta"] = {
+        "gross": round(net_focused["gross"] - current["gross"], 2),
+        "retention_cost": round(net_focused["retention_cost"] - current["retention_cost"], 2),
+        "net": round(net_focused["net"] - current["net"], 2),
+        "breaks": int(net_focused["breaks"] - current["breaks"]),
+    }
+    return response
 
 
 @router.get("/api/parameters")
