@@ -230,6 +230,11 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
     frame["advertiser_id"] = _series(frame, "advertiser_id", "")
     frame["Channel"] = _series(frame, "Channel", "")
     frame["Date"] = _series(frame, "Date", "")
+    # Date is a DD/MM/YYYY string, so a raw column .max() orders lexicographically
+    # (by day-of-month first) rather than chronologically. Parse to a real datetime
+    # for the max, then format back to the DD/MM/YYYY display contract. Unparseable
+    # dates coerce to NaT and render as an honest empty value, never a fabricated date.
+    frame["_date"] = pd.to_datetime(_series(frame, "Date", ""), format="%d/%m/%Y", errors="coerce")
     grouped = (
         frame.groupby(["Campaign", "advertiser_id"], dropna=False)
         .agg(
@@ -237,12 +242,13 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
             seconds=("Duration", "sum"),
             revenue=("revenue_ils", "sum"),
             channels=("Channel", "nunique"),
-            last_airing=("Date", "max"),
+            last_airing=("_date", "max"),
         )
         .reset_index()
         .sort_values("revenue" if has_revenue else "spots", ascending=False)
         .head(50)
     )
+    grouped["last_airing"] = grouped["last_airing"].dt.strftime("%d/%m/%Y").where(grouped["last_airing"].notna(), None)
     if not has_revenue:
         grouped["revenue"] = None
     return {"campaigns": _records(grouped), "revenue_available": has_revenue}
@@ -253,12 +259,24 @@ def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
         return {"breaks": []}
 
     frame = schedule.copy()
+    settings = _load_settings()
+    # The weekly schedule carries breaks for every channel because the retention
+    # model needs competitor rows, but this is an operator-facing candidate list.
+    # Scope to the operator's own channel so no competitor break is ever presented
+    # as a candidate. An unconfigured (empty) channel is an honest no-op that keeps
+    # all rows, matching the resolver convention. The channel is read from settings,
+    # never hardcoded.
+    operator_channel = str(settings.operator_channel or "").strip()
+    if operator_channel and "channel" in frame.columns:
+        frame = frame[frame["channel"].astype(str) == operator_channel]
+    if frame.empty:
+        return {"breaks": []}
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
     frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
     frame["total_break_time"] = pd.to_numeric(frame.get("total_break_time", 0), errors="coerce").fillna(0)
     frame["priority"] = frame["predicted_revenue"] * frame["predicted_retention"].clip(lower=0.1)
     frame = frame.sort_values("priority", ascending=False).head(80)
-    floor_percent = _load_settings().min_retention_floor * 100
+    floor_percent = settings.min_retention_floor * 100
     frame["status"] = frame["predicted_retention"].map(lambda value: "at_risk" if _percent(value) < floor_percent else "ready")
     return {"breaks": _records(frame)}
 
@@ -434,7 +452,7 @@ def inventory() -> dict[str, Any]:
 
 @router.get("/api/break-library")
 def break_library() -> dict[str, Any]:
-    return _break_library_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+    return _break_library_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", SETTINGS_PATH]))
 
 
 @router.get("/api/campaigns")
