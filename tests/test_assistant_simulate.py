@@ -271,9 +271,15 @@ def test_ask_response_shape_is_backward_compatible(
         scripted_factory(recorder, [model_turn(text_block("plain answer"), stop="end_turn")]),
     )
     body = client.post("/api/assistant/ask", json={"question": "how does the week look?"}).json()
-    assert set(body) == {"available", "answer", "grounding", "error", "proposals", "tool_trace"}
+    # The streaming contract extended the ask body additively with model,
+    # context_disclosure and truncated; everything pre-existing is unchanged.
+    assert set(body) == {"available", "answer", "model", "grounding", "context_disclosure",
+                         "truncated", "error", "proposals", "tool_trace"}
     assert body["available"] is True
     assert body["answer"] == "plain answer"
     assert body["tool_trace"] == []
     assert body["proposals"] is None
     assert set(body["grounding"]) == {"sources", "generated_at"}
+    assert body["model"] == "claude-sonnet-4-6"
+    assert body["context_disclosure"] == body["grounding"]
+    assert body["truncated"] is False

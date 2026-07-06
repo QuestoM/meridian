@@ -113,6 +113,35 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         {"changes": {"type": "object", "description": "Allowed settings fields to simulate."}},
         ["changes"],
     ),
+    _tool(
+        "get_recommendations",
+        "Read the real recommendations the overview computes for the owned channel: the "
+        "top segments to review, each with its risk band, revenue impact, retention and "
+        "the override kind the review implies. Call this when the operator asks what to "
+        "fix or review, or where the plan is at risk.",
+    ),
+    _tool(
+        "get_frontier",
+        "Read the owned-channel revenue-vs-retention frontier: the Pareto sweep points, "
+        "the net-focused point, and which point is the current plan. Call this when the "
+        "operator asks about the revenue and retention tradeoff, alternative retention "
+        "floors, or where the current plan sits. A status of 'computing' means the sweep "
+        "is still running in the background; say so instead of inventing points.",
+    ),
+    _tool(
+        "get_audience_stability",
+        "Read the measured weekly level drift of the retention coefficient base, the "
+        "audience-stability check. Call this when the operator asks whether the audience "
+        "or retention model is stable, drifting or fresh. Reports an honest unavailable "
+        "when the coefficients artifact carries no measurement.",
+    ),
+    _tool(
+        "get_plan_days",
+        "Read the committed weekly plan per day for the owned channel: date, breaks, "
+        "revenue and, when derivable, the modeled retention cost and net. Call this when "
+        "the operator asks which day earns most, about per-day totals, or for a week "
+        "overview that includes retention cost.",
+    ),
 ]
 
 PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -265,6 +294,108 @@ def _read_simulate_settings_change(args: dict[str, Any]) -> dict[str, Any]:
     return assistant_simulate.simulate_settings_change(args.get("changes"))
 
 
+def _read_get_recommendations(args: dict[str, Any]) -> dict[str, Any]:
+    from kairos_api.core import _load_break_schedule
+    from kairos_api.dashboard_api import _build_recommendations
+
+    rows = _build_recommendations(_load_break_schedule())
+    slim = [
+        {
+            "title": row.get("title"),
+            "title_he": row.get("title_he"),
+            "risk": row.get("risk"),
+            "channel": row.get("channel"),
+            "segment_id": row.get("segment_id"),
+            "program_type": row.get("program_type"),
+            "date": row.get("date"),
+            "weekday": row.get("weekday"),
+            "start_clock": row.get("start_clock"),
+            "num_breaks": row.get("num_breaks"),
+            "impact_ils": row.get("impact"),
+            "retention_pct": row.get("retention"),
+            "rationale": row.get("rationale"),
+            "proposed_kind": row.get("proposed_kind"),
+            "actionable": row.get("actionable"),
+        }
+        for row in rows[:5]
+    ]
+    payload: dict[str, Any] = {"recommendations": slim, "count": len(slim)}
+    if not slim:
+        payload["note"] = "the overview builder produced no recommendations for the owned channel"
+    return payload
+
+
+def _read_get_frontier(args: dict[str, Any]) -> dict[str, Any]:
+    from kairos_api.core import _load_settings
+    from kairos_api.dashboard_api import _frontier_state
+
+    points, net_bundle, status = _frontier_state(_load_settings())
+    payload: dict[str, Any] = {"status": status, "points": [dict(point) for point in points]}
+    if status == "no_channel":
+        payload["reason"] = "no operator channel is configured in settings"
+    elif status == "computing":
+        payload["reason"] = "the frontier sweep is still computing in the background; try again shortly"
+    net_point = (net_bundle or {}).get("net_point")
+    current = next((dict(point) for point in points if point.get("selected")), None)
+    if isinstance(net_point, dict) and net_point.get("selected"):
+        current = dict(net_point)
+    payload["current_plan_point"] = current
+    payload["net_focused_point"] = dict(net_point) if isinstance(net_point, dict) else None
+    return payload
+
+
+def _read_get_audience_stability(args: dict[str, Any]) -> dict[str, Any]:
+    from kairos_api.catalog_api import impact
+
+    drift = impact().get("drift")
+    if not isinstance(drift, dict) or not drift:
+        return {
+            "status": "unavailable",
+            "reason": "the coefficients artifact carries no level-drift measurement",
+        }
+    payload = {key: value for key, value in drift.items() if key != "weekly_levels"}
+    levels = drift.get("weekly_levels")
+    if isinstance(levels, list):
+        payload["weekly_levels"] = levels[-12:]
+        if len(levels) > 12:
+            payload["weekly_levels_truncated"] = True
+            payload["weekly_levels_total"] = len(levels)
+    return payload
+
+
+def _read_get_plan_days(args: dict[str, Any]) -> dict[str, Any]:
+    from kairos.optimize.revenue_net import frame_revenue_net
+    from kairos_api import assistant_context
+
+    frame, owned, _competitors, reason = assistant_context._owned_frame()
+    if frame is None:
+        return {"error": reason or "no owned-channel plan is available"}
+    days: list[dict[str, Any]] = []
+    cost_missing_reason: str | None = None
+    for date_text, group in frame.groupby("date_text", sort=True):
+        entry: dict[str, Any] = {
+            "date": str(date_text),
+            "weekday": assistant_context._weekday_label(str(date_text), group),
+            "breaks": int(group["num_breaks"].sum()),
+            "revenue_ils": int(round(float(group["predicted_revenue"].sum()))),
+        }
+        money = frame_revenue_net(group)
+        if money.get("available"):
+            entry["retention_cost_ils"] = round(float(money["retention_cost_ils"]), 2)
+            entry["revenue_net_ils"] = round(float(money["revenue_net_ils"]), 2)
+        else:
+            entry["retention_cost_ils"] = None
+            cost_missing_reason = cost_missing_reason or str(money.get("reason") or "")
+        days.append(entry)
+    payload: dict[str, Any] = {"channel": owned, "days_total": len(days), "days": days[:31]}
+    if len(days) > 31:
+        payload["truncated"] = True
+        payload["days_omitted"] = len(days) - 31
+    if cost_missing_reason:
+        payload["retention_cost_note"] = cost_missing_reason
+    return payload
+
+
 _READ_EXECUTORS = {
     "get_settings": _read_get_settings,
     "get_day_detail": _read_get_day_detail,
@@ -274,6 +405,10 @@ _READ_EXECUTORS = {
     "get_net_comparison": _read_get_net_comparison,
     "get_compliance": _read_get_compliance,
     "simulate_settings_change": _read_simulate_settings_change,
+    "get_recommendations": _read_get_recommendations,
+    "get_frontier": _read_get_frontier,
+    "get_audience_stability": _read_get_audience_stability,
+    "get_plan_days": _read_get_plan_days,
 }
 
 # The provenance stamp for each read tool result: the endpoint or dataset the
@@ -287,6 +422,10 @@ SOURCE_BY_TOOL = {
     "get_net_comparison": "owned-channel scenario runner, net comparison",
     "get_compliance": "compliance verdict over the committed plan",
     "simulate_settings_change": "owned-channel scenario runner, representative day",
+    "get_recommendations": "overview recommendations, owned channel",
+    "get_frontier": "owned-channel frontier sweep",
+    "get_audience_stability": "measured coefficients artifact, level-drift monitor",
+    "get_plan_days": "saved weekly plan, owned channel",
 }
 
 

@@ -353,9 +353,33 @@ def _can_propose(http_request: Any) -> bool:
     return bool(session) and session.get("role") in auth.WRITE_ROLES
 
 
+def _call_model(client: Any, kwargs: dict[str, Any],
+                on_text: Callable[[str], None] | None) -> Any:
+    """One model call. A non-streaming caller (on_text None) gets
+    client.messages.create untouched, byte-identical to before. A streaming
+    caller gets real text deltas through client.messages.stream when the client
+    supports it; otherwise the turn's answer is emitted as a single delta, so
+    mocked clients stay simple while production streaming stays real."""
+    stream_fn = getattr(getattr(client, "messages", None), "stream", None)
+    if on_text is not None and callable(stream_fn):
+        with stream_fn(**kwargs) as stream:
+            for text in stream.text_stream:
+                if text:
+                    on_text(text)
+            return stream.get_final_message()
+    response = client.messages.create(**kwargs)
+    if on_text is not None:
+        text = _extract_answer(response)
+        if text:
+            on_text(text)
+    return response
+
+
 def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
                    items: list[dict[str, Any]], actions_on: bool,
-                   can_propose: bool = True) -> str:
+                   can_propose: bool = True,
+                   on_step: Callable[[dict[str, Any]], None] | None = None,
+                   on_text: Callable[[str], None] | None = None) -> str:
     """One Anthropic conversation, with the tool loop when the action plane is on.
 
     READ tools execute immediately and their results go back to the model;
@@ -364,7 +388,9 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
     captured. The opening call stays byte-identical to a plain answer; once the
     loop iterates to search it enters goal-seek mode (adaptive thinking at a
     medium effort, temperature dropped since thinking rejects it, and a
-    cache_control breakpoint on the stable tools+system prefix). Returns the
+    cache_control breakpoint on the stable tools+system prefix). A streaming
+    caller receives each new trace step through on_step right after its tool
+    result and assistant text through on_text as it is produced. Returns the
     final text answer (empty when the model gave none).
     """
     messages: list[dict[str, Any]] = [{"role": "user", "content": user_content}]
@@ -384,14 +410,20 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
             kwargs["output_config"] = {"effort": LOOP_EFFORT}
         else:
             kwargs["temperature"] = ANSWER_TEMPERATURE
-        response = client.messages.create(**kwargs)
+        response = _call_model(client, kwargs, on_text)
         blocks = list(getattr(response, "content", []) or [])
         tool_uses = [block for block in blocks if getattr(block, "type", "") == "tool_use"]
         if not actions_on or not tool_uses or getattr(response, "stop_reason", None) != "tool_use":
             break
         echoed = [echo for echo in (_echo_block(block) for block in blocks) if echo is not None]
-        results = [assistant_tools.handle_tool_use(block, trace, items, propose_allowed=can_propose)
-                   for block in tool_uses]
+        results = []
+        for block in tool_uses:
+            before = len(trace)
+            results.append(assistant_tools.handle_tool_use(block, trace, items,
+                                                           propose_allowed=can_propose))
+            if on_step is not None:
+                for step in trace[before:]:
+                    on_step(step)
         messages.append({"role": "assistant", "content": echoed})
         messages.append({"role": "user", "content": results})
     return _extract_answer(response) if response is not None else ""
@@ -427,30 +459,34 @@ def assistant_status() -> dict[str, Any]:
     }
 
 
-@router.post("/ask")
-def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
-    question = request.question.strip()
-    if not question:
-        raise HTTPException(status_code=422, detail="Question must not be empty.")
-    if _rate_limited():
-        raise HTTPException(
-            status_code=429,
-            detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
-        )
+def _ask_body(question: str, http_request: Request | None,
+              on_step: Callable[[dict[str, Any]], None] | None = None,
+              on_text: Callable[[str], None] | None = None) -> dict[str, Any]:
+    """The full ask pipeline shared by /ask and /ask/stream.
+
+    Composes the grounding context, runs the tool loop (optionally emitting
+    step and text-delta events for the streaming route), stores any captured
+    proposals, and shapes the response body. ``model``, ``context_disclosure``
+    and ``truncated`` ride beside the original keys additively: the disclosure
+    is the same manifest as ``grounding`` and ``truncated`` is the composed
+    context's honest budget-cut flag. Auditing and thread-append are the
+    caller's job, exactly once per ask.
+    """
     generated_at = datetime.now(timezone.utc).isoformat()
-    user = assistant_actions._actor(http_request)
     api_key = _api_key()
     if not api_key:
-        body = {
+        grounding = {"sources": [], "generated_at": generated_at}
+        return {
             "available": False,
             "answer": None,
-            "grounding": {"sources": [], "generated_at": generated_at},
+            "model": _model_name(),
+            "grounding": grounding,
+            "context_disclosure": grounding,
+            "truncated": False,
             "error": KEY_MISSING_REASON,
             "proposals": None,
             "tool_trace": [],
         }
-        _audit_ask(user, question, body, None)
-        return body
 
     context, sources = _compose_context(question)
     grounding = {"sources": sources, "generated_at": generated_at}
@@ -464,6 +500,7 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
             client, f"CONTEXT:\n{context_json}\n\nQUESTION:\n{question}",
             trace, items, _actions_enabled(),
             can_propose=_can_propose(http_request),
+            on_step=on_step, on_text=on_text,
         )
     except Exception as exc:  # noqa: BLE001 - every SDK failure surfaces honestly
         error = _describe_error(exc)
@@ -471,17 +508,49 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
     # them so the operator sees exactly what was proposed, error and all.
     proposals = None
     if items:
-        batch = assistant_actions.create_batch(question, items, user, _model_name())
+        batch = assistant_actions.create_batch(question, items, _actor_name(http_request), _model_name())
         proposals = {key: batch[key] for key in ("batch_id", "status", "created_at", "items")}
     if error is None and not answer:
         error = "The model returned no text answer."
-    body = {
+    return {
         "available": True,
         "answer": answer or None,
+        "model": _model_name(),
         "grounding": grounding,
+        "context_disclosure": grounding,
+        "truncated": bool(context.get("day_detail_truncated")),
         "error": error,
         "proposals": proposals,
         "tool_trace": trace,
     }
-    _audit_ask(user, question, body, proposals["batch_id"] if proposals else None)
+
+
+def _actor_name(http_request: Request | None) -> str:
+    return assistant_actions._actor(http_request)
+
+
+@router.post("/ask")
+def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="Question must not be empty.")
+    if _rate_limited():
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
+        )
+    user = _actor_name(http_request)
+    body = _ask_body(question, http_request)
+    batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
+    _audit_ask(user, question, body, batch_id)
+    if body.get("answer"):
+        assistant_memory.append_entry(user, question, str(body["answer"]), batch_id)
     return body
+
+
+# Mounted last: assistant_stream reaches back into this module at call time for
+# the shared pipeline, so the includes sit below every definition it needs.
+from kairos_api import assistant_memory, assistant_stream  # noqa: E402
+
+router.include_router(assistant_stream.router)
+router.include_router(assistant_memory.router)
