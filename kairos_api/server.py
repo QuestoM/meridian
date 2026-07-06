@@ -23,6 +23,20 @@ import threading
 
 logger = logging.getLogger(__name__)
 
+# Load the operator's local .env (repo root) before anything reads the
+# environment. override=False keeps a variable that is already exported in the
+# real environment authoritative, so tests and deployments that set their own
+# values are never clobbered by the file. The .env file itself is gitignored;
+# .env.example documents the recognised variables without secrets.
+try:
+    from pathlib import Path as _Path
+
+    from dotenv import load_dotenv as _load_dotenv
+
+    _load_dotenv(_Path(__file__).resolve().parents[1] / ".env", override=False)
+except ImportError:  # pragma: no cover - dotenv stays optional at runtime
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
