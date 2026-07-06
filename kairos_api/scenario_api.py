@@ -41,7 +41,10 @@ from kairos_api.core import (
 # The single frontier background machine and its net-focused bundle live in
 # dashboard_api; importing the accessor (dashboard_api never imports this
 # module, so there is no cycle) keeps exactly one state/lock/thread instance.
-from kairos_api.dashboard_api import _frontier_state
+# _owned_scope is the shared owned-channel/representative-day selector the
+# frontier uses; the scenario and optimizer-plan surfaces reuse it so every
+# operator-facing preview optimizes the owned channel, never a competitor day.
+from kairos_api.dashboard_api import _frontier_state, _owned_scope
 
 router = APIRouter(tags=["scenario"])
 
@@ -72,10 +75,10 @@ class OptimizePlanRequest(BaseModel):
 
 
 def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
+    saved = _load_settings()
     if request is None:
         # The default plan is the operator's SAVED decision, not a static default:
         # it honors the persisted revenue/retention balance, floor, and risk.
-        saved = _load_settings()
         request = ScenarioRequest(
             revenue_weight=saved.revenue_weight,
             retention_floor=saved.min_retention_floor,
@@ -91,11 +94,19 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
             "controls": _model_dump(request),
             "engine": "unavailable",
         }
+    # Scope the preview to the operator's owned channel on its representative
+    # broadcast day (the same shared selector the frontier uses), so the plan is
+    # the owned channel's forecast and never the first channel-day in the source
+    # (a competitor day). With no owned channel configured, channel/day stay None
+    # and run_scenario keeps its documented whole-source default.
+    channel, day = _owned_scope(saved)
     payload = run_scenario(
         revenue_weight=request.revenue_weight,
         retention_floor=request.retention_floor,
         max_breaks_per_hour=request.max_breaks_per_hour,
         risk_lambda=request.risk_lambda,
+        channel=channel,
+        day=day,
         **_pacing_call_kwargs(),
     )
     summary = payload.setdefault("summary", {})
@@ -106,7 +117,7 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
 @lru_cache(maxsize=128)
 def _scenario_cached(
     revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
-    pacing_today: str = "", settings_json: str = "",
+    pacing_today: str = "", settings_json: str = "", channel: str = "", day: str = "",
 ) -> dict[str, Any]:
     # The full saved settings (guardrails, pricing and pacing) are threaded in as
     # a JSON string, exactly as /api/optimizer-plan threads them, so the scenario
@@ -115,6 +126,10 @@ def _scenario_cached(
     # date are part of the cache key, so any settings edit invalidates the cached
     # scenario honestly. The scenario controls (revenue_weight, retention_floor,
     # max_breaks_per_hour, risk_lambda) remain the explicit per-request overrides.
+    # channel/day are the owned-channel scope from the shared selector: they pin
+    # the preview to the operator's channel-day rather than the source's first
+    # channel-day (a competitor), and are part of the cache key so a data change
+    # that shifts the representative day invalidates the cached scenario honestly.
     today = None
     if pacing_today:
         try:
@@ -129,6 +144,8 @@ def _scenario_cached(
         risk_lambda=risk_lambda,
         today=today,
         settings=settings,
+        channel=channel or None,
+        day=day or None,
     )
     summary = result["summary"]
     return {
@@ -170,11 +187,14 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     if _ENGINE_AVAILABLE:
         try:
             pacing = _pacing_call_kwargs()
+            channel, day = _owned_scope(_load_settings())
             return _scenario_cached(
                 request.revenue_weight, request.retention_floor, request.max_breaks_per_hour,
                 request.risk_lambda,
                 pacing_today=pacing["today"].isoformat(),
                 settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
+                channel=channel or "",
+                day=day or "",
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
             return {
@@ -190,6 +210,29 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     }
 
 
+def _warm_scenario() -> dict[str, Any]:
+    """Prime the scenario-preview cache on the operator's saved decision.
+
+    Mirrors the /api/scenario request path (same owned-channel scope selector and
+    the same cache key) so the first slider read finds the cache hot. Runs on the
+    single startup warm-up thread beside the frontier sweep; it never spawns a
+    thread of its own. Returns the warmed payload so the caller can log or ignore.
+    """
+    if not _ENGINE_AVAILABLE:
+        return {"engine": "unavailable"}
+    saved = _load_settings()
+    pacing = _pacing_call_kwargs()
+    channel, day = _owned_scope(saved)
+    return _scenario_cached(
+        saved.revenue_weight, saved.min_retention_floor, saved.max_breaks_per_hour,
+        saved.risk_lambda,
+        pacing_today=pacing["today"].isoformat(),
+        settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
+        channel=channel or "",
+        day=day or "",
+    )
+
+
 @router.post("/api/optimize-plan")
 def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
     """Serve a real optimal break plan, driven by the saved settings.
@@ -201,10 +244,31 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="Optimization engine is unavailable")
     settings = _load_settings()
     risk = request.risk_lambda if request.risk_lambda is not None else getattr(settings, "risk_lambda", 0.0)
+    # Default to the operator's owned channel-day (the shared scope selector) when
+    # the caller pins neither, so an unparameterized call optimizes the owned
+    # channel rather than the source's first channel-day (a competitor). An
+    # explicit channel/day from the request always wins; when both are omitted and
+    # the owned channel resolves, its representative day keeps the run interactive.
+    scope_channel, scope_day = _owned_scope(settings)
+    # Competitor boundary: the operator owns exactly one channel, so an explicit
+    # channel request may only ever be that owned channel. A request for any
+    # other channel is refused rather than projecting revenue for a channel the
+    # operator does not own. When no owned channel is configured there is no
+    # boundary to enforce, so an explicit channel is accepted.
+    owned = str(settings.operator_channel or "").strip()
+    if request.channel and owned and request.channel != owned:
+        raise HTTPException(
+            status_code=400,
+            detail="Only the operator's own channel can be optimized",
+        )
+    channel = request.channel or scope_channel or None
+    day = request.day
+    if day is None and request.channel is None and channel == scope_channel:
+        day = scope_day
     try:
         return optimize_day_plan(
-            channel=request.channel,
-            day=request.day,
+            channel=channel,
+            day=day,
             revenue_weight=request.revenue_weight,
             risk_lambda=risk,
             daily_input_path=request.daily_input,

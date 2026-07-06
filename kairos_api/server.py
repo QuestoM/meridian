@@ -217,6 +217,7 @@ from kairos_api.scenario_api import (  # noqa: E402,F401  (re-exported for compa
     ScenarioRequest,
     _build_optimizer_plan,
     _scenario_cached,
+    _warm_scenario,
 )
 from kairos_api.scenario_api import router as scenario_router  # noqa: E402
 
@@ -257,8 +258,13 @@ def _warm_overview_cache() -> None:
             ("inventory", lambda: _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))),
             # Kick off the background frontier sweep at startup so it is "ready"
             # by the time the operator opens the dashboard (it spawns its own
-            # thread and returns immediately, never blocking warm-up).
+            # thread and returns immediately, never blocking warm-up). The same
+            # sweep also computes the net-comparison bundle, so that surface warms
+            # with it and no second background thread is needed.
             ("frontier", lambda: _frontier_async(_load_settings(), None)),
+            # Prime the scenario-preview cache on the owned channel-day scope so the
+            # first slider read is a cache hit, reusing this single warm thread.
+            ("scenario", _warm_scenario),
         )
         for name, step in steps:
             try:

@@ -741,6 +741,24 @@ def _owned_representative_day(signature: tuple[tuple[str, int], ...], owned: str
     return max(busiest)  # YYYY-MM-DD sorts lexicographically; latest of the busiest
 
 
+def _owned_scope(settings: KairosSettings) -> tuple[str | None, str | None]:
+    """The operator's owned channel and its representative broadcast day.
+
+    The single scope selector every operator-facing preview surface (the scenario
+    slider, the saved optimizer plan, the one-day optimize default) shares with the
+    frontier: revenue is only ever projected for ``settings.operator_channel``,
+    scoped to that channel's busiest broadcast day (:func:`_owned_representative_day`)
+    so a run stays interactive rather than sweeping every owned day. Returns
+    ``(None, None)`` when no owned channel is configured, so callers degrade to the
+    runner's documented default (or an honest no-channel state) instead of silently
+    optimizing a competitor channel-day.
+    """
+    owned = str(settings.operator_channel or "").strip()
+    if not owned:
+        return None, None
+    return owned, _owned_representative_day(_frontier_data_signature(), owned)
+
+
 # Label id of the additive net-focused scenario point served beside the frontier
 # sweep (the whole-schedule optimum under objective_mode='revenue_net').
 NET_POINT_ID = "net_focused"
