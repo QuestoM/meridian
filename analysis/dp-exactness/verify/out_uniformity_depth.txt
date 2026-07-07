@@ -1,0 +1,17 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+days=120 segments=8704 nonuniform_break_length_days=0
+depth 0: 126 (1.4%) cum<= 1.4%
+depth 1: 2024 (23.3%) cum<= 24.7%
+depth 2: 2515 (28.9%) cum<= 53.6%
+depth 3: 1899 (21.8%) cum<= 75.4%
+depth 4: 1155 (13.3%) cum<= 88.7%
+depth 5: 563 (6.5%) cum<= 95.2%
+depth 6: 260 (3.0%) cum<= 98.1%
+depth 7: 118 (1.4%) cum<= 99.5%
+depth 8: 31 (0.4%) cum<= 99.9%
+depth 9: 10 (0.1%) cum<= 100.0%
+depth 10: 1 (0.0%) cum<= 100.0%
+depth 11: 1 (0.0%) cum<= 100.0%
+depth 12: 1 (0.0%) cum<= 100.0%
+max open-depth: 12 at ('כאן 11', '2024-11-09')

@@ -1,0 +1,26 @@
+=== fresh seed 777 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 3.331e-16 (tol 1e-06)
+modes on exact path: {'blend': 113, 'revenue_net': 137}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 239
+  breaks_per_hour: 194
+  daily_ad_load: 48
+  gold_breaks: 43
+  hourly_ad_load: 182
+  retention_floor: 147
+RESULT: PASS
+=== fresh seed 987654321 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 3.331e-16 (tol 1e-06)
+modes on exact path: {'blend': 118, 'revenue_net': 132}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 238
+  breaks_per_hour: 197
+  daily_ad_load: 44
+  gold_breaks: 48
+  hourly_ad_load: 188
+  retention_floor: 136
+RESULT: PASS

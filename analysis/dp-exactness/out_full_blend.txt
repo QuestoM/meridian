@@ -1,0 +1,15 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+mode=blend w=0.6 risk=0.0
+channel-days: 120; DP strictly better than greedy+refiner: 104; equal: 16; DP WORSE (bug if >0): 0
+total DP wall time: 61.45s (mean 0.512s per channel-day)
+sum of (DP - refined) objective gaps: 0.688125938
+top 8 gaps (gap, channel, day, n, dp, greedy, refined, dp_seconds):
+  0.021133448 קשת 12 2024-11-28 n=90 dp=0.542871 greedy=0.517981 refined=0.521738 t=0.857s
+  0.018966039 קשת 12 2024-11-13 n=89 dp=0.543805 greedy=0.522960 refined=0.524839 t=0.850s
+  0.017720824 קשת 12 2024-11-04 n=90 dp=0.540306 greedy=0.522154 refined=0.522585 t=1.000s
+  0.017387240 קשת 12 2024-11-02 n=95 dp=0.541627 greedy=0.524240 refined=0.524240 t=0.811s
+  0.016536786 קשת 12 2024-11-09 n=99 dp=0.536760 greedy=0.520224 refined=0.520224 t=0.936s
+  0.016493387 קשת 12 2024-11-27 n=93 dp=0.538057 greedy=0.521564 refined=0.521564 t=0.868s
+  0.015933690 רשת 13 2024-11-11 n=95 dp=0.540400 greedy=0.513950 refined=0.524467 t=0.599s
+  0.015864095 קשת 12 2024-11-20 n=96 dp=0.531667 greedy=0.514482 refined=0.515803 t=0.727s

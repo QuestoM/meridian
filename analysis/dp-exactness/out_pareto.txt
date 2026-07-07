@@ -1,0 +1,46 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+עכשיו 14 2024-11-25 n=56: 21-weight exact sweep in 5.29s (0.25s per point), 6 distinct frontier points
+  w=0.00 revenue=             0 retention=1.000000 breaks=0
+  w=0.05 revenue=             0 retention=1.000000 breaks=0
+  w=0.10 revenue=             0 retention=1.000000 breaks=0
+  w=0.15 revenue=       639,912 retention=0.973994 breaks=25
+  w=0.20 revenue=     1,532,804 retention=0.926075 breaks=77
+  w=0.25 revenue=     1,532,804 retention=0.926075 breaks=77
+  w=0.30 revenue=     1,533,478 retention=0.926016 breaks=77
+  w=0.35 revenue=     1,535,267 retention=0.925790 breaks=77
+  w=0.40 revenue=     1,535,267 retention=0.925790 breaks=77
+  w=0.45 revenue=     1,535,267 retention=0.925790 breaks=77
+  w=0.50 revenue=     1,535,267 retention=0.925790 breaks=77
+  w=0.55 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.60 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.65 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.70 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.75 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.80 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.85 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.90 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=0.95 revenue=     1,535,925 retention=0.925606 breaks=77
+  w=1.00 revenue=     1,535,925 retention=0.925606 breaks=77
+קשת 12 2024-11-22 n=103: 21-weight exact sweep in 16.81s (0.80s per point), 9 distinct frontier points
+  w=0.00 revenue=             0 retention=1.000000 breaks=0
+  w=0.05 revenue=             0 retention=1.000000 breaks=0
+  w=0.10 revenue=             0 retention=1.000000 breaks=0
+  w=0.15 revenue=     1,338,719 retention=0.985864 breaks=31
+  w=0.20 revenue=     3,215,171 retention=0.959629 breaks=80
+  w=0.25 revenue=     3,286,500 retention=0.958142 breaks=80
+  w=0.30 revenue=     3,286,500 retention=0.958142 breaks=80
+  w=0.35 revenue=     3,294,796 retention=0.957869 breaks=80
+  w=0.40 revenue=     3,300,326 retention=0.957642 breaks=80
+  w=0.45 revenue=     3,300,326 retention=0.957642 breaks=80
+  w=0.50 revenue=     3,300,908 retention=0.957607 breaks=80
+  w=0.55 revenue=     3,301,021 retention=0.957598 breaks=80
+  w=0.60 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.65 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.70 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.75 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.80 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.85 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.90 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=0.95 revenue=     3,301,489 retention=0.957555 breaks=80
+  w=1.00 revenue=     3,301,489 retention=0.957555 breaks=80

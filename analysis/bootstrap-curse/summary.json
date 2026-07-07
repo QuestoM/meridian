@@ -1,0 +1,43 @@
+{
+  "n_resamples": 300,
+  "objective_mode": "revenue_net",
+  "risk_lambda": 0.0,
+  "eval_channel_days": 12,
+  "seed": 20260707,
+  "reference_point_estimate": {
+    "fb_multiplier": 1.0,
+    "greedy_net_ils": 18712961.408581097,
+    "f1_net_ils": 19199414.380567387,
+    "f1_gain_ils": 486452.97198629007,
+    "f1_gain_pct": 2.5995509816165177
+  },
+  "nominal_gain_pct": {
+    "p5": 2.214802453929972,
+    "p50": 2.5947195802710317,
+    "p95": 3.1942144277864744,
+    "mean": 2.63461747915474
+  },
+  "honest_gain_pct": {
+    "p5": 2.328442517452354,
+    "p50": 3.011291793081705,
+    "p95": 3.9680865211092526,
+    "mean": 3.0494060234824665
+  },
+  "nominal_gain_ils": {
+    "p5": 417744.1142120898,
+    "p50": 477513.85126922466,
+    "p95": 569601.6162929354,
+    "mean": 483622.93896823324
+  },
+  "honest_gain_ils": {
+    "p5": 435947.66285347566,
+    "p50": 556195.0577117614,
+    "p95": 720943.309902267,
+    "mean": 562523.0536178219
+  },
+  "shrinkage_factor_median": 1.1605461399289863,
+  "shrinkage_factor_mean": 1.157437862463739,
+  "frac_honest_negative": 0.0,
+  "frac_honest_below_half_nominal": 0.0,
+  "fb_active_frac": 0.04666666666666667
+}

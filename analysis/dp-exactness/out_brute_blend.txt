@@ -1,0 +1,12 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+כאן 11 2024-11-01 n=7 DP=0.560746696 brute=0.560746696 dp_internal=0.560746696 compliant=True match=True dp_counts=[1, 4, 0, 0, 2, 0, 1] brute_counts=[1, 4, 0, 0, 2, 0, 1]
+כאן 11 2024-11-01 n=7 DP=0.527615635 brute=0.527615635 dp_internal=0.527615635 compliant=True match=True dp_counts=[3, 0, 0, 1, 0, 2, 0] brute_counts=[3, 0, 0, 0, 1, 2, 0]
+עכשיו 14 2024-11-11 n=7 DP=0.579620144 brute=0.579620144 dp_internal=0.579620144 compliant=True match=True dp_counts=[1, 1, 3, 1, 1, 1, 1] brute_counts=[1, 1, 3, 1, 1, 1, 1]
+עכשיו 14 2024-11-11 n=7 DP=0.657432239 brute=0.657432239 dp_internal=0.657432239 compliant=True match=True dp_counts=[3, 0, 1, 4, 0, 1, 3] brute_counts=[3, 0, 1, 4, 0, 1, 3]
+קשת 12 2024-11-21 n=7 DP=0.543180698 brute=0.543180698 dp_internal=0.543180698 compliant=True match=True dp_counts=[1, 0, 1, 2, 0, 4, 0] brute_counts=[1, 0, 1, 2, 0, 4, 0]
+קשת 12 2024-11-21 n=7 DP=0.501090504 brute=0.501090504 dp_internal=0.501090504 compliant=True match=True dp_counts=[1, 0, 1, 1, 1, 1, 0] brute_counts=[1, 0, 1, 1, 1, 1, 0]
+רשת 13 2024-11-30 n=7 DP=0.563912627 brute=0.563912627 dp_internal=0.563912627 compliant=True match=True dp_counts=[0, 1, 3, 0, 4, 0, 0] brute_counts=[0, 1, 3, 0, 4, 0, 0]
+רשת 13 2024-11-30 n=7 DP=0.608692975 brute=0.608692975 dp_internal=0.608692975 compliant=True match=True dp_counts=[1, 2, 0, 4, 0, 3, 1] brute_counts=[1, 2, 0, 4, 0, 3, 1]
+קשת 12 2024-11-30 n=8 DP=0.562564087 brute=0.562564087 dp_internal=0.562564087 compliant=True match=True dp_counts=[1, 2, 1, 0, 1, 4, 0, 0] brute_counts=[1, 2, 1, 0, 1, 4, 0, 0]
+MISMATCHES: 0 of 9

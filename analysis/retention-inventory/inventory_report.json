@@ -1,0 +1,536 @@
+{
+  "spots_rows": 50386,
+  "programmes_rows": 8704,
+  "dayparts_rows": 172800,
+  "channels": [
+    "כאן 11",
+    "עכשיו 14",
+    "קשת 12",
+    "רשת 13"
+  ],
+  "dayparts_date_min": "2024-11-01",
+  "dayparts_date_max": "2024-11-30",
+  "dayparts_distinct_days": 30,
+  "dayparts_distinct_timebands": 1440,
+  "keyed_breaks_total": 5775,
+  "keyed_breaks_days": 30,
+  "keyed_breaks_channel_name_cells": 36,
+  "keyed_breaks_with_prog_key": 5759,
+  "keyed_breaks_distinct_prog_key": 2648,
+  "measured_breaks": 2532,
+  "measured_days": 30,
+  "measured_channel_name_cells": 36,
+  "measured_raw_channels": [
+    "כאן 11",
+    "עכשיו 14",
+    "קשת 12",
+    "רשת 13"
+  ],
+  "measured_program_types": {
+    "Other": 1755,
+    "News": 489,
+    "PrimeShow1": 150,
+    "PrimeShow2": 138
+  },
+  "measured_break_length_buckets": {
+    "long": 1000,
+    "standard": 968,
+    "short": 564
+  },
+  "measured_break_position": {
+    "middle": 957,
+    "last": 838,
+    "first": 737
+  },
+  "measured_with_ordinal": 2526,
+  "measured_distinct_prog_key": 1776,
+  "drop_keyed_to_measured": 3243,
+  "eb_diagnostics": {
+    "tau2": 9.686792021678731e-05,
+    "pooled_within_var": 0.058196048399335995,
+    "n_cells": 36,
+    "method": "empirical_bayes",
+    "pseudo_count": 600.7773086187367
+  },
+  "coef_cells": 36,
+  "first_break_gate": {
+    "first_break_multiplier": 1.0,
+    "first_break_active": false,
+    "first_break_n_first": 476,
+    "first_break_n_later": 816,
+    "first_break_mean_first": -0.05142466645827588,
+    "first_break_mean_later": -0.03331647306286565,
+    "first_break_p_value": 0.20341935034834022,
+    "first_break_reason": "p=0.2034 not < 0.01; multiplier left at 1.0 (off)"
+  },
+  "split_vs_long_cells_found": 215,
+  "split_vs_long_top20": [
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 86,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 4,
+      "n_instances": 41,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 4,
+      "n_instances": 39,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "עכשיו 14",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 1,
+      "n_instances": 37,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 3,
+      "n_instances": 33,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 1,
+      "n_instances": 31,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 31,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 4,
+      "n_instances": 29,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 6,
+      "n_instances": 29,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "עכשיו 14",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 28,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 8,
+      "n_instances": 28,
+      "distinct_split_counts": 4,
+      "split_counts": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 27,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "News",
+      "daypart": "latenight",
+      "total_minutes": 2,
+      "n_instances": 25,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "News",
+      "daypart": "morning",
+      "total_minutes": 1,
+      "n_instances": 25,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 5,
+      "n_instances": 25,
+      "distinct_split_counts": 3,
+      "split_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 6,
+      "n_instances": 25,
+      "distinct_split_counts": 3,
+      "split_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 5,
+      "n_instances": 24,
+      "distinct_split_counts": 2,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 7,
+      "n_instances": 24,
+      "distinct_split_counts": 3,
+      "split_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 3,
+      "n_instances": 23,
+      "distinct_split_counts": 3,
+      "split_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 7,
+      "n_instances": 22,
+      "distinct_split_counts": 3,
+      "split_counts": [
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "split_vs_long_total_instances_in_such_cells": 1816,
+  "breaks_per_instance_distribution": {
+    "1": 1153,
+    "2": 897,
+    "3": 224,
+    "4": 180,
+    "5": 91,
+    "6": 28,
+    "7": 12,
+    "8": 12,
+    "9": 7,
+    "10": 6,
+    "11": 8,
+    "12": 5,
+    "13": 14,
+    "14": 6,
+    "15": 2,
+    "16": 1,
+    "17": 2
+  },
+  "instances_total": 2648,
+  "programme_distinct_days": 30,
+  "programme_date_min": "2024-11-01",
+  "programme_date_max": "2024-11-30",
+  "programme_titles_total": 418,
+  "programme_titles_recurring_2plus_days": 308,
+  "consecutive_day_title_pairs_total": 1505,
+  "top_strip_titles": [
+    {
+      "title": "קובץ פרומו/פרסומות",
+      "consecutive_day_pairs": 29,
+      "distinct_days": 30
+    },
+    {
+      "title": "חדשות 13 - מבזק",
+      "consecutive_day_pairs": 27,
+      "distinct_days": 29
+    },
+    {
+      "title": "סטטוסקופ ש.ח",
+      "consecutive_day_pairs": 27,
+      "distinct_days": 29
+    },
+    {
+      "title": "קליפים - נענע דיסק",
+      "consecutive_day_pairs": 27,
+      "distinct_days": 29
+    },
+    {
+      "title": "חדשות כאן - מבזק",
+      "consecutive_day_pairs": 25,
+      "distinct_days": 28
+    },
+    {
+      "title": "קליפים 2024",
+      "consecutive_day_pairs": 24,
+      "distinct_days": 27
+    },
+    {
+      "title": "מאסטר שף נבחרת החלומות ש.ח",
+      "consecutive_day_pairs": 23,
+      "distinct_days": 26
+    },
+    {
+      "title": "מיקס ישראלי ש.ח",
+      "consecutive_day_pairs": 21,
+      "distinct_days": 25
+    },
+    {
+      "title": "פתחי את שי ש.ח",
+      "consecutive_day_pairs": 21,
+      "distinct_days": 25
+    },
+    {
+      "title": "הפטריוטים",
+      "consecutive_day_pairs": 20,
+      "distinct_days": 25
+    },
+    {
+      "title": "המצעד המשפטי ש.ח",
+      "consecutive_day_pairs": 19,
+      "distinct_days": 25
+    },
+    {
+      "title": "חדשות 12 - מבזק מיוחד",
+      "consecutive_day_pairs": 19,
+      "distinct_days": 24
+    },
+    {
+      "title": "מילון היופי ש.ח",
+      "consecutive_day_pairs": 19,
+      "distinct_days": 25
+    },
+    {
+      "title": "שבע עם אילה חסון",
+      "consecutive_day_pairs": 19,
+      "distinct_days": 24
+    },
+    {
+      "title": "הבוקר הזה",
+      "consecutive_day_pairs": 18,
+      "distinct_days": 24
+    }
+  ],
+  "split_measured_fully_instances": 1476,
+  "split_measured_cells_found": 50,
+  "split_measured_total_instances_in_cells": 517,
+  "split_measured_top10": [
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 78,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 4,
+      "n_instances": 31,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 3,
+      "n_instances": 30,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "afternoon",
+      "total_minutes": 4,
+      "n_instances": 28,
+      "split_counts": [
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 27,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 2,
+      "n_instances": 26,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "News",
+      "daypart": "latenight",
+      "total_minutes": 2,
+      "n_instances": 19,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "קשת 12",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 3,
+      "n_instances": 19,
+      "split_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": "רשת 13",
+      "program_type": "Other",
+      "daypart": "overnight",
+      "total_minutes": 6,
+      "n_instances": 18,
+      "split_counts": [
+        1,
+        2
+      ]
+    },
+    {
+      "channel": "כאן 11",
+      "program_type": "Other",
+      "daypart": "latenight",
+      "total_minutes": 3,
+      "n_instances": 16,
+      "split_counts": [
+        1,
+        2
+      ]
+    }
+  ]
+}

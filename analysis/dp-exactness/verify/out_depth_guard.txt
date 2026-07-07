@@ -1,0 +1,14 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+per-day max open-depth (dp_exact definition, incl. hour ceiling):
+  depth 4: 4 days
+  depth 5: 25 days
+  depth 6: 4 days
+  depth 7: 13 days
+  depth 8: 47 days
+  depth 9: 17 days
+  depth 10: 9 days
+  depth 13: 1 days
+days over the spec cap of 10: 1
+  כאן 11 2024-11-09 depth=13 dp_net=943,223 ref_net=861,889 gap=81,334 cap10_fell_back=True cap20_fell_back=False cap20_time=0.85s cap20_obj=943,223.24
+net-ILS gain forfeited by the cap-10 fallback: 81,334 of the claimed 9,922,861

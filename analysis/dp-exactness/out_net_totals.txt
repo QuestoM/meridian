@@ -1,0 +1,8 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+channel-days=120
+greedy  net total: 182,023,716 ILS
+refined net total: 188,470,602 ILS
+DP      net total: 198,393,464 ILS
+DP - refined: 9,922,861 ILS (5.26%)
+DP - greedy:  16,369,747 ILS (8.99%)

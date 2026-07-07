@@ -1,0 +1,31 @@
+{
+  "programme_instances_real": 2863,
+  "distinct_strips": 418,
+  "strips_recurring_ge2_days": 308,
+  "consecutive_day_pairs": 1474,
+  "pairs_with_prog_tvr_both": 1474,
+  "pairs_with_start_tvr_both": 1244,
+  "distinct_strips_in_panel": 171,
+  "strips_with_ge3_pairs": 126,
+  "date_range": [
+    "2024-11-01",
+    "2024-11-30"
+  ],
+  "breaks_detected_total": 5775,
+  "instances_with_ge1_break": 1759,
+  "mean_n_breaks": 1.533705902899057,
+  "mean_ad_min": 4.18608685528001,
+  "end_window_minutes": 10.0,
+  "top_strips_by_pairs": {
+    "רשת 13 | חדשות 13 - מבזק": 27,
+    "רשת 13 | סטטוסקופ ש.ח": 27,
+    "רשת 13 | קליפים - נענע דיסק": 27,
+    "כאן 11 | חדשות כאן - מבזק": 25,
+    "רשת 13 | קליפים 2024": 24,
+    "קשת 12 | מאסטר שף נבחרת החלומות ש.ח": 23,
+    "כאן 11 | מיקס ישראלי ש.ח": 21,
+    "עכשיו 14 | פתחי את שי ש.ח": 21,
+    "עכשיו 14 | הפטריוטים": 20,
+    "רשת 13 | המצעד המשפטי ש.ח": 19
+  }
+}

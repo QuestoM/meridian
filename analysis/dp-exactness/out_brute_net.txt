@@ -1,0 +1,12 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+כאן 11 2024-11-01 n=7 DP=70172.393170739 brute=70172.393170739 dp_internal=70172.393170739 compliant=True match=True dp_counts=[1, 4, 0, 0, 2, 0, 1] brute_counts=[1, 4, 0, 0, 2, 0, 1]
+כאן 11 2024-11-01 n=7 DP=42093.818285502 brute=42093.818285502 dp_internal=42093.818285502 compliant=True match=True dp_counts=[3, 0, 0, 1, 0, 2, 0] brute_counts=[3, 0, 0, 0, 1, 2, 0]
+עכשיו 14 2024-11-11 n=7 DP=36599.193833739 brute=36599.193833739 dp_internal=36599.193833739 compliant=True match=True dp_counts=[1, 1, 3, 1, 1, 1, 1] brute_counts=[1, 1, 3, 1, 1, 1, 1]
+עכשיו 14 2024-11-11 n=7 DP=305517.264537851 brute=305517.264537851 dp_internal=305517.264537851 compliant=True match=True dp_counts=[3, 0, 1, 4, 0, 1, 3] brute_counts=[3, 0, 1, 4, 0, 1, 3]
+קשת 12 2024-11-21 n=7 DP=141121.620713276 brute=141121.620713276 dp_internal=141121.620713276 compliant=True match=True dp_counts=[1, 0, 1, 2, 0, 4, 0] brute_counts=[1, 0, 1, 2, 0, 4, 0]
+קשת 12 2024-11-21 n=7 DP=165928.695584841 brute=165928.695584841 dp_internal=165928.695584841 compliant=True match=True dp_counts=[1, 0, 1, 1, 1, 1, 0] brute_counts=[1, 0, 1, 1, 1, 1, 0]
+רשת 13 2024-11-30 n=7 DP=85531.226599445 brute=85531.226599445 dp_internal=85531.226599445 compliant=True match=True dp_counts=[0, 1, 3, 0, 4, 0, 0] brute_counts=[0, 1, 3, 0, 4, 0, 0]
+רשת 13 2024-11-30 n=7 DP=55284.257289639 brute=55284.257289639 dp_internal=55284.257289639 compliant=True match=True dp_counts=[1, 2, 0, 4, 0, 3, 1] brute_counts=[1, 2, 0, 4, 0, 3, 1]
+קשת 12 2024-11-30 n=8 DP=177770.078194370 brute=177770.078194370 dp_internal=177770.078194370 compliant=True match=True dp_counts=[1, 2, 1, 0, 1, 4, 0, 0] brute_counts=[1, 2, 1, 0, 1, 4, 0, 0]
+MISMATCHES: 0 of 9

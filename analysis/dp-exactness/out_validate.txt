@@ -1,0 +1,52 @@
+=== seed 20260707 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 2.220e-16 (tol 1e-06)
+modes on exact path: {'blend': 127, 'revenue_net': 123}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 235
+  breaks_per_hour: 202
+  daily_ad_load: 38
+  gold_breaks: 55
+  hourly_ad_load: 193
+  retention_floor: 147
+RESULT: PASS
+=== seed 1 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 2.220e-16 (tol 1e-06)
+modes on exact path: {'blend': 122, 'revenue_net': 128}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 240
+  breaks_per_hour: 198
+  daily_ad_load: 57
+  gold_breaks: 48
+  hourly_ad_load: 187
+  retention_floor: 124
+RESULT: PASS
+=== seed 42 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 2.220e-16 (tol 1e-06)
+modes on exact path: {'blend': 121, 'revenue_net': 129}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 237
+  breaks_per_hour: 193
+  daily_ad_load: 54
+  gold_breaks: 58
+  hourly_ad_load: 182
+  retention_floor: 146
+RESULT: PASS
+=== seed 2024 ===
+======================================================================
+instances=250 checked_on_exact_path=250 fell_back=0 MISMATCHES=0
+worst |dp - brute| among checked: 2.220e-16 (tol 1e-06)
+modes on exact path: {'blend': 130, 'revenue_net': 120}
+guardrail violation codes exercised during brute search (instances):
+  break_spacing: 239
+  breaks_per_hour: 198
+  daily_ad_load: 51
+  gold_breaks: 49
+  hourly_ad_load: 187
+  retention_floor: 131
+RESULT: PASS

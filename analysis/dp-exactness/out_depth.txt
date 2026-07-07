@@ -1,0 +1,24 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+interaction-window open-depth distribution (over all segments):
+  depth 0: 168 (1.9%)
+  depth 1: 5873 (67.5%)
+  depth 2: 1970 (22.6%)
+  depth 3: 511 (5.9%)
+  depth 4: 167 (1.9%)
+  depth 5: 14 (0.2%)
+  depth 6: 1 (0.0%)
+strict [start,end] overlap depth distribution:
+  depth 0: 4495 (51.6%)
+  depth 1: 4209 (48.4%)
+worst 10 channel-days by max open-depth:
+  max_depth=6 n=83 קשת 12 2024-11-30
+  max_depth=5 n=88 רשת 13 2024-11-04
+  max_depth=5 n=91 רשת 13 2024-11-03
+  max_depth=5 n=90 קשת 12 2024-11-28
+  max_depth=5 n=93 קשת 12 2024-11-27
+  max_depth=5 n=100 קשת 12 2024-11-23
+  max_depth=5 n=103 קשת 12 2024-11-22
+  max_depth=5 n=96 קשת 12 2024-11-20
+  max_depth=5 n=92 קשת 12 2024-11-18
+  max_depth=5 n=96 קשת 12 2024-11-14

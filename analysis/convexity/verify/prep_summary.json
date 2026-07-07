@@ -1,0 +1,23 @@
+{
+  "keyed_breaks": 5775,
+  "measured_breaks": 2532,
+  "keyed_dup_channel_startmin_rows": 148,
+  "join_matched": 2532,
+  "join_unmatched": 0,
+  "len_min_quantiles": {
+    "0.0": 0.183,
+    "0.05": 0.783,
+    "0.1": 1.033,
+    "0.25": 1.6,
+    "0.5": 2.383,
+    "0.75": 5.283,
+    "0.9": 7.8,
+    "0.95": 9.007,
+    "1.0": 12.783
+  },
+  "rows_written": 2532,
+  "shed_mean": 0.03984,
+  "shed_std": 0.24143,
+  "instances_fully_measured": 1476,
+  "instances_total": 2648
+}

@@ -1,0 +1,11 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+corpus: 120 channel-days, 8704 segments, 0 with impact_coefficient > 0
+קשת 12 2024-11-02 n=95 mode=revenue_net dp=3910250.2943 refined=3465907.4825 attack_best=3910250.2943 improvements=0 dp-holds t=2.0s
+קשת 12 2024-11-27 n=93 mode=revenue_net dp=3398474.0995 refined=2981466.1330 attack_best=3398474.0995 improvements=0 dp-holds t=1.9s
+קשת 12 2024-11-09 n=99 mode=revenue_net dp=4156729.0066 refined=3752168.3119 attack_best=4156729.0066 improvements=0 dp-holds t=2.1s
+קשת 12 2024-11-30 n=83 mode=revenue_net dp=3396295.4619 refined=3372556.0672 attack_best=3396295.4619 improvements=0 dp-holds t=2.1s
+רשת 13 2024-11-11 n=95 mode=revenue_net dp=1273470.4004 refined=1155683.8737 attack_best=1273470.4004 improvements=0 dp-holds t=1.8s
+כאן 11 2024-11-15 n=71 mode=revenue_net dp=692820.1167 refined=664134.8724 attack_best=692820.1167 improvements=0 dp-holds t=1.2s
+עכשיו 14 2024-11-08 n=22 mode=revenue_net dp=545776.8807 refined=545776.8807 attack_best=545776.8807 improvements=0 dp-holds t=0.1s
+days_where_attack_beat_DP: 0 of 7
