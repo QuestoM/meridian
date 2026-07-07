@@ -189,6 +189,27 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
         assert len(context["recommendations"]) <= 5
 
 
+def test_system_prompt_carries_quarter_hour_market_mechanics() -> None:
+    """The market-mechanics section is present in the constructed system prompt:
+    the owner-stated quarter-hour settlement fact sourced to its doc, the
+    two-currencies caveat, the surface-when-asked instruction, and the
+    not-yet-measured hedge so the assistant does not overclaim."""
+    text = "".join(block["text"] for block in assistant._system_blocks())
+    assert "docs/quarter-hour-billing.md" in text
+    assert "ROUND quarter hour" in text
+    assert "PER SPOT" in text
+    assert "straddling break" in text
+    assert "Two currencies" in text
+    assert "minute-level true audience" in text
+    assert "round-quarter-hour averages" in text
+    assert "consolidation-versus-split" in text
+    # Surfaced on the four named question kinds.
+    assert "placement, splitting, consolidation, or CPP revenue" in text
+    # Marked owner-stated, dated, and not yet measured so it does not overclaim.
+    assert "owner-stated market convention recorded 2026-07-07" in text
+    assert "not yet measured" in text
+
+
 # --- per-day table: always on, owned channel only ------------------------------
 def test_per_day_table_present_and_owned_channel_only() -> None:
     frame, owned = _plan_facts()
