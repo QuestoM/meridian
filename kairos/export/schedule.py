@@ -326,6 +326,7 @@ def build_weekly_schedule(
             operator_channel=operator_channel,
             objective_mode=objective_mode,
             optimize_fn=optimize_breaks,
+            pricing=pricing,
         )
         return _rows_from_result(segments, result)
 

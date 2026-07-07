@@ -179,6 +179,11 @@ class PricingModel:
     enable_position: bool = False
     enable_ad_type: bool = False
     enable_show: bool = False
+    # Round-quarter-hour settlement restatement (kairos/optimize/qh_billing.py):
+    # when on, a finished schedule's revenue is restated onto the market's
+    # round-window billed-points basis. OFF by default because it moves real
+    # reported revenue (docs/quarter-hour-billing.md, Design section).
+    enable_qh_settlement: bool = False
 
     def __post_init__(self) -> None:
         if self.base_price_per_second_per_tvr_point < 0:
@@ -208,6 +213,7 @@ class PricingModel:
             enable_position=bool(activation.get("position", False)),
             enable_ad_type=bool(activation.get("ad_type", False)),
             enable_show=bool(activation.get("show", False)),
+            enable_qh_settlement=bool(activation.get("qh_settlement", False)),
         )
 
     @classmethod

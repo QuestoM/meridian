@@ -1,0 +1,59 @@
+{
+  "baseline_cells_global": 5760,
+  "baseline_cells_content_only": 5759,
+  "baseline_cells_smoothed": 5760,
+  "keyed_breaks": 5775,
+  "exclusion_ledger": {
+    "no_bounds_channel": 0,
+    "thin_norm_window": 2027,
+    "bad_norm_value": 0,
+    "kept": 3748
+  },
+  "trajectory_rows": 64181,
+  "breaks_kept": 3748,
+  "clusters": 2506,
+  "mean_frac_minute0_in_break": 0.4747,
+  "mean_frac_lastminute_in_break": 0.4627,
+  "len_bin_counts": {
+    "lt1.5": 1140,
+    "1.5-2.5": 941,
+    "5-7": 522,
+    "7-13": 435,
+    "3.5-5": 370,
+    "2.5-3.5": 340
+  },
+  "dur_touched_counts": {
+    "1": 262,
+    "2": 861,
+    "3": 911,
+    "4": 375,
+    "5": 244,
+    "6": 281,
+    "7": 271,
+    "8": 204,
+    "9": 147,
+    "10": 102,
+    "11": 55,
+    "12": 27,
+    "13": 7,
+    "14": 1
+  },
+  "rel_s_nan_rate_leave": 0.0014,
+  "rel_c_nan_rate_leave": 0.0016,
+  "rel_g_nan_rate_leave": 0.0014,
+  "rel_raw_nan_rate_leave": 0.0014,
+  "qh_sharing": {
+    "qh_windows_with_any_break": 4832,
+    "windows_with_2plus_breaks": 1628,
+    "share_2plus": 0.3369,
+    "distribution": {
+      "1": 3204,
+      "2": 1314,
+      "3": 293,
+      "4": 20,
+      "5": 1
+    },
+    "breaks_straddling_boundary": 1021,
+    "share_straddling": 0.1768
+  }
+}

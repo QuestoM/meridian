@@ -1,0 +1,304 @@
+{
+  "rel_col": "rel_s",
+  "b_boot": 800,
+  "seed": 20260707,
+  "pre_break_check": [
+    {
+      "offset": -6,
+      "mean_rel": 1.0033078840701766,
+      "n": 3611,
+      "n_clusters": 2437,
+      "mean_rel_c": 1.003151483418343,
+      "mean_rel_g": 1.0057698736629945,
+      "mean_rel_raw": 1.0085940785117467,
+      "trusted": true
+    },
+    {
+      "offset": -5,
+      "mean_rel": 1.0018859569928955,
+      "n": 3659,
+      "n_clusters": 2463,
+      "mean_rel_c": 1.0005631911241004,
+      "mean_rel_g": 1.0035077617106418,
+      "mean_rel_raw": 1.0060579637330316,
+      "trusted": true
+    },
+    {
+      "offset": -4,
+      "mean_rel": 1.0012731970423634,
+      "n": 3705,
+      "n_clusters": 2487,
+      "mean_rel_c": 0.9986520384935904,
+      "mean_rel_g": 1.002287280752002,
+      "mean_rel_raw": 1.0043088226896861,
+      "trusted": true
+    },
+    {
+      "offset": -3,
+      "mean_rel": 0.9986974578386318,
+      "n": 3722,
+      "n_clusters": 2498,
+      "mean_rel_c": 0.9962493718563025,
+      "mean_rel_g": 0.9991134950625,
+      "mean_rel_raw": 1.0004044402758028,
+      "trusted": true
+    },
+    {
+      "offset": -2,
+      "mean_rel": 0.999243521596152,
+      "n": 3748,
+      "n_clusters": 2506,
+      "mean_rel_c": 0.9978612333214446,
+      "mean_rel_g": 0.9991556223158987,
+      "mean_rel_raw": 0.9991001783028814,
+      "trusted": true
+    },
+    {
+      "offset": -1,
+      "mean_rel": 1.002052174941836,
+      "n": 3744,
+      "n_clusters": 2502,
+      "mean_rel_c": 1.0058696408819625,
+      "mean_rel_g": 1.001726575570883,
+      "mean_rel_raw": 1.0004987192879975,
+      "trusted": true
+    }
+  ],
+  "placement_trust": {
+    "2": {
+      "n_breaks": 861,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    },
+    "3": {
+      "n_breaks": 911,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    },
+    "4": {
+      "n_breaks": 375,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    },
+    "5": {
+      "n_breaks": 244,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    },
+    "6": {
+      "n_breaks": 281,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    },
+    "7": {
+      "n_breaks": 271,
+      "return_trusted_through": 10,
+      "return_offsets_total": 10
+    }
+  },
+  "mean_len_min_by_touched": {
+    "2": 1.037,
+    "3": 1.932,
+    "4": 2.81,
+    "5": 3.96,
+    "6": 4.99,
+    "7": 5.905
+  },
+  "point_optimal_offsets": {
+    "capped|recovered": {
+      "2": {
+        "opt_billed": 14,
+        "opt_affected": 14
+      },
+      "3": {
+        "opt_billed": 13,
+        "opt_affected": 13
+      },
+      "4": {
+        "opt_billed": 13,
+        "opt_affected": 12
+      },
+      "5": {
+        "opt_billed": 12,
+        "opt_affected": 11
+      },
+      "6": {
+        "opt_billed": 11,
+        "opt_affected": 10
+      },
+      "7": {
+        "opt_billed": 11,
+        "opt_affected": 9
+      }
+    },
+    "capped|persistent": {
+      "2": {
+        "opt_billed": 14,
+        "opt_affected": 14
+      },
+      "3": {
+        "opt_billed": 13,
+        "opt_affected": 13
+      },
+      "4": {
+        "opt_billed": 13,
+        "opt_affected": 12
+      },
+      "5": {
+        "opt_billed": 12,
+        "opt_affected": 11
+      },
+      "6": {
+        "opt_billed": 11,
+        "opt_affected": 10
+      },
+      "7": {
+        "opt_billed": 11,
+        "opt_affected": 9
+      }
+    },
+    "as_measured|recovered": {
+      "2": {
+        "opt_billed": 0,
+        "opt_affected": 0
+      },
+      "3": {
+        "opt_billed": 0,
+        "opt_affected": 0
+      },
+      "4": {
+        "opt_billed": 0,
+        "opt_affected": 0
+      },
+      "5": {
+        "opt_billed": 12,
+        "opt_affected": 11
+      },
+      "6": {
+        "opt_billed": 12,
+        "opt_affected": 11
+      },
+      "7": {
+        "opt_billed": 11,
+        "opt_affected": 9
+      }
+    }
+  },
+  "symmetric_offsets": {
+    "2": [
+      14
+    ],
+    "3": [
+      13,
+      14
+    ],
+    "4": [
+      13
+    ],
+    "5": [
+      12,
+      13
+    ],
+    "6": [
+      12
+    ],
+    "7": [
+      11,
+      12
+    ]
+  },
+  "placement_gaps_billed_capped_recovered": {
+    "2": {
+      "best": 0.9976,
+      "symmetric_straddle": 0.9976,
+      "contained_center": 0.99521,
+      "worst_contained": 0.99521,
+      "best_minus_sym": 0.0,
+      "best_minus_center": 0.0024
+    },
+    "3": {
+      "best": 0.99616,
+      "symmetric_straddle": 0.99616,
+      "contained_center": 0.9914,
+      "worst_contained": 0.9914,
+      "best_minus_sym": 0.0,
+      "best_minus_center": 0.00477
+    },
+    "4": {
+      "best": 0.99659,
+      "symmetric_straddle": 0.99659,
+      "contained_center": 0.99319,
+      "worst_contained": 0.99319,
+      "best_minus_sym": 0.0,
+      "best_minus_center": 0.00341
+    },
+    "5": {
+      "best": 0.9917,
+      "symmetric_straddle": 0.9917,
+      "contained_center": 0.9831,
+      "worst_contained": 0.98236,
+      "best_minus_sym": 0.0,
+      "best_minus_center": 0.00859
+    },
+    "6": {
+      "best": 0.98536,
+      "symmetric_straddle": 0.98498,
+      "contained_center": 0.96996,
+      "worst_contained": 0.96996,
+      "best_minus_sym": 0.00038,
+      "best_minus_center": 0.0154
+    },
+    "7": {
+      "best": 0.98032,
+      "symmetric_straddle": 0.98032,
+      "contained_center": 0.95991,
+      "worst_contained": 0.95894,
+      "best_minus_sym": 0.0,
+      "best_minus_center": 0.02041
+    }
+  },
+  "bootstrap_opt_offset_distribution": {
+    "2": {
+      "13": 255,
+      "14": 545
+    },
+    "3": {
+      "13": 800
+    },
+    "4": {
+      "12": 45,
+      "13": 755
+    },
+    "5": {
+      "10": 33,
+      "11": 140,
+      "12": 625,
+      "13": 2
+    },
+    "6": {
+      "10": 8,
+      "11": 608,
+      "12": 184
+    },
+    "7": {
+      "10": 107,
+      "11": 693
+    }
+  },
+  "bootstrap_valid_draws": {
+    "2": 800,
+    "3": 800,
+    "4": 800,
+    "5": 800,
+    "6": 800,
+    "7": 800
+  },
+  "bootstrap_frac_best_beats_symmetric": {
+    "2": 0.3187,
+    "3": 0.0,
+    "4": 0.0563,
+    "5": 0.2162,
+    "6": 0.77,
+    "7": 0.1338
+  }
+}

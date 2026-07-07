@@ -1,0 +1,613 @@
+{
+  "n_breaks_measured": 5747,
+  "n_breaks_input": 5775,
+  "naive": {
+    "dilution_contained_mean": 0.9765,
+    "dilution_straddled_mean": 0.9648,
+    "n_contained": 4735,
+    "n_straddled": 1012
+  },
+  "matched_cells": [
+    {
+      "channel": "כאן 11",
+      "daypart": "afternoon",
+      "len_bin": "1-2m",
+      "n_contained": 80,
+      "n_straddled": 13,
+      "dilution_contained": 0.994,
+      "dilution_straddled": 0.9842,
+      "diff_straddled_minus_contained": -0.0098
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "afternoon",
+      "len_bin": "2-3m",
+      "n_contained": 110,
+      "n_straddled": 28,
+      "dilution_contained": 1.0123,
+      "dilution_straddled": 0.9898,
+      "diff_straddled_minus_contained": -0.0225
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "early_evening",
+      "len_bin": "2-3m",
+      "n_contained": 74,
+      "n_straddled": 19,
+      "dilution_contained": 0.9697,
+      "dilution_straddled": 0.9929,
+      "diff_straddled_minus_contained": 0.0232
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "late_evening",
+      "len_bin": "2-3m",
+      "n_contained": 58,
+      "n_straddled": 7,
+      "dilution_contained": 1.0007,
+      "dilution_straddled": 0.9484,
+      "diff_straddled_minus_contained": -0.0523
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "late_evening",
+      "len_bin": "3-4m",
+      "n_contained": 20,
+      "n_straddled": 7,
+      "dilution_contained": 0.9824,
+      "dilution_straddled": 0.9606,
+      "diff_straddled_minus_contained": -0.0218
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "late_evening",
+      "len_bin": "<1m",
+      "n_contained": 59,
+      "n_straddled": 6,
+      "dilution_contained": 0.9427,
+      "dilution_straddled": 0.9888,
+      "diff_straddled_minus_contained": 0.0461
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "overnight",
+      "len_bin": "1-2m",
+      "n_contained": 153,
+      "n_straddled": 19,
+      "dilution_contained": 0.9986,
+      "dilution_straddled": 0.9301,
+      "diff_straddled_minus_contained": -0.0685
+    },
+    {
+      "channel": "כאן 11",
+      "daypart": "overnight",
+      "len_bin": "2-3m",
+      "n_contained": 94,
+      "n_straddled": 14,
+      "dilution_contained": 0.9787,
+      "dilution_straddled": 0.9492,
+      "diff_straddled_minus_contained": -0.0295
+    },
+    {
+      "channel": "עכשיו 14",
+      "daypart": "afternoon",
+      "len_bin": "1-2m",
+      "n_contained": 95,
+      "n_straddled": 18,
+      "dilution_contained": 0.9893,
+      "dilution_straddled": 0.9966,
+      "diff_straddled_minus_contained": 0.0073
+    },
+    {
+      "channel": "עכשיו 14",
+      "daypart": "afternoon",
+      "len_bin": "<1m",
+      "n_contained": 131,
+      "n_straddled": 6,
+      "dilution_contained": 1.0009,
+      "dilution_straddled": 1.0052,
+      "diff_straddled_minus_contained": 0.0044
+    },
+    {
+      "channel": "עכשיו 14",
+      "daypart": "early_evening",
+      "len_bin": "1-2m",
+      "n_contained": 64,
+      "n_straddled": 10,
+      "dilution_contained": 0.9854,
+      "dilution_straddled": 0.9878,
+      "diff_straddled_minus_contained": 0.0024
+    },
+    {
+      "channel": "עכשיו 14",
+      "daypart": "morning",
+      "len_bin": "1-2m",
+      "n_contained": 95,
+      "n_straddled": 11,
+      "dilution_contained": 0.9788,
+      "dilution_straddled": 0.9978,
+      "diff_straddled_minus_contained": 0.019
+    },
+    {
+      "channel": "עכשיו 14",
+      "daypart": "morning",
+      "len_bin": "<1m",
+      "n_contained": 130,
+      "n_straddled": 12,
+      "dilution_contained": 0.9837,
+      "dilution_straddled": 0.9909,
+      "diff_straddled_minus_contained": 0.0072
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "afternoon",
+      "len_bin": "1-2m",
+      "n_contained": 188,
+      "n_straddled": 12,
+      "dilution_contained": 0.9808,
+      "dilution_straddled": 0.9733,
+      "diff_straddled_minus_contained": -0.0075
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "afternoon",
+      "len_bin": "4-6m",
+      "n_contained": 116,
+      "n_straddled": 32,
+      "dilution_contained": 0.9752,
+      "dilution_straddled": 0.9697,
+      "diff_straddled_minus_contained": -0.0055
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "afternoon",
+      "len_bin": "6-9m",
+      "n_contained": 27,
+      "n_straddled": 7,
+      "dilution_contained": 0.9812,
+      "dilution_straddled": 0.9638,
+      "diff_straddled_minus_contained": -0.0174
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "early_evening",
+      "len_bin": "2-3m",
+      "n_contained": 37,
+      "n_straddled": 5,
+      "dilution_contained": 0.9444,
+      "dilution_straddled": 0.9714,
+      "diff_straddled_minus_contained": 0.0269
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "early_evening",
+      "len_bin": "4-6m",
+      "n_contained": 30,
+      "n_straddled": 14,
+      "dilution_contained": 0.9679,
+      "dilution_straddled": 0.9847,
+      "diff_straddled_minus_contained": 0.0169
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "early_evening",
+      "len_bin": "6-9m",
+      "n_contained": 36,
+      "n_straddled": 20,
+      "dilution_contained": 0.9399,
+      "dilution_straddled": 0.966,
+      "diff_straddled_minus_contained": 0.0261
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "early_evening",
+      "len_bin": "<1m",
+      "n_contained": 69,
+      "n_straddled": 6,
+      "dilution_contained": 0.969,
+      "dilution_straddled": 0.9864,
+      "diff_straddled_minus_contained": 0.0174
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "late_evening",
+      "len_bin": "1-2m",
+      "n_contained": 30,
+      "n_straddled": 6,
+      "dilution_contained": 0.9683,
+      "dilution_straddled": 0.9466,
+      "diff_straddled_minus_contained": -0.0217
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "late_evening",
+      "len_bin": "4-6m",
+      "n_contained": 28,
+      "n_straddled": 9,
+      "dilution_contained": 0.9573,
+      "dilution_straddled": 0.9501,
+      "diff_straddled_minus_contained": -0.0073
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "late_evening",
+      "len_bin": "6-9m",
+      "n_contained": 48,
+      "n_straddled": 34,
+      "dilution_contained": 0.8997,
+      "dilution_straddled": 0.9352,
+      "diff_straddled_minus_contained": 0.0355
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "late_evening",
+      "len_bin": "9m+",
+      "n_contained": 30,
+      "n_straddled": 43,
+      "dilution_contained": 0.8503,
+      "dilution_straddled": 0.8918,
+      "diff_straddled_minus_contained": 0.0415
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "morning",
+      "len_bin": "1-2m",
+      "n_contained": 90,
+      "n_straddled": 11,
+      "dilution_contained": 0.9879,
+      "dilution_straddled": 0.997,
+      "diff_straddled_minus_contained": 0.0091
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "morning",
+      "len_bin": "3-4m",
+      "n_contained": 9,
+      "n_straddled": 5,
+      "dilution_contained": 0.9601,
+      "dilution_straddled": 1.0025,
+      "diff_straddled_minus_contained": 0.0424
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "morning",
+      "len_bin": "4-6m",
+      "n_contained": 98,
+      "n_straddled": 48,
+      "dilution_contained": 0.9925,
+      "dilution_straddled": 0.9783,
+      "diff_straddled_minus_contained": -0.0142
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "morning",
+      "len_bin": "6-9m",
+      "n_contained": 57,
+      "n_straddled": 39,
+      "dilution_contained": 0.9825,
+      "dilution_straddled": 0.9739,
+      "diff_straddled_minus_contained": -0.0086
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "morning",
+      "len_bin": "<1m",
+      "n_contained": 309,
+      "n_straddled": 6,
+      "dilution_contained": 1.0019,
+      "dilution_straddled": 1.0029,
+      "diff_straddled_minus_contained": 0.001
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "overnight",
+      "len_bin": "1-2m",
+      "n_contained": 102,
+      "n_straddled": 17,
+      "dilution_contained": 0.9721,
+      "dilution_straddled": 1.0056,
+      "diff_straddled_minus_contained": 0.0335
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "overnight",
+      "len_bin": "2-3m",
+      "n_contained": 20,
+      "n_straddled": 5,
+      "dilution_contained": 0.9837,
+      "dilution_straddled": 1.014,
+      "diff_straddled_minus_contained": 0.0304
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "overnight",
+      "len_bin": "3-4m",
+      "n_contained": 17,
+      "n_straddled": 6,
+      "dilution_contained": 1.017,
+      "dilution_straddled": 1.0022,
+      "diff_straddled_minus_contained": -0.0147
+    },
+    {
+      "channel": "קשת 12",
+      "daypart": "overnight",
+      "len_bin": "4-6m",
+      "n_contained": 17,
+      "n_straddled": 9,
+      "dilution_contained": 0.9578,
+      "dilution_straddled": 1.0075,
+      "diff_straddled_minus_contained": 0.0497
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "afternoon",
+      "len_bin": "1-2m",
+      "n_contained": 43,
+      "n_straddled": 6,
+      "dilution_contained": 0.9496,
+      "dilution_straddled": 1.0058,
+      "diff_straddled_minus_contained": 0.0562
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "afternoon",
+      "len_bin": "4-6m",
+      "n_contained": 67,
+      "n_straddled": 29,
+      "dilution_contained": 0.9234,
+      "dilution_straddled": 0.9457,
+      "diff_straddled_minus_contained": 0.0223
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "afternoon",
+      "len_bin": "6-9m",
+      "n_contained": 33,
+      "n_straddled": 29,
+      "dilution_contained": 0.9604,
+      "dilution_straddled": 0.9654,
+      "diff_straddled_minus_contained": 0.005
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "afternoon",
+      "len_bin": "<1m",
+      "n_contained": 141,
+      "n_straddled": 5,
+      "dilution_contained": 0.9822,
+      "dilution_straddled": 0.9564,
+      "diff_straddled_minus_contained": -0.0258
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "early_evening",
+      "len_bin": "4-6m",
+      "n_contained": 14,
+      "n_straddled": 8,
+      "dilution_contained": 0.923,
+      "dilution_straddled": 0.9676,
+      "diff_straddled_minus_contained": 0.0446
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "early_evening",
+      "len_bin": "6-9m",
+      "n_contained": 32,
+      "n_straddled": 21,
+      "dilution_contained": 0.9269,
+      "dilution_straddled": 0.9665,
+      "diff_straddled_minus_contained": 0.0396
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "early_evening",
+      "len_bin": "<1m",
+      "n_contained": 52,
+      "n_straddled": 5,
+      "dilution_contained": 0.9383,
+      "dilution_straddled": 0.9642,
+      "diff_straddled_minus_contained": 0.0259
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "late_evening",
+      "len_bin": "1-2m",
+      "n_contained": 20,
+      "n_straddled": 8,
+      "dilution_contained": 0.9507,
+      "dilution_straddled": 0.9933,
+      "diff_straddled_minus_contained": 0.0427
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "late_evening",
+      "len_bin": "4-6m",
+      "n_contained": 32,
+      "n_straddled": 12,
+      "dilution_contained": 0.9421,
+      "dilution_straddled": 0.9712,
+      "diff_straddled_minus_contained": 0.029
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "late_evening",
+      "len_bin": "6-9m",
+      "n_contained": 48,
+      "n_straddled": 35,
+      "dilution_contained": 0.8928,
+      "dilution_straddled": 0.9303,
+      "diff_straddled_minus_contained": 0.0376
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "late_evening",
+      "len_bin": "9m+",
+      "n_contained": 10,
+      "n_straddled": 35,
+      "dilution_contained": 0.8451,
+      "dilution_straddled": 0.8381,
+      "diff_straddled_minus_contained": -0.007
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "morning",
+      "len_bin": "1-2m",
+      "n_contained": 54,
+      "n_straddled": 13,
+      "dilution_contained": 0.9914,
+      "dilution_straddled": 1.0028,
+      "diff_straddled_minus_contained": 0.0114
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "morning",
+      "len_bin": "2-3m",
+      "n_contained": 32,
+      "n_straddled": 11,
+      "dilution_contained": 0.9601,
+      "dilution_straddled": 1.0055,
+      "diff_straddled_minus_contained": 0.0454
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "morning",
+      "len_bin": "3-4m",
+      "n_contained": 16,
+      "n_straddled": 12,
+      "dilution_contained": 0.988,
+      "dilution_straddled": 1.0072,
+      "diff_straddled_minus_contained": 0.0192
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "morning",
+      "len_bin": "4-6m",
+      "n_contained": 64,
+      "n_straddled": 26,
+      "dilution_contained": 0.9553,
+      "dilution_straddled": 0.9386,
+      "diff_straddled_minus_contained": -0.0167
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "morning",
+      "len_bin": "6-9m",
+      "n_contained": 58,
+      "n_straddled": 69,
+      "dilution_contained": 0.9578,
+      "dilution_straddled": 0.9545,
+      "diff_straddled_minus_contained": -0.0033
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "overnight",
+      "len_bin": "2-3m",
+      "n_contained": 36,
+      "n_straddled": 9,
+      "dilution_contained": 0.9696,
+      "dilution_straddled": 0.9972,
+      "diff_straddled_minus_contained": 0.0276
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "overnight",
+      "len_bin": "3-4m",
+      "n_contained": 49,
+      "n_straddled": 18,
+      "dilution_contained": 0.9797,
+      "dilution_straddled": 1.0017,
+      "diff_straddled_minus_contained": 0.022
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "overnight",
+      "len_bin": "4-6m",
+      "n_contained": 36,
+      "n_straddled": 26,
+      "dilution_contained": 1.0509,
+      "dilution_straddled": 0.9923,
+      "diff_straddled_minus_contained": -0.0585
+    },
+    {
+      "channel": "רשת 13",
+      "daypart": "overnight",
+      "len_bin": "6-9m",
+      "n_contained": 11,
+      "n_straddled": 8,
+      "dilution_contained": 0.9499,
+      "dilution_straddled": 1.0178,
+      "diff_straddled_minus_contained": 0.0679
+    }
+  ],
+  "matched_weighted_diff_straddled_minus_contained": 0.0026,
+  "matched_cells_n": 53,
+  "matched_cells_positive": 34,
+  "mechanical_bound_by_len_bin": [
+    {
+      "len_bin": "1-2m",
+      "n": 1544,
+      "median_dip_frac": 0.0434,
+      "median_len_min": 1.45,
+      "max_qh_avg_gain_frac_of_B": 0.0021,
+      "containment_window_deficit_frac_of_B": 0.0042
+    },
+    {
+      "len_bin": "2-3m",
+      "n": 746,
+      "median_dip_frac": 0.0548,
+      "median_len_min": 2.37,
+      "max_qh_avg_gain_frac_of_B": 0.00432,
+      "containment_window_deficit_frac_of_B": 0.00865
+    },
+    {
+      "len_bin": "3-4m",
+      "n": 314,
+      "median_dip_frac": 0.0677,
+      "median_len_min": 3.5,
+      "max_qh_avg_gain_frac_of_B": 0.0079,
+      "containment_window_deficit_frac_of_B": 0.0158
+    },
+    {
+      "len_bin": "4-6m",
+      "n": 728,
+      "median_dip_frac": 0.062,
+      "median_len_min": 5.06,
+      "max_qh_avg_gain_frac_of_B": 0.01045,
+      "containment_window_deficit_frac_of_B": 0.0209
+    },
+    {
+      "len_bin": "6-9m",
+      "n": 619,
+      "median_dip_frac": 0.0908,
+      "median_len_min": 7.12,
+      "max_qh_avg_gain_frac_of_B": 0.02153,
+      "containment_window_deficit_frac_of_B": 0.04306
+    },
+    {
+      "len_bin": "9m+",
+      "n": 153,
+      "median_dip_frac": 0.204,
+      "median_len_min": 10.07,
+      "max_qh_avg_gain_frac_of_B": 0.06846,
+      "containment_window_deficit_frac_of_B": 0.13693
+    },
+    {
+      "len_bin": "<1m",
+      "n": 1643,
+      "median_dip_frac": 0.0377,
+      "median_len_min": 0.55,
+      "max_qh_avg_gain_frac_of_B": 0.00069,
+      "containment_window_deficit_frac_of_B": 0.00138
+    }
+  ],
+  "dip_frac_median_all": 0.0553,
+  "dip_frac_by_len_bin": {
+    "1-2m": 0.0434,
+    "2-3m": 0.0548,
+    "3-4m": 0.0677,
+    "4-6m": 0.062,
+    "6-9m": 0.0908,
+    "9m+": 0.204,
+    "<1m": 0.0377
+  }
+}

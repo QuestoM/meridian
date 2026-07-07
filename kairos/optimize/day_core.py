@@ -30,6 +30,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 from kairos.optimize.guardrails import Guardrails
 from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
+from kairos.optimize.qh_billing import maybe_restate
 
 
 def _optimize_one_day(
@@ -50,6 +51,7 @@ def _optimize_one_day(
     refine: bool = True,
     objective_mode: str = "blend",
     optimize_fn: Callable[..., OptimizationResult] = optimize_breaks,
+    pricing: Optional[Any] = None,
 ) -> OptimizationResult:
     """Fold demand, resolve constraints and place breaks for one channel-day.
 
@@ -79,6 +81,12 @@ def _optimize_one_day(
     every shipped path) keeps the convex-blend behaviour byte-identical, while
     ``'revenue_net'`` maximises the ILS net directly. It is a keyword pass-through so
     no default caller changes.
+
+    ``pricing`` is the caller's live :class:`~kairos.optimize.pricing.PricingModel`,
+    used only for the owner-gated ``enable_qh_settlement`` flag: when on, the
+    finished schedule's revenue is restated onto the round-quarter-hour billed-points
+    basis (:mod:`kairos.optimize.qh_billing`); when off or ``None`` (the shipped
+    default) the result is returned untouched, byte-identical.
     """
     # Imported lazily so this core can be imported by kairos.service at module load
     # without the reverse import cycle (service imports _optimize_one_day at top).
@@ -96,7 +104,7 @@ def _optimize_one_day(
         segments, constraints, overrides, placement_pins,
         operator_channel=operator_channel,
     )
-    return optimize_fn(
+    result = optimize_fn(
         segments,
         guardrails,
         revenue_weight=revenue_weight,
@@ -107,3 +115,6 @@ def _optimize_one_day(
         refine=refine,
         objective_mode=objective_mode,
     )
+    # Owner-gated settlement currency: an exact identity (the same result object)
+    # until pricing_activation.qh_settlement is switched on.
+    return maybe_restate(result, segments, pricing)

@@ -1,0 +1,214 @@
+{
+  "n_breaks_with_programme": 5759,
+  "n_breaks_dropped_no_span": 0,
+  "programme_starts_within_1min_of_qh_mark_frac": 0.2075,
+  "programme_starts_within_1min_of_hh_mark_frac": 0.1608,
+  "qh": {
+    "overall": [
+      {
+        "group": "all",
+        "n": 5759,
+        "observed_frac": 0.1754,
+        "expected_conditional_frac": 0.167,
+        "obs_minus_exp": 0.0084,
+        "z": 2.01
+      }
+    ],
+    "by_channel": [
+      {
+        "group": "כאן 11",
+        "n": 940,
+        "observed_frac": 0.1372,
+        "expected_conditional_frac": 0.1222,
+        "obs_minus_exp": 0.0151,
+        "z": 1.47
+      },
+      {
+        "group": "עכשיו 14",
+        "n": 960,
+        "observed_frac": 0.0979,
+        "expected_conditional_frac": 0.0751,
+        "obs_minus_exp": 0.0228,
+        "z": 2.83
+      },
+      {
+        "group": "קשת 12",
+        "n": 2158,
+        "observed_frac": 0.1696,
+        "expected_conditional_frac": 0.1762,
+        "obs_minus_exp": -0.0066,
+        "z": -0.96
+      },
+      {
+        "group": "רשת 13",
+        "n": 1701,
+        "observed_frac": 0.2475,
+        "expected_conditional_frac": 0.232,
+        "obs_minus_exp": 0.0155,
+        "z": 1.82
+      }
+    ],
+    "by_len_bin": [
+      {
+        "group": "1-2m",
+        "n": 1554,
+        "observed_frac": 0.1075,
+        "expected_conditional_frac": 0.089,
+        "obs_minus_exp": 0.0185,
+        "z": 2.68
+      },
+      {
+        "group": "2-3m",
+        "n": 756,
+        "observed_frac": 0.1587,
+        "expected_conditional_frac": 0.1381,
+        "obs_minus_exp": 0.0206,
+        "z": 1.7
+      },
+      {
+        "group": "3-4m",
+        "n": 315,
+        "observed_frac": 0.2444,
+        "expected_conditional_frac": 0.1979,
+        "obs_minus_exp": 0.0466,
+        "z": 2.22
+      },
+      {
+        "group": "4-6m",
+        "n": 730,
+        "observed_frac": 0.3014,
+        "expected_conditional_frac": 0.3042,
+        "obs_minus_exp": -0.0029,
+        "z": -0.18
+      },
+      {
+        "group": "6-9m",
+        "n": 615,
+        "observed_frac": 0.4228,
+        "expected_conditional_frac": 0.4621,
+        "obs_minus_exp": -0.0393,
+        "z": -2.12
+      },
+      {
+        "group": "9m+",
+        "n": 147,
+        "observed_frac": 0.6871,
+        "expected_conditional_frac": 0.661,
+        "obs_minus_exp": 0.026,
+        "z": 0.78
+      },
+      {
+        "group": "<1m",
+        "n": 1642,
+        "observed_frac": 0.0396,
+        "expected_conditional_frac": 0.0324,
+        "obs_minus_exp": 0.0072,
+        "z": 1.68
+      }
+    ]
+  },
+  "hh": {
+    "overall": [
+      {
+        "group": "all",
+        "n": 5759,
+        "observed_frac": 0.0762,
+        "expected_conditional_frac": 0.0806,
+        "obs_minus_exp": -0.0043,
+        "z": -1.37
+      }
+    ],
+    "by_channel": [
+      {
+        "group": "כאן 11",
+        "n": 940,
+        "observed_frac": 0.0638,
+        "expected_conditional_frac": 0.0535,
+        "obs_minus_exp": 0.0103,
+        "z": 1.45
+      },
+      {
+        "group": "עכשיו 14",
+        "n": 960,
+        "observed_frac": 0.026,
+        "expected_conditional_frac": 0.036,
+        "obs_minus_exp": -0.01,
+        "z": -1.74
+      },
+      {
+        "group": "קשת 12",
+        "n": 2158,
+        "observed_frac": 0.0862,
+        "expected_conditional_frac": 0.0885,
+        "obs_minus_exp": -0.0023,
+        "z": -0.44
+      },
+      {
+        "group": "רשת 13",
+        "n": 1701,
+        "observed_frac": 0.0988,
+        "expected_conditional_frac": 0.1105,
+        "obs_minus_exp": -0.0117,
+        "z": -1.76
+      }
+    ],
+    "by_len_bin": [
+      {
+        "group": "1-2m",
+        "n": 1554,
+        "observed_frac": 0.0438,
+        "expected_conditional_frac": 0.0419,
+        "obs_minus_exp": 0.0019,
+        "z": 0.38
+      },
+      {
+        "group": "2-3m",
+        "n": 756,
+        "observed_frac": 0.0582,
+        "expected_conditional_frac": 0.0603,
+        "obs_minus_exp": -0.0021,
+        "z": -0.24
+      },
+      {
+        "group": "3-4m",
+        "n": 315,
+        "observed_frac": 0.0921,
+        "expected_conditional_frac": 0.0939,
+        "obs_minus_exp": -0.0019,
+        "z": -0.12
+      },
+      {
+        "group": "4-6m",
+        "n": 730,
+        "observed_frac": 0.1192,
+        "expected_conditional_frac": 0.1391,
+        "obs_minus_exp": -0.0199,
+        "z": -1.69
+      },
+      {
+        "group": "6-9m",
+        "n": 615,
+        "observed_frac": 0.2049,
+        "expected_conditional_frac": 0.2341,
+        "obs_minus_exp": -0.0292,
+        "z": -1.9
+      },
+      {
+        "group": "9m+",
+        "n": 147,
+        "observed_frac": 0.3537,
+        "expected_conditional_frac": 0.3532,
+        "obs_minus_exp": 0.0006,
+        "z": 0.02
+      },
+      {
+        "group": "<1m",
+        "n": 1642,
+        "observed_frac": 0.0201,
+        "expected_conditional_frac": 0.016,
+        "obs_minus_exp": 0.0041,
+        "z": 1.36
+      }
+    ]
+  }
+}

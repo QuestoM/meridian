@@ -447,6 +447,7 @@ def optimize_day_plan(
         placement_pins=placement_pins,
         operator_channel=_operator_channel(settings),
         optimize_fn=optimize_breaks,
+        pricing=pricing,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)
@@ -549,6 +550,7 @@ def run_scenario(
         refine=refine,
         objective_mode=objective_mode,
         optimize_fn=optimize_breaks,
+        pricing=pricing,
     )
 
     payload = result_to_dict(result, channel=channel, day=day)

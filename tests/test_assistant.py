@@ -192,8 +192,9 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
 def test_system_prompt_carries_quarter_hour_market_mechanics() -> None:
     """The market-mechanics section is present in the constructed system prompt:
     the owner-stated quarter-hour settlement fact sourced to its doc, the
-    two-currencies caveat, the surface-when-asked instruction, and the
-    not-yet-measured hedge so the assistant does not overclaim."""
+    measured status and off-by-default engine expression, the two-currencies
+    caveat, the surface-when-asked instruction, and the not-contractually-
+    verified hedge so the assistant does not overclaim."""
     text = "".join(block["text"] for block in assistant._system_blocks())
     assert "docs/quarter-hour-billing.md" in text
     assert "ROUND quarter hour" in text
@@ -205,9 +206,15 @@ def test_system_prompt_carries_quarter_hour_market_mechanics() -> None:
     assert "consolidation-versus-split" in text
     # Surfaced on the four named question kinds.
     assert "placement, splitting, consolidation, or CPP revenue" in text
-    # Marked owner-stated, dated, and not yet measured so it does not overclaim.
+    # Marked owner-stated and dated, now measured and expressed off-by-default.
     assert "owner-stated market convention recorded 2026-07-07" in text
-    assert "not yet measured" in text
+    assert "measured on the real Nov-2024 month" in text
+    assert "pricing_activation.qh_settlement" in text
+    assert "OFF by default" in text
+    # The measured placement answer, not the open conjecture.
+    assert "symmetric boundary-straddling is optimal" in text
+    # Honest hedge: rule confirmed in plan data, not contractually verified.
+    assert "not contractually verified" in text
 
 
 # --- per-day table: always on, owned channel only ------------------------------

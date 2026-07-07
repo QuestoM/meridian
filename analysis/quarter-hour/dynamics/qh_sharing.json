@@ -1,0 +1,14 @@
+{
+  "qh_windows_with_any_break": 4832,
+  "windows_with_2plus_breaks": 1628,
+  "share_2plus": 0.3369,
+  "distribution": {
+    "1": 3204,
+    "2": 1314,
+    "3": 293,
+    "4": 20,
+    "5": 1
+  },
+  "breaks_straddling_boundary": 1021,
+  "share_straddling": 0.1768
+}

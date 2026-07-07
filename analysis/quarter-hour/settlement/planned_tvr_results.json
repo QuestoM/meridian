@@ -1,0 +1,113 @@
+{
+  "daily_files": [
+    {
+      "file": "Wally_Prime_Reshet_Example_2025-04-27.csv",
+      "n_spot_rows": 175,
+      "n_qh_windows": 10,
+      "qh_windows_with_single_value": 10,
+      "n_breaks": 10,
+      "breaks_with_single_value": 8,
+      "n_programmes": 4,
+      "programmes_with_single_value": 1,
+      "n_value_changes": 8,
+      "changes_bracketing_qh_boundary": 8,
+      "changes_within_same_break": 2,
+      "change_points": [
+        {
+          "prev_time": "20:24:27",
+          "time": "20:40:51",
+          "prev_tvr": 7.0,
+          "tvr": 6.4,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        },
+        {
+          "prev_time": "20:44:30",
+          "time": "20:45:05",
+          "prev_tvr": 6.4,
+          "tvr": 5.9,
+          "brackets_qh_boundary": true,
+          "same_break": true
+        },
+        {
+          "prev_time": "20:50:37",
+          "time": "21:02:02",
+          "prev_tvr": 5.9,
+          "tvr": 4.4,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        },
+        {
+          "prev_time": "21:11:54",
+          "time": "21:22:16",
+          "prev_tvr": 4.4,
+          "tvr": 5.4,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        },
+        {
+          "prev_time": "21:24:54",
+          "time": "22:04:16",
+          "prev_tvr": 5.4,
+          "tvr": 5.2,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        },
+        {
+          "prev_time": "22:18:06",
+          "time": "22:35:19",
+          "prev_tvr": 5.2,
+          "tvr": 3.9,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        },
+        {
+          "prev_time": "22:44:36",
+          "time": "22:45:06",
+          "prev_tvr": 3.9,
+          "tvr": 4.3,
+          "brackets_qh_boundary": true,
+          "same_break": true
+        },
+        {
+          "prev_time": "22:57:06",
+          "time": "23:03:40",
+          "prev_tvr": 4.3,
+          "tvr": 2.6,
+          "brackets_qh_boundary": true,
+          "same_break": false
+        }
+      ],
+      "same_qh_cross_break": [
+        {
+          "qh_start": "21:15",
+          "n_breaks": 3,
+          "n_distinct_tvr": 1,
+          "values": [
+            5.4
+          ]
+        },
+        {
+          "qh_start": "22:45",
+          "n_breaks": 2,
+          "n_distinct_tvr": 1,
+          "values": [
+            4.3
+          ]
+        }
+      ]
+    }
+  ],
+  "programmes_xlsx": {
+    "note": "TVR is one value per programme ROW; distinct/rows < 1 only via repeated values",
+    "channel_days": 120,
+    "mean_rows_per_channel_day": 72.5,
+    "mean_distinct_tvr_per_channel_day": 39.7,
+    "rows_total": 8704
+  },
+  "engine_code_facts": {
+    "daily_path": "kairos/data/transform.py build_segments_from_daily_input: baseline_tvr = MEAN of planned_tvr over the programme's spot rows (per-programme scalar)",
+    "programmes_path": "kairos/data/transform.py build_segments_from_programmes: baseline_tvr = the programme row's TVR (per-programme scalar)",
+    "revenue": "kairos/optimize/objective.py break_revenue: cpp * rating_points * duration * premium with rating_points from that per-programme scalar; no window awareness"
+  }
+}
