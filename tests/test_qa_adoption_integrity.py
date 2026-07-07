@@ -29,11 +29,14 @@ from kairos_api.server import app  # noqa: E402
 
 COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
-# The adopted plan's headline economics, to the cent (prompt-supplied and
-# reproduced live from the committed CSV in this session).
-ADOPTED_REVENUE_ILS = 209_941_254.97
-ADOPTED_RETENTION_COST_ILS = 20_819_641.43
-ADOPTED_NET_ILS = 189_121_613.54
+# The adopted plan's headline economics, to the cent, reproduced live from the
+# committed CSV in this session. Rebased when the exact DP refiner tier shipped
+# default on and moved the plan of record (kairos/optimize/dp_refine.py): the tier
+# recovers value greedy+F1 left on the table, so revenue and its retention cost both
+# rose (never a per-day regression on the engine's own objective).
+ADOPTED_REVENUE_ILS = 221_891_590.23
+ADOPTED_RETENTION_COST_ILS = 24_259_552.77
+ADOPTED_NET_ILS = 197_632_037.46
 
 # The pre-adoption figures that must not survive anywhere as a live number.
 STALE_REVENUE_M = 215.3
@@ -95,8 +98,9 @@ def test_yield_per_second_matches_the_adopted_plan_economics(client) -> None:
     assert payload["revenue_ils"] == pytest.approx(ADOPTED_REVENUE_ILS, abs=1.0)
     assert payload["retention_cost_ils"] == pytest.approx(ADOPTED_RETENTION_COST_ILS, abs=1.0)
     assert payload["revenue_net_ils"] == pytest.approx(ADOPTED_NET_ILS, abs=1.0)
-    # And the cost is materially below the pre-adoption 16.8M was WRONG: the
-    # corrected cost is ~20.82M, well clear of the stale number.
+    # And the cost is materially clear of the pre-adoption 16.8M stale number: the
+    # DP-adopted plan's retention cost is ~24.26M (more breaks earn more revenue and
+    # cost more retention), well above the stale figure.
     assert abs(payload["retention_cost_ils"] / 1e6 - STALE_COST_M) > 1.0
 
 
@@ -146,8 +150,8 @@ def test_no_read_endpoint_serializes_the_pre_adoption_headline(client) -> None:
     """Sweep the money-bearing GET endpoints; none may echo 215.3M / 16.8M.
 
     Checks the actual serialized JSON for the stale headline magnitudes. The
-    corrected figures (209.94M / 20.82M / 189.12M) are the only economics the
-    stack should present.
+    corrected figures (221.89M / 24.26M / 197.63M after the DP refiner tier) are
+    the only economics the stack should present.
     """
     endpoints = ["/api/yield-per-second", "/api/impact", "/api/compliance", "/api/reports"]
     for path in endpoints:

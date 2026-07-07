@@ -103,6 +103,7 @@ def optimize_breaks(
     placement_pins: Optional[Mapping[str, Sequence[PlacementPin]]] = None,
     demand_weights: Optional[Mapping[str, float]] = None,
     refine: bool = True,
+    dp_refine: bool = True,
     objective_mode: str = OBJECTIVE_BLEND,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
@@ -160,6 +161,16 @@ def optimize_breaks(
     local search for real ones) and adopts refined counts only where they STRICTLY
     beat greedy, so the result is always at least as good as pure greedy and never
     regresses a group. Set ``refine=False`` for pure-greedy output (A/B, fast tests).
+
+    ``dp_refine`` (default ``True``) runs the exact interval-sweep dynamic program
+    (:mod:`kairos.optimize.dp_refine`) as the top refiner tier, AFTER the F1 refiner
+    and only while ``refine`` is on. It solves each covered channel-day to the exact
+    optimum of this same per-group objective and its counts are adopted only where
+    they STRICTLY beat the greedy+F1 plan and stay compliant, so the tier is
+    never-worse by construction. A channel-day carrying overrides, pins, gold-forcing
+    constraints, a non-finite input, mixed break lengths, or open depth above the
+    guard falls back silently to the greedy+F1 counts. Set ``dp_refine=False`` for
+    byte-identical greedy+F1 output (the kill-switch).
 
     The returned schedule is always compliant: ``violations`` is empty unless a
     guardrail interaction the greedy step could not localise slipped through, in
@@ -357,6 +368,28 @@ def optimize_breaks(
                 group, refined_counts, floors,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale, total_tvr=total_tvr,
                 placements=placements, net_of=_net_of,
+            )
+
+        # Exact top tier: the interval-sweep DP solves each covered channel-day to
+        # the optimum of this same per-group objective and its counts are adopted
+        # only where they STRICTLY beat greedy+F1 on the shipped scorer AND stay
+        # compliant (the whole gate lives in apply_dp_tier), so the tier never
+        # regresses a group; an uncovered day falls back to the greedy+F1 counts.
+        # Off (``dp_refine=False``) is the byte-identical kill-switch.
+        if dp_refine:
+            from kairos.optimize.dp_refine import apply_dp_tier
+
+            apply_dp_tier(
+                groups, state, decisions_by_group, guardrails,
+                revenue_weight=revenue_weight, revenue_scale=revenue_scale,
+                total_tvr=total_tvr, objective_mode=objective_mode, net_of=_net_of,
+                floors=floors, caps=caps, gold_by_id=gold_by_id, placements=placements,
+                group_score=_group_score,
+                replay_decisions=lambda group, counts: replay_group_decisions(
+                    group, counts, floors,
+                    revenue_weight=revenue_weight, revenue_scale=revenue_scale,
+                    total_tvr=total_tvr, placements=placements, net_of=_net_of,
+                ),
             )
 
     # Roll the (possibly corrected) counts back up into the reported totals;
