@@ -39,6 +39,11 @@ interval kept for transparency. A cell whose measured effect is non-negative is
 reported as zero cost: the data shows no shedding there, and the optimizer cannot
 consume a positive per-break retention gain. Pure pandas and numpy, so it imports
 and unit-tests without Meridian.
+
+Currency note: these are minute-level windows, so the measured shed is true
+audience behavior, deliberately NOT the round-quarter-hour average TVR that
+market CPP settlement is based on. Retention measured here and revenue billed by
+the market are different currencies; see docs/quarter-hour-billing.md.
 """
 
 from __future__ import annotations

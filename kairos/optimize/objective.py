@@ -8,6 +8,13 @@ when no real schedule was available.
 Israeli TV ad pricing is Cost Per (rating) Point, CPP: a 30-second spot worth
 one rating point costs one CPP unit, scaled by daypart and position premiums.
 Sponsorships are usually priced at a fixed amount (FIX) rather than CPP.
+
+Settlement caveat: market CPP settlement is based on ROUND quarter-hour average
+TVR (:00/:15/:30/:45), while ``rating_points`` here is the break's own planned
+rating. A break straddling a quarter-hour boundary dilutes its dip across two
+settlement windows, so billed points and this function's revenue basis can
+diverge. See docs/quarter-hour-billing.md before adding any break placement or
+consolidation logic that assumes they are the same currency.
 """
 
 from __future__ import annotations
