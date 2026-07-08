@@ -3053,7 +3053,6 @@ button {
 }
 
 .settings-panel label,
-.number-control,
 .toggle-control {
   display: grid;
   gap: 7px;
@@ -3091,16 +3090,43 @@ button {
   width: 100%;
 }
 
-.number-control div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
+/* Calm the outlined-field borders: MUI's default hover is near-black and its focus
+   ring is a heavy 2px, both jarring on this light panel. Use the design tokens
+   instead, at a steady 1px so focus never nudges the layout. */
+.settings-panel .MuiOutlinedInput-notchedOutline {
+  border-color: var(--line);
 }
 
-.number-control small {
+.settings-panel .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--line-strong);
+}
+
+.settings-panel .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--teal);
+  border-width: 1px;
+}
+
+/* Number fields carry their unit as an end adornment inside the frame, so hide the
+   native spinner (it only appeared on hover and clashed with the design) and give
+   the unit a muted, settled look. The value stays fully typeable. */
+.settings-panel input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.settings-panel input[type='number']::-webkit-outer-spin-button,
+.settings-panel input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.settings-panel .settings-number .MuiInputAdornment-root {
   color: var(--muted);
-  font-size: var(--text-xs);
+}
+
+.settings-panel .settings-number .MuiInputAdornment-root .MuiTypography-root {
+  font-size: var(--text-sm);
+  color: var(--muted);
 }
 
 .toggle-control {

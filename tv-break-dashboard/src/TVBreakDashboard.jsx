@@ -12,6 +12,7 @@ import {
   FormControl,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   InputLabel,
   List,
   ListItemButton,
@@ -5184,20 +5185,24 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
   );
 }
 
+// The unit (min, /day, %, ...) sits INSIDE the field as an end adornment, so every
+// settings field is one full-width frame at the same width whether it carries a unit
+// or not. Native number spinners are hidden in CSS (they only showed on hover and
+// looked out of place); the value stays fully typeable.
 function NumberControl({ label, value, onChange, suffix }) {
   return (
-    <div className="number-control">
-      <div>
-        <TextField
-          label={label}
-          type="number"
-          size="small"
-          value={value ?? 0}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <small>{suffix}</small>
-      </div>
-    </div>
+    <TextField
+      className="settings-number"
+      label={label}
+      type="number"
+      size="small"
+      fullWidth
+      value={value ?? 0}
+      onChange={(event) => onChange(event.target.value)}
+      slotProps={suffix ? {
+        input: { endAdornment: <InputAdornment position="end">{suffix}</InputAdornment> },
+      } : undefined}
+    />
   );
 }
 
