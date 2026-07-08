@@ -6,7 +6,7 @@ import { TextField } from '@mui/material';
 // so the whole control calls showPicker(). It is guarded: a browser without
 // showPicker keeps the icon, and the shrink label keeps the placeholder clear of
 // the floating label. Shared across the settings and constraint-builder date fields.
-export default function DateField({ label, value, onChange }) {
+export default function DateField({ label, value, onChange, helperText }) {
   return (
     <TextField
       label={label}
@@ -14,6 +14,7 @@ export default function DateField({ label, value, onChange }) {
       size="small"
       value={value ?? ''}
       onChange={(event) => onChange(event.target.value)}
+      helperText={helperText}
       slotProps={{ inputLabel: { shrink: true } }}
       onClick={(event) => {
         const input = event.currentTarget.querySelector('input');

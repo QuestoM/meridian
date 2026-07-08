@@ -5112,46 +5112,44 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
               label={he ? 'קצב קמפיינים' : 'Campaign pacing'}
               checked={draft.pacing_enabled ?? true}
               onChange={(value) => updateField('pacing_enabled', value)}
+              helperText={he ? 'מטה את השיבוץ לעבר קמפיינים שמפגרים בקצב הדילוור והרחק מקמפיינים שדילברו יותר מדי. שיבוץ בלבד; לעולם לא משנה את תחזית ההכנסה.' : 'Steer placement toward campaigns behind delivery pace and away from over-delivered ones. Placement only; never changes the revenue projection.'}
             />
             <DateField
               label={he ? 'תאריך ייחוס לקצב' : 'Pacing reference date'}
               value={draft.pacing_reference_date}
               onChange={(value) => updateField('pacing_reference_date', value)}
+              helperText={he ? 'התאריך שנחשב כהיום בעת מדידת קצב הקמפיין. ריק משתמש בתאריך התוקף של הלוח.' : 'The date treated as today when measuring campaign pace. Empty uses the schedule effective date.'}
             />
             <NumberControl
               label={he ? 'עוצמת פיגור בקצב' : 'Behind-pace strength'}
               value={draft.pacing_urgency_k ?? 1.0}
               onChange={(value) => updateNumber('pacing_urgency_k', Math.min(5, Math.max(0, Number(value))))}
+              helperText={he ? 'כמה חזק קמפיין בתת-דילוור מושך פרסומות למלאי שלו.' : 'How hard an under-delivered campaign pulls breaks toward its inventory.'}
             />
             <NumberControl
               label={he ? 'תקרת פיגור בקצב' : 'Behind-pace cap'}
               value={draft.pacing_urgency_max ?? 2.0}
               onChange={(value) => updateNumber('pacing_urgency_max', Math.min(4, Math.max(1, Number(value))))}
+              helperText={he ? 'הגברת השיבוץ המרבית לקמפיין המפגר ביותר.' : 'Maximum placement boost for the most behind campaign.'}
             />
             <NumberControl
               label={he ? 'ריסון דילוור-יתר' : 'Over-delivery throttle'}
               value={draft.pacing_ahead_k ?? 1.0}
               onChange={(value) => updateNumber('pacing_ahead_k', Math.min(5, Math.max(0, Number(value))))}
+              helperText={he ? 'כמה חזק קמפיין בדילוור-יתר מקבל עדיפות נמוכה בשיבוץ. אפס מבטל את קנס דילוור-היתר.' : 'How hard an over-delivered campaign is de-prioritized in placement. Zero disables the over-delivery penalty.'}
             />
             <NumberControl
               label={he ? 'רצפת דילוור-יתר' : 'Over-delivery floor'}
               value={draft.pacing_weight_floor ?? 0.5}
               onChange={(value) => updateNumber('pacing_weight_floor', Math.min(1.0, Math.max(0.25, Number(value))))}
+              helperText={he ? 'המשקל הנמוך ביותר בשיבוץ שקמפיין בדילוור-יתר יכול לקבל. לעולם לא אפס, כך שפרסומת לעולם אינה נחסמת.' : 'The lowest placement weight an over-delivered campaign can receive. Never zero, so a slot is never forbidden.'}
             />
             <NumberControl
               label={he ? 'רצפת מכנה הקצב' : 'Pace denominator floor'}
               value={draft.pacing_epsilon ?? 0.05}
               onChange={(value) => updateNumber('pacing_epsilon', Math.min(0.5, Math.max(0.01, Number(value))))}
+              helperText={he ? 'רצפה נומרית כדי שהדחיפות תישאר סופית ביום הראשון והאחרון של הקמפיין.' : 'Numerical floor so urgency stays finite on the first and last flight day.'}
             />
-          </div>
-          <div className="settings-pacing-help">
-            <p>{he ? 'מטה את השיבוץ לעבר קמפיינים שמפגרים בקצב הדילוור והרחק מקמפיינים שדילברו יותר מדי. שיבוץ בלבד; לעולם לא משנה את תחזית ההכנסה.' : 'Steer placement toward campaigns behind delivery pace and away from over-delivered ones. Placement only; never changes the revenue projection.'}</p>
-            <p>{he ? 'התאריך שנחשב כהיום בעת מדידת קצב הקמפיין. ריק משתמש בתאריך התוקף של הלוח.' : 'The date treated as today when measuring campaign pace. Empty uses the schedule effective date.'}</p>
-            <p>{he ? 'כמה חזק קמפיין בתת-דילוור מושך פרסומות למלאי שלו.' : 'How hard an under-delivered campaign pulls breaks toward its inventory.'}</p>
-            <p>{he ? 'הגברת השיבוץ המרבית לקמפיין המפגר ביותר.' : 'Maximum placement boost for the most behind campaign.'}</p>
-            <p>{he ? 'כמה חזק קמפיין בדילוור-יתר מקבל עדיפות נמוכה בשיבוץ. אפס מבטל את קנס דילוור-היתר.' : 'How hard an over-delivered campaign is de-prioritized in placement. Zero disables the over-delivery penalty.'}</p>
-            <p>{he ? 'המשקל הנמוך ביותר בשיבוץ שקמפיין בדילוור-יתר יכול לקבל. לעולם לא אפס, כך שפרסומת לעולם אינה נחסמת.' : 'The lowest placement weight an over-delivered campaign can receive. Never zero, so a slot is never forbidden.'}</p>
-            <p>{he ? 'רצפה נומרית כדי שהדחיפות תישאר סופית ביום הראשון והאחרון של הקמפיין.' : 'Numerical floor so urgency stays finite on the first and last flight day.'}</p>
           </div>
         </section>
 
@@ -5189,7 +5187,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
 // settings field is one full-width frame at the same width whether it carries a unit
 // or not. Native number spinners are hidden in CSS (they only showed on hover and
 // looked out of place); the value stays fully typeable.
-function NumberControl({ label, value, onChange, suffix }) {
+function NumberControl({ label, value, onChange, suffix, helperText }) {
   return (
     <TextField
       className="settings-number"
@@ -5199,6 +5197,7 @@ function NumberControl({ label, value, onChange, suffix }) {
       fullWidth
       value={value ?? 0}
       onChange={(event) => onChange(event.target.value)}
+      helperText={helperText}
       slotProps={suffix ? {
         input: { endAdornment: <InputAdornment position="end">{suffix}</InputAdornment> },
       } : undefined}
@@ -5206,11 +5205,14 @@ function NumberControl({ label, value, onChange, suffix }) {
   );
 }
 
-function ToggleControl({ label, checked, onChange }) {
+function ToggleControl({ label, checked, onChange, helperText }) {
   return (
-    <div className="toggle-control">
-      <span>{label}</span>
-      <Switch size="small" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} />
+    <div className="toggle-field">
+      <div className="toggle-control">
+        <span>{label}</span>
+        <Switch size="small" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} />
+      </div>
+      {helperText ? <p className="settings-field-help">{helperText}</p> : null}
     </div>
   );
 }

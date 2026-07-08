@@ -4951,19 +4951,32 @@ button {
   font-size: var(--text-sm);
 }
 
-.settings-pacing-help {
-  margin: 12px 0 0;
+/* Each pacing field carries its own description as helper text right under it, so
+   the notes live with the control they explain instead of piling up in a block.
+   Fields align to the top of their grid cell so a long note never stretches its
+   neighbour. */
+.settings-toggle-grid,
+.settings-form-grid {
+  align-items: start;
+}
+
+.settings-panel .MuiFormHelperText-root {
+  margin: 6px 2px 0;
   color: var(--muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   line-height: 1.5;
 }
 
-.settings-pacing-help p {
-  margin: 0 0 6px;
+.toggle-field {
+  display: grid;
+  gap: 6px;
 }
 
-.settings-pacing-help p:last-child {
-  margin-bottom: 0;
+.settings-field-help {
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
 }
 
 /* ------------------------------------------------------------------ */
