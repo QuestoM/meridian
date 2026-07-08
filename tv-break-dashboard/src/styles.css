@@ -4954,14 +4954,17 @@ button {
 /* Each pacing field carries its own description as helper text right under it, so
    the notes live with the control they explain instead of piling up in a block.
    Fields align to the top of their grid cell so a long note never stretches its
-   neighbour. */
+   neighbour. The note hugs its own field (4px) while a wider gap (22px) separates
+   one field from the next, so proximity makes it unambiguous which field a note
+   belongs to. */
 .settings-toggle-grid,
 .settings-form-grid {
   align-items: start;
+  row-gap: 22px;
 }
 
 .settings-panel .MuiFormHelperText-root {
-  margin: 6px 2px 0;
+  margin: 4px 2px 0;
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.5;
@@ -4969,7 +4972,7 @@ button {
 
 .toggle-field {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .settings-field-help {
