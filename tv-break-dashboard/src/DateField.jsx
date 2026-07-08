@@ -14,7 +14,7 @@ export default function DateField({ label, value, onChange }) {
       size="small"
       value={value ?? ''}
       onChange={(event) => onChange(event.target.value)}
-      InputLabelProps={{ shrink: true }}
+      slotProps={{ inputLabel: { shrink: true } }}
       onClick={(event) => {
         const input = event.currentTarget.querySelector('input');
         if (input && typeof input.showPicker === 'function') input.showPicker();
