@@ -1036,6 +1036,87 @@ async function fetchJson(path, fallback) {
   }
 }
 
+// Build a CSV string from real rows. Every field is quote-escaped so commas,
+// quotes and newlines in the data never break a column. Header comes from the
+// column labels; each cell reads its column key off the row.
+function buildCsv(columns, rows) {
+  const escape = (value) => {
+    const text = value === null || value === undefined ? '' : String(value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const header = columns.map((column) => escape(column.label)).join(',');
+  const body = rows.map((row) => columns.map((column) => escape(column.value(row))).join(',')).join('\n');
+  // A BOM keeps Hebrew readable when the CSV is opened in Excel.
+  return `﻿${header}\n${body}\n`;
+}
+
+function downloadCsv(filename, text) {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+// Per-report downloaders. Each fetches the report's REAL content and saves it as a
+// CSV; nothing is derived from the card metadata. The weekly plan streams from the
+// server's own CSV export; the others build a CSV from the live endpoint.
+async function downloadComplianceReport(locale, notify) {
+  try {
+    const response = await fetch(`${API_BASE}/api/compliance`);
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    const data = await response.json();
+    const checks = Array.isArray(data.checks) ? data.checks : [];
+    const csv = buildCsv([
+      { label: pageText(locale, 'Check', 'בדיקה'), value: (row) => pageText(locale, row.label_en, row.label_he) || row.id },
+      { label: pageText(locale, 'Observed', 'נמדד'), value: (row) => row.observed },
+      { label: pageText(locale, 'Limit', 'מגבלה'), value: (row) => row.limit },
+      { label: pageText(locale, 'Unit', 'יחידה'), value: (row) => row.unit },
+      { label: pageText(locale, 'Status', 'סטטוס'), value: (row) => row.status },
+      { label: pageText(locale, 'Violations', 'חריגות'), value: (row) => row.violations },
+    ], checks);
+    downloadCsv('kairos-compliance.csv', csv);
+    if (notify) notify('Compliance report exported as CSV.', 'דוח התאימות יוצא כ־CSV.');
+  } catch (error) {
+    if (notify) notify(`Compliance export failed (${error.message}).`, `ייצוא דוח התאימות נכשל (${error.message}).`);
+  }
+}
+
+async function downloadRevenueReport(locale, notify) {
+  try {
+    const response = await fetch(`${API_BASE}/api/forecasts`);
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    const data = await response.json();
+    const byDay = Array.isArray(data.by_day) ? data.by_day : [];
+    const csv = buildCsv([
+      { label: pageText(locale, 'Day', 'יום'), value: (row) => row.day },
+      { label: pageText(locale, 'Revenue (ILS)', 'הכנסה (ש"ח)'), value: (row) => Math.round(Number(row.revenue) || 0) },
+      { label: pageText(locale, 'Retention (%)', 'שימור (%)'), value: (row) => (Number(row.retention) * 100).toFixed(2) },
+      { label: pageText(locale, 'Breaks', 'ברייקים'), value: (row) => row.breaks },
+    ], byDay);
+    downloadCsv('kairos-revenue-forecast.csv', csv);
+    if (notify) notify('Revenue forecast exported as CSV.', 'תחזית ההכנסה יוצאה כ־CSV.');
+  } catch (error) {
+    if (notify) notify(`Revenue export failed (${error.message}).`, `ייצוא תחזית ההכנסה נכשל (${error.message}).`);
+  }
+}
+
+function downloadDataQualityReport(fileRows, locale, notify) {
+  const csv = buildCsv([
+    { label: pageText(locale, 'File', 'קובץ'), value: (row) => row.path },
+    { label: pageText(locale, 'Present', 'קיים'), value: (row) => (row.exists ? pageText(locale, 'yes', 'כן') : pageText(locale, 'no', 'לא')) },
+    { label: pageText(locale, 'Size (KB)', 'גודל (KB)'), value: (row) => (Number(row.size || 0) / 1024).toFixed(1) },
+    { label: pageText(locale, 'Modified', 'עודכן'), value: (row) => (row.modified ? new Date(row.modified).toISOString() : '') },
+  ], fileRows);
+  downloadCsv('kairos-source-audit.csv', csv);
+  if (notify) notify('Source audit exported as CSV.', 'בקרת המקורות יוצאה כ־CSV.');
+}
+
 // Backend segment overrides accept the kinds pin | force | forbid | gold. The
 // recommendation payload speaks a slightly richer intent vocabulary, so map its
 // proposed_kind onto the override kind the store expects: a "lower_count" intent
@@ -1822,7 +1903,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Reports') {
-      return <ReportsPage reports={reports} files={files} copy={copy} locale={locale} />;
+      return <ReportsPage reports={reports} files={files} copy={copy} locale={locale} notify={notify} />;
     }
 
     if (activeView === 'Data') {
@@ -3264,58 +3345,106 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
   );
 }
 
-function ReportsPage({ reports, files, copy, locale }) {
+function ReportsPage({ reports, files, copy, locale, notify }) {
   const reportRows = normalizeRows(reports.reports);
   const fileRows = normalizeRows(files.files);
-  function exportReports() {
-    downloadJson('kairos-report-package.json', { reports: reportRows, sources: fileRows });
+
+  // The API sends English-only titles/owners with stable report ids. Each id maps
+  // to its localized title, owner, one-line description, and the downloader that
+  // fetches its REAL content as a CSV. Any new id the API adds falls back to the
+  // raw payload text with no download.
+  const REPORT_META = {
+    'weekly-plan': {
+      titleEn: 'Weekly traffic plan', titleHe: 'תוכנית טראפיק שבועית',
+      ownerEn: 'Traffic', ownerHe: 'טראפיק',
+      descEn: 'Every scheduled break for the week, per channel and day.',
+      descHe: 'כל הברייקים המשובצים לשבוע, לכל ערוץ ולכל יום.',
+      download: () => downloadScheduleCsv(locale, notify),
+    },
+    compliance: {
+      titleEn: 'Compliance and guardrails', titleHe: 'תאימות ובקרות',
+      ownerEn: 'Legal / Ops', ownerHe: 'משפטי / תפעול',
+      descEn: 'Every regulatory check against its limit, with the observed value and status.',
+      descHe: 'כל בדיקת רגולציה מול המגבלה שלה, עם הערך שנמדד והסטטוס.',
+      download: () => downloadComplianceReport(locale, notify),
+    },
+    revenue: {
+      titleEn: 'Revenue forecast', titleHe: 'תחזית הכנסה',
+      ownerEn: 'Revenue', ownerHe: 'הכנסות',
+      descEn: 'Projected revenue, retention and break count for each day of the week.',
+      descHe: 'ההכנסה, השימור ומספר הברייקים החזויים לכל יום בשבוע.',
+      download: () => downloadRevenueReport(locale, notify),
+    },
+    'data-quality': {
+      titleEn: 'Source file audit', titleHe: 'בקרת קבצי מקור',
+      ownerEn: 'Data', ownerHe: 'נתונים',
+      descEn: 'The presence, size and last-modified time of every source file.',
+      descHe: 'הקיום, הגודל ומועד העדכון האחרון של כל קובץ מקור.',
+      download: () => downloadDataQualityReport(fileRows, locale, notify),
+    },
+  };
+
+  const meta = (report) => REPORT_META[report.id] || null;
+  const isDownloadable = (report) => Boolean(meta(report)) && report.status !== 'empty' && Number(report.rows) > 0;
+
+  async function downloadAll() {
+    const ready = reportRows.filter(isDownloadable);
+    if (ready.length === 0) {
+      if (notify) notify('No reports are ready to download yet.', 'אין דוחות מוכנים להורדה עדיין.');
+      return;
+    }
+    // Sequential so each file save settles before the next begins.
+    for (const report of ready) {
+      // eslint-disable-next-line no-await-in-loop
+      await meta(report).download();
+    }
   }
-  // The API sends English-only titles/owners with stable report ids; localize
-  // the known ids and fall back to the raw payload text for any new report.
-  function reportTitle(report) {
-    const titles = {
-      'weekly-plan': pageText(locale, 'Weekly traffic plan', 'תוכנית טראפיק שבועית'),
-      compliance: pageText(locale, 'Compliance and guardrails', 'תאימות ובקרות'),
-      revenue: pageText(locale, 'Revenue forecast', 'תחזית הכנסה'),
-      'data-quality': pageText(locale, 'Source file audit', 'בקרת קבצי מקור'),
-    };
-    return titles[report.id] || report.title;
-  }
-  function reportOwner(report) {
-    const owners = {
-      'weekly-plan': pageText(locale, 'Traffic', 'טראפיק'),
-      compliance: pageText(locale, 'Legal / Ops', 'משפטי / תפעול'),
-      revenue: pageText(locale, 'Revenue', 'הכנסות'),
-      'data-quality': pageText(locale, 'Data', 'נתונים'),
-    };
-    return owners[report.id] || report.owner;
-  }
+
   return (
     <section className="page-workspace">
       <PageHeader
         locale={locale}
-        titleEn="Reports and approvals"
-        titleHe="דוחות ואישורים"
-        bodyEn="Generate traffic, compliance, revenue, and source-audit packages for sales, operations, and legal review."
-        bodyHe="הפקת חבילות טראפיק, תאימות, הכנסה ובקרת מקורות עבור מכירות, תפעול וייעוץ משפטי."
+        titleEn="Reports"
+        titleHe="דוחות"
+        bodyEn="Download the weekly plan, compliance, revenue and source-audit reports for sales, operations and legal review. Each report is a live CSV built from the current data."
+        bodyHe="הורדת דוחות התוכנית השבועית, התאימות, ההכנסה ובקרת המקורות עבור מכירות, תפעול וייעוץ משפטי. כל דוח הוא קובץ CSV חי שנבנה מהנתונים הנוכחיים."
         action={
-          <Button className="secondary-button" type="button" variant="outlined" onClick={exportReports}>
+          <Button className="secondary-button" type="button" variant="outlined" onClick={downloadAll}>
             <Download size={14} />
-            {copy.export}
+            {pageText(locale, 'Download all', 'הורד הכל')}
           </Button>
         }
       />
       <div className="report-grid">
-        {reportRows.map((report) => (
-          <article className="report-card" key={report.id}>
-            <div>
-              <strong>{reportTitle(report)}</strong>
-              <span>{reportOwner(report)}</span>
-            </div>
-            <StatusBadge status={report.status} locale={locale} />
-            <small>{formatNumber(report.rows, locale)} {pageText(locale, 'rows', 'שורות')}</small>
-          </article>
-        ))}
+        {reportRows.map((report) => {
+          const info = meta(report);
+          const downloadable = isDownloadable(report);
+          return (
+            <article className="report-card" key={report.id}>
+              <div className="report-card-head">
+                <strong>{info ? pageText(locale, info.titleEn, info.titleHe) : report.title}</strong>
+                <span className="report-card-owner">{info ? pageText(locale, info.ownerEn, info.ownerHe) : report.owner}</span>
+              </div>
+              {info ? <p className="report-card-desc">{pageText(locale, info.descEn, info.descHe)}</p> : null}
+              <div className="report-card-meta">
+                <StatusBadge status={report.status} locale={locale} />
+                <small>{formatNumber(report.rows, locale)} {pageText(locale, 'rows', 'שורות')}</small>
+              </div>
+              <Button
+                className="report-card-download"
+                type="button"
+                variant="outlined"
+                size="small"
+                disabled={!downloadable}
+                onClick={() => info && info.download()}
+                title={downloadable ? undefined : pageText(locale, 'This report has no data to download yet.', 'לדוח זה אין עדיין נתונים להורדה.')}
+              >
+                <Download size={13} />
+                {pageText(locale, 'Download CSV', 'הורדת CSV')}
+              </Button>
+            </article>
+          );
+        })}
       </div>
       <section className="page-panel">
         <div className="panel-head">

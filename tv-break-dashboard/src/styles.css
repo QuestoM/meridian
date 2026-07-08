@@ -2514,12 +2514,46 @@ button {
 .report-card {
   min-height: 132px;
   display: grid;
-  align-content: space-between;
-  gap: 12px;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
   padding: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.report-card:hover {
+  border-color: var(--line-strong);
+}
+
+.report-card-owner {
+  margin-top: 2px;
+}
+
+.report-card-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.report-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.report-card-meta small {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.report-card-download {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
 }
 
 .impact-stack {
