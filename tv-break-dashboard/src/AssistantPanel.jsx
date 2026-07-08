@@ -6,11 +6,11 @@ import { postJson, requestJson, streamAsk } from './assistant-stream';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantHistory from './AssistantHistory';
 import AssistantUpload from './AssistantUpload';
-import AssistantThread, { AssistantExchange, StreamProgress } from './AssistantThread';
+import { AssistantExchange, StreamProgress } from './AssistantThread';
 import './assistant-console.css';
 
 // The assistant console: a chat column grounded in the saved data plus a side
-// rail for pending proposals, the audit history and the versions timeline. Answers
+// rail for pending proposals and the conversation history. Answers
 // come only from the server; asks stream live (step names and answer text as
 // they are produced) and fall back quietly to the plain ask endpoint when the
 // stream is unavailable. Proposed actions apply only after an explicit
@@ -68,7 +68,6 @@ export default function AssistantPanel({ locale, notify }) {
   const [batchOrder, setBatchOrder] = useState([]);
   const [proposalsState, setProposalsState] = useState('loading');
   const [proposalsError, setProposalsError] = useState('');
-  const [audit, setAudit] = useState({ state: 'loading', entries: [], error: '' });
   const [applyBusyId, setApplyBusyId] = useState(null);
   const [applyResults, setApplyResults] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -104,22 +103,14 @@ export default function AssistantPanel({ locale, notify }) {
 
   const refreshRail = useCallback(async () => {
     setRefreshing(true);
-    const [proposalsResult, auditResult] = await Promise.allSettled([
-      requestJson('/api/assistant/proposals'),
-      requestJson('/api/assistant/audit?limit=50'),
-    ]);
-    if (proposalsResult.status === 'fulfilled') {
-      mergeBatches(asArray(proposalsResult.value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
+    try {
+      const value = await requestJson('/api/assistant/proposals');
+      mergeBatches(asArray(value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
       setProposalsState('ready');
       setProposalsError('');
-    } else {
+    } catch (err) {
       setProposalsState('error');
-      setProposalsError(proposalsResult.reason && proposalsResult.reason.message ? proposalsResult.reason.message : 'unknown');
-    }
-    if (auditResult.status === 'fulfilled') {
-      setAudit({ state: 'ready', entries: asArray(auditResult.value, 'entries', 'audit', 'items'), error: '' });
-    } else {
-      setAudit((prev) => ({ ...prev, state: 'error', error: auditResult.reason && auditResult.reason.message ? auditResult.reason.message : 'unknown' }));
+      setProposalsError(err && err.message ? err.message : 'unknown');
     }
     setRefreshing(false);
   }, [mergeBatches]);
@@ -303,10 +294,8 @@ export default function AssistantPanel({ locale, notify }) {
         <section className="page-panel asst-chat">
           <div className="panel-head">
             <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
-            <span>{pageText(locale, 'Previous conversations are saved to your account and appear above the thread', 'שיחות קודמות נשמרות לחשבון שלכם ומופיעות מעל השיחה')}</span>
+            <span>{pageText(locale, 'Saved to your account. Past conversations are in the History tab.', 'נשמרת לחשבון שלכם. שיחות קודמות נמצאות בלשונית ההיסטוריה.')}</span>
           </div>
-
-          <AssistantThread locale={locale} />
 
           <div className="asst-thread" ref={threadRef}>
             {thread.length === 0 && !asking ? (
@@ -405,7 +394,7 @@ export default function AssistantPanel({ locale, notify }) {
                 visibleBatches.map((batch) => renderProposalCard(batch))
               )
             ) : (
-              <AssistantHistory locale={locale} audit={audit} />
+              <AssistantHistory locale={locale} />
             )}
           </div>
         </aside>

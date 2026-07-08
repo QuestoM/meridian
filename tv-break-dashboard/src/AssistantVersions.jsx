@@ -87,7 +87,7 @@ function fileHasChanges(file, data) {
 }
 
 function FileDiff({ file, detail, locale }) {
-  const headRow = <TriRow head field={pageText(locale, 'Field', 'שדה')} cur={pageText(locale, 'Current value', 'ערך נוכחי')} ver={pageText(locale, 'In version', 'בגרסה')} />;
+  const headRow = <TriRow head field={pageText(locale, 'Field', 'שדה')} cur={pageText(locale, 'Current value', 'ערך נוכחי')} ver={pageText(locale, 'At this point', 'בנקודה זו')} />;
   const changed = Array.isArray(detail.changed) ? detail.changed : [];
   let body;
   if (file === 'settings') {
@@ -183,7 +183,7 @@ function VersionRow({ entry, locale, canWrite, restoringId, onRename, onRestore,
       await onRename(id, labelValue.trim());
       setEditing(false);
     } catch (err) {
-      notify(`Renaming the version failed (${err.message}).`, `שינוי שם הגרסה נכשל (${err.message}).`);
+      notify(`Renaming the restore point failed (${err.message}).`, `שינוי שם נקודת השחזור נכשל (${err.message}).`);
     } finally {
       setRenameBusy(false);
     }
@@ -201,35 +201,40 @@ function VersionRow({ entry, locale, canWrite, restoringId, onRename, onRestore,
   const chosen = FILE_ORDER.filter((file) => files.includes(file) && selected.has(file));
 
   return (
-    <div className="asst-ver-row">
+    <div className={`asst-ver-row${diffOpen ? ' open' : ''}`}>
       <div className="asst-ver-head">
-        <div className="asst-ver-main">
+        <div
+          className="asst-ver-main"
+          role="button"
+          tabIndex={0}
+          aria-expanded={diffOpen}
+          aria-label={pageText(locale, 'Show what changed', 'הצג מה השתנה')}
+          onClick={toggleDiff}
+          onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleDiff(); } }}
+        >
           <div className="asst-ver-line">
+            <span className="asst-ver-caret" aria-hidden="true">{diffOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
             <time dir="ltr">{dateTimeLabel(entry.created_at, locale)}</time>
             {sourcePair ? <span className="asst-ver-source">{pageText(locale, sourcePair[0], sourcePair[1])}</span> : <code dir="ltr">{String(entry.source || '?')}</code>}
             {entry.actor ? <span className="asst-ver-actor" dir="auto">{String(entry.actor)}</span> : null}
           </div>
           <div className="asst-ver-label-line">
             {editing ? (
-              <span className="asst-ver-rename">
-                <input value={labelValue} onChange={(event) => setLabelValue(event.target.value)} dir="auto" maxLength={120} placeholder={pageText(locale, 'Name this version', 'שם לגרסה')} aria-label={pageText(locale, 'Version name', 'שם הגרסה')} disabled={renameBusy} />
+              <span className="asst-ver-rename" onClick={(event) => event.stopPropagation()}>
+                <input value={labelValue} onChange={(event) => setLabelValue(event.target.value)} dir="auto" maxLength={120} placeholder={pageText(locale, 'Name this restore point', 'שם לנקודת שחזור')} aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')} disabled={renameBusy} />
                 <button type="button" className="asst-ver-rename-ok" onClick={saveRename} disabled={renameBusy} aria-label={pageText(locale, 'Save name', 'שמירת שם')}><Check size={13} /></button>
                 <button type="button" className="asst-ver-rename-x" onClick={() => { setEditing(false); setLabelValue(entry.label || ''); }} disabled={renameBusy} aria-label={pageText(locale, 'Cancel', 'ביטול')}><X size={13} /></button>
               </span>
             ) : (
               <span className="asst-ver-label">
                 {entry.label ? <span dir="auto">{entry.label}</span> : <span className="asst-ver-unlabeled">{pageText(locale, 'Unnamed', 'ללא שם')}</span>}
-                {canWrite ? <button type="button" className="asst-ver-pencil" onClick={() => { setLabelValue(entry.label || ''); setEditing(true); }} aria-label={pageText(locale, 'Rename version', 'שינוי שם הגרסה')}><Pencil size={12} /></button> : null}
+                {canWrite ? <button type="button" className="asst-ver-pencil" onClick={(event) => { event.stopPropagation(); setLabelValue(entry.label || ''); setEditing(true); }} aria-label={pageText(locale, 'Rename restore point', 'שינוי שם נקודת השחזור')}><Pencil size={12} /></button> : null}
               </span>
             )}
           </div>
           {files.length ? <div className="asst-ver-files">{files.map((file) => <code dir="ltr" key={file}>{fileLabel(file, locale)}</code>)}</div> : null}
         </div>
         <div className="asst-ver-actions">
-          <button type="button" className="asst-ver-toggle" onClick={toggleDiff} aria-expanded={diffOpen}>
-            {diffOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            {pageText(locale, 'Show differences', 'הצג הבדלים')}
-          </button>
           {canWrite ? (
             <Button variant="outlined" size="small" startIcon={<RotateCcw size={13} />} disabled={busy} onClick={() => setRestoreOpen((value) => !value)}>
               {busy ? pageText(locale, 'Restoring', 'משחזר') : pageText(locale, 'Restore', 'שחזר')}
@@ -258,7 +263,7 @@ function VersionRow({ entry, locale, canWrite, restoringId, onRename, onRestore,
               );
             })}
           </div>
-          <p className="asst-ver-restore-note" dir="auto">{pageText(locale, 'A safety version of the current state is saved automatically before restoring, so this restore can be undone.', 'לפני השחזור נשמרת אוטומטית גרסת בטיחות של המצב הנוכחי, כך שאפשר לבטל את השחזור.')}</p>
+          <p className="asst-ver-restore-note" dir="auto">{pageText(locale, 'The current state is saved as a restore point automatically before restoring, so this restore can be undone.', 'לפני השחזור המצב הנוכחי נשמר אוטומטית כנקודת שחזור, כך שאפשר לבטל את השחזור.')}</p>
           <div className="asst-confirm-actions">
             <Button variant="contained" size="small" disabled={busy || !chosen.length} onClick={() => { setRestoreOpen(false); onRestore(id, chosen); }}>
               {pageText(locale, 'Restore now', 'שחזר עכשיו')}
@@ -312,7 +317,7 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
     const body = await requestJson(`/api/versions/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ label }) });
     const nextLabel = body && typeof body.label === 'string' ? body.label : label;
     setEntries((prev) => prev.map((entry) => (String(entry.version_id) === String(id) ? { ...entry, label: nextLabel } : entry)));
-    notify('The version name was updated.', 'שם הגרסה עודכן.');
+    notify('The restore point name was updated.', 'שם נקודת השחזור עודכן.');
   }, [notify]);
 
   const restoreVersion = useCallback(async (id, files) => {
@@ -322,9 +327,9 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
       const body = await postJson(`/api/versions/${encodeURIComponent(id)}/restore`, { files });
       const restored = Array.isArray(body.restored) ? body.restored : [];
       const count = restored.length;
-      if (count === 1) notify('Restored one file. A safety version was saved, so this restore can be undone.', 'שוחזר קובץ אחד. נשמרה גרסת בטיחות, כך שאפשר לבטל את השחזור.');
-      else if (count) notify(`Restored ${count} files. A safety version was saved, so this restore can be undone.`, `שוחזרו ${count} קבצים. נשמרה גרסת בטיחות, כך שאפשר לבטל את השחזור.`);
-      else notify('The restore completed. A safety version was saved, so it can be undone.', 'השחזור הושלם. נשמרה גרסת בטיחות, כך שאפשר לבטל אותו.');
+      if (count === 1) notify('Restored one file. A restore point was saved first, so this can be undone.', 'שוחזר קובץ אחד. נשמרה קודם נקודת שחזור, כך שאפשר לבטל.');
+      else if (count) notify(`Restored ${count} files. A restore point was saved first, so this can be undone.`, `שוחזרו ${count} קבצים. נשמרה קודם נקודת שחזור, כך שאפשר לבטל.`);
+      else notify('The restore completed. A restore point was saved first, so it can be undone.', 'השחזור הושלם. נשמרה קודם נקודת שחזור, כך שאפשר לבטל אותו.');
       await load();
       if (onChanged) onChanged();
     } catch (err) {
@@ -340,11 +345,11 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
       await postJson('/api/versions/snapshot', { label: snapLabel.trim() });
       setSnapLabel('');
       setSnapOpen(false);
-      notify('A version point was saved.', 'נקודת גרסה נשמרה.');
+      notify('A restore point was saved.', 'נקודת שחזור נשמרה.');
       await load();
       if (onChanged) onChanged();
     } catch (err) {
-      notify(`Saving the version point failed (${err.message}).`, `שמירת נקודת הגרסה נכשלה (${err.message}).`);
+      notify(`Saving the restore point failed (${err.message}).`, `שמירת נקודת השחזור נכשלה (${err.message}).`);
     } finally {
       setSnapBusy(false);
     }
@@ -352,31 +357,31 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
 
   return (
     <div className="asst-versions">
-      <p className="asst-ver-intro" dir="auto">{pageText(locale, 'Every change and restore saves a version you can review and roll back. A restore first saves a safety version of the current state, so it is always undoable.', 'כל שינוי וכל שחזור שומרים גרסה שאפשר לעיין בה ולחזור אליה. שחזור שומר תחילה גרסת בטיחות של המצב הנוכחי, כך שהוא תמיד הפיך.')}</p>
+      <p className="asst-ver-intro" dir="auto">{pageText(locale, 'Every change to the operating state saves a restore point you can review and roll back to. A restore first saves the current state, so it can always be undone. Click a point to see what changed.', 'כל שינוי במצב התפעול שומר נקודת שחזור שאפשר לעיין בה ולחזור אליה. שחזור שומר תחילה את המצב הנוכחי, כך שתמיד אפשר לבטל אותו. לחיצה על נקודה מציגה מה השתנה.')}</p>
 
       {canWrite ? (
         <div className="asst-ver-snapshot">
           {snapOpen ? (
             <div className="asst-ver-snap-form">
-              <input value={snapLabel} onChange={(event) => setSnapLabel(event.target.value)} dir="auto" maxLength={120} placeholder={pageText(locale, 'Name this point', 'שם לנקודה')} aria-label={pageText(locale, 'Version point name', 'שם נקודת הגרסה')} disabled={snapBusy} />
+              <input value={snapLabel} onChange={(event) => setSnapLabel(event.target.value)} dir="auto" maxLength={120} placeholder={pageText(locale, 'Name this restore point', 'שם לנקודת שחזור')} aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')} disabled={snapBusy} />
               <Button variant="contained" size="small" disabled={snapBusy} onClick={createSnapshot}>{snapBusy ? pageText(locale, 'Saving', 'שומר') : pageText(locale, 'Save point', 'שמור נקודה')}</Button>
               <Button variant="text" size="small" disabled={snapBusy} onClick={() => { setSnapOpen(false); setSnapLabel(''); }}>{pageText(locale, 'Cancel', 'ביטול')}</Button>
             </div>
           ) : (
             <button type="button" className="asst-ver-snap-btn" onClick={() => setSnapOpen(true)}>
               <Camera size={13} />
-              {pageText(locale, 'Create a version point', 'צור נקודת גרסה')}
+              {pageText(locale, 'Save a restore point now', 'שמור נקודת שחזור עכשיו')}
             </button>
           )}
         </div>
       ) : null}
 
-      {state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Loading the versions', 'טוען את הגרסאות')}</div> : null}
-      {state === 'error' ? <div className="asst-error-note">{pageText(locale, `The versions could not be loaded (${error}).`, `לא ניתן לטעון את הגרסאות (${error}).`)}</div> : null}
+      {state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Loading restore points', 'טוען נקודות שחזור')}</div> : null}
+      {state === 'error' ? <div className="asst-error-note">{pageText(locale, `Restore points could not be loaded (${error}).`, `לא ניתן לטעון את נקודות השחזור (${error}).`)}</div> : null}
       {state === 'ready' && entries.length === 0 ? (
         <div className="asst-empty">
           <History size={18} />
-          {pageText(locale, 'No versions yet. A version is saved automatically before every change and every restore.', 'אין עדיין גרסאות. גרסה נשמרת אוטומטית לפני כל שינוי ולפני כל שחזור.')}
+          {pageText(locale, 'No restore points yet. One is saved automatically before every change and every restore.', 'אין עדיין נקודות שחזור. נקודה נשמרת אוטומטית לפני כל שינוי ולפני כל שחזור.')}
         </div>
       ) : null}
 
@@ -388,7 +393,7 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
         </div>
       ) : null}
 
-      {state === 'ready' && note ? <p className="asst-ver-scope" dir="auto">{pageText(locale, note, 'הגרסאות שומרות את קבצי מצב התפעול שהמפעילים עורכים: הגדרות (כולל עקיפות תמחור), אילוצי שיבוץ, עקיפות ידניות וכללי מפרסמים. ההיסטוריה נשמרת תמיד; שחזור מתעד קודם את המצב הנוכחי, ולכן ניתן לבטל אותו.')}</p> : null}
+      {state === 'ready' && note ? <p className="asst-ver-scope" dir="auto">{pageText(locale, note, 'נקודות השחזור שומרות את קבצי מצב התפעול שהמפעילים עורכים: הגדרות (כולל עקיפות תמחור), אילוצי שיבוץ, עקיפות ידניות וכללי מפרסמים. ההיסטוריה נשמרת תמיד; שחזור מתעד קודם את המצב הנוכחי, ולכן ניתן לבטל אותו.')}</p> : null}
     </div>
   );
 }
