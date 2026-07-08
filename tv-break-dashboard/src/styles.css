@@ -3955,12 +3955,16 @@ button {
 }
 
 /* Small explanatory note under a field (pacing strength helpers) */
+/* Matches the settings field-help rhythm: the hint hugs its field (the 4px flex
+   gap of .amz-drawer-field, no extra margin), reads in the muted token at caption
+   size, and a wider grid row-gap separates one field from the next so it is clear
+   which field a hint belongs to. */
 .adv-field-hint {
   display: block;
-  margin-top: 4px;
+  margin-top: 0;
   font-size: var(--text-xs);
-  line-height: 1.35;
-  color: var(--subtle);
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 /* Table */
