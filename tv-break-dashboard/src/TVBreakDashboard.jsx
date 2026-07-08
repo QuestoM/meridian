@@ -48,6 +48,7 @@ import {
   FileBarChart,
   Gauge,
   GitCompare,
+  History,
   Info,
   KeyRound,
   Languages,
@@ -91,6 +92,7 @@ import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
 import ActivityFeed from './ActivityFeed';
 import AssistantPanel from './AssistantPanel';
+import VersionsPage from './VersionsPage';
 import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 import Login, {
   ChangePasswordDialog,
@@ -288,6 +290,7 @@ const copyByLocale = {
       Pricing: 'Pricing',
       Overrides: 'Overrides',
       Assistant: 'AI assistant',
+      Versions: 'Versions',
       Settings: 'Settings',
     },
     workspace: 'Revenue operations',
@@ -385,6 +388,7 @@ const copyByLocale = {
       Pricing: 'תמחור',
       Overrides: 'עקיפות',
       Assistant: 'עוזר AI',
+      Versions: 'ניהול גרסאות',
       Settings: 'הגדרות',
     },
     workspace: 'ניהול הכנסות מפרסום',
@@ -547,6 +551,7 @@ const navItems = [
   ['Pricing', Coins],
   ['Overrides', SlidersHorizontal],
   ['Assistant', Bot],
+  ['Versions', History],
   ['Settings', Settings],
 ];
 
@@ -1858,6 +1863,10 @@ function TVBreakDashboard() {
 
     if (activeView === 'Assistant') {
       return <AssistantPanel locale={locale} notify={notify} />;
+    }
+
+    if (activeView === 'Versions') {
+      return <VersionsPage locale={locale} notify={notify} />;
     }
 
     return (

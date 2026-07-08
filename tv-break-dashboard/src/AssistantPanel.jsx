@@ -5,7 +5,6 @@ import { pageText } from './surface-helpers';
 import { postJson, requestJson, streamAsk } from './assistant-stream';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantHistory from './AssistantHistory';
-import AssistantVersions from './AssistantVersions';
 import AssistantUpload from './AssistantUpload';
 import AssistantThread, { AssistantExchange, StreamProgress } from './AssistantThread';
 import './assistant-console.css';
@@ -72,7 +71,6 @@ export default function AssistantPanel({ locale, notify }) {
   const [audit, setAudit] = useState({ state: 'loading', entries: [], error: '' });
   const [applyBusyId, setApplyBusyId] = useState(null);
   const [applyResults, setApplyResults] = useState({});
-  const [railTick, setRailTick] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [live, setLive] = useState(null);
   const idRef = useRef(0);
@@ -123,7 +121,6 @@ export default function AssistantPanel({ locale, notify }) {
     } else {
       setAudit((prev) => ({ ...prev, state: 'error', error: auditResult.reason && auditResult.reason.message ? auditResult.reason.message : 'unknown' }));
     }
-    setRailTick((tick) => tick + 1);
     setRefreshing(false);
   }, [mergeBatches]);
 
@@ -280,11 +277,10 @@ export default function AssistantPanel({ locale, notify }) {
   const TABS = [
     ['proposals', pageText(locale, 'Pending actions', 'פעולות ממתינות')],
     ['history', pageText(locale, 'History', 'היסטוריה')],
-    ['restore', pageText(locale, 'Versions and restore', 'גרסאות ושחזור')],
   ];
 
   function renderProposalCard(batch) {
-    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => setRailTab('restore')} />;
+    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} />;
   }
 
   return (
@@ -408,8 +404,6 @@ export default function AssistantPanel({ locale, notify }) {
               ) : (
                 visibleBatches.map((batch) => renderProposalCard(batch))
               )
-            ) : railTab === 'restore' ? (
-              <AssistantVersions locale={locale} notify={notify} reloadKey={railTick} onChanged={refreshRail} />
             ) : (
               <AssistantHistory locale={locale} audit={audit} />
             )}
