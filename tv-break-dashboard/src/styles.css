@@ -2220,6 +2220,36 @@ button {
   padding: 12px 16px;
 }
 
+/* Data page tab bodies stack their panels with the same rhythm as a page
+   workspace, but without the page padding since the DataPage already provides it.
+   The intro row carries the upload description and its refresh side by side. */
+.data-tab-body {
+  display: grid;
+  gap: 16px;
+}
+
+.data-tab-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.data-tab-intro p {
+  margin: 0;
+  max-width: 78ch;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Model explainability now owns the full panel width, so lay the four extracts in
+   a responsive grid instead of a single narrow column. */
+.model-explain-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
 .decision-row,
 .decision-row.MuiButton-root {
   width: 100%;

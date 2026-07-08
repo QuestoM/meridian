@@ -3467,43 +3467,90 @@ function ReportsPage({ reports, files, copy, locale, notify }) {
   );
 }
 
+// The Data page has one identity and three jobs, each its own tab so no tab is a
+// grab-bag: bring the source files in (Upload), check they are present and current
+// (Source files), and read what the model learned and the rules that govern the
+// plan (Model and parameters). One page header sits above the tabs; each tab is
+// header-less content.
 function DataPage({ files, impact, parameters, overview, copy, locale, notify, onGlobalRefresh }) {
   const [dataTab, setDataTab] = useState('upload');
+  const TABS = [
+    ['upload', pageText(locale, 'Upload', 'העלאה')],
+    ['sources', pageText(locale, 'Source files', 'קבצי מקור')],
+    ['model', pageText(locale, 'Model and parameters', 'מודל ופרמטרים')],
+  ];
   return (
     <section className="page-workspace">
+      <PageHeader
+        locale={locale}
+        titleEn="Data and model"
+        titleHe="נתונים ומודל"
+        bodyEn="Upload the source files, check they are present and current, and see what the model learned and the parameters that drive the plan."
+        bodyHe="העלאת קבצי המקור, בדיקה שהם קיימים ומעודכנים, וצפייה במה שהמודל למד ובפרמטרים שמניעים את התוכנית."
+      />
       <div className="surface-toolbar no-print">
-        <div className="toolbar-left">
-          <Button
-            className={dataTab === 'upload' ? 'segmented active' : 'segmented'}
-            type="button"
-            variant="outlined"
-            aria-pressed={dataTab === 'upload'}
-            onClick={() => setDataTab('upload')}
-          >
-            {pageText(locale, 'Upload', 'העלאה')}
-          </Button>
-          <Button
-            className={dataTab === 'sources' ? 'segmented active' : 'segmented'}
-            type="button"
-            variant="outlined"
-            aria-pressed={dataTab === 'sources'}
-            onClick={() => setDataTab('sources')}
-          >
-            {pageText(locale, 'Sources and model', 'מקורות ומודל')}
-          </Button>
+        <div className="toolbar-left" role="tablist">
+          {TABS.map(([key, label]) => (
+            <Button
+              key={key}
+              className={dataTab === key ? 'segmented active' : 'segmented'}
+              type="button"
+              variant="outlined"
+              role="tab"
+              aria-selected={dataTab === key}
+              onClick={() => setDataTab(key)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
       </div>
       {dataTab === 'upload' ? (
-        <UploadCenter copy={copy} locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} />
+        <UploadCenter copy={copy} locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} embedded />
+      ) : dataTab === 'sources' ? (
+        <SourceFilesView files={files} overview={overview} locale={locale} />
       ) : (
-        <DataHubPage files={files} impact={impact} parameters={parameters} overview={overview} copy={copy} locale={locale} />
+        <ModelView impact={impact} parameters={parameters} locale={locale} />
       )}
     </section>
   );
 }
 
-function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
+// Are my source files here and current? The counts plus the freshness table.
+function SourceFilesView({ files, overview, locale }) {
   const fileRows = normalizeRows(files.files);
+  return (
+    <div className="data-tab-body">
+      <section className="metric-strip page-metrics">
+        <Metric label={pageText(locale, 'Programmes', 'תוכניות')} value={formatNumber(overview.source_counts?.programmes, locale)} icon={CalendarDays} positive />
+        <Metric label={pageText(locale, 'Spots', 'ספוטים')} value={formatNumber(overview.source_counts?.spots, locale)} icon={TableProperties} positive />
+        <Metric label={pageText(locale, 'Plan rows', 'שורות תכנון')} value={formatNumber(overview.source_counts?.planned_break_rows, locale)} icon={ClipboardCheck} positive />
+        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length}`} icon={Database} positive />
+      </section>
+      <section className="page-panel">
+        <div className="panel-head">
+          <h2>{pageText(locale, 'Source files', 'קבצי מקור')}</h2>
+          <span>{pageText(locale, 'Presence, size and last update of every production input', 'קיום, גודל ומועד עדכון של כל קלט פרודקשן')}</span>
+        </div>
+        <DataTable
+          locale={locale}
+          emptyLabel={pageText(locale, 'No source files were found.', 'לא נמצאו קבצי מקור.')}
+          rows={fileRows}
+          columns={[
+            { key: 'path', label: pageText(locale, 'Path', 'נתיב') },
+            { key: 'exists', label: pageText(locale, 'State', 'מצב'), status: true, minWidth: 104, flex: 0.45, render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} mode="cell" /> },
+            { key: 'size', label: pageText(locale, 'Size', 'גודל'), render: (row) => `${formatNumber(Number(row.size || 0) / 1024, locale)} KB` },
+            { key: 'modified', label: pageText(locale, 'Modified', 'עודכן'), render: (row) => (row.modified ? new Date(row.modified).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US') : '-') },
+          ]}
+        />
+      </section>
+    </div>
+  );
+}
+
+// What did the model learn, and what rules govern the plan? Explainability plus
+// the optimizer parameter ledger.
+function ModelView({ impact, parameters, locale }) {
   const measuredImpacts = impact.coefficient_impacts || {};
   const programImpacts = normalizeImpactRows(
     normalizeRows(measuredImpacts.program_type).length ? measuredImpacts.program_type : impact.program_type_impacts,
@@ -3519,56 +3566,25 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
   );
   const impactSource = impactSourceLabel(measuredImpacts.source || 'legacy_csv', measuredImpacts.metadata, locale);
   return (
-    <section className="page-workspace">
-      <PageHeader
-        locale={locale}
-        titleEn="Data hub"
-        titleHe="מרכז נתונים"
-        bodyEn="Monitor source freshness, model artifacts, and the explainability extracts that support optimization decisions."
-        bodyHe="מעקב אחר רעננות מקורות, תוצרי מודל וקבצי הסבר שתומכים בהחלטות האופטימיזציה."
-      />
-      <section className="metric-strip page-metrics">
-        <Metric label={pageText(locale, 'Programmes', 'תוכניות')} value={formatNumber(overview.source_counts?.programmes, locale)} icon={CalendarDays} positive />
-        <Metric label={pageText(locale, 'Spots', 'ספוטים')} value={formatNumber(overview.source_counts?.spots, locale)} icon={TableProperties} positive />
-        <Metric label={pageText(locale, 'Plan rows', 'שורות תכנון')} value={formatNumber(overview.source_counts?.planned_break_rows, locale)} icon={ClipboardCheck} positive />
-        <Metric label={pageText(locale, 'Sources online', 'מקורות זמינים')} value={`${fileRows.filter((file) => file.exists).length}/${fileRows.length}`} icon={Database} positive />
+    <div className="data-tab-body">
+      <section className="page-panel">
+        <div className="panel-head">
+          <h2>{pageText(locale, 'Model explainability', 'הסבריות מודל')}</h2>
+          <span>{impactSource}</span>
+        </div>
+        <div className="impact-stack model-explain-grid">
+          <ImpactPreview title={pageText(locale, 'Programme type impact', 'השפעת סוג תוכנית')} rows={programImpacts} locale={locale} />
+          <ImpactPreview title={pageText(locale, 'Position impact', 'השפעת מיקום')} rows={positionImpacts} locale={locale} />
+          <ImpactPreview title={pageText(locale, 'Length impact', 'השפעת אורך')} rows={lengthImpacts} locale={locale} />
+          <DriftMonitorCard drift={impact.drift} locale={locale} />
+        </div>
+        {typeof measuredImpacts.pooling_note === 'string' && measuredImpacts.pooling_note.trim() && (
+          <p className="data-basis-note">
+            {pageText(locale, 'Model reliability note:', 'הערת מהימנות מהמודל:')}{' '}
+            <span dir="ltr">{measuredImpacts.pooling_note}</span>
+          </p>
+        )}
       </section>
-      <div className="page-grid two-one">
-        <section className="page-panel">
-          <div className="panel-head">
-            <h2>{pageText(locale, 'Source files', 'קבצי מקור')}</h2>
-            <span>{pageText(locale, 'Production inputs', 'קלטי פרודקשן')}</span>
-          </div>
-          <DataTable
-            locale={locale}
-            emptyLabel={pageText(locale, 'No source files were found.', 'לא נמצאו קבצי מקור.')}
-            rows={fileRows}
-            columns={[
-              { key: 'path', label: pageText(locale, 'Path', 'נתיב') },
-              { key: 'exists', label: pageText(locale, 'State', 'מצב'), status: true, minWidth: 104, flex: 0.45, render: (row) => <StatusBadge status={row.exists ? 'ready' : 'error'} locale={locale} mode="cell" /> },
-              { key: 'size', label: pageText(locale, 'Size', 'גודל'), render: (row) => `${formatNumber(Number(row.size || 0) / 1024, locale)} KB` },
-            ]}
-          />
-        </section>
-        <section className="page-panel">
-          <div className="panel-head">
-            <h2>{pageText(locale, 'Model explainability', 'הסבריות מודל')}</h2>
-            <span>{impactSource}</span>
-          </div>
-          <div className="impact-stack">
-            <ImpactPreview title={pageText(locale, 'Programme type impact', 'השפעת סוג תוכנית')} rows={programImpacts} locale={locale} />
-            <ImpactPreview title={pageText(locale, 'Position impact', 'השפעת מיקום')} rows={positionImpacts} locale={locale} />
-            <ImpactPreview title={pageText(locale, 'Length impact', 'השפעת אורך')} rows={lengthImpacts} locale={locale} />
-            <DriftMonitorCard drift={impact.drift} locale={locale} />
-            {typeof measuredImpacts.pooling_note === 'string' && measuredImpacts.pooling_note.trim() && (
-              <p className="data-basis-note">
-                {pageText(locale, 'Model reliability note:', 'הערת מהימנות מהמודל:')}{' '}
-                <span dir="ltr">{measuredImpacts.pooling_note}</span>
-              </p>
-            )}
-          </div>
-        </section>
-      </div>
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Optimizer parameters', 'פרמטרי אופטימיזציה')}</h2>
@@ -3576,7 +3592,7 @@ function DataHubPage({ files, impact, parameters, overview, copy, locale }) {
         </div>
         <ParameterLedger parameters={parameters} locale={locale} />
       </section>
-    </section>
+    </div>
   );
 }
 

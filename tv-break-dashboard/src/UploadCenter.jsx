@@ -64,7 +64,9 @@ function InputCard({ input, locale, onUploaded, notify }) {
   // missing in_use (older payloads) keeps the existing truthful display.
   const storedNotInUse = valid && input.in_use === false;
   const inUseReason = input.in_use_reason || '';
-  const warnings = normalizeRows(input.warnings);
+  // The API echoes the stored-not-in-use reason both as in_use_reason and inside
+  // warnings; drop the duplicate so the same sentence does not render twice.
+  const warnings = normalizeRows(input.warnings).filter((warning) => String(warning) !== String(inUseReason));
 
   async function handleFile(event) {
     const file = event.target.files && event.target.files[0];
@@ -147,7 +149,7 @@ function InputCard({ input, locale, onUploaded, notify }) {
       <div className="upload-card-meta">
         <div>
           <span>{pageText(locale, 'Rows', 'שורות')}</span>
-          <strong>{input.exists ? Number(input.rows || 0).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US') : '—'}</strong>
+          <strong>{input.exists ? Number(input.rows || 0).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US') : '-'}</strong>
         </div>
         <div>
           <span>{pageText(locale, 'Last updated', 'עודכן לאחרונה')}</span>
@@ -197,7 +199,7 @@ function InputCard({ input, locale, onUploaded, notify }) {
   );
 }
 
-function UploadCenter({ copy, locale, notify, onGlobalRefresh }) {
+function UploadCenter({ copy, locale, notify, onGlobalRefresh, embedded = false }) {
   const [status, setStatus] = useState({ inputs: [] });
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
@@ -241,11 +243,11 @@ function UploadCenter({ copy, locale, notify, onGlobalRefresh }) {
     }))
     .filter((group) => group.inputs.length > 0);
 
+  const containerClass = embedded ? 'data-tab-body' : 'page-workspace';
   return (
-    <section className="page-workspace">
-      <div className="page-header">
-        <div>
-          <h1>{pageText(locale, 'Upload', 'העלאה')}</h1>
+    <section className={containerClass}>
+      {embedded ? (
+        <div className="data-tab-intro">
           <p>
             {pageText(
               locale,
@@ -253,12 +255,29 @@ function UploadCenter({ copy, locale, notify, onGlobalRefresh }) {
               'שלושה קבצי נתונים מגיעים מהערוץ (לוח תוכניות, תשדירים היסטוריים, חלקי יום) ובנוסף קובץ הפרסומות היומי (Wally). תנאי המפרסמים וכרטיס התעריפים הם תצורה. עמודות נוספות בכל קובץ נשמרות, לא נמחקות.',
             )}
           </p>
+          <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadStatus}>
+            <RefreshCcw size={14} />
+            {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
+          </Button>
         </div>
-        <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadStatus}>
-          <RefreshCcw size={14} />
-          {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
-        </Button>
-      </div>
+      ) : (
+        <div className="page-header">
+          <div>
+            <h1>{pageText(locale, 'Upload', 'העלאה')}</h1>
+            <p>
+              {pageText(
+                locale,
+                'Three source data files come from the channel (programme lineup, historical spots, dayparts) plus the daily Wally ad file. Advertiser terms and the rate card are configuration. Extra columns in any file are kept, never discarded.',
+                'שלושה קבצי נתונים מגיעים מהערוץ (לוח תוכניות, תשדירים היסטוריים, חלקי יום) ובנוסף קובץ הפרסומות היומי (Wally). תנאי המפרסמים וכרטיס התעריפים הם תצורה. עמודות נוספות בכל קובץ נשמרות, לא נמחקות.',
+              )}
+            </p>
+          </div>
+          <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadStatus}>
+            <RefreshCcw size={14} />
+            {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
+          </Button>
+        </div>
+      )}
 
       {loading && (
         <div className="upload-state">{pageText(locale, 'Loading data inputs...', 'טוען קלטי נתונים...')}</div>
