@@ -163,10 +163,21 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
     # row exists for that exact slot rather than borrowing another program's number.
     plan_index = _plan_by_program_key(schedule)
 
+    # The grid is channel (rows) by weekday (columns), so it needs programmes from
+    # every weekday, not just the earliest. A former ``head(18)`` took the first 18
+    # chronological programmes per channel, which all fell on the single earliest
+    # date, leaving six of the seven weekday columns permanently empty. Instead show
+    # one representative week shared by every channel: the programmes on the first
+    # seven distinct broadcast dates in the data (a consecutive Fri-to-Thu span here),
+    # so each weekday column populates and the channels stay comparable on the same
+    # week. Each cell aggregates its channel-day, so no per-day cap is applied.
+    week_dates = frame["start_dt"].dt.normalize().drop_duplicates().nsmallest(7)
+    week_frame = frame[frame["start_dt"].dt.normalize().isin(week_dates)]
+
     rows: list[dict[str, Any]] = []
-    for channel, channel_df in frame.sort_values("start_dt").groupby("Channel"):
+    for channel, channel_df in week_frame.sort_values("start_dt").groupby("Channel"):
         programs = []
-        for _, row in channel_df.head(18).iterrows():
+        for _, row in channel_df.iterrows():
             plan_row = plan_index.get(
                 (str(channel), row["start_dt"].strftime("%Y-%m-%d"), row["start_dt"].strftime("%H:%M"))
             )
