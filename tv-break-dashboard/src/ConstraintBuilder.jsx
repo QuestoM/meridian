@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Plus, PlusSquare, Save, Send, Trash2, X } from 'lucide-react';
+import DateField from './DateField';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
@@ -111,9 +112,9 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
       const max = typeof value === 'object' && value !== null ? (value.max ?? '') : '';
       return (
         <div className="cb-between-pair">
-          <TextField type="date" size="small" value={min} onChange={(e) => onChange({ min: e.target.value, max })} InputLabelProps={{ shrink: true }} />
+          <DateField value={min} onChange={(next) => onChange({ min: next, max })} />
           <span className="cb-between-sep">{t(locale, 'and', 'עד')}</span>
-          <TextField type="date" size="small" value={max} onChange={(e) => onChange({ min, max: e.target.value })} InputLabelProps={{ shrink: true }} />
+          <DateField value={max} onChange={(next) => onChange({ min, max: next })} />
         </div>
       );
     }
@@ -122,7 +123,7 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
       return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'yyyy-mm-dd, ...', 'yyyy-mm-dd, ...')} options={[]} locale={locale} />;
     }
     return (
-      <TextField type="date" size="small" value={value ?? ''} onChange={(e) => onChange(e.target.value)} InputLabelProps={{ shrink: true }} />
+      <DateField value={value ?? ''} onChange={(next) => onChange(next)} />
     );
   }
 

@@ -4,6 +4,7 @@ import createCache from '@emotion/cache';
 import { prefixer } from 'stylis';
 import rtlPlugin from '@mui/stylis-plugin-rtl';
 import './coherence.css';
+import DateField from './DateField';
 import {
   Button,
   Checkbox,
@@ -2123,7 +2124,7 @@ function TVBreakDashboard() {
             <span className={online ? 'api-state online' : 'api-state offline'}>
               {online ? copy.liveApi : copy.snapshot}
             </span>
-            <span className="freshness" title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'}>{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} —`}</span>
+            <span className="freshness" title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'}>{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} -`}</span>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />
             </IconButton>
@@ -5002,13 +5003,10 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
               value={draft.profile_name || ''}
               onChange={(event) => updateField('profile_name', event.target.value)}
             />
-            <TextField
+            <DateField
               label={copy.effectiveDate}
-              type="date"
-              size="small"
-              value={draft.effective_date || ''}
-              onChange={(event) => updateField('effective_date', event.target.value)}
-              InputLabelProps={{ shrink: true }}
+              value={draft.effective_date}
+              onChange={(value) => updateField('effective_date', value)}
             />
             <FormControl size="small">
               <InputLabel id="settings-locale">{copy.language}</InputLabel>
@@ -5114,13 +5112,10 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
               checked={draft.pacing_enabled ?? true}
               onChange={(value) => updateField('pacing_enabled', value)}
             />
-            <TextField
+            <DateField
               label={he ? 'תאריך ייחוס לקצב' : 'Pacing reference date'}
-              type="date"
-              size="small"
-              value={draft.pacing_reference_date ?? ''}
-              onChange={(event) => updateField('pacing_reference_date', event.target.value)}
-              InputLabelProps={{ shrink: true }}
+              value={draft.pacing_reference_date}
+              onChange={(value) => updateField('pacing_reference_date', value)}
             />
             <NumberControl
               label={he ? 'עוצמת פיגור בקצב' : 'Behind-pace strength'}

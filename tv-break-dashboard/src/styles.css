@@ -3062,9 +3062,14 @@ button {
   font-weight: var(--weight-medium);
 }
 
-.settings-panel input,
-.settings-panel select,
-.settings-panel textarea {
+/* Plain HTML controls inside settings keep this bordered look. MUI fields
+   (TextField, Select) draw their own outlined frame with a floating label via the
+   theme, so their inner input is excluded here: giving it a second border and a
+   solid background would stack a frame inside MUI's outline and shift the box out
+   from under the notched label (the double-frame and label-overlap bug). */
+.settings-panel input:not(.MuiInputBase-input):not(.MuiSelect-nativeInput),
+.settings-panel select:not(.MuiSelect-nativeInput),
+.settings-panel textarea:not(.MuiInputBase-input) {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
