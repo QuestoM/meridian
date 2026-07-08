@@ -61,6 +61,15 @@ export default function MoneyWaterfall({
   const hasCostAndNet = costValue !== null && netValue !== null;
   const rootClass = variant === 'headline' ? 'money-waterfall headline' : 'money-waterfall';
 
+  // A proportional bar of where the gross goes: the net kept (green) plus the
+  // retention cost given up (amber), summing to gross. Only shown on the headline
+  // variant when the full split is real; every width comes from the real figures.
+  const showBar = variant === 'headline' && hasCostAndNet && grossValue > 0;
+  const netFrac = showBar ? Math.max(0, Math.min(1, netValue / grossValue)) : 0;
+  const costFrac = showBar ? Math.max(0, Math.min(1, costValue / grossValue)) : 0;
+  const bandLowFrac = showBar && hasBand ? Math.max(0, Math.min(1, bandLow / grossValue)) : null;
+  const bandHighFrac = showBar && hasBand ? Math.max(0, Math.min(1, bandHigh / grossValue)) : null;
+
   if (grossValue === null) {
     return (
       <div className={rootClass}>
@@ -101,6 +110,34 @@ export default function MoneyWaterfall({
           {unavailableReason ? <small>{unavailableReason}</small> : null}
         </p>
       )}
+      {showBar ? (
+        <div
+          className="mw-bar"
+          role="img"
+          aria-label={pageText(
+            locale,
+            `Net ${formatCurrency(netValue, locale)} kept and retention cost ${formatCurrency(costValue, locale)} given up, out of ${formatCurrency(grossValue, locale)} gross.`,
+            `נטו ${formatCurrency(netValue, locale)} נשמר ועלות שימור ${formatCurrency(costValue, locale)} נגרעה, מתוך ${formatCurrency(grossValue, locale)} ברוטו.`,
+          )}
+        >
+          <div className="mw-bar-track">
+            <span className="mw-bar-net" style={{ width: `${netFrac * 100}%` }} />
+            <span className="mw-bar-cost" style={{ width: `${costFrac * 100}%` }}>
+              {bandLowFrac !== null && bandHighFrac !== null ? (
+                <i
+                  className="mw-bar-band"
+                  style={{ '--band-left': `${bandLowFrac * 100}%`, '--band-right': `${(1 - bandHighFrac) * 100}%` }}
+                  title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}
+                />
+              ) : null}
+            </span>
+          </div>
+          <div className="mw-bar-legend">
+            <span className="mw-bar-key"><i className="mw-dot net" />{pageText(locale, 'Net kept', 'נטו שנשמר')}</span>
+            <span className="mw-bar-key"><i className="mw-dot cost" />{pageText(locale, 'Retention cost', 'עלות שימור')}</span>
+          </div>
+        </div>
+      ) : null}
       {basisNote ? <small className="mw-basis">{basisNote}</small> : null}
     </div>
   );

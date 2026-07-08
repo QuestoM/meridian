@@ -5787,8 +5787,96 @@ button {
   padding: var(--space-4);
 }
 
-.money-story-panel .money-waterfall {
-  max-width: 460px;
+/* The headline money story lays its three figures beside the proportional bar so
+   the panel width is used, not left half empty. The figures keep a comfortable
+   width; the bar fills the rest. On narrow screens they stack. */
+.money-story-panel .money-waterfall.headline {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: var(--space-4) var(--space-5);
+  align-items: center;
+}
+
+.money-story-panel .money-waterfall.headline .mw-row {
+  grid-column: 1;
+}
+
+.money-story-panel .money-waterfall.headline .mw-basis {
+  grid-column: 1 / -1;
+}
+
+.mw-bar {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.mw-bar-track {
+  display: flex;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+}
+
+.mw-bar-net {
+  background: var(--teal-soft);
+  border-inline-end: 2px solid var(--teal);
+}
+
+.mw-bar-cost {
+  position: relative;
+  background: var(--amber-soft);
+}
+
+/* The lighter inset marks the plausible range of the model estimate inside the
+   retention-cost segment. */
+.mw-bar-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--band-left);
+  right: var(--band-right);
+  background: repeating-linear-gradient(45deg, transparent, transparent 3px, var(--amber) 3px, var(--amber) 4px);
+  opacity: 0.5;
+}
+
+.mw-bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-2xs);
+  color: var(--muted);
+}
+
+.mw-bar-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mw-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.mw-dot.net { background: var(--teal-soft); border: 1px solid var(--teal); }
+.mw-dot.cost { background: var(--amber-soft); border: 1px solid var(--amber); }
+
+@media (max-width: 900px) {
+  .money-story-panel .money-waterfall.headline {
+    grid-template-columns: 1fr;
+  }
+  .mw-bar {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 .money-story-empty {
