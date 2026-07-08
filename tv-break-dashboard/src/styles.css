@@ -3081,6 +3081,16 @@ button {
   resize: vertical;
 }
 
+/* MUI fields size to their content by default. The old plain-input rule stretched
+   the inner input to full width; now that MUI inputs are excluded from it, restore
+   the full-width fill on the field WRAPPER instead (never the inner input, so no
+   second border returns). This keeps every settings field the same width whether
+   it is a bare TextField, a Select, or a NumberControl inside its suffix grid. */
+.settings-panel .MuiTextField-root,
+.settings-panel .MuiFormControl-root {
+  width: 100%;
+}
+
 .number-control div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
