@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@mui/material';
-import { Bot, RefreshCcw, Send, Sparkles } from 'lucide-react';
+import { Bot, RefreshCcw, Send, Sparkles, Trash2 } from 'lucide-react';
 import { pageText } from './surface-helpers';
 import { postJson, requestJson, streamAsk } from './assistant-stream';
 import AssistantProposalCard from './AssistantProposalCard';
-import AssistantHistory from './AssistantHistory';
 import AssistantUpload from './AssistantUpload';
-import { AssistantExchange, StreamProgress } from './AssistantThread';
+import { AssistantExchange, StreamProgress, RichText } from './AssistantThread';
 import './assistant-console.css';
 
 // The assistant console: a chat column grounded in the saved data plus a side
@@ -62,8 +61,10 @@ export default function AssistantPanel({ locale, notify }) {
   const [statusState, setStatusState] = useState('loading');
   const [question, setQuestion] = useState('');
   const [thread, setThread] = useState([]);
+  const [threadLoading, setThreadLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [asking, setAsking] = useState(false);
-  const [railTab, setRailTab] = useState('proposals');
   const [batchMap, setBatchMap] = useState({});
   const [batchOrder, setBatchOrder] = useState([]);
   const [proposalsState, setProposalsState] = useState('loading');
@@ -133,10 +134,54 @@ export default function AssistantPanel({ locale, notify }) {
     };
   }, [refreshRail]);
 
+  // Load the saved conversation so returning to the assistant shows the past
+  // exchanges instead of an empty chat. Each stored entry (question, answer, time)
+  // becomes a thread row; new asks append below them.
+  useEffect(() => {
+    let active = true;
+    setThreadLoading(true);
+    requestJson('/api/assistant/thread')
+      .then((body) => {
+        if (!active) return;
+        const entries = Array.isArray(body.entries) ? body.entries : [];
+        const rows = entries.map((entry, index) => ({
+          id: `saved-${index}`,
+          at: entry && entry.at ? entry.at : null,
+          question: entry && entry.question ? String(entry.question) : '',
+          answer: entry && entry.answer ? String(entry.answer) : null,
+          error: null,
+          disclosure: '',
+          sources: [],
+          toolTrace: [],
+          truncated: false,
+          batchId: null,
+        }));
+        idRef.current = rows.length;
+        setThread(rows);
+      })
+      .catch(() => { /* honest empty chat if the thread cannot be read */ })
+      .finally(() => { if (active) setThreadLoading(false); });
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     const node = threadRef.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [thread, asking, live]);
+  }, [thread, asking, live, threadLoading]);
+
+  const clearConversation = useCallback(async () => {
+    setClearing(true);
+    try {
+      await requestJson('/api/assistant/thread', { method: 'DELETE' });
+      setThread([]);
+      idRef.current = 0;
+      setConfirmClear(false);
+    } catch (error) {
+      if (notify) notify(`Clearing the conversation failed (${error.message}).`, `מחיקת השיחה נכשלה (${error.message}).`);
+    } finally {
+      setClearing(false);
+    }
+  }, [notify]);
 
   const appendEntry = useCallback((entry) => {
     idRef.current += 1;
@@ -265,11 +310,6 @@ export default function AssistantPanel({ locale, notify }) {
     : pageText(locale, 'Connected', 'מחובר');
   const dotClass = statusState === 'loading' ? 'loading' : statusState === 'error' ? 'error' : unavailable ? 'off' : 'on';
 
-  const TABS = [
-    ['proposals', pageText(locale, 'Pending actions', 'פעולות ממתינות')],
-    ['history', pageText(locale, 'History', 'היסטוריה')],
-  ];
-
   function renderProposalCard(batch) {
     return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} />;
   }
@@ -293,15 +333,38 @@ export default function AssistantPanel({ locale, notify }) {
       <div className="asst-layout">
         <section className="page-panel asst-chat">
           <div className="panel-head">
-            <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
-            <span>{pageText(locale, 'Saved to your account. Past conversations are in the History tab.', 'נשמרת לחשבון שלכם. שיחות קודמות נמצאות בלשונית ההיסטוריה.')}</span>
+            <div>
+              <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
+              <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
+            </div>
+            {thread.length > 0 && !threadLoading ? (
+              confirmClear ? (
+                <span className="asst-clear-confirm">
+                  <span>{pageText(locale, 'Delete the whole conversation?', 'למחוק את כל השיחה?')}</span>
+                  <Button variant="contained" size="small" color="error" disabled={clearing} onClick={clearConversation}>
+                    {clearing ? pageText(locale, 'Deleting', 'מוחק') : pageText(locale, 'Delete', 'מחק')}
+                  </Button>
+                  <Button variant="text" size="small" disabled={clearing} onClick={() => setConfirmClear(false)}>
+                    {pageText(locale, 'Cancel', 'ביטול')}
+                  </Button>
+                </span>
+              ) : (
+                <button type="button" className="asst-clear-btn" onClick={() => setConfirmClear(true)}>
+                  <Trash2 size={13} />
+                  {pageText(locale, 'Clear', 'מחיקה')}
+                </button>
+              )
+            ) : null}
           </div>
 
           <div className="asst-thread" ref={threadRef}>
-            {thread.length === 0 && !asking ? (
+            {threadLoading && thread.length === 0 ? (
+              <div className="asst-loading">{pageText(locale, 'Loading your conversation', 'טוען את השיחה שלכם')}</div>
+            ) : null}
+            {!threadLoading && thread.length === 0 && !asking ? (
               <div className="asst-thread-empty">
                 <Bot size={18} />
-                <p>{pageText(locale, 'No questions asked yet in this session.', 'עוד לא נשאלו שאלות בהפעלה הנוכחית.')}</p>
+                <p>{pageText(locale, 'No questions asked yet. Your conversation is saved and will appear here next time.', 'עוד לא נשאלו שאלות. השיחה נשמרת ותופיע כאן בפעם הבאה.')}</p>
                 {!unavailable && statusState !== 'loading' ? (
                   <div className="asst-suggestions">
                     <span className="asst-suggestions-label"><Sparkles size={12} />{pageText(locale, 'You can start with one of these', 'אפשר להתחיל מאחת מאלה')}</span>
@@ -321,8 +384,8 @@ export default function AssistantPanel({ locale, notify }) {
 
             {live ? (
               <article className="asst-exchange">
-                <p className="asst-q" dir="auto">{live.question}</p>
-                {live.text ? <div className="asst-a" dir="auto">{live.text}</div> : null}
+                <RichText className="asst-q" text={live.question} />
+                {live.text ? <RichText className="asst-a" text={live.text} /> : null}
               </article>
             ) : null}
 
@@ -371,30 +434,24 @@ export default function AssistantPanel({ locale, notify }) {
         </section>
 
         <aside className="page-panel asst-rail">
-          <div className="asst-rail-tabs" role="tablist">
-            {TABS.map(([key, label]) => (
-              <button type="button" role="tab" aria-selected={railTab === key} className={`asst-tab${railTab === key ? ' active' : ''}`} key={key} onClick={() => setRailTab(key)}>
-                {label}
-                {key === 'proposals' && pendingCount > 0 ? <span className="asst-badge" dir="ltr">{pendingCount}</span> : null}
-              </button>
-            ))}
+          <div className="asst-rail-tabs">
+            <span className="asst-rail-title">
+              {pageText(locale, 'Pending actions', 'פעולות ממתינות')}
+              {pendingCount > 0 ? <span className="asst-badge" dir="ltr">{pendingCount}</span> : null}
+            </span>
             <button type="button" className="asst-refresh" onClick={refreshRail} disabled={refreshing} aria-label={pageText(locale, 'Refresh', 'רענון')}>
               <RefreshCcw size={13} className={refreshing ? 'asst-spin' : ''} />
             </button>
           </div>
           <div className="asst-rail-body">
-            {railTab === 'proposals' ? (
-              proposalsState === 'loading' ? (
-                <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
-              ) : proposalsState === 'error' ? (
-                <div className="asst-error-note">{pageText(locale, `Pending actions could not be loaded (${proposalsError}).`, `לא ניתן לטעון את הפעולות הממתינות (${proposalsError}).`)}</div>
-              ) : visibleBatches.length === 0 ? (
-                <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
-              ) : (
-                visibleBatches.map((batch) => renderProposalCard(batch))
-              )
+            {proposalsState === 'loading' ? (
+              <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
+            ) : proposalsState === 'error' ? (
+              <div className="asst-error-note">{pageText(locale, `Pending actions could not be loaded (${proposalsError}).`, `לא ניתן לטעון את הפעולות הממתינות (${proposalsError}).`)}</div>
+            ) : visibleBatches.length === 0 ? (
+              <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
             ) : (
-              <AssistantHistory locale={locale} />
+              visibleBatches.map((batch) => renderProposalCard(batch))
             )}
           </div>
         </aside>

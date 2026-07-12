@@ -3,7 +3,28 @@ import { pageText } from './surface-helpers';
 
 // Companion pieces for the assistant chat column: the single-exchange renderer and
 // the live progress row shown while an ask streams. Both have honest empty and
-// error states. Saved conversation history lives in the History tab.
+// error states. The chat loads the saved conversation on open, so returning shows
+// the past exchanges.
+
+// Render text as paragraphs, each with its own direction. A single dir="auto" on a
+// whole answer sets one direction from the first strong character, so a Hebrew
+// answer that opens with a number or a Latin word flips the entire block to LTR.
+// Splitting on line breaks and giving each line its own dir="auto" makes every
+// line follow its own first character, so Hebrew lines read right-to-left even
+// when a neighbour is English.
+export function RichText({ text, className }) {
+  const value = text === null || text === undefined ? '' : String(text);
+  const lines = value.split('\n');
+  return (
+    <div className={className}>
+      {lines.map((line, index) => (
+        line.trim()
+          ? <p className="asst-para" dir="auto" key={index}>{line}</p>
+          : <div className="asst-para-gap" key={index} aria-hidden="true" />
+      ))}
+    </div>
+  );
+}
 
 const STEP_LABELS = {
   get_settings: ['Reading the saved settings', 'קורא את ההגדרות השמורות'],
@@ -53,10 +74,10 @@ export function AssistantExchange({ entry, locale, proposalCard }) {
   const toolTrace = Array.isArray(entry.toolTrace) ? entry.toolTrace : [];
   return (
     <article className="asst-exchange">
-      <p className="asst-q" dir="auto">{entry.question}</p>
-      {entry.answer ? <div className="asst-a" dir="auto">{entry.answer}</div> : null}
+      <RichText className="asst-q" text={entry.question} />
+      {entry.answer ? <RichText className="asst-a" text={entry.answer} /> : null}
       {entry.truncated ? <p className="asst-truncated">{pageText(locale, 'The answer was shortened by the server.', 'התשובה קוצרה על ידי השרת.')}</p> : null}
-      {entry.error ? <div className="asst-a error" dir="auto">{entry.error}</div> : null}
+      {entry.error ? <RichText className="asst-a error" text={entry.error} /> : null}
       {proposalCard}
       {entry.disclosure || sources.length || toolTrace.length ? (
         <details className="asst-disclosure">
