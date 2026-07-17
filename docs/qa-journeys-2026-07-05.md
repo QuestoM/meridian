@@ -126,7 +126,7 @@ tests flip green when fixed and then serve as the regression gate.
 3. BUG-3 (MEDIUM, settings switch does not gate the engine).
    gold_breaks_enabled and sponsorships_enabled are consulted only by the
    display synthesis (server.py:550-551) and the gold report
-   (phase_b.py:229-231). guardrails_from_settings (kairos/service.py:128-153)
+   (insights_api.py). guardrails_from_settings (kairos/service.py:128-153)
    drops both flags, so with sponsorships disabled an active gold override
    still emits is_gold=True placements (optimizer.py:394). Repro: test_bug3.
    Suggested fix: gate gold overrides and pins where settings become engine

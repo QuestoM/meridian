@@ -47,10 +47,10 @@ cells always face stronger rivals.
 
 | feature | beta | 95% CI | verdict |
 |---|---|---|---|
-| `competitor_strength` | -0.00201 per rating point | [-0.00325, -0.00076] | significant, causal direction as expected: a break opposite a stronger rival sheds more |
-| `competitor_genre_contrast` | +0.01775 | [-0.02121, +0.05671] | not significant on one month |
-| `competitor_prog_start` | +0.01759 | [-0.01777, +0.05296] | not significant on one month |
-| `competitor_in_break` (control) | +0.02767 | [+0.00286, +0.05248] | significant: when rivals break too, shedding is cheaper (nowhere good to go) |
+| `competitor_strength` | -0.00186 per rating point | [-0.00323, -0.00050] | significant, causal direction as expected: a break opposite a stronger rival sheds more |
+| `competitor_genre_contrast` | +0.03359 | [-0.01000, +0.07719] | not significant on one month |
+| `competitor_prog_start` | +0.03349 | [-0.00538, +0.07236] | not significant on one month |
+| `competitor_in_break` (control) | +0.02386 | [-0.00390, +0.05162] | control, positive as expected (when rivals break too, shedding is cheaper, nowhere good to go) but not significant on one month |
 
 ## The adoption gate and its verdict
 

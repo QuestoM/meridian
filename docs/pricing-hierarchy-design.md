@@ -102,7 +102,9 @@ S1. Unify composition. [SHIPPED 2026-06-19, commit 8546f8b] Built
     the `PriceLayer` / `PriceBreakdown` types. Returns the final CPP plus a per-layer
     breakdown with provenance. Identity proven: with only the program and day layers
     active (the default), `price_slot(...).total_premium` equals `segment_premium`
-    across all 35 class/day combinations (test_pricing.py). The position and ad-type
+    across all 28 live class/day combinations (35 in the test, which enumerates a
+    Drama alias resolving to Other; production has 4 classes x 7 days) (test_pricing.py).
+    The position and ad-type
     layers are wired but OFF by default, because their configured multipliers are not
     1.0, so no revenue number moves until a later, owner-approved stage activates them.
     Remaining in S1: converge the existing call sites (transform.py segment math,

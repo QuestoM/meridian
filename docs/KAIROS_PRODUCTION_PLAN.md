@@ -24,8 +24,9 @@ flowchart LR
 - Backend API: FastAPI, chosen for typed request models, OpenAPI, and low
   startup cost. The API reads existing reports quickly and runs optimization as
   an explicit action.
-- Model pipeline: Python + Meridian + TensorFlow in a dedicated Python 3.11/3.12
-  environment. Do not run training on Python 3.13.
+- Model pipeline: Python + Meridian + TensorFlow in a dedicated Python 3.12
+  environment. The runtime is pinned by `.python-version` (3.12) and the project
+  venv reports 3.12.13. Do not run training on Python 3.13.
 - Frontend: Vite + React with a local design system. No heavy UI kit is used;
   the product surface is custom because Kairos needs a precise planning canvas,
   inspector, and guardrail workflow rather than a generic BI dashboard.
@@ -93,9 +94,11 @@ Meridian model/training environment.
 
 ## Production Readiness Gaps
 
-- Model environment: create a locked Python 3.11/3.12 environment with
-  TensorFlow, TensorFlow Probability, xarray, and Meridian dependencies. The
-  current desktop Python is 3.13 and cannot be the production training runtime.
+- Model environment: RESOLVED. The runtime is pinned to Python 3.12 via
+  `.python-version`, and the project venv (reporting 3.12.13) carries
+  TensorFlow, TensorFlow Probability, xarray, and Meridian. Training no longer
+  runs on 3.13; keep the pin in place so the production training runtime stays
+  locked.
 - Data contracts: freeze schemas for `Dayparts`, `Programmes`, `Spots`,
   `rate_card_premiums`, and `advertiser_rules`; reject unknown critical columns.
 - Optimization quality: replace the current simple allocation fallback with a

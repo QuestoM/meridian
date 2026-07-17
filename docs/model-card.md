@@ -3,7 +3,7 @@
 The document to read before trusting the model. Every number below is measured
 on the real reference data (November 2024, one month, four channels) with the
 scripts named next to it. Nothing here is a target or an opinion. Last
-measured: 2026-07-05.
+measured: 2026-07-17.
 
 ## What the model measures
 
@@ -21,27 +21,34 @@ per-break retention delta the optimizer charges when it places a break.
 
 ## The numbers that drive the plan today
 
-From the shipped `models/tv_break_coefficients.json` (fingerprint-fresh
-against the data on disk, verified 2026-07-05):
+From the shipped `models/tv_break_coefficients.json` (placebo-corrected,
+content-only baseline, fingerprint-fresh against the data on disk, verified
+2026-07-17):
 
 * 2,532 breaks measured (5,696 raw; 3,164 dropped by the adjacent-break
   window clip rather than measured on contaminated audience).
-* 36 cells, ALL negative. Mean per-break retention delta -0.0390; range
-  -0.0477 (`Other_first_long`, n=238) to -0.0313 (`Other_last_short`, n=146).
-* Cell sample sizes: min 8, median 24, max 292. Confidence labels: 14 high,
-  12 medium, 10 low.
-* Pooling: tau squared 9.687e-05, pooled within-variance 0.0582, learned
-  pseudo-count 600.8. At the mean cell size (n about 70) a cell keeps only
-  about 10 percent of its own mean and takes 90 percent from the global mean.
-  The cells genuinely differ by little on one month, and the model says so
-  rather than inventing spread.
+* 36 cells, ALL negative. Mean per-break retention delta -0.0499; range
+  -0.0617 (`Other_first_long`, n=238) to -0.0413 (`Other_last_short`, n=146).
+* Cell sample sizes: min 8, median 24, max 292. Confidence labels: 1 high,
+  25 medium, 10 low (the placebo correction widens the intervals, so most
+  cells sit at medium rather than high on one month).
+* Pooling: tau squared 1.729e-04, pooled within-variance 0.0651, learned
+  pseudo-count 376.4. At the mean cell size (n about 70) a cell keeps only
+  about 16 percent of its own mean and takes 84 percent from the global mean;
+  at the median cell (n 24) it keeps about 6 percent. The cells genuinely
+  differ by little on one month, and the model says so rather than inventing
+  spread.
 
 ## Honest skill statement (read this before selling the model)
 
-* The pooled LEVEL is solid: the average break costs about 3.9 percent of the
-  audience multiplier, measured causally (detrended, clipped), and moving to
-  that measured level from the earlier contaminated measurement changed the
-  pooled cost by +52 percent (see de-bias below). That level is what the
+* The pooled LEVEL is solid: the average break costs about 5.0 percent of the
+  audience multiplier (pooled -0.0499), measured causally (detrended, clipped,
+  then placebo-corrected). Two corrections built that level from the earlier
+  contaminated measurement: the adjacent-break window clip moved the pooled
+  cost from -0.0257 to -0.0391 (+52 percent, see de-bias below), and the
+  content-only placebo correction then subtracts each genre's measured no-break
+  drift (on the content-only raw of -0.0356, a x1.40 correction) to reach the
+  shipped pooled -0.0499 (see the placebo section). That level is what the
   optimizer's revenue-vs-retention tradeoff runs on.
 * The per-cell DISCRIMINATION is thin out of sample: predicting held-out
   breaks with per-cell means beats a single global constant by approximately
@@ -61,9 +68,12 @@ expected window absorbed the neighbour's dip), understating the per-break cost:
 pooled delta -0.0257 contaminated vs -0.0391 clean. It also fabricated a
 first-break multiplier of 1.947 (p=8.8e-08) that vanished once windows were
 clipped (p=0.203). The clip lives at the single window-derivation chokepoint
-in `break_effects`; the shipped artifact was verified to be EXACTLY the
-post-clip recompute (max coefficient difference 0.0,
-`models/candidates/tv_break_coefficients_afterwindow.json`).
+in `break_effects`; the clean post-clip recompute is
+`models/candidates/tv_break_coefficients_afterwindow.json` (pooled -0.0391).
+The shipped artifact is that clean base with the placebo correction layered on
+top (each genre's no-break drift subtracted), so it equals the after-window
+recompute plus a per-genre placebo shift of mean -0.0108 (shipped pooled
+-0.0499); the placebo section below is the authority on that step.
 
 Residual: 9.44 percent of surviving breaks still have a window minute
 overlapping a SINGLE-SPOT ad run (2.39 percent of window minutes; single
@@ -84,11 +94,12 @@ by measurement. Today:
 | layer | state | gate value (real month) |
 |---|---|---|
 | 36 genre-cell coefficients | ON | the shipped measurement itself |
-| EB learned pooling | ON | tau2 9.687e-05, learned pseudo-count 600.8 |
-| Series/title layer | OFF | held-out RMSE 0.2646 vs genre 0.2442: 8.3 percent WORSE; gate needs 2 percent better |
+| EB learned pooling | ON | tau2 1.729e-04, learned pseudo-count 376.4 |
+| Content-only placebo correction | ON | each genre's no-break drift subtracted (pooled +0.01422 over 6141 matched pseudo-breaks, se 0.00388); corrected pooled -0.0499 |
+| Series/title layer | OFF | held-out RMSE 0.2624 vs genre 0.2420: 8.5 percent WORSE; gate needs 2 percent better |
 | First-break multiplier | OFF | p=0.203 (needs <0.01), n_first=476, n_later=816; the earlier 1.947 was a contamination artifact |
 | Spot-level window clip | OFF (new, opt-in) | held-out -0.38 percent, within noise; coefficient shift -0.00095 pooled |
-| Counter-programming covariate | OFF (new, gated) | held-out RMSE 0.24452 vs 0.24424: 0.1 percent worse; strength beta real (-0.00201, CI [-0.00325, -0.00076]) but does not transfer yet |
+| Counter-programming covariate | OFF (new, gated) | held-out RMSE 0.24214 vs 0.24200: 0.1 percent worse; strength beta real (-0.00186, CI [-0.00323, -0.00050]) but does not transfer yet |
 | Advertiser demand signal | ON as a provable no-op (1.0 weight) | see kairos-model docs |
 
 The competitor-information boundary is law: competitor data (programming,
@@ -163,14 +174,18 @@ calibration, decision robustness) were run against the real month; the full
 synthesis lives in docs/model-validation/README.md. The headlines the owner
 should know:
 
-- KNOWN BIAS, DISCLOSED: a matched placebo experiment shows the per-break
-  retention cost is understated by a factor of about 1.365 (within-show
-  audience-build drift absorbed into the estimate; corrected pooled cost
-  -0.0533 vs shipped -0.0391, permutation p = 0.0005). Until the correction
-  layer ships, the retention-cost headline (16.8M ILS per week) reads about
-  6.1M per week LOW. The decision layer is largely insensitive to this level
-  shift (see next bullet), so plans are not expected to move materially, but
-  the money disclosure is.
+- BIAS CORRECTED, LIVE: a matched placebo experiment showed the earlier
+  per-break retention cost was understated (within-show audience-build drift
+  absorbed into the estimate; corrected pooled cost -0.0533 vs the earlier
+  -0.0391 under the shipped-ad-minutes baseline, permutation p = 0.0005). That
+  correction now SHIPS in `models/tv_break_coefficients.json`
+  (`placebo_correction_active` is true): the content-only-baseline variant
+  subtracts each genre's measured no-break drift and the shipped pooled cost is
+  -0.0499 (about x1.40 on the content-only raw). The retention-cost headline
+  therefore already reflects the debiased level; the earlier "reads about 6.1M
+  ILS per week low until the correction ships" gap is closed. The decision
+  layer is largely insensitive to this level shift (see next bullet), so plans
+  did not move materially, but the reported cost now carries the correction.
 - DECISIONS ARE ROBUST: across 200 coefficient draws the plan is identical to
   shipped in 98.5 percent of draws and break counts never move; the 36-cell
   structure and one pooled constant currently produce the same plan (only 12

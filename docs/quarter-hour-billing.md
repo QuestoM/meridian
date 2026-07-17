@@ -140,10 +140,13 @@ what the evidence supports.
    and scale. It ships OFF because switching the basis moves real reported
    revenue (the window average sits ABOVE the engine's retention-discounted
    rating: on the real first channel-day, Kan 11 2024-11-01, activating the
-   flag restates total revenue from 826,743.62 to 888,368.91 ILS, +7.45
-   percent, with retention, break counts and placements identical),
-   exactly the position/ad_type activation discipline. Activation is a
-   deliberate owner decision in config or dashboard pricing overrides.
+   flag restates total revenue from 874,144.75 to 941,984.93 ILS, about +7.8
+   percent, with retention, break counts and placements identical). The exact
+   percentage is state-dependent (it tracks the engine baseline, which moves as
+   coefficients and pricing evolve), so read it as about +7-8 percent, not a
+   fixed figure; this is exactly the position/ad_type activation discipline.
+   Activation is a deliberate owner decision in config or dashboard pricing
+   overrides.
 
 2. A boundary-placement lever: RULED OUT as a near-term optimizer knob,
    RULED IN as a documented placement guideline. What the measurements
