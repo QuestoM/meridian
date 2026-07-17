@@ -245,7 +245,7 @@ def main() -> int:
 
     if rel_spread is not None and rel_spread < threshold_rel:
         print(
-            "VERDICT: FLAT (greedy proxy preserves slope, Phase 4 is polish). "
+            "VERDICT: FLAT (greedy proxy preserves slope, the refiner is polish). "
             f"The greedy-to-refined revenue gap varies by only {_fmt_money(abs_spread)} "
             f"ILS ({rel_spread:.3f}% of the ~{_fmt_money(mean_refined)} ILS revenue) "
             f"across the revenue-bearing weights {[row['weight'] for row in active]}, "
@@ -255,7 +255,7 @@ def main() -> int:
     else:
         rel_txt = f"{rel_spread:.3f}%" if rel_spread is not None else "n/a"
         print(
-            "VERDICT: WEIGHT-VARYING (slope distorted, Phase 4 is load-bearing). "
+            "VERDICT: WEIGHT-VARYING (slope distorted, the refiner is load-bearing). "
             f"The greedy-to-refined revenue gap swings by {_fmt_money(abs_spread)} "
             f"ILS ({rel_txt} of the ~{_fmt_money(mean_refined)} ILS revenue) across "
             f"the revenue-bearing weights {[row['weight'] for row in active]}, above "

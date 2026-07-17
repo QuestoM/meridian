@@ -20,8 +20,6 @@ import uuid
 import logging
 from typing import Any
 
-from fastapi import HTTPException
-
 # The mutable KairosSettings fields the model may propose to change. Everything
 # else (operator_channel, locale, currency, profile identity, notes, raw
 # pricing_overrides, protected_program_types) is rejected with an honest reason.

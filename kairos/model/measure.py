@@ -63,7 +63,6 @@ import pandas as pd
 
 from kairos.data.classifier import ProgramClassifier
 from kairos.data.loaders import load_dayparts, load_programmes, load_spots
-from kairos.data.title_features import canonicalize_series
 from kairos.model.prepare import keyed_breaks
 
 logger = logging.getLogger(__name__)

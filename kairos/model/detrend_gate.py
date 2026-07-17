@@ -166,7 +166,7 @@ def detrend_seasonality_gate(
             f"month_minute RMSE ({rmse_month_minute:.5f}) beats the global RMSE "
             f"({rmse_global:.5f}) by {pct:.1f}% (threshold "
             f"{min_relative_improvement * 100:.0f}%); season-aware detrend is "
-            "recommended, activation stays an owner decision"
+            "recommended"
         )
     else:
         recommended = False

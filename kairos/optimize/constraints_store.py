@@ -401,23 +401,3 @@ def load_constraints(path: str | Path | None = None) -> list[PlacementConstraint
             where=where,
         ))
     return out
-
-
-def constraints_to_optimizer_inputs(
-    segments: Sequence[ProgramSegment],
-    path: str | Path | None = None,
-    *,
-    operator_channel: str = "",
-) -> tuple[dict[str, list[PlacementPin]], dict[str, int], set[str], list[SkippedConstraint]]:
-    """Load the CSV and resolve it against ``segments``, ready for the optimizer.
-
-    Convenience wrapper returning ``(placement_pins, count_pins, forbids,
-    skipped)``: feed ``placement_pins`` straight into
-    :func:`~kairos.optimize.optimizer.optimize_breaks` / build_weekly_schedule,
-    and turn ``count_pins`` / ``forbids`` into an OverrideSet (see
-    :func:`count_pins_to_overrides`).
-    """
-    constraints = load_constraints(path)
-    return resolve_constraints(segments, constraints, operator_channel=operator_channel)
-
-

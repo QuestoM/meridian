@@ -183,7 +183,7 @@ def test_gate_recommends_month_minute_on_genuine_seasonality() -> None:
     assert hold["relative_improvement"] == pytest.approx(1.0)
     assert hold["min_relative_improvement"] == 0.02
     assert hold["n_test_days"] == 6  # 20 percent of 30 days
-    assert "owner decision" in result["detrend_seasonality_reason"]
+    assert "recommended" in result["detrend_seasonality_reason"]
 
 
 def test_gate_declines_when_months_are_alike() -> None:

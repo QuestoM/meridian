@@ -78,3 +78,8 @@ data/audit/
 
 # Operation-state version history (immutable snapshots of the mutable state files)
 data/versions/
+
+# Ad-hoc UI verification screenshots and browser-automation scratch output
+/*.png
+.playwright-mcp/
+output/*.png

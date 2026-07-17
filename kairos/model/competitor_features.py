@@ -77,11 +77,6 @@ _PROG_START_LEAD_MINUTES = 1
 _PROG_START_TAIL_MINUTES = 3
 
 
-def is_forward_feature(name: str) -> bool:
-    """True when ``name`` is legitimately available before the week airs."""
-    return name in EXTENDED_FORWARD_FEATURES
-
-
 class ForwardBoundaryError(ValueError):
     """Raised when a training-only competitor feature reaches the inference path.
 

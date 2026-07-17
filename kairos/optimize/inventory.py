@@ -20,7 +20,7 @@ touches the charged revenue. So:
   * A segment can never be charged more or less because of this signal; it only
     changes WHERE the next break prefers to go when two segments tie.
 
-Phase 1 is a SOFT steer: higher booked demand on a slot raises its weight so the
+The demand signal is a SOFT steer: higher booked demand on a slot raises its weight so the
 optimizer leans breaks toward where advertisers actually want to buy. A segment
 cannot usefully carry more break-seconds than there is inventory to fill, but
 enforcing that as a HARD cap belongs to the guardrail layer; this module leaves

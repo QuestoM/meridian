@@ -32,7 +32,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from kairos.optimize._rule_helpers import CPP_MODES, compute_premium_factor
+from kairos.optimize._rule_helpers import compute_premium_factor
 from kairos.optimize.advertiser_rules import PREMIUM, AdvertiserRuleEngine, Condition
 from kairos.optimize.pricing import PriceBreakdown, PriceLayer
 

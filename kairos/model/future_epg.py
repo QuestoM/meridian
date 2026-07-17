@@ -52,7 +52,6 @@ from kairos.data.classifier import ProgramClassifier
 from kairos.data.loaders import REFERENCE_DIR, load_programmes
 from kairos.model.competitor_features import (
     EXTENDED_FORWARD_FEATURES,
-    _category_at,
     _genre_contrast,
     _prog_start,
     _strength,

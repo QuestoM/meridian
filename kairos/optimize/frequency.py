@@ -43,12 +43,11 @@ overridable and never hidden.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import pandas as pd
 
 from kairos.optimize._frequency_rules import (
-    COMPETITIVE_SEPARATION,
     MAX_CONSECUTIVE,
     MAX_PER_BREAK,
     MAX_PER_DAY,
@@ -58,7 +57,6 @@ from kairos.optimize._frequency_rules import (
     FrequencyRule,
     FrequencyRuleSet,
     competitive_groups,
-    load_frequency_rules,
     resolve_effective,
 )
 
@@ -348,26 +346,3 @@ def _minute_of_day(value: Any) -> Optional[float]:
     if pd.isna(parsed):
         return None
     return parsed.hour * 60.0 + parsed.minute + parsed.second / 60.0
-
-
-def view_from_priced(key: Any, priced: Any, *, break_id: str, minute: Optional[float]) -> SpotView:
-    """Build a :class:`SpotView` from a :class:`kairos.export.spots.PricedSpot`.
-
-    ``ad`` is taken from the priced spot's campaign when no finer creative id is
-    carried; the caller supplies ``break_id`` and ``minute`` from the raw row,
-    because the PricedSpot intentionally does not carry the clock.
-    """
-    return SpotView(
-        key=key,
-        advertiser=getattr(priced, "advertiser", ""),
-        campaign=getattr(priced, "campaign", ""),
-        ad=getattr(priced, "ad", "") or getattr(priced, "campaign", ""),
-        break_id=break_id,
-        position=getattr(priced, "position", None),
-        minute=minute,
-    )
-
-
-def load_default_ruleset(path: Any = None) -> FrequencyRuleSet:
-    """Convenience: load the shipped frequency-rules CSV (or a given path)."""
-    return load_frequency_rules(path)
