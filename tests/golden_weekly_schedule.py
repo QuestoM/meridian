@@ -3,8 +3,8 @@
 Runs :func:`kairos.export.schedule.build_weekly_schedule` on the committed
 reference data along the exact path ``POST /api/recompute-schedule`` uses
 (saved settings, ``revenue_weight`` / 100, saved ``risk_lambda``, saved
-``operator_channel``, ``today=date.today()``), then asserts the output is the
-committed golden to the byte:
+``operator_channel``, and a frozen ``today`` so the byte hash cannot drift with
+the wall clock), then asserts the output is the committed golden to the byte:
 
   * a full-CSV content hash (the CSV carries no timestamp column, so its bytes
     are the whole content), and
@@ -17,10 +17,13 @@ that moved. This gates the Phase-1 engine-core consolidation: the consolidated
 engine must reproduce this schedule exactly.
 
 A full run optimises every channel-day and takes roughly 45-70s, which is
-acceptable for a safety net. The demand-signal inputs on disk (a header-only
-``campaign_flights.csv`` and no inventory file) make pacing and inventory exact
-identities, so the schedule does not depend on the run date and the golden is
-stable across days.
+acceptable for a safety net. The delivery-pacing signal is the only consumer of
+``today``, and it is inert while ``campaign_flights.csv`` is header-only
+(``load_campaigns()`` returns ``[]``), so the schedule does not depend on the run
+date. ``today`` is frozen here anyway, so the golden cannot start depending on the
+clock even after campaign flights land; the companion
+``tests/test_qa2_golden_freeze.py`` asserts the campaign inputs are still empty so
+that this freeze is provably a no-op today.
 
 Run directly (``python tests/golden_weekly_schedule.py``) or under pytest.
 """
@@ -39,6 +42,12 @@ if str(ROOT) not in sys.path:
 from kairos.export.schedule import build_weekly_schedule  # noqa: E402
 
 SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
+
+# Reference date for the delivery-pacing urgency signal. Frozen (never date.today())
+# so this byte-hash golden is deterministic across days. Pacing is the only consumer
+# of this date and it is inert while campaign flights are header-only, so the exact
+# value does not move the golden; the companion test proves that emptiness.
+FROZEN_PACING_DATE = date(2026, 6, 15)
 
 # Committed golden, captured from a real recompute on the current engine.
 # Rebased when the exact interval-sweep DP shipped as the optimizer's top refiner
@@ -81,7 +90,14 @@ def build_reference_frame():
         revenue_weight=settings["revenue_weight"] / 100.0,
         risk_lambda=settings["risk_lambda"],
         operator_channel=settings["operator_channel"],
-        today=date.today(),
+        # A fixed reference date, not date.today(), so the byte-hash golden cannot
+        # silently start depending on the wall clock. The pacing urgency signal is
+        # the only consumer of this date, and it is inert while campaign flights are
+        # empty (header-only campaign_flights.csv -> load_campaigns() == []), so this
+        # freeze is a provable no-op today. tests/test_qa2_golden_freeze.py asserts
+        # that emptiness so the day the campaigns land, that guard fails loudly rather
+        # than this golden drifting unnoticed.
+        today=FROZEN_PACING_DATE,
     )
 
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 from kairos_api.dashboard_api import (
@@ -53,7 +54,7 @@ def _wait_frontier_ready():
 # 1. Computing state is honest: no numbers while the sweep is in flight -------
 def test_net_comparison_computing_state_has_no_numbers() -> None:
     if not _engine_scope_ready():
-        return
+        pytest.skip("engine or owned channel unavailable")
     _wait_frontier_ready()  # ensure no real compute thread is in flight
     with _frontier_bg_lock:
         saved = {
@@ -84,7 +85,7 @@ def test_net_comparison_computing_state_has_no_numbers() -> None:
 # 2. Ready state: internally consistent money on one shared basis -------------
 def test_net_comparison_ready_state_is_internally_consistent() -> None:
     if not _engine_scope_ready():
-        return
+        pytest.skip("engine or owned channel unavailable")
     points, bundle, status = _wait_frontier_ready()
     assert status == "ready"
     assert bundle is not None and bundle.get("comparison_available"), bundle
@@ -120,7 +121,7 @@ def test_net_comparison_ready_state_is_internally_consistent() -> None:
 # 3. The overview's net_point: additive, labelled, frontier-point shaped ------
 def test_overview_net_point_shape_and_frontier_points_unchanged() -> None:
     if not _engine_scope_ready():
-        return
+        pytest.skip("engine or owned channel unavailable")
     _wait_frontier_ready()
     overview = client.get("/api/overview").json()
     net_point = overview["frontier_net_point"]
