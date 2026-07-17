@@ -300,15 +300,16 @@ const copyByLocale = {
     scenarios: ['Balanced', 'Revenue priority', 'Retention guardrail'],
     compare: 'Compare',
     liveApi: 'Live API',
-    snapshot: 'Demo data (API offline)',
+    snapshot: 'API unreachable',
+    partialData: 'Some data failed to load',
     data: 'Data',
     dataUpdated: 'Updated',
     refresh: 'Refresh',
     notifications: 'Notifications',
     runOptimization: 'Run Optimization',
     loading: 'Loading Kairos workspace',
-    apiUnavailable: 'API unavailable. Showing local snapshot.',
-    metrics: ['Projected revenue', 'Viewer retention D7', 'Total ad minutes', 'Risk score'],
+    apiUnavailable: 'API unavailable. Some data could not be loaded.',
+    metrics: ['Projected revenue', 'Predicted retention', 'Total ad minutes', 'Risk score'],
     risk: { High: 'High', Medium: 'Medium', Low: 'Low', Unknown: 'Unknown' },
     toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
@@ -316,7 +317,7 @@ const copyByLocale = {
     selectedBreak: 'Selected break',
     pending: 'Pending',
     approved: 'Approved',
-    detail: ['Revenue', 'Retention D7', 'Duration', 'Spots'],
+    detail: ['Revenue', 'Predicted retention', 'Duration', 'Sponsorships'],
     guardrails: 'Guardrails',
     recommendation: 'Recommendation',
     approve: 'Approve',
@@ -398,15 +399,16 @@ const copyByLocale = {
     scenarios: ['מאוזן', 'מקסום הכנסה', 'הגנת שימור'],
     compare: 'השוואה',
     liveApi: 'API חי',
-    snapshot: 'נתוני הדגמה (API מנותק)',
+    snapshot: 'אין חיבור ל־API',
+    partialData: 'חלק מהנתונים לא נטענו',
     data: 'נתונים',
     dataUpdated: 'עודכן',
     refresh: 'רענון',
     notifications: 'התראות',
     runOptimization: 'הרצת אופטימיזציה',
     loading: 'טוען סביבת Kairos',
-    apiUnavailable: 'ה־API לא זמין. מוצגת תמונת מצב מקומית.',
-    metrics: ['הכנסה צפויה', 'שימור צפייה D7', 'דקות פרסום', 'רמת סיכון'],
+    apiUnavailable: 'ה־API לא זמין. חלק מהנתונים לא נטענו.',
+    metrics: ['הכנסה צפויה', 'שימור חזוי', 'דקות פרסום', 'רמת סיכון'],
     risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
@@ -414,7 +416,7 @@ const copyByLocale = {
     selectedBreak: 'ברייק נבחר',
     pending: 'ממתין',
     approved: 'מאושר',
-    detail: ['הכנסה', 'שימור D7', 'משך', 'ספוטים'],
+    detail: ['הכנסה', 'שימור חזוי', 'משך', 'חסויות'],
     guardrails: 'בקרות',
     recommendation: 'המלצה',
     approve: 'אישור',
@@ -436,11 +438,11 @@ const copyByLocale = {
     none: 'אין',
     settingsTitle: 'הגדרות שוק ומדיניות',
     settingsIntro: 'אלה ברירות מחדל תפעוליות, לא חוק קשיח בקוד. מעדכנים את הפרופיל כשהרגולציה, מחירונים או מדיניות הערוץ משתנים.',
-    saveSettings: 'שמור שינויים',
+    saveSettings: 'שמירת שינויים',
     saving: 'שומר...',
     saved: 'נשמר',
     saveFailed: 'השמירה נכשלה',
-    unsavedChanges: 'יש לך שינויים שלא נשמרו',
+    unsavedChanges: 'יש לכם שינויים שלא נשמרו',
     noChanges: 'כל השינויים נשמרו',
     profile: 'פרופיל',
     source: 'מקור',
@@ -465,9 +467,9 @@ const copyByLocale = {
     retentionCostIntro: 'עד כמה אפשר לסמוך על עלות השימור שמאחורי כל סגמנט בתוכנית הזו.',
     retentionCostConfidence: { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה' },
     retentionCostAssumption: 'הנחה',
-    retentionCostInterval: 'טווח',
+    retentionCostInterval: 'רווח סמך',
     retentionCostBreaks: 'ברייקים אמיתיים',
-    retentionCostNoInterval: 'אין טווח ידוע',
+    retentionCostNoInterval: 'אין רווח סמך ידוע',
     retentionCostPoint: 'אומדן נקודתי',
     retentionCostUsed: 'הערך שנעשה בו שימוש',
   },
@@ -990,8 +992,32 @@ function downloadJson(filename, payload) {
   window.URL.revokeObjectURL(url);
 }
 
-async function downloadScheduleCsv(locale, notify) {
+// Bilingual friendly names for the schedule_freshness changed-group keys (the
+// frozen contract shared with ScheduleStalenessBanner).
+function freshnessChangedLabels(freshness, locale) {
+  const labels = {
+    settings: pageText(locale, 'settings', 'הגדרות'),
+    constraints: pageText(locale, 'constraints', 'אילוצים'),
+    overrides: pageText(locale, 'manual overrides', 'עקיפות ידניות'),
+    coefficients: pageText(locale, 'model coefficients', 'מקדמי המודל'),
+    data: pageText(locale, 'source data', 'נתוני מקור'),
+  };
+  return normalizeRows(freshness?.changed)
+    .map((key) => labels[key])
+    .filter((label) => typeof label === 'string' && label.length > 0);
+}
+
+async function downloadScheduleCsv(locale, notify, freshness) {
   if (typeof window === 'undefined') return;
+  // The saved schedule CSV can lag the operator's latest edits. When the backend
+  // reports it stale, name what changed and let the operator decide whether the
+  // outdated export is still wanted, instead of silently shipping old numbers.
+  if (freshness && String(freshness.status || '').toLowerCase() === 'stale') {
+    const changed = freshnessChangedLabels(freshness, locale);
+    const changedPhrase = changed.length > 0 ? changed.join(', ') : pageText(locale, 'inputs', 'קלטים');
+    const question = pageText(locale, `The saved schedule is out of date (changed since it was computed: ${changedPhrase}). Download the outdated CSV anyway?`, `הלוח השמור אינו מעודכן (השתנו מאז חישובו: ${changedPhrase}). להוריד בכל זאת את ה־CSV הלא מעודכן?`);
+    if (!window.confirm(question)) return;
+  }
   try {
     const response = await fetch(`${API_BASE}/api/export/schedule.csv`);
     if (!response.ok) {
@@ -1019,6 +1045,42 @@ async function downloadScheduleCsv(locale, notify) {
         notify('No schedule is available to export yet.', 'אין לוח זמין לייצוא עדיין.');
       } else {
         notify(`Schedule export failed (${error.message}).`, `ייצוא הלוח נכשל (${error.message}).`);
+      }
+    }
+  }
+}
+
+// Streams the per-spot daily pricing ledger the server builds (every priced
+// spot with its premium and revenue, plus every dropped spot with its reason).
+async function downloadSpotsLedgerCsv(locale, notify) {
+  if (typeof window === 'undefined') return;
+  try {
+    const response = await fetch(`${API_BASE}/api/export/spots.csv`);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match ? match[1] : 'kairos-daily-spots.csv';
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    if (notify) {
+      notify('Daily spot ledger exported as CSV.', 'יומן הספוטים היומי יוצא כ־CSV.');
+    }
+  } catch (error) {
+    if (notify) {
+      const status = String(error.message || '');
+      if (status.startsWith('404')) {
+        notify('No spot ledger is available to export yet.', 'אין יומן ספוטים זמין לייצוא עדיין.');
+      } else {
+        notify(`Spot ledger export failed (${error.message}).`, `ייצוא יומן הספוטים נכשל (${error.message}).`);
       }
     }
   }
@@ -1176,6 +1238,7 @@ function useKairosData(refreshKey = 0) {
     parameters: fallbackParameters,
     breakOperations: fallbackSchedule.break_operations,
     online: false,
+    partial: false,
     loading: true,
     error: null,
   });
@@ -1238,7 +1301,11 @@ function useKairosData(refreshKey = 0) {
         impact: impactResult.data,
         parameters: parametersResult.data,
         breakOperations: breakOperationsResult.data,
-        online: results.every((result) => result.online),
+        // Online reflects the overview fetch (the app's backbone payload); a few
+        // failing side endpoints degrade to an honest partial state instead of
+        // flipping the whole app to offline.
+        online: overviewResult.online,
+        partial: overviewResult.online && !results.every((result) => result.online),
         loading: false,
         error: results.find((result) => result.error)?.error || null,
       });
@@ -1249,12 +1316,45 @@ function useKairosData(refreshKey = 0) {
     };
   }, [refreshKey]);
 
+  // While the frontier is still computing on the server, poll the overview so
+  // the chart self-heals on the default view instead of waiting for a manual
+  // refresh. Bounded: one fetch about every 5 seconds, stopping when the status
+  // flips away from computing or after roughly 2 minutes.
+  const frontierStatus = state.overview?.frontier_status || '';
+  useEffect(() => {
+    if (state.loading || frontierStatus !== 'computing') return undefined;
+    let active = true;
+    let attempts = 0;
+    const id = window.setInterval(async () => {
+      attempts += 1;
+      if (attempts > 24) {
+        window.clearInterval(id);
+        return;
+      }
+      const result = await fetchJson('/api/overview', null);
+      if (!active || !result.online || !result.data) return;
+      setState((current) => {
+        const next = result.data;
+        const statusChanged = (next.frontier_status || '') !== (current.overview?.frontier_status || '');
+        const frontierChanged =
+          JSON.stringify(next.frontier || []) !== JSON.stringify(current.overview?.frontier || []);
+        // Re-render only on real movement, so the poll does not churn the app.
+        if (!statusChanged && !frontierChanged) return current;
+        return { ...current, overview: next };
+      });
+    }, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, [state.loading, frontierStatus]);
+
   return state;
 }
 
 function TVBreakDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, parameters, online, loading, error } =
+  const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, parameters, online, partial, loading, error } =
     useKairosData(refreshKey);
   const [activeRecommendation, setActiveRecommendation] = useState('rec-1');
   const [approved, setApproved] = useState(new Set());
@@ -1450,10 +1550,13 @@ function TVBreakDashboard() {
   const muiCache = isHebrew ? rtlCache : ltrCache;
   const activeNotificationCount = notifications.filter((n) => !n.dismissed).length;
 
-  function notify(en, he) {
+  function notify(en, he, options = {}) {
     setActionMessage(pageText(locale, en, he));
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setActionMessage(''), 2600);
+    // Transient notices (pure navigation feedback) show the toast only and stay
+    // out of the persistent activity feed, which records real events.
+    if (options.transient) return;
     // Also record the event in the persistent activity feed. A stable id avoids
     // Math.random; the bilingual pair is stored so the feed renders in whatever
     // language the operator later views it in.
@@ -1640,7 +1743,7 @@ function TVBreakDashboard() {
 
   function handleRefresh() {
     setRefreshKey((current) => current + 1);
-    notify('Data refreshed from the Kairos API.', 'הנתונים רועננו מה־API של Kairos.');
+    notify('Data refreshed from the Kairos API.', 'הנתונים רועננו מה־API של Kairos.', { transient: true });
   }
 
   function dismissNotification(id) {
@@ -1834,6 +1937,11 @@ function TVBreakDashboard() {
           {...common}
           files={files}
           setActiveView={setActiveView}
+          onOpenRecommendation={(id) => {
+            // Land on the Optimizer with THIS decision active, not the default.
+            setActiveRecommendation(id);
+            setActiveView('Optimizer');
+          }}
           operatorChannel={settings.operator_channel || ''}
           savedRetentionFloor={finiteNumber(settings.min_retention_floor)}
           onApplyFrontierFloor={handleApplyFrontierFloor}
@@ -1868,7 +1976,7 @@ function TVBreakDashboard() {
           onSelectProgram={selectProgram}
           onCloseInspector={() => {
             setInspectorOpen(false);
-            notify('Break detail panel closed.', 'פאנל פרטי הברייק נסגר.');
+            notify('Break detail panel closed.', 'פאנל פרטי הברייק נסגר.', { transient: true });
           }}
           onApprove={() => activeRec && approveRecommendation(activeRec.id)}
           onReject={() => activeRec && rejectRecommendation(activeRec.id)}
@@ -1903,7 +2011,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Reports') {
-      return <ReportsPage reports={reports} files={files} copy={copy} locale={locale} notify={notify} />;
+      return <ReportsPage reports={reports} files={files} overview={overview} copy={copy} locale={locale} notify={notify} />;
     }
 
     if (activeView === 'Data') {
@@ -1954,7 +2062,6 @@ function TVBreakDashboard() {
       <SettingsPanel
         settings={settings}
         parameters={parameters}
-        campaigns={campaigns}
         copy={copy}
         locale={locale}
         saveState={saveState}
@@ -1962,6 +2069,7 @@ function TVBreakDashboard() {
         onRecompute={handleRecomputeSchedule}
         recomputeState={recomputeState}
         notify={notify}
+        onGlobalRefresh={() => setRefreshKey((k) => k + 1)}
       />
     );
   }
@@ -2104,7 +2212,7 @@ function TVBreakDashboard() {
             title={pageText(
               locale,
               'To set up sign-in and roles, run python scripts/init_auth.py on the server.',
-              'להגדרת כניסה ותפקידים יש להריץ בשרת את python scripts/init_auth.py.',
+              'להגדרת כניסה ותפקידים הריצו בשרת את python scripts/init_auth.py.',
             )}
           >
             <span className="operator-avatar">?</span>
@@ -2147,7 +2255,7 @@ function TVBreakDashboard() {
                 variant="outlined"
                 onClick={() => {
                   setActiveView('Schedule');
-                  notify('Opened the schedule for the active planning week.', 'נפתח לוח השידורים לשבוע התכנון הפעיל.');
+                  notify('Opened the schedule for the active planning week.', 'נפתח לוח השידורים לשבוע התכנון הפעיל.', { transient: true });
                 }}
               >
                 {planningWeekLabel(schedule, locale)}
@@ -2166,7 +2274,7 @@ function TVBreakDashboard() {
                 label={copy.scenario}
                 onChange={(event) => {
                   setScenario(event.target.value);
-                  notify('Scenario selected. Run optimization to preview this planning mode.', 'התרחיש נבחר. יש להריץ אופטימיזציה כדי לצפות במצב תכנון זה.');
+                  notify('Scenario selected. Run optimization to preview this planning mode.', 'התרחיש נבחר. הריצו אופטימיזציה כדי לצפות במצב תכנון זה.', { transient: true });
                 }}
               >
                 <MenuItem value="Balanced">{copy.scenarios[0]}</MenuItem>
@@ -2180,7 +2288,7 @@ function TVBreakDashboard() {
                 <Tooltip title={copy.riskCautionHelp} arrow placement="bottom">
                   <Info size={13} className="risk-lambda-info" aria-label={copy.riskCautionHelp} />
                 </Tooltip>
-                <Numeric>{`${Math.round(Math.min(100, Math.max(0, riskLambda)))}%`}</Numeric>
+                <Numeric>{`${Math.round(Math.min(100, Math.max(0, riskLambda)))}/100`}</Numeric>
               </div>
               <Slider
                 size="small"
@@ -2202,7 +2310,7 @@ function TVBreakDashboard() {
               variant="outlined"
               onClick={() => {
                 setActiveView('Forecasts');
-                notify('Opened scenario comparison.', 'נפתחה השוואת תרחישים.');
+                notify('Opened scenario comparison.', 'נפתחה השוואת תרחישים.', { transient: true });
               }}
             >
               <GitCompare size={15} />
@@ -2212,8 +2320,8 @@ function TVBreakDashboard() {
           )}
 
           <div className="status-group">
-            <span className={online ? 'api-state online' : 'api-state offline'}>
-              {online ? copy.liveApi : copy.snapshot}
+            <span className={online ? (partial ? 'api-state offline partial' : 'api-state online') : 'api-state offline'}>
+              {online ? (partial ? copy.partialData : copy.liveApi) : copy.snapshot}
             </span>
             <span className="freshness" title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'}>{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} -`}</span>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
@@ -2296,7 +2404,7 @@ function TVBreakDashboard() {
             onClose={() => setFeedOpen(false)}
           />
         )}
-        {!loading && error && <div className="toast muted">{copy.apiUnavailable}</div>}
+        {!loading && !online && error && <div className="toast muted">{copy.apiUnavailable}</div>}
       </main>
     </div>
       </ThemeProvider>
@@ -2366,18 +2474,38 @@ function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
   );
 }
 
+// Reads the backend's basis fields off the overview summary (which channel and
+// how many dates the headline numbers cover). Renders nothing when the backend
+// does not provide them; no scope is ever invented here.
+function summaryBasisLabel(summary, locale) {
+  const channel = typeof summary?.scope_channel === 'string' && summary.scope_channel.trim() ? summary.scope_channel.trim() : null;
+  const nDates = finiteNumber(summary?.n_dates);
+  const parts = [];
+  if (channel) parts.push(pageText(locale, `your channel (${channel})`, `הערוץ שלכם (${channel})`));
+  if (nDates !== null) parts.push(pageText(locale, `${formatNumber(nDates, locale)} days`, `${formatNumber(nDates, locale)} ימים`));
+  return parts.length ? parts.join(', ') : null;
+}
+
 function SummaryMetrics({ overview, copy, locale }) {
   // A malformed-but-online response falls back to an empty summary so the
   // metrics show honest empty states, never the offline demo numbers.
   const summary = overview.summary || {};
   const riskScore = finiteNumber(summary.risk_score);
+  const basisLabel = summaryBasisLabel(summary, locale);
   return (
-    <section className="metric-strip" aria-label="Optimization summary">
-      <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} icon={CircleDollarSign} positive />
-      <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} />
-      <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive />
-      <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" />
-    </section>
+    <>
+      <section className="metric-strip" aria-label="Optimization summary">
+        <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} icon={CircleDollarSign} positive />
+        <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} />
+        <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive />
+        <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" />
+      </section>
+      {basisLabel && (
+        <p className="data-basis-note">
+          {pageText(locale, `These headline figures cover ${basisLabel}.`, `המספרים שבכותרת מכסים את ${basisLabel}.`)}
+        </p>
+      )}
+    </>
   );
 }
 
@@ -2399,7 +2527,7 @@ function OptimizationRunSummary({ plan, locale }) {
         <strong><Numeric>{formatNumber(summary.total_breaks, locale)}</Numeric></strong>
       </div>
       <div>
-        <span>{pageText(locale, 'Projected revenue', 'הכנסה חזויה')}</span>
+        <span>{pageText(locale, 'Projected revenue', 'הכנסה צפויה')}</span>
         <strong><Numeric>{formatCurrency(summary.projected_revenue, locale)}</Numeric></strong>
       </div>
       <div>
@@ -2873,7 +3001,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, onOpenRecommendation, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -2886,7 +3014,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
         titleEn="Executive operating view"
         titleHe="תמונת ניהול תפעולית"
         bodyEn="A single read on revenue, retention, compliance, and the next decisions traffic teams need to make."
-        bodyHe="מבט אחד על הכנסה, שמירת צפייה, תאימות וההחלטות הבאות שצוותי הטראפיק צריכים לקבל."
+        bodyHe="מבט אחד על הכנסה, שימור צפייה, תאימות וההחלטות הבאות שצוותי הטראפיק צריכים לקבל."
         action={
           <Button className="run-button" type="button" variant="contained" onClick={() => setActiveView('Optimizer')}>
             <Activity size={15} />
@@ -2904,7 +3032,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
           </div>
           <div className="decision-list">
             {recommendations.slice(0, 5).map((item) => (
-              <Button className="decision-row" type="button" key={item.id || item.title} onClick={() => setActiveView('Optimizer')}>
+              <Button className="decision-row" type="button" key={item.id || item.title} onClick={() => (item.id && onOpenRecommendation ? onOpenRecommendation(item.id) : setActiveView('Optimizer'))}>
                 <div>
                   <strong>{recommendationTitle(item, locale)}</strong>
                   <span>{programTypeLabel(item.program_type, locale) || pageText(locale, 'Mixed', 'מעורב')}</span>
@@ -2949,8 +3077,11 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
   );
 }
 
-function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeState, refreshKey, onGlobalRefresh }) {
+function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, recomputeState, refreshKey, onGlobalRefresh }) {
   const rows = normalizeRows(schedule.break_schedule);
+  // The API slices break_schedule to its first 200 rows; when it also reports
+  // the full count, the table header says so instead of posing as complete.
+  const totalRows = finiteNumber(schedule.total_rows);
   const [scheduleMode, setScheduleMode] = useState('grid');
   const [scheduleAxis, setScheduleAxis] = useState(gridAxisFromLocation);
   const [selectedProgramKey, setSelectedProgramKey] = useState(null);
@@ -2967,14 +3098,14 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
         titleEn="Schedule control"
         titleHe="בקרת לוח שידורים"
         bodyEn="Review the weekly break plan by programme type, day, length, expected revenue, and retention guardrail."
-        bodyHe="בדיקת תוכנית הברייקים השבועית לפי סוג תוכנית, יום, אורך, הכנסה צפויה ושמירת צפייה."
+        bodyHe="בדיקת תוכנית הברייקים השבועית לפי סוג תוכנית, יום, אורך, הכנסה צפויה ושימור צפייה."
         action={
           <div className="schedule-actions no-print">
             <Button
               className="secondary-button compact"
               type="button"
               variant="outlined"
-              onClick={() => downloadScheduleCsv(locale, notify)}
+              onClick={() => downloadScheduleCsv(locale, notify, overview?.schedule_freshness)}
             >
               <Download size={14} />
               {pageText(locale, 'Download CSV', 'הורדת CSV')}
@@ -3039,7 +3170,7 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
               className="secondary-button compact"
               type="button"
               variant="outlined"
-              onClick={() => downloadJson('kairos-weekly-traffic-plan.json', { schedule: rows, grid: schedule.rows || [], axis: scheduleAxis })}
+              onClick={() => downloadJson('kairos-weekly-plan-first-200.json', { schedule: rows, grid: schedule.rows || [], axis: scheduleAxis })}
             >
               <Download size={14} />
               {copy.exportOptions[1]}
@@ -3088,7 +3219,11 @@ function SchedulePage({ schedule, copy, locale, notify, onRecompute, recomputeSt
       <section className="page-panel schedule-print-region">
         <div className="panel-head">
           <h2>{pageText(locale, 'Break plan rows', 'שורות תוכנית ברייקים')}</h2>
-          <span>{rows.length} {pageText(locale, 'rows', 'שורות')}</span>
+          <span>
+            {totalRows !== null && totalRows > rows.length
+              ? pageText(locale, `first ${formatNumber(rows.length, locale)} of ${formatNumber(totalRows, locale)} rows`, `${formatNumber(rows.length, locale)} הראשונות מתוך ${formatNumber(totalRows, locale)} שורות`)
+              : `${rows.length} ${pageText(locale, 'rows', 'שורות')}`}
+          </span>
         </div>
         <DataTable
           locale={locale}
@@ -3200,7 +3335,7 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
         titleEn="Break library"
         titleHe="ספריית ברייקים"
         bodyEn="A reusable working set of candidate breaks ranked by yield, retention, load, and approval status."
-        bodyHe="מאגר עבודה של ברייקים מועמדים, מדורג לפי תשואה, שמירת צפייה, עומס וסטטוס אישור."
+        bodyHe="מאגר עבודה של ברייקים מועמדים, מדורג לפי תשואה, שימור צפייה, עומס וסטטוס אישור."
       />
       <section className="page-panel">
         <div className="panel-head">
@@ -3280,6 +3415,7 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
   const days = normalizeRows(forecasts.by_day)
     .slice()
     .sort((a, b) => dayKeys.indexOf(a.day) - dayKeys.indexOf(b.day));
+  const forecastBasis = summaryBasisLabel(overview.summary, locale);
   const scenarios = normalizeRows(forecasts.scenarios);
   const maxRevenue = Math.max(...scenarios.map((item) => Number(item.revenue || 0)), 1);
   return (
@@ -3316,9 +3452,10 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
           <p className="data-basis-note">
             {pageText(
               locale,
-              'Each scenario is a real optimizer run on one representative channel-day under the saved guardrails. These figures are not weekly totals; the daily forecast below sums the whole saved weekly plan.',
-              'כל תרחיש הוא ריצת אופטימיזציה אמיתית על יום-ערוץ מייצג אחד תחת הבקרות השמורות. אלה אינם סכומים שבועיים; התחזית היומית מטה מסכמת את התוכנית השבועית השמורה כולה.',
+              'Each scenario is a real optimizer run on one representative channel-day under the saved guardrails. These figures are not weekly totals; the daily forecast below is built from the saved weekly plan.',
+              'כל תרחיש הוא ריצת אופטימיזציה אמיתית על יום-ערוץ מייצג אחד תחת הבקרות השמורות. אלה אינם סכומים שבועיים; התחזית היומית מטה נבנית מהתוכנית השבועית השמורה.',
             )}
+            {forecastBasis ? ` ${pageText(locale, `Basis: ${forecastBasis}.`, `בסיס הנתונים: ${forecastBasis}.`)}` : ''}
           </p>
         </section>
         <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} netPoint={overview.frontier_net_point || null} />
@@ -3345,9 +3482,19 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
   );
 }
 
-function ReportsPage({ reports, files, copy, locale, notify }) {
+function ReportsPage({ reports, files, overview, copy, locale, notify }) {
   const reportRows = normalizeRows(reports.reports);
   const fileRows = normalizeRows(files.files);
+
+  // The daily spot ledger card carries the same meta whichever id the API
+  // publishes it under; unused aliases never render.
+  const spotsLedgerMeta = {
+    titleEn: 'Daily spot ledger', titleHe: 'יומן ספוטים יומי',
+    ownerEn: 'Revenue', ownerHe: 'הכנסות',
+    descEn: 'Every priced spot with its premium and revenue, plus every dropped spot with its reason.',
+    descHe: 'כל ספוט מתומחר עם הפרמיה וההכנסה שלו, וכל ספוט שנשמט עם הסיבה לכך.',
+    download: () => downloadSpotsLedgerCsv(locale, notify),
+  };
 
   // The API sends English-only titles/owners with stable report ids. Each id maps
   // to its localized title, owner, one-line description, and the downloader that
@@ -3359,7 +3506,7 @@ function ReportsPage({ reports, files, copy, locale, notify }) {
       ownerEn: 'Traffic', ownerHe: 'טראפיק',
       descEn: 'Every scheduled break for the week, per channel and day.',
       descHe: 'כל הברייקים המשובצים לשבוע, לכל ערוץ ולכל יום.',
-      download: () => downloadScheduleCsv(locale, notify),
+      download: () => downloadScheduleCsv(locale, notify, overview?.schedule_freshness),
     },
     compliance: {
       titleEn: 'Compliance and guardrails', titleHe: 'תאימות ובקרות',
@@ -3382,6 +3529,8 @@ function ReportsPage({ reports, files, copy, locale, notify }) {
       descHe: 'הקיום, הגודל ומועד העדכון האחרון של כל קובץ מקור.',
       download: () => downloadDataQualityReport(fileRows, locale, notify),
     },
+    'daily-spots': spotsLedgerMeta,
+    'spots-ledger': spotsLedgerMeta,
   };
 
   const meta = (report) => REPORT_META[report.id] || null;
@@ -3411,7 +3560,7 @@ function ReportsPage({ reports, files, copy, locale, notify }) {
         action={
           <Button className="secondary-button" type="button" variant="outlined" onClick={downloadAll}>
             <Download size={14} />
-            {pageText(locale, 'Download all', 'הורד הכל')}
+            {pageText(locale, 'Download all', 'הורדת הכל')}
           </Button>
         }
       />
@@ -3789,11 +3938,11 @@ function SelectionGuide({ selectedProgram, onOpen, copy, locale }) {
           {pageText(
             locale,
             'Select a cell in the planner or reopen the details panel to review guardrails, approval state, and export options.',
-            'בחר תא במשטח התכנון או פתח מחדש את פאנל הפרטים כדי לבדוק בקרות, סטטוס אישור ואפשרויות ייצוא.',
+            'בחרו תא במשטח התכנון או פתחו מחדש את פאנל הפרטים כדי לבדוק בקרות, סטטוס אישור ואפשרויות ייצוא.',
           )}
         </p>
         <Button className="secondary-button" type="button" variant="outlined" onClick={onOpen}>
-          {pageText(locale, 'Open details', 'פתח פרטים')}
+          {pageText(locale, 'Open details', 'פתיחת פרטים')}
         </Button>
       </div>
     </aside>
@@ -3834,6 +3983,11 @@ function minutesToTime(minutes) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
+// When break-operations arrives empty, the timeline still lays out the real
+// programme bands from the schedule rows, but it does NOT invent break chips:
+// synthesized evenly-spaced break start times would read as real placements.
+// The track stays honestly empty of breaks, and the break-derived summary
+// figures render as unknown rather than confident zeros.
 function buildTimelineFallback(rows) {
   const programs = flattenScheduleRows(rows).slice(0, 24).map((program, index) => {
     const duration = Number(program.duration_minutes || 30);
@@ -3854,43 +4008,14 @@ function buildTimelineFallback(rows) {
       break_markers: Number(program.break_markers || 0),
     };
   });
-  const breaks = programs.flatMap((program) => {
-    const count = Math.max(0, Math.min(5, Number(program.break_markers || 0)));
-    const duration = 120;
-    const start = timeToMinutes(program.start_time);
-    const programDuration = Number(program.duration_minutes || 30);
-    return Array.from({ length: count }).map((_, index) => {
-      const breakStart = start + ((programDuration * 60) / (count + 1) / 60) * (index + 1);
-      return {
-        id: `${program.key}-fallback-break-${index + 1}`,
-        program_key: program.key,
-        program_title: program.title,
-        lane: program.lane,
-        channel: program.channel,
-        day: program.day,
-        program_type: program.program_type,
-        break_num_in_program: index + 1,
-        breaks_in_program: count,
-        start_time: minutesToTime(breakStart),
-        end_time: minutesToTime(breakStart + duration / 60),
-        duration_sec: duration,
-        sponsorships_count: 0,
-        is_gold: false,
-        source: 'Model',
-        revenue_calculated: Number(program.revenue || 0) / Math.max(count, 1),
-        retention: program.retention,
-        status: Number(program.retention || 0) < 72 ? 'at_risk' : 'ready',
-      };
-    });
-  });
   return {
     programs,
-    breaks,
+    breaks: [],
     summary: {
       programs: programs.length,
-      breaks: breaks.length,
-      ad_seconds: breaks.reduce((sum, item) => sum + Number(item.duration_sec || 0), 0),
-      revenue: breaks.reduce((sum, item) => sum + Number(item.revenue_calculated || 0), 0),
+      breaks: 0,
+      ad_seconds: null,
+      revenue: null,
     },
   };
 }
@@ -3958,6 +4083,14 @@ function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRefresh, s
         </div>
         <ZoomControl pxPerMin={pxPerMin} onZoom={setZoom} onStep={zoomBy} locale={locale} />
       </div>
+
+      {breaks.length === 0 && (
+        <p className="data-basis-note">
+          {programs.length === 0
+            ? pageText(locale, 'No timeline data yet. Run a recompute to build the weekly plan.', 'אין עדיין נתוני ציר זמן. הריצו חישוב מחדש כדי לבנות את התוכנית השבועית.')
+            : pageText(locale, 'No planned break data arrived for this week, so the timeline shows programme bands without break chips.', 'לא התקבלו נתוני ברייקים מתוכננים לשבוע הזה, ולכן ציר הזמן מציג רצועות תוכניות בלי סימוני ברייקים.')}
+        </p>
+      )}
 
       <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale}>
         {({ width, minWidth, ticks }) => lanes.map((lane) => {
@@ -4186,7 +4319,7 @@ function PlanningCanvas({ rows, copy, locale, axis = 'day', showPrograms = true,
         return (
         <div className="channel-row" key={channelName || `channel-${rowIndex}`} style={{ gridTemplateColumns, minWidth }}>
           <div className="channel-name">
-            <span>{channelName.replace('ערוץ', 'K')}</span>
+            <span>{channelName}</span>
             <small>{programTypeLabel(programs[0]?.program_type, locale) || pageText(locale, 'Mixed', 'מעורב')}</small>
           </div>
           {columns.map((column) => {
@@ -4754,8 +4887,8 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState,
           {featured && (
             <span className="settings-channel-kicker">{he ? 'נקודת הפתיחה' : 'Start here'}</span>
           )}
-          <h2>{he ? 'הערוץ שלך' : 'Your channel'}</h2>
-          <p>{he ? 'הערוץ שבבעלות האופרטור. האילוצים שלך חלים על ערוץ זה, והוא משער את ההכנסה מול שמירת הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention view.'}</p>
+          <h2>{he ? 'הערוץ שלכם' : 'Your channel'}</h2>
+          <p>{he ? 'הערוץ שבבעלות המפעיל. האילוצים שלכם חלים על ערוץ זה, והוא משער את ההכנסה מול שימור הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention view.'}</p>
         </div>
         <Tv size={18} />
       </div>
@@ -4784,7 +4917,7 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState,
       )}
       {!currentChannel && (
         <p className="cb-operator-channel-warning">
-          {he ? 'אזהרה: הערוץ אינו מוגדר. מסנן הערוץ המתחרה אינו פעיל - האילוצים חלים על כל הערוצים עד שתבחר ערוץ.' : 'Warning: no channel is set. The competitor-channel boundary filter is inactive - constraints match all channels until you pick your channel.'}
+          {he ? 'אזהרה: הערוץ אינו מוגדר. מסנן הערוץ המתחרה אינו פעיל - האילוצים חלים על כל הערוצים עד שתבחרו ערוץ.' : 'Warning: no channel is set. The competitor-channel boundary filter is inactive - constraints match all channels until you pick your channel.'}
         </p>
       )}
     </section>
@@ -4856,7 +4989,7 @@ function ActivityLogPanel({ locale }) {
   }, [userFilter, reloadKey]);
 
   const showUserColumn = log.scope === 'all';
-  const filterLabel = he ? 'סינון לפי משתמש' : 'Filter by user';
+  const filterLabel = he ? 'סינון לפי מפעיל' : 'Filter by operator';
   return (
     <section className="settings-panel wide">
       <div className="settings-panel-head">
@@ -4877,7 +5010,7 @@ function ActivityLogPanel({ locale }) {
                 value={userFilter}
                 onChange={(event) => setUserFilter(event.target.value)}
               >
-                <MenuItem value="">{he ? 'כל המשתמשים' : 'All users'}</MenuItem>
+                <MenuItem value="">{he ? 'כל המפעילים' : 'All operators'}</MenuItem>
                 {knownUsers.map((name) => (
                   <MenuItem key={name} value={name}>{name}</MenuItem>
                 ))}
@@ -4885,7 +5018,7 @@ function ActivityLogPanel({ locale }) {
             </FormControl>
           )}
           {log.scope === 'self' && (
-            <span className="alog-self-note">{he ? 'מוצגת הפעילות שלך בלבד' : 'Showing your own activity only'}</span>
+            <span className="alog-self-note">{he ? 'מוצגת הפעילות שלכם בלבד' : 'Showing your own activity only'}</span>
           )}
         </div>
         <Button
@@ -4906,7 +5039,7 @@ function ActivityLogPanel({ locale }) {
       {log.status === 'ready' && log.entries.length === 0 && (
         <p className="alog-note">
           {userFilter
-            ? (he ? 'אין רשומות למשתמש שנבחר.' : 'No entries for the selected user.')
+            ? (he ? 'אין רשומות למפעיל שנבחר.' : 'No entries for the selected operator.')
             : (he ? 'אין עדיין רשומות ביומן. פעולות שינוי יופיעו כאן.' : 'No activity recorded yet. Changes will appear here.')}
         </p>
       )}
@@ -4916,7 +5049,7 @@ function ActivityLogPanel({ locale }) {
             <thead>
               <tr>
                 <th>{he ? 'זמן' : 'Time'}</th>
-                {showUserColumn && <th>{he ? 'משתמש' : 'User'}</th>}
+                {showUserColumn && <th>{he ? 'מפעיל' : 'Operator'}</th>}
                 <th>{he ? 'פעולה' : 'Action'}</th>
                 <th>{he ? 'סטטוס' : 'Status'}</th>
               </tr>
@@ -4946,7 +5079,7 @@ function ActivityLogPanel({ locale }) {
   );
 }
 
-function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveState, onSave, onRecompute, recomputeState, notify }) {
+function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, onRecompute, recomputeState, notify, onGlobalRefresh }) {
   const [draft, setDraft] = useState(settings);
 
   useEffect(() => {
@@ -4972,8 +5105,8 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
   // agree on what each preset means.
   const optimizerTemplates = [
     { key: 'balanced', label: he ? 'מאוזן' : 'Balanced', desc: he ? 'נוטה-להכנסה אך שומר על הצופים' : 'Revenue-leaning, viewer-protective', values: { revenue_weight: 60, risk_lambda: 0, min_retention_floor: 0.72 } },
-    { key: 'revenue', label: he ? 'עדיפות להכנסה' : 'Revenue priority', desc: he ? 'ממקסם הכנסה עד גבול הרגולציה' : 'Maximize revenue to the guardrails', values: { revenue_weight: 85, risk_lambda: 0, min_retention_floor: 0.70 } },
-    { key: 'retention', label: he ? 'שמירה על צפייה' : 'Retention guardrail', desc: he ? 'פחות הפסקות, רצפת צפייה גבוהה' : 'Fewer breaks, higher floor', values: { revenue_weight: 35, risk_lambda: 0, min_retention_floor: 0.78 } },
+    { key: 'revenue', label: he ? 'מקסום הכנסה' : 'Revenue priority', desc: he ? 'ממקסם הכנסה עד גבול הרגולציה' : 'Maximize revenue to the guardrails', values: { revenue_weight: 85, risk_lambda: 0, min_retention_floor: 0.70 } },
+    { key: 'retention', label: he ? 'הגנת שימור' : 'Retention guardrail', desc: he ? 'פחות ברייקים, רצפת צפייה גבוהה' : 'Fewer breaks, higher floor', values: { revenue_weight: 35, risk_lambda: 0, min_retention_floor: 0.78 } },
     { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מדווח לפי עלות הצפייה הסבירה הגרועה ביותר' : 'Reports at the worst plausible retention cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
   ];
   const revenueWeight = Number.isFinite(finiteNumber(draft.revenue_weight)) ? finiteNumber(draft.revenue_weight) : 60;
@@ -4984,16 +5117,20 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
         ? (he ? 'הלוח עודכן' : 'Schedule updated')
         : recomputeState === 'error'
           ? (he ? 'החישוב נכשל' : 'Recompute failed')
-          : (he ? 'חשב מחדש את הלוח השבועי' : 'Recompute weekly schedule');
+          : (he ? 'חישוב מחדש של הלוח השבועי' : 'Recompute weekly schedule');
 
   const protectedTypes = (draft.protected_program_types || []).join(', ');
 
   // Honest empty state for pacing: pacing can only steer placement when there
-  // are real campaign flights to pace against. We read the live campaigns
-  // payload (the same one the Campaigns page uses) rather than fabricating any
-  // count, and treat an empty list as "no flights uploaded yet".
-  const campaignFlights = normalizeRows(campaigns?.campaigns);
-  const hasCampaignFlights = campaignFlights.length > 0;
+  // are real campaign FLIGHTS (delivery targets) to pace against. The
+  // /api/campaigns payload is a historical-spots rollup that is always
+  // non-empty, so it says nothing about flights; key on the parameters
+  // payload's real flight count when the backend provides it, with the
+  // make-good data_available flag as a secondary signal. When neither field
+  // exists (older backend) the note stays hidden rather than guessing.
+  const flightsCount = finiteNumber(parameters?.flights_count);
+  const makeGoodAvailable = parameters?.make_good?.data_available;
+  const hasCampaignFlights = flightsCount !== null ? flightsCount > 0 : makeGoodAvailable !== false;
   const statusText =
     saveState === 'saved'
       ? copy.saved
@@ -5059,7 +5196,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           <div className="optimizer-balance">
             <p className="optimizer-balance-help">
               {he
-                ? 'כמה לרדוף אחרי הכנסת פרסום מול שמירה על הצופים. 0 שומר על הצפייה בלבד (כמעט בלי הפסקות), 100 ממקסם הכנסה עד גבול הרגולציה, 60 הוא איזון נוטה-להכנסה (ברירת המחדל).'
+                ? 'כמה לרדוף אחרי הכנסת פרסום מול שמירה על הצופים. 0 שומר על הצפייה בלבד (כמעט בלי ברייקים), 100 ממקסם הכנסה עד גבול הרגולציה, 60 הוא איזון נוטה-להכנסה (ברירת המחדל).'
                 : 'How hard to chase ad revenue versus protecting viewers. 0 protects retention only (almost no breaks), 100 maximizes revenue up to the regulatory guardrails, 60 is a revenue-leaning balance (the default).'}
             </p>
             <div className="optimizer-balance-slider">
@@ -5069,7 +5206,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
                 min={0}
                 max={100}
                 step={5}
-                marks={[{ value: 0 }, { value: 60, label: he ? 'דיפולט' : 'default' }, { value: 100 }]}
+                marks={[{ value: 0 }, { value: 60, label: he ? 'ברירת מחדל' : 'default' }, { value: 100 }]}
                 valueLabelDisplay="on"
                 onChange={(_event, value) => updateField('revenue_weight', Array.isArray(value) ? value[0] : value)}
               />
@@ -5126,7 +5263,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
             <div className="optimizer-recompute">
               <p>
                 {he
-                  ? 'שמור את ההגדרות, ואז חשב מחדש את הלוח השבועי כדי שהמסכים יראו את ההחלטה החדשה.'
+                  ? 'שמרו את ההגדרות, ואז חשבו מחדש את הלוח השבועי כדי שהמסכים יראו את ההחלטה החדשה.'
                   : 'Save the settings, then recompute the weekly schedule so the screens reflect the new decision.'}
               </p>
               <Button
@@ -5258,7 +5395,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           </div>
           {!hasCampaignFlights && (
             <p className="settings-pacing-note">
-              {he ? 'טרם הועלו קמפיינים, ולכן הקצב אינו פעיל.' : 'No campaign flights uploaded yet, so pacing is inactive.'}
+              {he ? 'טרם הועלו יעדי דילוור לקמפיינים, ולכן הקצב אינו פעיל.' : 'No campaign flights uploaded yet, so pacing is inactive.'}
             </p>
           )}
           <div className="settings-toggle-grid">
@@ -5312,6 +5449,7 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           notify={notify || (() => {})}
           onRecompute={onRecompute}
           recomputeState={recomputeState}
+          onGlobalRefresh={onGlobalRefresh}
         />
 
         <ActivityLogPanel locale={locale} />
@@ -5322,6 +5460,16 @@ function SettingsPanel({ settings, parameters, campaigns, copy, locale, saveStat
           <span className="settings-savebar-dot" aria-hidden="true" />
           {stickyStatus.text}
         </span>
+        <Button
+          className="secondary-button"
+          type="button"
+          variant="outlined"
+          disabled={saveState === 'saving' || !isDirty}
+          onClick={() => setDraft(settings)}
+        >
+          <X size={15} />
+          {pageText(locale, 'Discard changes', 'ביטול שינויים')}
+        </Button>
         <Button
           className="run-button"
           type="button"

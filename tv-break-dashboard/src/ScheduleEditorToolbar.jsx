@@ -66,7 +66,7 @@ function ScheduleEditorToolbar({
         <Send size={14} />
         {recomputeState === 'running'
           ? label('Recomputing...', 'מחשב מחדש...')
-          : label('Recompute weekly schedule', 'חשב מחדש את הלוח השבועי')}
+          : label('Recompute weekly schedule', 'חישוב מחדש של הלוח השבועי')}
       </Button>
       <ZoomControl pxPerMin={pxPerMin} onZoom={onZoom} onStep={onZoomStep} locale={locale} />
     </div>

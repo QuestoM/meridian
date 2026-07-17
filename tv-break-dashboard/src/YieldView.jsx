@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Gauge } from 'lucide-react';
 import {
   API_BASE,
+  daypartLabel,
   finiteNumber,
   formatCurrency,
   formatRate,
   formatSeconds,
   normalizeRows,
   pageText,
+  programTypeLabel,
 } from './surface-helpers';
 import MoneyWaterfall from './MoneyWaterfall';
 
@@ -20,7 +22,9 @@ import MoneyWaterfall from './MoneyWaterfall';
 // (revenue_net_available:true); otherwise the reason is shown and no figure is
 // fabricated.
 
-function YieldBars({ rows, locale, labelKey }) {
+// labelFor localizes the engine group key for display (daypart keys such as
+// "prime", classifier program types such as "News"); the row key stays raw.
+function YieldBars({ rows, locale, labelKey, labelFor }) {
   const maxYield = Math.max(...rows.map((row) => Number(row.yield_per_second || 0)), 1e-9);
   if (!rows.length) {
     return <div className="heatmap-empty">{pageText(locale, 'No rows available.', 'אין שורות זמינות.')}</div>;
@@ -29,9 +33,10 @@ function YieldBars({ rows, locale, labelKey }) {
     <div className="yield-bar-list chart-ltr" dir="ltr">
       {rows.map((row, index) => {
         const yps = Number(row.yield_per_second || 0);
+        const label = labelFor ? labelFor(row[labelKey]) : row[labelKey];
         return (
           <div className="yield-bar-row" key={`${row[labelKey] || index}`}>
-            <span className="yield-bar-label" title={String(row[labelKey] || '')}>{row[labelKey] || pageText(locale, 'Unknown', 'לא ידוע')}</span>
+            <span className="yield-bar-label" title={String(label || '')}>{label || pageText(locale, 'Unknown', 'לא ידוע')}</span>
             <i style={{ '--bar': yps / maxYield }} />
             <strong className="numeric" dir="ltr">{formatRate(yps, locale)}</strong>
             <small className="numeric" dir="ltr">{formatCurrency(row.revenue, locale)}</small>
@@ -118,17 +123,17 @@ export default function YieldView({ locale, refreshKey = 0 }) {
           <div className="yield-split">
             <div className="yield-split-col">
               <div className="yield-subhead">
-                <h3>{pageText(locale, 'By daypart', 'לפי חלון שידור')}</h3>
+                <h3>{pageText(locale, 'By daypart', 'לפי רצועת שידור')}</h3>
                 <span>{byDaypart.length}</span>
               </div>
-              <YieldBars rows={byDaypart} locale={locale} labelKey="group" />
+              <YieldBars rows={byDaypart} locale={locale} labelKey="group" labelFor={(value) => daypartLabel(value, locale)} />
             </div>
             <div className="yield-split-col">
               <div className="yield-subhead">
                 <h3>{pageText(locale, 'By programme', 'לפי תוכנית')}</h3>
                 <span>{byProgramme.length}</span>
               </div>
-              <YieldBars rows={byProgramme} locale={locale} labelKey="group" />
+              <YieldBars rows={byProgramme} locale={locale} labelKey="group" labelFor={(value) => programTypeLabel(value, locale)} />
             </div>
           </div>
 

@@ -8,7 +8,7 @@ import { pageText } from './advertisers-helpers';
 // Backend segment override kinds are pin | force | forbid | gold. "force" carries a
 // target break count (the lower-count lever); "gold" carries gold:true.
 export const KINDS = [
-  { key: 'pin', en: 'Pin current plan', he: 'נעילת התוכנית הנוכחית' },
+  { key: 'pin', en: 'Pin current plan', he: 'נעיצת התוכנית הנוכחית' },
   { key: 'force', en: 'Force a break count', he: 'קיבוע מספר ברייקים' },
   { key: 'forbid', en: 'Forbid breaks here', he: 'מניעת ברייקים כאן' },
   { key: 'gold', en: 'Mark as gold', he: 'סימון כזהב' },

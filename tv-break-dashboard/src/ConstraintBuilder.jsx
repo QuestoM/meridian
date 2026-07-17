@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Plus, PlusSquare, Save, Send, Trash2, X } from 'lucide-react';
 import DateField from './DateField';
+import { daypartLabel } from './surface-helpers';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
 
@@ -128,15 +129,17 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
   }
 
   if (def.type === 'daypart') {
+    // Dayparts render as a localized option list; the stored values stay the
+    // engine keys (morning, prime, ...) so the saved predicate is unchanged.
     if (operator === 'in') {
       const arr = Array.isArray(value) ? value : [];
-      return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'morning, prime, ...', 'morning, prime, ...')} options={DAYPART_VOCAB} locale={locale} />;
+      return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'Pick dayparts', 'בחרו רצועות שידור')} options={DAYPART_VOCAB} labelFor={(v) => daypartLabel(v, locale)} locale={locale} />;
     }
     return (
       <FormControl size="small" sx={{ minWidth: 140 }}>
         <Select value={value || ''} displayEmpty onChange={(e) => onChange(e.target.value)}>
-          <MenuItem value="">{t(locale, 'Select', 'בחר')}</MenuItem>
-          {DAYPART_VOCAB.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+          <MenuItem value="">{t(locale, 'Select', 'בחרו')}</MenuItem>
+          {DAYPART_VOCAB.map((v) => <MenuItem key={v} value={v}>{daypartLabel(v, locale)}</MenuItem>)}
         </Select>
       </FormControl>
     );
@@ -150,7 +153,7 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
     return (
       <FormControl size="small" sx={{ minWidth: 140 }}>
         <Select value={value || ''} displayEmpty onChange={(e) => onChange(e.target.value)}>
-          <MenuItem value="">{t(locale, 'Select', 'בחר')}</MenuItem>
+          <MenuItem value="">{t(locale, 'Select', 'בחרו')}</MenuItem>
           {WEEKDAY_VOCAB.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
         </Select>
       </FormControl>
@@ -161,7 +164,7 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
   if (operator === 'in') {
     const arr = Array.isArray(value) ? value : [];
     const optionList = hints[fieldName] || [];
-    return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'Type or pick...', 'הקלד או בחר...')} options={optionList} locale={locale} />;
+    return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'Type or pick...', 'הקלידו או בחרו...')} options={optionList} locale={locale} />;
   }
 
   return (
@@ -170,9 +173,12 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
 }
 
 // ---- Chip input for "in" operators ------------------------------------------
-function ChipInput({ value, onChange, placeholder, options, locale }) {
+// labelFor (optional) localizes how a stored value is DISPLAYED on chips and
+// option buttons; the stored values themselves stay the raw engine keys.
+function ChipInput({ value, onChange, placeholder, options, locale, labelFor }) {
   const [text, setText] = useState('');
   const chips = Array.isArray(value) ? value : [];
+  const display = (chip) => (labelFor ? labelFor(chip) : chip);
 
   function addChip(chip) {
     const trimmed = chip.trim();
@@ -200,8 +206,8 @@ function ChipInput({ value, onChange, placeholder, options, locale }) {
       <div className="cb-chip-list">
         {chips.map((chip) => (
           <span key={chip} className="cb-chip">
-            {chip}
-            <button type="button" className="cb-chip-remove" onClick={() => removeChip(chip)} aria-label={t(locale, `Remove ${chip}`, `הסר ${chip}`)}>
+            {display(chip)}
+            <button type="button" className="cb-chip-remove" onClick={() => removeChip(chip)} aria-label={t(locale, `Remove ${display(chip)}`, `הסרת ${display(chip)}`)}>
               <X size={10} />
             </button>
           </span>
@@ -218,9 +224,9 @@ function ChipInput({ value, onChange, placeholder, options, locale }) {
       </div>
       {options.length > 0 && (
         <div className="cb-chip-options">
-          {options.filter((o) => !chips.includes(o) && (text === '' || o.toLowerCase().includes(text.toLowerCase()))).slice(0, 8).map((o) => (
+          {options.filter((o) => !chips.includes(o) && (text === '' || o.toLowerCase().includes(text.toLowerCase()) || String(display(o)).toLowerCase().includes(text.toLowerCase()))).slice(0, 8).map((o) => (
             <button key={o} type="button" className="cb-chip-option" onClick={() => addChip(o)}>
-              {o}
+              {display(o)}
             </button>
           ))}
         </div>
@@ -434,7 +440,10 @@ function buildBody(draft, where) {
 }
 
 // ---- Main ConstraintBuilder export -----------------------------------------
-function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
+// onGlobalRefresh (optional) is called after a successful save or delete so the
+// page-level freshness banner re-reads its verdict; both mutate a fingerprinted
+// schedule input.
+function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlobalRefresh }) {
   const he = locale === 'he';
   const [hints, setHints] = useState({ programme: [], genre: [], channels: [], available_channels: [] });
   const [optionsLoaded, setOptionsLoaded] = useState(false);
@@ -518,6 +527,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
       const savedId = saved.constraint_id ?? saved.id;
       setItems((current) => [...current, { ...body, id: savedId || `constraint-${current.length + 1}` }]);
       notify('Constraint saved.', 'האילוץ נשמר.');
+      onGlobalRefresh?.();
     } catch (err) {
       notify(`Saving the constraint failed (${err.message}).`, `שמירת האילוץ נכשלה (${err.message}).`);
     } finally {
@@ -536,6 +546,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       setItems((current) => current.filter((item) => !matchesId(item)));
       notify('Constraint removed.', 'האילוץ הוסר.');
+      onGlobalRefresh?.();
     } catch (err) {
       notify(`Removing the constraint failed (${err.message}).`, `הסרת האילוץ נכשלה (${err.message}).`);
     }
@@ -548,7 +559,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
       <div className="settings-panel-head">
         <div>
           <h2>{t(locale, 'Constraint builder', 'בונה אילוצים')}</h2>
-          <p>{t(locale, 'Filter conditions (where), then choose what effect to apply', 'הגדר תנאי סינון (where) ולאחר מכן בחר אפקט להחלה')}</p>
+          <p>{t(locale, 'Filter conditions (where), then choose what effect to apply', 'הגדירו תנאי סינון (where) ולאחר מכן בחרו אפקט להחלה')}</p>
         </div>
       </div>
 
@@ -637,11 +648,11 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState }) {
       <div className="constraint-builder-actions">
         <Button type="button" variant="contained" className="run-button" disabled={saving || !available} onClick={saveConstraint}>
           <Save size={14} />
-          {t(locale, 'Save constraint', 'שמור אילוץ')}
+          {t(locale, 'Save constraint', 'שמירת אילוץ')}
         </Button>
         <Button type="button" variant="outlined" className="run-button" disabled={recomputeState === 'running'} onClick={() => onRecompute && onRecompute()}>
           <Send size={14} />
-          {t(locale, 'Recompute weekly schedule', 'חשב מחדש את הלוח השבועי')}
+          {t(locale, 'Recompute weekly schedule', 'חישוב מחדש של הלוח השבועי')}
         </Button>
       </div>
 

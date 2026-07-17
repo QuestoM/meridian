@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import ConstraintBuilder from './ConstraintBuilder';
 import ScheduleEditorRow from './ScheduleEditorRow';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
@@ -164,6 +165,16 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
     }));
   }
 
+  // Discard one dragged row: dropping edits[item.id] snaps the break back to
+  // its saved position immediately. Nothing was persisted, so nothing else moves.
+  function discardEdit(item) {
+    setEdits((current) => {
+      const next = { ...current };
+      delete next[item.id];
+      return next;
+    });
+  }
+
   function handleMovePointerDown(event, laneKey, item) {
     event.preventDefault();
     event.stopPropagation();
@@ -288,6 +299,9 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         `Break pinned at ${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'en')} into ${item.program_title}.`,
         `הברייק נעוץ ב-${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'he')} בתוך ${item.program_title}.`,
       );
+      // A saved pin is a fingerprinted constraint change, so the freshness
+      // banner and overview must re-read their verdict.
+      onGlobalRefresh?.();
     } catch (error) {
       if (error.message === 'not-found') {
         notify(
@@ -315,7 +329,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
           {editorPageText(
             locale,
             'Recompute the weekly schedule or upload a plan to populate the editor with draggable breaks.',
-            'חשב מחדש את הלוח השבועי או העלה תוכנית כדי לאכלס את העורך בברייקים הניתנים לגרירה.',
+            'חשבו מחדש את הלוח השבועי או העלו תוכנית כדי לאכלס את העורך בברייקים הניתנים לגרירה.',
           )}
         </p>
       </div>
@@ -392,7 +406,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
 
       <div className="schedule-editor-readout" dir={he ? 'rtl' : 'ltr'}>
         {Object.keys(edits).length === 0 ? (
-          <p>{editorPageText(locale, 'Drag a break to set its offset, then save it as a pin.', 'גרור ברייק כדי לקבוע את ההיסט שלו, ואז שמור אותו כנעיצה.')}</p>
+          <p>{editorPageText(locale, 'Drag a break to set its offset, then save it as a pin.', 'גררו ברייק כדי לקבוע את ההיסט שלו, ואז שמרו אותו כנעיצה.')}</p>
         ) : (
           <ul className="schedule-editor-edit-list">
             {lanes.flatMap((lane) => lane.items.filter((item) => edits[item.id]).map((item) => {
@@ -400,17 +414,30 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
               const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
               const pinned = Boolean(constraintIdFor(item));
               return (
-                <ScheduleEditorRow
-                  key={item.id}
-                  item={item}
-                  startSec={startSec}
-                  durationSec={durationSec}
-                  offsetSeconds={offsetSeconds}
-                  pinned={pinned}
-                  saving={savingPin === item.id}
-                  locale={locale}
-                  onSave={() => savePin(item, scopeChoice)}
-                />
+                <React.Fragment key={item.id}>
+                  <ScheduleEditorRow
+                    item={item}
+                    startSec={startSec}
+                    durationSec={durationSec}
+                    offsetSeconds={offsetSeconds}
+                    pinned={pinned}
+                    saving={savingPin === item.id}
+                    locale={locale}
+                    onSave={() => savePin(item, scopeChoice)}
+                  />
+                  <li className="schedule-editor-discard-row" style={{ listStyle: 'none', display: 'flex', justifyContent: 'flex-end', margin: '2px 0 10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => discardEdit(item)}
+                      disabled={savingPin === item.id}
+                      aria-label={editorPageText(locale, `Discard the unsaved change to ${item.program_title}`, `ביטול השינוי שלא נשמר בתוכנית ${item.program_title}`)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, fontSize: 12, padding: '2px 4px' }}
+                    >
+                      <X size={12} aria-hidden="true" />
+                      {editorPageText(locale, 'Discard change', 'ביטול השינוי')}
+                    </button>
+                  </li>
+                </React.Fragment>
               );
             }))}
           </ul>

@@ -70,6 +70,9 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
   });
   const [breakdown, setBreakdown] = useState(null);
   const [testerError, setTesterError] = useState(null);
+  // Inline confirm step for the destructive reset: the first click only arms
+  // it, the explicit confirm click performs it.
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,8 +107,13 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
         throw new Error(detail.detail || `${response.status} ${response.statusText}`);
       }
       setState(await response.json());
-      notify('Rate card saved. It is live in the next optimizer run and forecast.',
-        'כרטיס התעריפים נשמר. הוא פעיל בריצת האופטימייזר והתחזית הבאות.');
+      if (reset) {
+        notify('Rate card reset to its defaults. It can be restored from the Restore changes page.',
+          'כרטיס התעריפים אופס לברירת המחדל. ניתן לשחזר מעמוד שחזור שינויים.');
+      } else {
+        notify('Rate card saved. It is live in the next optimizer run and forecast.',
+          'כרטיס התעריפים נשמר. הוא פעיל בריצת האופטימייזר והתחזית הבאות.');
+      }
       onGlobalRefresh?.();
       return true;
     } catch (error) {
@@ -138,6 +146,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
   }
 
   function resetCard() {
+    setConfirmReset(false);
     applyOverride({}, true);
   }
 
@@ -231,11 +240,22 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
             <RefreshCcw size={14} />
             {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
           </Button>
-          {state.has_overrides && (
-            <Button className="secondary-button compact" type="button" variant="outlined" onClick={resetCard}>
+          {state.has_overrides && !confirmReset && (
+            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmReset(true)}>
               <RotateCcw size={14} />
               {pageText(locale, 'Reset to rate card', 'איפוס לתעריף')}
             </Button>
+          )}
+          {state.has_overrides && confirmReset && (
+            <span role="alertdialog" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12 }}>{pageText(locale, 'Reset deletes every operator edit on the rate card.', 'האיפוס ימחק את כל עריכות המפעיל בכרטיס התעריפים.')}</span>
+              <Button className="secondary-button compact" type="button" variant="outlined" onClick={resetCard}>
+                {pageText(locale, 'Confirm reset', 'אישור איפוס')}
+              </Button>
+              <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmReset(false)}>
+                {pageText(locale, 'Cancel', 'ביטול')}
+              </Button>
+            </span>
           )}
         </div>
       </div>

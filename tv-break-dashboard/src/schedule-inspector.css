@@ -10,7 +10,7 @@
   background: var(--surface);
   border-inline-start: 1px solid var(--line);
   box-shadow: var(--shadow);
-  z-index: 1300;
+  z-index: var(--z-drawer);
   display: flex;
   flex-direction: column;
   overflow: hidden;

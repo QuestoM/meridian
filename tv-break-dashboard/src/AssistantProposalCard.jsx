@@ -189,7 +189,7 @@ function EffectView({ effect, locale }) {
       ))}
       {breaks.shown ? (
         <div className="asst-effect-row" key="breaks">
-          <span className="asst-effect-label" dir="auto">{pageText(locale, 'Breaks', 'הפסקות')}</span>
+          <span className="asst-effect-label" dir="auto">{pageText(locale, 'Breaks', 'ברייקים')}</span>
           <span className="asst-effect-flow" dir="ltr">{breaks.flow || '-'}</span>
           <span className="asst-effect-delta" dir="ltr">{breaks.delta}</span>
         </div>

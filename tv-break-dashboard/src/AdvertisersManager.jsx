@@ -42,6 +42,13 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
   const [showAdd, setShowAdd] = useState(false);
   const [scopeOptions, setScopeOptions] = useState({});
   const [openId, setOpenId] = useState(null);
+  // Two-step delete interlock: the first confirmed click arms the id and warns
+  // that the advertiser's scoped rules die with it; only the second click deletes.
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+  useEffect(() => {
+    setPendingDeleteId(null);
+  }, [openId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,12 +178,29 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
   }
 
   async function handleDelete(advertiserId) {
+    // Inline confirm step: deleting an advertiser also deletes its scoped
+    // rules, so the first request only arms the delete and says exactly what
+    // will go. The next confirm click on the same advertiser performs it.
+    if (pendingDeleteId !== advertiserId) {
+      setPendingDeleteId(advertiserId);
+      const row = merged.find((entry) => entry.advertiser_id === advertiserId) || null;
+      const ruleCount = Array.isArray(row?.conditions) ? row.conditions.length : 0;
+      if (ruleCount > 0) {
+        const rulesEn = ruleCount === 1 ? 'its one scoped rule' : `its ${ruleCount} scoped rules`;
+        const rulesHe = ruleCount === 1 ? 'הכלל הממוקד שלו' : `${ruleCount} הכללים הממוקדים שלו`;
+        notify(`Deleting ${advertiserId} also deletes ${rulesEn}. Select confirm delete again to proceed.`, `מחיקת ${advertiserId} תמחק גם את ${rulesHe}. לחצו שוב על אישור המחיקה כדי להמשיך.`);
+      } else {
+        notify(`Select confirm delete again to delete ${advertiserId}.`, `לחצו שוב על אישור המחיקה כדי למחוק את ${advertiserId}.`);
+      }
+      return;
+    }
+    setPendingDeleteId(null);
     try {
       const response = await fetch(`${API_BASE}/api/advertisers/${encodeURIComponent(advertiserId)}`, { method: 'DELETE' });
       if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
       }
-      notify(`Advertiser ${advertiserId} deleted.`, `המפרסם ${advertiserId} נמחק.`);
+      notify(`Advertiser ${advertiserId} deleted. It can be restored from the Restore changes page.`, `המפרסם ${advertiserId} נמחק. ניתן לשחזר מעמוד שחזור שינויים.`);
       setOpenId(null);
       await loadAdvertisers();
       onGlobalRefresh?.();

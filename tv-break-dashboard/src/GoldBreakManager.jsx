@@ -7,6 +7,7 @@ import {
   formatSeconds,
   normalizeRows,
   pageText,
+  programTypeLabel,
 } from './surface-helpers';
 
 // GoldBreakManager: which breaks in the current plan are gold, and how many per
@@ -18,8 +19,8 @@ import {
 // state rather than a fabricated list.
 
 function programTypeText(value, locale) {
-  const text = String(value || '').trim();
-  return text || pageText(locale, 'Mixed', 'מעורב');
+  const label = programTypeLabel(value, locale);
+  return label || pageText(locale, 'Mixed', 'מעורב');
 }
 
 export default function GoldBreakManager({ locale, refreshKey = 0 }) {
@@ -55,22 +56,22 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
       return <div className="frontier-skeleton" aria-hidden="true" />;
     }
     if (status === 'error') {
-      return <div className="heatmap-empty">{pageText(locale, 'Gold-break data is unavailable right now.', 'נתוני ברייקים זהובים אינם זמינים כרגע.')}</div>;
+      return <div className="heatmap-empty">{pageText(locale, 'Gold-break data is unavailable right now.', 'נתוני ברייקי זהב אינם זמינים כרגע.')}</div>;
     }
     if (payload?.available === false) {
-      return <div className="heatmap-empty">{payload?.reason || pageText(locale, 'Gold-break data is unavailable.', 'נתוני ברייקים זהובים אינם זמינים.')}</div>;
+      return <div className="heatmap-empty">{payload?.reason || pageText(locale, 'Gold-break data is unavailable.', 'נתוני ברייקי זהב אינם זמינים.')}</div>;
     }
     if (payload?.enabled === false) {
       return (
         <div className="heatmap-empty">
-          {pageText(locale, 'Gold breaks are turned off in settings. Enable them to flag premium placements.', 'ברייקים זהובים כבויים בהגדרות. הפעילו אותם כדי לסמן מיקומים פרימיום.')}
+          {pageText(locale, 'Gold breaks are turned off in settings. Enable them to flag premium placements.', 'ברייקי זהב כבויים בהגדרות. הפעילו אותם כדי לסמן מיקומים פרימיום.')}
         </div>
       );
     }
     if (!breaks.length) {
       return (
         <div className="heatmap-empty">
-          {payload?.reason || pageText(locale, 'No gold breaks in the current plan yet.', 'אין ברייקים זהובים בתוכנית הנוכחית עדיין.')}
+          {payload?.reason || pageText(locale, 'No gold breaks in the current plan yet.', 'אין ברייקי זהב בתוכנית הנוכחית עדיין.')}
         </div>
       );
     }
@@ -78,7 +79,7 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
       <>
         <div className="gold-summary" dir={he ? 'rtl' : 'ltr'}>
           <div className="gold-summary-card">
-            <span>{pageText(locale, 'Gold breaks', 'ברייקים זהובים')}</span>
+            <span>{pageText(locale, 'Gold breaks', 'ברייקי זהב')}</span>
             <strong className="numeric" dir="ltr">{formatNumber(payload?.count ?? breaks.length, locale)}</strong>
           </div>
           <div className="gold-summary-card">
@@ -147,7 +148,7 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
   return (
     <section className="page-panel gold-break-manager">
       <div className="panel-head">
-        <h2><Sparkles size={15} /> {pageText(locale, 'Gold breaks', 'ברייקים זהובים')}</h2>
+        <h2><Sparkles size={15} /> {pageText(locale, 'Gold breaks', 'ברייקי זהב')}</h2>
         <span>{pageText(locale, 'Premium placements in the saved plan', 'מיקומי פרימיום בתוכנית השמורה')}</span>
       </div>
       {body()}

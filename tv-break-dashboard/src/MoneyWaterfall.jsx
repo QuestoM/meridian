@@ -19,7 +19,7 @@ function estimateExplainer(locale) {
   return pageText(
     locale,
     'The value of the audience worn away by the breaks, priced at the actual advertising rate. A model estimate, not an invoice.',
-    'שווי הקהל שנשחק בעקבות ההפסקות, מתומחר לפי מחיר הפרסום בפועל. אומדן מהמודל, לא חשבונית.',
+    'שווי הקהל שנשחק בעקבות הברייקים, מתומחר לפי מחיר הפרסום בפועל. אומדן מהמודל, לא חשבונית.',
   );
 }
 

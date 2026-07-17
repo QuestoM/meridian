@@ -73,6 +73,11 @@
   background: var(--surface);
   flex: 1 1 220px;
 }
+.amz-search:focus-within {
+  border-color: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
 .amz-search svg {
   color: var(--subtle);
   flex-shrink: 0;
@@ -133,7 +138,7 @@
   outline: none;
 }
 .amz-card.has-conflict {
-  background: #fbe9e9;
+  background: var(--red-soft);
 }
 .amz-card-head {
   display: flex;
@@ -193,7 +198,7 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--red);
-  background: #fbe9e9;
+  background: var(--red-soft);
   border-radius: var(--radius-sm);
   padding: 2px 7px;
   margin-inline-start: auto;
@@ -225,23 +230,23 @@
   font-style: italic;
 }
 .amz-effect-chip.teal {
-  color: var(--teal);
+  color: var(--teal-ink);
   background: var(--teal-soft);
   border-color: var(--teal-soft);
 }
 .amz-effect-chip.amber {
-  color: var(--amber);
+  color: var(--amber-ink);
   background: var(--amber-soft);
   border-color: var(--amber-soft);
 }
 .amz-effect-chip.red {
   color: var(--red);
-  background: #fbe9e9;
+  background: var(--red-soft);
   border-color: #f0c9c9;
 }
 .amz-effect-chip.blue {
   color: var(--blue);
-  background: #e9f0f8;
+  background: var(--blue-soft);
   border-color: #c6d6e8;
 }
 .amz-effect-chip.muted {
@@ -282,7 +287,7 @@
   cursor: help;
 }
 .amz-stat-info:focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--focus-ring);
   border-radius: var(--radius-xs);
 }
 .amz-stat-figure {

@@ -6,7 +6,6 @@
 // (genres, programmes, dayparts) come from the options endpoint at runtime.
 export const POSITION_PRESETS = ['ANY', 'first', 'middle', 'last', 'gold'];
 export const GENRE_PRESETS = ['ANY'];
-export const DAYPART_PRESETS = ['ANY', 'morning', 'noon', 'evening', 'prime', 'night'];
 
 export const CONDITION_EFFECTS = ['premium', 'require', 'forbid', 'pressure'];
 
@@ -87,25 +86,9 @@ export function toggleToken(tokens, token) {
   return [...withoutAny, token];
 }
 
-// Build the full ordered chip list for a field: presets first (ANY first),
-// then any unknown tokens stored on the row so engine data is never dropped.
-export function chipOptions(presets, selectedTokens) {
-  const options = [...presets];
-  (selectedTokens || []).forEach((token) => {
-    if (token.toUpperCase() !== 'ANY' && !options.includes(token)) {
-      options.push(token);
-    }
-  });
-  return options;
-}
-
 export function isAnySelected(tokens) {
   const parsed = parseTokens(serializeTokens(tokens));
   return parsed.length === 1 && parsed[0].toUpperCase() === 'ANY';
-}
-
-export function isRestricted(value) {
-  return serializeTokens(parseTokens(value)) !== 'ANY';
 }
 
 // Live multiplier hint. Returns { text, tone } where tone is teal | amber | muted.
@@ -193,52 +176,6 @@ export function toPayload(draft) {
     ...pacingField(draft, 'urgency_k'),
     ...pacingField(draft, 'ahead_k'),
     notes: draft.notes ?? '',
-  };
-}
-
-// Apply search + active filter to the advertiser list.
-export function filterAdvertisers(advertisers, { search, filter }) {
-  const term = (search || '').trim().toLowerCase();
-  return (advertisers || []).filter((row) => {
-    if (term) {
-      const haystack = `${row.advertiser_id || ''} ${row.notes || ''}`.toLowerCase();
-      if (!haystack.includes(term)) {
-        return false;
-      }
-    }
-    if (filter === 'premium') {
-      return Number(row.default_premium ?? 1) !== 1;
-    }
-    if (filter === 'prime') {
-      return Boolean(row.prime_time_only);
-    }
-    if (filter === 'restricted') {
-      return isRestricted(row.allow_positions) || isRestricted(row.allow_genres);
-    }
-    return true;
-  });
-}
-
-export function sortAdvertisers(advertisers, sortKey) {
-  const rows = [...(advertisers || [])];
-  if (sortKey === 'premium-desc') {
-    return rows.sort((a, b) => Number(b.default_premium ?? 1) - Number(a.default_premium ?? 1));
-  }
-  if (sortKey === 'premium-asc') {
-    return rows.sort((a, b) => Number(a.default_premium ?? 1) - Number(b.default_premium ?? 1));
-  }
-  return rows.sort((a, b) => String(a.advertiser_id || '').localeCompare(String(b.advertiser_id || '')));
-}
-
-export function computeSummary(advertisers) {
-  const rows = advertisers || [];
-  return {
-    total: rows.length,
-    custom: rows.filter((row) => Number(row.default_premium ?? 1) !== 1).length,
-    prime: rows.filter((row) => Boolean(row.prime_time_only)).length,
-    restricted: rows.filter(
-      (row) => isRestricted(row.allow_positions) || isRestricted(row.allow_genres),
-    ).length,
   };
 }
 
@@ -393,21 +330,6 @@ export function pressureHint(value, locale) {
     text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `${sign}${Math.abs(amount)}% שיבוץ בלבד`),
     tone: 'muted',
   };
-}
-
-// Collect every daypart token already present across an advertiser's conditions,
-// so the chip selector can offer real tokens (ANY + observed) without inventing
-// a fixed taxonomy. Unknown tokens are preserved and de-duplicated, ANY excluded.
-export function collectDaypartTokens(conditions) {
-  const seen = [];
-  normalizeConditions(conditions).forEach((condition) => {
-    parseTokens(condition && condition.scope_dayparts).forEach((token) => {
-      if (token.toUpperCase() !== 'ANY' && !seen.includes(token)) {
-        seen.push(token);
-      }
-    });
-  });
-  return seen;
 }
 
 // Map an overlap finding kind to a severity tone used for styling and ordering.

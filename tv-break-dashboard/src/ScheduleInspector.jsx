@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Download, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
+import { programTypeLabel } from './surface-helpers';
 import { KINDS, kindLabel, runDayRecomputeJob, isNum } from './override-console-lib';
 import './schedule-inspector.css';
 
@@ -204,7 +205,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       <div className="si-head">
         <div>
           <span className="si-kicker">{pageText(locale, 'Programme inspector', 'מפקח תוכנית')}</span>
-          <h3>{id.program_type || pageText(locale, 'Programme', 'תוכנית')}</h3>
+          <h3>{programTypeLabel(id.program_type, locale) || pageText(locale, 'Programme', 'תוכנית')}</h3>
         </div>
         <button type="button" className="si-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
           <X size={18} />
@@ -221,7 +222,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
             <Row label={pageText(locale, 'Channel', 'ערוץ')} value={id.channel || '-'} />
             <Row label={pageText(locale, 'Date', 'תאריך')} value={`${id.date || '-'} ${id.day ? `(${id.day})` : ''}`} />
             <Row label={pageText(locale, 'Start', 'התחלה')} value={id.start_clock || '-'} />
-            <Row label={pageText(locale, 'Class', 'מחלקה')} value={id.program_type || '-'} />
+            <Row label={pageText(locale, 'Class', 'מחלקה')} value={programTypeLabel(id.program_type, locale) || '-'} />
           </section>
 
           <section className="si-section">
@@ -234,7 +235,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
 
           <section className="si-section">
             <h4>{pageText(locale, 'Economics', 'כלכלה')}</h4>
-            <Row label={pageText(locale, 'Predicted revenue', 'הכנסה חזויה')} value={fmtMoney(eco.predicted_revenue, locale)} />
+            <Row label={pageText(locale, 'Predicted revenue', 'הכנסה צפויה')} value={fmtMoney(eco.predicted_revenue, locale)} />
             <Row label={pageText(locale, 'Base rate', 'תעריף בסיס')} value={fmtNum2(eco.base_rate, locale)} />
             <Row label={pageText(locale, 'Baseline audience (TVR)', 'קהל בסיס (TVR)')} value={fmtNum2(eco.baseline_tvr, locale)} />
           </section>

@@ -196,7 +196,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
             <DeltaRow label={pageText(locale, 'Breaks', 'ברייקים')} value={payload.delta?.breaks} locale={locale} formatter={formatNumber} />
             <DeltaRow label={pageText(locale, 'Ad seconds', 'שניות פרסום')} value={payload.delta?.ad_seconds} locale={locale} formatter={formatNumber} />
             <div className="scenario-delta-row muted">
-              <span>{pageText(locale, 'Revenue net of retention', 'הכנסה בניכוי שימור')}</span>
+              <span>{pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור')}</span>
               <strong>{pageText(locale, 'Not exposed', 'לא נחשף')}</strong>
             </div>
           </div>
@@ -204,8 +204,8 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
           <p className="scenario-note">
             {pageText(
               locale,
-              'Objective is the optimizer convex-blend score, not literal revenue minus retention cost. The API does not expose a revenue-net figure.',
-              'האובייקטיב הוא ציון המשוקלל של האופטימייזר, לא הכנסה פחות עלות שימור ממש. ה-API אינו חושף ערך של הכנסה בניכוי שימור.',
+              'Objective is the optimizer convex-blend score, not literal revenue minus retention cost. The API does not expose a net after retention cost figure.',
+              'האובייקטיב הוא ציון המשוקלל של האופטימייזר, לא הכנסה פחות עלות שימור ממש. ה-API אינו חושף ערך נטו אחרי עלות שימור.',
             )}
           </p>
         </>

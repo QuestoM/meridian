@@ -14,7 +14,10 @@
 // Frozen input contract (overview.schedule_freshness):
 //   { status: "fresh" | "stale" | "unknown",
 //     computed_at: "<ISO-8601 UTC>" | null,
-//     changed: ["settings","constraints","overrides","coefficients","data"] }
+//     changed: [<operator-facing group label>, ...] }
+// where the labels come from the backend's GROUP_LABELS: settings, constraints,
+// overrides, coefficients, data, the impact model, inventory data, advertiser
+// rules, campaign flights, program classifications. Unknown labels still render.
 
 function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeState }) {
   if (!freshness || typeof freshness !== 'object') return null;
@@ -25,24 +28,36 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
 
   const t = (en, he) => (locale === 'he' ? he : en);
 
-  // Friendly bilingual labels for each changed input group.
+  // Friendly bilingual labels for each changed input group. The backend sends
+  // the operator-facing GROUP_LABELS strings (for example "the impact model");
+  // the raw internal keys are also accepted defensively. A group neither map
+  // knows passes through verbatim below rather than being dropped.
   const changedLabels = {
     settings: t('settings', 'הגדרות'),
     constraints: t('constraints', 'אילוצים'),
     overrides: t('manual overrides', 'עקיפות ידניות'),
     coefficients: t('model coefficients', 'מקדמי המודל'),
     data: t('source data', 'נתוני מקור'),
+    impact_model: t('the impact model', 'מודל ההשפעה'),
+    inventory: t('inventory data', 'נתוני המלאי'),
+    advertiser: t('advertiser rules', 'כללי המפרסמים'),
+    campaigns: t('campaign flights', 'נתוני הקמפיינים'),
+    classifications: t('program classifications', 'סיווגי התוכניות'),
+    'the impact model': t('the impact model', 'מודל ההשפעה'),
+    'inventory data': t('inventory data', 'נתוני המלאי'),
+    'advertiser rules': t('advertiser rules', 'כללי המפרסמים'),
+    'campaign flights': t('campaign flights', 'נתוני הקמפיינים'),
+    'program classifications': t('program classifications', 'סיווגי התוכניות'),
   };
 
   const changed = Array.isArray(freshness.changed) ? freshness.changed : [];
   const friendly = changed
-    .map((key) => changedLabels[key])
+    .map((key) => changedLabels[key] || String(key ?? '').trim())
     .filter((label) => typeof label === 'string' && label.length > 0);
 
   // Join the changed groups naturally. Empty should not happen for a stale
-  // verdict, but fall back to a generic phrase if it does.
-  const changedPhrase =
-    friendly.length > 0 ? joinList(friendly, locale) : t('inputs changed', 'הקלט השתנה');
+  // verdict; the sentence below falls back to a generic subject when it is.
+  const changedPhrase = friendly.length > 0 ? joinList(friendly, locale) : '';
 
   // Format the computation time in the browser locale, guarded against a null or
   // invalid date so the "on <date>" clause is simply omitted when unavailable.
@@ -50,21 +65,25 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
 
   const heading = t('Saved schedule is out of date', 'לוח השידור השמור אינו מעודכן');
 
+  // The subject frame avoids a double verb when the changed list is empty and
+  // sidesteps Hebrew number agreement for single-group lists.
   let detail;
   if (locale === 'he') {
+    const subject = changedPhrase ? `חל שינוי ב${changedPhrase}` : 'חל שינוי בקלט הלוח';
     detail = computedLabel
-      ? `${changedPhrase} השתנו מאז שהלוח חושב ב${computedLabel}. הרץ חישוב מחדש כדי לרענן את הלוח, הדוחות ותכנית ההפסקות.`
-      : `${changedPhrase} השתנו מאז שהלוח חושב. הרץ חישוב מחדש כדי לרענן את הלוח, הדוחות ותכנית ההפסקות.`;
+      ? `${subject} מאז שהלוח חושב ב${computedLabel}. הריצו חישוב מחדש כדי לרענן את הלוח, הדוחות ותוכנית הברייקים.`
+      : `${subject} מאז שהלוח חושב. הריצו חישוב מחדש כדי לרענן את הלוח, הדוחות ותוכנית הברייקים.`;
   } else {
+    const subject = changedPhrase || 'schedule inputs';
     detail = computedLabel
-      ? `${changedPhrase} changed since this schedule was computed on ${computedLabel}. Recompute to refresh the schedule, reports, and break plan.`
-      : `${changedPhrase} changed since this schedule was computed. Recompute to refresh the schedule, reports, and break plan.`;
+      ? `${subject} changed since this schedule was computed on ${computedLabel}. Recompute to refresh the schedule, reports, and break plan.`
+      : `${subject} changed since this schedule was computed. Recompute to refresh the schedule, reports, and break plan.`;
   }
 
   const recomputing = recomputeState === 'running';
   const buttonLabel = recomputing
     ? t('Recomputing', 'מחשב מחדש')
-    : t('Recompute now', 'הרץ חישוב מחדש');
+    : t('Recompute now', 'הריצו חישוב מחדש');
 
   return (
     <section

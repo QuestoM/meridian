@@ -22,7 +22,7 @@ const HISTORY_CAP = 20;
 const SUGGESTIONS = [
   ['What is the weekly net and why', 'מה הנטו השבועי ולמה'],
   ['Suggest a way to raise the net without hurting retention', 'הצע דרך להעלות את הנטו בלי לפגוע בשימור'],
-  ['Create a constraint that blocks a break in the first 15 minutes of the evening news', 'צור אילוץ שאין הפסקה ב-15 הדקות הראשונות של מהדורת הערב'],
+  ['Create a constraint that blocks a break in the first 15 minutes of the evening news', 'צור אילוץ שאין ברייק ב-15 הדקות הראשונות של מהדורת הערב'],
   ['Raise the revenue weight to 65 and recompute', 'העלה את משקל ההכנסות ל-65 והרץ חישוב מחדש'],
   ['Get me to a higher net without dropping retention below 0.75', 'הבא אותי לנטו גבוה יותר בלי לרדת מתחת ל-0.75 שימור'],
   ['Suggest settings that raise the weekly net, and show me the effect before I approve', 'הצע הגדרות שמגדילות את הנטו השבועי, ותראה לי את ההשפעה לפני שאאשר'],
@@ -56,7 +56,6 @@ function normalizeBatch(raw) {
 }
 
 export default function AssistantPanel({ locale, notify }) {
-  const he = locale === 'he';
   const [status, setStatus] = useState(null);
   const [statusState, setStatusState] = useState('loading');
   const [question, setQuestion] = useState('');
@@ -421,7 +420,7 @@ export default function AssistantPanel({ locale, notify }) {
               onKeyDown={onComposerKeyDown}
               rows={2}
               maxLength={2000}
-              dir={he ? 'rtl' : 'ltr'}
+              dir="auto"
               placeholder={unavailable ? pageText(locale, 'The assistant is not available right now', 'העוזר אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
               disabled={asking || unavailable}
               aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}

@@ -18,6 +18,19 @@ function pct(value, locale) {
   return formatPercent(number, locale);
 }
 
+// Localized "as of" date. The endpoint sends an ISO date; the operator reads it
+// in the page locale, never as a raw ISO string. An unparseable value falls
+// back to the raw text rather than being dropped or invented.
+function asOfLabel(value, locale) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const parsed = new Date(text);
+  const formatted = Number.isNaN(parsed.getTime())
+    ? text
+    : parsed.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  return locale === 'he' ? `נכון ל־${formatted}` : `As of ${formatted}`;
+}
+
 export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
   const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
@@ -118,7 +131,7 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
         <h2>{pageText(locale, 'Make-good alerts', 'התראות פיצוי')}</h2>
         <span>
           {dataAvailable && asOf
-            ? `${pageText(locale, 'As of', 'נכון ל')} ${asOf}`
+            ? asOfLabel(asOf, locale)
             : pageText(locale, 'Under-delivery risk', 'סיכון תת-אספקה')}
         </span>
       </div>

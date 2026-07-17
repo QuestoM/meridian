@@ -15,13 +15,14 @@ import { fetchMe } from './Login';
 // the timeline and diffs with the mutation affordances hidden. Every surface has
 // honest loading, error and empty states, and nothing is fabricated on the client.
 
-const FILE_ORDER = ['settings', 'constraints', 'overrides', 'advertisers'];
+const FILE_ORDER = ['settings', 'constraints', 'overrides', 'advertisers', 'conditions'];
 
 const FILE_LABELS = {
   settings: ['Settings', 'הגדרות'],
   constraints: ['Constraints', 'אילוצים'],
   overrides: ['Overrides', 'עקיפות'],
   advertisers: ['Advertisers', 'מפרסמים'],
+  conditions: ['Advertiser conditions', 'תנאי מפרסמים'],
 };
 
 const SOURCE_LABELS = {
@@ -364,13 +365,13 @@ export default function AssistantVersions({ locale, notify, reloadKey, onChanged
           {snapOpen ? (
             <div className="asst-ver-snap-form">
               <input value={snapLabel} onChange={(event) => setSnapLabel(event.target.value)} dir="auto" maxLength={120} placeholder={pageText(locale, 'Name this restore point', 'שם לנקודת שחזור')} aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')} disabled={snapBusy} />
-              <Button variant="contained" size="small" disabled={snapBusy} onClick={createSnapshot}>{snapBusy ? pageText(locale, 'Saving', 'שומר') : pageText(locale, 'Save point', 'שמור נקודה')}</Button>
+              <Button variant="contained" size="small" disabled={snapBusy} onClick={createSnapshot}>{snapBusy ? pageText(locale, 'Saving', 'שומר') : pageText(locale, 'Save point', 'שמירת נקודה')}</Button>
               <Button variant="text" size="small" disabled={snapBusy} onClick={() => { setSnapOpen(false); setSnapLabel(''); }}>{pageText(locale, 'Cancel', 'ביטול')}</Button>
             </div>
           ) : (
             <button type="button" className="asst-ver-snap-btn" onClick={() => setSnapOpen(true)}>
               <Camera size={13} />
-              {pageText(locale, 'Save a restore point now', 'שמור נקודת שחזור עכשיו')}
+              {pageText(locale, 'Save a restore point now', 'שמירת נקודת שחזור עכשיו')}
             </button>
           )}
         </div>

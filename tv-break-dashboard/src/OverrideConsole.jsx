@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
+import { formatCurrency, formatPercent } from './surface-helpers';
 import { asList, isNum, fmtNum, anchorText, isStale, runDayRecomputeJob, KINDS, kindLabel } from './override-console-lib';
 import './override-console.css';
 
@@ -222,7 +223,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
           <h1>{pageText(locale, 'Overrides', 'עקיפות')}</h1>
           <p>{pageText(locale,
             'Manual decisions the optimizer honors. Pin, forbid, force a break count or mark a segment gold, carrying the segment anchor so the decision survives a re-ingest. Saving marks the plan stale; recompute when ready.',
-            'החלטות ידניות שהאופטימייזר מכבד. נעלו, מנעו, קבעו מספר ברייקים או סמנו משבצת כזהב, תוך נשיאת עוגן המשבצת כך שההחלטה שורדת קליטה מחדש. שמירה מסמנת את התוכנית כלא מעודכנת; הריצו חישוב מחדש כשתרצו.')}</p>
+            'החלטות ידניות שהאופטימייזר מכבד. נעצו, מנעו, קבעו מספר ברייקים או סמנו משבצת כזהב, תוך נשיאת עוגן המשבצת כך שההחלטה שורדת קליטה מחדש. שמירה מסמנת את התוכנית כלא מעודכנת; הריצו חישוב מחדש כשתרצו.')}</p>
         </div>
         <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadAll}>
           <RefreshCcw size={14} />
@@ -283,8 +284,8 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
                   <span><b>{pageText(locale, 'Channel', 'ערוץ')}:</b> {selectedSeg.channel || '-'}</span>
                   <span><b>{pageText(locale, 'Breaks', 'ברייקים')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.num_breaks, locale)}</span></span>
                   <span><b>{pageText(locale, 'Gold', 'זהב')}:</b> {selectedSeg.state?.is_gold ? pageText(locale, 'Yes', 'כן') : pageText(locale, 'No', 'לא')}</span>
-                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.predicted_revenue, locale)}</span></span>
-                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.retention, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <span dir="ltr">{formatCurrency(selectedSeg.state?.predicted_revenue, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <span dir="ltr">{formatPercent(selectedSeg.state?.retention, locale)}</span></span>
                 </div>
               )}
 
@@ -372,7 +373,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
         </div>
 
         <div className="oc-card">
-          <h3>{pageText(locale, 'Current overrides', 'עקיפות פעילות')}</h3>
+          <h3>{pageText(locale, 'Current overrides', 'עקיפות נוכחיות')}</h3>
           <p className="oc-sub">{pageText(locale,
             'Every override the optimizer will honor on the next run. A stale marker means the anchor no longer matches the live segment.',
             'כל עקיפה שהאופטימייזר יכבד בריצה הבאה. סימון ״לא מעודכן״ פירושו שהעוגן אינו תואם עוד את המשבצת החיה.')}</p>

@@ -60,13 +60,10 @@ export default function FrontierScopeChart({
   savedRetentionFloor = null,
   onApplyFloor,
   applyState = 'idle',
-  // Real backend field overview.frontier_status (the sibling FrontierPanel already
-  // consumes the same value, where 'computing' means the optimizer sweep is still
-  // running on a cold cache). NOTE: the current parent call site in
-  // TVBreakDashboard.jsx does not yet pass this prop, so until it adds
-  // status={overview.frontier_status} the unscoped path falls back to '' and we
-  // cannot distinguish computing from no-data there. We do NOT fabricate a status:
-  // when it is absent the empty state stays honestly generic.
+  // Real backend field overview.frontier_status, passed by the parent (the
+  // sibling FrontierPanel consumes the same value, where 'computing' means the
+  // optimizer sweep is still running on a cold cache). We do NOT fabricate a
+  // status: when it is absent the empty state stays honestly generic.
   status = '',
 }) {
   const he = locale === 'he';

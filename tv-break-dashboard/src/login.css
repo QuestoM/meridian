@@ -104,7 +104,7 @@
 .login-field input:focus,
 .auth-field input:focus,
 .auth-field select:focus {
-  outline: 2px solid rgba(13, 27, 42, 0.35);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 
@@ -120,7 +120,7 @@
   padding: 8px 10px;
   border: 1px solid var(--red);
   border-radius: var(--radius-sm);
-  background: #fbe9e9;
+  background: var(--red-soft);
   color: var(--red);
   font-size: var(--text-sm);
   line-height: 1.45;
