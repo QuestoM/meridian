@@ -59,15 +59,31 @@ def _read_get_day_detail(args: dict[str, Any], user: str | None = None) -> dict[
 def _read_list_constraints(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
     from kairos_api.constraints import list_constraints
 
-    payload = list_constraints()
-    return {"constraints": payload["constraints"]}
+    # Capped: the store is an unbounded operator CSV, and the honest total rides
+    # beside the cap so a truncation never hides how many constraints exist.
+    records = list(list_constraints()["constraints"])
+    payload: dict[str, Any] = {"constraints": records[:50], "count": len(records)}
+    if len(records) > 50:
+        payload["truncated"] = True
+        payload["constraints_omitted"] = len(records) - 50
+    return payload
 
 
 def _read_list_overrides(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
     from kairos_api.overrides import list_overrides
 
-    payload = list_overrides()
-    return {"overrides": payload["overrides"]}
+    # Same cap discipline as list_constraints, applied per scope group.
+    grouped = list_overrides()["overrides"]
+    capped: dict[str, list[dict[str, Any]]] = {}
+    payload: dict[str, Any] = {"overrides": capped, "count": 0}
+    for scope, records in grouped.items():
+        records = list(records)
+        payload["count"] += len(records)
+        capped[scope] = records[:50]
+        if len(records) > 50:
+            payload["truncated"] = True
+            payload[f"{scope}_omitted"] = len(records) - 50
+    return payload
 
 
 def _read_get_pricing(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
@@ -350,6 +366,14 @@ SOURCE_BY_TOOL = {
     "get_upload": "assistant uploads (own)",
     "find_advertiser": "advertiser rules store",
 }
+
+# The additional read executors (freshness, yield, gold, make-goods, run log,
+# upload status, reports catalog, activity) live in
+# kairos_api.assistant_read_tools_extra so this file stays under the size cap;
+# registering them here keeps one combined dispatch registry.
+from kairos_api.assistant_read_tools_extra import register as _register_extra  # noqa: E402
+
+_register_extra(_READ_EXECUTORS, SOURCE_BY_TOOL)
 
 
 def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) -> dict[str, Any]:

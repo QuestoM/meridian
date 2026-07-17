@@ -9,7 +9,7 @@ contains (ISO yyyy-mm-dd, dd/mm, dd.mm, or a weekday name). A clock (HH:MM) or
 a programme-type word in the question upgrades the matching segments to their
 complete saved rows. Parsing is conservative: no match adds nothing and no
 date is ever guessed. ``enforce_budget`` keeps the whole serialized context
-under a character budget (KAIROS_ASSISTANT_CONTEXT_BUDGET, default 28000) by
+under a character budget (KAIROS_ASSISTANT_CONTEXT_BUDGET, default 60000) by
 dropping day-detail rows lowest-revenue-first, and every cut is flagged in
 ``day_detail_truncated`` so the model can disclose it. Nothing is fabricated:
 a section that cannot be built is reported absent by the caller, never
@@ -25,7 +25,7 @@ import re
 from datetime import date as _date
 from typing import Any
 
-DEFAULT_CONTEXT_BUDGET = 28000
+DEFAULT_CONTEXT_BUDGET = 60000
 BUDGET_ENV = "KAIROS_ASSISTANT_CONTEXT_BUDGET"
 PER_DAY_SECTION = "per_day_plan"
 DAY_DETAIL_PREFIX = "day_detail"

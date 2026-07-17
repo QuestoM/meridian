@@ -347,12 +347,15 @@ def _build_yield_per_second(schedule: pd.DataFrame, scope_channel: Optional[str]
     }
 
 
-@router.get("/api/yield-per-second")
-def yield_per_second() -> dict[str, Any]:
-    # Scoped to the operator's channel, matching the overview headline: yield and
-    # the money story must never quote modeled competitor inventory as ours. The
-    # whole frame is used only when no channel is configured, and the basis
-    # fields disclose the scope either way.
+def scoped_yield_payload() -> dict[str, Any]:
+    """The operator-channel-scoped yield payload the dashboard route returns.
+
+    Extracted from the route body unchanged so every consumer (the route and the
+    assistant's yield_totals context section) quotes the SAME scope: yield and
+    the money story must never quote modeled competitor inventory as ours. The
+    whole frame is used only when no channel is configured, and the
+    ``scope_channel``/``n_channels_total`` fields disclose the scope either way.
+    """
     server = _server()
     schedule = server._load_break_schedule()
     settings = server._load_settings()
@@ -377,6 +380,11 @@ def yield_per_second() -> dict[str, Any]:
     payload["scope_channel"] = scope_channel
     payload["n_channels_total"] = n_channels_total
     return payload
+
+
+@router.get("/api/yield-per-second")
+def yield_per_second() -> dict[str, Any]:
+    return scoped_yield_payload()
 
 
 # ---------------------------------------------------------------------------
@@ -442,6 +450,12 @@ def _build_gold_breaks() -> dict[str, Any]:
             "by_day": [],
         }
 
+    # Competitor boundary: gold is quoted only for the operator's own channel,
+    # like every other money surface. A competitor row with is_gold set must
+    # never surface its channel name or figures here.
+    owned = str(settings.operator_channel or "").strip()
+    if owned and "channel" in schedule.columns:
+        schedule = schedule[schedule["channel"].astype(str).str.strip() == owned]
     gold = schedule[schedule["is_gold"].map(_is_gold_truthy)]
     if gold.empty:
         return {

@@ -96,7 +96,7 @@ def test_status_honest_without_key(client: TestClient) -> None:
     assert response.json() == {
         "available": False,
         "reason": "API key not configured",
-        "model": "claude-sonnet-4-6",
+        "model": "claude-opus-4-8",
         "action_plane": {"enabled": False, "reason": "API key not configured"},
     }
 
@@ -158,8 +158,8 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
     # The Claude call carries the frozen grounding contract and the real context.
     kwargs = recorder["kwargs"]
     assert recorder["api_key"] == "test-key"
-    assert kwargs["model"] == "claude-sonnet-4-6"
-    assert kwargs["max_tokens"] == 1500  # the tool-use loop budget
+    assert kwargs["model"] == "claude-opus-4-8"
+    assert kwargs["max_tokens"] == assistant.LOOP_MAX_TOKENS  # the tool-use loop budget
     assert kwargs["temperature"] == 0.2
     assert {tool["name"] for tool in kwargs["tools"]} >= {"get_settings", "propose_settings_change"}
     assert "must be taken from the CONTEXT block" in _system_text(kwargs)
@@ -354,11 +354,11 @@ def test_truncation_flag_fires_on_artificially_small_budget(monkeypatch: pytest.
 
 
 def test_context_budget_env_default_and_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert assistant_context._context_budget() == 28000
+    assert assistant_context._context_budget() == 60000
     monkeypatch.setenv(assistant_context.BUDGET_ENV, "garbage")
-    assert assistant_context._context_budget() == 28000
+    assert assistant_context._context_budget() == 60000
     monkeypatch.setenv(assistant_context.BUDGET_ENV, "-5")
-    assert assistant_context._context_budget() == 28000
+    assert assistant_context._context_budget() == 60000
     monkeypatch.setenv(assistant_context.BUDGET_ENV, "12345")
     assert assistant_context._context_budget() == 12345
 

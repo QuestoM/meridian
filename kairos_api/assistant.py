@@ -28,25 +28,31 @@ from typing import Any, Callable
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from kairos_api import assistant_actions, assistant_context, assistant_tools
+from kairos_api import (
+    assistant_actions,
+    assistant_context,
+    assistant_history,
+    assistant_keywords,
+    assistant_tools,
+)
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 router.include_router(assistant_actions.router)
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_MODEL = "claude-opus-4-8"
 MODEL_ENV = "KAIROS_ASSISTANT_MODEL"
 KEY_ENVS = ("ANTHROPIC_API_KEY", "KAIROS_ASSISTANT_API_KEY")
 KEY_MISSING_REASON = "API key not configured"
 ACTIONS_ENV = "KAIROS_ASSISTANT_ACTIONS"
 ACTIONS_DISABLED_REASON = f"disabled by {ACTIONS_ENV}"
 ASK_TIMEOUT_SECONDS = 120.0  # per-request; adaptive-thinking search calls run long
-MAX_ANSWER_TOKENS = 1000  # plain Q&A call when the action plane is off
-LOOP_MAX_TOKENS = 1500
-SEARCH_MAX_TOKENS = 8000  # thinking tokens count inside max_tokens on search calls
+MAX_ANSWER_TOKENS = 2000  # plain Q&A call when the action plane is off
+LOOP_MAX_TOKENS = 4000
+SEARCH_MAX_TOKENS = 12000  # thinking tokens count inside max_tokens on search calls
 # The goal-seeker searches by calling simulate_settings_change repeatedly, so the
 # loop needs room to try several settings before it converges; the ceiling stays
 # hard so a runaway conversation still terminates.
-MAX_TOOL_ITERATIONS = 10
+MAX_TOOL_ITERATIONS = 12
 ANSWER_TEMPERATURE = 0.2
 LOOP_EFFORT = "medium"
 RATE_LIMIT_ASKS = 10
@@ -86,7 +92,10 @@ SYSTEM_PROMPT = (
     "When the question names a date, weekday or time found in the saved plan, "
     "day_detail sections carry that day's segments ordered by revenue, highest "
     "first, and matched_full_rows carries the complete saved fields for segments "
-    "matching a time or programme type named in the question. "
+    "matching a time or programme type named in the question. When the question "
+    "asks about a matching topic, one compact keyword section is attached: "
+    "gold_breaks (the operator channel's gold list), active_constraints, "
+    "active_overrides, pricing_state and pacing_status. "
     "7. Truncation: when a day_detail section carries truncated true, or the "
     "context carries day_detail_truncated true, rows were cut to fit the context "
     "budget. When your answer relies on such a section, say so. "
@@ -145,7 +154,11 @@ SYSTEM_PROMPT = (
     "operator asks about break placement, splitting, consolidation, or CPP revenue, surface "
     "this caveat, say whether the settlement restatement flag is on or off, and flag that the "
     "round-window rule is owner-stated and confirmed in one real plan file but not "
-    "contractually verified, so you do not overclaim."
+    "contractually verified, so you do not overclaim. "
+    "18. History: earlier turns in this conversation are prior exchanges with the same operator. The CONTEXT block reflects the CURRENT saved state, so when a prior answer conflicts with it, follow CONTEXT and say the figure changed since; never re-quote a stale number from history as current. "
+    "19. Basis disclosure: headline money and retention figures in CONTEXT are scoped to the operator's own channel; when quoting totals, name the scope, using the scope_channel field and the date span the context carries, so the operator knows what the number covers. "
+    "20. Product vocabulary in Hebrew answers: an ad break is ברייק (plural ברייקים), a pin is נעיצה, gold breaks are ברייקי זהב, a daypart is רצועת שידור, projected revenue is הכנסה צפויה and predicted retention is שימור חזוי; never use הפסקות for the domain object. "
+    "21. House style: never use em-dashes or exclamation marks in answers."
 )
 
 HANDBOOK_PATH = Path(__file__).resolve().parents[1] / "docs" / "assistant" / "operator-handbook.md"
@@ -248,17 +261,25 @@ def _section_schedule_freshness() -> dict[str, Any]:
 
 
 def _section_yield_totals() -> dict[str, Any]:
-    from kairos_api.insights_api import _build_yield_per_second
+    # The operator-channel-scoped payload the dashboard route serves, so the
+    # assistant and the yield page quote the same money, never a whole-network
+    # figure relabeled as ours. scope_channel and n_channels_total disclose the
+    # scope; the retention-cost band keys ride along when the net is available.
+    from kairos_api.insights_api import scoped_yield_payload
 
-    payload = _build_yield_per_second(_server()._load_break_schedule())
+    payload = scoped_yield_payload()
     keys = (
         "available",
         "reason",
         "currency",
+        "scope_channel",
+        "n_channels_total",
         "totals",
         "revenue_net_available",
         "revenue_net_ils",
         "retention_cost_ils",
+        "retention_cost_low",
+        "retention_cost_high",
         "revenue_ils",
         "revenue_net_reason",
     )
@@ -325,7 +346,9 @@ def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
     A failing section is omitted and listed in sources with an absent marker,
     never substituted or fabricated. assistant_context then adds the always-on
     per-day owned-channel table and any day_detail sections the question's dates
-    resolve to, and enforces the serialized character budget.
+    resolve to, assistant_keywords attaches the compact keyword-matched sections
+    (gold_breaks, active_constraints, active_overrides, pricing_state,
+    pacing_status), and the serialized character budget is enforced last.
     """
     context: dict[str, Any] = {}
     sources: list[str] = []
@@ -336,6 +359,7 @@ def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
         except Exception:
             sources.append(f"{name} (absent)")
     assistant_context.extend_with_day_grounding(context, sources, question)
+    assistant_keywords.extend_with_keyword_sections(context, sources, question)
     assistant_context.enforce_budget(context)
     return context, sources
 
@@ -378,6 +402,10 @@ def _describe_error(exc: Exception) -> str:
         return f"The model did not answer within {int(ASK_TIMEOUT_SECONDS)} seconds."
     if isinstance(exc, anthropic.APIConnectionError):
         return "Could not reach the Anthropic API. Check network access."
+    if isinstance(exc, (anthropic.BadRequestError, anthropic.PermissionDeniedError)):
+        message = str(getattr(exc, "message", None) or exc).lower()
+        if "credit" in message or "billing" in message:
+            return "The Anthropic account has no credit. Top up at console.anthropic.com (Plans and Billing). אין קרדיט בחשבון Anthropic; יש לטעון יתרה ולנסות שוב."
     if isinstance(exc, anthropic.APIStatusError):
         return f"Anthropic API error {exc.status_code}: {str(getattr(exc, 'message', exc))[:200]}"
     return generic
@@ -452,7 +480,8 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
                    can_propose: bool = True,
                    on_step: Callable[[dict[str, Any]], None] | None = None,
                    on_text: Callable[[str], None] | None = None,
-                   user: str | None = None) -> str:
+                   user: str | None = None,
+                   history: list[dict[str, Any]] | None = None) -> str:
     """One Anthropic conversation, with the tool loop when the action plane is on.
 
     READ tools execute immediately and their results go back to the model;
@@ -463,10 +492,14 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
     medium effort, temperature dropped since thinking rejects it, and a
     cache_control breakpoint on the stable tools+system prefix). A streaming
     caller receives each new trace step through on_step right after its tool
-    result and assistant text through on_text as it is produced. Returns the
-    final text answer (empty when the model gave none).
+    result and assistant text through on_text as it is produced. history is the
+    caller's replayed thread (alternating user and assistant turns, oldest
+    first), placed BEFORE the current CONTEXT+QUESTION message so a follow-up
+    question has its anchor. Returns the final text answer (empty when the
+    model gave none).
     """
-    messages: list[dict[str, Any]] = [{"role": "user", "content": user_content}]
+    messages: list[dict[str, Any]] = list(history or [])
+    messages.append({"role": "user", "content": user_content})
     response = None
     for iteration in range(MAX_TOOL_ITERATIONS):
         searching = actions_on and iteration > 0
@@ -537,9 +570,10 @@ def _ask_body(question: str, http_request: Request | None,
               on_text: Callable[[str], None] | None = None) -> dict[str, Any]:
     """The full ask pipeline shared by /ask and /ask/stream.
 
-    Composes the grounding context, runs the tool loop (optionally emitting
-    step and text-delta events for the streaming route), stores any captured
-    proposals, and shapes the response body. ``model``, ``context_disclosure``
+    Composes the grounding context, replays the caller's own saved thread as
+    history turns before the current message (assistant_history), runs the tool
+    loop (optionally emitting step and text-delta events for the streaming
+    route), stores any captured proposals, and shapes the response body. ``model``, ``context_disclosure``
     and ``truncated`` ride beside the original keys additively: the disclosure
     is the same manifest as ``grounding`` and ``truncated`` is the composed
     context's honest budget-cut flag. Auditing and thread-append are the
@@ -567,6 +601,10 @@ def _ask_body(question: str, http_request: Request | None,
     trace: list[dict[str, Any]] = []
     items: list[dict[str, Any]] = []
     answer, error = "", None
+    # The caller's own saved thread, replayed before the current turn so
+    # follow-up questions have an anchor. A memory read failure yields an
+    # empty history, never a failed ask.
+    history = assistant_history.history_messages(_actor_name(http_request))
     try:
         client = _client_factory(api_key)
         answer = _run_tool_loop(
@@ -575,6 +613,7 @@ def _ask_body(question: str, http_request: Request | None,
             can_propose=_can_propose(http_request),
             on_step=on_step, on_text=on_text,
             user=_actor_name(http_request),
+            history=history,
         )
     except Exception as exc:  # noqa: BLE001 - every SDK failure surfaces honestly
         error = _describe_error(exc)

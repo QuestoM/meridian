@@ -162,6 +162,38 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         {"name": {"type": "string", "description": "The advertiser name to match."}},
         ["name"],
     ),
+    _tool(
+        "get_schedule_freshness",
+        "Read the saved schedule's freshness verdict: fresh, stale or unknown, when it was stamped, and which input groups changed since. Call this when the operator asks whether the plan is up to date or why a staleness banner shows.",
+    ),
+    _tool(
+        "get_yield_per_second",
+        "Read revenue per ad-second for the owned channel by daypart and by programme, with totals and the retention-cost band when derivable. Call this when the operator asks about yield, second-level efficiency, or which slots monetize best.",
+    ),
+    _tool(
+        "get_gold_breaks",
+        "List the gold breaks in the committed plan with per-day counts, or the honest reason there are none. Call this when the operator asks about gold or sponsorship breaks.",
+    ),
+    _tool(
+        "get_make_good_alerts",
+        "Read the make-good alerts for campaigns projected to under-deliver, including whether campaign data exists at all. Call this when the operator asks about make-goods, pacing shortfalls or at-risk campaigns.",
+    ),
+    _tool(
+        "get_run_log_summary",
+        "Read the newest optimizer run-log record plus a digest of recent runs, with the DP-tier coverage counters and any revert notes when present. Call this when the operator asks what the last run did, which channel-days ran the exact tier, or whether anything was reverted.",
+    ),
+    _tool(
+        "get_upload_status",
+        "Read the status of every engine input file: exists, valid, actually in use with the honest reason when not, and the last validation report. Call this when the operator asks about uploads or why a file is not taking effect.",
+    ),
+    _tool(
+        "get_reports_catalog",
+        "List the reports catalog: each report's id, title, status and row count. Call this when the operator asks which reports exist or whether one is ready.",
+    ),
+    _tool(
+        "get_activity_recent",
+        "Read the newest activity-log entries, metadata only (action, user, time, path), scoped by the caller's role. Call this when the operator asks who changed what recently.",
+    ),
 ]
 
 PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
