@@ -38,6 +38,7 @@ deterministic given the filesystem.
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import logging
@@ -104,6 +105,68 @@ def _meta_path(csv_path: str | Path) -> Path:
     return target.with_suffix(target.suffix + ".meta.json")
 
 
+# Display-only settings keys that never change what the engine computes.
+# Flipping the dashboard locale, the text direction, the profile label, the
+# notes, the regulatory link or the timezone label must not flip the staleness
+# banner and invite a pointless recompute. Every OTHER key in the settings
+# model (revenue_weight, risk_lambda, min_retention_floor, the guardrail
+# limits, operator_channel, objective_mode, pricing_overrides, the pacing
+# knobs, the gold and protected-programme rules, effective_date and
+# pacing_reference_date) is engine input and stays in the fingerprint. The set
+# is subtractive on purpose: a NEW settings key is engine-relevant by default,
+# so forgetting to classify it can only over-trigger staleness, never mask it.
+SETTINGS_COSMETIC_KEYS = frozenset(
+    {
+        "locale",
+        "direction",
+        "chart_direction",
+        "profile_name",
+        "notes",
+        "regulatory_source_url",
+        "timezone",
+    }
+)
+
+
+def _settings_fingerprint(settings_path: Path) -> str:
+    """Fingerprint only the engine-relevant settings, canonically serialized.
+
+    The old whole-file hash flipped the staleness banner on cosmetic edits (a
+    locale toggle, a renamed profile). Instead, parse the file through the same
+    ``KairosSettings`` model the API loads it with (so missing keys take the
+    same defaults the engine would run on, and unknown keys are ignored exactly
+    as pydantic ignores them), drop the :data:`SETTINGS_COSMETIC_KEYS`, and
+    hash a canonical sorted-key JSON of the rest. A missing file is
+    :data:`ABSENT`; an unparseable file mirrors ``_load_settings`` and
+    fingerprints the pure defaults, because those ARE what the engine runs on.
+    If the settings model itself cannot be imported (engine used standalone),
+    fall back to hashing the whole file: over-sensitive, never a false fresh.
+    """
+    if not settings_path.exists():
+        return ABSENT
+    try:
+        raw = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raw = None
+    try:
+        from kairos_api.core import KairosSettings, _model_dump
+
+        try:
+            settings = KairosSettings(**raw) if isinstance(raw, dict) else KairosSettings()
+        except (TypeError, ValueError):
+            # Mirrors kairos_api.core._load_settings: on an invalid settings
+            # file the engine runs on pure defaults, so fingerprint those.
+            settings = KairosSettings()
+        dumped = _model_dump(settings)
+    except Exception:  # pragma: no cover - defensive: never block the stamp
+        return checksum_file(settings_path) or ABSENT
+    canonical = {
+        key: value for key, value in dumped.items() if key not in SETTINGS_COSMETIC_KEYS
+    }
+    payload = json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
     """Map each schedule input group to a content fingerprint computed now.
 
@@ -114,6 +177,9 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
                          ``_load_settings`` reads; one file carries
                          operator_channel, guardrails, pricing_overrides,
                          revenue_weight, risk_lambda and min_retention_floor).
+                         Fingerprinted over the engine-relevant keys only (see
+                         :func:`_settings_fingerprint`), so a cosmetic edit
+                         such as a locale toggle never reads as stale.
       * ``constraints``  the scoped-constraint CSV
                          (``DEFAULT_CONSTRAINTS_PATH``).
       * ``overrides``    the manual-overrides CSV (``DEFAULT_OVERRIDES_PATH``,
@@ -145,9 +211,10 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
     root = Path(root)
     prints: dict[str, str] = {}
 
-    # settings: one JSON file under data/.
+    # settings: one JSON file under data/, hashed over engine-relevant keys only
+    # so a cosmetic edit (locale, profile name, notes) never invites a recompute.
     settings_path = root / "data" / "kairos_settings.json"
-    prints["settings"] = checksum_file(settings_path) or ABSENT
+    prints["settings"] = _settings_fingerprint(settings_path)
 
     # constraints: the scoped-constraint store's canonical CSV.
     try:

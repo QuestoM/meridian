@@ -14,6 +14,7 @@ to long form so it can be joined by (channel, date, minute).
 from __future__ import annotations
 
 import logging
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -220,6 +221,34 @@ def load_dayparts(path: str | Path | None = None) -> pd.DataFrame:
     long["date"] = pd.to_datetime(long["date"], errors="coerce", dayfirst=True)
     long["tvr"] = pd.to_numeric(long["tvr"], errors="coerce")
     return long.reset_index(drop=True)
+
+
+# A slash date whose two leading components are both at or below 12 (and differ)
+# parses to a different day under month-first and day-first conventions. The
+# daily input is documented M/D/YYYY, so such rows are read month-first, but the
+# ambiguity is real and worth surfacing to the operator at upload time.
+_SLASH_DATE = re.compile(r"^\s*(\d{1,2})/(\d{1,2})/\d{2,4}\s*$")
+
+
+def count_ambiguous_daily_dates(raw_dates: pd.Series) -> int:
+    """Count rows whose slash-date day/month interpretation is ambiguous.
+
+    Operates on the RAW date strings (before :func:`load_daily_input` parses
+    them), because after parsing the ambiguity is invisible. A value like
+    ``4/5/2025`` is ambiguous (April 5 month-first, May 4 day-first); ``4/27/2025``
+    is not (27 cannot be a month) and ``5/5/2025`` is not (both readings agree).
+    Non-slash formats (ISO dates) and unparseable values are never counted: this
+    reports a real, provable ambiguity, not a guess.
+    """
+    count = 0
+    for value in raw_dates.dropna():
+        match = _SLASH_DATE.match(str(value))
+        if match is None:
+            continue
+        first, second = int(match.group(1)), int(match.group(2))
+        if first <= 12 and second <= 12 and first != second:
+            count += 1
+    return count
 
 
 def load_daily_input(path: str | Path) -> pd.DataFrame:

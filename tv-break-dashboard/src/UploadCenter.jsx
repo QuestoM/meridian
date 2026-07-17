@@ -34,8 +34,8 @@ const cadenceMeta = {
   config: {
     en: 'Configuration',
     he: 'תצורה',
-    noteEn: 'Not channel data: advertiser terms (also editable in the Advertisers screen) and the pricing rate card.',
-    noteHe: 'לא נתוני ערוץ: תנאי מפרסמים (ניתנים לעריכה גם במסך "מפרסמים") וכרטיס התעריפים.',
+    noteEn: 'Not channel data: advertiser terms (also editable in the Advertisers screen), the pricing rate card, and campaign flights with delivery goals for pacing.',
+    noteHe: 'לא נתוני ערוץ: תנאי מפרסמים (ניתנים לעריכה גם במסך "מפרסמים"), כרטיס התעריפים וקובץ הקמפיינים עם יעדי אספקה לקצב.',
   },
 };
 

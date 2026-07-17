@@ -101,15 +101,6 @@ def _segment_impact_estimate(
     )
 
 
-def _segment_impact_coefficient(
-    impact_model: ImpactModel,
-    pricing_class: str,
-    break_length_seconds: float,
-) -> float:
-    """The representative point coefficient for a segment (see _segment_impact_estimate)."""
-    return _segment_impact_estimate(impact_model, pricing_class, break_length_seconds).coefficient
-
-
 def _segment_impact_kwargs(
     impact_model: ImpactModel | None,
     pricing_class: str,
@@ -229,8 +220,10 @@ def build_segments_from_daily_input(
     ):
         start_seconds = float(getattr(row, "start_seconds"))
         # Length runs to the next programme's start; the last keeps the fallback.
+        # The presence test is `is not None`, not truthiness: a next programme
+        # starting exactly at midnight (0.0 seconds) is present, not missing.
         next_start = starts[index + 1] if index + 1 < len(starts) else None
-        duration = (next_start - start_seconds) if next_start and next_start > start_seconds else _DEFAULT_PROGRAMME_SECONDS
+        duration = (next_start - start_seconds) if next_start is not None and next_start > start_seconds else _DEFAULT_PROGRAMME_SECONDS
         baseline = getattr(row, "baseline_tvr")
         baseline_tvr = 0.0 if pd.isna(baseline) else max(0.0, float(baseline))
         impact_coefficient, impact_fields = _segment_impact_kwargs(
@@ -355,7 +348,11 @@ def build_segments_from_programmes(
         zip(frame.itertuples(index=False), classifications, classes)
     ):
         start = getattr(row, "start_dt")
-        duration = float(getattr(row, "Duration", 0.0) or 0.0)
+        # A NaN Duration is truthy (`nan or 0.0` stays nan) and `nan <= 0` is
+        # False, so it used to slip past this skip and emit a NaN-length
+        # segment. Treat missing/NaN as zero explicitly so the skip catches it.
+        raw_duration = getattr(row, "Duration", 0.0)
+        duration = 0.0 if raw_duration is None or pd.isna(raw_duration) else float(raw_duration)
         if duration <= 0:
             continue
         tvr = getattr(row, "TVR", 0.0)
