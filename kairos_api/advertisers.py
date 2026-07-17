@@ -1,13 +1,17 @@
 """Advertiser rules CRUD, persisted to data/advertiser_rules.csv.
 
 Each operation reads the real CSV, mutates one row, backs the file up, and
-writes it back preserving column order. Types are coerced so the optimizer
+writes it back preserving column order, serialized under a module lock and
+written via a temp file plus ``os.replace`` so concurrent edits cannot lose
+rows and readers never see a torn CSV. Types are coerced so the optimizer
 reads clean values: default_premium as float, prime_time_only as bool.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -33,6 +37,10 @@ COLUMNS = [
 ]
 
 router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
+
+# Serializes every load-mutate-write cycle on the rules CSV so two concurrent
+# edits cannot drop each other's rows (lost update).
+_STORE_LOCK = threading.Lock()
 
 
 class AdvertiserUpdate(BaseModel):
@@ -127,9 +135,16 @@ def _backup() -> None:
 
 
 def _write_frame(frame: pd.DataFrame) -> None:
+    """Backup, then write atomically (temp file + os.replace, like auth_store).
+
+    A reader that opens the CSV mid-write sees either the old or the new file,
+    never a truncated one. Callers hold ``_STORE_LOCK`` across load-mutate-write.
+    """
     _backup()
     RULES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    frame[COLUMNS].to_csv(RULES_PATH, index=False, encoding="utf-8-sig")
+    tmp = RULES_PATH.with_name(RULES_PATH.name + ".tmp")
+    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    os.replace(tmp, RULES_PATH)
 
 
 def _snapshot_before_write(request: "Request | None") -> None:
@@ -220,65 +235,68 @@ def advertiser_stats() -> dict[str, Any]:
 @router.put("/{advertiser_id}")
 def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate,
                       request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    mask = frame["advertiser_id"].astype(str) == advertiser_id
-    if not mask.any():
-        raise HTTPException(status_code=404, detail=f"Advertiser '{advertiser_id}' not found")
+    with _STORE_LOCK:
+        frame = _load_frame()
+        mask = frame["advertiser_id"].astype(str) == advertiser_id
+        if not mask.any():
+            raise HTTPException(status_code=404, detail=f"Advertiser '{advertiser_id}' not found")
 
-    index = frame.index[mask][0]
-    if payload.default_premium is not None:
-        frame.at[index, "default_premium"] = str(float(payload.default_premium))
-    if payload.allow_positions is not None:
-        frame.at[index, "allow_positions"] = payload.allow_positions
-    if payload.allow_genres is not None:
-        frame.at[index, "allow_genres"] = payload.allow_genres
-    if payload.prime_time_only is not None:
-        frame.at[index, "prime_time_only"] = str(bool(payload.prime_time_only))
-    if payload.clear_urgency_k:
-        frame.at[index, "urgency_k"] = ""
-    elif payload.urgency_k is not None:
-        frame.at[index, "urgency_k"] = "" if payload.urgency_k < 0 else str(float(payload.urgency_k))
-    if payload.clear_ahead_k:
-        frame.at[index, "ahead_k"] = ""
-    elif payload.ahead_k is not None:
-        frame.at[index, "ahead_k"] = "" if payload.ahead_k < 0 else str(float(payload.ahead_k))
-    if payload.notes is not None:
-        frame.at[index, "notes"] = payload.notes
+        index = frame.index[mask][0]
+        if payload.default_premium is not None:
+            frame.at[index, "default_premium"] = str(float(payload.default_premium))
+        if payload.allow_positions is not None:
+            frame.at[index, "allow_positions"] = payload.allow_positions
+        if payload.allow_genres is not None:
+            frame.at[index, "allow_genres"] = payload.allow_genres
+        if payload.prime_time_only is not None:
+            frame.at[index, "prime_time_only"] = str(bool(payload.prime_time_only))
+        if payload.clear_urgency_k:
+            frame.at[index, "urgency_k"] = ""
+        elif payload.urgency_k is not None:
+            frame.at[index, "urgency_k"] = "" if payload.urgency_k < 0 else str(float(payload.urgency_k))
+        if payload.clear_ahead_k:
+            frame.at[index, "ahead_k"] = ""
+        elif payload.ahead_k is not None:
+            frame.at[index, "ahead_k"] = "" if payload.ahead_k < 0 else str(float(payload.ahead_k))
+        if payload.notes is not None:
+            frame.at[index, "notes"] = payload.notes
 
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _row_to_record(frame.loc[index])
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _row_to_record(frame.loc[index])
 
 
 @router.post("")
 def create_advertiser(payload: AdvertiserCreate, request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    if (frame["advertiser_id"].astype(str) == payload.advertiser_id).any():
-        raise HTTPException(status_code=409, detail=f"Advertiser '{payload.advertiser_id}' already exists")
+    with _STORE_LOCK:
+        frame = _load_frame()
+        if (frame["advertiser_id"].astype(str) == payload.advertiser_id).any():
+            raise HTTPException(status_code=409, detail=f"Advertiser '{payload.advertiser_id}' already exists")
 
-    new_row = {
-        "advertiser_id": payload.advertiser_id,
-        "default_premium": str(float(payload.default_premium)),
-        "allow_positions": payload.allow_positions,
-        "allow_genres": payload.allow_genres,
-        "prime_time_only": str(bool(payload.prime_time_only)),
-        "urgency_k": "" if payload.urgency_k is None or payload.urgency_k < 0 else str(float(payload.urgency_k)),
-        "ahead_k": "" if payload.ahead_k is None or payload.ahead_k < 0 else str(float(payload.ahead_k)),
-        "notes": payload.notes,
-    }
-    frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _row_to_record(frame.iloc[-1])
+        new_row = {
+            "advertiser_id": payload.advertiser_id,
+            "default_premium": str(float(payload.default_premium)),
+            "allow_positions": payload.allow_positions,
+            "allow_genres": payload.allow_genres,
+            "prime_time_only": str(bool(payload.prime_time_only)),
+            "urgency_k": "" if payload.urgency_k is None or payload.urgency_k < 0 else str(float(payload.urgency_k)),
+            "ahead_k": "" if payload.ahead_k is None or payload.ahead_k < 0 else str(float(payload.ahead_k)),
+            "notes": payload.notes,
+        }
+        frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _row_to_record(frame.iloc[-1])
 
 
 @router.delete("/{advertiser_id}")
 def delete_advertiser(advertiser_id: str, request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    mask = frame["advertiser_id"].astype(str) == advertiser_id
-    if not mask.any():
-        raise HTTPException(status_code=404, detail=f"Advertiser '{advertiser_id}' not found")
-    frame = frame[~mask].reset_index(drop=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
+    with _STORE_LOCK:
+        frame = _load_frame()
+        mask = frame["advertiser_id"].astype(str) == advertiser_id
+        if not mask.any():
+            raise HTTPException(status_code=404, detail=f"Advertiser '{advertiser_id}' not found")
+        frame = frame[~mask].reset_index(drop=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
     return {"deleted": advertiser_id}

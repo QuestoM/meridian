@@ -81,9 +81,21 @@ def recompute_schedule() -> dict[str, Any]:
     floor and guardrails, then overwrites the CSV the dashboard's main screens read.
     Without it, changing a setting only affected the live simulation, not the saved
     schedule. Returns a summary so the operator sees the recompute landed.
+
+    Mirrors the async path's dedup: while a background recompute job is running,
+    a synchronous rebuild is refused with 409 instead of racing it for the same
+    output CSV (two engines interleaving writes on one file).
     """
     if not _ENGINE_AVAILABLE:
         raise HTTPException(status_code=503, detail="Optimization engine is not available")
+    from kairos_api import jobs as _jobs
+
+    existing = _jobs.running_job("recompute")
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"A recompute job is already running (job {existing}); wait for it to finish.",
+        )
     try:
         return _run_recompute()
     except ValueError as exc:

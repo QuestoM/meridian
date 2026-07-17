@@ -3,26 +3,32 @@
 This is the operator-facing seam for the scoped placement-constraint store
 (:mod:`kairos.optimize.constraints_store`). It persists constraints to
 ``data/kairos_constraints.csv`` with the same read-mutate-backup-write style as
-:mod:`kairos_api.advertiser_conditions`, serves the option lists the dashboard
-needs to build a scoped rule (real programme Titles, channels, weekdays, effects,
-scope types), and serves a preview that runs the weekly schedule with and without
-the constraints so the operator sees exactly which segments change and which
-constraints were skipped.
+:mod:`kairos_api.advertiser_conditions` (serialized under a module lock, written
+via a temp file plus ``os.replace`` so readers never see a torn CSV), serves the
+option lists the dashboard needs to build a scoped rule (real programme Titles,
+channels, weekdays, effects, scope types), and serves a preview that runs the
+weekly schedule with and without the constraints so the operator sees exactly
+which segments change and which constraints were skipped.
 
 Honesty rules: scope and effect are validated against the engine vocabularies
 before a row is stored; the effect preview reports the resolver's skipped
 constraints verbatim (never hiding one that could not be honored); and a preview
-that cannot build real segments says so rather than inventing a delta.
+that cannot build real segments says so rather than inventing a delta. The
+preview runs through the SAME engine seams the weekly recompute uses (saved
+settings, first-break fold, wrapped classifier, stored overrides, demand fold),
+so its numbers are the plan the commit would write, not a parallel engine.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
@@ -30,7 +36,6 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from kairos.optimize.constraints_store import (
     COLUMNS,
-    DEFAULT_CONSTRAINTS_PATH,
     _SCOPES,
     _EFFECTS,
     load_constraints,
@@ -53,6 +58,10 @@ BACKUP_DIR = DATA_DIR / "_backups"
 CONSTRAINTS_PATH = DATA_DIR / "kairos_constraints.csv"
 
 router = APIRouter(prefix="/api/constraints", tags=["constraints"])
+
+# Serializes every load-mutate-write cycle on the constraints CSV so two
+# concurrent edits cannot drop each other's rows (lost update).
+_STORE_LOCK = threading.Lock()
 
 # Numeric columns coerced to float-or-blank on write; the rest are plain strings.
 _FLOAT_COLUMNS = (
@@ -86,18 +95,21 @@ class ConstraintCreate(BaseModel):
     effect: str
     scope_value: str = ""
     channel: str = ""
+    # Alias metadata rides in Annotated form: attaching Field(validation_alias=...)
+    # to an Optional default is dropped when FastAPI re-generates the body schema
+    # (pydantic UnsupportedFieldAttributeWarning); Annotated survives every context.
     offset_seconds: Optional[float] = None
-    offset_min_seconds: Optional[float] = Field(
-        default=None, validation_alias=AliasChoices("offset_min_seconds", "offset_seconds_min"))
-    offset_max_seconds: Optional[float] = Field(
-        default=None, validation_alias=AliasChoices("offset_max_seconds", "offset_seconds_max"))
-    count: Optional[int] = Field(
-        default=None, validation_alias=AliasChoices("count", "pin_count"))
+    offset_min_seconds: Annotated[
+        Optional[float], Field(validation_alias=AliasChoices("offset_min_seconds", "offset_seconds_min"))] = None
+    offset_max_seconds: Annotated[
+        Optional[float], Field(validation_alias=AliasChoices("offset_max_seconds", "offset_seconds_max"))] = None
+    count: Annotated[
+        Optional[int], Field(validation_alias=AliasChoices("count", "pin_count"))] = None
     duration_seconds: Optional[float] = None
-    duration_min_seconds: Optional[float] = Field(
-        default=None, validation_alias=AliasChoices("duration_min_seconds", "duration_seconds_min"))
-    duration_max_seconds: Optional[float] = Field(
-        default=None, validation_alias=AliasChoices("duration_max_seconds", "duration_seconds_max"))
+    duration_min_seconds: Annotated[
+        Optional[float], Field(validation_alias=AliasChoices("duration_min_seconds", "duration_seconds_min"))] = None
+    duration_max_seconds: Annotated[
+        Optional[float], Field(validation_alias=AliasChoices("duration_max_seconds", "duration_seconds_max"))] = None
     order_index: Optional[int] = None
     notes: str = ""
     where: Optional[dict[str, Any]] = None
@@ -141,9 +153,16 @@ def _backup() -> None:
 
 
 def _write_frame(frame: pd.DataFrame) -> None:
+    """Backup, then write atomically (temp file + os.replace, like auth_store).
+
+    A reader that opens the CSV mid-write sees either the old or the new file,
+    never a truncated one. Callers hold ``_STORE_LOCK`` across load-mutate-write.
+    """
     _backup()
     CONSTRAINTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    frame[list(COLUMNS)].to_csv(CONSTRAINTS_PATH, index=False, encoding="utf-8-sig")
+    tmp = CONSTRAINTS_PATH.with_name(CONSTRAINTS_PATH.name + ".tmp")
+    frame[list(COLUMNS)].to_csv(tmp, index=False, encoding="utf-8-sig")
+    os.replace(tmp, CONSTRAINTS_PATH)
 
 
 def _snapshot_before_write(request: "Request | None") -> None:
@@ -201,7 +220,6 @@ def create_constraint(payload: ConstraintCreate, request: Request = None) -> dic
     scope_type = _validate_scope(payload.scope_type)
     effect = _validate_effect(payload.effect)
     where = _validate_where(payload.where)
-    frame = _load_frame()
     new_row = {
         "constraint_id": uuid.uuid4().hex[:12],
         "scope_type": scope_type,
@@ -219,10 +237,12 @@ def create_constraint(payload: ConstraintCreate, request: Request = None) -> dic
         "notes": str(payload.notes or ""),
         "where_json": _where_json_cell(where),
     }
-    frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _record(frame.iloc[-1])
+    with _STORE_LOCK:
+        frame = _load_frame()
+        frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _record(frame.iloc[-1])
 
 
 def _locate(frame: pd.DataFrame, constraint_id: str) -> int:
@@ -235,37 +255,39 @@ def _locate(frame: pd.DataFrame, constraint_id: str) -> int:
 @router.put("/{constraint_id}")
 def update_constraint(constraint_id: str, payload: ConstraintUpdate,
                       request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, constraint_id)
-    if payload.scope_type is not None:
-        frame.at[index, "scope_type"] = _validate_scope(payload.scope_type)
-    if payload.effect is not None:
-        frame.at[index, "effect"] = _validate_effect(payload.effect)
-    if payload.scope_value is not None:
-        frame.at[index, "scope_value"] = str(payload.scope_value).strip()
-    if payload.channel is not None:
-        frame.at[index, "channel"] = str(payload.channel).strip()
-    for column in _FLOAT_COLUMNS + _INT_COLUMNS:
-        value = getattr(payload, column)
-        if value is not None:
-            frame.at[index, column] = str(value)
-    if payload.notes is not None:
-        frame.at[index, "notes"] = str(payload.notes)
-    if payload.where is not None:
-        where = _validate_where(payload.where)
-        frame.at[index, "where_json"] = _where_json_cell(where)
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _record(frame.loc[index])
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, constraint_id)
+        if payload.scope_type is not None:
+            frame.at[index, "scope_type"] = _validate_scope(payload.scope_type)
+        if payload.effect is not None:
+            frame.at[index, "effect"] = _validate_effect(payload.effect)
+        if payload.scope_value is not None:
+            frame.at[index, "scope_value"] = str(payload.scope_value).strip()
+        if payload.channel is not None:
+            frame.at[index, "channel"] = str(payload.channel).strip()
+        for column in _FLOAT_COLUMNS + _INT_COLUMNS:
+            value = getattr(payload, column)
+            if value is not None:
+                frame.at[index, column] = str(value)
+        if payload.notes is not None:
+            frame.at[index, "notes"] = str(payload.notes)
+        if payload.where is not None:
+            where = _validate_where(payload.where)
+            frame.at[index, "where_json"] = _where_json_cell(where)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _record(frame.loc[index])
 
 
 @router.delete("/{constraint_id}")
 def delete_constraint(constraint_id: str, request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, constraint_id)
-    frame = frame.drop(index=index).reset_index(drop=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, constraint_id)
+        frame = frame.drop(index=index).reset_index(drop=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
     return {"deleted": constraint_id}
 
 
@@ -294,39 +316,18 @@ def scope_options() -> dict[str, Any]:
     }
 
 
-def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Optional[str]):
-    """Build real ProgramSegments for the preview, or raise if data is absent.
+def _build_segments(channel: Optional[str], day: Optional[str],
+                    daily_input: Optional[str]) -> list:
+    """Back-compat seam: the preview's segments alone.
 
-    Mirrors :func:`kairos_api.overrides._build_segments` so the preview runs over
-    the same segments the live optimizer sees.
+    The segments and the engine kwargs are built together by
+    :func:`kairos_api.overrides._preview_inputs` (the commit path's seams);
+    this keeps the historical entry point for callers that only need the
+    segments.
     """
-    from kairos.data import ProgramClassifier
-    from kairos.data.loaders import load_daily_input, load_programmes
-    from kairos.data.transform import (
-        build_segments_from_daily_input,
-        build_segments_from_programmes,
-    )
-    from kairos.model.impact import load_impact_model
-    from kairos.optimize.pricing import OptimizerAssumptions
-    from kairos.service import pricing_from_settings
-    from kairos_api.core import _load_settings, _model_dump
+    from kairos_api.overrides import _preview_inputs
 
-    # Price with the operator's saved rate-card overrides, so the preview values
-    # the same slots the weekly recompute would, not the bare YAML defaults.
-    pricing = pricing_from_settings(_model_dump(_load_settings()))
-    assumptions = OptimizerAssumptions()
-    impact = load_impact_model(ROOT / "models" / "tv_break_posterior.pkl", assumptions=assumptions)
-    classifier = ProgramClassifier.from_yaml()
-    if daily_input:
-        daily = load_daily_input(daily_input)
-        return build_segments_from_daily_input(
-            daily, classifier, pricing, assumptions=assumptions, impact_model=impact,
-        )
-    programmes = load_programmes()
-    return build_segments_from_programmes(
-        programmes, classifier, pricing,
-        assumptions=assumptions, impact_model=impact, channel=channel, day=day,
-    )
+    return _preview_inputs(channel, day, daily_input)[0]
 
 
 @router.get("/effect")
@@ -337,47 +338,42 @@ def constraint_effect(
 ) -> dict[str, Any]:
     """Preview the weekly schedule WITH vs WITHOUT the stored constraints.
 
-    Builds real segments for the requested channel-day, runs the break optimizer
-    twice (plain, then with the resolved constraints), and reports per-segment
-    break-count deltas plus any constraints the resolver skipped (with the reason).
-    This is honest about where constraints bite: a position pin forces a segment's
-    count, a forbid zeroes it, and a count pin sets it, so the deltas are exactly
-    what the weekly recompute would write.
+    Builds real segments for the requested channel-day and runs the commit path's
+    own core (:func:`kairos.optimize.day_core._optimize_one_day`) twice: once
+    without the constraints and once with them, reporting per-segment break-count
+    deltas plus any constraints the resolver skipped (with the reason). The stored
+    manual overrides and the demand fold apply on BOTH legs, exactly as the weekly
+    recompute applies them, so the delta isolates the constraints and the absolute
+    numbers are the plan the commit would write. This is honest about where
+    constraints bite: a position pin forces a segment's count, a forbid zeroes it,
+    and a count pin sets it.
     """
-    from kairos.optimize.constraints_store import count_pins_to_overrides
-    from kairos.optimize.optimizer import optimize_breaks
-    from kairos.service import guardrails_from_settings
-    from kairos_api.core import _load_settings, _model_dump
+    from kairos.optimize.day_core import _optimize_one_day
+    from kairos_api.overrides import _preview_inputs, _resolved_store_overrides
 
     try:
-        segments = _build_segments(channel, day, daily_input)
+        segments, engine_kwargs = _preview_inputs(channel, day, daily_input)
     except Exception as exc:  # pragma: no cover - data/environment dependent
         raise HTTPException(status_code=503, detail=f"Could not build segments for preview: {exc}")
     if not segments:
         raise HTTPException(status_code=404, detail="No segments found for the requested channel-day")
 
-    operator_channel = _load_operator_channel()
+    # Resolve once for the honest report (matched / skipped); the WITH leg passes
+    # the raw constraint list into the shared core, which resolves them again
+    # through the same single resolver, so the report and the plan cannot drift.
     constraints = load_constraints(CONSTRAINTS_PATH)
     placement_pins, count_pins, forbids, skipped = resolve_constraints(
-        segments, constraints, operator_channel=operator_channel,
+        segments, constraints, operator_channel=engine_kwargs["operator_channel"],
     )
-    overrides = count_pins_to_overrides(count_pins, forbids)
+    # The stored manual overrides ride along on BOTH legs (the commit path applies
+    # them beside the constraints), resolved through the same anchor guard. None
+    # when the store is empty, mirroring the commit's argument exactly.
+    active_overrides, _stale = _resolved_store_overrides(segments)
+    stored = active_overrides if active_overrides.overrides else None
 
-    # Optimize both plans under the operator's saved settings (guardrails,
-    # revenue weight, risk aversion, objective mode) so the preview reports the
-    # same absolute breaks and revenue the weekly recompute would write, not the
-    # engine defaults.
-    saved = _load_settings()
-    settings_map = _model_dump(saved)
-    engine_kwargs = {
-        "guardrails": guardrails_from_settings(settings_map),
-        "revenue_weight": saved.revenue_weight / 100.0,
-        "risk_lambda": saved.risk_lambda,
-        "objective_mode": getattr(saved, "objective_mode", "blend"),
-    }
-    baseline = optimize_breaks(segments, **engine_kwargs)
-    constrained = optimize_breaks(
-        segments, overrides=overrides, placement_pins=placement_pins or None, **engine_kwargs,
+    baseline = _optimize_one_day(segments, overrides=stored, **engine_kwargs)
+    constrained = _optimize_one_day(
+        segments, constraints=constraints, overrides=stored, **engine_kwargs,
     )
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}

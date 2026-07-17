@@ -24,8 +24,9 @@ Sessions are opaque secrets.token_urlsafe(32) values held in an in-process
 dict with a 12 hour sliding expiry, which is correct for the single-process
 uvicorn deployment. The kairos_session cookie is HttpOnly, SameSite=Lax,
 Path=/ and intentionally has no Max-Age (the server enforces expiry). The
-Secure flag is off so plain-HTTP localhost works; a production deployment
-must sit behind TLS and add Secure (see the change-password and login docs).
+Secure flag defaults off so plain-HTTP localhost works; a TLS deployment
+sets KAIROS_COOKIE_SECURE=1 so the browser never sends the session cookie
+over plain HTTP.
 """
 
 from __future__ import annotations
@@ -51,6 +52,12 @@ WRITE_ROLES = frozenset({"admin", "operator"})
 
 def auth_bypassed() -> bool:
     return os.getenv("KAIROS_AUTH_DISABLED", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _cookie_secure() -> bool:
+    """Send the session cookie with the Secure flag when KAIROS_COOKIE_SECURE is
+    set (a TLS deployment). Default off so plain-HTTP localhost keeps working."""
+    return os.getenv("KAIROS_COOKIE_SECURE", "").strip().lower() in {"1", "true", "yes"}
 
 
 def _activity(event: str, user: str, role: str = "") -> None:
@@ -215,9 +222,11 @@ def login(payload: LoginRequest, response: Response) -> dict[str, Any]:
     store.clear_login_failures(username)
     token = store.create_session(username, user.get("role", "viewer"))
     _activity("login", username, user.get("role", "viewer"))
-    # Secure flag stays off for plain-HTTP localhost; production requires TLS
-    # plus Secure. No Max-Age: the server enforces the 12h sliding expiry.
-    response.set_cookie(store.COOKIE_NAME, token, httponly=True, samesite="lax", path="/")
+    # Secure only when KAIROS_COOKIE_SECURE says the deployment sits behind TLS
+    # (default off for plain-HTTP localhost). No Max-Age: the server enforces
+    # the 12h sliding expiry.
+    response.set_cookie(store.COOKIE_NAME, token, httponly=True, samesite="lax", path="/",
+                        secure=_cookie_secure())
     return _public_user(user)
 
 
@@ -225,7 +234,7 @@ def login(payload: LoginRequest, response: Response) -> dict[str, Any]:
 def logout(request: Request, response: Response) -> dict[str, Any]:
     session = _session_from_request(request)
     store.drop_session(request.cookies.get(store.COOKIE_NAME))
-    response.delete_cookie(store.COOKIE_NAME, path="/")
+    response.delete_cookie(store.COOKIE_NAME, path="/", secure=_cookie_secure())
     if session is not None:
         _activity("logout", session["username"], session.get("role", ""))
     return {"signed_out": True}

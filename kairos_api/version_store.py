@@ -1,9 +1,10 @@
 """Operation-state version history: immutable snapshots of the mutable state files.
 
-A version is a point-in-time copy of the four operation-state files the operator
+A version is a point-in-time copy of the operation-state files the operator
 edits: the settings JSON (with pricing overrides), the placement constraints store,
-the manual overrides store, and the advertiser rules. Every mutation path snapshots
-the touched file BEFORE it writes, so the timeline is an append-only history:
+the manual overrides store, the advertiser rules, and the scoped advertiser
+conditions. Every mutation path snapshots the touched file BEFORE it writes, so
+the timeline is an append-only history:
 restoring first snapshots the current state (a ``pre_restore`` point) and then puts
 the selected files back, so a restore is always itself undoable.
 
@@ -22,6 +23,7 @@ import csv
 import hashlib
 import json
 import os
+import re
 import shutil
 import uuid
 from datetime import datetime, timezone
@@ -38,9 +40,21 @@ MAX_VERSIONS = 200
 
 router = APIRouter(prefix="/api/versions", tags=["versions"])
 
-# The four logical operation-state files. Paths resolve lazily (at call time) so a
+# The logical operation-state files. Paths resolve lazily (at call time) so a
 # test that monkeypatches a store's PATH and the real deployment both hold.
-_LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers")
+_LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions")
+
+# Version ids are uuid4().hex[:12]; accept 8-32 lowercase hex so nothing else
+# (a traversal path, a stray label) ever reaches the manifest reader.
+_VERSION_ID_RE = re.compile(r"^[0-9a-f]{8,32}$")
+
+
+def _require_version_id(version_id: str) -> str:
+    """404 on anything that is not a well-formed version id (hex, 8-32 chars)."""
+    cleaned = str(version_id or "")
+    if not _VERSION_ID_RE.fullmatch(cleaned):
+        raise HTTPException(status_code=404, detail=f"no version {version_id!r}")
+    return cleaned
 
 
 def _now_iso() -> str:
@@ -70,11 +84,14 @@ def _logical_path(logical: str) -> Path:
     if logical == "advertisers":
         from kairos_api import advertisers as advertisers_api
         return Path(advertisers_api.RULES_PATH)
+    if logical == "conditions":
+        from kairos_api import advertiser_conditions as conditions_api
+        return Path(conditions_api.CONDITIONS_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
 
 
 _ID_COLUMN = {"constraints": "constraint_id", "overrides": "override_id",
-              "advertisers": "advertiser_id"}
+              "advertisers": "advertiser_id", "conditions": "rule_id"}
 
 
 def _snapshot_name(logical: str) -> str:
@@ -366,9 +383,9 @@ def snapshot_manual_edit(request: Request | None, logical: str) -> None:
 
 
 _SCOPE_NOTE = ("Versions snapshot the operation-state files the operator edits: settings "
-               "(with pricing overrides), placement constraints, manual overrides and "
-               "advertiser rules. History is append-only; a restore first records the "
-               "current state, so it is always undoable.")
+               "(with pricing overrides), placement constraints, manual overrides, "
+               "advertiser rules and scoped advertiser conditions. History is append-only; "
+               "a restore first records the current state, so it is always undoable.")
 
 
 def _public_entry(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -396,6 +413,7 @@ def list_versions(request: Request, limit: int = 50) -> dict[str, Any]:
 def version_diff(version_id: str, request: Request) -> dict[str, Any]:
     """Per logical file: what restoring this version would change from now."""
     _require_session(request)
+    version_id = _require_version_id(version_id)
     manifest = _read_manifest(version_id)
     diff = {entry["logical"]: _diff_logical(version_id, entry["logical"])
             for entry in manifest.get("files", []) if entry.get("logical") in _LOGICAL_ORDER}
@@ -412,6 +430,7 @@ def restore_version(version_id: str, request: Request,
                     body: RestoreRequest | None = None) -> dict[str, Any]:
     """Put the selected files back. Snapshots the current state first (undoable)."""
     actor = _require_writer(request)
+    version_id = _require_version_id(version_id)
     manifest = _read_manifest(version_id)
     covered = [f["logical"] for f in manifest.get("files", []) if f.get("logical") in _LOGICAL_ORDER]
     requested = body.files if body and body.files else covered
@@ -444,6 +463,7 @@ def create_snapshot(request: Request, body: LabelRequest | None = None) -> dict[
 def rename_version(version_id: str, body: LabelRequest, request: Request) -> dict[str, Any]:
     """Rename (relabel) a version. Writer roles only."""
     actor = _require_writer(request)
+    version_id = _require_version_id(version_id)
     manifest = _read_manifest(version_id)
     manifest["label"] = body.label
     _atomic_write(_manifest_path(version_id),

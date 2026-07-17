@@ -4,10 +4,14 @@ This is the sibling of :mod:`kairos_api.advertisers`. The baseline rules live in
 ``advertiser_rules.csv``; the scoped conditional rules (premium multipliers,
 requirements, forbids keyed by position/genre/daypart) live here. Each operation
 reads the real CSV, mutates one row, backs the file up the way advertisers.py
-does, and writes it back preserving column order. Scopes are normalized through
-the engine's own serializer so what is read back matches the engine's token
-semantics, and ``value`` is coerced to float so the optimizer reads clean
-numbers.
+does, and writes it back preserving column order, serialized under a module lock
+and written via a temp file plus ``os.replace`` so concurrent edits cannot lose
+rows and readers never see a torn CSV. Every mutation snapshots the store into
+the unified version timeline first (the ``conditions`` logical file), so a
+pricing-rule edit is undoable and visible in history like every other operation
+state. Scopes are normalized through the engine's own serializer so what is read
+back matches the engine's token semantics, and ``value`` is coerced to float so
+the optimizer reads clean numbers.
 
 Nothing here is invented: an empty conditions file (header only, the seeded
 state) yields no conditions, and the overlap view returns exactly what the pure
@@ -16,14 +20,16 @@ state) yields no conditions, and the overlap view returns exactly what the pure
 
 from __future__ import annotations
 
+import os
 import shutil
+import threading
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from kairos.optimize.advertiser_rules import (
@@ -55,6 +61,10 @@ COLUMNS = [
 ]
 
 router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
+
+# Serializes every load-mutate-write cycle on the conditions CSV so two
+# concurrent edits cannot drop each other's rows (lost update).
+_STORE_LOCK = threading.Lock()
 
 
 class ConditionCreate(BaseModel):
@@ -109,9 +119,23 @@ def _backup() -> None:
 
 
 def _write_frame(frame: pd.DataFrame) -> None:
+    """Backup, then write atomically (temp file + os.replace, like auth_store).
+
+    A reader that opens the CSV mid-write sees either the old or the new file,
+    never a truncated one. Callers hold ``_STORE_LOCK`` across load-mutate-write.
+    """
     _backup()
     CONDITIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    frame[COLUMNS].to_csv(CONDITIONS_PATH, index=False, encoding="utf-8-sig")
+    tmp = CONDITIONS_PATH.with_name(CONDITIONS_PATH.name + ".tmp")
+    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    os.replace(tmp, CONDITIONS_PATH)
+
+
+def _snapshot_before_write(request: "Request | None") -> None:
+    """Record a version of the conditions store before a manual edit writes it."""
+    from kairos_api import version_store
+
+    version_store.snapshot_manual_edit(request, "conditions")
 
 
 def _coerce_float(value: Any, default: float = 1.0) -> float:
@@ -154,16 +178,6 @@ def overlaps_for(advertiser_id: str) -> list[dict[str, Any]]:
     """The engine's overlap findings for one advertiser, as plain dicts."""
     engine = AdvertiserRuleEngine.from_files()
     return [asdict(finding) for finding in engine.overlaps(advertiser_id)]
-
-
-@router.get("/overlaps")
-def list_all_overlaps() -> dict[str, Any]:
-    """Every advertiser's overlap findings in one call (operator review view)."""
-    engine = AdvertiserRuleEngine.from_files()
-    findings: list[dict[str, Any]] = []
-    for advertiser_id in engine.conditions:
-        findings.extend(asdict(finding) for finding in engine.overlaps(advertiser_id))
-    return {"overlaps": findings}
 
 
 def _position_options() -> list[dict[str, str]]:
@@ -249,17 +263,8 @@ def list_conditions(advertiser_id: str) -> dict[str, Any]:
 
 
 @router.post("/{advertiser_id}/conditions", status_code=201)
-def create_condition(advertiser_id: str, payload: ConditionCreate) -> dict[str, Any]:
-    frame = _load_frame()
-    duplicate = (
-        (frame["advertiser_id"].astype(str) == advertiser_id)
-        & (frame["rule_id"].astype(str) == payload.rule_id)
-    )
-    if duplicate.any():
-        raise HTTPException(
-            status_code=409,
-            detail=f"rule '{payload.rule_id}' already exists for advertiser '{advertiser_id}'",
-        )
+def create_condition(advertiser_id: str, payload: ConditionCreate,
+                     request: Request = None) -> dict[str, Any]:
     new_row = {
         "advertiser_id": advertiser_id,
         "rule_id": payload.rule_id,
@@ -272,9 +277,21 @@ def create_condition(advertiser_id: str, payload: ConditionCreate) -> dict[str, 
         "scope_programmes": normalize_scope(payload.scope_programmes),
         "notes": payload.notes,
     }
-    frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
-    _write_frame(frame)
-    return _row_to_record(frame.iloc[-1])
+    with _STORE_LOCK:
+        frame = _load_frame()
+        duplicate = (
+            (frame["advertiser_id"].astype(str) == advertiser_id)
+            & (frame["rule_id"].astype(str) == payload.rule_id)
+        )
+        if duplicate.any():
+            raise HTTPException(
+                status_code=409,
+                detail=f"rule '{payload.rule_id}' already exists for advertiser '{advertiser_id}'",
+            )
+        frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _row_to_record(frame.iloc[-1])
 
 
 def _locate(frame: pd.DataFrame, advertiser_id: str, rule_id: str) -> int:
@@ -291,33 +308,39 @@ def _locate(frame: pd.DataFrame, advertiser_id: str, rule_id: str) -> int:
 
 
 @router.put("/{advertiser_id}/conditions/{rule_id}")
-def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, advertiser_id, rule_id)
-    if payload.effect is not None:
-        frame.at[index, "effect"] = _validate_effect(payload.effect)
-    if payload.value is not None:
-        frame.at[index, "value"] = str(float(payload.value))
-    if payload.mode is not None:
-        frame.at[index, "mode"] = _normalize_mode(payload.mode)
-    if payload.scope_positions is not None:
-        frame.at[index, "scope_positions"] = normalize_scope(payload.scope_positions)
-    if payload.scope_genres is not None:
-        frame.at[index, "scope_genres"] = normalize_scope(payload.scope_genres)
-    if payload.scope_dayparts is not None:
-        frame.at[index, "scope_dayparts"] = normalize_scope(payload.scope_dayparts)
-    if payload.scope_programmes is not None:
-        frame.at[index, "scope_programmes"] = normalize_scope(payload.scope_programmes)
-    if payload.notes is not None:
-        frame.at[index, "notes"] = payload.notes
-    _write_frame(frame)
-    return _row_to_record(frame.loc[index])
+def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate,
+                     request: Request = None) -> dict[str, Any]:
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, advertiser_id, rule_id)
+        if payload.effect is not None:
+            frame.at[index, "effect"] = _validate_effect(payload.effect)
+        if payload.value is not None:
+            frame.at[index, "value"] = str(float(payload.value))
+        if payload.mode is not None:
+            frame.at[index, "mode"] = _normalize_mode(payload.mode)
+        if payload.scope_positions is not None:
+            frame.at[index, "scope_positions"] = normalize_scope(payload.scope_positions)
+        if payload.scope_genres is not None:
+            frame.at[index, "scope_genres"] = normalize_scope(payload.scope_genres)
+        if payload.scope_dayparts is not None:
+            frame.at[index, "scope_dayparts"] = normalize_scope(payload.scope_dayparts)
+        if payload.scope_programmes is not None:
+            frame.at[index, "scope_programmes"] = normalize_scope(payload.scope_programmes)
+        if payload.notes is not None:
+            frame.at[index, "notes"] = payload.notes
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _row_to_record(frame.loc[index])
 
 
 @router.delete("/{advertiser_id}/conditions/{rule_id}")
-def delete_condition(advertiser_id: str, rule_id: str) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, advertiser_id, rule_id)
-    frame = frame.drop(index=index).reset_index(drop=True)
-    _write_frame(frame)
+def delete_condition(advertiser_id: str, rule_id: str,
+                     request: Request = None) -> dict[str, Any]:
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, advertiser_id, rule_id)
+        frame = frame.drop(index=index).reset_index(drop=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
     return {"deleted": rule_id, "advertiser_id": advertiser_id}

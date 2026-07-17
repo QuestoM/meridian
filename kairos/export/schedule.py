@@ -19,6 +19,7 @@ left without breaks earns zero and keeps its full baseline retention.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Mapping, Optional
@@ -383,12 +384,20 @@ def write_weekly_schedule(
 
     Returns the path written. Extra keyword arguments are forwarded to
     :func:`build_weekly_schedule`.
+
+    The write is atomic (a temp file in the same directory, then ``os.replace``):
+    the API readers parse this CSV unguarded while a recompute may be rewriting
+    it, so they must only ever see the complete old file or the complete new one,
+    never a truncated one. The final path's mtime and size change exactly once,
+    at the swap, so the mtime+size cache keys stay coherent.
     """
     if frame is None:
         frame = build_weekly_schedule(**kwargs)
     target = Path(path) if path is not None else DEFAULT_OUTPUT_PATH
     target.parent.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(target, index=False, encoding="utf-8")
+    tmp = target.with_name(target.name + ".tmp")
+    frame.to_csv(tmp, index=False, encoding="utf-8")
+    os.replace(tmp, target)
     # Stamp a freshness sidecar next to the CSV so the dashboard can tell honestly
     # whether this saved schedule still matches its inputs (settings, constraints,
     # overrides, coefficients, data). Imported lazily to avoid an import cycle, and

@@ -7,6 +7,7 @@ These functions build the serialisable payload for /api/constraints/options.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -15,6 +16,16 @@ from fastapi import HTTPException
 from kairos.optimize.predicate import ALLOWED_FIELDS, ALLOWED_OPERATORS
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# Structural caps for a predicate tree: deep enough for any real rule, small
+# enough that pathological nesting cannot blow the recursion stack (a 500) or
+# soak CPU. Exceeding either is a plain 400 at create/update time.
+MAX_PREDICATE_DEPTH = 20
+MAX_PREDICATE_NODES = 200
+# A regex condition is compiled at match time by the engine; cap its size and
+# prove it compiles HERE so a malformed or pathological pattern is rejected at
+# create time instead of silently matching nothing (or chewing CPU) later.
+MAX_REGEX_LENGTH = 512
 
 
 # ---------------------------------------------------------------------------
@@ -25,19 +36,58 @@ def validate_where(where: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
     """Validate a predicate Group tree against the frozen vocab.
 
     Rejects (HTTP 400) any Condition node whose field or operator is not in the
-    frozen contract. Unknown combinators are also rejected. Returns the unchanged
-    dict when valid, or None when where is None.
+    frozen contract, any tree deeper than MAX_PREDICATE_DEPTH or larger than
+    MAX_PREDICATE_NODES, and any regex condition longer than MAX_REGEX_LENGTH or
+    that fails to compile. Unknown combinators are also rejected. Returns the
+    unchanged dict when valid, or None when where is None.
     """
     if where is None:
         return None
     if not isinstance(where, dict):
         raise HTTPException(status_code=400, detail="where must be a JSON object (Group)")
-    _validate_node(where)
+    _validate_node(where, depth=1, node_count=[0])
     return where
 
 
-def _validate_node(node: dict[str, Any]) -> None:
-    """Recursively validate a Node (Group or Condition), raising HTTP 400 on errors."""
+def _validate_regex_value(value: Any) -> None:
+    """Reject a regex condition value that is not a sane, compilable pattern."""
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=400,
+            detail=f"a regex condition needs a string pattern, got {type(value).__name__}",
+        )
+    if len(value) > MAX_REGEX_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"regex pattern is too long ({len(value)} chars; the limit is {MAX_REGEX_LENGTH})",
+        )
+    try:
+        re.compile(value)
+    except re.error as exc:
+        raise HTTPException(status_code=400, detail=f"regex pattern does not compile: {exc}")
+
+
+def _validate_node(node: dict[str, Any], depth: int = 1,
+                   node_count: Optional[list[int]] = None) -> None:
+    """Recursively validate a Node (Group or Condition), raising HTTP 400 on errors.
+
+    ``depth`` counts nesting levels and ``node_count`` (a shared one-cell counter)
+    counts total nodes, so a pathological tree fails fast with a 400 instead of
+    exhausting the recursion stack and surfacing as a 500.
+    """
+    if node_count is None:
+        node_count = [0]
+    if depth > MAX_PREDICATE_DEPTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"the predicate is nested too deeply (the limit is {MAX_PREDICATE_DEPTH} levels)",
+        )
+    node_count[0] += 1
+    if node_count[0] > MAX_PREDICATE_NODES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"the predicate has too many nodes (the limit is {MAX_PREDICATE_NODES})",
+        )
     if not isinstance(node, dict):
         raise HTTPException(
             status_code=400,
@@ -54,7 +104,7 @@ def _validate_node(node: dict[str, Any]) -> None:
         if not isinstance(conditions, list):
             raise HTTPException(status_code=400, detail="Group must have a 'conditions' array")
         for child in conditions:
-            _validate_node(child)
+            _validate_node(child, depth=depth + 1, node_count=node_count)
     else:
         field = str(node.get("field", "") or "")
         operator = str(node.get("operator", "") or "")
@@ -69,6 +119,8 @@ def _validate_node(node: dict[str, Any]) -> None:
                 status_code=400,
                 detail=f"Operator {operator!r} not allowed for field {field!r}. Allowed: {sorted(allowed_ops)}",
             )
+        if operator == "regex":
+            _validate_regex_value(node.get("value"))
 
 
 def where_json_cell(where: Optional[dict[str, Any]]) -> str:
@@ -144,7 +196,7 @@ def predicate_field_schema() -> list[dict[str, Any]]:
         {
             "field": "daypart",
             "label_en": "Daypart",
-            "label_he": "פס שידור",
+            "label_he": "רצועת שידור",
             "operators": sorted(ALLOWED_OPERATORS["daypart"]),
             "value_type": "string key (or array for 'in')",
         },

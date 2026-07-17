@@ -44,6 +44,11 @@ SCRYPT_MAXMEM = 64 * 1024 * 1024
 SESSION_TTL_SECONDS = 12 * 3600
 RATE_LIMIT_MAX_FAILURES = 5
 RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+# Cap on distinct usernames tracked by the login rate limiter, so a spray of
+# invented usernames cannot grow the in-process map without bound. When the cap
+# is exceeded the entries whose newest failure is oldest are dropped first;
+# real attack windows (recent failures) always survive.
+MAX_TRACKED_FAILED_USERNAMES = 10_000
 
 MIN_PASSWORD_LENGTH = 10
 
@@ -306,6 +311,12 @@ def record_login_failure(username: str) -> None:
     username = normalize_username(username)
     with _LOCK:
         _FAILED_LOGINS.setdefault(username, []).append(_now())
+        overflow = len(_FAILED_LOGINS) - MAX_TRACKED_FAILED_USERNAMES
+        if overflow > 0:
+            # Prune the usernames whose newest failure is oldest; the entry just
+            # touched carries the newest stamp, so it always survives.
+            for stale in sorted(_FAILED_LOGINS, key=lambda name: max(_FAILED_LOGINS[name]))[:overflow]:
+                del _FAILED_LOGINS[stale]
 
 
 def clear_login_failures(username: str) -> None:

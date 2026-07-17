@@ -3,19 +3,26 @@
 This is the operator-facing seam for the manual override layer
 (:mod:`kairos.optimize.overrides`). It persists overrides to
 ``data/manual_overrides.csv`` with the same read-mutate-backup-write style as
-:mod:`kairos_api.advertisers`, and it serves a preview that runs the break-count
-optimizer with and without the overrides so the operator can see exactly what
-changes and which overrides were rejected as infeasible.
+:mod:`kairos_api.advertisers` (serialized under a module lock, written via a
+temp file plus ``os.replace`` so readers never see a torn CSV), and it serves a
+preview that runs the break-count optimizer with and without the overrides so
+the operator can see exactly what changes and which overrides were rejected as
+infeasible.
 
 Honesty rules: an override kind is validated against its scope before it is
 stored; the effect preview reports rejected overrides verbatim from the
 optimizer (never hiding an infeasible one); and a preview that cannot build real
-segments says so rather than inventing a delta.
+segments says so rather than inventing a delta. The preview runs through the
+SAME engine seams the weekly recompute uses (saved settings, first-break fold,
+wrapped classifier, stored constraints, demand fold), so its numbers are the
+plan the commit would write, not a parallel engine.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +50,10 @@ BACKUP_DIR = DATA_DIR / "_backups"
 OVERRIDES_PATH = DATA_DIR / "manual_overrides.csv"
 
 router = APIRouter(prefix="/api/overrides", tags=["overrides"])
+
+# Serializes every load-mutate-write cycle on the overrides CSV so two
+# concurrent edits cannot drop each other's rows (lost update).
+_STORE_LOCK = threading.Lock()
 
 
 class OverrideCreate(BaseModel):
@@ -108,9 +119,16 @@ def _backup() -> None:
 
 
 def _write_frame(frame: pd.DataFrame) -> None:
+    """Backup, then write atomically (temp file + os.replace, like auth_store).
+
+    A reader that opens the CSV mid-write sees either the old or the new file,
+    never a truncated one. Callers hold ``_STORE_LOCK`` across load-mutate-write.
+    """
     _backup()
     OVERRIDES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    frame[list(COLUMNS)].to_csv(OVERRIDES_PATH, index=False, encoding="utf-8-sig")
+    tmp = OVERRIDES_PATH.with_name(OVERRIDES_PATH.name + ".tmp")
+    frame[list(COLUMNS)].to_csv(tmp, index=False, encoding="utf-8-sig")
+    os.replace(tmp, OVERRIDES_PATH)
 
 
 def _snapshot_before_write(request: "Request | None") -> None:
@@ -156,7 +174,6 @@ def create_override(payload: OverrideCreate, request: Request = None) -> dict[st
     scope, kind = _validate(payload.scope, payload.kind)
     if not str(payload.target_id or "").strip():
         raise HTTPException(status_code=400, detail="target_id is required")
-    frame = _load_frame()
     new_row = {
         "override_id": uuid.uuid4().hex[:12],
         "scope": scope,
@@ -173,10 +190,12 @@ def create_override(payload: OverrideCreate, request: Request = None) -> dict[st
         "anchor_start": str(payload.anchor_start or "").strip(),
         "anchor_title": str(payload.anchor_title or "").strip(),
     }
-    frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _record(frame.iloc[-1])
+    with _STORE_LOCK:
+        frame = _load_frame()
+        frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _record(frame.iloc[-1])
 
 
 def _locate(frame: pd.DataFrame, override_id: str) -> int:
@@ -189,45 +208,53 @@ def _locate(frame: pd.DataFrame, override_id: str) -> int:
 @router.put("/{override_id}")
 def update_override(override_id: str, payload: OverrideUpdate,
                     request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, override_id)
-    scope = payload.scope if payload.scope is not None else str(frame.at[index, "scope"])
-    kind = payload.kind if payload.kind is not None else str(frame.at[index, "kind"])
-    if payload.scope is not None or payload.kind is not None:
-        scope, kind = _validate(scope, kind)
-        frame.at[index, "scope"] = scope
-        frame.at[index, "kind"] = kind
-    if payload.target_id is not None:
-        frame.at[index, "target_id"] = str(payload.target_id).strip()
-    if payload.value is not None:
-        frame.at[index, "value"] = str(payload.value)
-    if payload.gold is not None:
-        frame.at[index, "gold"] = str(bool(payload.gold))
-    if payload.notes is not None:
-        frame.at[index, "notes"] = str(payload.notes)
-    _snapshot_before_write(request)
-    _write_frame(frame)
-    return _record(frame.loc[index])
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, override_id)
+        scope = payload.scope if payload.scope is not None else str(frame.at[index, "scope"])
+        kind = payload.kind if payload.kind is not None else str(frame.at[index, "kind"])
+        if payload.scope is not None or payload.kind is not None:
+            scope, kind = _validate(scope, kind)
+            frame.at[index, "scope"] = scope
+            frame.at[index, "kind"] = kind
+        if payload.target_id is not None:
+            frame.at[index, "target_id"] = str(payload.target_id).strip()
+        if payload.value is not None:
+            frame.at[index, "value"] = str(payload.value)
+        if payload.gold is not None:
+            frame.at[index, "gold"] = str(bool(payload.gold))
+        if payload.notes is not None:
+            frame.at[index, "notes"] = str(payload.notes)
+        _snapshot_before_write(request)
+        _write_frame(frame)
+        return _record(frame.loc[index])
 
 
 @router.delete("/{override_id}")
 def delete_override(override_id: str, request: Request = None) -> dict[str, Any]:
-    frame = _load_frame()
-    index = _locate(frame, override_id)
-    frame = frame.drop(index=index).reset_index(drop=True)
-    _snapshot_before_write(request)
-    _write_frame(frame)
+    with _STORE_LOCK:
+        frame = _load_frame()
+        index = _locate(frame, override_id)
+        frame = frame.drop(index=index).reset_index(drop=True)
+        _snapshot_before_write(request)
+        _write_frame(frame)
     return {"deleted": override_id}
 
 
-def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Optional[str]):
-    """Build real ProgramSegments for the preview, or raise if data is absent.
+def _preview_inputs(
+    channel: Optional[str], day: Optional[str], daily_input: Optional[str],
+) -> tuple[list, dict[str, Any]]:
+    """Build real ProgramSegments plus the exact engine kwargs the commit path uses.
 
-    Pricing comes from the SAVED settings (the operator's rate-card overrides
-    deep-merged onto the YAML), the same seam the commit path uses, so the
-    preview prices slots exactly like the plan it previews.
+    Mirrors :func:`kairos.export.schedule.build_weekly_schedule` seam for seam:
+    pricing from the SAVED settings, the impact model loaded on the raw assumptions
+    and THEN the measured first-break multiplier folded in (the export's ordering),
+    and the service's wrapped classifier. The returned kwargs feed
+    :func:`kairos.optimize.day_core._optimize_one_day` with the saved guardrails,
+    weights, objective mode, pacing reference and operator channel, so a preview
+    optimized with these inputs is the plan the weekly recompute would write, not a
+    parallel engine. Raises when the data to build real segments is absent.
     """
-    from kairos.data import ProgramClassifier
     from kairos.data.loaders import load_daily_input, load_programmes
     from kairos.data.transform import (
         build_segments_from_daily_input,
@@ -235,23 +262,77 @@ def _build_segments(channel: Optional[str], day: Optional[str], daily_input: Opt
     )
     from kairos.model.impact import load_impact_model
     from kairos.optimize.pricing import OptimizerAssumptions
-    from kairos.service import pricing_from_settings
-    from kairos_api.core import _load_settings, _model_dump
+    from kairos.service import (
+        _apply_first_break_multiplier,
+        _build_classifier,
+        _pacing_knobs_from_settings,
+        guardrails_from_settings,
+        pricing_from_settings,
+    )
+    from kairos_api.core import _load_settings, _model_dump, _reference_today
 
-    pricing = pricing_from_settings(_model_dump(_load_settings()))
+    saved = _load_settings()
+    settings_map = _model_dump(saved)
+    pricing = pricing_from_settings(settings_map)
     assumptions = OptimizerAssumptions()
     impact = load_impact_model(ROOT / "models" / "tv_break_posterior.pkl", assumptions=assumptions)
-    classifier = ProgramClassifier.from_yaml()
+    assumptions = _apply_first_break_multiplier(assumptions)
+    classifier = _build_classifier()
     if daily_input:
         daily = load_daily_input(daily_input)
-        return build_segments_from_daily_input(
+        segments = build_segments_from_daily_input(
             daily, classifier, pricing, assumptions=assumptions, impact_model=impact,
         )
-    programmes = load_programmes()
-    return build_segments_from_programmes(
-        programmes, classifier, pricing,
-        assumptions=assumptions, impact_model=impact, channel=channel, day=day,
-    )
+    else:
+        programmes = load_programmes()
+        segments = build_segments_from_programmes(
+            programmes, classifier, pricing,
+            assumptions=assumptions, impact_model=impact, channel=channel, day=day,
+        )
+    engine_kwargs: dict[str, Any] = {
+        "guardrails": guardrails_from_settings(settings_map),
+        "revenue_weight": saved.revenue_weight / 100.0,
+        "risk_lambda": saved.risk_lambda,
+        "objective_mode": getattr(saved, "objective_mode", "blend"),
+        "pacing_today": _reference_today(saved),
+        "pacing_knobs": _pacing_knobs_from_settings(settings_map),
+        "operator_channel": str(saved.operator_channel or ""),
+        "pricing": pricing,
+    }
+    return segments, engine_kwargs
+
+
+def _stored_constraints() -> list:
+    """The operator's stored placement constraints, from the same file the weekly
+    recompute reads. Empty when the store was never created, so the preview stays
+    byte-identical to a deployment without constraints. Resolved lazily so a
+    test-relocated store path is honoured."""
+    from kairos.optimize.constraints_store import load_constraints
+    from kairos_api import constraints as constraints_api
+
+    return load_constraints(constraints_api.CONSTRAINTS_PATH)
+
+
+def _segment_anchors(segments: list) -> dict[str, tuple[str, str, str]]:
+    """Each built segment's semantic anchor (date, start clock, program), the
+    same triple the commit-time guard compares stored overrides against."""
+    return {
+        segment.segment_id: (
+            str(segment.day),
+            _segment_clock(segment.start_seconds),
+            str(segment.program_type),
+        )
+        for segment in segments
+    }
+
+
+def _resolved_store_overrides(segments: list) -> tuple[OverrideSet, list[dict[str, Any]]]:
+    """The stored override set resolved against these segments' anchors: the
+    active (binding) set plus the stale reports. The same re-ingest guard the
+    commit runs, so a stale-anchored override can never silently rebind to a
+    different-but-valid break; a blank-anchor (legacy) override still binds."""
+    overrides = OverrideSet.from_csv(OVERRIDES_PATH)
+    return overrides.resolve_against_segments(_segment_anchors(segments))
 
 
 @router.get("/effect")
@@ -273,13 +354,18 @@ def override_effect(
     overrides bite: it only reflects segment-scope overrides, since those are the
     ones the weekly break-count optimizer consumes.
 
+    Both legs run through :func:`kairos.optimize.day_core._optimize_one_day`, the
+    commit path's own core, with the stored placement constraints and the demand
+    fold applied on BOTH sides, so the delta isolates the overrides and the
+    absolute numbers are the plan the weekly recompute would write.
+
     Candidate mode: with ``target_id`` (a ``day|channel|index`` segment id) and
     ``kind``, the preview scopes itself to that segment's channel-day and
     compares the plan WITH the stored overrides against the plan WITH stored
     overrides PLUS this one candidate, so the delta isolates the decision being
     considered before it is saved. Nothing is written.
     """
-    from kairos.optimize.optimizer import optimize_breaks
+    from kairos.optimize.day_core import _optimize_one_day
 
     candidate: Override | None = None
     if target_id:
@@ -303,53 +389,37 @@ def override_effect(
         )
 
     try:
-        segments = _build_segments(channel, day, daily_input)
+        segments, engine_kwargs = _preview_inputs(channel, day, daily_input)
     except Exception as exc:  # pragma: no cover - data/environment dependent
         raise HTTPException(status_code=503, detail=f"Could not build segments for preview: {exc}")
     if not segments:
         raise HTTPException(status_code=404, detail="No segments found for the requested channel-day")
 
-    overrides = OverrideSet.from_csv(OVERRIDES_PATH)
     # Anchor guard (re-ingest safety): resolve the stored overrides against the
-    # anchors of the segments we just built. An override whose stored anchor no
-    # longer matches the segment now carrying its target_id is reported STALE and
-    # dropped here, so a re-ingest that reordered the build-order segment ids can
-    # never silently rebind an override to a different-but-valid break and move
-    # revenue on the wrong one. A blank-anchor (legacy) override still binds.
-    anchors = {
-        segment.segment_id: (
-            str(segment.day),
-            _segment_clock(segment.start_seconds),
-            str(segment.program_type),
-        )
-        for segment in segments
-    }
-    active_overrides, stale_overrides = overrides.resolve_against_segments(anchors)
-    # The preview must run under the SAME rules the commit path runs under: the
-    # saved guardrails, revenue weight, risk aversion and objective mode. A
-    # preview on engine defaults would quote a plan the recompute could never
-    # produce whenever the operator's settings differ from the defaults.
-    from kairos.service import guardrails_from_settings
-    from kairos_api.core import _load_settings, _model_dump
-
-    saved = _load_settings()
-    settings_map = _model_dump(saved)
-    engine_kwargs = {
-        "guardrails": guardrails_from_settings(settings_map),
-        "revenue_weight": saved.revenue_weight / 100.0,
-        "risk_lambda": saved.risk_lambda,
-        "objective_mode": getattr(saved, "objective_mode", "blend"),
-    }
+    # anchors of the segments we just built, exactly as the commit does.
+    active_overrides, stale_overrides = _resolved_store_overrides(segments)
+    # The stored placement constraints ride along on BOTH legs (the commit path
+    # applies them beside the overrides), so toggling the overrides is the ONLY
+    # difference between the two plans. The commit passes None when the override
+    # store is empty; mirror that so the runs are argument-identical.
+    constraints = _stored_constraints()
+    stored = active_overrides if active_overrides.overrides else None
     if candidate is not None:
         # Candidate mode: the baseline is the CURRENT plan (stored overrides
         # applied), and the comparison adds only the candidate, so the delta is
         # exactly what this one decision would change.
-        baseline = optimize_breaks(segments, overrides=active_overrides, **engine_kwargs)
+        baseline = _optimize_one_day(
+            segments, constraints=constraints, overrides=stored, **engine_kwargs,
+        )
         with_candidate = OverrideSet(overrides=list(active_overrides.overrides) + [candidate])
-        overridden = optimize_breaks(segments, overrides=with_candidate, **engine_kwargs)
+        overridden = _optimize_one_day(
+            segments, constraints=constraints, overrides=with_candidate, **engine_kwargs,
+        )
     else:
-        baseline = optimize_breaks(segments, **engine_kwargs)
-        overridden = optimize_breaks(segments, overrides=active_overrides, **engine_kwargs)
+        baseline = _optimize_one_day(segments, constraints=constraints, **engine_kwargs)
+        overridden = _optimize_one_day(
+            segments, constraints=constraints, overrides=stored, **engine_kwargs,
+        )
 
     base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
     new_counts = {s.segment_id: s.num_breaks for s in overridden.segments}

@@ -69,7 +69,7 @@ def settings_controls() -> dict[str, Any]:
             "label_en": "Revenue vs retention balance",
             "help_he": (
                 "הלֶבֶר המרכזי: כמה לרדוף אחרי הכנסת פרסום מול שמירה על הצופים. "
-                "0 שומר על הצפייה בלבד (כמעט בלי הפסקות), 100 ממקסם הכנסה עד גבול הרגולציה, "
+                "0 שומר על הצפייה בלבד (כמעט בלי ברייקים), 100 ממקסם הכנסה עד גבול הרגולציה, "
                 "60 הוא איזון נוטה-להכנסה. הערך הזה מניע את הלוח השבועי, גבול היעילות והתחזיות."
             ),
             "help_en": (
@@ -109,7 +109,7 @@ def settings_controls() -> dict[str, Any]:
             "label_he": "רצפת צפייה מינימלית",
             "label_en": "Minimum retention floor",
             "help_he": (
-                "אף הפסקה לא תיבחר אם היא מורידה את הצפייה הצפויה מתחת לרצף הזה. "
+                "אף ברייק לא ייבחר אם הוא מוריד את הצפייה הצפויה מתחת לרצפה הזו. "
                 "מגן על הנכס לטווח ארוך גם כשהלֶבֶר נוטה להכנסה."
             ),
             "help_en": (
@@ -124,9 +124,9 @@ def settings_controls() -> dict[str, Any]:
         },
         {
             "key": "max_breaks_per_hour",
-            "label_he": "מקסימום הפסקות לשעה",
+            "label_he": "מקסימום ברייקים לשעה",
             "label_en": "Max breaks per hour",
-            "help_he": "תקרת מספר ההפסקות בכל שעת שידור. כבול לרגולציה ולמדיניות המכירה.",
+            "help_he": "תקרת מספר הברייקים בכל שעת שידור. כבול לרגולציה ולמדיניות המכירה.",
             "help_en": "Ceiling on breaks in any broadcast hour. Bound by regulation and sales policy.",
             "default": 4,
             "min": 1,
@@ -156,7 +156,7 @@ def settings_controls() -> dict[str, Any]:
             "key": "retention_guardrail",
             "label_he": "שמירה על צפייה",
             "label_en": "Retention guardrail",
-            "description_he": "מגן על הצופים: פחות הפסקות, רצפת צפייה גבוהה.",
+            "description_he": "מגן על הצופים: פחות ברייקים, רצפת צפייה גבוהה.",
             "description_en": "Protects viewers: fewer breaks, a higher retention floor.",
             "values": {"revenue_weight": 35, "risk_lambda": 0.0, "min_retention_floor": 0.78},
         },

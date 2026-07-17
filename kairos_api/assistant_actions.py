@@ -131,9 +131,16 @@ def _load_store() -> dict[str, Any]:
 
 
 def _save_store(store: dict[str, Any]) -> None:
+    """Write the proposals store atomically (temp file + os.replace).
+
+    Callers hold ``_LOCK`` across load-mutate-save; the atomic replace means a
+    crash mid-write can never leave a truncated JSON behind for the next boot.
+    """
     path = _data_dir() / "proposals.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(store, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(store, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def _batch_status(items: list[dict[str, Any]]) -> str:
@@ -212,9 +219,12 @@ def _snapshot(files: list[Path], batch_id: str, item_ids: list[str]) -> str | No
         manifest_files.append({"path": str(source), "name": source.name, "existed": existed})
     manifest = {"restore_id": restore_id, "batch_id": batch_id, "item_ids": item_ids,
                 "created_at": _now_iso(), "files": manifest_files}
-    (directory / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
-    )
+    # Atomic manifest write: a restore point either exists with a complete
+    # manifest or not at all, never with a torn one the lister reports corrupt.
+    manifest_path = directory / "manifest.json"
+    tmp = manifest_path.with_name(manifest_path.name + ".tmp")
+    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, manifest_path)
     return restore_id
 
 
