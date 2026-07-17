@@ -408,6 +408,13 @@ def enforce_budget(context: dict[str, Any]) -> None:
     day_keys = [key for key in context if key.startswith(f"{DAY_DETAIL_PREFIX} ")]
     if day_keys:
         budget = _context_budget()
+        # The disclosure flag itself costs bytes. Raise it before measuring
+        # whenever any section is already truncated (build-time row caps), and
+        # again on every trim, so the size the loop checks is the size that
+        # actually ships; otherwise adding the flag after the loop could push
+        # the final payload past the budget it just enforced.
+        if any(bool(context[key].get("truncated")) for key in day_keys):
+            context["day_detail_truncated"] = True
         while _serialized_size(context) > budget:
             pools = [
                 (len(context[key]["segments"]), key, "segments")
@@ -425,5 +432,6 @@ def enforce_budget(context: dict[str, Any]) -> None:
             section[field].pop()
             section["rows_omitted"] = int(section.get("rows_omitted", 0)) + 1
             section["truncated"] = True
+            context["day_detail_truncated"] = True
     if any(bool(context[key].get("truncated")) for key in day_keys):
         context["day_detail_truncated"] = True

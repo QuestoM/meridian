@@ -1,4 +1,4 @@
-"""Phase B read-only/additive endpoints for the Kairos UX wave.
+"""Additive read-only scenario, yield, gold and make-good endpoints.
 
 These endpoints feed a new operator workspace (yield, scenario A/B, gold breaks,
 make-good alerts). Every number is traced to a real source: the saved weekly
@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["phase-b"])
+router = APIRouter(tags=["insights"])
 
 
 class ScenarioCompareRequest(BaseModel):
@@ -91,8 +91,8 @@ def _optimistic_impact(point: float, ci_low: float, ci_high: float) -> float:
     return min(0.0, best)
 
 
-@lru_cache(maxsize=4)
-def _plan_cost_band_cached(signature: tuple) -> dict[str, Any]:
+@lru_cache(maxsize=8)
+def _plan_cost_band_cached(signature: tuple, scope_channel: Optional[str] = None) -> dict[str, Any]:
     """Retention-cost band for the committed weekly plan, in ILS.
 
     Rebuilds the plan's own ProgramSegment objects
@@ -121,6 +121,12 @@ def _plan_cost_band_cached(signature: tuple) -> dict[str, Any]:
     schedule = server._load_break_schedule()
     if schedule.empty or "segment_id" not in schedule.columns:
         return {"available": False, "reason": "No saved weekly schedule with segment ids on disk."}
+    # The band must live on the same scope as the point estimate it decorates:
+    # a whole-network band around an owned-channel point can never bracket it.
+    if scope_channel and "channel" in schedule.columns:
+        schedule = schedule[schedule["channel"].astype(str).str.strip() == scope_channel]
+        if schedule.empty:
+            return {"available": False, "reason": "The saved plan carries no rows for the configured operator channel."}
     try:
         pairs = tuple(
             (str(channel), str(day))
@@ -175,8 +181,9 @@ def _plan_cost_band_cached(signature: tuple) -> dict[str, Any]:
     return {"available": True, "low": cost_low, "high": cost_high, "point": cost_point}
 
 
-def _plan_cost_band() -> dict[str, Any]:
-    """The cached committed-plan retention-cost band, keyed on its real inputs."""
+def _plan_cost_band(scope_channel: Optional[str] = None) -> dict[str, Any]:
+    """The cached committed-plan retention-cost band, keyed on its real inputs
+    and the channel scope it is computed for."""
     from kairos_api.core import (
         DATA_DIR,
         MODELS_DIR,
@@ -192,13 +199,13 @@ def _plan_cost_band() -> dict[str, Any]:
         SETTINGS_PATH,
         MODELS_DIR / "tv_break_coefficients.json",
         MODELS_DIR / "tv_break_posterior.pkl",
-    ])))
+    ]), scope_channel or None))
 
 
 # ---------------------------------------------------------------------------
 # 3. Yield per ad-second, from the real saved weekly schedule.
 # ---------------------------------------------------------------------------
-def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
+def _build_yield_per_second(schedule: pd.DataFrame, scope_channel: Optional[str] = None) -> dict[str, Any]:
     """Revenue per ad-second by daypart and by programme, from the saved schedule.
 
     ``predicted_revenue`` and ``total_break_time`` (ad-seconds) are the optimizer's
@@ -216,7 +223,7 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
     if schedule.empty:
         return {"available": False, "reason": "No saved weekly schedule on disk.", "by_daypart": [], "by_programme": []}
 
-    # Imported here (not at module load) so phase_b keeps its engine imports lazy.
+    # Imported here (not at module load) so this module keeps its engine imports lazy.
     from kairos.optimize.revenue_net import frame_revenue_net
 
     frame = schedule.copy()
@@ -298,7 +305,7 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
         # frame's point estimate, so a stale rebuild or a synthetic frame can
         # never ship a band that does not contain the number beside it.
         try:
-            band = _plan_cost_band()
+            band = _plan_cost_band(scope_channel)
         except Exception:
             logger.exception("retention-cost band computation failed")
             band = {"available": False, "reason": "Band computation failed; see the server log."}
@@ -342,8 +349,34 @@ def _build_yield_per_second(schedule: pd.DataFrame) -> dict[str, Any]:
 
 @router.get("/api/yield-per-second")
 def yield_per_second() -> dict[str, Any]:
+    # Scoped to the operator's channel, matching the overview headline: yield and
+    # the money story must never quote modeled competitor inventory as ours. The
+    # whole frame is used only when no channel is configured, and the basis
+    # fields disclose the scope either way.
     server = _server()
-    return _build_yield_per_second(server._load_break_schedule())
+    schedule = server._load_break_schedule()
+    settings = server._load_settings()
+    owned = str(getattr(settings, "operator_channel", "") or "").strip()
+    scope_channel: Optional[str] = None
+    n_channels_total: Optional[int] = None
+    scoped = schedule
+    if "channel" in schedule.columns:
+        n_channels_total = int(schedule["channel"].astype(str).str.strip().nunique())
+        if owned:
+            scoped = schedule[schedule["channel"].astype(str).str.strip() == owned]
+            scope_channel = owned
+    if scope_channel and scoped.empty and not schedule.empty:
+        payload: dict[str, Any] = {
+            "available": False,
+            "reason": "the saved plan carries no rows for the configured operator channel",
+            "by_daypart": [],
+            "by_programme": [],
+        }
+    else:
+        payload = _build_yield_per_second(scoped, scope_channel=scope_channel)
+    payload["scope_channel"] = scope_channel
+    payload["n_channels_total"] = n_channels_total
+    return payload
 
 
 # ---------------------------------------------------------------------------

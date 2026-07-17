@@ -282,18 +282,93 @@ def _build_break_library(schedule: pd.DataFrame) -> dict[str, Any]:
 
 
 def _build_forecasts(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
+    """Daily revenue/retention forecast rows from the saved plan, per real date.
+
+    The saved plan spans a whole month across every channel, so the old
+    weekday-of-week grouping summed roughly four channels times four-plus
+    calendar dates into each "day" row, quoting whole-market multi-week money as
+    a day's forecast. This groups by the REAL calendar date, scoped to the
+    operator's channel (competitor rows inform the retention model, never the
+    operator's money); each row keeps the weekday under the existing ``day`` key
+    and adds ``date``. Retention per date is TVR-weighted on the plan's own
+    ``baseline_tvr`` so 0-break filler rows stop diluting it; when no weight is
+    available the mean is kept and the basis says so. ``by_day_basis`` discloses
+    scope and grouping honestly.
+    """
+    def _basis(scope: str | None, n_dates: int, retention_basis: str | None, grouped_by: str | None) -> dict[str, Any]:
+        return {
+            "scope_channel": scope,
+            "n_dates": n_dates,
+            "retention_basis": retention_basis,
+            "grouped_by": grouped_by,
+        }
+
     if schedule.empty:
-        return {"by_day": [], "scenarios": []}
+        return {"by_day": [], "scenarios": [], "by_day_basis": _basis(None, 0, None, None)}
 
     frame = schedule.copy()
+    owned = str(settings.operator_channel or "").strip()
+    scope_channel: str | None = None
+    if owned and "channel" in frame.columns:
+        frame = frame[frame["channel"].astype(str).str.strip() == owned]
+        scope_channel = owned
+    if frame.empty:
+        # An owned channel is configured but the saved plan carries no rows for
+        # it: honest empty rows, never another channel's money.
+        return {
+            "by_day": [],
+            "scenarios": _build_forecast_scenarios(settings),
+            "by_day_basis": _basis(scope_channel, 0, None, None),
+        }
+
     frame["predicted_revenue"] = pd.to_numeric(frame.get("predicted_revenue", 0), errors="coerce").fillna(0)
     frame["predicted_retention"] = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce").fillna(0)
-    by_day = (
-        frame.groupby("day", dropna=False)
-        .agg(revenue=("predicted_revenue", "sum"), retention=("predicted_retention", "mean"), breaks=("num_breaks", "sum"))
+    frame["num_breaks"] = pd.to_numeric(frame.get("num_breaks", 0), errors="coerce").fillna(0)
+    group_column = "date" if "date" in frame.columns else "day"
+    if "baseline_tvr" in frame.columns:
+        weights = pd.to_numeric(frame["baseline_tvr"], errors="coerce")
+        weights = weights.where(weights > 0)
+    else:
+        weights = pd.Series(float("nan"), index=frame.index)
+    frame["_tvr_weight"] = weights
+    frame["_retention_weighted"] = frame["predicted_retention"] * frame["_tvr_weight"]
+
+    grouped = (
+        frame.groupby(group_column, dropna=False)
+        .agg(
+            revenue=("predicted_revenue", "sum"),
+            retention_mean=("predicted_retention", "mean"),
+            breaks=("num_breaks", "sum"),
+            _weighted_sum=("_retention_weighted", "sum"),
+            _weight_total=("_tvr_weight", "sum"),
+        )
         .reset_index()
+        .sort_values(group_column)
     )
-    return {"by_day": _records(by_day), "scenarios": _build_forecast_scenarios(settings)}
+    weighted_rows = grouped["_weight_total"] > 0
+    grouped["retention"] = (grouped["_weighted_sum"] / grouped["_weight_total"]).where(
+        weighted_rows, grouped["retention_mean"]
+    )
+    if bool(weighted_rows.all()):
+        retention_basis = "tvr_weighted"
+    elif bool(weighted_rows.any()):
+        retention_basis = "mixed"
+    else:
+        retention_basis = "unweighted_mean"
+
+    if group_column == "date":
+        if "day" in frame.columns:
+            weekday_map = frame.groupby("date")["day"].first()
+            grouped["day"] = grouped["date"].map(weekday_map)
+        else:
+            grouped["day"] = pd.to_datetime(grouped["date"], errors="coerce").dt.strftime("%a")
+    by_day = grouped[[column for column in ("day", "date", "revenue", "retention", "breaks") if column in grouped.columns]]
+    n_dates = int(frame[group_column].astype(str).nunique())
+    return {
+        "by_day": _records(by_day),
+        "scenarios": _build_forecast_scenarios(settings),
+        "by_day_basis": _basis(scope_channel, n_dates, retention_basis, group_column),
+    }
 
 
 def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
@@ -382,11 +457,28 @@ def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str
     # state instead of a green light backed by zero rows.
     plan_rows = int(len(schedule))
     revenue_rows = int(summary["total_breaks"])
+    # Daily spot ledger: the per-spot priced/dropped output of the daily pricing
+    # pipeline, downloadable at /api/export/spots.csv. The row count comes from
+    # actually running that pipeline over the newest daily file, so it is the
+    # exact ledger the download carries; an honest 0 when no daily file exists.
+    ledger_rows = 0
+    ledger_status = "empty"
+    try:
+        from kairos_api.exporters import _load_daily_pricing
+
+        ledger = _load_daily_pricing()
+        if ledger is not None:
+            ledger_rows = int(len(ledger.priced) + len(ledger.dropped) + len(ledger.frequency_dropped))
+            ledger_status = "ready" if ledger_rows else "empty"
+    except Exception:
+        logger.exception("daily spot ledger row count failed")
+        ledger_status = "attention"
     return {
         "reports": [
             {"id": "weekly-plan", "title": "Weekly traffic plan", "status": "ready" if plan_rows else "empty", "rows": plan_rows, "owner": "Traffic"},
             {"id": "compliance", "title": "Compliance and guardrails", "status": compliance["status"], "rows": len(compliance["checks"]), "owner": "Legal / Ops"},
             {"id": "revenue", "title": "Revenue forecast", "status": "ready" if revenue_rows else "empty", "rows": revenue_rows, "owner": "Revenue"},
+            {"id": "daily-spots", "title": "Daily spot ledger", "status": ledger_status, "rows": ledger_rows, "owner": "Revenue"},
             {"id": "data-quality", "title": "Source file audit", "status": "ready" if present == len(source_files) else "attention", "rows": present, "owner": "Data"},
         ]
     }
@@ -457,7 +549,13 @@ def impact() -> dict[str, Any]:
 
 @router.get("/api/inventory")
 def inventory() -> dict[str, Any]:
-    return _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))
+    # _load_spots prefers the reference workbook, so the workbook belongs in the
+    # cache key; keying on the legacy CSV alone kept serving a stale inventory
+    # after a reference re-ingest.
+    return _inventory_cached(_signature([
+        DATA_DIR / "reference" / "Spots.xlsx",
+        DATA_DIR / "Spots.csv",
+    ]))
 
 
 @router.get("/api/break-library")
@@ -467,19 +565,47 @@ def break_library() -> dict[str, Any]:
 
 @router.get("/api/campaigns")
 def campaigns() -> dict[str, Any]:
-    return _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))
+    # Same key discipline as /api/inventory: the loader prefers the workbook.
+    return _campaigns_cached(_signature([
+        DATA_DIR / "reference" / "Spots.xlsx",
+        DATA_DIR / "Spots.csv",
+    ]))
 
 
 @router.get("/api/forecasts")
 def forecasts() -> dict[str, Any]:
-    return _forecasts_cached(_signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"]))
+    # The named scenarios re-run the optimizer under the saved settings over the
+    # EPG, so the settings file and the Programmes source belong in the cache
+    # key; without them a settings edit or an EPG re-ingest kept serving the
+    # stale cached forecast.
+    return _forecasts_cached(_signature([
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+        SETTINGS_PATH,
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+    ]))
 
 
 @router.get("/api/reports")
 def reports() -> dict[str, Any]:
-    return _reports_cached(
-        _signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv", DATA_DIR / "Programmes.csv", SETTINGS_PATH])
-    )
+    # The daily spot ledger entry counts the newest daily file's priced ledger,
+    # so that file (when present) is part of the cache key.
+    paths = [
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        ROOT / "optimization_results.csv",
+        DATA_DIR / "Programmes.csv",
+        SETTINGS_PATH,
+    ]
+    try:
+        from kairos_api.uploads import _newest_daily
+
+        newest_daily = _newest_daily()
+        if newest_daily is not None:
+            paths.append(newest_daily)
+    except Exception:
+        logger.exception("newest daily file lookup failed for the reports cache key")
+    return _reports_cached(_signature(paths))
 
 
 @router.get("/api/files")

@@ -248,7 +248,7 @@ def _section_schedule_freshness() -> dict[str, Any]:
 
 
 def _section_yield_totals() -> dict[str, Any]:
-    from kairos_api.phase_b import _build_yield_per_second
+    from kairos_api.insights_api import _build_yield_per_second
 
     payload = _build_yield_per_second(_server()._load_break_schedule())
     keys = (

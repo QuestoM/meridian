@@ -1,4 +1,4 @@
-"""Integration tests for the Phase B read-only/additive endpoints.
+"""Integration tests for the additive read-only insights endpoints.
 
 Each endpoint must return 200 with a well-formed payload: real numbers where the
 source data exists, and a clearly-marked honest empty state where it does not
@@ -9,6 +9,7 @@ with the other engine-backed API tests (run explicitly, not in the fast gate).
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from kairos_api.server import _ENGINE_AVAILABLE, _frontier_async, _load_settings, app
@@ -61,7 +62,7 @@ def test_frontier_scope_byte_identical_to_default() -> None:
 
 def test_frontier_scope_day_filters_to_one_day() -> None:
     if not _ENGINE_AVAILABLE:
-        return
+        pytest.skip("engine or owned channel unavailable")
     response = client.get("/api/overview", params={"scope": "day:2024-11-01"})
     assert response.status_code == 200
     body = response.json()

@@ -18,7 +18,6 @@ header row and no data rows, the honest empty answer.
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import Any, Optional
 
@@ -74,22 +73,54 @@ def _load_plan() -> pd.DataFrame:
     return _load_break_schedule()
 
 
+def _csv_response(frame: pd.DataFrame, filename: str, extra_headers: Optional[dict[str, str]] = None) -> StreamingResponse:
+    """Stream a DataFrame as a downloadable CSV that Excel opens correctly.
+
+    Encoded utf-8-sig (a BOM prefix) because Excel sniffs the BOM to decode
+    Hebrew; without it every channel and programme name renders as mojibake. The
+    media type carries an explicit charset for the same reason.
+    """
+    payload = frame.to_csv(index=False).encode("utf-8-sig")
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    if extra_headers:
+        headers.update(extra_headers)
+    return StreamingResponse(iter([payload]), media_type="text/csv; charset=utf-8", headers=headers)
+
+
+def _schedule_freshness_status() -> str:
+    """The real fresh/stale/unknown verdict for the saved weekly schedule.
+
+    The same read-only comparison the dashboard staleness banner uses
+    (:func:`kairos.export.schedule_freshness.schedule_freshness`); honest
+    ``unknown`` when the verdict itself cannot be computed.
+    """
+    try:
+        from kairos.export.schedule_freshness import schedule_freshness
+
+        return str(schedule_freshness(ROOT).get("status") or "unknown")
+    except Exception:
+        return "unknown"
+
+
 @router.get("/schedule.csv")
 def export_schedule_csv() -> StreamingResponse:
-    """Stream the optimized weekly plan as a downloadable CSV."""
+    """Stream the optimized weekly plan as a downloadable CSV.
+
+    The response carries an ``X-Kairos-Schedule-Freshness`` header with the real
+    fresh/stale/unknown verdict, so a client can warn before saving a plan whose
+    inputs have moved on since it was computed.
+    """
     frame = _load_plan()
     if frame is None or frame.empty:
         raise HTTPException(
             status_code=404,
             detail="No optimized weekly plan is available to export. Run the optimizer first.",
         )
-
-    buffer = io.StringIO()
-    frame.to_csv(buffer, index=False)
-    buffer.seek(0)
-
-    headers = {"Content-Disposition": f'attachment; filename="{EXPORT_FILENAME}"'}
-    return StreamingResponse(iter([buffer.getvalue()]), media_type="text/csv", headers=headers)
+    return _csv_response(
+        frame,
+        EXPORT_FILENAME,
+        extra_headers={"X-Kairos-Schedule-Freshness": _schedule_freshness_status()},
+    )
 
 
 def _blank(value: Optional[Any]) -> Any:
@@ -214,10 +245,4 @@ def export_spots_csv() -> StreamingResponse:
     result = _load_daily_pricing()
     records = _spot_records(result) if result is not None else []
     frame = pd.DataFrame(records, columns=SPOTS_COLUMNS)
-
-    buffer = io.StringIO()
-    frame.to_csv(buffer, index=False)
-    buffer.seek(0)
-
-    headers = {"Content-Disposition": f'attachment; filename="{SPOTS_EXPORT_FILENAME}"'}
-    return StreamingResponse(iter([buffer.getvalue()]), media_type="text/csv", headers=headers)
+    return _csv_response(frame, SPOTS_EXPORT_FILENAME)

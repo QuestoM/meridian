@@ -42,7 +42,7 @@ def test_scenario_runs_the_real_engine() -> None:
 
 
 def test_optimize_plan_returns_a_compliant_plan() -> None:
-    response = client.post("/api/optimize-plan", json={"revenue_weight": 0.6})
+    response = client.post("/api/optimal-plan", json={"revenue_weight": 0.6})
     assert response.status_code == 200
     body = response.json()
     assert body["summary"]["compliant"] is True
@@ -63,7 +63,7 @@ def test_risk_lambda_is_an_adjustable_knob_end_to_end() -> None:
     ).json()
     assert scenario["controls"]["risk_lambda"] == 1.0
 
-    plan = client.post("/api/optimize-plan", json={"revenue_weight": 0.6, "risk_lambda": 1.0}).json()
+    plan = client.post("/api/optimal-plan", json={"revenue_weight": 0.6, "risk_lambda": 1.0}).json()
     assert plan["weights"]["risk_lambda"] == 1.0
     # Each segment carries the retention-cost provenance block for the dashboard.
     for segment in plan["segments"]:

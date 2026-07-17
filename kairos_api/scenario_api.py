@@ -11,6 +11,7 @@ re-exports the moved names so existing references keep working.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date
 from functools import lru_cache
 from typing import Any
@@ -19,11 +20,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from kairos_api.core import (
+    DATA_DIR,
     KAIROS_CHANNELS,
     MODELS_DIR,
+    OUTPUT_DIR,
     ROOT,
+    SETTINGS_PATH,
     OptimizerAssumptions,
-    PricingModel,
     _ENGINE_AVAILABLE,
     _asdict,
     _load_break_schedule,
@@ -32,6 +35,7 @@ from kairos_api.core import (
     _pacing_call_kwargs,
     _reference_today,
     _risk_from_retention,
+    _signature,
     _summarize_schedule,
     guardrails_from_settings,
     optimize_day_plan,
@@ -45,6 +49,8 @@ from kairos_api.core import (
 # frontier uses; the scenario and optimizer-plan surfaces reuse it so every
 # operator-facing preview optimizes the owned channel, never a competitor day.
 from kairos_api.dashboard_api import _frontier_state, _owned_scope
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["scenario"])
 
@@ -167,9 +173,27 @@ def _scenario_cached(
     }
 
 
+@lru_cache(maxsize=8)
+def _optimizer_plan_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
+    del signature  # cache key only
+    return _build_optimizer_plan()
+
+
 @router.get("/api/optimizer-plan")
 def optimizer_plan() -> dict[str, Any]:
-    return _build_optimizer_plan()
+    # Memoized on the settings+data signature like the sibling reads: the GET
+    # side is the saved decision re-read, so re-running a full optimization per
+    # request bought nothing. Any settings edit, EPG/plan re-ingest, rate-card
+    # change or model rebuild changes the signature and recomputes honestly.
+    return _optimizer_plan_cached(_signature([
+        OUTPUT_DIR / "weekly_break_schedule.csv",
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        SETTINGS_PATH,
+        ROOT / "config" / "optimization_weights.yaml",
+        MODELS_DIR / "tv_break_posterior.pkl",
+        MODELS_DIR / "tv_break_coefficients.json",
+    ]))
 
 
 @router.post("/api/optimizer-plan")
@@ -177,12 +201,37 @@ def create_optimizer_plan(request: ScenarioRequest) -> dict[str, Any]:
     return _build_optimizer_plan(request)
 
 
+def _scenario_unavailable(request: ScenarioRequest, reason: str, detail: str | None = None) -> dict[str, Any]:
+    """The honest no-numbers scenario response.
+
+    The old fallback substituted the saved whole-month, all-channel CSV summary,
+    shaped exactly like a one-day simulation result, so a transient engine
+    failure quietly showed month-scale money on the day slider. Keys stay
+    identical to the real summary; every value is null and the reason is named.
+    """
+    payload: dict[str, Any] = {
+        "summary": {
+            "total_breaks": None,
+            "total_ad_seconds": None,
+            "projected_revenue": None,
+            "average_retention": None,
+            "risk_score": None,
+        },
+        "controls": _model_dump(request),
+        "engine": "unavailable",
+        "reason": reason,
+    }
+    if detail:
+        payload["detail"] = detail
+    return payload
+
+
 @router.post("/api/scenario")
 def scenario(request: ScenarioRequest) -> dict[str, Any]:
     """Run a real optimization for the scenario controls (no placeholder math).
 
-    Falls back to the stored schedule summary only if the engine or its data is
-    unavailable, reporting that honestly instead of inventing numbers.
+    When the engine or its data is unavailable the summary is null with the
+    reason named, never the saved whole-plan summary dressed up as a day result.
     """
     if _ENGINE_AVAILABLE:
         try:
@@ -197,17 +246,14 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
                 day=day or "",
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
-            return {
-                "summary": _summarize_schedule(_load_break_schedule()),
-                "controls": _model_dump(request),
-                "engine": "unavailable",
-                "detail": str(exc)[:300],
-            }
-    return {
-        "summary": _summarize_schedule(_load_break_schedule()),
-        "controls": _model_dump(request),
-        "engine": "unavailable",
-    }
+            return _scenario_unavailable(
+                request,
+                "the scenario optimization failed, so no numbers are shown for these controls",
+                detail=str(exc)[:300],
+            )
+    return _scenario_unavailable(
+        request, "the optimization engine is unavailable, so no scenario numbers exist"
+    )
 
 
 def _warm_scenario() -> dict[str, Any]:
@@ -233,7 +279,7 @@ def _warm_scenario() -> dict[str, Any]:
     )
 
 
-@router.post("/api/optimize-plan")
+@router.post("/api/optimal-plan")
 def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
     """Serve a real optimal break plan, driven by the saved settings.
 
@@ -349,6 +395,17 @@ def parameters() -> dict[str, Any]:
     """
     settings = _load_settings()
     payload: dict[str, Any] = {"settings": _model_dump(settings)}
+    # Real campaign-flight count from the same loader the pacing signal uses, so
+    # the dashboard can key its pacing-inactive note on truth: pacing is an
+    # exact no-op until flight rows exist. Null (unknown) when the loader itself
+    # fails, never a fabricated zero.
+    try:
+        from kairos.optimize.pacing import load_campaigns
+
+        payload["flights_count"] = len(load_campaigns())
+    except Exception:
+        logger.exception("campaign flights count unavailable")
+        payload["flights_count"] = None
     if not _ENGINE_AVAILABLE:
         payload["engine"] = "unavailable"
         return payload
@@ -372,13 +429,21 @@ def parameters() -> dict[str, Any]:
         _data_channels = []
     payload["available_channels"] = _data_channels or list(KAIROS_CHANNELS)
     try:
-        pricing = PricingModel.from_yaml()
+        # The LIVE rate card: the YAML defaults with the operator's saved
+        # pricing_overrides merged on top (pricing_from_settings, the same seam
+        # the optimizer, forecast and spot export price with). A bare from_yaml
+        # here showed the shipped defaults while the engine priced with the
+        # operator's edits. has_overrides marks whether any edit is in effect.
+        from kairos.optimize.pricing import pricing_from_settings
+
+        pricing = pricing_from_settings(_model_dump(settings))
         payload["pricing"] = {
             "base_price_per_second_per_tvr_point": pricing.base_price,
             "program_type_premiums": pricing.program_type_premiums,
             "ad_type_premiums": pricing.ad_type_premiums,
             "position_premiums": {str(k): v for k, v in pricing.position_premiums.items()},
             "day_of_week_premiums": {str(k): v for k, v in pricing.day_of_week_premiums.items()},
+            "has_overrides": bool(settings.pricing_overrides),
         }
     except Exception as exc:  # pragma: no cover - config dependent
         payload["pricing"] = {"error": str(exc)[:200]}

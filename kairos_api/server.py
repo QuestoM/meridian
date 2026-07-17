@@ -72,7 +72,6 @@ from kairos_api.core import (  # noqa: F401  (re-exported for domain routers and
     _risk_from_retention,
     _row_anchor,
     _safe_number,
-    _safe_path,
     _save_settings,
     _series,
     _settings_to_guardrails,
@@ -163,7 +162,7 @@ from kairos_api.advertisers import router as advertisers_router  # noqa: E402
 from kairos_api.constraints import router as constraints_router  # noqa: E402
 from kairos_api.exporters import router as exporters_router  # noqa: E402
 from kairos_api.overrides import router as overrides_router  # noqa: E402
-from kairos_api.phase_b import router as phase_b_router  # noqa: E402
+from kairos_api.insights_api import router as insights_router  # noqa: E402
 from kairos_api.pricing_api import router as pricing_router  # noqa: E402
 from kairos_api.uploads import router as uploads_router  # noqa: E402
 
@@ -206,7 +205,7 @@ app.include_router(advertiser_conditions_router)
 app.include_router(exporters_router)
 app.include_router(overrides_router)
 app.include_router(constraints_router)
-app.include_router(phase_b_router)
+app.include_router(insights_router)
 app.include_router(pricing_router)
 
 from kairos_api.recompute_api import router as recompute_router  # noqa: E402
@@ -288,11 +287,26 @@ def _warm_overview_cache() -> None:
                 ]),
                 None,
             )),
+            # Warm-up keys must mirror the routes' keys exactly, or the warm-up
+            # populates entries the routes never read and the first real request
+            # pays the cold cost anyway.
             ("forecasts", lambda: _forecasts_cached(
-                _signature([OUTPUT_DIR / "weekly_break_schedule.csv", ROOT / "optimization_results.csv"])
+                _signature([
+                    OUTPUT_DIR / "weekly_break_schedule.csv",
+                    ROOT / "optimization_results.csv",
+                    SETTINGS_PATH,
+                    DATA_DIR / "reference" / "Programmes.xlsx",
+                    DATA_DIR / "Programmes.csv",
+                ])
             )),
-            ("campaigns", lambda: _campaigns_cached(_signature([DATA_DIR / "Spots.csv"]))),
-            ("inventory", lambda: _inventory_cached(_signature([DATA_DIR / "Spots.csv"]))),
+            ("campaigns", lambda: _campaigns_cached(_signature([
+                DATA_DIR / "reference" / "Spots.xlsx",
+                DATA_DIR / "Spots.csv",
+            ]))),
+            ("inventory", lambda: _inventory_cached(_signature([
+                DATA_DIR / "reference" / "Spots.xlsx",
+                DATA_DIR / "Spots.csv",
+            ]))),
             # Kick off the background frontier sweep at startup so it is "ready"
             # by the time the operator opens the dashboard (it spawns its own
             # thread and returns immediately, never blocking warm-up). The same

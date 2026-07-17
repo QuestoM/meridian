@@ -109,7 +109,7 @@ def test_bug3_gold_disabled_setting_must_gate_the_engine():
     """KNOWN BUG (MEDIUM). Turning gold breaks OFF in settings does not stop
     the engine from emitting gold. sponsorships_enabled / gold_breaks_enabled
     are consulted only by the display synthesis (kairos_api/server.py:550-551)
-    and the gold report (kairos_api/phase_b.py:229-231); the mapping the
+    and the gold report (kairos_api/insights_api.py); the mapping the
     recompute uses, kairos.service.guardrails_from_settings
     (kairos/service.py:128-153), drops both flags, and the optimizer honors a
     gold override regardless (kairos/optimize/optimizer.py:394). So an

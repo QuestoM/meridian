@@ -238,8 +238,10 @@ def test_price_daily_spots_applies_premium_and_drops_forbidden() -> None:
     assert len(result.priced) == 1
     assert len(result.dropped) == 1
     spot = result.priced[0]
-    # revenue = 10 base * 5 tvr * (30/30) units * 2.0 premium = 100.0
-    assert spot.revenue == pytest.approx(100.0)
+    # revenue = 10 base/sec * 5 tvr * 30 seconds * 2.0 premium = 3000.0
+    # (base_price_per_second_per_tvr_point is per second; spots price on the
+    # same per-second basis as the weekly plan segments.)
+    assert spot.revenue == pytest.approx(3000.0)
     assert result.dropped[0].position == 1
 
 
@@ -270,14 +272,14 @@ def test_price_daily_spots_honours_programme_scope_and_placement_pressure() -> N
     ])
     priced = {spot.program: spot for spot in price_daily_spots(daily, engine=engine, pricing=pricing).priced}
 
-    # News matches the programme-scoped +20% premium: revenue = 10 * 5 * 1.20 = 60.
-    assert priced["News"].revenue == pytest.approx(60.0)
-    # Movie is out of scope, so it stays at the baseline: revenue = 10 * 5 * 1.0 = 50.
-    assert priced["Movie"].revenue == pytest.approx(50.0)
-    # The +10% placement pressure shows only in News's placement_value (60 * 1.10 = 66),
+    # News matches the programme-scoped +20% premium: revenue = 10 * 5 * 30s * 1.20 = 1800.
+    assert priced["News"].revenue == pytest.approx(1800.0)
+    # Movie is out of scope, so it stays at the baseline: revenue = 10 * 5 * 30s * 1.0 = 1500.
+    assert priced["Movie"].revenue == pytest.approx(1500.0)
+    # The +10% placement pressure shows only in News's placement_value (1800 * 1.10 = 1980),
     # never in its charged revenue; Movie has no pressure, so the two are equal.
-    assert priced["News"].placement_value == pytest.approx(66.0)
-    assert priced["News"].revenue == pytest.approx(60.0)
+    assert priced["News"].placement_value == pytest.approx(1980.0)
+    assert priced["News"].revenue == pytest.approx(1800.0)
     assert priced["Movie"].placement_value == pytest.approx(priced["Movie"].revenue)
 
 

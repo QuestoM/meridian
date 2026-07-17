@@ -93,14 +93,34 @@ def test_yield_per_second_net_equals_revenue_minus_cost_to_the_cent(client) -> N
 
 
 def test_yield_per_second_matches_the_adopted_plan_economics(client) -> None:
-    """The live money equals the adopted (corrected) plan, not a stale figure."""
+    """The live money equals the adopted (corrected) plan on its disclosed
+    owned-channel basis, not a stale figure and never whole-market money.
+
+    The endpoint scopes to settings.operator_channel (the competitor boundary:
+    modeled competitor inventory is never quoted as ours), so the expectation is
+    computed live from the committed CSV's owned slice through the same engine
+    primitive, and the whole-plan adopted constants bound it from above."""
+    import pandas as pd
+
+    from kairos.optimize.revenue_net import frame_revenue_net
+
     payload = client.get("/api/yield-per-second").json()
-    assert payload["revenue_ils"] == pytest.approx(ADOPTED_REVENUE_ILS, abs=1.0)
-    assert payload["retention_cost_ils"] == pytest.approx(ADOPTED_RETENTION_COST_ILS, abs=1.0)
-    assert payload["revenue_net_ils"] == pytest.approx(ADOPTED_NET_ILS, abs=1.0)
-    # And the cost is materially clear of the pre-adoption 16.8M stale number: the
-    # DP-adopted plan's retention cost is ~24.26M (more breaks earn more revenue and
-    # cost more retention), well above the stale figure.
+    channel = payload["scope_channel"]
+    assert channel, "the yield payload must disclose its channel basis"
+    plan = pd.read_csv(ROOT / "output" / "weekly_break_schedule.csv", encoding="utf-8")
+    owned = plan[plan["channel"].astype(str).str.strip() == channel]
+    assert len(owned) > 0
+    money = frame_revenue_net(owned)
+    assert money["available"] is True
+    assert payload["revenue_ils"] == pytest.approx(money["revenue_ils"], abs=1.0)
+    assert payload["retention_cost_ils"] == pytest.approx(money["retention_cost_ils"], abs=1.0)
+    assert payload["revenue_net_ils"] == pytest.approx(money["revenue_net_ils"], abs=1.0)
+    # The owned slice is a strict subset of the whole adopted plan, whose
+    # headline economics stay pinned above (the golden aggregate hash covers
+    # the full frame byte-for-byte).
+    assert payload["revenue_ils"] < ADOPTED_REVENUE_ILS
+    assert payload["retention_cost_ils"] < ADOPTED_RETENTION_COST_ILS
+    # And the money is live, never the pre-adoption stale whole-plan figure.
     assert abs(payload["retention_cost_ils"] / 1e6 - STALE_COST_M) > 1.0
 
 

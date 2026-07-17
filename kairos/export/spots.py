@@ -24,10 +24,12 @@ rules now take effect on the per-spot daily pricing/export path
 them, because it does not attribute breaks to advertisers.
 
 Spot revenue uses the same CPP math as the rest of the engine
-(:func:`kairos.optimize.objective.break_revenue`): a spot's planned break rating
-times its duration in 30-second units times the channel base price, then the
-advertiser premium. A fixed-price (FIX) spot earns its stated price when one is
-present; with no price it falls back to CPP so it is never zeroed silently.
+(:func:`kairos.optimize.objective.break_revenue`) on the same per-second basis:
+a spot's planned break rating times its duration in seconds times the
+per-second channel base price (``unit_seconds=1.0``, exactly how the weekly
+segments are priced in :mod:`kairos.data.transform`), then the advertiser
+premium. A fixed-price (FIX) spot earns its stated price when one is present;
+with no price it falls back to CPP so it is never zeroed silently.
 """
 
 from __future__ import annotations
@@ -290,11 +292,15 @@ def price_daily_spots(
             revenue = base_value * premium
             placement_value = base_value * placement_premium
         else:
+            # base_price is quoted per second per TVR point (config yaml and the
+            # weekly segments both say so), so the CPP math must run on the
+            # per-second basis. break_revenue's default unit is 30 seconds,
+            # which priced every daily spot at 1/30th of the engine's own basis.
             revenue = break_revenue(
-                planned_tvr, duration, pricing.base_price, premium=premium,
+                planned_tvr, duration, pricing.base_price, unit_seconds=1.0, premium=premium,
             )
             placement_value = break_revenue(
-                planned_tvr, duration, pricing.base_price, premium=placement_premium,
+                planned_tvr, duration, pricing.base_price, unit_seconds=1.0, premium=placement_premium,
             )
 
         priced.append(PricedSpot(

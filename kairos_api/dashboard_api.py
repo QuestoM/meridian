@@ -27,8 +27,6 @@ from pydantic import BaseModel, Field
 
 from kairos.optimize.guardrails import Break as GuardrailBreak
 from kairos.optimize.guardrails import evaluate as evaluate_guardrails
-from kairos.optimize.objective import break_revenue as cpp_break_revenue
-from kairos.optimize.objective import retention_adjusted_revenue
 
 from kairos_api.core import (
     DATA_DIR,
@@ -37,7 +35,6 @@ from kairos_api.core import (
     ROOT,
     SETTINGS_PATH,
     KairosSettings,
-    PricingModel,
     _ENGINE_AVAILABLE,
     _augment_segment_ids,
     _load_break_schedule,
@@ -84,29 +81,6 @@ class BreakDecisionRequest(BaseModel):
     anchor_date: str | None = Field(default=None)
     anchor_start: str | None = Field(default=None)
     anchor_title: str | None = Field(default=None)
-
-
-def _day_key(value: Any) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    aliases = {
-        "monday": "Mon",
-        "mon": "Mon",
-        "tuesday": "Tue",
-        "tue": "Tue",
-        "wednesday": "Wed",
-        "wed": "Wed",
-        "thursday": "Thu",
-        "thu": "Thu",
-        "friday": "Fri",
-        "fri": "Fri",
-        "saturday": "Sat",
-        "sat": "Sat",
-        "sunday": "Sun",
-        "sun": "Sun",
-    }
-    return aliases.get(text.lower(), text[:3].title())
 
 
 def _program_datetime_columns(frame: pd.DataFrame) -> pd.DataFrame:
@@ -275,17 +249,27 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
         else frame["programme_type"] if "programme_type" in frame.columns
         else pd.Series("Other", index=frame.index)
     ).fillna("Other").astype(str)
-    frame["viewing_points"] = pd.to_numeric(frame.get("TVR", 1.0), errors="coerce").fillna(1.0)
+    # Honest ratings: no fillna(1.0). A programme without a measured TVR keeps
+    # NaN here and the payload reports null, never a fabricated 1.0 rating point.
+    tvr_column = frame["TVR"] if "TVR" in frame.columns else pd.Series(float("nan"), index=frame.index)
+    frame["viewing_points"] = pd.to_numeric(tvr_column, errors="coerce")
     frame["day_key"] = frame["start_dt"].dt.strftime("%a")
     frame["duration_seconds"] = (frame["end_dt"] - frame["start_dt"]).dt.total_seconds().clip(lower=0)
     frame = frame.sort_values("start_dt").groupby("Channel", dropna=False).head(12).reset_index(drop=True)
 
     plan_index = _plan_by_program_key(schedule)
     settings = _load_settings()
+    # Display-only premium provenance. Sourced through pricing_from_settings so
+    # the label matches what the engine actually priced with (the operator's
+    # saved rate-card edits included), never a bare from_yaml read that ignores
+    # them. It is NEVER multiplied into the break money below: the plan's
+    # predicted_revenue already carries every premium.
     _pricing_model: Any = None
     if _ENGINE_AVAILABLE:
         try:
-            _pricing_model = PricingModel.from_yaml()
+            from kairos.optimize.pricing import pricing_from_settings
+
+            _pricing_model = pricing_from_settings(settings)
         except Exception:
             logger.exception("pricing config unavailable; per-break premiums will be 1.0")
 
@@ -360,25 +344,35 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
             # even exceeded the daily cap on busy evenings.
             row_gold = str(schedule_row.get("is_gold", "")).strip().lower() in ("true", "1", "yes")
             is_gold = bool(row_gold and break_index == 1)
+            # Plan-derived money: each displayed break carries an equal split of
+            # its programme's committed predicted_revenue, and the LAST break
+            # absorbs the rounding remainder so the programme's breaks sum back
+            # to the plan figure to the cent. Nothing is re-derived: the old
+            # path re-priced breaks from the per-second base_rate fed into
+            # 30-second CPP units with the programme premium applied a second
+            # time (base_rate already contains it), understating the board
+            # roughly 56x against the committed plan.
             reference_revenue = _money(revenue_for_breaks / max(break_count, 1))
-            rating_points = _safe_number(row.get("viewing_points"), 0.0)
+            if break_index == break_count:
+                break_revenue = _money(revenue_for_breaks - reference_revenue * (break_count - 1))
+            else:
+                break_revenue = reference_revenue
             # base_rate comes from the optimizer's weekly schedule CSV. Absent
             # means no plan was run; report None rather than inventing 1000.
             raw_base_rate = schedule_row.get("base_rate")
             cpp: float | None = _safe_number(raw_base_rate, -1.0) if raw_base_rate is not None else None
             if cpp is not None and cpp < 0:
                 cpp = None
-            # Premium from config; never hardcode 1.25 for gold.
+            # Premium from the settings-aware rate card, display-only (see the
+            # pricing_from_settings note above); never hardcode 1.25 for gold.
             program_premium = _pricing_model.program_premium(program_type) if _pricing_model is not None else 1.0
-            break_revenue: float
-            if cpp is not None and cpp > 0 and rating_points > 0:
-                try:
-                    cpp_revenue = cpp_break_revenue(rating_points, break_seconds, cpp, premium=program_premium)
-                    break_revenue = _money(retention_adjusted_revenue(cpp_revenue, retention_for_breaks / 100))
-                except ValueError:
-                    break_revenue = reference_revenue
-            else:
-                break_revenue = reference_revenue
+            # The displayed rating prefers the plan's own baseline_tvr (the
+            # basis predicted_revenue was priced on); the EPG TVR is the backup
+            # and a missing value stays null instead of a fabricated 1.0.
+            rating_value = _safe_number(schedule_row.get("baseline_tvr"), float("nan")) if has_plan else float("nan")
+            if math.isnan(rating_value):
+                rating_value = _safe_number(row.get("viewing_points"), float("nan"))
+            rating_predicted = None if math.isnan(rating_value) else round(rating_value, 2)
             breaks.append(
                 {
                     "id": f"{program_key}-br-{break_index}",
@@ -400,7 +394,7 @@ def _build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) ->
                     "sponsorships_count": 1 if is_gold else 0,
                     "is_gold": is_gold,
                     "source": "Model",
-                    "rating_predicted": round(_safe_number(row.get("viewing_points"), 0.0), 2),
+                    "rating_predicted": rating_predicted,
                     "cpp": _money(cpp) if cpp is not None else None,
                     "revenue_reference": reference_revenue,
                     "revenue_premium": program_premium,
@@ -1462,7 +1456,6 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...], scope: str | N
     spots = _load_spots()
     summary = _summarize_schedule(schedule)
     settings = _load_settings()
-    break_operations = _build_break_operations(programmes, schedule)
     return {
         "brand": "Kairos",
         "workspace": "KAI Network",
@@ -1492,7 +1485,10 @@ def _overview_cached(signature: tuple[tuple[str, int, int], ...], scope: str | N
         "recommendations": _build_recommendations(schedule),
         "frontier_scope": scope or None,
         "settings": _model_dump(settings),
-        "compliance": _build_compliance(schedule, settings, break_operations),
+        # _build_compliance grades the FULL committed plan geometry and ignores
+        # its operations argument entirely, so the cold-overview path no longer
+        # computes the truncated break-operations board just to discard it.
+        "compliance": _build_compliance(schedule, settings),
     }
 
 
@@ -1505,6 +1501,9 @@ def _schedule_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, A
         "rows": _build_schedule_canvas(programmes, break_schedule),
         "break_operations": _build_break_operations(programmes, break_schedule),
         "break_schedule": break_schedule.head(200).replace({pd.NA: None}).where(pd.notna(break_schedule.head(200)), None).to_dict("records"),
+        # break_schedule is a display slice (first 200 rows); this is the real
+        # size of the saved plan so the client can say "200 of N" honestly.
+        "break_schedule_total_rows": int(len(break_schedule)),
     }
 
 
@@ -1695,11 +1694,17 @@ def overview(
 
 @router.get("/api/schedule")
 def schedule() -> dict[str, Any]:
+    # SETTINGS_PATH and the pricing YAML are part of the key because the break
+    # board inside this payload reads the operator settings (retention floor,
+    # pricing overrides) and the rate card; without them a settings or rate-card
+    # edit kept serving the stale cached board.
     return _schedule_cached(_signature([
         DATA_DIR / "reference" / "Programmes.xlsx",
         DATA_DIR / "Programmes.csv",
         OUTPUT_DIR / "weekly_break_schedule.csv",
         ROOT / "optimization_results.csv",
+        SETTINGS_PATH,
+        ROOT / "config" / "optimization_weights.yaml",
     ]))
 
 
@@ -1797,11 +1802,15 @@ def schedule_segment_detail(segment_id: str) -> dict[str, Any]:
 
 @router.get("/api/break-operations")
 def break_operations() -> dict[str, Any]:
+    # Same key discipline as /api/schedule: the board reads the operator
+    # settings and the rate card, so both belong in the cache signature.
     return _break_operations_cached(_signature([
         DATA_DIR / "reference" / "Programmes.xlsx",
         DATA_DIR / "Programmes.csv",
         OUTPUT_DIR / "weekly_break_schedule.csv",
         ROOT / "optimization_results.csv",
+        SETTINGS_PATH,
+        ROOT / "config" / "optimization_weights.yaml",
     ]))
 
 

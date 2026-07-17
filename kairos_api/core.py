@@ -15,13 +15,15 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
+import threading
+import time
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
-from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from kairos.optimize.guardrails import Guardrails
@@ -132,13 +134,6 @@ class KairosSettings(BaseModel):
     pricing_overrides: dict[str, Any] = Field(default_factory=dict)
 
 
-def _safe_path(relative_path: str) -> Path:
-    path = (ROOT / relative_path).resolve()
-    if ROOT not in path.parents and path != ROOT:
-        raise HTTPException(status_code=400, detail="Path is outside project root")
-    return path
-
-
 def _read_csv(path: Path, **kwargs: Any) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
@@ -170,21 +165,49 @@ def _model_dump(model: BaseModel) -> dict[str, Any]:
     return model.dict()
 
 
+# Serializes settings file access within the process. _save_settings holds it for
+# the whole tmp-write-plus-replace, and a caller doing a read-modify-write (load,
+# mutate, save) can hold it across both calls (it is reentrant) so two concurrent
+# PUTs cannot interleave and silently drop one edit.
+_SETTINGS_LOCK = threading.RLock()
+
+
 def _load_settings() -> KairosSettings:
-    if not SETTINGS_PATH.exists():
-        return KairosSettings()
-    try:
-        with SETTINGS_PATH.open("r", encoding="utf-8") as handle:
-            return KairosSettings(**json.load(handle))
-    except (OSError, ValueError, TypeError):
+    with _SETTINGS_LOCK:
+        if not SETTINGS_PATH.exists():
+            return KairosSettings()
+        # One retry before defaulting: a transient read hiccup must not silently
+        # revert the operator's saved decisions to factory defaults (which the
+        # callers would then happily persist back). Writes are atomic (tmp +
+        # os.replace), so a second read is expected to see a whole file.
+        for attempt in range(2):
+            try:
+                with SETTINGS_PATH.open("r", encoding="utf-8") as handle:
+                    return KairosSettings(**json.load(handle))
+            except (OSError, ValueError, TypeError):
+                if attempt == 0:
+                    time.sleep(0.02)
+                    continue
+                logger.warning(
+                    "settings file unreadable after retry; serving defaults without overwriting %s",
+                    SETTINGS_PATH,
+                )
         return KairosSettings()
 
 
 def _save_settings(settings: KairosSettings) -> KairosSettings:
-    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with SETTINGS_PATH.open("w", encoding="utf-8") as handle:
-        json.dump(_model_dump(settings), handle, ensure_ascii=False, indent=2)
-        handle.write("\n")
+    # Atomic write: serialize to a sibling tmp file, fsync, then os.replace over
+    # the real path. A reader can never observe a truncated/half-written file
+    # (the old torn-read path silently reverted every setting to defaults).
+    with _SETTINGS_LOCK:
+        SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = SETTINGS_PATH.with_name(SETTINGS_PATH.name + ".tmp")
+        with tmp_path.open("w", encoding="utf-8") as handle:
+            json.dump(_model_dump(settings), handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, SETTINGS_PATH)
     return settings
 
 
@@ -299,14 +322,25 @@ def _load_programmes_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame
 
 
 def _load_programmes() -> pd.DataFrame:
-    """Load EPG from the authoritative reference xlsx; fall back to legacy CSV."""
-    xlsx = DATA_DIR / "reference" / "Programmes.xlsx"
-    if xlsx.exists() and _ENGINE_AVAILABLE:
+    """Load the EPG through the engine loader, whatever the source format.
+
+    :func:`kairos.data.loaders.load_programmes` already resolves the reference
+    xlsx first and the uploaded CSV equivalent second, parses both identically
+    (start_dt/end_dt/TVR), and memoizes on the file signature, so the CSV
+    fallback goes through the same normalization as the workbook instead of a
+    raw ``pd.read_csv`` with none of the parsing. The raw CSV read survives only
+    as a last resort when the engine itself cannot be imported. A missing source
+    degrades to an honest empty frame, exactly as before.
+    """
+    if _ENGINE_AVAILABLE:
         try:
-            stat = xlsx.stat()
-            return _load_programmes_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
+            from kairos.data.loaders import load_programmes as _lp
+
+            return _lp()
+        except FileNotFoundError:
+            return pd.DataFrame()
         except Exception:
-            logger.exception("reference xlsx load failed, falling back to legacy CSV")
+            logger.exception("engine programme loader failed, falling back to raw CSV read")
     return _read_csv(DATA_DIR / "Programmes.csv")
 
 
@@ -322,14 +356,23 @@ def _load_spots_cached(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
 
 
 def _load_spots() -> pd.DataFrame:
-    """Load spots from the authoritative reference xlsx; fall back to legacy CSV."""
-    xlsx = DATA_DIR / "reference" / "Spots.xlsx"
-    if xlsx.exists() and _ENGINE_AVAILABLE:
+    """Load spots through the engine loader, whatever the source format.
+
+    Mirrors :func:`_load_programmes`: :func:`kairos.data.loaders.load_spots`
+    resolves xlsx-then-CSV, parses both identically (air_dt plus numeric
+    coercions) and memoizes on the file signature. The raw CSV read remains only
+    when the engine import itself failed; a missing source is an honest empty
+    frame.
+    """
+    if _ENGINE_AVAILABLE:
         try:
-            stat = xlsx.stat()
-            return _load_spots_cached(str(xlsx), stat.st_mtime_ns, stat.st_size).copy()
+            from kairos.data.loaders import load_spots as _ls
+
+            return _ls()
+        except FileNotFoundError:
+            return pd.DataFrame()
         except Exception:
-            logger.exception("reference xlsx load failed, falling back to legacy CSV")
+            logger.exception("engine spots loader failed, falling back to raw CSV read")
     return _read_csv(DATA_DIR / "Spots.csv")
 
 
@@ -390,12 +433,49 @@ def _risk_from_retention(average_retention_percent: float, floor_percent: float)
 
 
 def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
-    if schedule.empty:
-        # No saved schedule yet (fresh deploy, or post-upload pre-recompute). The
-        # break/second counts are honestly zero, but revenue, retention and risk
-        # are unknown, not measured lows. Report them as null so the dashboard
-        # renders an honest "-" rather than a confident "Low risk / 0% / 0" that
-        # no computation produced. The frontend guards each on null (formatCurrency
+    """Headline summary of the saved plan, scoped to the OPERATOR'S channel.
+
+    The weekly CSV carries every channel because the retention model needs the
+    competitor rows, but the headline money is the operator's plan: summing all
+    four channels quoted a whole-market figure (about 5.5x the owned plan on the
+    reference data) as if it were the operator's revenue, violating the
+    competitor-information boundary. The summary therefore filters to
+    ``settings.operator_channel``; the whole frame is used only when no channel
+    is configured yet, and the basis fields (``scope_channel``, ``n_dates``,
+    ``n_channels_total``, ``retention_basis``) always disclose exactly what was
+    summed. ``average_retention`` is TVR-weighted on the plan's own
+    ``baseline_tvr`` (an unweighted row mean overweights thin 0-break filler
+    rows); when the column is absent the mean is kept and ``retention_basis``
+    says so.
+    """
+    settings = _load_settings()
+    owned = str(settings.operator_channel or "").strip()
+    n_channels_total = 0
+    if not schedule.empty and "channel" in schedule.columns:
+        n_channels_total = int(schedule["channel"].astype(str).str.strip().nunique())
+
+    scoped = schedule
+    scope_channel: str | None = None
+    if not schedule.empty and owned and "channel" in schedule.columns:
+        scoped = schedule[schedule["channel"].astype(str).str.strip() == owned]
+        scope_channel = owned
+
+    n_dates = 0
+    if not scoped.empty and "date" in scoped.columns:
+        n_dates = int(scoped["date"].astype(str).str.strip().nunique())
+    basis = {
+        "scope_channel": scope_channel,
+        "n_dates": n_dates,
+        "n_channels_total": n_channels_total,
+    }
+
+    if scoped.empty:
+        # No saved schedule yet (fresh deploy, or post-upload pre-recompute), or
+        # the configured channel has no rows in the saved plan. The break/second
+        # counts are honestly zero, but revenue, retention and risk are unknown,
+        # not measured lows. Report them as null so the dashboard renders an
+        # honest "-" rather than a confident "Low risk / 0% / 0" that no
+        # computation produced. The frontend guards each on null (formatCurrency
         # and formatPercent return "-", and the risk metric is gated on === null).
         return {
             "total_breaks": 0,
@@ -403,27 +483,37 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
             "projected_revenue": None,
             "average_retention": None,
             "risk_score": None,
+            "retention_basis": None,
+            **basis,
         }
 
-    num_breaks = pd.to_numeric(schedule.get("num_breaks", 1), errors="coerce").fillna(1)
+    num_breaks = pd.to_numeric(scoped.get("num_breaks", 1), errors="coerce").fillna(1)
     break_time = pd.to_numeric(
-        schedule.get("total_break_time", schedule.get("break_length", 0)),
+        scoped.get("total_break_time", scoped.get("break_length", 0)),
         errors="coerce",
     ).fillna(0)
     revenue = pd.to_numeric(
-        schedule.get("predicted_revenue", schedule.get("revenue_ils", 0)),
+        scoped.get("predicted_revenue", scoped.get("revenue_ils", 0)),
         errors="coerce",
     ).fillna(0)
-    retention = pd.to_numeric(schedule.get("predicted_retention", 0), errors="coerce")
+    retention = pd.to_numeric(scoped.get("predicted_retention", 0), errors="coerce")
     retention = retention[retention > 0]
     avg_retention = retention.mean() if not retention.empty else 0.0
+    retention_basis = "unweighted_mean"
+    if "baseline_tvr" in scoped.columns and not retention.empty:
+        weights = pd.to_numeric(scoped.loc[retention.index, "baseline_tvr"], errors="coerce")
+        weights = weights.where(weights > 0)
+        weight_total = weights.sum()
+        if pd.notna(weight_total) and float(weight_total) > 0:
+            avg_retention = float((retention * weights).sum() / weight_total)
+            retention_basis = "tvr_weighted"
     total_breaks = int(num_breaks.sum())
     avg_retention_pct = round(_percent(avg_retention), 1)
     # Honest risk score: the measured average-retention shortfall below the
     # operator's configured floor (see _risk_from_retention). Sourced from the
     # optimizer plan and operator settings, not the old saturating break-count
     # formula. Falls back to the guardrail default floor when settings are absent.
-    floor_percent = round(_load_settings().min_retention_floor * 100, 1)
+    floor_percent = round(settings.min_retention_floor * 100, 1)
     risk_score = _risk_from_retention(avg_retention_pct, floor_percent)
 
     return {
@@ -432,6 +522,8 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
         "projected_revenue": _money(revenue.sum()),
         "average_retention": avg_retention_pct,
         "risk_score": risk_score,
+        "retention_basis": retention_basis,
+        **basis,
     }
 
 

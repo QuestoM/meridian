@@ -137,15 +137,22 @@ def test_price_slot_post_returns_traceable_breakdown(client):
 
 
 def test_overview_summary_equals_committed_plan(client):
-    """The morning-check headline tiles must be the committed plan's own sums,
-    not an approximation from a different engine path."""
+    """The morning-check headline tiles must be the committed plan's own sums
+    for the operator's channel, never whole-market money quoted as ours, and
+    the payload must disclose that basis."""
     plan = pd.read_csv(CSV_PATH, encoding="utf-8")
     summary = client.get("/api/overview").json()["summary"]
-    assert summary["total_breaks"] == int(plan["num_breaks"].sum())
-    assert summary["total_ad_seconds"] == int(plan["total_break_time"].sum())
+    channel = summary["scope_channel"]
+    assert channel, "the overview summary must disclose its channel basis"
+    owned = plan[plan["channel"].astype(str).str.strip() == channel]
+    assert len(owned) > 0
+    assert summary["total_breaks"] == int(owned["num_breaks"].sum())
+    assert summary["total_ad_seconds"] == int(owned["total_break_time"].sum())
     assert summary["projected_revenue"] == pytest.approx(
-        plan["predicted_revenue"].sum(), abs=0.05
+        owned["predicted_revenue"].sum(), abs=0.05
     )
+    assert summary["n_channels_total"] == plan["channel"].nunique()
+    assert summary["n_dates"] == owned["date"].nunique()
     assert summary["average_retention"] is not None
     assert 0 <= summary["risk_score"] <= 100
 

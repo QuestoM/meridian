@@ -54,7 +54,7 @@ def test_optimizer_plan_optimizes_the_owned_channel(client, owned) -> None:
 
 @pytest.mark.realdata
 def test_optimize_plan_defaults_to_the_owned_channel(client, owned) -> None:
-    body = client.post("/api/optimize-plan", json={}).json()
+    body = client.post("/api/optimal-plan", json={}).json()
     resolved = body.get("channel") or body.get("operator_channel")
     assert resolved == owned
 
@@ -64,10 +64,10 @@ def test_optimize_plan_refuses_a_competitor_channel(client, owned) -> None:
     # A channel that is demonstrably not the owned one must be refused, never
     # optimized: the operator owns exactly one channel.
     competitor = "כאן 11" if owned != "כאן 11" else "קשת 12"
-    response = client.post("/api/optimize-plan", json={"channel": competitor})
+    response = client.post("/api/optimal-plan", json={"channel": competitor})
     assert response.status_code == 400
     # The owned channel is always accepted.
-    assert client.post("/api/optimize-plan", json={"channel": owned}).status_code == 200
+    assert client.post("/api/optimal-plan", json={"channel": owned}).status_code == 200
 
 
 @pytest.mark.realdata
