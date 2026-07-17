@@ -208,6 +208,18 @@ def plan_revenue_net(
     reports the retention cost as unavailable, naming the missing input, because
     the per-segment audience is not on the plan alone.
 
+    ``segments`` must be on the plan's DECISION basis: when the plan was decided
+    with ``risk_lambda > 0`` the optimizer priced every break at the
+    risk-adjusted retention, so pass segments whose ``impact_coefficient`` has
+    been through the same
+    :func:`kairos.optimize._segment_math._risk_adjusted_coefficient` pre-pass
+    (an exact identity at ``risk_lambda == 0``). Pricing a risk-adjusted plan
+    with unadjusted segments understates the retention cost, materially at high
+    risk aversion. The same applies to the saved schedule: ``predicted_revenue``
+    in the weekly CSV (the COLUMNS block in :mod:`kairos.export.schedule`) is
+    decision-basis under ``risk_lambda > 0``, alongside its ``retention_used``
+    column.
+
     Returns ``{available, revenue_ils, retention_cost_ils, revenue_net_ils,
     basis}``; ``basis`` names the formula, the inputs and ``source: 'modeled'``.
     """
@@ -364,14 +376,31 @@ def compare_objectives(
     plan against a greedy net plan and muddy what the net objective itself bought.
     An honest apples-to-apples comparison holds refinement equal.
 
+    Both legs are priced on the plans' DECISION basis: the segments are put
+    through the same risk-adjustment pre-pass the optimizer applied
+    (:func:`kairos.optimize._segment_math._risk_adjusted_coefficient`, exactly as
+    the dashboard's scenario pricing does) before :func:`plan_revenue_net` values
+    the retention loss, so under ``risk_lambda > 0`` the reported cost matches
+    what the optimizer actually decided with instead of understating it with the
+    unadjusted point coefficients. At ``risk_lambda == 0`` this is an exact
+    identity.
+
     Returns ``{blend, net, delta}`` where each side carries the plan's revenue,
     retention cost, net, break count and objective, and ``delta`` is net minus
     blend on each money field, so a caller can see exactly what the net objective
     bought or gave up in shekels.
     """
+    from dataclasses import replace
+
     from kairos.optimize.optimizer import optimize_breaks
+    from kairos.optimize._segment_math import _risk_adjusted_coefficient
 
     seg_list = list(segments)
+    # Adjusted once, used by both legs: the decision basis both plans were made on.
+    adjusted = [
+        replace(s, impact_coefficient=_risk_adjusted_coefficient(s, risk_lambda))
+        for s in seg_list
+    ]
 
     def _run(mode: str) -> dict[str, Any]:
         result = optimize_breaks(
@@ -382,7 +411,7 @@ def compare_objectives(
             refine=False,
             objective_mode=mode,
         )
-        money = plan_revenue_net(result, segments=seg_list)
+        money = plan_revenue_net(result, segments=adjusted)
         return {
             "objective_mode": mode,
             "revenue_ils": money.get("revenue_ils"),

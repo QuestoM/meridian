@@ -55,6 +55,13 @@ _FIELD_OPS: dict[str, frozenset[str]] = {
     "hour":       frozenset({"eq", "lt", "lte", "gt", "gte", "between"}),
 }
 
+# Defensive cap on operator-supplied regex pattern length. A pattern this long is
+# never a legitimate programme/genre filter, and unbounded patterns are the cheap
+# half of a regex denial-of-service (compile cost and pathological backtracking
+# both grow with pattern size). An over-long pattern is a clean no-match with a
+# logged reason, never an exception inside a recompute.
+_MAX_REGEX_PATTERN_LENGTH = 512
+
 # Weekday abbreviation -> isoweekday int (1=Mon..7=Sun)
 _WEEKDAY_ISO: dict[str, int] = {
     "mon": 1, "tue": 2, "wed": 3, "thu": 4,
@@ -129,9 +136,20 @@ def _eval_string_op(op: str, field_value: str, cond_value: object) -> bool:
     if op == "ends_with":
         return fv.endswith(_norm(cond_value))
     if op == "regex":
+        pattern = str(cond_value or "")
+        if len(pattern) > _MAX_REGEX_PATTERN_LENGTH:
+            logger.debug(
+                "predicate: regex pattern of %d chars exceeds the %d cap -> False",
+                len(pattern), _MAX_REGEX_PATTERN_LENGTH,
+            )
+            return False
         try:
-            return bool(re.search(str(cond_value or ""), field_value, re.IGNORECASE))
-        except re.error:
+            return bool(re.search(pattern, field_value, re.IGNORECASE))
+        except (re.error, OverflowError, RecursionError):
+            # re raises beyond re.error on extreme patterns (OverflowError for
+            # "regular expression is too large", RecursionError on deep nesting);
+            # any of them is a malformed operator input, answered as a clean
+            # no-match with the reason logged, never an exception mid-recompute.
             logger.debug("predicate: malformed regex %r -> False", cond_value)
             return False
     if op == "in":

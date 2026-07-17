@@ -48,8 +48,8 @@ from collections import defaultdict
 from dataclasses import replace
 from typing import Iterable, Mapping, Optional, Sequence
 
-from kairos.optimize.guardrails import Break, Guardrails, Violation, evaluate, is_compliant
-from kairos.optimize.objective import STANDARD_UNIT_SECONDS, weighted_objective
+from kairos.optimize.guardrails import Break, Guardrails, evaluate, is_compliant
+from kairos.optimize.objective import weighted_objective
 from kairos.optimize.overrides import OverrideSet
 
 # Re-export all public types from _types so callers can keep importing from here.
@@ -131,7 +131,13 @@ def optimize_breaks(
     default) decides with the point estimate and changes nothing, 1.0 with the
     worst plausible cost, values between apply a partial variance penalty (see
     :func:`~kairos.optimize.objective.conservative_impact`). A point-only segment
-    is unaffected.
+    is unaffected. Under ``risk_lambda > 0`` every reported figure (per-segment
+    ``revenue``, ``total_revenue``, and therefore the ``predicted_revenue``
+    column the schedule CSV persists from them; see the COLUMNS block in
+    :mod:`kairos.export.schedule`) is on the plan's DECISION basis, valued at the
+    risk-adjusted retention the optimizer actually decided with, not at the
+    point-estimate retention. Downstream pricing of a plan must use segments on
+    that same basis (see :func:`kairos.optimize.revenue_net.plan_revenue_net`).
 
     ``placement_pins`` maps a segment id to an explicit list of
     :class:`PlacementPin` (absolute offset-from-start, per-break duration, gold
@@ -319,6 +325,16 @@ def optimize_breaks(
         seg = by_id[decision.segment_id]
         decisions_by_group[(seg.channel, seg.day)].append(decision)
 
+    # Snapshot the pure-greedy plan before any refiner tier touches it: the final
+    # never-worse guard below compares the refined plan against this snapshot on
+    # the REPORTED objective and reverts to it (with a note) if refinement lost
+    # ground there, so refinement can never ship a plan the reported scalar rates
+    # below plain greedy.
+    greedy_state = dict(state)
+    greedy_decisions_by_group = {key: list(trace) for key, trace in decisions_by_group.items()}
+    notes: list[str] = []
+    dp_stats = None
+
     # Greedy leaves value on the table in EITHER objective: re-spacing at
     # duration/(k+1) makes feasibility non-monotone, so a feasible-and-better
     # coordinated move can be unreachable one break at a time. The F1 refiner
@@ -359,9 +375,14 @@ def optimize_breaks(
             # Pure improvement guarantee: never adopt a worse-or-equal group.
             if refined_contribution <= greedy_contribution + _EPSILON:
                 continue  # greedy already reached this group's optimum
-            assert refined_contribution >= greedy_contribution, (
-                "refiner regressed a group below greedy"
-            )
+            # Explicit raise, not assert: an assert is stripped under -O, and a
+            # non-finite score fails BOTH comparisons (NaN is incomparable), which
+            # would otherwise adopt a corrupt group silently.
+            if not refined_contribution >= greedy_contribution:
+                raise RuntimeError(
+                    f"refiner adoption gate for group {key} saw a non-finite or inconsistent score "
+                    f"(refined {refined_contribution!r} vs greedy {greedy_contribution!r}); refusing to adopt"
+                )
             for segment in group:
                 state[segment.segment_id] = refined_counts[segment.segment_id]
             decisions_by_group[key] = replay_group_decisions(
@@ -379,7 +400,11 @@ def optimize_breaks(
         if dp_refine:
             from kairos.optimize.dp_refine import apply_dp_tier
 
-            apply_dp_tier(
+            # The tier returns per-run coverage counters (groups seen / exact /
+            # adopted plus a fallback-reason histogram), carried on the result
+            # for observability; a None return (a neutralised tier) means no
+            # counters, never fabricated zeros.
+            dp_stats = apply_dp_tier(
                 groups, state, decisions_by_group, guardrails,
                 revenue_weight=revenue_weight, revenue_scale=revenue_scale,
                 total_tvr=total_tvr, objective_mode=objective_mode, net_of=_net_of,
@@ -390,6 +415,37 @@ def optimize_breaks(
                     revenue_weight=revenue_weight, revenue_scale=revenue_scale,
                     total_tvr=total_tvr, placements=placements, net_of=_net_of,
                 ),
+            )
+
+        # Final never-worse guard on the REPORTED objective. The per-group
+        # adoption gates score the UNCLAMPED additive contribution, while the
+        # reported blend objective clamps its revenue term at 1.0; with the
+        # default revenue_scale the two agree exactly (revenue can never exceed
+        # the scale), but a caller-supplied undersized scale lets the gates adopt
+        # counts the clamped reported objective rates BELOW pure greedy. In net
+        # mode the reported comparison is the same ILS net the gates score, so
+        # the guard is an identity there. If refinement lost ground on the
+        # reported basis, revert to the greedy snapshot and say so in the notes;
+        # never a silent switch.
+        def _reported_score(counts: Mapping[str, int]) -> float:
+            if net_mode:
+                return sum(_net_of(s, counts[s.segment_id]) for s in segs)
+            revenue = sum(
+                _segment_revenue(by_id[sid], k, placements.get(sid)) for sid, k in counts.items()
+            )
+            weighted = sum(s.baseline_tvr * _segment_retention(s, counts[s.segment_id]) for s in segs)
+            share = weighted / total_tvr if total_tvr > _EPSILON else 1.0
+            return objective_of(revenue, share)
+
+        refined_reported = _reported_score(state)
+        greedy_reported = _reported_score(greedy_state)
+        if refined_reported < greedy_reported:
+            state = greedy_state
+            decisions_by_group = defaultdict(list)
+            for key, trace in greedy_decisions_by_group.items():
+                decisions_by_group[key] = list(trace)
+            notes.append(
+                f"refinement reverted to the pure greedy plan: the refined counts scored {refined_reported:.6f} against greedy {greedy_reported:.6f} on the reported objective (an undersized caller-supplied revenue_scale makes the unclamped refiner gates disagree with the clamped reported objective)"
             )
 
     # Roll the (possibly corrected) counts back up into the reported totals;
@@ -408,6 +464,7 @@ def optimize_breaks(
         objective_of(total_revenue, aggregate_retention()),
         guardrails, revenue_weight, revenue_scale, decisions, gold_by_id, rejected,
         original_by_id=original_by_id, risk_lambda=risk_lambda, placements=placements,
+        notes=notes, dp_stats=dp_stats,
     )
 
 
@@ -426,6 +483,8 @@ def _build_result(
     original_by_id: Optional[dict[str, ProgramSegment]] = None,
     risk_lambda: float = 0.0,
     placements: Optional[dict[str, Sequence[PlacementPin]]] = None,
+    notes: Optional[Sequence[str]] = None,
+    dp_stats: Optional[Mapping[str, object]] = None,
 ) -> OptimizationResult:
     gold_by_id = gold_by_id or {}
     original_by_id = original_by_id or {}
@@ -490,4 +549,6 @@ def _build_result(
         decisions=tuple(decisions),
         rejected_overrides=tuple(rejected or ()),
         risk_lambda=risk_lambda,
+        notes=tuple(notes or ()),
+        dp_stats=dp_stats,
     )

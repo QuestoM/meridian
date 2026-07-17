@@ -7,13 +7,31 @@ other for type definitions alone.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from kairos.optimize.guardrails import Violation
 from kairos.optimize.objective import STANDARD_UNIT_SECONDS
 
 DEFAULT_BREAK_LENGTH_SECONDS = 120.0  # a two-minute break, a common unit
+
+# Every numeric decision input on a ProgramSegment must be finite. NaN passes
+# ordinary comparison checks (NaN < 0 is False) and then fabricates downstream
+# values (predicted_retention clamps NaN to a numeric bound), so finiteness is
+# validated explicitly rather than left to comparisons.
+_FINITE_FIELDS = (
+    "impact_coefficient",
+    "baseline_tvr",
+    "cpp",
+    "premium",
+    "retention_baseline",
+    "start_seconds",
+    "duration_seconds",
+    "break_length_seconds",
+    "unit_seconds",
+    "first_break_multiplier",
+)
 
 
 @dataclass(frozen=True)
@@ -55,11 +73,27 @@ class ProgramSegment:
     program_title: str = ""                       # programme title, for cross-date matching
     first_break_multiplier: float = 1.0           # extra retention cost on the show's first break
 
+    def __post_init__(self) -> None:
+        # A credible interval with a non-finite bound cannot inform a risk
+        # adjustment; degrade the PAIR to None (point-only, the honest "only the
+        # point is known" state) rather than let NaN flow into decisions. Applied
+        # at construction so dataclasses.replace() copies stay clean too.
+        low, high = self.impact_ci_low, self.impact_ci_high
+        bad_low = low is not None and not math.isfinite(low)
+        bad_high = high is not None and not math.isfinite(high)
+        if bad_low or bad_high:
+            object.__setattr__(self, "impact_ci_low", None)
+            object.__setattr__(self, "impact_ci_high", None)
+
     @property
     def hour(self) -> int:
         return int(self.start_seconds // 3600.0)
 
     def validate(self) -> None:
+        for name in _FINITE_FIELDS:
+            value = getattr(self, name)
+            if not math.isfinite(value):
+                raise ValueError(f"segment {self.segment_id}: {name} must be finite, got {value!r}")
         if self.duration_seconds <= 0:
             raise ValueError(f"segment {self.segment_id}: duration_seconds must be positive")
         if self.baseline_tvr < 0:
@@ -173,6 +207,17 @@ class RejectedOverride:
 
 @dataclass(frozen=True)
 class OptimizationResult:
+    """The optimizer's full answer for one run.
+
+    ``notes`` carries any honest run-level caveat the optimizer attached, for
+    example the final never-worse guard reverting refinement to the pure greedy
+    plan when a caller-supplied undersized ``revenue_scale`` made the refiner
+    gates disagree with the clamped reported objective; empty on a normal run.
+    ``dp_stats`` is the exact DP tier's per-run coverage counters (groups seen /
+    exact / adopted plus a fallback-reason histogram) for observability, or
+    ``None`` when the tier did not run; neither field moves any number.
+    """
+
     segments: tuple[SegmentPlan, ...]
     placements: tuple[BreakPlacement, ...]     # every break, flat
     total_revenue: float
@@ -184,6 +229,8 @@ class OptimizationResult:
     decisions: tuple[Decision, ...]
     rejected_overrides: tuple[RejectedOverride, ...] = ()
     risk_lambda: float = 0.0                    # uncertainty preference applied to costs
+    notes: tuple[str, ...] = ()                 # run-level honesty notes, usually empty
+    dp_stats: Optional[Mapping[str, Any]] = None  # DP tier coverage counters, when it ran
 
     @property
     def total_breaks(self) -> int:

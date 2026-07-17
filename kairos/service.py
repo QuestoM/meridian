@@ -45,7 +45,7 @@ from kairos.optimize.pacing import (
     build_pacing_weights,
     load_campaigns,
 )
-from kairos.optimize.optimizer import OptimizationResult, PlacementPin, optimize_breaks
+from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 
@@ -198,17 +198,27 @@ def result_to_dict(
         }
         for p in result.placements
     ]
+    summary: dict[str, Any] = {
+        "total_breaks": result.total_breaks,
+        "total_ad_seconds": int(round(sum(p.duration_seconds for p in result.placements))),
+        "projected_revenue": round(result.total_revenue, 2),
+        "average_retention": round(result.aggregate_retention * 100, 1),
+        "objective": round(result.objective, 4),
+        "compliant": result.is_compliant,
+    }
+    # Additive observability: DP-tier coverage counters (which groups ran exact,
+    # which fell back and why) and any optimizer notes (e.g. a labeled
+    # never-worse revert), so run logs can tell "DP proved this optimal" from
+    # "DP never ran here". Absent keys mean the tier did not run and nothing
+    # noteworthy happened; nothing is fabricated.
+    if getattr(result, "dp_stats", None):
+        summary["dp_tier"] = {str(key): value for key, value in dict(result.dp_stats).items()}
+    if getattr(result, "notes", None):
+        summary["notes"] = [str(note) for note in result.notes]
     return {
         "channel": channel,
         "day": day,
-        "summary": {
-            "total_breaks": result.total_breaks,
-            "total_ad_seconds": int(round(sum(p.duration_seconds for p in result.placements))),
-            "projected_revenue": round(result.total_revenue, 2),
-            "average_retention": round(result.aggregate_retention * 100, 1),
-            "objective": round(result.objective, 4),
-            "compliant": result.is_compliant,
-        },
+        "summary": summary,
         "placements": placements,
         "segments": [
             {

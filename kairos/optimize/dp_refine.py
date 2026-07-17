@@ -38,7 +38,15 @@ Preconditions, each a silent fallback to the greedy+F1 counts (never an exceptio
   * heterogeneous break length across the group (the daily ad-seconds budget would
     embed a 0/1 knapsack and the small integer break-count state is no longer exact);
   * measured open depth above the guard (worst-case cost is exponential in this
-    data-dependent depth; see ``DEFAULT_MAX_OPEN_DEPTH``).
+    data-dependent depth; see ``DEFAULT_MAX_OPEN_DEPTH``);
+  * an exhausted per-group compute budget mid-sweep (pruned state count above
+    ``DEFAULT_MAX_STATES`` or wall time above ``DEFAULT_WALL_BUDGET_SECONDS``), so
+    an adversarial in-guard day degrades honestly to the greedy+F1 counts with a
+    named reason instead of stalling the recompute.
+
+Every fallback is labeled (``fell_back`` / ``reason`` / ``reason_code``) and
+:func:`apply_dp_tier` aggregates per-run coverage counters, so an auditor can see
+exactly how much of a run the exact tier covered and why the rest fell back.
 """
 from __future__ import annotations
 
@@ -67,6 +75,28 @@ _EPSILON = 1e-9
 # than the guard falls back to greedy+F1 rather than risk a runtime blowup.
 DEFAULT_MAX_OPEN_DEPTH = 14
 
+# Per-group compute budgets, the honest backstop behind the depth guard: depth is a
+# proxy, and an adversarial in-guard day (many long overlapping segments) can still
+# blow the state table or the clock. Measured across all 120 real channel-days
+# (2026-07-17): the worst day peaks at 40,485 pruned states and 0.70 wall seconds
+# (the depth-13 Kan 11 2024-11-09), so 200k states / 5.0 seconds keep the whole real
+# corpus on the exact path with about 5x headroom while an adversarial day degrades
+# to the labeled greedy+F1 fallback instead of stalling.
+DEFAULT_MAX_STATES = 200_000
+DEFAULT_WALL_BUDGET_SECONDS = 5.0
+
+
+class DPBudgetExceeded(Exception):
+    """The sweep exhausted its per-group state or wall budget (honest fallback).
+
+    ``code`` is the stable histogram key (``state_budget`` / ``wall_budget``);
+    ``str(exc)`` carries the measured detail for the human-readable reason.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
 
 @dataclass
 class DPRefineOutcome:
@@ -77,6 +107,8 @@ class DPRefineOutcome:
     the fallback is a no-op the adoption gate rejects. ``fell_back`` is True when a
     precondition tripped, and ``reason`` names which one (empty on the exact path),
     so a fallback is always observable and never dressed up as a DP win.
+    ``reason_code`` is the stable machine key for that reason (empty on the exact
+    path), the unit :func:`apply_dp_tier` histograms coverage by.
     """
 
     counts: dict          # segment_id -> proposed break count
@@ -86,6 +118,7 @@ class DPRefineOutcome:
     max_open_depth: int   # measured simultaneous-open depth (-1 on fallback)
     elapsed: float        # wall seconds
     dp_objective: float   # the DP's accumulated group objective (0.0 on fallback)
+    reason_code: str = ""  # stable key for the fallback reason ("" on the exact path)
 
 
 def _all_finite(group: Sequence[ProgramSegment]) -> bool:
@@ -107,8 +140,8 @@ def _blocking_constraint(
     caps: Optional[Mapping[str, int]],
     gold_by_id: Optional[Mapping[str, bool]],
     placements: Optional[Mapping[str, Sequence]],
-) -> str:
-    """The first constraint that puts the group off the DP's free path, or ""."""
+) -> tuple[str, str]:
+    """The first constraint off the DP's free path as ``(code, message)``, or two empty strings."""
     floors = floors or {}
     caps = caps or {}
     gold_by_id = gold_by_id or {}
@@ -116,14 +149,14 @@ def _blocking_constraint(
     for s in group:
         sid = s.segment_id
         if placements.get(sid):
-            return "placement pins present"
+            return "placement_pins", "placement pins present"
         if floors.get(sid, 0) > 0:
-            return "segment override floor present"
+            return "override_floor", "segment override floor present"
         if caps.get(sid, s.max_breaks) < s.max_breaks:
-            return "segment override cap present"
+            return "override_cap", "segment override cap present"
         if gold_by_id.get(sid, False) and not s.is_gold:
-            return "gold-forcing constraint present"
-    return ""
+            return "gold_forcing", "gold-forcing constraint present"
+    return "", ""
 
 
 def _window_ends(group: Sequence[ProgramSegment], guardrails: Guardrails, bl: float) -> list:
@@ -154,28 +187,37 @@ def _max_open_depth(group: Sequence[ProgramSegment], window_end: Sequence[float]
     return depth
 
 
-def _retention_capped_kmax(group: Sequence[ProgramSegment], guardrails: Guardrails) -> list:
-    """Per-segment break cap from the retention floor and own consecutive spacing."""
-    kmax = []
+def _allowed_break_counts(
+    group: Sequence[ProgramSegment], guardrails: Guardrails
+) -> list[list[int]]:
+    """Per-segment ALLOWED break counts under the retention floor and own spacing.
+
+    Every k in 0..max_breaks is tested independently rather than stopping at the
+    first failing k: with a POSITIVE impact coefficient retention RISES in k, so a
+    below-floor count can be followed by an above-floor one and a first-failure
+    break would silently understate the cap. k = 0 (no breaks emitted, nothing to
+    check) is always allowed. The DP explores exactly these counts, so a mid-range
+    k that breaches the floor or its own consecutive spacing is never proposed.
+    With the usual non-positive coefficients both feasibilities are monotone in k,
+    the allowed set is the prefix 0..cap, and this scan reproduces the old
+    first-failure cap exactly.
+    """
+    allowed: list[list[int]] = []
     for s in group:
-        cap = 0
-        for k in range(s.max_breaks + 1):
-            if k == 0 or _segment_retention(s, k) >= guardrails.min_retention_floor:
-                breaks = _segment_break_objects(s, k)
-                ok = True
-                for prev, cur in zip(breaks, breaks[1:]):
-                    gap = cur.start_seconds - (prev.start_seconds + prev.duration_seconds)
-                    if gap < guardrails.min_break_spacing_seconds:
-                        ok = False
-                        break
-                if ok:
-                    cap = k
-                else:
-                    break
-            else:
-                break
-        kmax.append(cap)
-    return kmax
+        ks = [0]
+        for k in range(1, s.max_breaks + 1):
+            if _segment_retention(s, k) < guardrails.min_retention_floor:
+                continue
+            breaks = _segment_break_objects(s, k)
+            if any(
+                cur.start_seconds - (prev.start_seconds + prev.duration_seconds)
+                < guardrails.min_break_spacing_seconds
+                for prev, cur in zip(breaks, breaks[1:])
+            ):
+                continue
+            ks.append(k)
+        allowed.append(ks)
+    return allowed
 
 
 def _contributions(
@@ -212,13 +254,18 @@ def _contributions(
     return out
 
 
-def _dp_core(group, contributions, kmax, guardrails, *, protected):
+def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
+             deadline, wall_budget_seconds, max_states):
     """Interval-sweep DP over one start-sorted channel-day.
 
     Returns ``(counts_list, objective, peak_states)`` where ``counts_list[i]`` is
-    the exact break count for ``group[i]``. Raises :class:`RuntimeError` only if the
-    sweep empties, which the free path (k = 0 is always feasible) never does; the
-    caller still treats it as a fallback for safety.
+    the exact break count for ``group[i]``, chosen only from ``allowed[i]`` (the
+    retention-floor and own-spacing feasible counts). Raises
+    :class:`DPBudgetExceeded` when the pruned state table outgrows ``max_states``
+    or the wall clock passes ``deadline``, which the caller turns into the labeled
+    never-worse fallback. Raises :class:`RuntimeError` only if the sweep empties,
+    which the free path (k = 0 is always feasible) never does; the caller still
+    treats it as a fallback for safety.
     """
     n = len(group)
     bl = group[0].break_length_seconds
@@ -227,6 +274,13 @@ def _dp_core(group, contributions, kmax, guardrails, *, protected):
                  for i, s in enumerate(group)]
     starts = [s.start_seconds for s in group]
     window_end = _window_ends(group, guardrails, bl)
+
+    def _check_wall(j: int) -> None:
+        if time.perf_counter() > deadline:
+            raise DPBudgetExceeded(
+                "wall_budget",
+                f"per-group wall budget of {wall_budget_seconds:.1f}s exhausted at segment {j} of {n}",
+            )
 
     def feasible_local(local):
         items = []
@@ -257,12 +311,21 @@ def _dp_core(group, contributions, kmax, guardrails, *, protected):
     states = {(0, 0, ()): (0.0, None, None)}
     trace = []
     peak = 1
+    expansions = 0
     for j in range(n):
+        _check_wall(j)
         next_start = starts[j + 1] if j + 1 < n else float("inf")
         new_states = {}
         for key, (value, _, _) in states.items():
+            # The wall check must live INSIDE the sweep too: a single stage over a
+            # bloated state table can burn the whole budget before the next
+            # per-stage check, so probe the clock every 512 expansions.
+            expansions += 1
+            if expansions % 512 == 0:
+                _check_wall(j)
             budget, gold, open_ks = key
-            for k in range(kmax[j] + 1):
+            # ``allowed[j]`` ascends, so the budget/gold breaks below stay valid.
+            for k in allowed[j]:
                 budget2 = budget + k
                 if budget2 > max_total:
                     break
@@ -291,6 +354,11 @@ def _dp_core(group, contributions, kmax, guardrails, *, protected):
                     best = payload[0]
                     pruned[(budget, gold, o)] = payload
         peak = max(peak, len(pruned))
+        if len(pruned) > max_states:
+            raise DPBudgetExceeded(
+                "state_budget",
+                f"pruned state count {len(pruned)} exceeds the {max_states} budget at segment {j} of {n}",
+            )
         trace.append(pruned)
         states = pruned
         if not states:
@@ -322,6 +390,8 @@ def dp_refine_group(
     gold_by_id: Optional[Mapping[str, bool]] = None,
     placements: Optional[Mapping[str, Sequence]] = None,
     max_open_depth: int = DEFAULT_MAX_OPEN_DEPTH,
+    max_states: int = DEFAULT_MAX_STATES,
+    wall_budget_seconds: float = DEFAULT_WALL_BUDGET_SECONDS,
 ) -> DPRefineOutcome:
     """Exactly optimize ONE channel-day's break counts, or keep the greedy+F1 input.
 
@@ -330,30 +400,34 @@ def dp_refine_group(
     plan for it. ``revenue_scale`` and ``total_tvr`` are the optimizer's global
     normalisers, so the proposed counts maximise the same per-group scalar the
     shipped scorer measures. In ``revenue_net`` mode ``net_of`` must be the caller's
-    per-segment net primitive.
+    per-segment net primitive. ``max_states`` and ``wall_budget_seconds`` bound the
+    sweep's per-group compute (see :data:`DEFAULT_MAX_STATES` /
+    :data:`DEFAULT_WALL_BUDGET_SECONDS` for the measured real-corpus headroom).
 
     Returns a :class:`DPRefineOutcome`. On the exact path ``counts`` is the DP
-    optimum and ``fell_back`` is False; on any precondition failure ``counts`` is
-    exactly ``current_counts`` and ``reason`` names the tripped precondition. The
-    caller owns the strictly-beats adoption gate against the shipped scorer, so this
-    function never itself changes a plan.
+    optimum and ``fell_back`` is False; on any precondition failure or exhausted
+    budget ``counts`` is exactly ``current_counts``, ``reason`` names what tripped,
+    and ``reason_code`` is its stable histogram key. The caller owns the
+    strictly-beats adoption gate against the shipped scorer, so this function never
+    itself changes a plan.
     """
     t0 = time.perf_counter()
     kept = dict(current_counts)
 
-    def _fallback(reason: str) -> DPRefineOutcome:
-        return DPRefineOutcome(kept, True, reason, 0, -1, time.perf_counter() - t0, 0.0)
+    def _fallback(code: str, reason: str) -> DPRefineOutcome:
+        return DPRefineOutcome(
+            kept, True, reason, 0, -1, time.perf_counter() - t0, 0.0, reason_code=code)
 
     if not group:
-        return _fallback("empty group")
+        return _fallback("empty_group", "empty group")
 
-    blocking = _blocking_constraint(group, floors, caps, gold_by_id, placements)
+    blocking_code, blocking = _blocking_constraint(group, floors, caps, gold_by_id, placements)
     if blocking:
-        return _fallback(blocking)
+        return _fallback(blocking_code, blocking)
     if not _all_finite(group):
-        return _fallback("non-finite segment input")
+        return _fallback("non_finite_input", "non-finite segment input")
     if objective_mode == OBJECTIVE_REVENUE_NET and net_of is None:
-        return _fallback("revenue_net mode without a net primitive")
+        return _fallback("net_without_primitive", "revenue_net mode without a net primitive")
 
     # The interval sweep and its closure lemma both require start order; the group
     # arrives keyed by segment_id, so sort a local copy by start_seconds. The daily
@@ -362,14 +436,16 @@ def dp_refine_group(
 
     lengths = set(round(s.break_length_seconds, 6) for s in ordered)
     if len(lengths) > 1:
-        return _fallback(f"heterogeneous break lengths {sorted(lengths)}")
+        return _fallback(
+            "heterogeneous_break_lengths", f"heterogeneous break lengths {sorted(lengths)}")
 
     bl = ordered[0].break_length_seconds
     depth = _max_open_depth(ordered, _window_ends(ordered, guardrails, bl))
     if depth > max_open_depth:
-        return _fallback(f"open depth {depth} exceeds guard {max_open_depth}")
+        return _fallback("open_depth", f"open depth {depth} exceeds guard {max_open_depth}")
 
-    kmax = _retention_capped_kmax(ordered, guardrails)
+    allowed = _allowed_break_counts(ordered, guardrails)
+    kmax = [ks[-1] for ks in allowed]
     protected = frozenset(p.lower() for p in guardrails.protected_program_types)
     contribs = _contributions(
         ordered, revenue_scale, total_tvr, kmax,
@@ -377,16 +453,20 @@ def dp_refine_group(
     )
     try:
         counts_list, dp_objective, peak = _dp_core(
-            ordered, contribs, kmax, guardrails, protected=protected)
+            ordered, contribs, kmax, allowed, guardrails, protected=protected,
+            deadline=t0 + wall_budget_seconds, wall_budget_seconds=wall_budget_seconds,
+            max_states=max_states)
+    except DPBudgetExceeded as exc:
+        return _fallback(exc.code, f"dp budget exceeded ({exc})")
     except RuntimeError as exc:
-        return _fallback(f"dp infeasible ({exc})")
+        return _fallback("dp_infeasible", f"dp infeasible ({exc})")
 
     counts = {s.segment_id: k for s, k in zip(ordered, counts_list)}
     # Belt-and-braces: the DP guarantees compliance by construction, but reconstruct
     # and re-run the engine's own check so a proposed plan that somehow breaches a
     # guardrail is dropped rather than handed to the adoption gate.
     if not is_compliant(_group_breaks(ordered, counts), guardrails):
-        return _fallback("dp plan failed engine is_compliant")
+        return _fallback("dp_noncompliant", "dp plan failed engine is_compliant")
 
     return DPRefineOutcome(
         counts, False, "", peak, depth, time.perf_counter() - t0, dp_objective)
@@ -410,7 +490,7 @@ def apply_dp_tier(
     group_score: Callable,
     replay_decisions: Callable,
     max_open_depth: int = DEFAULT_MAX_OPEN_DEPTH,
-) -> None:
+) -> dict:
     """Adopt the exact DP plan per channel-day where it strictly beats greedy+F1.
 
     Mutates ``state`` (segment_id -> count) and ``decisions_by_group`` in place for
@@ -421,8 +501,26 @@ def apply_dp_tier(
     decision-trace rebuilder, so an adopted group's reported trace matches the F1
     tier's exactly. The engine's own :func:`is_compliant` is re-run on each proposed
     plan as belt-and-braces before adoption.
+
+    Returns the tier's per-run coverage counters so the run can be audited:
+    ``groups_total`` channel-days examined, ``groups_exact`` solved to the exact
+    optimum, ``groups_adopted`` where the exact counts strictly beat greedy+F1 and
+    were taken, ``groups_not_better`` where greedy+F1 already matched the optimum,
+    ``groups_noncompliant`` where the belt-and-braces check rejected the proposal,
+    and ``fallback_reasons``, a histogram keyed by each fallback's stable
+    ``reason_code``. Counters are measured, never estimated.
     """
+    fallback_reasons: dict[str, int] = {}
+    stats: dict = {
+        "groups_total": 0,
+        "groups_exact": 0,
+        "groups_adopted": 0,
+        "groups_not_better": 0,
+        "groups_noncompliant": 0,
+        "fallback_reasons": fallback_reasons,
+    }
     for key, group in groups.items():
+        stats["groups_total"] += 1
         greedy_f1_counts = {s.segment_id: state[s.segment_id] for s in group}
         base_value = group_score(group, greedy_f1_counts)
         outcome = dp_refine_group(
@@ -433,15 +531,29 @@ def apply_dp_tier(
             max_open_depth=max_open_depth,
         )
         if outcome.fell_back:
+            code = outcome.reason_code or "unlabeled"
+            fallback_reasons[code] = fallback_reasons.get(code, 0) + 1
             continue
+        stats["groups_exact"] += 1
         dp_value = group_score(group, outcome.counts)
         if dp_value <= base_value + _EPSILON:
+            stats["groups_not_better"] += 1
             continue  # greedy+F1 already reached this group's optimum
+        # Explicit raise, not assert (stripped under -O): a score the comparison
+        # above did not order can only be non-finite, and adopting it would corrupt
+        # the plan silently.
+        if not dp_value >= base_value:
+            raise RuntimeError(
+                f"dp adoption gate for group {key} saw a non-finite or inconsistent score "
+                f"(dp {dp_value!r} vs greedy+F1 {base_value!r}); refusing to adopt"
+            )
         if not is_compliant(
             _group_breaks(group, outcome.counts, gold_by_id, placements), guardrails
         ):
+            stats["groups_noncompliant"] += 1
             continue  # never adopt a plan the engine's own check rejects
-        assert dp_value >= base_value, "dp tier regressed a group below greedy+F1"
         for segment in group:
             state[segment.segment_id] = outcome.counts[segment.segment_id]
         decisions_by_group[key] = replay_decisions(group, outcome.counts)
+        stats["groups_adopted"] += 1
+    return stats

@@ -29,7 +29,6 @@ from kairos.optimize.objective import (
     predicted_retention,
 )
 from kairos.optimize._types import (
-    DEFAULT_BREAK_LENGTH_SECONDS,
     PlacementPin,
     ProgramSegment,
 )

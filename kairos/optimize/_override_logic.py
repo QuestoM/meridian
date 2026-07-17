@@ -116,12 +116,18 @@ def _apply_placement_pins(
 ) -> dict[str, Sequence[PlacementPin]]:
     """Validate explicit placement pins and force the segments that carry them.
 
-    For each pinned segment: validate the pins are in-bounds and non-overlapping,
-    then run the guardrail checks on the pinned geometry for its channel-day. If
-    either fails, the segment's pins are dropped (it falls back to a 0 floor and
-    its normal cap) and a ``RejectedOverride(kind="placement")`` is recorded.
-    A valid pin set forces ``floor == cap == len(pins)`` so every tier leaves the
-    segment fixed, and is returned in the side map every emit / revenue path reads.
+    For each pinned segment: enforce the count contract (a pin set may not exceed
+    the segment's ``max_breaks``, exactly like a count pin), validate the pins are
+    in-bounds and non-overlapping, then run the guardrail checks on the pinned
+    geometry for its channel-day. If any of these fails, a
+    ``RejectedOverride(kind="placement")`` is recorded and the segment is LOCKED AT
+    0 BREAKS (floor == cap == 0): the operator asked for explicit geometry that
+    cannot be honored, and silently substituting freely optimized breaks would
+    misrepresent that request. This is the single rejected-placement semantic; the
+    channel-day backout in :func:`_reject_infeasible_placements` applies the same
+    lock. A valid pin set forces ``floor == cap == len(pins)`` so every tier leaves
+    the segment fixed, and is returned in the side map every emit / revenue path
+    reads.
     """
     placements: dict[str, Sequence[PlacementPin]] = {}
     if not placement_pins:
@@ -132,7 +138,13 @@ def _apply_placement_pins(
         segment = seg_by_id.get(segment_id)
         if segment is None or not pins:
             continue
-        reason = _placements_in_bounds(segment, pins)
+        reason = None
+        if len(pins) > segment.max_breaks:
+            # One contract with count pins (_apply_segment_overrides): a request
+            # for more breaks than max_breaks is rejected, never silently honored.
+            reason = f"pinned count {len(pins)} exceeds max_breaks {segment.max_breaks}"
+        if reason is None:
+            reason = _placements_in_bounds(segment, pins)
         if reason is None:
             # Check the pinned geometry against the spacing / load guardrails in
             # isolation (per-segment); the channel-day check below catches breaches
@@ -178,7 +190,10 @@ def _reject_infeasible_placements(
 
     Only placement-pinned segments are candidates (a non-pinned floor is left for
     the override path to handle), removed largest first, each recorded as a
-    ``placement`` rejection.
+    ``placement`` rejection. A backed-out segment is LOCKED AT 0 BREAKS
+    (floor == cap == 0), the same semantic every rejected placement pin gets (see
+    :func:`_apply_placement_pins`): the operator asked for explicit geometry, so
+    substituting freely optimized breaks would silently misrepresent that request.
     """
     state = {s.segment_id: floors[s.segment_id] for s in group}
     while not is_compliant(_group_breaks(group, state, gold_by_id, placements), guardrails):
@@ -193,7 +208,7 @@ def _reject_infeasible_placements(
         del placements[worst.segment_id]
         state[worst.segment_id] = 0
         floors[worst.segment_id] = 0
-        caps[worst.segment_id] = worst.max_breaks
+        caps[worst.segment_id] = 0
 
 
 def _reject_infeasible_floors(
