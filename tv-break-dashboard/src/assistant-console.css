@@ -74,10 +74,14 @@
 /* Honest unavailable callout: full box plus a single inline-start amber edge */
 .asst-unavailable { margin: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
 
-/* Composer with the send action */
+/* Composer with the send action. The textarea rests at one 44px row with the
+   text vertically centered (11px padding + 20px line box + 1px borders = 44px)
+   and the send button matches that height exactly, so the resting state is one
+   aligned row; JS auto-grow raises the height with content up to the max. */
 .asst-composer { display: flex; align-items: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-2); }
-.asst-composer textarea { flex: 1; resize: vertical; min-height: 44px; font: inherit; font-size: var(--text-sm); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+.asst-composer textarea { flex: 1; resize: none; box-sizing: border-box; min-height: 44px; max-height: 160px; overflow-y: auto; font: inherit; font-size: var(--text-sm); line-height: 20px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 11px var(--space-3); }
 .asst-composer textarea:disabled { opacity: 0.55; }
+.asst-composer .asst-send-btn { height: 44px; flex-shrink: 0; }
 .asst-hint { margin: 0; padding: 0 var(--space-4) var(--space-3); font-size: var(--text-xs); color: var(--subtle); }
 
 /* Side rail: tabs, badge, manual refresh */

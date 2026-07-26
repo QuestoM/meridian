@@ -296,6 +296,16 @@ export default function AssistantPanel({ locale, notify }) {
     if (composerRef.current) composerRef.current.focus();
   }
 
+  // Auto-grow: the composer rests at one row (matching the send button) and
+  // grows with the content up to a cap, so the default state never towers over
+  // the button and a long question still stays fully visible.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [question]);
+
   const pendingCount = useMemo(() => Object.values(batchMap).reduce((sum, batch) => sum + batch.items.filter((item) => item.status === 'pending').length, 0), [batchMap]);
   const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id])), [batchOrder, batchMap, applyResults]);
 
@@ -418,15 +428,15 @@ export default function AssistantPanel({ locale, notify }) {
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={onComposerKeyDown}
-              rows={2}
+              rows={1}
               maxLength={2000}
-              dir="auto"
+              dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
               placeholder={unavailable ? pageText(locale, 'The assistant is not available right now', 'העוזר אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
               disabled={asking || unavailable}
               aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}
             />
-            <Button variant="contained" size="small" onClick={ask} disabled={asking || unavailable || !question.trim()} startIcon={<Send size={14} />}>
-              {pageText(locale, 'Ask', 'שאלו')}
+            <Button variant="contained" size="small" className="asst-send-btn" onClick={ask} disabled={asking || unavailable || !question.trim()} endIcon={<Send size={14} style={locale === 'he' ? { transform: 'scaleX(-1)' } : undefined} />}>
+              {asking ? pageText(locale, 'Sending', 'שולח') : pageText(locale, 'Send', 'שליחה')}
             </Button>
           </div>
           <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line.', 'מקש Enter שולח, Shift+Enter יורד שורה.')}</p>
