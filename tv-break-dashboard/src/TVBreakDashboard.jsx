@@ -309,9 +309,10 @@ const copyByLocale = {
     runOptimization: 'Run Optimization',
     loading: 'Loading Kairos workspace',
     apiUnavailable: 'API unavailable. Some data could not be loaded.',
-    // Labels name the saved plan (not a tomorrow-forecast). Scope (channel +
-    // date span) is disclosed under the strip from the API basis fields.
-    metrics: ['Plan revenue', 'Plan retention', 'Plan ad minutes', 'Retention risk'],
+    // The headline speaks in the operator's working horizon: the planning week
+    // (summary.week from the API). Exact dates are disclosed in the tile sub
+    // line and under the strip from the basis fields.
+    metrics: ['Weekly projected revenue', 'Weekly predicted retention', 'Weekly ad minutes', 'Retention risk'],
     risk: { High: 'High', Medium: 'Medium', Low: 'Low', Unknown: 'Unknown' },
     toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
@@ -410,9 +411,9 @@ const copyByLocale = {
     runOptimization: 'הרצת אופטימיזציה',
     loading: 'טוען סביבת Kairos',
     apiUnavailable: 'ה־API לא זמין. חלק מהנתונים לא נטענו.',
-    // תוויות על התוכנית השמורה (לא תחזית למחר). ההיקף (ערוץ + טווח תאריכים)
-    // מופיע מתחת לרצועה מתוך שדות הבסיס של ה-API.
-    metrics: ['הכנסה בתוכנית', 'שימור בתוכנית', 'דקות פרסום בתוכנית', 'סיכון שימור'],
+    // הכותרת מדברת באופק העבודה של המפעיל: שבוע התכנון (summary.week מה-API).
+    // התאריכים המדויקים מפורטים בשורת המשנה של האריח ומתחת לרצועה.
+    metrics: ['הכנסה שבועית צפויה', 'שימור שבועי חזוי', 'דקות פרסום בשבוע', 'סיכון שימור'],
     risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
@@ -2565,57 +2566,70 @@ function SummaryMetrics({ overview, copy, locale }) {
   // A malformed-but-online response falls back to an empty summary so the
   // metrics show honest empty states, never the offline demo numbers.
   const summary = overview.summary || {};
-  const riskScore = finiteNumber(summary.risk_score);
+  // The headline speaks in the operator's working horizon: the planning-week
+  // slice the API computes (summary.week). Whole-plan totals stay available as
+  // the top-level summary keys and serve as the fallback for an older backend.
+  const week = summary.week && typeof summary.week === 'object' ? summary.week : null;
+  const revenueValue = week ? week.projected_revenue : summary.projected_revenue;
+  const retentionValue = week ? week.average_retention : summary.average_retention;
+  const adSecondsValue = week ? week.total_ad_seconds : summary.total_ad_seconds;
+  const riskScore = finiteNumber(week ? week.risk_score : summary.risk_score);
   const basisLabel = summaryBasisLabel(summary, locale);
-  // Tooltips state the provenance verified in kairos_api.core._summarize_schedule:
-  // sums over the saved plan CSV for the operator channel, not a live forecast.
   const revenueHint = pageText(
     locale,
-    'Sum of predicted_revenue on the saved plan for your channel over the plan dates, not a forecast for tomorrow.',
-    'סכום predicted_revenue בתוכנית השמורה לערוץ שלכם על פני ימי התוכנית, לא תחזית למחר.',
+    'Projected ad revenue of your channel for the planning week, summed from the optimizer’s saved plan. Not a forecast for tomorrow.',
+    'צפי הכנסות הפרסום של הערוץ שלכם לשבוע התכנון, מסוכם מהתוכנית השמורה של האופטימייזר. לא תחזית ליום מחר.',
   );
-  // The window and the per-day average live inside the tile itself: a 30-day
-  // plan total reads as an opaque blob without them, and the operator thinks
-  // in days, not plan-length sums.
-  const planDates = finiteNumber(summary.n_dates);
-  const planRevenue = finiteNumber(summary.projected_revenue);
-  const revenueSub = planDates && planDates > 0 && planRevenue !== null
+  // The exact week window and its per-day pace live inside the tile itself:
+  // a bare total reads as an opaque blob, and the operator thinks in days.
+  const weekDates = week ? finiteNumber(week.n_dates) : null;
+  const weekRevenue = week ? finiteNumber(week.projected_revenue) : null;
+  const weekRange = week && week.date_from && week.date_to
+    ? `${formatPlanDate(String(week.date_from), locale)} - ${formatPlanDate(String(week.date_to), locale)}`
+    : null;
+  const revenueSub = week && weekRange && weekDates > 0 && weekRevenue !== null
     ? pageText(
       locale,
-      `${formatNumber(planDates, locale)} plan days, daily average ${formatCurrency(planRevenue / planDates, locale)}`,
-      `${formatNumber(planDates, locale)} ימי תוכנית · ממוצע יומי ${formatCurrency(planRevenue / planDates, locale)}`,
+      `${weekRange} · daily average ${formatCurrency(weekRevenue / weekDates, locale)}`,
+      `${weekRange} · ממוצע יומי ${formatCurrency(weekRevenue / weekDates, locale)}`,
     )
     : null;
   const retentionHint = pageText(
     locale,
-    'TVR-weighted average retention across the saved plan rows for your channel.',
-    'ממוצע שימור משוקלל TVR על שורות התוכנית השמורה לערוץ שלכם.',
+    'TVR-weighted average predicted retention across the planning-week rows of the saved plan.',
+    'ממוצע שימור חזוי משוקלל TVR על שורות שבוע התכנון בתוכנית השמורה.',
   );
   const minutesHint = pageText(
     locale,
-    'Total ad seconds on the saved plan for your channel, shown as minutes.',
-    'סך שניות הפרסום בתוכנית השמורה לערוץ שלכם, מוצג בדקות.',
+    'Total ad seconds on the planning week of the saved plan, shown as minutes.',
+    'סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות.',
   );
   const riskHint = pageText(
     locale,
-    'How far the plan’s average retention sits below your retention floor (0 = at or above the floor). Not a general business-risk score.',
-    'כמה רחוק ממוצע השימור בתוכנית מתחת לרף השימור שלכם (0 = ברף או מעליו). לא ציון סיכון עסקי כללי.',
+    'How far the planning week’s average retention sits below your retention floor (0 = at or above the floor). Not a general business-risk score.',
+    'כמה רחוק ממוצע השימור של שבוע התכנון מתחת לרף השימור שלכם (0 = ברף או מעליו). לא ציון סיכון עסקי כללי.',
   );
   return (
     <>
       <section className="metric-strip" aria-label="Optimization summary">
-        <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} sub={revenueSub} icon={CircleDollarSign} positive title={revenueHint} />
-        <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} title={retentionHint} />
-        <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive title={minutesHint} />
+        <Metric label={copy.metrics[0]} value={formatCurrency(revenueValue, locale)} sub={revenueSub} icon={CircleDollarSign} positive title={revenueHint} />
+        <Metric label={copy.metrics[1]} value={formatPercent(retentionValue, locale)} icon={Users} title={retentionHint} />
+        <Metric label={copy.metrics[2]} value={formatMinutes(adSecondsValue, locale)} icon={Clock3} positive title={minutesHint} />
         <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" title={riskHint} />
       </section>
       {basisLabel && (
         <p className="data-basis-note">
-          {pageText(
-            locale,
-            `These headline figures are totals from the saved plan for ${basisLabel}. They are not a day-ahead forecast.`,
-            `המספרים שבכותרת הם סכומים מהתוכנית השמורה עבור ${basisLabel}. זו אינה תחזית ליום מחר.`,
-          )}
+          {week && weekRange
+            ? pageText(
+              locale,
+              `The headline figures are the projection for the planning week ${weekRange} (${formatNumber(weekDates, locale)} days), taken from the saved plan for ${basisLabel}.`,
+              `המספרים שבכותרת הם הצפי לשבוע התכנון ${weekRange} (${formatNumber(weekDates, locale)} ימים), מתוך התוכנית השמורה עבור ${basisLabel}.`,
+            )
+            : pageText(
+              locale,
+              `These headline figures are totals from the saved plan for ${basisLabel}. They are not a day-ahead forecast.`,
+              `המספרים שבכותרת הם סכומים מהתוכנית השמורה עבור ${basisLabel}. זו אינה תחזית ליום מחר.`,
+            )}
         </p>
       )}
     </>

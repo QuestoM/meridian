@@ -379,6 +379,21 @@ def scoped_yield_payload() -> dict[str, Any]:
         payload = _build_yield_per_second(scoped, scope_channel=scope_channel)
     payload["scope_channel"] = scope_channel
     payload["n_channels_total"] = n_channels_total
+    # Same calendar span the overview headline uses, read from the same scoped
+    # plan rows. Present only when the plan carries dates — never invented.
+    n_dates = 0
+    date_from = None
+    date_to = None
+    if not scoped.empty and "date" in scoped.columns:
+        date_text = scoped["date"].astype(str).str.strip()
+        date_text = date_text[date_text.ne("") & date_text.str.lower().ne("nan")]
+        n_dates = int(date_text.nunique())
+        if n_dates > 0:
+            date_from = str(date_text.min())
+            date_to = str(date_text.max())
+    payload["n_dates"] = n_dates
+    payload["date_from"] = date_from
+    payload["date_to"] = date_to
     return payload
 
 

@@ -18,7 +18,7 @@ import math
 import os
 import threading
 import time
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
@@ -461,11 +461,22 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
         scope_channel = owned
 
     n_dates = 0
+    date_from: str | None = None
+    date_to: str | None = None
     if not scoped.empty and "date" in scoped.columns:
-        n_dates = int(scoped["date"].astype(str).str.strip().nunique())
+        date_text = scoped["date"].astype(str).str.strip()
+        date_text = date_text[date_text.ne("") & date_text.str.lower().ne("nan")]
+        n_dates = int(date_text.nunique())
+        if n_dates > 0:
+            # ISO-sortable calendar dates from the saved plan itself — never
+            # invented. UI uses these so "30 days" is not an undated blob.
+            date_from = str(date_text.min())
+            date_to = str(date_text.max())
     basis = {
         "scope_channel": scope_channel,
         "n_dates": n_dates,
+        "date_from": date_from,
+        "date_to": date_to,
         "n_channels_total": n_channels_total,
     }
 
@@ -484,46 +495,90 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
             "average_retention": None,
             "risk_score": None,
             "retention_basis": None,
+            "week": None,
             **basis,
         }
 
-    num_breaks = pd.to_numeric(scoped.get("num_breaks", 1), errors="coerce").fillna(1)
+    metrics = _window_metrics(scoped, settings)
+
+    # The operator's working horizon is a week, not a plan-length blob: the
+    # headline therefore also carries a planning-week slice. The window is the
+    # Sunday-to-Saturday week around the reference date when that date falls
+    # inside the saved plan; otherwise (the usual state with a historical data
+    # drop) it is the plan's first seven dates, the exact window the schedule
+    # canvas already shows, and the basis field says which rule fired. Whole-plan
+    # totals stay in the top-level keys unchanged.
+    week: dict[str, Any] | None = None
+    if "date" in scoped.columns:
+        parsed: dict[str, date] = {}
+        for text in scoped["date"].astype(str).str.strip().unique():
+            try:
+                parsed[text] = date.fromisoformat(text[:10])
+            except ValueError:
+                continue
+        plan_days = sorted(set(parsed.values()))
+        if plan_days:
+            reference = _reference_today(settings)
+            if plan_days[0] <= reference <= plan_days[-1]:
+                week_start = reference - timedelta(days=(reference.weekday() + 1) % 7)
+                window = [day for day in plan_days if week_start <= day <= week_start + timedelta(days=6)]
+                week_source = "reference_date"
+            else:
+                window = plan_days[:7]
+                week_source = "plan_first_week"
+            if window:
+                keep = set(window)
+                texts = {text for text, day in parsed.items() if day in keep}
+                week_frame = scoped[scoped["date"].astype(str).str.strip().isin(texts)]
+                week = {
+                    **_window_metrics(week_frame, settings),
+                    "date_from": window[0].isoformat(),
+                    "date_to": window[-1].isoformat(),
+                    "n_dates": len(window),
+                    "basis": week_source,
+                }
+
+    return {**metrics, "week": week, **basis}
+
+
+def _window_metrics(frame: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
+    """Headline aggregates for one slice of the owned plan.
+
+    One implementation serves both the whole-plan totals and the planning-week
+    slice so the two can never drift: TVR-weighted retention on the plan's own
+    ``baseline_tvr`` (falling back to the unweighted mean with the basis saying
+    so) and the honest risk score measured against the operator's retention
+    floor (see :func:`_risk_from_retention`).
+    """
+    num_breaks = pd.to_numeric(frame.get("num_breaks", 1), errors="coerce").fillna(1)
     break_time = pd.to_numeric(
-        scoped.get("total_break_time", scoped.get("break_length", 0)),
+        frame.get("total_break_time", frame.get("break_length", 0)),
         errors="coerce",
     ).fillna(0)
     revenue = pd.to_numeric(
-        scoped.get("predicted_revenue", scoped.get("revenue_ils", 0)),
+        frame.get("predicted_revenue", frame.get("revenue_ils", 0)),
         errors="coerce",
     ).fillna(0)
-    retention = pd.to_numeric(scoped.get("predicted_retention", 0), errors="coerce")
+    retention = pd.to_numeric(frame.get("predicted_retention", 0), errors="coerce")
     retention = retention[retention > 0]
     avg_retention = retention.mean() if not retention.empty else 0.0
     retention_basis = "unweighted_mean"
-    if "baseline_tvr" in scoped.columns and not retention.empty:
-        weights = pd.to_numeric(scoped.loc[retention.index, "baseline_tvr"], errors="coerce")
+    if "baseline_tvr" in frame.columns and not retention.empty:
+        weights = pd.to_numeric(frame.loc[retention.index, "baseline_tvr"], errors="coerce")
         weights = weights.where(weights > 0)
         weight_total = weights.sum()
         if pd.notna(weight_total) and float(weight_total) > 0:
             avg_retention = float((retention * weights).sum() / weight_total)
             retention_basis = "tvr_weighted"
-    total_breaks = int(num_breaks.sum())
     avg_retention_pct = round(_percent(avg_retention), 1)
-    # Honest risk score: the measured average-retention shortfall below the
-    # operator's configured floor (see _risk_from_retention). Sourced from the
-    # optimizer plan and operator settings, not the old saturating break-count
-    # formula. Falls back to the guardrail default floor when settings are absent.
     floor_percent = round(settings.min_retention_floor * 100, 1)
-    risk_score = _risk_from_retention(avg_retention_pct, floor_percent)
-
     return {
-        "total_breaks": total_breaks,
+        "total_breaks": int(num_breaks.sum()),
         "total_ad_seconds": int(break_time.sum()),
         "projected_revenue": _money(revenue.sum()),
         "average_retention": avg_retention_pct,
-        "risk_score": risk_score,
+        "risk_score": _risk_from_retention(avg_retention_pct, floor_percent),
         "retention_basis": retention_basis,
-        **basis,
     }
 
 
