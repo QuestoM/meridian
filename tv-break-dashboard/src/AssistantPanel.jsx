@@ -214,6 +214,10 @@ export default function AssistantPanel({ locale, notify }) {
     const trimmed = question.trim();
     if (!trimmed || asking) return;
     setAsking(true);
+    // Clear at send time, not on completion: the composer stays typeable while
+    // the answer streams, so a late clear would wipe whatever the operator has
+    // already started typing for the next question.
+    setQuestion('');
     setLive({ question: trimmed, text: '', step: null });
     try {
       let body;
@@ -229,9 +233,11 @@ export default function AssistantPanel({ locale, notify }) {
         body = await postJson('/api/assistant/ask', { question: trimmed });
       }
       finishAsk(trimmed, body);
-      setQuestion('');
     } catch (error) {
       appendEntry({ question: trimmed, error: error.message });
+      // Put the failed question back for an easy retry, but never overwrite
+      // text the operator typed while the ask was in flight.
+      setQuestion((current) => (current ? current : trimmed));
     } finally {
       setLive(null);
       setAsking(false);
@@ -432,7 +438,7 @@ export default function AssistantPanel({ locale, notify }) {
               maxLength={2000}
               dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
               placeholder={unavailable ? pageText(locale, 'The assistant is not available right now', 'העוזר אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
-              disabled={asking || unavailable}
+              disabled={unavailable}
               aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}
             />
             <Button variant="contained" size="small" className="asst-send-btn" onClick={ask} disabled={asking || unavailable || !question.trim()} endIcon={<Send size={14} style={locale === 'he' ? { transform: 'scaleX(-1)' } : undefined} />}>

@@ -106,7 +106,7 @@ import Login, {
   roleLabel,
 } from './Login';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
 
 const ltrCache = createCache({ key: 'mui' });
@@ -309,7 +309,9 @@ const copyByLocale = {
     runOptimization: 'Run Optimization',
     loading: 'Loading Kairos workspace',
     apiUnavailable: 'API unavailable. Some data could not be loaded.',
-    metrics: ['Projected revenue', 'Predicted retention', 'Total ad minutes', 'Risk score'],
+    // Labels name the saved plan (not a tomorrow-forecast). Scope (channel +
+    // date span) is disclosed under the strip from the API basis fields.
+    metrics: ['Plan revenue', 'Plan retention', 'Plan ad minutes', 'Retention risk'],
     risk: { High: 'High', Medium: 'Medium', Low: 'Low', Unknown: 'Unknown' },
     toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
@@ -317,7 +319,7 @@ const copyByLocale = {
     selectedBreak: 'Selected break',
     pending: 'Pending',
     approved: 'Approved',
-    detail: ['Revenue', 'Predicted retention', 'Duration', 'Sponsorships'],
+    detail: ['Plan revenue', 'Plan retention', 'Duration', 'Sponsorships'],
     guardrails: 'Guardrails',
     recommendation: 'Recommendation',
     approve: 'Approve',
@@ -408,7 +410,9 @@ const copyByLocale = {
     runOptimization: 'הרצת אופטימיזציה',
     loading: 'טוען סביבת Kairos',
     apiUnavailable: 'ה־API לא זמין. חלק מהנתונים לא נטענו.',
-    metrics: ['הכנסה צפויה', 'שימור חזוי', 'דקות פרסום', 'רמת סיכון'],
+    // תוויות על התוכנית השמורה (לא תחזית למחר). ההיקף (ערוץ + טווח תאריכים)
+    // מופיע מתחת לרצועה מתוך שדות הבסיס של ה-API.
+    metrics: ['הכנסה בתוכנית', 'שימור בתוכנית', 'דקות פרסום בתוכנית', 'סיכון שימור'],
     risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
@@ -416,7 +420,7 @@ const copyByLocale = {
     selectedBreak: 'ברייק נבחר',
     pending: 'ממתין',
     approved: 'מאושר',
-    detail: ['הכנסה', 'שימור חזוי', 'משך', 'חסויות'],
+    detail: ['הכנסת תוכנית', 'שימור בתוכנית', 'משך', 'חסויות'],
     guardrails: 'בקרות',
     recommendation: 'המלצה',
     approve: 'אישור',
@@ -1433,16 +1437,38 @@ function TVBreakDashboard() {
     setRefreshKey((key) => key + 1);
   }
 
-  // Session-expiry guard. Sessions live in the server process, so a server
-  // restart invalidates them mid-session; without this, every panel quietly
-  // renders its offline state while the operator wonders what died. Any API
-  // 401 outside the auth routes flips the app to the sign-in screen instead.
+  // Session cookie + expiry guard. Dev runs the SPA on :3000 and the API on
+  // :8000 (cross-origin). Default fetch omits cookies on cross-origin calls, so
+  // every non-auth request after a successful login would 401 and bounce the
+  // operator straight back to the sign-in screen. This wrapper always ships
+  // credentials for our API host, and any 401 outside /api/auth/* flips the app
+  // to the sign-in screen (sessions live in the server process; a restart
+  // invalidates them mid-session).
   useEffect(() => {
     const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const response = await originalFetch(...args);
+    window.fetch = async (input, init) => {
+      let response;
       try {
-        const url = String(args[0] || '');
+        const url = typeof input === 'string'
+          ? input
+          : (input && typeof input.url === 'string' ? input.url : String(input || ''));
+        // When API_BASE is '' (same-origin proxy), startsWith('') is always true;
+        // only treat real /api/ paths (or an absolute override host) as API traffic.
+        const targetsApi = url.includes('/api/') || (API_BASE !== '' && url.startsWith(API_BASE));
+        if (targetsApi && !(input instanceof Request)) {
+          response = await originalFetch(input, { ...init, credentials: (init && init.credentials) || 'include' });
+        } else if (targetsApi && input instanceof Request && input.credentials === 'same-origin') {
+          response = await originalFetch(new Request(input, { credentials: 'include' }), init);
+        } else {
+          response = await originalFetch(input, init);
+        }
+      } catch (err) {
+        throw err;
+      }
+      try {
+        const url = typeof input === 'string'
+          ? input
+          : (input && typeof input.url === 'string' ? input.url : String(input || ''));
         if (
           response.status === 401 &&
           url.includes('/api/') &&
@@ -2453,16 +2479,17 @@ function recommendationRationale(recommendation, locale) {
   );
 }
 
-function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
+function Metric({ label, value, delta, sub, icon: Icon, positive = false, tone, title }) {
   const hasDelta = delta !== undefined && delta !== null && delta !== '';
   return (
-    <div className="metric">
+    <div className="metric" title={title || undefined}>
       <span className={`metric-icon ${tone || ''}`}>
         <Icon size={17} strokeWidth={1.8} />
       </span>
       <span className="metric-copy">
         <span>{label}</span>
         <strong><Numeric>{value}</Numeric></strong>
+        {sub ? <small className="metric-sub">{sub}</small> : null}
       </span>
       {hasDelta ? (
         <span className={positive ? 'delta positive' : tone === 'risk' ? 'delta risk' : 'delta negative'}>
@@ -2474,15 +2501,63 @@ function Metric({ label, value, delta, icon: Icon, positive = false, tone }) {
   );
 }
 
+// Format a plan calendar date for the basis line. ISO YYYY-MM-DD only; anything
+// else is returned unchanged so we never invent a calendar day.
+function formatPlanDate(value, locale) {
+  const text = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}/.test(text)) return text;
+  const iso = text.slice(0, 10);
+  try {
+    return new Date(`${iso}T00:00:00`).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 // Reads the backend's basis fields off the overview summary (which channel and
-// how many dates the headline numbers cover). Renders nothing when the backend
-// does not provide them; no scope is ever invented here.
+// which calendar span the headline numbers cover). Renders nothing when the
+// backend does not provide them; no scope is ever invented here.
 function summaryBasisLabel(summary, locale) {
-  const channel = typeof summary?.scope_channel === 'string' && summary.scope_channel.trim() ? summary.scope_channel.trim() : null;
+  const channel = typeof summary?.scope_channel === 'string' && summary.scope_channel.trim()
+    ? summary.scope_channel.trim()
+    : null;
   const nDates = finiteNumber(summary?.n_dates);
+  const dateFrom = typeof summary?.date_from === 'string' && summary.date_from.trim()
+    ? summary.date_from.trim()
+    : null;
+  const dateTo = typeof summary?.date_to === 'string' && summary.date_to.trim()
+    ? summary.date_to.trim()
+    : null;
   const parts = [];
-  if (channel) parts.push(pageText(locale, `your channel (${channel})`, `הערוץ שלכם (${channel})`));
-  if (nDates !== null) parts.push(pageText(locale, `${formatNumber(nDates, locale)} days`, `${formatNumber(nDates, locale)} ימים`));
+  if (channel) {
+    parts.push(pageText(locale, `your channel (${channel})`, `הערוץ שלכם (${channel})`));
+  }
+  if (dateFrom && dateTo) {
+    const fromLabel = formatPlanDate(dateFrom, locale);
+    const toLabel = formatPlanDate(dateTo, locale);
+    if (dateFrom === dateTo) {
+      parts.push(pageText(locale, `plan day ${fromLabel}`, `יום התוכנית ${fromLabel}`));
+    } else {
+      const span = nDates !== null
+        ? pageText(
+          locale,
+          `${fromLabel} – ${toLabel} (${formatNumber(nDates, locale)} days on the saved plan)`,
+          `${fromLabel} – ${toLabel} (${formatNumber(nDates, locale)} ימים בתוכנית השמורה)`,
+        )
+        : pageText(locale, `${fromLabel} – ${toLabel}`, `${fromLabel} – ${toLabel}`);
+      parts.push(span);
+    }
+  } else if (nDates !== null) {
+    parts.push(pageText(
+      locale,
+      `${formatNumber(nDates, locale)} days on the saved plan`,
+      `${formatNumber(nDates, locale)} ימים בתוכנית השמורה`,
+    ));
+  }
   return parts.length ? parts.join(', ') : null;
 }
 
@@ -2492,17 +2567,55 @@ function SummaryMetrics({ overview, copy, locale }) {
   const summary = overview.summary || {};
   const riskScore = finiteNumber(summary.risk_score);
   const basisLabel = summaryBasisLabel(summary, locale);
+  // Tooltips state the provenance verified in kairos_api.core._summarize_schedule:
+  // sums over the saved plan CSV for the operator channel, not a live forecast.
+  const revenueHint = pageText(
+    locale,
+    'Sum of predicted_revenue on the saved plan for your channel over the plan dates, not a forecast for tomorrow.',
+    'סכום predicted_revenue בתוכנית השמורה לערוץ שלכם על פני ימי התוכנית, לא תחזית למחר.',
+  );
+  // The window and the per-day average live inside the tile itself: a 30-day
+  // plan total reads as an opaque blob without them, and the operator thinks
+  // in days, not plan-length sums.
+  const planDates = finiteNumber(summary.n_dates);
+  const planRevenue = finiteNumber(summary.projected_revenue);
+  const revenueSub = planDates && planDates > 0 && planRevenue !== null
+    ? pageText(
+      locale,
+      `${formatNumber(planDates, locale)} plan days, daily average ${formatCurrency(planRevenue / planDates, locale)}`,
+      `${formatNumber(planDates, locale)} ימי תוכנית · ממוצע יומי ${formatCurrency(planRevenue / planDates, locale)}`,
+    )
+    : null;
+  const retentionHint = pageText(
+    locale,
+    'TVR-weighted average retention across the saved plan rows for your channel.',
+    'ממוצע שימור משוקלל TVR על שורות התוכנית השמורה לערוץ שלכם.',
+  );
+  const minutesHint = pageText(
+    locale,
+    'Total ad seconds on the saved plan for your channel, shown as minutes.',
+    'סך שניות הפרסום בתוכנית השמורה לערוץ שלכם, מוצג בדקות.',
+  );
+  const riskHint = pageText(
+    locale,
+    'How far the plan’s average retention sits below your retention floor (0 = at or above the floor). Not a general business-risk score.',
+    'כמה רחוק ממוצע השימור בתוכנית מתחת לרף השימור שלכם (0 = ברף או מעליו). לא ציון סיכון עסקי כללי.',
+  );
   return (
     <>
       <section className="metric-strip" aria-label="Optimization summary">
-        <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} icon={CircleDollarSign} positive />
-        <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} />
-        <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive />
-        <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" />
+        <Metric label={copy.metrics[0]} value={formatCurrency(summary.projected_revenue, locale)} sub={revenueSub} icon={CircleDollarSign} positive title={revenueHint} />
+        <Metric label={copy.metrics[1]} value={formatPercent(summary.average_retention, locale)} icon={Users} title={retentionHint} />
+        <Metric label={copy.metrics[2]} value={formatMinutes(summary.total_ad_seconds, locale)} icon={Clock3} positive title={minutesHint} />
+        <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" title={riskHint} />
       </section>
       {basisLabel && (
         <p className="data-basis-note">
-          {pageText(locale, `These headline figures cover ${basisLabel}.`, `המספרים שבכותרת מכסים את ${basisLabel}.`)}
+          {pageText(
+            locale,
+            `These headline figures are totals from the saved plan for ${basisLabel}. They are not a day-ahead forecast.`,
+            `המספרים שבכותרת הם סכומים מהתוכנית השמורה עבור ${basisLabel}. זו אינה תחזית ליום מחר.`,
+          )}
         </p>
       )}
     </>
@@ -2527,11 +2640,11 @@ function OptimizationRunSummary({ plan, locale }) {
         <strong><Numeric>{formatNumber(summary.total_breaks, locale)}</Numeric></strong>
       </div>
       <div>
-        <span>{pageText(locale, 'Projected revenue', 'הכנסה צפויה')}</span>
+        <span>{pageText(locale, 'Plan revenue (this preview day)', 'הכנסת התוכנית (יום התצוגה המקדימה)')}</span>
         <strong><Numeric>{formatCurrency(summary.projected_revenue, locale)}</Numeric></strong>
       </div>
       <div>
-        <span>{pageText(locale, 'Retention', 'שימור')}</span>
+        <span>{pageText(locale, 'Plan retention (this preview day)', 'שימור בתוכנית (יום התצוגה המקדימה)')}</span>
         <strong><Numeric>{formatPercent(summary.average_retention, locale)}</Numeric></strong>
       </div>
       <div>
@@ -3098,7 +3211,7 @@ function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, r
         titleEn="Schedule control"
         titleHe="בקרת לוח שידורים"
         bodyEn="Review the weekly break plan by programme type, day, length, expected revenue, and retention guardrail."
-        bodyHe="בדיקת תוכנית הברייקים השבועית לפי סוג תוכנית, יום, אורך, הכנסה צפויה ושימור צפייה."
+        bodyHe="בדיקת תוכנית הברייקים השמורה לפי סוג תוכנית, יום, אורך, הכנסת תוכנית ושימור צפייה."
         action={
           <div className="schedule-actions no-print">
             <Button
@@ -3518,7 +3631,7 @@ function ReportsPage({ reports, files, overview, copy, locale, notify }) {
     revenue: {
       titleEn: 'Revenue forecast', titleHe: 'תחזית הכנסה',
       ownerEn: 'Revenue', ownerHe: 'הכנסות',
-      descEn: 'Projected revenue, retention and break count for each day of the week.',
+      descEn: 'Saved-plan revenue, retention and break count for each day on the plan.',
       descHe: 'ההכנסה, השימור ומספר הברייקים החזויים לכל יום בשבוע.',
       download: () => downloadRevenueReport(locale, notify),
     },

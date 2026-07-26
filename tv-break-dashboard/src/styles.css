@@ -497,6 +497,13 @@ button {
   font-weight: var(--weight-semibold);
 }
 
+.metric-copy .metric-sub {
+  display: block;
+  margin-top: 4px;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
 .metric-copy strong .numeric {
   display: inline-block;
   font-size: inherit;
@@ -5682,36 +5689,27 @@ button {
   padding: var(--space-4);
 }
 
-/* The headline money story lays its three figures beside the proportional bar so
-   the panel width is used, not left half empty. The figures keep a comfortable
-   width; the bar fills the rest. On narrow screens they stack. */
+/* The headline money story reads as one column: the three figures, then a
+   full-width proportional bar directly beneath them, then the legend and the
+   basis line. One flow, no tall half-empty side column, and the bar height
+   matches a reading line rather than dominating the card. */
 .money-story-panel .money-waterfall.headline {
-  display: grid;
-  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-  gap: var(--space-4) var(--space-5);
-  align-items: center;
-}
-
-.money-story-panel .money-waterfall.headline .mw-row {
-  grid-column: 1;
-}
-
-.money-story-panel .money-waterfall.headline .mw-basis {
-  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .mw-bar {
-  grid-column: 2;
-  grid-row: 1 / 4;
-  align-self: center;
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  margin-top: var(--space-2);
 }
 
 .mw-bar-track {
+  position: relative;
   display: flex;
-  height: 40px;
+  height: 16px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--surface-muted);
@@ -5724,20 +5722,21 @@ button {
 }
 
 .mw-bar-cost {
-  position: relative;
   background: var(--amber-soft);
 }
 
-/* The lighter inset marks the plausible range of the model estimate inside the
-   retention-cost segment. */
+/* The estimate range: where the net/cost boundary could plausibly sit, drawn
+   on the whole track (the range is measured against gross, so it can extend
+   past the point-estimate cost segment). Solid translucent tone with edge
+   lines, matching the segments; no texture. */
 .mw-bar-band {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: var(--band-left);
-  right: var(--band-right);
-  background: repeating-linear-gradient(45deg, transparent, transparent 3px, var(--amber) 3px, var(--amber) 4px);
-  opacity: 0.5;
+  background: var(--amber);
+  opacity: 0.25;
+  border-inline-start: 1px solid var(--amber);
+  border-inline-end: 1px solid var(--amber);
 }
 
 .mw-bar-legend {
@@ -5763,16 +5762,7 @@ button {
 
 .mw-dot.net { background: var(--teal-soft); border: 1px solid var(--teal); }
 .mw-dot.cost { background: var(--amber-soft); border: 1px solid var(--amber); }
-
-@media (max-width: 900px) {
-  .money-story-panel .money-waterfall.headline {
-    grid-template-columns: 1fr;
-  }
-  .mw-bar {
-    grid-column: 1;
-    grid-row: auto;
-  }
-}
+.mw-dot.band { background: var(--amber); opacity: 0.35; border: 1px solid var(--amber); }
 
 .money-story-empty {
   display: grid;

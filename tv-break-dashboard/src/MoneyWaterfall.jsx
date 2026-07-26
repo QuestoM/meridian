@@ -94,9 +94,6 @@ export default function MoneyWaterfall({
             </span>
             <span className="mw-money">
               <strong className="mw-value numeric" dir="ltr">{`-${formatCurrency(costValue, locale)}`}</strong>
-              {hasBand ? (
-                <small className="mw-band numeric" dir="ltr" title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}>{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</small>
-              ) : null}
             </span>
           </div>
           <div className="mw-row mw-net">
@@ -122,19 +119,25 @@ export default function MoneyWaterfall({
         >
           <div className="mw-bar-track">
             <span className="mw-bar-net" style={{ width: `${netFrac * 100}%` }} />
-            <span className="mw-bar-cost" style={{ width: `${costFrac * 100}%` }}>
-              {bandLowFrac !== null && bandHighFrac !== null ? (
-                <i
-                  className="mw-bar-band"
-                  style={{ '--band-left': `${bandLowFrac * 100}%`, '--band-right': `${(1 - bandHighFrac) * 100}%` }}
-                  title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}
-                />
-              ) : null}
-            </span>
+            <span className="mw-bar-cost" style={{ width: `${costFrac * 100}%` }} />
+            {bandLowFrac !== null && bandHighFrac !== null ? (
+              <i
+                className="mw-bar-band"
+                style={{ insetInlineEnd: `${bandLowFrac * 100}%`, width: `${Math.max(0, bandHighFrac - bandLowFrac) * 100}%` }}
+                title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}
+              />
+            ) : null}
           </div>
           <div className="mw-bar-legend">
             <span className="mw-bar-key"><i className="mw-dot net" />{pageText(locale, 'Net kept', 'נטו שנשמר')}</span>
             <span className="mw-bar-key"><i className="mw-dot cost" />{pageText(locale, 'Retention cost', 'עלות שימור')}</span>
+            {hasBand ? (
+              <span className="mw-bar-key" title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}>
+                <i className="mw-dot band" />
+                {pageText(locale, 'Estimate range', 'טווח האומדן')}
+                <span className="numeric" dir="ltr">{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</span>
+              </span>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -175,11 +178,48 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
   const totals = payload?.totals || {};
   const gross = netAvailable ? (finiteNumber(payload.revenue_ils) ?? totals.revenue) : totals.revenue;
 
+  // Scope line from the API only (channel + plan calendar span). Never invent
+  // "weekly" when the plan covers a different number of days.
+  const scopeChannel = typeof payload?.scope_channel === 'string' && payload.scope_channel.trim()
+    ? payload.scope_channel.trim()
+    : null;
+  const dateFrom = typeof payload?.date_from === 'string' && payload.date_from.trim()
+    ? payload.date_from.trim().slice(0, 10)
+    : null;
+  const dateTo = typeof payload?.date_to === 'string' && payload.date_to.trim()
+    ? payload.date_to.trim().slice(0, 10)
+    : null;
+  const nDates = finiteNumber(payload?.n_dates);
+  const scopeParts = [];
+  if (scopeChannel) {
+    scopeParts.push(pageText(locale, `channel ${scopeChannel}`, `ערוץ ${scopeChannel}`));
+  }
+  if (dateFrom && dateTo) {
+    scopeParts.push(
+      dateFrom === dateTo
+        ? dateFrom
+        : pageText(
+          locale,
+          `${dateFrom} – ${dateTo}${nDates !== null ? ` (${nDates} days)` : ''}`,
+          `${dateFrom} – ${dateTo}${nDates !== null ? ` (${nDates} ימים)` : ''}`,
+        ),
+    );
+  } else if (nDates !== null) {
+    scopeParts.push(pageText(locale, `${nDates} plan days`, `${nDates} ימי תוכנית`));
+  }
+  const scopeLine = scopeParts.length
+    ? pageText(
+      locale,
+      `From the saved plan · ${scopeParts.join(' · ')}`,
+      `לפי התוכנית השמורה · ${scopeParts.join(' · ')}`,
+    )
+    : pageText(locale, 'From the saved plan', 'לפי התוכנית השמורה');
+
   return (
     <section className="page-panel money-story-panel">
       <div className="panel-head">
         <h2>{pageText(locale, 'From gross to net', 'מברוטו לנטו')}</h2>
-        <span>{pageText(locale, 'From the saved weekly plan', 'לפי התוכנית השבועית השמורה')}</span>
+        <span>{scopeLine}</span>
       </div>
       <div className="money-story-body">
         {status === 'loading' ? (
