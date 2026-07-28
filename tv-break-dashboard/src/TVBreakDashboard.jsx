@@ -5251,11 +5251,16 @@ function ActivityLogPanel({ locale }) {
         <div className="alog-controls">
           {showUserColumn && knownUsers.length > 0 && (
             <FormControl size="small" className="alog-filter">
-              <InputLabel id="alog-user-filter">{filterLabel}</InputLabel>
+              {/* The default is the empty value (all operators): displayEmpty +
+                  renderValue make it read as a real selection, and the label is
+                  pinned shrunk so it never overlaps the rendered text. */}
+              <InputLabel id="alog-user-filter" shrink>{filterLabel}</InputLabel>
               <Select
                 labelId="alog-user-filter"
                 label={filterLabel}
                 value={userFilter}
+                displayEmpty
+                renderValue={(selected) => (selected ? selected : (he ? 'כל המפעילים' : 'All operators'))}
                 onChange={(event) => setUserFilter(event.target.value)}
               >
                 <MenuItem value="">{he ? 'כל המפעילים' : 'All operators'}</MenuItem>
