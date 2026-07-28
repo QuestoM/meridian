@@ -312,7 +312,7 @@ const copyByLocale = {
     // The headline speaks in the operator's working horizon: the planning week
     // (summary.week from the API). Exact dates are disclosed in the tile sub
     // line and under the strip from the basis fields.
-    metrics: ['Weekly projected revenue', 'Weekly predicted retention', 'Weekly ad minutes', 'Retention risk'],
+    metrics: ['Weekly projected revenue', 'Break viewer retention', 'Weekly ad minutes', 'Retention risk'],
     risk: { High: 'High', Medium: 'Medium', Low: 'Low', Unknown: 'Unknown' },
     toolbar: ['Grid View', 'Timeline', 'Daypart', 'Inventory', 'Programs', 'Breaks', 'Metrics'],
     canvas: 'Broadcast planning canvas',
@@ -413,7 +413,7 @@ const copyByLocale = {
     apiUnavailable: 'ה־API לא זמין. חלק מהנתונים לא נטענו.',
     // הכותרת מדברת באופק העבודה של המפעיל: שבוע התכנון (summary.week מה-API).
     // התאריכים המדויקים מפורטים בשורת המשנה של האריח ומתחת לרצועה.
-    metrics: ['הכנסה שבועית צפויה', 'שימור שבועי חזוי', 'דקות פרסום בשבוע', 'סיכון שימור'],
+    metrics: ['הכנסה שבועית צפויה', 'שימור צופים בברייקים', 'דקות פרסום בשבוע', 'סיכון שימור'],
     risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
@@ -2482,8 +2482,11 @@ function recommendationRationale(recommendation, locale) {
 
 function Metric({ label, value, delta, sub, icon: Icon, positive = false, tone, title }) {
   const hasDelta = delta !== undefined && delta !== null && delta !== '';
-  return (
-    <div className="metric" title={title || undefined}>
+  // MUI Tooltip rather than the native title attribute: the native bubble
+  // ignores the document direction, so Hebrew explanations rendered
+  // left-aligned; the themed tooltip follows the app's RTL setup.
+  const body = (
+    <div className="metric">
       <span className={`metric-icon ${tone || ''}`}>
         <Icon size={17} strokeWidth={1.8} />
       </span>
@@ -2500,6 +2503,7 @@ function Metric({ label, value, delta, sub, icon: Icon, positive = false, tone, 
       ) : null}
     </div>
   );
+  return title ? <Tooltip title={title} arrow placement="bottom">{body}</Tooltip> : body;
 }
 
 // Format a plan calendar date for the basis line. ISO YYYY-MM-DD only; anything
@@ -2594,11 +2598,23 @@ function SummaryMetrics({ overview, copy, locale }) {
       `${weekRange} · ממוצע יומי ${formatCurrency(weekRevenue / weekDates, locale)}`,
     )
     : null;
+  // Retention here is a PER-BREAK, momentary measure, and the copy must say so:
+  // read as a weekly churn figure ("we lose 5% of viewers every week?") it is
+  // both alarming and wrong. The tooltip and the sub line carry the honest
+  // reading: audience dip during a break, mostly returning after it.
   const retentionHint = pageText(
     locale,
-    'TVR-weighted average predicted retention across the planning-week rows of the saved plan.',
-    'ממוצע שימור חזוי משוקלל TVR על שורות שבוע התכנון בתוכנית השמורה.',
+    'How much of the programme audience stays through an ad break, TVR-weighted across the planning week. A momentary per-break measure, not a cumulative weekly loss of viewers: people who step away during a break mostly come back to the programme, but the break itself airs to a smaller audience, and that is the revenue it costs. This is the audience side of the retention cost in the money story.',
+    'כמה מקהל התוכנית נשאר מול המסך במהלך ברייק פרסומות, ממוצע משוקלל TVR על ברייקי שבוע התכנון. זהו מדד רגעי לכל ברייק, לא איבוד צופים מצטבר משבוע לשבוע: מי שעוזב בזמן ברייק לרוב חוזר לתוכנית מיד אחריו, אבל הברייק עצמו משודר לקהל קטן יותר, וזו ההכנסה שהוא מפסיד. זהו הצד הקהלי של עלות השימור בסיפור הכסף.',
   );
+  const retentionPct = finiteNumber(retentionValue);
+  const retentionSub = retentionPct !== null
+    ? pageText(
+      locale,
+      `about ${formatNumber(Math.round((100 - retentionPct) * 10) / 10, locale)}% step away during an average break, mostly returning after it`,
+      `כ-${formatNumber(Math.round((100 - retentionPct) * 10) / 10, locale)}% עוזבים זמנית בברייק ממוצע, ורובם חוזרים מיד אחריו`,
+    )
+    : null;
   const minutesHint = pageText(
     locale,
     'Total ad seconds on the planning week of the saved plan, shown as minutes.',
@@ -2613,7 +2629,7 @@ function SummaryMetrics({ overview, copy, locale }) {
     <>
       <section className="metric-strip" aria-label="Optimization summary">
         <Metric label={copy.metrics[0]} value={formatCurrency(revenueValue, locale)} sub={revenueSub} icon={CircleDollarSign} positive title={revenueHint} />
-        <Metric label={copy.metrics[1]} value={formatPercent(retentionValue, locale)} icon={Users} title={retentionHint} />
+        <Metric label={copy.metrics[1]} value={formatPercent(retentionValue, locale)} sub={retentionSub} icon={Users} title={retentionHint} />
         <Metric label={copy.metrics[2]} value={formatMinutes(adSecondsValue, locale)} icon={Clock3} positive title={minutesHint} />
         <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" title={riskHint} />
       </section>

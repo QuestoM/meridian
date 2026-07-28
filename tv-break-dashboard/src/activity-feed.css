@@ -95,20 +95,23 @@
   font-size: var(--text-xs);
 }
 
-/* Unread count badge on the header bell. */
+/* Unread count badge on the header bell. The bell glyph is only 15px, so the
+   badge must sit clear of it on the corner (not on the strokes) with a surface
+   ring separating the two; the icon button's own padding gives it the room. */
 .bell-wrap { position: relative; display: inline-flex; }
 .bell-badge {
   position: absolute;
-  top: -2px;
-  inset-inline-end: -2px;
-  min-width: 15px;
-  height: 15px;
+  top: -8px;
+  inset-inline-end: -9px;
+  min-width: 14px;
+  height: 14px;
   padding: 0 3px;
   border-radius: var(--radius-pill);
   background: var(--teal);
   color: var(--surface);
   font-size: var(--text-2xs);
-  line-height: 15px;
+  line-height: 14px;
   text-align: center;
   font-weight: var(--weight-bold);
+  box-shadow: 0 0 0 2px var(--surface);
 }
