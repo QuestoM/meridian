@@ -27,7 +27,14 @@ from pydantic import BaseModel, Field
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.layer_overrides import apply_overrides, resolve_layer_overrides
 from kairos.optimize.price_guardrails import Guardrails
-from kairos.optimize.pricing import PriceBreakdown, PricingModel, _deep_merge
+from kairos.optimize.pricing import (
+    PriceBreakdown,
+    PricingModel,
+    _deep_merge,
+    load_event_day_multipliers,
+    load_price_events,
+    pricing_from_settings,
+)
 
 router = APIRouter(tags=["pricing"])
 
@@ -139,6 +146,15 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             "position": effective.enable_position,
             "ad_type": effective.enable_ad_type,
         },
+        # Event-date layer state: operator-asserted multipliers stored on calendar
+        # events (data/calendar_events.csv), gated on pricing_activation.events.
+        # active_event_count counts the ACTIVE stored events carrying a non-1.0
+        # multiplier, whether or not the layer is switched on.
+        "events": {
+            "enabled": effective.enable_events,
+            "active_event_count": len(load_price_events()),
+            "basis": "operator assertion per calendar event, not measured",
+        },
         "has_overrides": bool(overrides),
         "note": ("Rate card only. No operator edits yet." if not overrides
                  else "Operator edits applied. Every value traces to base x named layers."),
@@ -173,6 +189,9 @@ class PriceSlotRequest(BaseModel):
     position: Optional[int] = Field(default=None, ge=1)
     break_size: Optional[int] = Field(default=None, ge=1)
     ad_type: Optional[str] = None
+    # Broadcast date (YYYY-MM-DD) for the event-date layer. Optional; without it
+    # the tester prices the slot date-blind, exactly as before.
+    day: Optional[str] = None
     advertiser_base: Optional[float] = Field(default=None, ge=0)
     advertiser: Optional[str] = None
     campaign: Optional[str] = None
@@ -254,7 +273,9 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
     load, _ = _settings_io()
     settings = load()
     overrides = getattr(settings, "pricing_overrides", None) or {}
-    model = PricingModel.from_config(overrides)
+    # pricing_from_settings is the same seam the optimizer, forecast and export
+    # use; it also carries the event-date map when the events layer is active.
+    model = pricing_from_settings(settings)
     breakdown = model.price_slot(
         pricing_class=req.pricing_class,
         weekday_iso=req.weekday_iso,
@@ -262,6 +283,7 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
         position=req.position,
         break_size=req.break_size,
         ad_type=req.ad_type,
+        day=req.day,
         base_cpp=req.advertiser_base,
     )
 
@@ -299,6 +321,11 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
     if not model.enable_ad_type and req.ad_type and model.ad_type_premium(req.ad_type) != 1.0:
         wired_off.append({"name": "ad_type", "multiplier": model.ad_type_premium(req.ad_type),
                           "source": "rate_card", "applied": False})
+    if not model.enable_events and req.day:
+        event_mult = load_event_day_multipliers().get(str(req.day)[:10], 1.0)
+        if event_mult != 1.0:
+            wired_off.append({"name": "event", "multiplier": event_mult,
+                              "source": "operator_event", "applied": False})
 
     # Final-CPP guardrails: surface a breach, never silently clamp the price.
     warnings = [

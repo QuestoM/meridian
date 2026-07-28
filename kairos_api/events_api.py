@@ -25,10 +25,12 @@ window (``window_overlap_days``) and against the saved weekly plan's dates
 (``plan_overlap_dates``), so the operator can see which plan days sit inside an
 event and whether the training data ever saw that condition.
 
-The event-date PRICING layer from the design (an owner-gated ``price_slot``
-layer) is deliberately NOT built here; activating it would move real revenue
-and is a future owner decision. Event RETENTION coefficients are v2 only,
-measured behind the held-out gate once history with real contrast exists.
+Each event also carries an operator-asserted ``price_multiplier`` (default 1.0,
+validated to 0.1..5.0). It feeds the owner-gated event pricing layer
+(kairos/optimize/pricing.py, activation flag ``pricing_activation.events``,
+shipped OFF because turning it on moves real forecast revenue). Event RETENTION
+coefficients are untouched by that layer and remain v2 only, measured behind
+the held-out gate once history with real contrast exists.
 """
 
 from __future__ import annotations
@@ -56,8 +58,11 @@ COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 COLUMNS = ("event_id", "name", "type", "start_date", "end_date",
-           "intensity", "notes", "active")
+           "intensity", "notes", "active", "price_multiplier")
 EVENT_TYPES = ("holiday", "war", "special", "sport", "other")
+# The operator-asserted price multiplier bounds (a 10x cut to a 5x surge).
+PRICE_MULTIPLIER_MIN = 0.1
+PRICE_MULTIPLIER_MAX = 5.0
 
 # The measured coefficient training window (30 days of reference history) and
 # the wartime facts disclosed with it. The ceasefire date is the historical
@@ -85,6 +90,7 @@ class EventCreate(BaseModel):
     intensity: int = 3
     notes: str = ""
     active: bool = True
+    price_multiplier: float = 1.0
 
 
 class EventUpdate(BaseModel):
@@ -97,6 +103,7 @@ class EventUpdate(BaseModel):
     intensity: int | None = None
     notes: str | None = None
     active: bool | None = None
+    price_multiplier: float | None = None
 
 
 # --- store ---------------------------------------------------------------------
@@ -106,7 +113,9 @@ def _load_frame() -> pd.DataFrame:
     frame = pd.read_csv(EVENTS_PATH, encoding="utf-8-sig", dtype=str, keep_default_na=False)
     for column in COLUMNS:
         if column not in frame.columns:
-            frame[column] = ""
+            # A legacy store predating the price_multiplier column reads as the
+            # neutral 1.0 (no price effect), never as a missing value.
+            frame[column] = "1.0" if column == "price_multiplier" else ""
     return frame
 
 
@@ -137,7 +146,7 @@ def _parse_date(value: str, field: str) -> date:
 
 
 def _validate(name: str, type_: str, start_date: str, end_date: str,
-              intensity: int) -> dict[str, str]:
+              intensity: int, price_multiplier: float) -> dict[str, str]:
     if not str(name or "").strip():
         raise HTTPException(status_code=400, detail="name is required")
     type_clean = str(type_ or "").strip().lower()
@@ -153,9 +162,18 @@ def _validate(name: str, type_: str, start_date: str, end_date: str,
                                 detail="end_date must be on or after start_date")
     if not 1 <= int(intensity) <= 5:
         raise HTTPException(status_code=400, detail="intensity must be between 1 and 5")
+    try:
+        multiplier = float(price_multiplier)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="price_multiplier must be a number")
+    if not PRICE_MULTIPLIER_MIN <= multiplier <= PRICE_MULTIPLIER_MAX:
+        raise HTTPException(
+            status_code=400,
+            detail=f"price_multiplier must be between {PRICE_MULTIPLIER_MIN} and {PRICE_MULTIPLIER_MAX}")
     return {"name": str(name).strip(), "type": type_clean,
             "start_date": start.isoformat(), "end_date": end_clean,
-            "intensity": str(int(intensity))}
+            "intensity": str(int(intensity)),
+            "price_multiplier": str(multiplier)}
 
 
 def _record(row: "pd.Series[Any]") -> dict[str, Any]:
@@ -164,6 +182,11 @@ def _record(row: "pd.Series[Any]") -> dict[str, Any]:
         intensity = int(str(row.get("intensity", "")) or 0)
     except ValueError:
         intensity = 0
+    try:
+        # Tolerant read: a legacy row without the column is the neutral 1.0.
+        multiplier = float(str(row.get("price_multiplier", "")).strip() or 1.0)
+    except ValueError:
+        multiplier = 1.0
     return {
         "event_id": str(row.get("event_id", "")),
         "name": str(row.get("name", "")),
@@ -173,6 +196,7 @@ def _record(row: "pd.Series[Any]") -> dict[str, Any]:
         "intensity": intensity,
         "notes": str(row.get("notes", "")),
         "active": str(row.get("active", "")).strip().lower() == "true",
+        "price_multiplier": multiplier,
     }
 
 
@@ -366,7 +390,8 @@ def list_events() -> dict[str, Any]:
 @router.post("", status_code=201)
 def create_event(payload: EventCreate, request: Request = None) -> dict[str, Any]:
     validated = _validate(payload.name, payload.type, payload.start_date,
-                          payload.end_date, payload.intensity)
+                          payload.end_date, payload.intensity,
+                          payload.price_multiplier)
     new_row = {
         "event_id": uuid.uuid4().hex[:12],
         **validated,
@@ -394,6 +419,8 @@ def update_event(event_id: str, payload: EventUpdate,
             payload.start_date if payload.start_date is not None else current["start_date"],
             payload.end_date if payload.end_date is not None else (current["end_date"] or ""),
             payload.intensity if payload.intensity is not None else current["intensity"],
+            payload.price_multiplier if payload.price_multiplier is not None
+            else current["price_multiplier"],
         )
         for column, value in validated.items():
             frame.at[index, column] = value

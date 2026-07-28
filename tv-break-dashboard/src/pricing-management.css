@@ -241,6 +241,18 @@
   background: var(--surface-muted);
 }
 
+/* Inline confirm for activating the events layer: activation moves forecast
+   revenue on event days, so it is an explicit two-step decision. */
+.pricing-events-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
 .pricing-layer-warning {
   margin: 8px 0 0;
   padding: 8px 10px;

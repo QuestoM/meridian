@@ -20,11 +20,20 @@ the break delivers, the seconds it runs, and a stack of multiplicative premiums.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+# Re-exported so callers keep one pricing import surface; the store readers
+# live in kairos.optimize.event_pricing (monkeypatch DEFAULT_EVENTS_PATH there).
+from kairos.optimize.event_pricing import (  # noqa: F401
+    DEFAULT_EVENTS_PATH,
+    EVENT_OPEN_HORIZON_DAYS,
+    load_event_day_multipliers,
+    load_price_events,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WEIGHTS_PATH = ROOT / "config" / "optimization_weights.yaml"
@@ -56,7 +65,14 @@ def pricing_from_settings(
             raw = settings.get("pricing_overrides")
         if isinstance(raw, dict):
             overrides = raw
-    return PricingModel.from_config(overrides)
+    model = PricingModel.from_config(overrides)
+    # The event-date map is read from the events store ONLY when the operator has
+    # activated the events layer (pricing_activation.events). With the flag off
+    # (the shipped default) the store is never read, so every revenue number is
+    # exactly what it was before the layer existed.
+    if model.enable_events:
+        model = replace(model, event_day_multipliers=load_event_day_multipliers())
+    return model
 
 
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
@@ -184,11 +200,20 @@ class PricingModel:
     # round-window billed-points basis. OFF by default because it moves real
     # reported revenue (docs/quarter-hour-billing.md, Design section).
     enable_qh_settlement: bool = False
+    # Event-date price multipliers (day-iso -> multiplier), built by
+    # pricing_from_settings from the ACTIVE calendar events the operator stored
+    # with a non-1.0 price_multiplier. Overlapping events compose multiplicatively.
+    # These are operator assertions (like the day-of-week premiums), not
+    # measurements; retention coefficients are untouched by this layer. Gated on
+    # enable_events, which ships OFF because activating it moves real forecast
+    # revenue.
+    event_day_multipliers: dict[str, float] = field(default_factory=dict)
+    enable_events: bool = False
 
     def __post_init__(self) -> None:
         if self.base_price_per_second_per_tvr_point < 0:
             raise ValueError("base_price_per_second_per_tvr_point must be non-negative")
-        for table_name in ("program_type_premiums", "ad_type_premiums", "day_of_week_premiums", "show_premiums"):
+        for table_name in ("program_type_premiums", "ad_type_premiums", "day_of_week_premiums", "show_premiums", "event_day_multipliers"):
             for key, value in getattr(self, table_name).items():
                 if value < 0:
                     raise ValueError(f"{table_name}[{key!r}] must be non-negative")
@@ -214,6 +239,7 @@ class PricingModel:
             enable_ad_type=bool(activation.get("ad_type", False)),
             enable_show=bool(activation.get("show", False)),
             enable_qh_settlement=bool(activation.get("qh_settlement", False)),
+            enable_events=bool(activation.get("events", False)),
         )
 
     @classmethod
@@ -272,6 +298,18 @@ class PricingModel:
         """Premium for an ISO weekday (1 = Monday ... 7 = Sunday)."""
         return self.day_of_week_premiums.get(weekday_iso, 1.0)
 
+    def event_premium(self, day: str | None) -> float:
+        """The operator-asserted event multiplier for a broadcast date.
+
+        ``day`` is a YYYY-MM-DD string. A date no active event covers (or a
+        missing/unparseable date) returns the neutral 1.0, so a schedule outside
+        every event is never touched. Overlapping events already composed
+        multiplicatively when the map was built.
+        """
+        if not day:
+            return 1.0
+        return self.event_day_multipliers.get(str(day)[:10], 1.0)
+
     def position_premium(self, position: int, break_size: int) -> float:
         """Premium for a 1-based ad position within a break of ``break_size`` ads.
 
@@ -304,10 +342,12 @@ class PricingModel:
         position: int | None = None,
         break_size: int | None = None,
         ad_type: str | None = None,
+        day: str | None = None,
         base_cpp: float | None = None,
         enable_show: bool | None = None,
         enable_position: bool | None = None,
         enable_ad_type: bool | None = None,
+        enable_events: bool | None = None,
     ) -> PriceBreakdown:
         """Compose a slot price as base CPP times named, traceable premium layers.
 
@@ -319,16 +359,20 @@ class PricingModel:
         its source. ``base_cpp`` defaults to the configured channel base; pass a value
         for a per-advertiser negotiated base.
 
-        The show, position and ad-type layers are wired but default OFF (their
+        The show, position, ad-type and event layers are wired but default OFF (their
         configured multipliers are not 1.0), so switching them on is a deliberate,
         dashboard-driven revenue change the operator sees, never a silent one. Each
         ``enable_*`` argument defaults to the model-level flag (set from the operator's
-        saved pricing config); pass an explicit bool to force a single call.
+        saved pricing config); pass an explicit bool to force a single call. ``day``
+        (YYYY-MM-DD) opts the slot into the event-date layer: when the events layer is
+        active and an active stored event covers the date with a non-1.0 multiplier,
+        an ``event`` layer is appended (an operator assertion, not a measurement).
         """
         base = self.base_price if base_cpp is None else float(base_cpp)
         use_show = self.enable_show if enable_show is None else enable_show
         use_position = self.enable_position if enable_position is None else enable_position
         use_ad_type = self.enable_ad_type if enable_ad_type is None else enable_ad_type
+        use_events = self.enable_events if enable_events is None else enable_events
         layers: list[PriceLayer] = [
             PriceLayer("program", self.program_premium(pricing_class)),
             PriceLayer("day", self.day_premium(weekday_iso)),
@@ -339,4 +383,8 @@ class PricingModel:
             layers.append(PriceLayer("position", self.position_premium(position, break_size)))
         if use_ad_type and ad_type is not None:
             layers.append(PriceLayer("ad_type", self.ad_type_premium(ad_type)))
+        if use_events and day:
+            multiplier = self.event_premium(day)
+            if multiplier != 1.0:
+                layers.append(PriceLayer("event", multiplier, source="operator_event"))
         return PriceBreakdown(base_cpp=base, layers=tuple(layers))

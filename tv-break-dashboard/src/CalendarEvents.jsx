@@ -3,6 +3,7 @@ import { Button, TextField, Tooltip } from '@mui/material';
 import { Info, Plus, RefreshCcw } from 'lucide-react';
 import DateField from './DateField';
 import { API_BASE, pageText } from './surface-helpers';
+import { readEventsLayer } from './pricing-layers-lib';
 import {
   EVENT_TYPES,
   ModelContextPanel,
@@ -23,6 +24,7 @@ function eventBody(event, patch = {}) {
     start_date: event.start_date,
     end_date: event.end_date || '',
     intensity: Number(event.intensity) || 1,
+    price_multiplier: Number(event.price_multiplier) || 1,
     notes: event.notes || '',
     active: event.active !== false,
     ...patch,
@@ -36,6 +38,7 @@ function EventEditor({ initial, locale, busy, onSave, onCancel }) {
     start_date: initial?.start_date || '',
     end_date: initial?.end_date || '',
     intensity: initial?.intensity || 3,
+    price_multiplier: initial?.price_multiplier != null && Number.isFinite(Number(initial.price_multiplier)) ? Number(initial.price_multiplier) : 1,
     notes: initial?.notes || '',
   });
   const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }));
@@ -74,6 +77,12 @@ function EventEditor({ initial, locale, busy, onSave, onCancel }) {
           {[1, 2, 3, 4, 5].map((level) => <option key={level} value={level}>{level}</option>)}
         </select>
       </label>
+      <label className="cal-editor-field">
+        <Tooltip title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the Pricing page.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בעמוד התמחור.')} arrow placement="bottom">
+          <span className="cal-label-hint">{pageText(locale, 'Price multiplier', 'מכפיל תמחור')}</span>
+        </Tooltip>
+        <input type="number" min="0.1" max="5" step="0.05" dir="ltr" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
+      </label>
       <TextField
         label={pageText(locale, 'Notes', 'הערות')}
         size="small"
@@ -111,6 +120,11 @@ function EventRow({ event, locale, busy, confirming, onEdit, onConfirmDeactivate
           <span className="ltr-run">{`- ${formatEventDate(event.end_date, locale)}`}</span>
         )}
         <span>{pageText(locale, `intensity ${event.intensity}/5`, `עוצמה ${event.intensity}/5`)}</span>
+        {Number.isFinite(Number(event.price_multiplier)) && Number(event.price_multiplier) !== 1 && (
+          <span className="cal-chip" title={pageText(locale, 'Affects the forecast only while the events layer is activated on the Pricing page', 'משפיע על התחזית רק כאשר שכבת האירועים מופעלת בעמוד התמחור')}>
+            {pageText(locale, `price multiplier x${Number(event.price_multiplier)}`, `מכפיל תמחור x${Number(event.price_multiplier)}`)}
+          </span>
+        )}
       </div>
       {event.notes && <p className="cal-event-notes">{event.notes}</p>}
       <div className="cal-event-actions">
@@ -167,9 +181,30 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh }) {
     }
   }, []);
 
+  // Tri-state events-pricing-layer activation: true / false / null when the server
+  // does not report the layer, so the honesty note says exactly that, never "off".
+  const [eventsPricing, setEventsPricing] = useState(null);
+
   useEffect(() => {
     load();
   }, [load, refreshKey]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/pricing`);
+        if (!response.ok) throw new Error(String(response.status));
+        const card = await response.json();
+        if (!alive) return;
+        const { supported, enabled } = readEventsLayer(card);
+        setEventsPricing(supported ? enabled : null);
+      } catch {
+        if (alive) setEventsPricing(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [refreshKey]);
 
   const events = useMemo(() => (Array.isArray(data?.events) ? data.events : []), [data]);
   const holidays = useMemo(() => (Array.isArray(data?.holidays) ? data.holidays : []), [data]);
@@ -211,6 +246,11 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh }) {
     }
     if (form.end_date && form.end_date < form.start_date) {
       notify('The end date cannot be before the start date.', 'תאריך הסיום לא יכול להקדים את תאריך ההתחלה.');
+      return;
+    }
+    const mult = Number(form.price_multiplier);
+    if (!Number.isFinite(mult) || mult < 0.1 || mult > 5) {
+      notify('The price multiplier must be between 0.1 and 5.', 'מכפיל התמחור חייב להיות בין 0.1 ל-5.');
       return;
     }
     setBusy(true);
@@ -387,6 +427,15 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh }) {
             ))
           )}
         </section>
+      </div>
+
+      <div className="cal-banner">
+        <Info size={16} aria-hidden="true" />
+        <p>{eventsPricing === null
+          ? pageText(locale, 'Each event also carries a price multiplier hook for the events layer on the Pricing page. This server does not report that layer, so its activation state is unknown here.', 'לכל אירוע קיים גם מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השרת הזה אינו מדווח על השכבה, ולכן מצב ההפעלה שלה אינו ידוע כאן.')
+          : eventsPricing
+            ? pageText(locale, 'Each event carries a price multiplier wired to the events layer on the Pricing page. The layer is currently activated, so multipliers other than 1.0 change expected revenue in the forecast on event days.', 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השכבה מופעלת כעת, ולכן מכפילים שונים מ-1.0 משנים את ההכנסה הצפויה בתחזית בימי אירועים.')
+            : pageText(locale, 'Each event carries a price multiplier wired to the events layer on the Pricing page. The layer is currently off, so no multiplier changes any forecast number until it is activated there.', 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השכבה כבויה כעת, ולכן אף מכפיל אינו משנה מספר בתחזית עד הפעלתה שם.')}</p>
       </div>
 
       <ModelContextPanel context={data?.model_context} locale={locale} />

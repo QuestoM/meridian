@@ -2,74 +2,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
+import { LAYER_TEXT, LAYER_TO_YAML, keyLabel, layerLabel } from './pricing-layers-lib';
+import PricingEventsLayer from './PricingEventsLayer';
+import PricingSlotTester from './PricingSlotTester';
 import './pricing-management.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
-
-// Maps a layer's display name to the YAML override key the engine reads.
-const LAYER_TO_YAML = {
-  program: 'program_type',
-  day: 'day_of_week',
-  show: 'show',
-  position: 'position_in_break',
-  ad_type: 'ad_type',
-};
-
-const DAY_NAMES = {
-  1: ['Mon', 'שני'], 2: ['Tue', 'שלישי'], 3: ['Wed', 'רביעי'], 4: ['Thu', 'חמישי'],
-  5: ['Fri', 'שישי'], 6: ['Sat', 'שבת'], 7: ['Sun', 'ראשון'],
-};
-
-// Position-in-break keys are internal engine keys; these are the human labels.
-const POSITION_NAMES = {
-  1: ['First', 'ראשון'], 2: ['Second', 'שני'], 3: ['Third', 'שלישי'],
-  default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last', 'אחרון'],
-};
-
-// Bilingual titles + Hebrew descriptions for the stable engine layers; the API text is English-only.
-const LAYER_TEXT = {
-  program: { en: 'Programme type', he: 'סוג תוכנית', descHe: 'פרמיית מחלקת תוכנית (חדשות, תוכניות פריים, אחר). חלה תמיד.' },
-  day: { en: 'Day of week', he: 'יום בשבוע', descHe: 'פרמיית יום בשבוע. חלה תמיד.' },
-  show: { en: 'Specific show', he: 'תוכנית ספציפית', descHe: 'פרמיה לתוכנית ספציפית (למשל האח הגדול). נערמת על מחלקת התוכנית.' },
-  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (ראשון, שני, אחרון). כבויה עד להפעלה.' },
-  ad_type: { en: 'Ad type', he: 'סוג פרסומת', descHe: 'פרמיית סוג פרסומת (פרסומת, חסות, פרומו). כבויה עד להפעלה.' },
-};
-
-const layerLabel = (name, locale) =>
-  (LAYER_TEXT[name] ? pageText(locale, LAYER_TEXT[name].en, LAYER_TEXT[name].he) : name.charAt(0).toUpperCase() + name.slice(1));
-
-// Humanizes a multiplier's provenance ("rate_card" / "override:<rule_id>"):
-// the operator reads plain words, never the raw tag; the rule id is kept.
-function sourceLabel(source, locale) {
-  if (source === 'rate_card') return pageText(locale, 'rate card', 'כרטיס תעריפים');
-  if (typeof source === 'string' && source.startsWith('override:')) {
-    return pageText(locale, `override ${source.slice(9)}`, `עקיפה ${source.slice(9)}`);
-  }
-  return pageText(locale, 'rate card', 'כרטיס תעריפים');
-}
-
-// Turns a layer's raw key into a human, bilingual label so no snake_case key
-// reaches the operator. Day keys are ISO weekdays; position keys are named engine
-// slots; program, show and ad-type keys are already human and pass through.
-function keyLabel(layerName, key, locale) {
-  if (layerName === 'day' && DAY_NAMES[key]) {
-    return pageText(locale, DAY_NAMES[key][0], DAY_NAMES[key][1]);
-  }
-  if (layerName === 'position' && POSITION_NAMES[key]) {
-    return pageText(locale, POSITION_NAMES[key][0], POSITION_NAMES[key][1]);
-  }
-  return String(key);
-}
 
 function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
-  const [slot, setSlot] = useState({
-    pricing_class: 'News', weekday_iso: 1, show: '', position: '', break_size: '', ad_type: '', advertiser_base: '',
-  });
-  const [breakdown, setBreakdown] = useState(null);
-  const [testerError, setTesterError] = useState(null);
   // Inline confirm step for the destructive reset: the first click only arms
   // it, the explicit confirm click performs it.
   const [confirmReset, setConfirmReset] = useState(false);
@@ -150,58 +93,13 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
     applyOverride({}, true);
   }
 
-  const runTester = useCallback(async () => {
-    const body = {
-      pricing_class: slot.pricing_class || 'Other',
-      weekday_iso: Number(slot.weekday_iso) || 1,
-    };
-    if (slot.show) body.show = slot.show;
-    if (slot.position) body.position = Number(slot.position);
-    if (slot.break_size) body.break_size = Number(slot.break_size);
-    if (slot.ad_type) body.ad_type = slot.ad_type;
-    if (slot.advertiser_base) body.advertiser_base = Number(slot.advertiser_base);
-    try {
-      const response = await fetch(`${API_BASE}/api/pricing/price-slot`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}`);
-      }
-      setBreakdown(await response.json());
-      setTesterError(null);
-    } catch (error) {
-      setBreakdown(null);
-      setTesterError(error.message);
-      notify(`Price tester failed (${error.message}).`, `בודק המחיר נכשל (${error.message}).`);
-    }
-  }, [slot, notify]);
-
-  // Recompute the tester whenever the inputs or the saved rate card change.
-  useEffect(() => {
-    if (online && state) runTester();
-  }, [online, state, runTester]);
-
   const currency = state?.currency || 'ILS';
+  // The events layer renders through its own card, so it is filtered out of the
+  // generic per-key multiplier stack (it has no key table, only a toggle).
   const premiumLayers = useMemo(
-    () => (state?.layers || []).filter((layer) => layer.kind === 'premium'),
+    () => (state?.layers || []).filter((layer) => layer.kind === 'premium' && layer.name !== 'events' && layer.name !== 'event'),
     [state],
   );
-
-  // Known program classes and show names, sourced from the live rate card so the
-  // tester's typeahead offers exactly what the engine prices. Free entry stays open;
-  // anything off-list resolves to the Other/base rate on the backend.
-  const layerKeys = useCallback(
-    (name) => Object.keys(premiumLayers.find((layer) => layer.name === name)?.values || {}),
-    [premiumLayers],
-  );
-  const classOptions = useMemo(
-    () => Array.from(new Set([...layerKeys('program'), 'Other'])),
-    [layerKeys],
-  );
-  const showOptions = useMemo(() => layerKeys('show'), [layerKeys]);
-  const adTypeOptions = useMemo(() => layerKeys('ad_type'), [layerKeys]);
 
   if (loading) {
     return (
@@ -267,8 +165,8 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
             'Operator edits applied. Every value traces to base times named layers. Saved edits are live in the next optimizer run, forecast and spot export.',
             'עריכות מפעיל הוחלו. כל ערך נגזר מבסיס כפול שכבות נקובות. עריכות שנשמרו פעילות בריצת האופטימייזר, התחזית וייצוא הספוטים הבאים.')
           : pageText(locale,
-            'Rate card only. No operator edits yet. Position, ad-type and show layers ship activation-off, so revenue is unchanged until you turn a layer on here.',
-            'כרטיס תעריפים בלבד. אין עדיין עריכות מפעיל. שכבות המיקום, סוג הפרסומת והתוכנית מסופקות כבויות, כך שההכנסה אינה משתנה עד שתפעילו שכבה כאן.')}</p>
+            'Rate card only. No operator edits yet. Position, ad-type, show and events layers ship activation-off, so revenue is unchanged until you turn a layer on here.',
+            'כרטיס תעריפים בלבד. אין עדיין עריכות מפעיל. שכבות המיקום, סוג הפרסומת, התוכנית והאירועים מסופקות כבויות, כך שההכנסה אינה משתנה עד שתפעילו שכבה כאן.')}</p>
       </div>
 
       <div className="pricing-grid">
@@ -360,107 +258,15 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                 </div>
               );
             })}
+            <PricingEventsLayer
+              state={state}
+              locale={locale}
+              onToggle={(enabled) => toggleLayer('events', enabled)}
+            />
           </div>
         </div>
 
-        <div className="pricing-tester">
-          <h3>{pageText(locale, 'Price any slot', 'תמחור משבצת')}</h3>
-          <p className="pricing-base-note">{pageText(locale,
-            'Pick a slot and read the full per-layer breakdown. Wired-off layers show struck-through, never multiplied into the live total.',
-            'בחרו משבצת וקראו את הפירוט המלא לפי שכבה. שכבות כבויות מוצגות עם קו חוצה, ולעולם אינן נכפלות בסך החי.')}</p>
-          <div className="pricing-tester-form">
-            <label>
-              {pageText(locale, 'Program class', 'מחלקת תוכנית')}
-              <input
-                list="pricing-class-options"
-                value={slot.pricing_class}
-                onChange={(e) => setSlot({ ...slot, pricing_class: e.target.value })}
-              />
-              <datalist id="pricing-class-options">
-                {classOptions.map((option) => <option key={option} value={option} />)}
-              </datalist>
-            </label>
-            <label>
-              {pageText(locale, 'Weekday', 'יום')}
-              <select value={slot.weekday_iso} onChange={(e) => setSlot({ ...slot, weekday_iso: e.target.value })}>
-                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                  <option key={d} value={d}>{pageText(locale, DAY_NAMES[d][0], DAY_NAMES[d][1])}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {pageText(locale, 'Show', 'תוכנית')}
-              <input
-                list={showOptions.length ? 'pricing-show-options' : undefined}
-                value={slot.show}
-                onChange={(e) => setSlot({ ...slot, show: e.target.value })}
-              />
-              {showOptions.length > 0 && (
-                <datalist id="pricing-show-options">
-                  {showOptions.map((option) => <option key={option} value={option} />)}
-                </datalist>
-              )}
-            </label>
-            <label>
-              {pageText(locale, 'Position', 'מיקום')}
-              <input type="number" min="1" dir="ltr" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
-            </label>
-            <label>
-              {pageText(locale, 'Break size', 'גודל ברייק')}
-              <input type="number" min="1" dir="ltr" value={slot.break_size} onChange={(e) => setSlot({ ...slot, break_size: e.target.value })} />
-            </label>
-            <label>
-              {pageText(locale, 'Ad type', 'סוג פרסומת')}
-              <input
-                list={adTypeOptions.length ? 'pricing-ad-type-options' : undefined}
-                value={slot.ad_type}
-                onChange={(e) => setSlot({ ...slot, ad_type: e.target.value })}
-              />
-              {adTypeOptions.length > 0 && (
-                <datalist id="pricing-ad-type-options">
-                  {adTypeOptions.map((option) => <option key={option} value={option} />)}
-                </datalist>
-              )}
-            </label>
-            <label>
-              {pageText(locale, 'Advertiser base', 'בסיס מפרסם')}
-              <input type="number" min="0" dir="ltr" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
-            </label>
-          </div>
-
-          {testerError && (
-            <div className="pricing-breakdown">
-              <p className="pricing-empty">{pageText(locale,
-                `Could not price this slot (${testerError}). No breakdown is shown rather than a stale one.`,
-                `לא ניתן לתמחר את המשבצת (${testerError}). לא מוצג פירוט במקום פירוט ישן.`)}</p>
-            </div>
-          )}
-
-          {breakdown && !testerError && (
-            <div className="pricing-breakdown">
-              <div className="pricing-break-row">
-                <span>{pageText(locale, 'Base CPP', 'מחיר בסיס')}</span>
-                <span className="mult" dir="ltr">{Number(breakdown.base_cpp ?? 0).toFixed(2)}</span>
-              </div>
-              {(breakdown.layers || []).map((layer, idx) => (
-                <div className="pricing-break-row" key={`live-${layer.name}-${idx}`}>
-                  <span>x {layerLabel(layer.name, locale)} <span className="src">({sourceLabel(layer.source, locale)})</span></span>
-                  <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
-                </div>
-              ))}
-              {(breakdown.wired_off_layers || []).map((layer, idx) => (
-                <div className="pricing-break-row off" key={`off-${layer.name}-${idx}`}>
-                  <span>x {layerLabel(layer.name, locale)} <span className="src">({pageText(locale, 'wired off', 'כבוי')})</span></span>
-                  <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
-                </div>
-              ))}
-              <div className="pricing-break-row total">
-                <span>= {pageText(locale, 'Final CPP', 'מחיר סופי')} ({currency})</span>
-                <span dir="ltr">{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</span>
-              </div>
-            </div>
-          )}
-        </div>
+        <PricingSlotTester state={state} locale={locale} notify={notify} currency={currency} />
       </div>
     </section>
   );

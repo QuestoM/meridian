@@ -127,6 +127,23 @@ def _segment_impact_kwargs(
     }
 
 
+def _segment_premium(
+    pricing: PricingModel, pricing_class: str, weekday_iso: int, day: str
+) -> float:
+    """The break-level premium for a segment: program class x day x event date.
+
+    The event-date multiplier (an operator assertion stored on calendar events,
+    never a measurement) is multiplied in ONLY when the operator has activated
+    the events pricing layer (pricing_activation.events); with the flag off (the
+    shipped default) this is exactly ``PricingModel.segment_premium``, unchanged.
+    The result stays a plain float on the segment.
+    """
+    premium = pricing.segment_premium(pricing_class=pricing_class, weekday_iso=weekday_iso)
+    if pricing.enable_events:
+        premium *= pricing.event_premium(day)
+    return premium
+
+
 def _first_break_multiplier(
     impact_model: ImpactModel | None, assumptions: OptimizerAssumptions
 ) -> float:
@@ -243,7 +260,7 @@ def build_segments_from_daily_input(
             impact_coefficient=impact_coefficient,
             **impact_fields,
             retention_baseline=assumptions.retention_baseline,
-            premium=pricing.segment_premium(pricing_class=pricing_class, weekday_iso=_daily_weekday(day)),
+            premium=_segment_premium(pricing, pricing_class, _daily_weekday(day), day),
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
@@ -376,9 +393,8 @@ def build_segments_from_programmes(
             impact_coefficient=impact_coefficient,
             **impact_fields,
             retention_baseline=assumptions.retention_baseline,
-            premium=pricing.segment_premium(
-                pricing_class=pricing_class,
-                weekday_iso=start.isoweekday(),
+            premium=_segment_premium(
+                pricing, pricing_class, start.isoweekday(), segment_date,
             ),
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,

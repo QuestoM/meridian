@@ -41,13 +41,16 @@ premiums:
 # position / ad_type / show gate the extra premium layers in price_slot
 # (kairos/optimize/pricing.py). qh_settlement gates the round-quarter-hour
 # settlement revenue restatement (kairos/optimize/qh_billing.py,
-# docs/quarter-hour-billing.md). Each moves real reported revenue when
-# switched on, so activation is a deliberate owner decision.
+# docs/quarter-hour-billing.md). events gates the event-date price multipliers
+# the operator stores on calendar events (data/calendar_events.csv), an
+# operator assertion like the day-of-week premiums. Each moves real reported
+# revenue when switched on, so activation is a deliberate owner decision.
 pricing_activation:
   position: false
   ad_type: false
   show: false
   qh_settlement: false
+  events: false
 
 # --- Constraints ---
 constraints:

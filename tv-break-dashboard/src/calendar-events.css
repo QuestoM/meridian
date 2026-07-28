@@ -188,7 +188,8 @@
   color: #5b6573;
 }
 
-.cal-editor-field select {
+.cal-editor-field select,
+.cal-editor-field input {
   min-height: 34px;
   border: 1px solid #dde2e8;
   border-radius: 6px;
