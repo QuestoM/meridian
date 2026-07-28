@@ -208,6 +208,10 @@ app.include_router(constraints_router)
 app.include_router(insights_router)
 app.include_router(pricing_router)
 
+from kairos_api.events_api import router as events_router  # noqa: E402
+
+app.include_router(events_router)
+
 from kairos_api.recompute_api import router as recompute_router  # noqa: E402
 
 app.include_router(recompute_router)

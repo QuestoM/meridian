@@ -36,6 +36,7 @@ import {
   Bell,
   Bot,
   BookOpen,
+  CalendarClock,
   CalendarDays,
   Check,
   ChevronDown,
@@ -92,6 +93,8 @@ import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
 import ActivityFeed from './ActivityFeed';
 import AssistantPanel from './AssistantPanel';
+import CalendarEvents from './CalendarEvents';
+import { PlanEventBadges, planEventWeekdayMap, usePlanEvents } from './CalendarEventsModel';
 import VersionsPage from './VersionsPage';
 import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 import Login, {
@@ -288,6 +291,7 @@ const copyByLocale = {
       'Break Library': 'Break Library',
       Campaigns: 'Campaigns',
       Forecasts: 'Forecasts',
+      Calendar: 'Events calendar',
       Reports: 'Reports',
       Data: 'Data',
       Advertisers: 'Advertisers',
@@ -390,6 +394,7 @@ const copyByLocale = {
       'Break Library': 'ספריית ברייקים',
       Campaigns: 'קמפיינים',
       Forecasts: 'תחזיות',
+      Calendar: 'לוח אירועים',
       Reports: 'דוחות',
       Data: 'נתונים',
       Advertisers: 'מפרסמים',
@@ -558,6 +563,7 @@ const navItems = [
   ['Break Library', ClipboardCheck],
   ['Campaigns', FileBarChart],
   ['Forecasts', Gauge],
+  ['Calendar', CalendarClock],
   ['Reports', ListChecks],
   ['Data', Database],
   ['Advertisers', Users],
@@ -1368,6 +1374,9 @@ function TVBreakDashboard() {
   const { overview, schedule, inventory, breakLibrary, campaigns, forecasts, reports, files, impact, parameters, online, partial, loading, error } =
     useKairosData(refreshKey);
   const [activeRecommendation, setActiveRecommendation] = useState('rec-1');
+  // Stored calendar events for the display-only plan-surface badges (Overview
+  // basis note, schedule canvas). Resolves to [] on an older backend.
+  const planEvents = usePlanEvents(refreshKey);
   const [approved, setApproved] = useState(new Set());
   const [rejected, setRejected] = useState(new Set());
   const [scenario, setScenario] = useState('Balanced');
@@ -1968,6 +1977,7 @@ function TVBreakDashboard() {
       return (
         <OverviewPage
           {...common}
+          planEvents={planEvents}
           files={files}
           setActiveView={setActiveView}
           onOpenRecommendation={(id) => {
@@ -2024,7 +2034,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Schedule') {
-      return <SchedulePage {...common} onRecompute={handleRecomputeSchedule} recomputeState={recomputeState} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      return <SchedulePage {...common} planEvents={planEvents} onRecompute={handleRecomputeSchedule} recomputeState={recomputeState} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Inventory') {
@@ -2041,6 +2051,10 @@ function TVBreakDashboard() {
 
     if (activeView === 'Forecasts') {
       return <ForecastsPage forecasts={forecasts} overview={overview} copy={copy} locale={locale} loading={loading} />;
+    }
+
+    if (activeView === 'Calendar') {
+      return <CalendarEvents locale={locale} notify={notify} refreshKey={refreshKey} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Reports') {
@@ -2577,7 +2591,7 @@ function summaryBasisLabel(summary, locale) {
   return parts.length ? parts.join(', ') : null;
 }
 
-function SummaryMetrics({ overview, copy, locale }) {
+function SummaryMetrics({ overview, copy, locale, planEvents = null }) {
   // A malformed-but-online response falls back to an empty summary so the
   // metrics show honest empty states, never the offline demo numbers.
   const summary = overview.summary || {};
@@ -2659,6 +2673,7 @@ function SummaryMetrics({ overview, copy, locale }) {
             )}
         </p>
       )}
+      <PlanEventBadges events={planEvents} locale={locale} />
     </>
   );
 }
@@ -3164,7 +3179,7 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en', onRowClick, pageS
   );
 }
 
-function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, onOpenRecommendation, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey }) {
+function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, onOpenRecommendation, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey, planEvents }) {
   const sourceCounts = overview.source_counts || {};
   const recommendations = normalizeRows(overview.recommendations);
   const fileRows = normalizeRows(files.files);
@@ -3185,7 +3200,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
           </Button>
         }
       />
-      <SummaryMetrics overview={overview} copy={copy} locale={locale} />
+      <SummaryMetrics overview={overview} copy={copy} locale={locale} planEvents={planEvents} />
       <YieldMoneyPanel locale={locale} refreshKey={refreshKey} />
       <div className="page-grid two-one">
         <section className="page-panel">
@@ -3240,8 +3255,11 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
   );
 }
 
-function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, recomputeState, refreshKey, onGlobalRefresh }) {
+function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, recomputeState, refreshKey, onGlobalRefresh, planEvents }) {
   const rows = normalizeRows(schedule.break_schedule);
+  // Display-only badge data: which planner weekdays sit inside an active
+  // calendar event, derived from the server-computed plan overlap dates.
+  const dayEvents = useMemo(() => planEventWeekdayMap(planEvents), [planEvents]);
   // The API slices break_schedule to its first 200 rows; when it also reports
   // the full count, the table header says so instead of posing as complete.
   const totalRows = finiteNumber(schedule.total_rows);
@@ -3346,6 +3364,7 @@ function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, r
             copy={copy}
             locale={locale}
             axis={scheduleAxis}
+            dayEvents={dayEvents}
             selectedProgramKey={selectedProgramKey}
             onSelectProgram={handleSelectProgram}
           />
@@ -4543,7 +4562,7 @@ function OptimizerInventoryView({ rows, locale, selectedProgramKey, onSelectProg
   );
 }
 
-function PlanningCanvas({ rows, copy, locale, axis = 'day', showPrograms = true, showBreaks = true, selectedProgramKey, onSelectProgram }) {
+function PlanningCanvas({ rows, copy, locale, axis = 'day', dayEvents = null, showPrograms = true, showBreaks = true, selectedProgramKey, onSelectProgram }) {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const columns = buildPlannerColumns(rows, axis, locale);
   const cellMinWidth = axis === 'hour' ? 112 : 136;
@@ -4554,9 +4573,21 @@ function PlanningCanvas({ rows, copy, locale, axis = 'day', showPrograms = true,
     <div className="planning-canvas">
       <div className="canvas-header" style={{ gridTemplateColumns, minWidth }}>
         <span>{copy.channelProgram} / {gridAxisLabel(axis, locale)}</span>
-        {columns.map((column) => (
-          <span key={column.key}>{column.label}</span>
-        ))}
+        {columns.map((column) => {
+          // Display-only calendar-event badge on day columns: name only, no
+          // number on any surface changes because of an event.
+          const eventNames = axis === 'day' && dayEvents ? dayEvents[column.key] : null;
+          return (
+            <span key={column.key}>
+              {column.label}
+              {Array.isArray(eventNames) && eventNames.length > 0 && (
+                <Tooltip title={pageText(locale, 'An active calendar event covers this plan day. Display only; no retention or revenue number changes.', 'אירוע פעיל מלוח האירועים חל ביום התוכנית הזה. תצוגה בלבד; אף מספר שימור או הכנסה אינו משתנה.')} arrow>
+                  <em className="canvas-day-event">{eventNames.join(', ')}</em>
+                </Tooltip>
+              )}
+            </span>
+          );
+        })}
       </div>
       {rows.map((row, rowIndex) => {
         const programs = Array.isArray(row.programs) ? row.programs : [];

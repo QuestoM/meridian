@@ -1,0 +1,64 @@
+# Bundled reference table of Israeli national and Jewish holidays, 2024-2027.
+# This is a static checked-in list, not a live calendar service: verify dates
+# against the official calendar before operational use, and edit rows here when
+# a date is corrected or a holiday is observed on a shifted date.
+# Jewish holidays begin at sundown the prior evening; the dates listed are the
+# Gregorian daytime dates of the holiday itself.
+# kind is national or religious; is_school_holiday marks the school vacation days.
+date,name,kind,is_school_holiday
+2024-03-24,פורים,religious,true
+2024-04-23,פסח,religious,true
+2024-04-29,שביעי של פסח,religious,true
+2024-05-06,יום השואה,national,false
+2024-05-13,יום הזיכרון,national,false
+2024-05-14,יום העצמאות,national,true
+2024-05-26,ל״ג בעומר,religious,false
+2024-06-12,שבועות,religious,true
+2024-10-03,ראש השנה,religious,true
+2024-10-04,ראש השנה יום שני,religious,true
+2024-10-12,יום כיפור,religious,true
+2024-10-17,סוכות,religious,true
+2024-10-24,שמחת תורה,religious,true
+2024-12-26,חנוכה יום ראשון,religious,true
+2025-03-14,פורים,religious,true
+2025-04-13,פסח,religious,true
+2025-04-19,שביעי של פסח,religious,true
+2025-04-24,יום השואה,national,false
+2025-04-30,יום הזיכרון,national,false
+2025-05-01,יום העצמאות,national,true
+2025-05-16,ל״ג בעומר,religious,false
+2025-06-02,שבועות,religious,true
+2025-09-23,ראש השנה,religious,true
+2025-09-24,ראש השנה יום שני,religious,true
+2025-10-02,יום כיפור,religious,true
+2025-10-07,סוכות,religious,true
+2025-10-14,שמחת תורה,religious,true
+2025-12-15,חנוכה יום ראשון,religious,true
+2026-03-03,פורים,religious,true
+2026-04-02,פסח,religious,true
+2026-04-08,שביעי של פסח,religious,true
+2026-04-14,יום השואה,national,false
+2026-04-21,יום הזיכרון,national,false
+2026-04-22,יום העצמאות,national,true
+2026-05-05,ל״ג בעומר,religious,false
+2026-05-22,שבועות,religious,true
+2026-09-12,ראש השנה,religious,true
+2026-09-13,ראש השנה יום שני,religious,true
+2026-09-21,יום כיפור,religious,true
+2026-09-26,סוכות,religious,true
+2026-10-03,שמחת תורה,religious,true
+2026-12-05,חנוכה יום ראשון,religious,true
+2027-03-23,פורים,religious,true
+2027-04-22,פסח,religious,true
+2027-04-28,שביעי של פסח,religious,true
+2027-05-04,יום השואה,national,false
+2027-05-11,יום הזיכרון,national,false
+2027-05-12,יום העצמאות,national,true
+2027-05-25,ל״ג בעומר,religious,false
+2027-06-11,שבועות,religious,true
+2027-10-02,ראש השנה,religious,true
+2027-10-03,ראש השנה יום שני,religious,true
+2027-10-11,יום כיפור,religious,true
+2027-10-16,סוכות,religious,true
+2027-10-23,שמחת תורה,religious,true
+2027-12-25,חנוכה יום ראשון,religious,true
