@@ -41,6 +41,7 @@ class StreamAskRequest(BaseModel):
     router) so the modules stay import-order safe."""
 
     question: str = Field(min_length=1, max_length=2000)
+    conversation_id: str | None = Field(default=None, max_length=80)
 
 
 def _frame(event: str, data: Any) -> str:
@@ -74,11 +75,13 @@ def assistant_ask_stream(request: StreamAskRequest, http_request: Request) -> St
 
     def worker() -> None:
         try:
-            body = assistant._ask_body(question, http_request, on_step=on_step, on_text=on_text)
+            body = assistant._ask_body(question, http_request, on_step=on_step, on_text=on_text,
+                                       conversation_id=request.conversation_id)
             batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
             assistant._audit_ask(user, question, body, batch_id)
             if body.get("answer"):
-                assistant_memory.append_entry(user, question, str(body["answer"]), batch_id)
+                assistant_memory.append_entry(user, question, str(body["answer"]), batch_id,
+                                              conversation_id=body.get("conversation_id"))
             events.put(("final", body))
         except Exception as exc:  # noqa: BLE001 - the terminal frame is honest, never absent
             events.put(("error", {"error": assistant._describe_error(exc)}))

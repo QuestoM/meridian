@@ -132,9 +132,10 @@ def test_loop_executes_reads_and_captures_proposals_without_mutating(
     body = client.post("/api/assistant/ask", json={"question": "העלה את משקל ההכנסה"}).json()
 
     # Existing fields unchanged, new fields additive. The streaming contract
-    # extended the ask body with model, context_disclosure and truncated.
+    # extended the ask body with model, context_disclosure and truncated; the
+    # conversations layer added conversation_id.
     assert set(body) == {"available", "answer", "model", "grounding", "context_disclosure",
-                         "truncated", "error", "proposals", "tool_trace"}
+                         "truncated", "error", "proposals", "tool_trace", "conversation_id"}
     assert body["available"] is True and body["error"] is None
     assert body["answer"] == "הצעתי שני שינויים לאישורך"
     # Same tools in order, all ok; read steps now additively carry a provenance

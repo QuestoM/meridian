@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@mui/material';
-import { Bot, RefreshCcw, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Bot, Send, Sparkles, Trash2 } from 'lucide-react';
 import { pageText } from './surface-helpers';
-import { postJson, requestJson, streamAsk } from './assistant-stream';
+import { postJson, requestJson } from './assistant-stream';
+import { streamAskConversation, useConversations } from './AssistantConversationsApi';
+import AssistantConversationsSidebar from './AssistantConversationsSidebar';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantUpload from './AssistantUpload';
 import { AssistantExchange, StreamProgress, RichText } from './AssistantThread';
@@ -72,9 +74,14 @@ export default function AssistantPanel({ locale, notify }) {
   const [applyResults, setApplyResults] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [live, setLive] = useState(null);
+  const [actingUser, setActingUser] = useState('');
+  const conv = useConversations(notify);
   const idRef = useRef(0);
   const threadRef = useRef(null);
   const composerRef = useRef(null);
+  // Conversation ids the server minted during an ask: the thread on screen is
+  // already current, so the load effect skips exactly one refetch for them.
+  const adoptedRef = useRef(null);
 
   const mergeBatches = useCallback((incoming, fromServer) => {
     const clean = incoming.filter(Boolean);
@@ -134,12 +141,20 @@ export default function AssistantPanel({ locale, notify }) {
   }, [refreshRail]);
 
   // Load the saved conversation so returning to the assistant shows the past
-  // exchanges instead of an empty chat. Each stored entry (question, answer, time)
-  // becomes a thread row; new asks append below them.
+  // exchanges instead of an empty chat. Each stored entry (question, answer,
+  // time, batch id) becomes a thread row; keeping the stored batch_id is what
+  // lets a proposal card reattach to its exchange after a reload. With no
+  // active id the server returns the newest conversation and its id is
+  // adopted quietly; picking a conversation in the rail reloads here.
   useEffect(() => {
+    if (conv.activeId && adoptedRef.current === conv.activeId) {
+      adoptedRef.current = null;
+      return undefined;
+    }
     let active = true;
     setThreadLoading(true);
-    requestJson('/api/assistant/thread')
+    const path = conv.activeId ? `/api/assistant/thread?conversation_id=${encodeURIComponent(conv.activeId)}` : '/api/assistant/thread';
+    requestJson(path)
       .then((body) => {
         if (!active) return;
         const entries = Array.isArray(body.entries) ? body.entries : [];
@@ -153,34 +168,54 @@ export default function AssistantPanel({ locale, notify }) {
           sources: [],
           toolTrace: [],
           truncated: false,
-          batchId: null,
+          batchId: entry && entry.batch_id ? String(entry.batch_id) : null,
         }));
         idRef.current = rows.length;
         setThread(rows);
+        if (typeof body.user === 'string' && body.user) setActingUser(body.user);
+        if (body.conversation_id && String(body.conversation_id) !== conv.activeId) {
+          adoptedRef.current = String(body.conversation_id);
+          conv.adopt(String(body.conversation_id));
+        }
       })
-      .catch(() => { /* honest empty chat if the thread cannot be read */ })
+      .catch(() => {
+        // Honest empty chat if the thread cannot be read; the requested
+        // conversation may have been deleted, so resync the list.
+        if (!active) return;
+        setThread([]);
+        if (conv.activeId) conv.refreshList();
+      })
       .finally(() => { if (active) setThreadLoading(false); });
     return () => { active = false; };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conv.activeId, conv.loadNonce]);
 
   useEffect(() => {
     const node = threadRef.current;
     if (node) node.scrollTop = node.scrollHeight;
   }, [thread, asking, live, threadLoading]);
 
+  // With conversations available the header clear removes the active
+  // conversation through the same endpoint the rail uses; the hook then
+  // selects the newest remaining conversation and the thread reloads. On an
+  // older backend the legacy whole-thread delete stays.
   const clearConversation = useCallback(async () => {
     setClearing(true);
     try {
-      await requestJson('/api/assistant/thread', { method: 'DELETE' });
-      setThread([]);
-      idRef.current = 0;
+      if (conv.supported && conv.activeId) {
+        await conv.remove(conv.activeId);
+      } else {
+        await requestJson('/api/assistant/thread', { method: 'DELETE' });
+        setThread([]);
+        idRef.current = 0;
+      }
       setConfirmClear(false);
     } catch (error) {
       if (notify) notify(`Clearing the conversation failed (${error.message}).`, `מחיקת השיחה נכשלה (${error.message}).`);
     } finally {
       setClearing(false);
     }
-  }, [notify]);
+  }, [notify, conv]);
 
   const appendEntry = useCallback((entry) => {
     idRef.current += 1;
@@ -193,6 +228,16 @@ export default function AssistantPanel({ locale, notify }) {
       setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
       appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
       return;
+    }
+    // Adopt the conversation id the ask landed in: a new conversation minted
+    // by the server appears in the list, and the id rides on the next ask.
+    const returnedConv = body.conversation_id ? String(body.conversation_id) : null;
+    if (returnedConv) {
+      if (returnedConv !== conv.activeId) {
+        adoptedRef.current = returnedConv;
+        conv.adopt(returnedConv);
+      }
+      if (conv.supported) conv.refreshList();
     }
     const batch = body.proposals ? normalizeBatch(body.proposals) : null;
     if (batch) mergeBatches([batch], false);
@@ -208,7 +253,7 @@ export default function AssistantPanel({ locale, notify }) {
       at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
     });
     if (batch) refreshRail();
-  }, [locale, appendEntry, mergeBatches, refreshRail]);
+  }, [locale, appendEntry, mergeBatches, refreshRail, conv]);
 
   const ask = useCallback(async () => {
     const trimmed = question.trim();
@@ -219,10 +264,11 @@ export default function AssistantPanel({ locale, notify }) {
     // already started typing for the next question.
     setQuestion('');
     setLive({ question: trimmed, text: '', step: null });
+    const conversationId = conv.supported && conv.activeId ? conv.activeId : null;
     try {
       let body;
       try {
-        body = await streamAsk(trimmed, {
+        body = await streamAskConversation(trimmed, conversationId, {
           onStep: (step) => setLive((prev) => (prev ? { ...prev, step } : prev)),
           onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
         });
@@ -230,7 +276,7 @@ export default function AssistantPanel({ locale, notify }) {
         // The stream endpoint is unavailable or broke mid-flight; the plain
         // ask returns the same answer without live updates, so retry there.
         setLive({ question: trimmed, text: '', step: null });
-        body = await postJson('/api/assistant/ask', { question: trimmed });
+        body = await postJson('/api/assistant/ask', conversationId ? { question: trimmed, conversation_id: conversationId } : { question: trimmed });
       }
       finishAsk(trimmed, body);
     } catch (error) {
@@ -242,7 +288,7 @@ export default function AssistantPanel({ locale, notify }) {
       setLive(null);
       setAsking(false);
     }
-  }, [question, asking, finishAsk, appendEntry]);
+  }, [question, asking, finishAsk, appendEntry, conv.supported, conv.activeId]);
 
   const applyItems = useCallback(async (batchId, itemIds) => {
     if (!itemIds.length || applyBusyId) return;
@@ -351,6 +397,7 @@ export default function AssistantPanel({ locale, notify }) {
             <div>
               <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
               <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
+              {actingUser ? <span className="asst-user" dir="auto">{pageText(locale, 'Acting user', 'מבצע')}: <b dir="ltr">{actingUser}</b></span> : null}
             </div>
             {thread.length > 0 && !threadLoading ? (
               confirmClear ? (
@@ -448,28 +495,20 @@ export default function AssistantPanel({ locale, notify }) {
           <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line.', 'מקש Enter שולח, Shift+Enter יורד שורה.')}</p>
         </section>
 
-        <aside className="page-panel asst-rail">
-          <div className="asst-rail-tabs">
-            <span className="asst-rail-title">
-              {pageText(locale, 'Pending actions', 'פעולות ממתינות')}
-              {pendingCount > 0 ? <span className="asst-badge" dir="ltr">{pendingCount}</span> : null}
-            </span>
-            <button type="button" className="asst-refresh" onClick={refreshRail} disabled={refreshing} aria-label={pageText(locale, 'Refresh', 'רענון')}>
-              <RefreshCcw size={13} className={refreshing ? 'asst-spin' : ''} />
-            </button>
-          </div>
-          <div className="asst-rail-body">
-            {proposalsState === 'loading' ? (
-              <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
-            ) : proposalsState === 'error' ? (
-              <div className="asst-error-note">{pageText(locale, `Pending actions could not be loaded (${proposalsError}).`, `לא ניתן לטעון את הפעולות הממתינות (${proposalsError}).`)}</div>
-            ) : visibleBatches.length === 0 ? (
-              <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
-            ) : (
-              visibleBatches.map((batch) => renderProposalCard(batch))
-            )}
-          </div>
-        </aside>
+        <AssistantConversationsSidebar
+          locale={locale}
+          conv={conv}
+          notify={notify}
+          disabled={asking}
+          pendingCount={pendingCount}
+          proposalsState={proposalsState}
+          proposalsError={proposalsError}
+          visibleBatches={visibleBatches}
+          renderProposalCard={renderProposalCard}
+          refreshing={refreshing}
+          onRefresh={refreshRail}
+          onShowRestore={() => { window.location.hash = 'Versions'; }}
+        />
       </div>
     </section>
   );

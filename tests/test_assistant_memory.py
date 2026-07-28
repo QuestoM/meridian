@@ -10,7 +10,6 @@ ask appending exactly one entry on success and none on failure.
 
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
 from typing import Any
 
@@ -20,6 +19,7 @@ from fastapi.testclient import TestClient
 
 import kairos_api.assistant as assistant
 import kairos_api.assistant_actions as actions
+import kairos_api.assistant_conversations as conversations
 import kairos_api.assistant_memory as memory
 
 
@@ -83,15 +83,17 @@ def test_append_prunes_to_newest_50_newest_last(client: TestClient) -> None:
 
     body = client.get("/api/assistant/thread").json()
     assert len(body["entries"]) == 50
-    assert body["entries"][0] == {"question": "q5", "answer": "a5",
-                                  "at": body["entries"][0]["at"], "batch_id": None}
+    first = body["entries"][0]
+    assert first["question"] == "q5" and first["answer"] == "a5"
+    assert first["batch_id"] is None and first["at"] and first["conversation_id"]
     assert body["entries"][-1]["question"] == "q54"
     questions = [entry["question"] for entry in body["entries"]]
     assert questions == [f"q{index}" for index in range(5, 55)]
 
-    # The file itself holds exactly the pruned 50: the prune is at-write, not at-read.
-    stored = json.loads(memory._path_for("auth-disabled").read_text(encoding="utf-8"))
-    assert len(stored["entries"]) == 50
+    # The conversation file itself holds exactly the pruned 50: the prune is
+    # at-write, not at-read.
+    newest = conversations.newest_id("auth-disabled")
+    assert len(conversations.entries_for("auth-disabled", newest)) == 50
 
 
 def test_thread_survives_restart_fresh_reader_sees_same_file(client: TestClient) -> None:
@@ -104,7 +106,8 @@ def test_thread_survives_restart_fresh_reader_sees_same_file(client: TestClient)
     assert [entry["question"] for entry in body["entries"]] == ["before restart"]
     assert body["entries"][0]["batch_id"] == "batch123"
     assert body["entries"][0]["at"]
-    direct = memory._load_entries(memory._path_for("auth-disabled"))
+    newest = conversations.newest_id("auth-disabled")
+    direct = conversations.entries_for("auth-disabled", newest)
     assert direct == body["entries"]
 
 
@@ -117,8 +120,9 @@ def test_delete_clears_only_the_callers_thread_and_audits(client: TestClient) ->
     assert body == {"cleared": True, "entries_removed": 1, "user": "auth-disabled"}
 
     assert client.get("/api/assistant/thread").json()["entries"] == []
-    assert not memory._path_for("auth-disabled").exists()
-    others = memory._load_entries(memory._path_for("someone-else"))
+    assert conversations.list_records("auth-disabled") == []
+    others = conversations.entries_for(
+        "someone-else", conversations.newest_id("someone-else"))
     assert [entry["question"] for entry in others] == ["theirs"]
 
     audit = actions.read_audit(50)["entries"]

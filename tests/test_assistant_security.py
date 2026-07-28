@@ -39,6 +39,7 @@ from fastapi.testclient import TestClient
 import kairos_api.assistant as assistant
 import kairos_api.assistant_actions as actions
 import kairos_api.assistant_context as assistant_context
+import kairos_api.assistant_conversations as conversations
 import kairos_api.assistant_memory as memory
 import kairos_api.assistant_tools as tools
 
@@ -379,14 +380,14 @@ def test_threads_are_isolated_per_session_user_and_unaddressable(
     assert user_a.delete("/api/assistant/thread/userb").status_code in (404, 405)
     assert user_a.get("/api/assistant/threads/userb").status_code in (404, 405)
 
-    # A's clear removes only A's file; B's thread survives on disk and over the wire.
+    # A's clear removes only A's conversations; B's survive on disk and over the wire.
     cleared = user_a.delete("/api/assistant/thread").json()
     assert cleared == {"cleared": True, "entries_removed": 1, "user": "usera"}
     assert user_a.get("/api/assistant/thread").json()["entries"] == []
     survivor = user_b.get("/api/assistant/thread").json()
     assert [entry["question"] for entry in survivor["entries"]] == ["question from userb"]
-    assert not memory._path_for("usera").exists()
-    assert memory._path_for("userb").exists()
+    assert conversations.list_records("usera") == []
+    assert conversations.list_records("userb")
 
 
 # --- invariant 5: stream parity and safety -------------------------------------------

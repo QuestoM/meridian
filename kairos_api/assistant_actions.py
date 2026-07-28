@@ -154,11 +154,15 @@ def _find_batch(store: dict[str, Any], batch_id: str) -> dict[str, Any]:
     raise HTTPException(status_code=404, detail=f"no proposal batch {batch_id!r}")
 
 
-def create_batch(question: str, items: list[dict[str, Any]], user: str, model: str) -> dict[str, Any]:
-    """Persist one ask's captured proposal items as a batch and audit it."""
+def create_batch(question: str, items: list[dict[str, Any]], user: str, model: str,
+                 conversation_id: str | None = None) -> dict[str, Any]:
+    """Persist one ask's captured proposal items as a batch and audit it. The
+    conversation the ask ran in rides on the batch so the per-conversation
+    changes view and restore can collect it without a join through entries."""
     batch = {
         "batch_id": uuid.uuid4().hex[:12], "question": question, "created_at": _now_iso(),
         "created_by": user, "model": model, "status": _batch_status(items), "items": items,
+        "conversation_id": conversation_id,
     }
     counts = {status: sum(1 for item in items if item["status"] == status)
               for status in ("pending", "rejected")}
@@ -167,7 +171,8 @@ def create_batch(question: str, items: list[dict[str, Any]], user: str, model: s
         store["batches"].append(batch)
         _save_store(store)
         audit_append("proposal", user, batch_id=batch["batch_id"], question=question,
-                     model=model, item_ids=[item["id"] for item in items], results=counts)
+                     model=model, conversation_id=conversation_id,
+                     item_ids=[item["id"] for item in items], results=counts)
     return batch
 
 

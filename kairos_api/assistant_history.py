@@ -9,9 +9,11 @@ answer, oldest first, ready to be placed before the current CONTEXT+QUESTION
 user message. The window is hard-capped at ``HISTORY_MAX_EXCHANGES`` newest
 exchanges within ``HISTORY_CHAR_BUDGET`` total characters, and each stored
 answer longer than ``ANSWER_REPLAY_CHARS`` is cut with an explicit marker so
-nothing silently disappears. Reads happen under the memory module's lock and
-strictly for the caller's own username (the same-user identity keystone). A
-memory read failure never fails the ask: the history is honestly empty instead.
+nothing silently disappears. Reads happen under the memory module's lock,
+strictly for the caller's own username (the same-user identity keystone) and
+scoped to ONE conversation, so parallel conversations never cross-contaminate.
+A memory read failure never fails the ask: the history is honestly empty
+instead.
 """
 
 from __future__ import annotations
@@ -69,17 +71,23 @@ def _window(entries: list[dict[str, Any]]) -> list[tuple[str, str]]:
     return kept
 
 
-def history_messages(username: str) -> list[dict[str, str]]:
-    """The caller's own thread as alternating user/assistant messages.
+def history_messages(username: str, conversation_id: str | None = None) -> list[dict[str, str]]:
+    """One conversation of the caller's own thread as alternating messages.
 
-    Loads the thread file derived strictly from ``username`` (the authenticated
-    actor, resolved by the caller) under the memory module's lock, windows it,
-    and replays it oldest first. Any failure returns an empty list: history is
-    additive and must never fail or delay the ask it decorates.
+    Loads the conversation derived strictly from ``username`` (the
+    authenticated actor, resolved by the caller) under the memory module's
+    lock, windows it, and replays it oldest first. Only the named conversation
+    is replayed (the newest one when ``conversation_id`` is None), so parallel
+    conversations never cross-contaminate. Any failure returns an empty list:
+    history is additive and must never fail or delay the ask it decorates.
     """
+    from kairos_api import assistant_conversations
+
     try:
         with assistant_memory._LOCK:
-            entries = assistant_memory._load_entries(assistant_memory._path_for(username))
+            selected = conversation_id or assistant_conversations.newest_id(username)
+            entries = (assistant_conversations.entries_for(username, selected)
+                       if selected else [])
         messages: list[dict[str, str]] = []
         for question, answer in _window(entries):
             messages.append({"role": "user", "content": question})

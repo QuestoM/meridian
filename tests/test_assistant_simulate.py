@@ -275,9 +275,10 @@ def test_ask_response_shape_is_backward_compatible(
     )
     body = client.post("/api/assistant/ask", json={"question": "how does the week look?"}).json()
     # The streaming contract extended the ask body additively with model,
-    # context_disclosure and truncated; everything pre-existing is unchanged.
+    # context_disclosure and truncated, and the conversations layer with
+    # conversation_id; everything pre-existing is unchanged.
     assert set(body) == {"available", "answer", "model", "grounding", "context_disclosure",
-                         "truncated", "error", "proposals", "tool_trace"}
+                         "truncated", "error", "proposals", "tool_trace", "conversation_id"}
     assert body["available"] is True
     assert body["answer"] == "plain answer"
     assert body["tool_trace"] == []

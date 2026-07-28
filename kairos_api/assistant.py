@@ -217,6 +217,10 @@ def _system_blocks(*, auth_mode: str | None = None) -> list[dict[str, Any]]:
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
+    # The conversation this ask belongs to. Absent selects the caller's newest
+    # conversation; an unknown or invalid id mints a fresh one. The response
+    # carries the resolved id back either way.
+    conversation_id: str | None = Field(default=None, max_length=80)
 
 
 def _server() -> Any:
@@ -614,7 +618,8 @@ def assistant_status() -> dict[str, Any]:
 
 def _ask_body(question: str, http_request: Request | None,
               on_step: Callable[[dict[str, Any]], None] | None = None,
-              on_text: Callable[[str], None] | None = None) -> dict[str, Any]:
+              on_text: Callable[[str], None] | None = None,
+              conversation_id: str | None = None) -> dict[str, Any]:
     """The full ask pipeline shared by /ask and /ask/stream.
 
     Composes the grounding context, replays the caller's own saved thread as
@@ -640,18 +645,25 @@ def _ask_body(question: str, http_request: Request | None,
             "error": AUTH_MISSING_REASON,
             "proposals": None,
             "tool_trace": [],
+            # No conversation is engaged or minted for an unavailable ask.
+            "conversation_id": None,
         }
 
+    user = _actor_name(http_request)
+    # The conversation this ask lands in: the requested one when it exists, the
+    # caller's newest when none was named, a fresh mint otherwise. History is
+    # scoped to it so parallel conversations never cross-contaminate.
+    conversation_id = assistant_conversations.resolve_for_ask(user, conversation_id)
     context, sources = _compose_context(question)
     grounding = {"sources": sources, "generated_at": generated_at}
     context_json = json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str)
     trace: list[dict[str, Any]] = []
     items: list[dict[str, Any]] = []
     answer, error = "", None
-    # The caller's own saved thread, replayed before the current turn so
+    # The caller's own saved conversation, replayed before the current turn so
     # follow-up questions have an anchor. A memory read failure yields an
     # empty history, never a failed ask.
-    history = assistant_history.history_messages(_actor_name(http_request))
+    history = assistant_history.history_messages(user, conversation_id)
     try:
         client = _client_from_auth(auth)
         answer = _run_tool_loop(
@@ -659,7 +671,7 @@ def _ask_body(question: str, http_request: Request | None,
             trace, items, _actions_enabled(),
             can_propose=_can_propose(http_request),
             on_step=on_step, on_text=on_text,
-            user=_actor_name(http_request),
+            user=user,
             history=history,
             auth_mode=getattr(auth, "mode", None),
         )
@@ -669,7 +681,8 @@ def _ask_body(question: str, http_request: Request | None,
     # them so the operator sees exactly what was proposed, error and all.
     proposals = None
     if items:
-        batch = assistant_actions.create_batch(question, items, _actor_name(http_request), _model_name())
+        batch = assistant_actions.create_batch(question, items, user, _model_name(),
+                                               conversation_id=conversation_id)
         proposals = {key: batch[key] for key in ("batch_id", "status", "created_at", "items")}
     if error is None and not answer:
         error = "The model returned no text answer."
@@ -683,6 +696,7 @@ def _ask_body(question: str, http_request: Request | None,
         "error": error,
         "proposals": proposals,
         "tool_trace": trace,
+        "conversation_id": conversation_id,
     }
 
 
@@ -701,18 +715,26 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
             detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
         )
     user = _actor_name(http_request)
-    body = _ask_body(question, http_request)
+    body = _ask_body(question, http_request, conversation_id=request.conversation_id)
     batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
     _audit_ask(user, question, body, batch_id)
     if body.get("answer"):
-        assistant_memory.append_entry(user, question, str(body["answer"]), batch_id)
+        assistant_memory.append_entry(user, question, str(body["answer"]), batch_id,
+                                      conversation_id=body.get("conversation_id"))
     return body
 
 
 # Mounted last: assistant_stream reaches back into this module at call time for
 # the shared pipeline, so the includes sit below every definition it needs.
-from kairos_api import assistant_memory, assistant_stream, assistant_uploads  # noqa: E402
+from kairos_api import (  # noqa: E402
+    assistant_conversations,
+    assistant_conversations_api,
+    assistant_memory,
+    assistant_stream,
+    assistant_uploads,
+)
 
 router.include_router(assistant_stream.router)
 router.include_router(assistant_memory.router)
+router.include_router(assistant_conversations_api.router)
 router.include_router(assistant_uploads.router)

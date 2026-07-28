@@ -2,8 +2,9 @@
 
 A version is a point-in-time copy of the operation-state files the operator
 edits: the settings JSON (with pricing overrides), the placement constraints store,
-the manual overrides store, the advertiser rules, and the scoped advertiser
-conditions. Every mutation path snapshots the touched file BEFORE it writes, so
+the manual overrides store, the advertiser rules, the scoped advertiser
+conditions, and the calendar events store. Every mutation path snapshots the
+touched file BEFORE it writes, so
 the timeline is an append-only history:
 restoring first snapshots the current state (a ``pre_restore`` point) and then puts
 the selected files back, so a restore is always itself undoable.
@@ -42,7 +43,8 @@ router = APIRouter(prefix="/api/versions", tags=["versions"])
 
 # The logical operation-state files. Paths resolve lazily (at call time) so a
 # test that monkeypatches a store's PATH and the real deployment both hold.
-_LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions")
+_LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions",
+                  "events")
 
 # Version ids are uuid4().hex[:12]; accept 8-32 lowercase hex so nothing else
 # (a traversal path, a stray label) ever reaches the manifest reader.
@@ -87,11 +89,15 @@ def _logical_path(logical: str) -> Path:
     if logical == "conditions":
         from kairos_api import advertiser_conditions as conditions_api
         return Path(conditions_api.CONDITIONS_PATH)
+    if logical == "events":
+        from kairos_api import events_api
+        return Path(events_api.EVENTS_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
 
 
 _ID_COLUMN = {"constraints": "constraint_id", "overrides": "override_id",
-              "advertisers": "advertiser_id", "conditions": "rule_id"}
+              "advertisers": "advertiser_id", "conditions": "rule_id",
+              "events": "event_id"}
 
 
 def _snapshot_name(logical: str) -> str:
@@ -384,8 +390,9 @@ def snapshot_manual_edit(request: Request | None, logical: str) -> None:
 
 _SCOPE_NOTE = ("Versions snapshot the operation-state files the operator edits: settings "
                "(with pricing overrides), placement constraints, manual overrides, "
-               "advertiser rules and scoped advertiser conditions. History is append-only; "
-               "a restore first records the current state, so it is always undoable.")
+               "advertiser rules, scoped advertiser conditions and calendar events. "
+               "History is append-only; a restore first records the current state, "
+               "so it is always undoable.")
 
 
 def _public_entry(manifest: dict[str, Any]) -> dict[str, Any]:
