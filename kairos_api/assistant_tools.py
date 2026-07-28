@@ -20,6 +20,12 @@ import uuid
 import logging
 from typing import Any
 
+from kairos_api.assistant_tool_schemas import (
+    EXTRA_KIND_BY_TOOL,
+    EXTRA_PROPOSE_TOOL_SCHEMAS,
+    EXTRA_READ_TOOL_SCHEMAS,
+)
+
 # The mutable KairosSettings fields the model may propose to change. Everything
 # else (operator_channel, locale, currency, profile identity, notes, raw
 # pricing_overrides, protected_program_types) is rejected with an honest reason.
@@ -99,7 +105,10 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
     _tool(
         "get_net_comparison",
         "Read the saved-plan objective versus a net-focused plan (gross, "
-        "retention cost, net, breaks and the deltas), or its honest status.",
+        "retention cost, net, breaks and the deltas), or its honest status. "
+        "Net HERE means weekly-plan revenue net of modeled RETENTION cost; net "
+        "after AGENCY REBATES is a different concept, served by "
+        "get_top_advertisers from the daily per-spot ledger.",
     ),
     _tool("get_compliance", "Read the regulatory compliance verdict summary for the saved plan."),
     _tool(
@@ -222,7 +231,10 @@ PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     _propose(
         "propose_pricing_change",
         "Propose a rate-card edit: a pricing_overrides deep-merge patch in the "
-        "YAML shape (base_price_per_second_per_tvr_point, premiums, pricing_activation).",
+        "YAML shape (base_price_per_second_per_tvr_point, premiums, pricing_activation). "
+        "pricing_activation.events switches the operator-asserted event-date price "
+        "layer; a proposal touching it states the forecast revenue change on the "
+        "saved plan's event days in its summary.",
         "changes",
         "Partial pricing_overrides patch to deep-merge.",
     ),
@@ -250,10 +262,17 @@ PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     ),
 ]
 
+# The agencies, calendar-events and money-coverage schemas ride in the same flat
+# lists, so the name registries and the model's tool list stay complete.
+READ_TOOL_SCHEMAS.extend(EXTRA_READ_TOOL_SCHEMAS)
+PROPOSE_TOOL_SCHEMAS.extend(EXTRA_PROPOSE_TOOL_SCHEMAS)
+
 READ_TOOL_NAMES = frozenset(schema["name"] for schema in READ_TOOL_SCHEMAS)
 PROPOSE_TOOL_NAMES = frozenset(schema["name"] for schema in PROPOSE_TOOL_SCHEMAS)
 
 # Proposal item kind per propose tool; the apply engine dispatches on kind.
+# propose_agency_change refines its kind per action in build_proposal_item so
+# restore points and the version timeline snapshot exactly the store it touches.
 KIND_BY_TOOL = {
     "propose_settings_change": "settings",
     "propose_constraint": "constraint",
@@ -261,6 +280,7 @@ KIND_BY_TOOL = {
     "propose_pricing_change": "pricing",
     "propose_recompute": "recompute",
     "propose_advertiser_change": "advertiser_change",
+    **EXTRA_KIND_BY_TOOL,
 }
 
 
@@ -324,6 +344,10 @@ def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
         return item
     item["payload"] = payload
     item["summary"] = summary
+    if name == "propose_agency_change":
+        from kairos_api.assistant_propose_extra import agency_change_kind
+
+        item["kind"] = agency_change_kind(payload)
     # Additive: a per-field diff (current saved value vs proposed) so the operator
     # sees exactly what each approval changes. The apply engine ignores it.
     if kind == "settings":

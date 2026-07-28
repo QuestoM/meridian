@@ -107,12 +107,25 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
 
     sample_date = sorted(own_rows["date"].astype(str).str.strip().unique())[0]
     current_weight = int(_load_settings().revenue_weight)
-    return {
+    args: dict[str, dict[str, Any]] = {
         "get_day_detail": {"date": sample_date},
         "simulate_settings_change": {
             "changes": {"revenue_weight": 70 if current_weight != 70 else 75}
         },
     }
+    # The coverage-wave tools that require an id: feed each a real record from
+    # its own store so the leak scan bites on real payloads, not error stubs.
+    from kairos_api.agencies import _load_frame as _agencies_frame
+
+    agencies = _agencies_frame()
+    if len(agencies):
+        args["get_agency_detail"] = {"agency_id": str(agencies.iloc[0]["agency_id"])}
+    from kairos_api.advertisers import _load_frame as _advertisers_frame
+
+    advertisers = _advertisers_frame()
+    if len(advertisers):
+        args["get_advertiser_pricing"] = {"advertiser": str(advertisers.iloc[0]["advertiser_id"])}
+    return args
 
 
 def _all_read_payloads() -> dict[str, dict[str, Any]]:

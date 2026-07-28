@@ -91,7 +91,19 @@ def _validate_pricing_change(args: dict[str, Any]) -> tuple[dict[str, Any], str]
         PricingModel.from_config(_deep_merge(current, changes))
     except ValueError as exc:
         raise ValueError(f"invalid pricing edit: {str(exc)[:300]}") from exc
-    return {"changes": dict(changes)}, "pricing: edit " + ", ".join(sorted(changes))
+    summary = "pricing: edit " + ", ".join(sorted(changes))
+    # Money honesty: a proposal that switches the event-date price layer states
+    # the forecast revenue change on the saved plan's event days. A note failure
+    # never rejects an otherwise valid proposal.
+    activation = changes.get("pricing_activation")
+    if isinstance(activation, dict) and "events" in activation:
+        try:
+            from kairos_api.assistant_propose_extra import events_activation_note
+
+            summary = f"{summary}. {events_activation_note(bool(activation['events']))}"
+        except Exception:  # noqa: BLE001 - the note is additive disclosure only
+            pass
+    return {"changes": dict(changes)}, summary
 
 
 def _validate_recompute(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
@@ -158,6 +170,13 @@ _PROPOSE_VALIDATORS = {
     "propose_recompute": _validate_recompute,
     "propose_advertiser_change": _validate_advertiser_change,
 }
+
+# The calendar-event and agency validators live in assistant_propose_extra
+# (size cap); merging them here keeps one validator registry for
+# build_proposal_item.
+from kairos_api.assistant_propose_extra import EXTRA_PROPOSE_VALIDATORS  # noqa: E402
+
+_PROPOSE_VALIDATORS.update(EXTRA_PROPOSE_VALIDATORS)
 
 
 def _settings_diff(changes: dict[str, Any] | None) -> list[dict[str, Any]]:

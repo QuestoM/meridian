@@ -33,6 +33,7 @@ from kairos_api import (
     assistant_context,
     assistant_history,
     assistant_keywords,
+    assistant_page_context,
     assistant_tools,
 )
 
@@ -161,7 +162,9 @@ SYSTEM_PROMPT = (
     "18. History: earlier turns in this conversation are prior exchanges with the same operator. The CONTEXT block reflects the CURRENT saved state, so when a prior answer conflicts with it, follow CONTEXT and say the figure changed since; never re-quote a stale number from history as current. "
     "19. Basis disclosure: headline money and retention figures in CONTEXT are scoped to the operator's own channel; when quoting totals, name the scope, using the scope_channel field and the date span the context carries, so the operator knows what the number covers. "
     "20. Product vocabulary in Hebrew answers: an ad break is ברייק (plural ברייקים), a pin is נעיצה, gold breaks are ברייקי זהב, a daypart is רצועת שידור, projected revenue is הכנסה צפויה and predicted retention is שימור חזוי; never use הפסקות for the domain object. "
-    "21. House style: never use em-dashes or exclamation marks in answers."
+    "21. House style: never use em-dashes or exclamation marks in answers. "
+    "22. Current location: a current_location context section, when present, names the page the operator is viewing and, when an entity rides on it, that entity's own saved data (an advertiser, agency, event or programme). Resolve vague or pronoun references, like שלו or this one, against that entity; a question that names something else or asks globally uses the rest of the context and the tools as usual. The section is advisory and never limits which tools you may call. "
+    "23. Two nets, never conflated: the weekly plan's net (get_net_comparison, yield totals) is revenue net of modeled RETENTION cost; the daily ledger's net (get_top_advertisers) is gross minus AGENCY REBATES, reporting only. Name the basis whenever you quote either."
 )
 
 HANDBOOK_PATH = Path(__file__).resolve().parents[1] / "docs" / "assistant" / "operator-handbook.md"
@@ -221,6 +224,11 @@ class AskRequest(BaseModel):
     # conversation; an unknown or invalid id mints a fresh one. The response
     # carries the resolved id back either way.
     conversation_id: str | None = Field(default=None, max_length=80)
+    # Where the operator is in the dashboard (frozen contract: view, label,
+    # optional entity {type,id,label}). Advisory grounding only: absent or
+    # invalid degrades to exactly the behavior without it, and the response
+    # shape never changes.
+    page_context: dict[str, Any] | None = None
 
 
 def _server() -> Any:
@@ -386,7 +394,7 @@ _SECTIONS: tuple[tuple[str, Callable[[], Any]], ...] = (
 )
 
 
-def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
+def _compose_context(question: str, page_context: dict[str, Any] | None = None) -> tuple[dict[str, Any], list[str]]:
     """Build the grounding context from the real payload builders.
 
     A failing section is omitted and listed in sources with an absent marker,
@@ -394,7 +402,10 @@ def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
     per-day owned-channel table and any day_detail sections the question's dates
     resolve to, assistant_keywords attaches the compact keyword-matched sections
     (gold_breaks, active_constraints, active_overrides, pricing_state,
-    pacing_status), and the serialized character budget is enforced last.
+    pacing_status, agencies_state, calendar_events, event_pricing,
+    custom_pricing), assistant_page_context attaches the current_location
+    section when the dock sent a valid page context, and the serialized
+    character budget is enforced last.
     """
     context: dict[str, Any] = {}
     sources: list[str] = []
@@ -406,6 +417,7 @@ def _compose_context(question: str) -> tuple[dict[str, Any], list[str]]:
             sources.append(f"{name} (absent)")
     assistant_context.extend_with_day_grounding(context, sources, question)
     assistant_keywords.extend_with_keyword_sections(context, sources, question)
+    assistant_page_context.extend_with_current_location(context, sources, page_context)
     assistant_context.enforce_budget(context)
     return context, sources
 
@@ -619,7 +631,8 @@ def assistant_status() -> dict[str, Any]:
 def _ask_body(question: str, http_request: Request | None,
               on_step: Callable[[dict[str, Any]], None] | None = None,
               on_text: Callable[[str], None] | None = None,
-              conversation_id: str | None = None) -> dict[str, Any]:
+              conversation_id: str | None = None,
+              page_context: dict[str, Any] | None = None) -> dict[str, Any]:
     """The full ask pipeline shared by /ask and /ask/stream.
 
     Composes the grounding context, replays the caller's own saved thread as
@@ -654,7 +667,13 @@ def _ask_body(question: str, http_request: Request | None,
     # caller's newest when none was named, a fresh mint otherwise. History is
     # scoped to it so parallel conversations never cross-contaminate.
     conversation_id = assistant_conversations.resolve_for_ask(user, conversation_id)
-    context, sources = _compose_context(question)
+    # The two-arg call only fires when a page context actually arrived, so a
+    # test double (or older monkeypatch) with the one-arg signature keeps
+    # working and the no-page-context path stays byte-identical to before.
+    if page_context is None:
+        context, sources = _compose_context(question)
+    else:
+        context, sources = _compose_context(question, page_context)
     grounding = {"sources": sources, "generated_at": generated_at}
     context_json = json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str)
     trace: list[dict[str, Any]] = []
@@ -715,7 +734,8 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
             detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
         )
     user = _actor_name(http_request)
-    body = _ask_body(question, http_request, conversation_id=request.conversation_id)
+    body = _ask_body(question, http_request, conversation_id=request.conversation_id,
+                     page_context=request.page_context)
     batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
     _audit_ask(user, question, body, batch_id)
     if body.get("answer"):
@@ -738,3 +758,11 @@ router.include_router(assistant_stream.router)
 router.include_router(assistant_memory.router)
 router.include_router(assistant_conversations_api.router)
 router.include_router(assistant_uploads.router)
+
+# The calendar-event and agency proposal kinds register their appliers, restore
+# state files and version-timeline mapping here, once, when the assistant (and
+# with it the action-plane router this module mounts) loads; every HTTP apply
+# therefore runs with the full kind registry.
+from kairos_api import assistant_propose_extra  # noqa: E402
+
+assistant_propose_extra.register_action_plane()

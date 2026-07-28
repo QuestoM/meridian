@@ -42,6 +42,9 @@ class StreamAskRequest(BaseModel):
 
     question: str = Field(min_length=1, max_length=2000)
     conversation_id: str | None = Field(default=None, max_length=80)
+    # The frozen page-context contract: advisory grounding for where the
+    # operator is; absent or invalid degrades to exactly today's behavior.
+    page_context: dict[str, Any] | None = None
 
 
 def _frame(event: str, data: Any) -> str:
@@ -76,7 +79,8 @@ def assistant_ask_stream(request: StreamAskRequest, http_request: Request) -> St
     def worker() -> None:
         try:
             body = assistant._ask_body(question, http_request, on_step=on_step, on_text=on_text,
-                                       conversation_id=request.conversation_id)
+                                       conversation_id=request.conversation_id,
+                                       page_context=request.page_context)
             batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
             assistant._audit_ask(user, question, body, batch_id)
             if body.get("answer"):

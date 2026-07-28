@@ -3,7 +3,8 @@
 When the operator's question carries a matching Hebrew or English keyword, ONE
 compact hard-capped section per topic is attached to the composed context:
 ``gold_breaks``, ``active_constraints``, ``active_overrides``,
-``pricing_state`` and ``pacing_status``. Each section reuses the real builder
+``pricing_state``, ``pacing_status``, ``agencies_state``, ``calendar_events``,
+``event_pricing`` and ``custom_pricing``. Each section reuses the real builder
 behind the matching dashboard surface (the insights gold builder, the
 constraints and overrides stores, the pricing hierarchy payload, the pacing
 loader plus the make-good projection), so the assistant reads exactly what the
@@ -25,6 +26,9 @@ from kairos_api.assistant_context import _strip_hebrew_prefixes
 GOLD_ROW_CAP = 15
 CONSTRAINT_ROW_CAP = 20
 OVERRIDE_ROW_CAP = 20
+AGENCY_ROW_CAP = 10
+EVENT_ROW_CAP = 12
+CONDITION_ROW_CAP = 12
 
 _HEBREW_WORD_RE = re.compile(r"[א-ת]+")
 
@@ -52,6 +56,26 @@ _TRIGGERS: dict[str, dict[str, Any]] = {
         "hebrew": ("פייסינג", "קמפיין"),
         "phrases": ("מייק גוד",),
         "english": re.compile(r"\bpacing\b|\bcampaigns?\b|\bmake[- ]goods?\b"),
+    },
+    "agencies_state": {
+        "hebrew": ("סוכנות", "סוכנויות", "משרד", "משרדים"),
+        "phrases": ("אייג'נסי",),
+        "english": re.compile(r"\bagenc(?:y|ies)\b|\brebates?\b"),
+    },
+    "calendar_events": {
+        "hebrew": ("אירוע", "אירועים", "מלחמה", "חג", "חגים"),
+        "phrases": ("לוח שנה", "לוח השנה"),
+        "english": re.compile(r"\bevents?\b|\bholidays?\b|\bwars?\b|\bcalendar\b"),
+    },
+    "event_pricing": {
+        "hebrew": ("מכפיל", "מכפילים"),
+        "phrases": ("תמחור אירועים", "תמחור אירוע"),
+        "english": re.compile(r"\bmultipliers?\b|\bevent[- ]pricing\b"),
+    },
+    "custom_pricing": {
+        "hebrew": ("הנחה", "הנחות", "שבת"),
+        "phrases": ("תמחור אישי", "תמחור מותאם"),
+        "english": re.compile(r"\bdiscounts?\b|\bcustom[- ]pricing\b|\bsaturday\b"),
     },
 }
 
@@ -161,6 +185,9 @@ def _section_pricing_state() -> dict[str, Any]:
             for layer in payload.get("layers", [])
         ],
         "activation": payload.get("activation"),
+        # The event-date layer block rides along untouched, so a pricing
+        # question surfaces that the events layer exists and whether it is on.
+        "events": payload.get("events"),
         "has_overrides": bool(payload.get("has_overrides")),
     }
 
@@ -182,12 +209,125 @@ def _section_pacing_status() -> dict[str, Any]:
     return section
 
 
+def _section_agencies_state() -> dict[str, Any]:
+    """Agency records with their commercial terms, from the agencies store."""
+    from kairos_api import agencies, agency_conditions
+
+    frame = agencies._load_frame()
+    conditions = agency_conditions._load_csv(
+        agency_conditions.CONDITIONS_PATH, agency_conditions.CONDITION_COLUMNS)
+    counts = conditions["agency_id"].astype(str).value_counts().to_dict() if len(conditions) else {}
+    rows = []
+    for _, row in frame.iterrows():
+        record = agencies._row_to_record(row)
+        rows.append({
+            "agency_id": record["agency_id"], "name": record["name"],
+            "agency_type": record["agency_type"], "status": record["status"],
+            "payment_terms_days": record["payment_terms_days"],
+            "rebate_percent": record["rebate_percent"],
+            "commission_percent": record["commission_percent"],
+            "conditions_count": int(counts.get(record["agency_id"], 0)),
+        })
+    section: dict[str, Any] = {
+        "count": len(rows),
+        "active_count": sum(1 for row in rows if row["status"] == "active"),
+        "basis": "agency terms bite only on the daily per-spot ledger's reporting net, never the weekly plan",
+    }
+    _cap_rows(section, "agencies", rows, AGENCY_ROW_CAP)
+    return section
+
+
+def _compact_event(record: dict[str, Any]) -> dict[str, Any]:
+    keys = ("event_id", "name", "type", "start_date", "end_date", "intensity",
+            "active", "price_multiplier")
+    return {key: record.get(key) for key in keys}
+
+
+def _section_calendar_events() -> dict[str, Any]:
+    """The stored events overlapping the saved plan, plus honest store totals."""
+    from kairos_api import events_api
+
+    frame = events_api._load_frame()
+    plan_dates = events_api._plan_dates()
+    overlapping: list[dict[str, Any]] = []
+    active_count = 0
+    nonneutral = 0
+    for _, row in frame.iterrows():
+        record = events_api._record(row)
+        if record["active"]:
+            active_count += 1
+            if record["price_multiplier"] != 1.0:
+                nonneutral += 1
+        overlap = events_api._plan_overlap_dates(record, plan_dates)
+        if overlap:
+            entry = _compact_event(record)
+            entry["plan_overlap_count"] = len(overlap)
+            overlapping.append(entry)
+    section: dict[str, Any] = {
+        "count": int(len(frame)),
+        "active_count": active_count,
+        "nonneutral_multiplier_count": nonneutral,
+        "note": "plan_overlapping lists only events covering saved plan days; get_calendar_events reads the full store",
+    }
+    _cap_rows(section, "plan_overlapping", overlapping, EVENT_ROW_CAP)
+    return section
+
+
+def _section_event_pricing() -> dict[str, Any]:
+    """The event-date price layer: activation state and the non-neutral events."""
+    from kairos.optimize.pricing import PricingModel
+    from kairos_api import events_api
+
+    overrides = getattr(_server()._load_settings(), "pricing_overrides", None) or {}
+    frame = events_api._load_frame()
+    rows = []
+    for _, row in frame.iterrows():
+        record = events_api._record(row)
+        if record["active"] and record["price_multiplier"] != 1.0:
+            rows.append(_compact_event(record))
+    section: dict[str, Any] = {
+        "enabled": bool(PricingModel.from_config(overrides).enable_events),
+        "activation_flag": "pricing_activation.events",
+        "count": len(rows),
+        "basis": "operator assertion per calendar event, not measured; while the layer is off the multipliers change no forecast",
+    }
+    _cap_rows(section, "nonneutral_active_events", rows, EVENT_ROW_CAP)
+    return section
+
+
+def _section_custom_pricing() -> dict[str, Any]:
+    """Scoped advertiser money rules, tolerant of the custom-pricing fields."""
+    from kairos_api import advertiser_conditions
+
+    frame = advertiser_conditions._load_frame()
+    rows = [advertiser_conditions._row_to_record(row) for _, row in frame.iterrows()]
+    compact = [
+        {key: record.get(key) for key in (
+            "advertiser_id", "rule_id", "effect", "mode", "value",
+            "scope_positions", "scope_genres", "scope_dayparts",
+            "scope_programmes", "scope_weekdays",
+        )}
+        for record in rows
+    ]
+    section: dict[str, Any] = {
+        "count": len(rows),
+        "advertisers_with_rules": len({record["advertiser_id"] for record in rows}),
+        "basis": "these rules bite on the daily per-spot pricing path; weekday scopes are ISO numbers (Saturday is 6)",
+    }
+    _cap_rows(section, "conditions", compact, CONDITION_ROW_CAP)
+    return section
+
+
 _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("gold_breaks", _section_gold_breaks),
     ("active_constraints", _section_active_constraints),
     ("active_overrides", _section_active_overrides),
     ("pricing_state", _section_pricing_state),
     ("pacing_status", _section_pacing_status),
+    ("agencies_state", _section_agencies_state),
+    ("calendar_events", _section_calendar_events),
+    ("event_pricing", _section_event_pricing),
+    ("custom_pricing", _section_custom_pricing),
 )
 
 SECTION_NAMES = tuple(name for name, _ in _SECTIONS)

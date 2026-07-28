@@ -104,6 +104,10 @@ def _read_get_pricing(args: dict[str, Any], user: str | None = None) -> dict[str
         "base": state["base"],
         "layers": layers,
         "activation": state["activation"],
+        # The event-date layer state rides along untouched (enabled flag, count
+        # of active non-1.0 events, assertion basis), so the model knows the
+        # events layer exists; get_event_pricing has the per-event detail.
+        "events": state.get("events"),
         "has_operator_overrides": state["has_overrides"],
     }
 
@@ -374,6 +378,12 @@ SOURCE_BY_TOOL = {
 from kairos_api.assistant_read_tools_extra import register as _register_extra  # noqa: E402
 
 _register_extra(_READ_EXECUTORS, SOURCE_BY_TOOL)
+
+# The agencies, calendar-events and money-coverage executors live in
+# kairos_api.assistant_read_tools_catalog (size cap); same one-registry rule.
+from kairos_api.assistant_read_tools_catalog import register as _register_catalog  # noqa: E402
+
+_register_catalog(_READ_EXECUTORS, SOURCE_BY_TOOL)
 
 
 def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
