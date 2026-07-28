@@ -36,6 +36,7 @@ import {
   Bell,
   Bot,
   BookOpen,
+  Building2,
   CalendarClock,
   CalendarDays,
   Check,
@@ -72,6 +73,7 @@ import {
 
 import UploadCenter from './UploadCenter';
 import AdvertisersManager from './AdvertisersManager';
+import AgencyManager from './AgencyManager';
 import PricingManager from './PricingManager';
 import OverrideConsole from './OverrideConsole';
 import ScheduleEditor, { ConstraintBuilder } from './ScheduleEditor';
@@ -295,6 +297,7 @@ const copyByLocale = {
       Reports: 'Reports',
       Data: 'Data',
       Advertisers: 'Advertisers',
+      Agencies: 'Agencies',
       Pricing: 'Pricing',
       Overrides: 'Overrides',
       Assistant: 'AI assistant',
@@ -398,6 +401,7 @@ const copyByLocale = {
       Reports: 'דוחות',
       Data: 'נתונים',
       Advertisers: 'מפרסמים',
+      Agencies: 'סוכנויות',
       Pricing: 'תמחור',
       Overrides: 'עקיפות',
       Assistant: 'עוזר AI',
@@ -567,6 +571,7 @@ const navItems = [
   ['Reports', ListChecks],
   ['Data', Database],
   ['Advertisers', Users],
+  ['Agencies', Building2],
   ['Pricing', Coins],
   ['Overrides', SlidersHorizontal],
   ['Assistant', Bot],
@@ -2078,6 +2083,10 @@ function TVBreakDashboard() {
 
     if (activeView === 'Advertisers') {
       return <AdvertisersManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+    }
+
+    if (activeView === 'Agencies') {
+      return <AgencyManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Pricing') {

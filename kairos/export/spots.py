@@ -30,9 +30,18 @@ per-second channel base price (``unit_seconds=1.0``, exactly how the weekly
 segments are priced in :mod:`kairos.data.transform`), then the advertiser
 premium. A fixed-price (FIX) spot earns its stated price when one is present;
 with no price it falls back to CPP so it is never zeroed silently.
+
+Agency layer (:class:`AgencyLayer`): the daily file also carries an agency per
+spot, so agency-scoped conditions are evaluated here, agency-first then
+advertiser, forbid wins across both levels, premiums compose multiplicatively.
+An agency's ``rebate_percent`` yields a reporting-only ``net_revenue`` beside
+gross; gross is unchanged and nothing is invoiced (no invoicing exists). The
+weekly plan, retention math and QH settlement carry no agency attribution and
+are untouched (see docs/agency-layer-design.md).
 """
 
 from __future__ import annotations
+
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,6 +52,7 @@ import pandas as pd
 from kairos.data.classifier import ProgramClassifier
 from kairos.data.dayparts import daypart_for_hour
 from kairos.data.loaders import load_daily_input
+from kairos.export.agency_layer import AgencyLayer, AgencyTerms  # noqa: F401 - AgencyTerms re-exported
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize._frequency_rules import FrequencyRuleSet, load_frequency_rules
 from kairos.optimize.frequency import (
@@ -55,19 +65,11 @@ from kairos.optimize.objective import break_revenue, fixed_revenue
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import PricingModel
 
-# The daily Wally file is a single channel and carries no daypart column; we
-# derive the daypart from the spot clock using the one canonical taxonomy
-# (kairos.data.dayparts) so a daypart-scoped rule means the same minutes here as
-# in the weekly plan and the training data. A None hour yields None (no guess).
-def _daypart_for_hour(hour: Optional[int]) -> Optional[str]:
-    """Map a spot's clock hour to its canonical Israeli-TV daypart key, or None.
-
-    Delegates to :func:`kairos.data.dayparts.daypart_for_hour`, the single source
-    of truth (morning/noon/evening/prime/night). ``prime_time_only`` baselines and
-    daypart-scoped conditions match these keys; a missing/invalid hour yields None
-    so nothing is guessed.
-    """
-    return daypart_for_hour(hour)
+# The daily Wally file is a single channel and carries no daypart column; the
+# daypart comes from the spot clock via the one canonical taxonomy
+# (kairos.data.dayparts.daypart_for_hour) so a daypart-scoped rule means the
+# same minutes here as in the weekly plan and the training data. A None or
+# invalid hour yields None (no guess).
 
 
 def _hour_from_time(value: Any) -> Optional[int]:
@@ -106,11 +108,20 @@ class PricedSpot:
     placement_value: float
     ad: str = ""
     break_id: str = ""
+    # Agency layer: the resolved agency name ("" when unresolved), the agency-level
+    # premium factor already composed into ``premium``/``revenue`` (1.0 when no
+    # agency condition matched), and the reporting-only net figure:
+    # net_revenue = revenue x (1 - rebate_percent/100). Gross ``revenue`` is
+    # unchanged by the rebate; nothing is invoiced.
+    agency: str = ""
+    agency_premium: float = 1.0
+    rebate_percent: float = 0.0
+    net_revenue: float = 0.0
 
 
 @dataclass(frozen=True)
 class DroppedSpot:
-    """One daily spot dropped because its advertiser rule forbids the placement."""
+    """One daily spot dropped because an advertiser or agency rule forbids it."""
 
     advertiser: str
     campaign: str
@@ -119,6 +130,7 @@ class DroppedSpot:
     genre: str
     daypart: Optional[str]
     reason: str
+    agency: str = ""
 
 
 def _spot_id(advertiser: str, campaign: str, date: Any, position: Optional[int]) -> str:
@@ -144,6 +156,12 @@ class DailyPricingResult:
     @property
     def total_revenue(self) -> float:
         return round(sum(spot.revenue for spot in self.priced), 2)
+
+    @property
+    def total_net_revenue(self) -> float:
+        """Gross minus agency rebates, reporting only. Equals total_revenue when
+        no priced spot resolved to an active agency with a nonzero rebate."""
+        return round(sum(spot.net_revenue for spot in self.priced), 2)
 
     @property
     def total_placement_value(self) -> float:
@@ -197,6 +215,7 @@ def price_daily_spots(
     classifier: Optional[ProgramClassifier] = None,
     overrides: Optional[OverrideSet] = None,
     frequency: Optional[FrequencyRuleSet] = None,
+    agency_layer: Optional[AgencyLayer] = None,
 ) -> DailyPricingResult:
     """Price every spot in a loaded daily Wally frame under the advertiser rules.
 
@@ -226,11 +245,20 @@ def price_daily_spots(
     reason, never silently lost. This enforcement is advertiser-vs-advertiser
     WITHIN the owned channel only; it never touches the competitor-channel
     boundary, and the weekly count optimizer (no attribution) is untouched.
+
+    ``agency_layer`` (loaded from the shipped stores when None) is evaluated
+    agency-first: an agency forbid drops the spot before the advertiser rules
+    run (forbid wins across levels; a locked spot is never dropped by either),
+    agency premiums compose multiplicatively with the advertiser premium, and
+    ``rebate_percent`` yields the reporting-only ``net_revenue``. With no agency
+    conditions and rebate 0 the gross output is byte-identical to a run with no
+    agency layer at all.
     """
     engine = engine or AdvertiserRuleEngine.from_files()
     pricing = pricing or PricingModel.from_yaml()
     classifier = classifier or ProgramClassifier.from_yaml()
     frequency = frequency if frequency is not None else load_frequency_rules()
+    agency_layer = agency_layer if agency_layer is not None else AgencyLayer.from_files()
     spot_overrides = overrides.spot_overrides() if overrides is not None else {}
 
     priced: list[PricedSpot] = []
@@ -244,7 +272,7 @@ def price_daily_spots(
         program = str(getattr(row, "program", "") or "")
         genre = classifier.classify(program).category
         position = _coerce_int(getattr(row, "position_in_break", None))
-        daypart = _daypart_for_hour(_hour_from_time(getattr(row, "spot_time", None)))
+        daypart = daypart_for_hour(_hour_from_time(getattr(row, "spot_time", None)))
         campaign = str(getattr(row, "campaign", "") or "")
         ad = str(getattr(row, "creative", "") or "")
         break_id = str(getattr(row, "break_start", "") or "")
@@ -264,6 +292,32 @@ def price_daily_spots(
             if move.get("daypart"):
                 daypart = str(move["daypart"]).strip().lower()
 
+        # Agency level first (forbid wins across levels; suspended terms are inert).
+        agency_terms = agency_layer.resolve(getattr(row, "agency", ""), advertiser)
+        agency_name = agency_terms.name if agency_terms else str(getattr(row, "agency", "") or "").strip()
+        agency_key = agency_terms.agency_id if agency_terms and agency_terms.active else None
+        rebate = agency_terms.rebate_percent if agency_key else 0.0
+        agency_premium, agency_placement = 1.0, 1.0
+        if agency_key:
+            agency_decision = agency_layer.engine.allow_decision(
+                agency_key, position=position, genre=genre, daypart=daypart, programme=program,
+            )
+            if not agency_decision.allowed and not locked:
+                dropped.append(DroppedSpot(
+                    advertiser=advertiser, campaign=campaign, program=program,
+                    position=position, genre=genre, daypart=daypart,
+                    reason=f"agency {agency_name}: {agency_decision.reason}", agency=agency_name,
+                ))
+                continue
+            agency_premium = agency_layer.engine.effective_premium(
+                agency_key, position=position, genre=genre, daypart=daypart,
+                programme=program, base_cpp=pricing.base_price,
+            )
+            agency_placement = agency_layer.engine.placement_multiplier(
+                agency_key, position=position, genre=genre, daypart=daypart,
+                programme=program, base_cpp=pricing.base_price,
+            )
+
         decision = engine.allow_decision(
             advertiser, position=position, genre=genre, daypart=daypart, programme=program,
         )
@@ -271,17 +325,18 @@ def price_daily_spots(
             dropped.append(DroppedSpot(
                 advertiser=advertiser, campaign=campaign, program=program,
                 position=position, genre=genre, daypart=daypart, reason=decision.reason,
+                agency=agency_name,
             ))
             continue
 
         premium = engine.effective_premium(
             advertiser, position=position, genre=genre, daypart=daypart,
             programme=program, base_cpp=pricing.base_price,
-        )
+        ) * agency_premium
         placement_premium = engine.placement_multiplier(
             advertiser, position=position, genre=genre, daypart=daypart,
             programme=program, base_cpp=pricing.base_price,
-        )
+        ) * agency_placement
         duration = _coerce_float(getattr(row, "duration_sec", None))
         planned_tvr = _coerce_float(getattr(row, "planned_tvr", None))
         pricing_type = str(getattr(row, "pricing_type", "") or "").strip().upper()
@@ -310,6 +365,9 @@ def price_daily_spots(
             pricing_type=pricing_type or "CPP", premium=round(premium, 6),
             revenue=round(revenue, 2), placement_value=round(placement_value, 2),
             ad=ad or campaign, break_id=break_id,
+            agency=agency_name, agency_premium=round(agency_premium, 6),
+            rebate_percent=round(rebate, 4),
+            net_revenue=round(revenue * (1.0 - rebate / 100.0), 2),
         ))
         spot_clocks.append(_minute_of_day(getattr(row, "spot_time", None)))
 
@@ -358,10 +416,12 @@ def price_daily_file(
     classifier: Optional[ProgramClassifier] = None,
     overrides: Optional[OverrideSet] = None,
     frequency: Optional[FrequencyRuleSet] = None,
+    agency_layer: Optional[AgencyLayer] = None,
 ) -> DailyPricingResult:
-    """Load a daily Wally csv from ``path`` and price it under the advertiser rules."""
+    """Load a daily Wally csv from ``path`` and price it under the advertiser
+    and agency rules."""
     daily = load_daily_input(path)
     return price_daily_spots(
         daily, engine=engine, pricing=pricing, classifier=classifier,
-        overrides=overrides, frequency=frequency,
+        overrides=overrides, frequency=frequency, agency_layer=agency_layer,
     )

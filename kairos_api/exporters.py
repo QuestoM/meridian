@@ -39,6 +39,7 @@ SPOTS_EXPORT_FILENAME = "kairos-daily-spots.csv"
 SPOTS_COLUMNS = [
     "status",
     "advertiser",
+    "agency",
     "campaign",
     "program",
     "position",
@@ -49,6 +50,7 @@ SPOTS_COLUMNS = [
     "pricing_type",
     "premium",
     "revenue",
+    "net_revenue",
     "placement_value",
     "ad",
     "break_id",
@@ -171,6 +173,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
         records.append({
             "status": "priced",
             "advertiser": spot.advertiser,
+            "agency": spot.agency,
             "campaign": spot.campaign,
             "program": spot.program,
             "position": _blank(spot.position),
@@ -181,6 +184,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
             "pricing_type": spot.pricing_type,
             "premium": spot.premium,
             "revenue": spot.revenue,
+            "net_revenue": spot.net_revenue,
             "placement_value": spot.placement_value,
             "ad": spot.ad,
             "break_id": spot.break_id,
@@ -192,6 +196,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
         records.append({
             "status": "dropped_rule",
             "advertiser": drop.advertiser,
+            "agency": drop.agency,
             "campaign": drop.campaign,
             "program": drop.program,
             "position": _blank(drop.position),
@@ -202,6 +207,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
             "pricing_type": "",
             "premium": "",
             "revenue": "",
+            "net_revenue": "",
             "placement_value": "",
             "ad": "",
             "break_id": "",
@@ -213,6 +219,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
         records.append({
             "status": "dropped_frequency",
             "advertiser": drop.advertiser,
+            "agency": "",
             "campaign": drop.campaign,
             "program": "",
             "position": "",
@@ -223,6 +230,7 @@ def _spot_records(result) -> list[dict[str, Any]]:
             "pricing_type": "",
             "premium": "",
             "revenue": "",
+            "net_revenue": "",
             "placement_value": "",
             "ad": drop.ad,
             "break_id": drop.break_id,

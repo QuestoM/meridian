@@ -44,7 +44,7 @@ router = APIRouter(prefix="/api/versions", tags=["versions"])
 # The logical operation-state files. Paths resolve lazily (at call time) so a
 # test that monkeypatches a store's PATH and the real deployment both hold.
 _LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions",
-                  "events")
+                  "events", "agencies", "agency_links", "agency_conditions")
 
 # Version ids are uuid4().hex[:12]; accept 8-32 lowercase hex so nothing else
 # (a traversal path, a stray label) ever reaches the manifest reader.
@@ -92,12 +92,22 @@ def _logical_path(logical: str) -> Path:
     if logical == "events":
         from kairos_api import events_api
         return Path(events_api.EVENTS_PATH)
+    if logical == "agencies":
+        from kairos_api import agencies as agencies_api
+        return Path(agencies_api.AGENCIES_PATH)
+    if logical == "agency_links":
+        from kairos_api import agency_conditions as agency_conditions_api
+        return Path(agency_conditions_api.LINKS_PATH)
+    if logical == "agency_conditions":
+        from kairos_api import agency_conditions as agency_conditions_api
+        return Path(agency_conditions_api.CONDITIONS_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
 
 
 _ID_COLUMN = {"constraints": "constraint_id", "overrides": "override_id",
               "advertisers": "advertiser_id", "conditions": "rule_id",
-              "events": "event_id"}
+              "events": "event_id", "agencies": "agency_id",
+              "agency_links": "agency_id", "agency_conditions": "rule_id"}
 
 
 def _snapshot_name(logical: str) -> str:

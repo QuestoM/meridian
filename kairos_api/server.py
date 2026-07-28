@@ -199,9 +199,14 @@ from kairos_api.dashboard_api import (  # noqa: E402,F401  (re-exported for comp
 )
 from kairos_api.dashboard_api import router as dashboard_router  # noqa: E402
 
+from kairos_api.agencies import router as agencies_router  # noqa: E402
+from kairos_api.agency_conditions import router as agency_conditions_router  # noqa: E402
+
 app.include_router(uploads_router)
 app.include_router(advertisers_router)
 app.include_router(advertiser_conditions_router)
+app.include_router(agencies_router)
+app.include_router(agency_conditions_router)
 app.include_router(exporters_router)
 app.include_router(overrides_router)
 app.include_router(constraints_router)
