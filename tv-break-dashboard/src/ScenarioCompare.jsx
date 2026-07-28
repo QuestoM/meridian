@@ -37,7 +37,7 @@ function SummaryCard({ title, summary, accent, locale }) {
           <dd className="numeric" dir="ltr">{formatPercent(summary.average_retention, locale)}</dd>
         </div>
         <div>
-          <dt>{pageText(locale, 'Objective (blend)', 'אובייקטיב (משוקלל)')}</dt>
+          <dt>{pageText(locale, 'Blended score (revenue and retention)', 'ציון משוקלל (הכנסה ושימור)')}</dt>
           <dd className="numeric" dir="ltr">{formatNumber(summary.objective, locale)}</dd>
         </div>
         <div>
@@ -116,7 +116,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
     <section className="page-panel scenario-compare">
       <div className="panel-head">
         <h2>{pageText(locale, 'Scenario A/B', 'השוואת תרחישים A/B')}</h2>
-        <span>{pageText(locale, 'Two weights, one optimizer run each', 'שני משקלים, ריצת אופטימייזר לכל אחד')}</span>
+        <span>{pageText(locale, 'Two weights, one full plan computed for each', 'שני משקלים, תוכנית מלאה מחושבת לכל תרחיש')}</span>
       </div>
 
       <div className="scenario-controls" dir={he ? 'rtl' : 'ltr'}>
@@ -192,7 +192,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
             <h3>{pageText(locale, 'Delta (B minus A)', 'פער (B פחות A)')}</h3>
             <DeltaRow label={pageText(locale, 'Revenue', 'הכנסה')} value={payload.delta?.revenue} locale={locale} formatter={formatCurrency} />
             <DeltaRow label={pageText(locale, 'Retention', 'שימור')} value={payload.delta?.retention} locale={locale} formatter={formatNumber} suffix="pp" />
-            <DeltaRow label={pageText(locale, 'Objective (blend)', 'אובייקטיב (משוקלל)')} value={payload.delta?.objective} locale={locale} formatter={formatNumber} />
+            <DeltaRow label={pageText(locale, 'Blended score (revenue and retention)', 'ציון משוקלל (הכנסה ושימור)')} value={payload.delta?.objective} locale={locale} formatter={formatNumber} />
             <DeltaRow label={pageText(locale, 'Breaks', 'ברייקים')} value={payload.delta?.breaks} locale={locale} formatter={formatNumber} />
             <DeltaRow label={pageText(locale, 'Ad seconds', 'שניות פרסום')} value={payload.delta?.ad_seconds} locale={locale} formatter={formatNumber} />
             <div className="scenario-delta-row muted">

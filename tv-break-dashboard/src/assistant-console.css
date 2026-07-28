@@ -234,6 +234,9 @@
 /* Composer agreement upload: paperclip, chip and the own-files popover */
 .asst-upload { position: relative; display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-4) 0; }
 .asst-upload-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* Tooltip anchor around a possibly-disabled button: a disabled button fires no
+   pointer events, so the wrapping span carries the MUI tooltip listeners. */
+.asst-upload-tipwrap { display: inline-flex; }
 .asst-upload-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--muted); padding: var(--space-2); cursor: pointer; }
 .asst-upload-btn:hover { color: var(--ink); border-color: var(--line-strong); }
 .asst-upload-btn:disabled { opacity: 0.55; cursor: default; }

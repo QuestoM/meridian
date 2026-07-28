@@ -559,7 +559,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       <div className="settings-panel-head">
         <div>
           <h2>{t(locale, 'Constraint builder', 'בונה אילוצים')}</h2>
-          <p>{t(locale, 'Filter conditions (where), then choose what effect to apply', 'הגדירו תנאי סינון (where) ולאחר מכן בחרו אפקט להחלה')}</p>
+          <p>{t(locale, 'Set the filter conditions, then choose the effect to apply', 'הגדירו את תנאי הסינון ולאחר מכן בחרו את ההשפעה להחלה')}</p>
         </div>
       </div>
 
@@ -670,9 +670,9 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
               return (
                 <li key={itemId ?? `constraint-${index}`}>
                   <span className="constraint-chip">{effectLabel(item.effect, locale)}</span>
-                  <span className="constraint-scope">{item.where ? t(locale, 'predicate', 'פרדיקט') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
+                  <span className="constraint-scope">{item.where ? t(locale, 'filter conditions', 'תנאי סינון') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
                   {item.notes && <span className="constraint-channel">{item.notes}</span>}
-                  <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחק אילוץ')}>
+                  <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחיקת אילוץ')}>
                     <Trash2 size={14} />
                   </Button>
                 </li>

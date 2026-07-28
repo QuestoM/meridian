@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { Tooltip } from '@mui/material';
 import { FileSpreadsheet, Paperclip, Trash2, X } from 'lucide-react';
 import { pageText } from './surface-helpers';
 import { requestJson } from './assistant-stream';
@@ -93,12 +94,18 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
   return (
     <div className="asst-upload">
       <input ref={inputRef} type="file" accept={ACCEPT} className="asst-upload-input" onChange={onFile} tabIndex={-1} aria-hidden="true" />
-      <button type="button" className="asst-upload-btn" onClick={() => { if (!disabled && !uploading && inputRef.current) inputRef.current.click(); }} disabled={disabled || uploading} aria-label={pageText(locale, 'Attach an agreement file', 'צירוף קובץ הסכם')} title={pageText(locale, 'Attach an agreement (Excel or CSV)', 'צירוף הסכם (אקסל או CSV)')}>
-        <Paperclip size={16} />
-      </button>
-      <button type="button" className={`asst-upload-btn${listOpen ? ' active' : ''}`} onClick={toggleList} aria-expanded={listOpen} aria-label={pageText(locale, 'My uploaded files', 'הקבצים שהעליתי')} title={pageText(locale, 'My uploaded files', 'הקבצים שהעליתי')}>
-        <FileSpreadsheet size={16} />
-      </button>
+      <Tooltip title={pageText(locale, 'Attach an agreement (Excel or CSV)', 'צירוף הסכם (אקסל או CSV)')} arrow placement="bottom">
+        <span className="asst-upload-tipwrap">
+          <button type="button" className="asst-upload-btn" onClick={() => { if (!disabled && !uploading && inputRef.current) inputRef.current.click(); }} disabled={disabled || uploading} aria-label={pageText(locale, 'Attach an agreement file', 'צירוף קובץ הסכם')}>
+            <Paperclip size={16} />
+          </button>
+        </span>
+      </Tooltip>
+      <Tooltip title={pageText(locale, 'My uploaded files', 'הקבצים שהעליתי')} arrow placement="bottom">
+        <button type="button" className={`asst-upload-btn${listOpen ? ' active' : ''}`} onClick={toggleList} aria-expanded={listOpen} aria-label={pageText(locale, 'My uploaded files', 'הקבצים שהעליתי')}>
+          <FileSpreadsheet size={16} />
+        </button>
+      </Tooltip>
       {uploading ? <span className="asst-upload-progress" role="status">{pageText(locale, 'Uploading', 'מעלה')}</span> : null}
 
       {last ? (

@@ -242,8 +242,8 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
         <div className="oc-card">
           <h3>{pageText(locale, 'Create an override', 'יצירת עקיפה')}</h3>
           <p className="oc-sub">{pageText(locale,
-            'Pick an owned-channel segment, choose the decision, and read the projected delta before you commit.',
-            'בחרו משבצת בערוץ שבבעלותכם, בחרו את ההחלטה וקראו את הדלתא הצפויה לפני האישור.')}</p>
+            'Pick an owned-channel segment, choose the decision, and read the projected change before you commit.',
+            'בחרו משבצת בערוץ שבבעלותכם, בחרו את ההחלטה וקראו את השינוי הצפוי לפני האישור.')}</p>
           {prefillRecId && (
             <p className="oc-sub">
               <span className="oc-chip rec">{pageText(locale, 'From recommendation', 'מהמלצה')}</span>
@@ -314,12 +314,12 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
               {selectedSeg && (
                 <div className="oc-preview">
                   {previewState === 'loading' && (
-                    <p className="oc-sub">{pageText(locale, 'Reading the projected delta...', 'קורא את הדלתא הצפויה...')}</p>
+                    <p className="oc-sub">{pageText(locale, 'Reading the projected change...', 'קורא את השינוי הצפוי...')}</p>
                   )}
                   {previewState === 'unavailable' && (
                     <p className="oc-sub">{pageText(locale,
-                      'The preview is unavailable, so no projected delta is shown. The override can still be saved.',
-                      'התצוגה המקדימה אינה זמינה, ולכן לא מוצגת דלתא צפויה. עדיין ניתן לשמור את העקיפה.')}</p>
+                      'The preview is unavailable, so no projected change is shown. The override can still be saved.',
+                      'התצוגה המקדימה אינה זמינה, ולכן לא מוצג שינוי צפוי. עדיין ניתן לשמור את העקיפה.')}</p>
                   )}
                   {previewState === 'ready' && previewRows.length === 0 && (
                     <p className="oc-sub">{pageText(locale,
@@ -332,7 +332,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
                         <span>{pageText(locale, 'Metric', 'מדד')}</span>
                         <span className="num">{pageText(locale, 'Without', 'בלי')}</span>
                         <span className="num">{pageText(locale, 'With', 'עם')}</span>
-                        <span className="num">{pageText(locale, 'Delta', 'דלתא')}</span>
+                        <span className="num">{pageText(locale, 'Change', 'הפרש')}</span>
                       </div>
                       {previewRows.map((row) => (
                         <div className="oc-preview-row" key={row.label}>
@@ -410,7 +410,7 @@ function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPre
                       <div style={{ marginBottom: 4 }}>
                         <span className="oc-chip kind">{kindLabel(o.kind, locale)}{o.kind === 'force' && forceCount ? ` (${forceCount})` : ''}</span>
                         {stale
-                          ? <span className="oc-chip staleflag">{pageText(locale, 'Stale', 'לא מעודכן')}</span>
+                          ? <span className="oc-chip staleflag">{pageText(locale, 'Stale', 'לא מעודכנת')}</span>
                           : o.status === 'dismissed'
                             ? <span className="oc-chip dismissed">{pageText(locale, 'Dismissed', 'בוטלה')}</span>
                             : <span className="oc-chip active">{pageText(locale, 'Active', 'פעילה')}</span>}

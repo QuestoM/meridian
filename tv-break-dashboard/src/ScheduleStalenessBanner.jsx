@@ -36,7 +36,7 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
     settings: t('settings', 'הגדרות'),
     constraints: t('constraints', 'אילוצים'),
     overrides: t('manual overrides', 'עקיפות ידניות'),
-    coefficients: t('model coefficients', 'מקדמי המודל'),
+    coefficients: t("the model's learned values (coefficients)", 'הערכים שהמודל למד (מקדמים)'),
     data: t('source data', 'נתוני מקור'),
     impact_model: t('the impact model', 'מודל ההשפעה'),
     inventory: t('inventory data', 'נתוני המלאי'),

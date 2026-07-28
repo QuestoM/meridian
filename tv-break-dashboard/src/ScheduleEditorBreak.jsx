@@ -38,6 +38,9 @@ function ScheduleEditorBreak({
   const seconds = Math.round(durationSec);
 
   return (
+    // The native title stays: it only echoes the chip's own clock/offset/length
+    // identity (plus the programme name behind it), not an explanation, and a
+    // hover-managed MUI tooltip would fight the pointer-capture drag handlers.
     <div
       className={className}
       role="button"

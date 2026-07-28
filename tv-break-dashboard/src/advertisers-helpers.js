@@ -326,8 +326,10 @@ export function pressureHint(value, locale) {
     return { text: pageText(locale, 'no steer', 'ללא הטיה'), tone: 'muted' };
   }
   const sign = amount > 0 ? '+' : '−';
+  // The Hebrew string isolates the signed percent as one LTR run (U+2066/U+2069)
+  // so the sign is not bidi-shuffled to the wrong side of the digits in RTL.
   return {
-    text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `${sign}${Math.abs(amount)}% שיבוץ בלבד`),
+    text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `⁦${sign}${Math.abs(amount)}%⁩ שיבוץ בלבד`),
     tone: 'muted',
   };
 }

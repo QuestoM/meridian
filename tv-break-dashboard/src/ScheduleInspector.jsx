@@ -24,6 +24,16 @@ const fmtNum2 = (value, locale) => (isNum(value)
   ? value.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { maximumFractionDigits: 2 })
   : '-');
 
+// The engine reports its measurement confidence as low / medium / high; show it
+// in plain words (feminine to agree with "רמה") and pass unknown values through.
+function confidenceLabel(value, locale) {
+  const key = String(value || '').toLowerCase();
+  if (key === 'high') return pageText(locale, 'High', 'גבוהה');
+  if (key === 'medium') return pageText(locale, 'Medium', 'בינונית');
+  if (key === 'low') return pageText(locale, 'Low', 'נמוכה');
+  return value || '-';
+}
+
 function Row({ label, value }) {
   return (
     <div className="si-row">
@@ -235,20 +245,20 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
 
           <section className="si-section">
             <h4>{pageText(locale, 'Economics', 'כלכלה')}</h4>
-            <Row label={pageText(locale, 'Plan revenue (this segment)', 'הכנסת תוכנית (סגמנט זה)')} value={fmtMoney(eco.predicted_revenue, locale)} />
+            <Row label={pageText(locale, 'Plan revenue (this segment)', 'הכנסת תוכנית (מקטע זה)')} value={fmtMoney(eco.predicted_revenue, locale)} />
             <Row label={pageText(locale, 'Base rate', 'תעריף בסיס')} value={fmtNum2(eco.base_rate, locale)} />
             <Row label={pageText(locale, 'Baseline audience (TVR)', 'קהל בסיס (TVR)')} value={fmtNum2(eco.baseline_tvr, locale)} />
           </section>
 
           <section className="si-section">
             <h4>{pageText(locale, 'Retention', 'שימור')}</h4>
-            <Row label={pageText(locale, 'Plan retention (this segment)', 'שימור בתוכנית (סגמנט זה)')} value={isNum(ret.predicted_retention) ? `${fmtNum2(ret.predicted_retention, locale)}%` : '-'} />
+            <Row label={pageText(locale, 'Plan retention (this segment)', 'שימור בתוכנית (מקטע זה)')} value={isNum(ret.predicted_retention) ? `${fmtNum2(ret.predicted_retention, locale)}%` : '-'} />
             <Row
-              label={pageText(locale, 'Credible interval', 'רווח סמך')}
+              label={pageText(locale, 'Likely range (credible interval)', 'הטווח הסביר לפי המדידות (רווח סמך)')}
               value={isNum(ret.ci_low) && isNum(ret.ci_high) ? `${fmtNum2(ret.ci_low, locale)}% - ${fmtNum2(ret.ci_high, locale)}%` : pageText(locale, 'not measured', 'לא נמדד')}
             />
-            <Row label={pageText(locale, 'Sample size', 'גודל מדגם')} value={isNum(ret.sample_n) ? `n=${ret.sample_n}` : '-'} />
-            <Row label={pageText(locale, 'Confidence', 'ביטחון')} value={ret.confidence || '-'} />
+            <Row label={pageText(locale, 'Breaks measured (sample size)', 'ברייקים שנמדדו (גודל מדגם)')} value={isNum(ret.sample_n) ? fmtNum2(ret.sample_n, locale) : '-'} />
+            <Row label={pageText(locale, 'Measurement confidence', 'רמת ביטחון במדידה')} value={confidenceLabel(ret.confidence, locale)} />
           </section>
 
           <section className="si-section">
@@ -270,7 +280,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
 
           <section className="si-section si-edit">
             <h4>{pageText(locale, 'Make a decision', 'קבלת החלטה')}</h4>
-            <p className="si-sub">{pageText(locale, 'The optimizer honors these on the next recompute. Read the projected delta before saving.', 'האופטימייזר מכבד אותן בחישוב הבא. קראו את הדלתא הצפויה לפני השמירה.')}</p>
+            <p className="si-sub">{pageText(locale, 'The planning engine honors these on the next recompute. Read the projected change before saving.', 'מנוע התכנון מכבד את ההחלטות האלה בחישוב הבא. קראו את השינוי הצפוי לפני השמירה.')}</p>
             <label className="si-field">
               <span>{pageText(locale, 'Decision', 'החלטה')}</span>
               <select value={kind} onChange={(e) => setKind(e.target.value)}>

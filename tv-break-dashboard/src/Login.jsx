@@ -84,7 +84,7 @@ export function roleLabel(role, locale) {
 }
 
 function loginErrorText(result) {
-  if (result.status === 401) return 'שם המשתמש או הסיסמה שגויים.';
+  if (result.status === 401) return 'שם המפעיל או הסיסמה שגויים.';
   if (result.status === 429) {
     const minutes = Math.max(1, Math.ceil((result.retryAfter || 60) / 60));
     return `יותר מדי ניסיונות כניסה. אפשר לנסות שוב בעוד ${minutes} דקות בערך.`;
@@ -133,9 +133,9 @@ export default function Login({ onLoggedIn }) {
           </div>
         </div>
         <h1>כניסה למערכת</h1>
-        <p className="login-sub">יש להיכנס עם החשבון האישי שהוקצה לך.</p>
+        <p className="login-sub">היכנסו עם החשבון האישי שהוקצה לכם.</p>
         <label className="login-field">
-          <span>שם משתמש</span>
+          <span>שם מפעיל</span>
           <input
             dir="ltr"
             autoComplete="username"

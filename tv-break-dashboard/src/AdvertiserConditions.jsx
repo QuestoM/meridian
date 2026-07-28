@@ -211,8 +211,8 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                 <Tooltip
                   title={pageText(
                     locale,
-                    'How the coefficient value is read: a multiplier, a +/- percent, or a cost-per-point amount (absolute, added, or discounted).',
-                    'כיצד נקרא ערך המקדם: מכפיל, אחוז +/-, או סכום מחיר-לנקודה (מוחלט, תוספת, או הנחה).',
+                    'How the value you enter changes the price: multiplies it, adds or subtracts a percent, or sets a price per rating point (fixed, added, or discounted).',
+                    'איך הערך שמזינים משנה את המחיר: מכפיל אותו, מוסיף או גורע אחוזים, או קובע מחיר לנקודת רייטינג (קבוע, תוספת או הנחה).',
                   )}
                   arrow
                 >
@@ -430,7 +430,7 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
             {pageText(
               locale,
               'Scoped rules layer on top of the baseline premium. They apply on the per-spot daily pricing path only - not yet in the weekly break-count plan. Placement preference steers where ads go without changing the reported revenue.',
-              'כללים ממוקדים מתווספים מעל המקדם הבסיסי. הם חלים על נתיב התמחור היומי לכל תשדיר בלבד - עדיין לא בתכנון מספר ההפסקות השבועי. העדפת שיבוץ מטה את מיקום התשדירים מבלי לשנות את ההכנסה המדווחת.',
+              'כללים ממוקדים מתווספים מעל המקדם הבסיסי. הם חלים על נתיב התמחור היומי לכל תשדיר בלבד - עדיין לא בתכנון מספר הברייקים השבועי. העדפת שיבוץ מטה את מיקום התשדירים מבלי לשנות את ההכנסה המדווחת.',
             )}
           </p>
 

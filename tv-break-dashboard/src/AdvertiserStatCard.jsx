@@ -41,9 +41,11 @@ function StatBlock({ label, value, provenance, tone, delta }) {
 function EffectChips({ breakdown, locale }) {
   if (!breakdown) {
     return (
-      <span className="amz-effect-pending" title={pageText(locale, 'Loading rule breakdown', 'טוען פירוט כללים')}>
-        {pageText(locale, 'breakdown pending', 'פירוט בטעינה')}
-      </span>
+      <Tooltip title={pageText(locale, 'The rule breakdown is still loading', 'פירוט הכללים עדיין נטען')} arrow placement="bottom">
+        <span className="amz-effect-pending">
+          {pageText(locale, 'breakdown pending', 'פירוט בטעינה')}
+        </span>
+      </Tooltip>
     );
   }
   const active = EFFECT_META.filter((meta) => Number(breakdown[meta.key] || 0) > 0);
@@ -97,6 +99,7 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
       <header className="amz-card-head">
         <div className="amz-card-id-wrap">
           <span className="amz-card-id" dir="ltr">{row.advertiser_id}</span>
+          {/* Native title is a truncation echo of the ellipsised notes, not an explanation. */}
           {row.notes ? <span className="amz-card-notes" title={row.notes}>{row.notes}</span> : null}
         </div>
         <Caret size={18} className="amz-card-caret" aria-hidden="true" />
@@ -113,7 +116,9 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
         {conflicts > 0 && (
           <span className="amz-conflict-flag" dir="ltr">
             <TriangleAlert size={13} aria-hidden="true" />
-            {pageText(locale, `${conflicts} conflict`, `${conflicts} התנגשות`)}
+            {conflicts === 1
+              ? pageText(locale, '1 conflict', 'התנגשות אחת')
+              : pageText(locale, `${conflicts} conflicts`, `${conflicts} התנגשויות`)}
           </span>
         )}
       </div>
