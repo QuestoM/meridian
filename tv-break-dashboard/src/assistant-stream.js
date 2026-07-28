@@ -44,12 +44,19 @@ function parseFrame(frame) {
   return { event, data: dataLines.join('\n') };
 }
 
-export async function streamAsk(question, { onStep, onDelta } = {}) {
+// Optional fields ride in the body per the frozen contract: conversation_id
+// scopes the ask to the active conversation, and page_context is the advisory
+// current-location grounding ({ view, label, entity } or absent). Both are
+// omitted when null, so the request degrades to exactly today's behavior.
+export async function streamAsk(question, { conversationId = null, pageContext = null, onStep, onDelta } = {}) {
+  const payload = { question };
+  if (conversationId) payload.conversation_id = conversationId;
+  if (pageContext) payload.page_context = pageContext;
   const response = await fetch(`${API_BASE}/api/assistant/ask/stream`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify(payload),
   });
   const contentType = response.headers.get('content-type') || '';
   if (!response.ok || !response.body || !contentType.includes('text/event-stream')) {

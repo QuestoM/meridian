@@ -2,24 +2,26 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@mui/material';
 import { Bot, Send, Sparkles, Trash2 } from 'lucide-react';
 import { pageText } from './surface-helpers';
-import { postJson, requestJson } from './assistant-stream';
-import { streamAskConversation, useConversations } from './AssistantConversationsApi';
+import { postJson, requestJson, streamAsk } from './assistant-stream';
+import { useConversations } from './AssistantConversationsApi';
+import { asArray, normalizeBatch, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
+import { buildPageContext, useAssistantPage } from './assistant-page-context';
 import AssistantConversationsSidebar from './AssistantConversationsSidebar';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantUpload from './AssistantUpload';
 import { AssistantExchange, StreamProgress, RichText } from './AssistantThread';
 import './assistant-console.css';
 
-// The assistant console: a chat column grounded in the saved data plus a side
-// rail for pending proposals and the conversation history. Answers
+// The assistant console, named Kai: a chat column grounded in the saved data
+// plus a rail for pending proposals and the conversation history. Answers
 // come only from the server; asks stream live (step names and answer text as
 // they are produced) and fall back quietly to the plain ask endpoint when the
 // stream is unavailable. Proposed actions apply only after an explicit
 // operator confirm, with an automatic restore point first. Every surface has
 // honest loading, error and empty states, and nothing is polled in a loop:
 // rail data refreshes on mount, after actions, and via the manual refresh.
-
-const HISTORY_CAP = 20;
+// In dock mode (the persistent side panel) the page chrome is replaced by a
+// compact status row, the current-location chip, and real conversation stats.
 
 const SUGGESTIONS = [
   ['What is the weekly net and why', 'מה הנטו השבועי ולמה'],
@@ -30,97 +32,29 @@ const SUGGESTIONS = [
   ['Suggest settings that raise the weekly net, and show me the effect before I approve', 'הצע הגדרות שמגדילות את הנטו השבועי, ותראה לי את ההשפעה לפני שאאשר'],
 ];
 
-function asArray(value, ...keys) {
-  if (Array.isArray(value)) return value;
-  for (const key of keys) {
-    if (value && Array.isArray(value[key])) return value[key];
-  }
-  return [];
+function startedLabel(iso, locale) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Normalizes a batch from either the ask response or GET /proposals into one
-// shape. Items without an id stay visible but cannot be selected or applied.
-function normalizeBatch(raw) {
-  if (!raw || typeof raw !== 'object' || !raw.batch_id) return null;
-  const items = asArray(raw.items).map((item, index) => ({
-    id: item && item.id != null ? String(item.id) : null,
-    key: item && item.id != null ? String(item.id) : `row-${index}`,
-    kind: item && item.kind ? String(item.kind) : '',
-    summary: item && item.summary ? String(item.summary) : '',
-    payload: item && item.payload && typeof item.payload === 'object' ? item.payload : null,
-    reason: item && item.reason ? String(item.reason) : '',
-    status: item && item.status ? String(item.status) : 'pending',
-    error: item && item.error ? String(item.error) : '',
-    effect: item && item.effect && typeof item.effect === 'object' ? item.effect : null,
-    diff: item && Array.isArray(item.diff) ? item.diff : null,
-  }));
-  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
-}
-
-export default function AssistantPanel({ locale, notify }) {
+export default function AssistantPanel({ locale, notify, dock = false }) {
   const [status, setStatus] = useState(null);
   const [statusState, setStatusState] = useState('loading');
   const [question, setQuestion] = useState('');
-  const [thread, setThread] = useState([]);
-  const [threadLoading, setThreadLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [asking, setAsking] = useState(false);
-  const [batchMap, setBatchMap] = useState({});
-  const [batchOrder, setBatchOrder] = useState([]);
-  const [proposalsState, setProposalsState] = useState('loading');
-  const [proposalsError, setProposalsError] = useState('');
-  const [applyBusyId, setApplyBusyId] = useState(null);
-  const [applyResults, setApplyResults] = useState({});
-  const [refreshing, setRefreshing] = useState(false);
   const [live, setLive] = useState(null);
-  const [actingUser, setActingUser] = useState('');
   const conv = useConversations(notify);
-  const idRef = useRef(0);
+  const {
+    batchMap, mergeBatches, refreshRail, refreshing, proposalsState, proposalsError,
+    applyBusyId, applyResults, applyItems, rejectItems, pendingCount, visibleBatches,
+  } = useAssistantBatches(notify);
+  const { thread, threadLoading, actingUser, appendEntry, resetLocal, markAdopted } = useAssistantThread(conv);
+  const pageState = useAssistantPage();
   const threadRef = useRef(null);
   const composerRef = useRef(null);
-  // Conversation ids the server minted during an ask: the thread on screen is
-  // already current, so the load effect skips exactly one refetch for them.
-  const adoptedRef = useRef(null);
-
-  const mergeBatches = useCallback((incoming, fromServer) => {
-    const clean = incoming.filter(Boolean);
-    if (!clean.length) return;
-    setBatchMap((prev) => {
-      const next = { ...prev };
-      for (const batch of clean) {
-        const existing = prev[batch.batch_id];
-        if (!existing) {
-          next[batch.batch_id] = batch;
-        } else {
-          const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
-          const effectByKey = new Map(existing.items.map((item) => [item.key, item.effect]));
-          const diffByKey = new Map(existing.items.map((item) => [item.key, item.diff]));
-          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null, diff: item.diff || diffByKey.get(item.key) || null })) };
-        }
-      }
-      return next;
-    });
-    setBatchOrder((prev) => {
-      const ids = clean.map((batch) => batch.batch_id);
-      if (fromServer) return [...ids, ...prev.filter((id) => !ids.includes(id))];
-      return [...ids.filter((id) => !prev.includes(id)), ...prev];
-    });
-  }, []);
-
-  const refreshRail = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const value = await requestJson('/api/assistant/proposals');
-      mergeBatches(asArray(value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
-      setProposalsState('ready');
-      setProposalsError('');
-    } catch (err) {
-      setProposalsState('error');
-      setProposalsError(err && err.message ? err.message : 'unknown');
-    }
-    setRefreshing(false);
-  }, [mergeBatches]);
 
   useEffect(() => {
     let active = true;
@@ -140,56 +74,6 @@ export default function AssistantPanel({ locale, notify }) {
     };
   }, [refreshRail]);
 
-  // Load the saved conversation so returning to the assistant shows the past
-  // exchanges instead of an empty chat. Each stored entry (question, answer,
-  // time, batch id) becomes a thread row; keeping the stored batch_id is what
-  // lets a proposal card reattach to its exchange after a reload. With no
-  // active id the server returns the newest conversation and its id is
-  // adopted quietly; picking a conversation in the rail reloads here.
-  useEffect(() => {
-    if (conv.activeId && adoptedRef.current === conv.activeId) {
-      adoptedRef.current = null;
-      return undefined;
-    }
-    let active = true;
-    setThreadLoading(true);
-    const path = conv.activeId ? `/api/assistant/thread?conversation_id=${encodeURIComponent(conv.activeId)}` : '/api/assistant/thread';
-    requestJson(path)
-      .then((body) => {
-        if (!active) return;
-        const entries = Array.isArray(body.entries) ? body.entries : [];
-        const rows = entries.map((entry, index) => ({
-          id: `saved-${index}`,
-          at: entry && entry.at ? entry.at : null,
-          question: entry && entry.question ? String(entry.question) : '',
-          answer: entry && entry.answer ? String(entry.answer) : null,
-          error: null,
-          disclosure: '',
-          sources: [],
-          toolTrace: [],
-          truncated: false,
-          batchId: entry && entry.batch_id ? String(entry.batch_id) : null,
-        }));
-        idRef.current = rows.length;
-        setThread(rows);
-        if (typeof body.user === 'string' && body.user) setActingUser(body.user);
-        if (body.conversation_id && String(body.conversation_id) !== conv.activeId) {
-          adoptedRef.current = String(body.conversation_id);
-          conv.adopt(String(body.conversation_id));
-        }
-      })
-      .catch(() => {
-        // Honest empty chat if the thread cannot be read; the requested
-        // conversation may have been deleted, so resync the list.
-        if (!active) return;
-        setThread([]);
-        if (conv.activeId) conv.refreshList();
-      })
-      .finally(() => { if (active) setThreadLoading(false); });
-    return () => { active = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conv.activeId, conv.loadNonce]);
-
   useEffect(() => {
     const node = threadRef.current;
     if (node) node.scrollTop = node.scrollHeight;
@@ -206,8 +90,7 @@ export default function AssistantPanel({ locale, notify }) {
         await conv.remove(conv.activeId);
       } else {
         await requestJson('/api/assistant/thread', { method: 'DELETE' });
-        setThread([]);
-        idRef.current = 0;
+        resetLocal();
       }
       setConfirmClear(false);
     } catch (error) {
@@ -215,13 +98,7 @@ export default function AssistantPanel({ locale, notify }) {
     } finally {
       setClearing(false);
     }
-  }, [notify, conv]);
-
-  const appendEntry = useCallback((entry) => {
-    idRef.current += 1;
-    const row = { id: `ask-${idRef.current}`, at: new Date().toISOString(), answer: null, error: null, disclosure: '', sources: [], toolTrace: [], truncated: false, batchId: null, ...entry };
-    setThread((prev) => [...prev, row].slice(-HISTORY_CAP));
-  }, []);
+  }, [notify, conv, resetLocal]);
 
   const finishAsk = useCallback((trimmed, body) => {
     if (body.available === false) {
@@ -234,7 +111,7 @@ export default function AssistantPanel({ locale, notify }) {
     const returnedConv = body.conversation_id ? String(body.conversation_id) : null;
     if (returnedConv) {
       if (returnedConv !== conv.activeId) {
-        adoptedRef.current = returnedConv;
+        markAdopted(returnedConv);
         conv.adopt(returnedConv);
       }
       if (conv.supported) conv.refreshList();
@@ -253,7 +130,7 @@ export default function AssistantPanel({ locale, notify }) {
       at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
     });
     if (batch) refreshRail();
-  }, [locale, appendEntry, mergeBatches, refreshRail, conv]);
+  }, [locale, appendEntry, mergeBatches, refreshRail, conv, markAdopted]);
 
   const ask = useCallback(async () => {
     const trimmed = question.trim();
@@ -265,10 +142,16 @@ export default function AssistantPanel({ locale, notify }) {
     setQuestion('');
     setLive({ question: trimmed, text: '', step: null });
     const conversationId = conv.supported && conv.activeId ? conv.activeId : null;
+    // Advisory grounding only, per the frozen contract: where the operator is
+    // right now, plus the focused entity when a record is open. Absent context
+    // sends nothing and the ask behaves exactly as before.
+    const pageContext = buildPageContext(pageState);
     try {
       let body;
       try {
-        body = await streamAskConversation(trimmed, conversationId, {
+        body = await streamAsk(trimmed, {
+          conversationId,
+          pageContext,
           onStep: (step) => setLive((prev) => (prev ? { ...prev, step } : prev)),
           onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
         });
@@ -276,7 +159,11 @@ export default function AssistantPanel({ locale, notify }) {
         // The stream endpoint is unavailable or broke mid-flight; the plain
         // ask returns the same answer without live updates, so retry there.
         setLive({ question: trimmed, text: '', step: null });
-        body = await postJson('/api/assistant/ask', conversationId ? { question: trimmed, conversation_id: conversationId } : { question: trimmed });
+        body = await postJson('/api/assistant/ask', {
+          question: trimmed,
+          ...(conversationId ? { conversation_id: conversationId } : {}),
+          ...(pageContext ? { page_context: pageContext } : {}),
+        });
       }
       finishAsk(trimmed, body);
     } catch (error) {
@@ -288,53 +175,7 @@ export default function AssistantPanel({ locale, notify }) {
       setLive(null);
       setAsking(false);
     }
-  }, [question, asking, finishAsk, appendEntry, conv.supported, conv.activeId]);
-
-  const applyItems = useCallback(async (batchId, itemIds) => {
-    if (!itemIds.length || applyBusyId) return;
-    setApplyBusyId(batchId);
-    try {
-      const body = await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/apply`, { item_ids: itemIds });
-      const results = asArray(body, 'results', 'items');
-      const restoreId = body.restore_id || null;
-      setApplyResults((prev) => ({ ...prev, [batchId]: { results, restoreId } }));
-      setBatchMap((prev) => {
-        const batch = prev[batchId];
-        if (!batch) return prev;
-        const byId = new Map(results.filter((row) => row && row.id != null).map((row) => [String(row.id), row]));
-        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
-      });
-      const applied = results.filter((row) => row && row.status === 'applied').length;
-      const failed = results.filter((row) => row && row.status === 'failed').length;
-      if (failed) notify(`Applied ${applied} of ${itemIds.length} actions, ${failed} failed. Details are on the action card.`, `הוחלו ${applied} מתוך ${itemIds.length} פעולות, ${failed === 1 ? 'אחת נכשלה' : `${failed} נכשלו`}. הפרטים מופיעים בכרטיס הפעולות.`);
-      else if (applied === 1) notify('Applied one action and created a restore point.', 'הוחלה פעולה אחת ונוצרה נקודת שחזור.');
-      else notify(`Applied ${applied} actions and created a restore point.`, `הוחלו ${applied} פעולות ונוצרה נקודת שחזור.`);
-      refreshRail();
-    } catch (error) {
-      notify(`Applying the actions failed (${error.message}).`, `החלת הפעולות נכשלה (${error.message}).`);
-    } finally {
-      setApplyBusyId(null);
-    }
-  }, [applyBusyId, notify, refreshRail]);
-
-  const rejectItems = useCallback(async (batchId, itemIds) => {
-    if (!itemIds.length || applyBusyId) return;
-    setApplyBusyId(batchId);
-    try {
-      await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/reject`, { item_ids: itemIds });
-      setBatchMap((prev) => {
-        const batch = prev[batchId];
-        if (!batch) return prev;
-        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && itemIds.includes(item.id) ? { ...item, status: 'rejected' } : item)) } };
-      });
-      notify('The selected actions were rejected.', 'הפעולות שנבחרו נדחו.');
-      refreshRail();
-    } catch (error) {
-      notify(`Rejecting the actions failed (${error.message}).`, `דחיית הפעולות נכשלה (${error.message}).`);
-    } finally {
-      setApplyBusyId(null);
-    }
-  }, [applyBusyId, notify, refreshRail]);
+  }, [question, asking, finishAsk, appendEntry, conv.supported, conv.activeId, pageState]);
 
   function onComposerKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -358,9 +199,6 @@ export default function AssistantPanel({ locale, notify }) {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [question]);
 
-  const pendingCount = useMemo(() => Object.values(batchMap).reduce((sum, batch) => sum + batch.items.filter((item) => item.status === 'pending').length, 0), [batchMap]);
-  const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id])), [batchOrder, batchMap, applyResults]);
-
   const unavailable = statusState === 'ready' && status && status.available === false;
   const reasonLabel = status && status.reason === 'API key not configured'
     ? pageText(locale, 'The API key is not configured on the server.', 'מפתח ה-API אינו מוגדר בשרת.')
@@ -371,25 +209,70 @@ export default function AssistantPanel({ locale, notify }) {
     : pageText(locale, 'Connected', 'מחובר');
   const dotClass = statusState === 'loading' ? 'loading' : statusState === 'error' ? 'error' : unavailable ? 'off' : 'on';
 
+  // The quiet location chip: where the assistant thinks the operator is, so
+  // the grounding sent with each ask is transparent on screen.
+  const page = pageState && pageState.page && pageState.page.label ? pageState.page : null;
+  const entityLabel = pageState && pageState.entity && pageState.entity.label ? pageState.entity.label : '';
+  const locationText = page
+    ? (entityLabel
+      ? pageText(locale, `You are on the ${page.label} page, ${entityLabel}`, `אתם בעמוד ${page.label}, ${entityLabel}`)
+      : pageText(locale, `You are on the ${page.label} page`, `אתם בעמוד ${page.label}`))
+    : null;
+
+  // Conversation statistics from data already on screen: exchange count from
+  // the loaded entries, the start date of the first entry, and applied changes
+  // counted from this conversation's loaded batches. Nothing is invented, so
+  // the applied figure only renders when at least one applied item is loaded.
+  const startedAt = thread.length > 0 && thread[0].at ? startedLabel(thread[0].at, locale) : '';
+  const appliedCount = useMemo(() => {
+    const seen = new Set();
+    let total = 0;
+    for (const entry of thread) {
+      if (!entry.batchId || seen.has(entry.batchId)) continue;
+      seen.add(entry.batchId);
+      const batch = batchMap[entry.batchId];
+      if (batch) total += batch.items.filter((item) => item.status === 'applied').length;
+    }
+    return total;
+  }, [thread, batchMap]);
+
   function renderProposalCard(batch) {
     return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} />;
   }
 
+  const statusCluster = (
+    <div className="asst-status" role="status">
+      <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
+      <span>{statusText}</span>
+      {status && status.model ? <code dir="ltr">{status.model}</code> : null}
+      {status && status.actions_enabled === true ? <span className="asst-chip on">{pageText(locale, 'Actions enabled', 'פעולות מופעלות')}</span> : null}
+      {status && status.actions_enabled === false ? <span className="asst-chip">{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
+    </div>
+  );
+
   return (
-    <section className="page-workspace asst-workspace">
-      <div className="page-header">
-        <div>
-          <h1>{pageText(locale, 'AI assistant', 'עוזר AI')}</h1>
-          <p>{pageText(locale, 'The assistant answers from the saved data only, and any action it proposes applies only after your approval, with an automatic restore point first.', 'העוזר עונה מהנתונים השמורים בלבד, וכל פעולה שהוא מציע מוחלת רק לאחר אישור שלכם, עם נקודת שחזור אוטומטית לפני כן.')}</p>
+    <section className={dock ? 'asst-workspace asst-in-dock' : 'page-workspace asst-workspace'}>
+      {dock ? (
+        <div className="asst-dock-meta">
+          {statusCluster}
+          {locationText ? <span className="asst-location" dir="auto">{locationText}</span> : null}
+          {!threadLoading && thread.length > 0 ? (
+            <p className="asst-stats">
+              <span>{thread.length === 1 ? pageText(locale, 'one question in this conversation', 'שאלה אחת בשיחה') : pageText(locale, `${thread.length} questions in this conversation`, `${thread.length} שאלות בשיחה`)}</span>
+              {startedAt ? <span>{pageText(locale, `started ${startedAt}`, `התחילה ב-${startedAt}`)}</span> : null}
+              {appliedCount > 0 ? <span>{appliedCount === 1 ? pageText(locale, 'one change applied', 'הוחל שינוי אחד') : pageText(locale, `${appliedCount} changes applied`, `הוחלו ${appliedCount} שינויים`)}</span> : null}
+            </p>
+          ) : null}
         </div>
-        <div className="asst-status" role="status">
-          <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
-          <span>{statusText}</span>
-          {status && status.model ? <code dir="ltr">{status.model}</code> : null}
-          {status && status.actions_enabled === true ? <span className="asst-chip on">{pageText(locale, 'Actions enabled', 'פעולות מופעלות')}</span> : null}
-          {status && status.actions_enabled === false ? <span className="asst-chip">{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
+      ) : (
+        <div className="page-header">
+          <div>
+            <h1>{pageText(locale, 'Kai, the AI assistant', 'קאי, עוזר ה-AI')}</h1>
+            <p>{pageText(locale, 'Kai answers from the saved data only, and any action it proposes applies only after your approval, with an automatic restore point first.', 'קאי עונה מהנתונים השמורים בלבד, וכל פעולה שהוא מציע מוחלת רק לאחר אישור שלכם, עם נקודת שחזור אוטומטית לפני כן.')}</p>
+          </div>
+          {statusCluster}
         </div>
-      </div>
+      )}
 
       <div className="asst-layout">
         <section className="page-panel asst-chat">
@@ -426,7 +309,7 @@ export default function AssistantPanel({ locale, notify }) {
             {!threadLoading && thread.length === 0 && !asking ? (
               <div className="asst-thread-empty">
                 <Bot size={18} />
-                <p>{pageText(locale, 'No questions asked yet. Your conversation is saved and will appear here next time.', 'עוד לא נשאלו שאלות. השיחה נשמרת ותופיע כאן בפעם הבאה.')}</p>
+                <p>{pageText(locale, 'No questions asked yet. Kai answers from the saved data only, and the conversation is saved and will appear here next time.', 'עוד לא נשאלו שאלות. קאי עונה מהנתונים השמורים בלבד, והשיחה נשמרת ותופיע כאן בפעם הבאה.')}</p>
                 {!unavailable && statusState !== 'loading' ? (
                   <div className="asst-suggestions">
                     <span className="asst-suggestions-label"><Sparkles size={12} />{pageText(locale, 'You can start with one of these', 'אפשר להתחיל מאחת מאלה')}</span>
@@ -454,7 +337,7 @@ export default function AssistantPanel({ locale, notify }) {
             {asking ? (
               <div className="asst-thinking">
                 <span className="asst-thinking-dots" aria-hidden="true"><span /><span /><span /></span>
-                {pageText(locale, 'Working on an answer from the saved data', 'מכין תשובה מהנתונים השמורים')}
+                {pageText(locale, 'Kai is preparing an answer from the saved data', 'קאי מכין תשובה מהנתונים השמורים')}
               </div>
             ) : null}
             {asking && live && live.step ? <StreamProgress locale={locale} step={live.step} /> : null}
@@ -462,7 +345,7 @@ export default function AssistantPanel({ locale, notify }) {
 
           {unavailable ? (
             <div className="asst-unavailable" role="status">
-              <strong>{pageText(locale, 'The assistant is not available.', 'העוזר אינו זמין.')}</strong>
+              <strong>{pageText(locale, 'Kai is not available.', 'קאי אינו זמין.')}</strong>
               {reasonLabel ? <span>{reasonLabel}</span> : null}
               <span>{pageText(locale, 'To enable it, set the ANTHROPIC_API_KEY or KAIROS_ASSISTANT_API_KEY environment variable and restart the server.', 'להפעלה, הגדירו את משתנה הסביבה ANTHROPIC_API_KEY או KAIROS_ASSISTANT_API_KEY והפעילו מחדש את השרת.')}</span>
             </div>
@@ -484,9 +367,9 @@ export default function AssistantPanel({ locale, notify }) {
               rows={1}
               maxLength={2000}
               dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
-              placeholder={unavailable ? pageText(locale, 'The assistant is not available right now', 'העוזר אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
+              placeholder={unavailable ? pageText(locale, 'Kai is not available right now', 'קאי אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
               disabled={unavailable}
-              aria-label={pageText(locale, 'Question for the assistant', 'שאלה לעוזר')}
+              aria-label={pageText(locale, 'Question for Kai', 'שאלה לקאי')}
             />
             <Button variant="contained" size="small" className="asst-send-btn" onClick={ask} disabled={asking || unavailable || !question.trim()} endIcon={<Send size={14} style={locale === 'he' ? { transform: 'scaleX(-1)' } : undefined} />}>
               {asking ? pageText(locale, 'Sending', 'שולח') : pageText(locale, 'Send', 'שליחה')}

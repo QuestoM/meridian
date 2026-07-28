@@ -198,6 +198,26 @@ function EffectView({ effect, locale }) {
   );
 }
 
+// Bulk clarity: a batch that carries many changes, or that touches activation
+// or money levers, gets a quiet banner naming the scale before approval. The
+// change count is real (settings fields plus one per other item), and the
+// sensitive test only inspects fields the batch actually carries.
+const SENSITIVE_FIELD = /activ|enabl|price|cpp|rate|premium|multiplier|budget/i;
+
+function bulkFacts(items) {
+  const pending = items.filter((item) => item.status === 'pending');
+  let changeCount = 0;
+  let sensitive = false;
+  for (const item of pending) {
+    const rows = item.kind === 'settings_change' ? settingsRows(item.payload) : [];
+    changeCount += rows.length > 0 ? rows.length : 1;
+    if (item.kind === 'pricing_change') sensitive = true;
+    if (rows.some((row) => SENSITIVE_FIELD.test(String(row.field || '')))) sensitive = true;
+    if (Array.isArray(item.diff) && item.diff.some((row) => row && SENSITIVE_FIELD.test(String(row.field || '')))) sensitive = true;
+  }
+  return { changeCount, sensitive };
+}
+
 export default function AssistantProposalCard({ batch, locale, busy, applyResult, onApply, onReject, onShowRestore }) {
   const items = Array.isArray(batch.items) ? batch.items : [];
   const pendingIds = items.filter((item) => item.status === 'pending' && item.id).map((item) => item.id);
@@ -228,6 +248,13 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
   const appliedCount = results.filter((row) => row && row.status === 'applied').length;
   const failedCount = results.filter((row) => row && row.status === 'failed').length;
   const jobIds = results.map((row) => row && row.job_id).filter(Boolean);
+  const bulk = bulkFacts(items);
+  const showBulkBanner = pendingIds.length > 0 && (bulk.changeCount > 3 || bulk.sensitive);
+  const bulkText = bulk.changeCount > 3
+    ? (bulk.sensitive
+      ? pageText(locale, `Broad action, ${bulk.changeCount} changes, including activation or pricing levers.`, `פעולה רחבה, ${bulk.changeCount} שינויים, כולל שינויי הפעלה או תמחור.`)
+      : pageText(locale, `Broad action, ${bulk.changeCount} changes.`, `פעולה רחבה, ${bulk.changeCount} שינויים.`))
+    : pageText(locale, 'This action touches activation or pricing levers.', 'הפעולה נוגעת בשינויי הפעלה או תמחור.');
   const confirmText = selectedIds.length === 1
     ? pageText(locale, 'One selected action will be applied to the saved data. A restore point is created automatically before applying, so the previous state can be recovered.', 'תוחל פעולה נבחרת אחת על הנתונים השמורים. לפני ההחלה נוצרת אוטומטית נקודת שחזור, כך שאפשר לחזור למצב הקודם.')
     : pageText(locale, `${selectedIds.length} selected actions will be applied to the saved data. A restore point is created automatically before applying, so the previous state can be recovered.`, `יוחלו ${selectedIds.length} פעולות נבחרות על הנתונים השמורים. לפני ההחלה נוצרת אוטומטית נקודת שחזור, כך שאפשר לחזור למצב הקודם.`);
@@ -238,6 +265,13 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
         <span>{pageText(locale, 'Proposed actions', 'פעולות מוצעות')}</span>
         <code dir="ltr">{String(batch.batch_id).slice(0, 8)}</code>
       </div>
+
+      {showBulkBanner ? (
+        <div className="asst-bulk" role="note">
+          <TriangleAlert size={13} />
+          <span dir="auto">{bulkText}</span>
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
         <p className="asst-item-reason asst-pad">{pageText(locale, 'This batch contains no actions.', 'האצווה הזו אינה מכילה פעולות.')}</p>

@@ -94,7 +94,8 @@ import ScenarioCompare from './ScenarioCompare';
 import GoldBreakManager from './GoldBreakManager';
 import MakeGoodAlerts from './MakeGoodAlerts';
 import ActivityFeed from './ActivityFeed';
-import AssistantPanel from './AssistantPanel';
+import AssistantDock from './AssistantDock';
+import { AssistantPageProvider } from './assistant-page-context';
 import CalendarEvents from './CalendarEvents';
 import { PlanEventBadges, planEventWeekdayMap, usePlanEvents } from './CalendarEventsModel';
 import VersionsPage from './VersionsPage';
@@ -300,7 +301,7 @@ const copyByLocale = {
       Agencies: 'Agencies',
       Pricing: 'Pricing',
       Overrides: 'Overrides',
-      Assistant: 'AI assistant',
+      Assistant: 'Kai, AI assistant',
       Versions: 'Restore changes',
       Settings: 'Settings',
     },
@@ -404,7 +405,7 @@ const copyByLocale = {
       Agencies: 'סוכנויות',
       Pricing: 'תמחור',
       Overrides: 'עקיפות',
-      Assistant: 'עוזר AI',
+      Assistant: 'קאי, עוזר AI',
       Versions: 'שחזור שינויים',
       Settings: 'הגדרות',
     },
@@ -1387,7 +1388,21 @@ function TVBreakDashboard() {
   const [scenario, setScenario] = useState('Balanced');
   const [riskLambda, setRiskLambda] = useState(0);
   const riskLambdaTouched = useRef(false);
-  const [activeView, setActiveViewState] = useState(viewFromLocation);
+  // The assistant is a docked side column, not a page: an #Assistant hash on
+  // load opens the dock and the workspace shows Overview instead.
+  const [activeView, setActiveViewState] = useState(() => {
+    const initial = viewFromLocation();
+    return initial === 'Assistant' ? 'Overview' : initial;
+  });
+  // Dock open state survives reloads and view switches; the conversation
+  // itself lives on the server, so nothing is lost while the dock is closed.
+  const [assistantOpen, setAssistantOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem('kairos.assistant.dockOpen') === '1' || viewFromLocation() === 'Assistant';
+    } catch {
+      return viewFromLocation() === 'Assistant';
+    }
+  });
   const [optimizerView, setOptimizerView] = useState('grid');
   const [gridAxis, setGridAxisState] = useState(gridAxisFromLocation);
   const [showPrograms, setShowPrograms] = useState(true);
@@ -1540,6 +1555,12 @@ function TVBreakDashboard() {
   }, [isBusy]);
 
   function setActiveView(label) {
+    // The old Assistant nav entry now opens and focuses the dock; the
+    // workspace keeps showing whatever page the operator was on.
+    if (label === 'Assistant') {
+      setAssistantOpen(true);
+      return;
+    }
     setActiveViewState(label);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -1566,11 +1587,26 @@ function TVBreakDashboard() {
 
   useEffect(() => {
     function handleHashChange() {
-      setActiveViewState(viewFromLocation());
+      const next = viewFromLocation();
+      // #Assistant opens the dock beside the current page instead of
+      // switching the workspace, so the old route keeps working.
+      if (next === 'Assistant') {
+        setAssistantOpen(true);
+        return;
+      }
+      setActiveViewState(next);
     }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('kairos.assistant.dockOpen', assistantOpen ? '1' : '0');
+    } catch {
+      // localStorage may be unavailable (private mode); the session state still works.
+    }
+  }, [assistantOpen]);
 
   useEffect(() => {
     const nextSettings = overview.settings || fallbackSettings;
@@ -2059,7 +2095,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Calendar') {
-      return <CalendarEvents locale={locale} notify={notify} refreshKey={refreshKey} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      return <CalendarEvents locale={locale} notify={notify} refreshKey={refreshKey} setActiveView={setActiveView} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Reports') {
@@ -2086,7 +2122,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Agencies') {
-      return <AgencyManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      return <AgencyManager copy={copy} locale={locale} notify={notify} setActiveView={setActiveView} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Pricing') {
@@ -2104,10 +2140,6 @@ function TVBreakDashboard() {
           onPrefillConsumed={() => setOverridePrefill(null)}
         />
       );
-    }
-
-    if (activeView === 'Assistant') {
-      return <AssistantPanel locale={locale} notify={notify} />;
     }
 
     if (activeView === 'Versions') {
@@ -2186,6 +2218,7 @@ function TVBreakDashboard() {
     <CacheProvider value={muiCache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
+    <AssistantPageProvider page={{ view: activeView, label: copy.nav[activeView] || activeView }}>
     <div className={`kairos-shell ${isHebrew ? 'rtl' : 'ltr'}`} dir={isHebrew ? 'rtl' : 'ltr'} lang={locale}>
       <aside className="side-rail" aria-label="Kairos navigation">
         <div className="brand-lockup">
@@ -2201,13 +2234,17 @@ function TVBreakDashboard() {
         </div>
 
         <List component="nav" className="primary-nav" disablePadding>
-          {navItems.map(([label, Icon]) => (
+          {navItems.map(([label, Icon]) => {
+            // The Assistant entry reflects the dock: lit while the dock is
+            // open on any page, and clicking it opens or focuses the dock.
+            const isActive = label === 'Assistant' ? assistantOpen : label === activeView;
+            return (
             <ListItemButton
               key={label}
               component="button"
-              className={label === activeView ? 'nav-item active' : 'nav-item'}
+              className={isActive ? 'nav-item active' : 'nav-item'}
               type="button"
-              selected={label === activeView}
+              selected={isActive}
               disableRipple
               aria-current={label === activeView ? 'page' : undefined}
               onClick={() => setActiveView(label)}
@@ -2217,7 +2254,8 @@ function TVBreakDashboard() {
               </ListItemIcon>
               <ListItemText className="nav-text" disableTypography primary={<span>{copy.nav[label]}</span>} />
             </ListItemButton>
-          ))}
+            );
+          })}
         </List>
 
         {auth.status === 'ready' && auth.user ? (
@@ -2388,6 +2426,18 @@ function TVBreakDashboard() {
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />
             </IconButton>
+            <Tooltip title={pageText(locale, 'Kai, the Kairos operations assistant', 'קאי, העוזר התפעולי של קיירוס')} arrow placement="bottom">
+              <IconButton
+                className={assistantOpen ? 'icon-button assistant-toggle open' : 'icon-button assistant-toggle'}
+                type="button"
+                aria-label={pageText(locale, 'Open or close Kai, the assistant', 'פתיחה או סגירה של קאי, העוזר')}
+                aria-pressed={assistantOpen}
+                size="small"
+                onClick={() => setAssistantOpen((current) => !current)}
+              >
+                <Bot size={15} />
+              </IconButton>
+            </Tooltip>
             <IconButton
               className="icon-button"
               type="button"
@@ -2467,7 +2517,12 @@ function TVBreakDashboard() {
         )}
         {!loading && !online && error && <div className="toast muted">{copy.apiUnavailable}</div>}
       </main>
+
+      {assistantOpen && (
+        <AssistantDock locale={locale} notify={notify} onClose={() => setAssistantOpen(false)} />
+      )}
     </div>
+    </AssistantPageProvider>
       </ThemeProvider>
     </CacheProvider>
   );
