@@ -138,6 +138,85 @@
   border-top: 1px solid var(--line);
   padding-top: 16px;
 }
+/* Personal pricing (תמחור אישי) section: plain-language money rules, one
+   clickable sentence per rule, and the live worked-price example line. */
+.apz-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.apz-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.apz-empty {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--subtle);
+}
+.apz-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.apz-rule {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: 9px 12px;
+  font-size: var(--text-base);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+.apz-rule:hover {
+  border-color: var(--line-strong);
+}
+.apz-rule:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.apz-rule-sentence {
+  line-height: 1.45;
+}
+.apz-rule-icon {
+  flex-shrink: 0;
+  color: var(--subtle);
+}
+.apz-actions {
+  display: flex;
+  gap: 8px;
+}
+.apz-example {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.apz-example.muted,
+.apz-example-note {
+  color: var(--subtle);
+}
+/* The jump-to-edit highlight on a scoped-rule row targeted from the personal
+   pricing section, so the operator sees exactly which rule opened. */
+.adv-cond-row.focus {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 @media (max-width: 540px) {
   .amz-baseline-grid {
     grid-template-columns: 1fr;

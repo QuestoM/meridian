@@ -1,7 +1,39 @@
 import React, { useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
+import { ChevronDown } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
-import { LAYER_TEXT, readEventsLayer } from './pricing-layers-lib';
+import { LAYER_TEXT, eventDatesLabel, readEventsLayer } from './pricing-layers-lib';
+
+// The expandable per-event list under the count line. When the server payload
+// carries the event list, each active non-1.0 event shows its name, dates and
+// multiplier; when the server sends only a count, the expanded body says so
+// plainly instead of inventing rows.
+function EventsList({ events, locale }) {
+  if (events === null) {
+    return (
+      <p className="pricing-base-note">{pageText(locale, 'The server reported only a count, not the events themselves, so the list cannot be shown.', 'השרת דיווח על ספירה בלבד, ללא פירוט האירועים עצמם, ולכן לא ניתן להציג את הרשימה.')}</p>
+    );
+  }
+  if (events.length === 0) {
+    return (
+      <p className="pricing-base-note">{pageText(locale, 'The server sent an event list, but none of the entries carries a usable non-1.0 multiplier.', 'השרת שלח רשימת אירועים, אך אף רשומה אינה נושאת מכפיל תקין השונה מ-1.0.')}</p>
+    );
+  }
+  return (
+    <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0 }}>
+      {events.map((entry, index) => (
+        <li key={`${entry.name || 'event'}-${entry.start || ''}-${index}`} className="pricing-break-row">
+          <span dir="auto">
+            {entry.name || pageText(locale, 'Unnamed event', 'אירוע ללא שם')}
+            {' '}
+            <span className="src" dir="ltr">{eventDatesLabel(entry, locale)}</span>
+          </span>
+          <span className="mult" dir="ltr">x {entry.multiplier.toFixed(2)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 // The calendar-events pricing layer card on the Pricing page. Activation is
 // owner-gated behind an inline confirm (same pattern as the rate-card reset)
@@ -10,7 +42,8 @@ import { LAYER_TEXT, readEventsLayer } from './pricing-layers-lib';
 // a disabled toggle with an explanation, never a fabricated off state.
 function PricingEventsLayer({ state, locale, onToggle }) {
   const [confirmOn, setConfirmOn] = useState(false);
-  const { supported, enabled, count } = readEventsLayer(state);
+  const [listOpen, setListOpen] = useState(false);
+  const { supported, enabled, count, events } = readEventsLayer(state);
 
   const chip = supported ? (enabled ? 'live' : 'off') : 'empty';
   const chipText = supported
@@ -55,7 +88,24 @@ function PricingEventsLayer({ state, locale, onToggle }) {
         </div>
       </div>
       {supported && count !== null && (
-        <p className="pricing-base-note">{pageText(locale, `${count} active events carry a price multiplier other than 1.0.`, `${count} אירועים פעילים נושאים מכפיל תמחור שונה מ-1.0.`)}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <p className="pricing-base-note" style={{ margin: 0 }}>{pageText(locale, `${count} active events carry a price multiplier other than 1.0.`, `${count} אירועים פעילים נושאים מכפיל תמחור שונה מ-1.0.`)}</p>
+          {count > 0 && (
+            <button
+              type="button"
+              className="secondary-button compact"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              aria-expanded={listOpen}
+              onClick={() => setListOpen((value) => !value)}
+            >
+              <ChevronDown size={13} style={{ transform: listOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              {listOpen ? pageText(locale, 'Hide the events', 'הסתרת האירועים') : pageText(locale, 'Show which events', 'אילו אירועים')}
+            </button>
+          )}
+        </div>
+      )}
+      {supported && count !== null && count > 0 && listOpen && (
+        <EventsList events={events} locale={locale} />
       )}
       {supported && count === null && (
         <p className="pricing-base-note">{pageText(locale, 'The server did not report how many active events carry a non-1.0 multiplier, so no count is shown.', 'השרת לא דיווח כמה אירועים פעילים נושאים מכפיל שונה מ-1.0, ולכן לא מוצגת ספירה.')}</p>

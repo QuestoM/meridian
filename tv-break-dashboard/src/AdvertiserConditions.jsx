@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, TextField, Tooltip } from '@mui/material';
-import { ChevronDown, Info, Plus, RotateCcw, Save, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { ChevronDown, Info, Plus, RotateCcw, Save, Trash2, TriangleAlert } from 'lucide-react';
 import {
   CONDITION_EFFECTS,
   PREMIUM_MODES,
   coefficientHint,
   emptyCondition,
-  isAnySelected,
   isConditionDirty,
   normalizeConditions,
   normalizeOverlaps,
@@ -14,132 +13,17 @@ import {
   overlapTone,
   pageText,
   parseCondition,
-  parseTokens,
   pressureHint,
   scopedRulesBadge,
-  serializeTokens,
-  toggleToken,
 } from './advertisers-helpers';
+import { ScopeMultiSelect, WeekdayScope, effectLabel, modeLabel, normalizeOptions } from './AdvertiserPricingSummary';
 
-// Bilingual label for a scope token, looked up against the options list the
-// backend serves; falls back to the raw token so engine data is never dropped.
-function tokenLabel(token, optionMap, locale) {
-  const entry = optionMap.get(String(token));
-  if (entry) {
-    return locale === 'he' ? entry.he : entry.en;
+// Escape a rule id for use inside a querySelector attribute selector.
+function cssEscape(value) {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+    return CSS.escape(String(value));
   }
-  return token;
-}
-
-// Normalize the various option shapes the /options endpoint returns into a
-// uniform [{ value, he, en }] list. Strings (genres/programmes) become
-// value=label; objects (positions/dayparts) carry he/en labels.
-function normalizeOptions(raw) {
-  return (raw || []).map((item) => {
-    if (typeof item === 'string') {
-      return { value: item, he: item, en: item };
-    }
-    return { value: item.key, he: item.he || item.key, en: item.en || item.key };
-  });
-}
-
-// Keyboard-operable scope multi-select. ANY first, then the backend option list,
-// then any stored tokens not in that list (engine data is never dropped). Long
-// lists (programmes) get a filter box so the operator can find a show fast.
-function ScopeMultiSelect({ label, options, value, onChange, locale, filterable = false }) {
-  const [query, setQuery] = useState('');
-  const tokens = parseTokens(value);
-  const anyActive = isAnySelected(tokens);
-  const optionMap = useMemo(() => {
-    const map = new Map();
-    (options || []).forEach((option) => map.set(String(option.value), option));
-    return map;
-  }, [options]);
-
-  // Build the visible option set: ANY, the backend options, then stored unknowns.
-  const visibleOptions = useMemo(() => {
-    const values = ['ANY', ...(options || []).map((option) => option.value)];
-    tokens.forEach((token) => {
-      if (token.toUpperCase() !== 'ANY' && !values.includes(token)) {
-        values.push(token);
-      }
-    });
-    if (!filterable || !query.trim()) {
-      return values;
-    }
-    const term = query.trim().toLowerCase();
-    return values.filter((token) => {
-      if (token.toUpperCase() === 'ANY') {
-        return true;
-      }
-      const text = `${token} ${tokenLabel(token, optionMap, locale)}`.toLowerCase();
-      return text.includes(term);
-    });
-  }, [options, tokens, filterable, query, optionMap, locale]);
-
-  return (
-    <div className="adv-chip-field adv-cond-scope">
-      <span className="adv-field-label">{label}</span>
-      {filterable && (
-        <div className="adv-chip-filter">
-          <Search size={12} className="adv-chip-filter-icon" />
-          <input
-            className="adv-chip-filter-input"
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={pageText(locale, 'Filter...', 'סינון...')}
-            aria-label={pageText(locale, `Filter ${label}`, `סינון ${label}`)}
-          />
-        </div>
-      )}
-      <div className={`adv-chip-row${filterable ? ' adv-chip-row-scroll' : ''}`} role="group" aria-label={label}>
-        {visibleOptions.map((token) => {
-          const isAny = token.toUpperCase() === 'ANY';
-          const active = isAny ? anyActive : tokens.includes(token);
-          return (
-            <button
-              key={token}
-              type="button"
-              className={`adv-chip${active ? ' active' : ''}${isAny ? ' any' : ''}`}
-              aria-pressed={active}
-              onClick={() => onChange(serializeTokens(toggleToken(tokens, token)))}
-            >
-              <span dir="auto">{isAny ? pageText(locale, 'Any', 'הכול') : tokenLabel(token, optionMap, locale)}</span>
-            </button>
-          );
-        })}
-        {visibleOptions.length === 1 && filterable && query.trim() && (
-          <span className="adv-chip-empty">{pageText(locale, 'no match', 'אין התאמה')}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Bilingual label for an effect.
-function effectLabel(effect, locale) {
-  const labels = {
-    premium: ['Coefficient', 'מקדם'],
-    require: ['Require', 'חובה'],
-    forbid: ['Forbid', 'איסור'],
-    pressure: ['Placement preference', 'העדפת שיבוץ'],
-  };
-  const pair = labels[effect] || [effect, effect];
-  return pageText(locale, pair[0], pair[1]);
-}
-
-// Bilingual label for a coefficient mode.
-function modeLabel(mode, locale) {
-  const labels = {
-    multiplier: ['Multiplier (x)', 'מכפיל (×)'],
-    percent: ['Percent (+/-%)', 'אחוז (+/-%)'],
-    cpp_absolute: ['CPP absolute', 'נקודה מוחלטת'],
-    cpp_add: ['CPP add', 'תוספת לנקודה'],
-    cpp_discount: ['CPP discount', 'הנחה מהנקודה'],
-  };
-  const pair = labels[mode] || [mode, mode];
-  return pageText(locale, pair[0], pair[1]);
+  return String(value).replace(/["\\]/g, '\\$&');
 }
 
 // The shared scope + effect + value editor used by both the inline edit row and
@@ -149,7 +33,11 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
   const genreOptions = normalizeOptions(scopeOptions.genres);
   const daypartOptions = normalizeOptions(scopeOptions.dayparts);
   const programmeOptions = normalizeOptions(scopeOptions.programmes);
-  const modes = scopeOptions.modes && scopeOptions.modes.length ? scopeOptions.modes : PREMIUM_MODES;
+  const serverModes = scopeOptions.modes && scopeOptions.modes.length ? scopeOptions.modes : PREMIUM_MODES;
+  // A stored rule's mode is always selectable even if this server's option list
+  // does not carry it, so engine data is never dropped from the editor.
+  const modes = draft.mode && !serverModes.includes(draft.mode) ? [...serverModes, draft.mode] : serverModes;
+  const isSurchargeDiscount = draft.mode === 'premium_discount';
   const hint = draft.effect === 'pressure'
     ? pressureHint(draft.value, locale)
     : coefficientHint(draft.value, draft.mode, locale);
@@ -187,6 +75,11 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
           locale={locale}
           filterable
         />
+        <WeekdayScope
+          value={draft.scope_weekdays}
+          onChange={(value) => update('scope_weekdays', value)}
+          locale={locale}
+        />
       </div>
 
       <div className="adv-cond-effect-block">
@@ -211,8 +104,8 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                 <Tooltip
                   title={pageText(
                     locale,
-                    'How the value you enter changes the price: multiplies it, adds or subtracts a percent, or sets a price per rating point (fixed, added, or discounted).',
-                    'איך הערך שמזינים משנה את המחיר: מכפיל אותו, מוסיף או גורע אחוזים, או קובע מחיר לנקודת רייטינג (קבוע, תוספת או הנחה).',
+                    'How the value you enter changes the price: multiplies it, adds or subtracts a percent, sets a price per rating point (fixed, added, or discounted), or takes a percent off only the surcharge above the base price.',
+                    'איך הערך שמזינים משנה את המחיר: מכפיל אותו, מוסיף או גורע אחוזים, קובע מחיר לנקודת רייטינג (קבוע, תוספת או הנחה), או גורע אחוזים מתוספת המחיר שמעל מחיר הבסיס בלבד.',
                   )}
                   arrow
                 >
@@ -230,12 +123,33 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
               </select>
             </div>
             <div className="adv-premium-field">
-              <span className="adv-field-label">{pageText(locale, 'Coefficient value', 'ערך המקדם')}</span>
+              <span className="adv-field-label">
+                {isSurchargeDiscount
+                  ? pageText(locale, 'Discount percent (0-100)', 'אחוז ההנחה (0-100)')
+                  : pageText(locale, 'Coefficient value', 'ערך המקדם')}
+                {isSurchargeDiscount && (
+                  <Tooltip
+                    title={pageText(
+                      locale,
+                      'The discount applies only to the surcharge above the base price, never to the base itself. A 100 percent discount removes the whole surcharge and returns the slot to the base price; the price never drops below the base.',
+                      'ההנחה חלה רק על תוספת המחיר שמעל מחיר הבסיס, לעולם לא על הבסיס עצמו. הנחה של 100 אחוז מבטלת את כל התוספת ומחזירה את המשבצת למחיר הבסיס; המחיר לעולם אינו יורד מתחת למחיר הבסיס.',
+                    )}
+                    arrow
+                    placement="bottom"
+                  >
+                    <Info size={12} className="adv-field-info" />
+                  </Tooltip>
+                )}
+              </span>
               <div className="adv-premium-input">
                 <TextField
                   type="number"
                   size="small"
-                  inputProps={{ step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Coefficient value', 'ערך המקדם') }}
+                  inputProps={
+                    isSurchargeDiscount
+                      ? { min: 0, max: 100, step: 5, dir: 'ltr', 'aria-label': pageText(locale, 'Surcharge discount percent', 'אחוז ההנחה על תוספת המחיר') }
+                      : { step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Coefficient value', 'ערך המקדם') }
+                  }
                   value={draft.value ?? 1}
                   onChange={(event) => update('value', event.target.value === '' ? '' : Number(event.target.value))}
                 />
@@ -290,7 +204,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
 
 // A single editable condition row. Save is disabled until changed; Save and
 // Delete are fixed anchors; the optional Revert renders last (no layout shift).
-function ConditionRow({ condition, locale, scopeOptions, onSave, onDelete }) {
+function ConditionRow({ condition, locale, scopeOptions, onSave, onDelete, highlight }) {
   const original = useMemo(() => parseCondition(condition), [condition]);
   const [draft, setDraft] = useState(original);
   const [saving, setSaving] = useState(false);
@@ -313,7 +227,7 @@ function ConditionRow({ condition, locale, scopeOptions, onSave, onDelete }) {
   }
 
   return (
-    <div className="adv-cond-row">
+    <div className={`adv-cond-row${highlight ? ' focus' : ''}`} data-rule-id={original.rule_id}>
       <ConditionFields draft={draft} update={update} locale={locale} scopeOptions={scopeOptions} />
 
       <div className="adv-cell-actions adv-cond-actions">
@@ -361,6 +275,8 @@ function ConditionRow({ condition, locale, scopeOptions, onSave, onDelete }) {
 }
 
 // The add-a-rule mini form, mirrors the inline row but POSTs a new condition.
+// A blank draft is already a premium (money) rule, so a jump from the personal
+// pricing section lands on a pricing rule with no extra clicks.
 function AddConditionForm({ locale, scopeOptions, onCreate }) {
   const [draft, setDraft] = useState(emptyCondition());
   const [creating, setCreating] = useState(false);
@@ -379,7 +295,7 @@ function AddConditionForm({ locale, scopeOptions, onCreate }) {
   }
 
   return (
-    <div className="adv-cond-row adv-cond-add">
+    <div className="adv-cond-row adv-cond-add" data-cond-add="true">
       <ConditionFields draft={draft} update={update} locale={locale} scopeOptions={scopeOptions} />
 
       <div className="adv-cell-actions adv-cond-actions">
@@ -393,12 +309,44 @@ function AddConditionForm({ locale, scopeOptions, onCreate }) {
 }
 
 // The collapsible "Scoped rules" section attached to one advertiser row.
-function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scopeOptions, onCreate, onUpdate, onDelete }) {
+// focusRequest ({ seq, ruleId }) is an optional one-shot command from the host:
+// it opens the section and scrolls to the named rule (ruleId null targets the
+// add-a-rule form), so the personal pricing section can jump straight to edit.
+function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scopeOptions, onCreate, onUpdate, onDelete, focusRequest }) {
   const [open, setOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
+  const bodyRef = useRef(null);
   const rules = normalizeConditions(conditions);
   const findings = normalizeOverlaps(overlaps);
   const badges = scopedRulesBadge(rules, findings, locale);
   const options = scopeOptions || {};
+
+  useEffect(() => {
+    if (!focusRequest || !focusRequest.seq) {
+      return undefined;
+    }
+    setOpen(true);
+    setHighlightId(focusRequest.ruleId || null);
+    // Wait one tick so the section body exists before scrolling to the target.
+    const timer = setTimeout(() => {
+      const root = bodyRef.current;
+      if (!root) {
+        return;
+      }
+      const selector = focusRequest.ruleId
+        ? `[data-rule-id="${cssEscape(focusRequest.ruleId)}"]`
+        : '[data-cond-add]';
+      const target = root.querySelector(selector);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const control = target.querySelector('select, input, button');
+        if (control) {
+          control.focus({ preventScroll: true });
+        }
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [focusRequest]);
 
   return (
     <div className={`adv-scoped${open ? ' open' : ''}`}>
@@ -425,7 +373,7 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
       </button>
 
       {open && (
-        <div className="adv-scoped-body">
+        <div className="adv-scoped-body" ref={bodyRef}>
           <p className="adv-scoped-note">
             {pageText(
               locale,
@@ -452,8 +400,8 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
             <p className="adv-scoped-empty">
               {pageText(
                 locale,
-                'No scoped rules yet. Add one to apply a coefficient, a constraint, or a placement preference to specific positions, genres, dayparts, or programmes.',
-                'אין עדיין כללים ממוקדים. הוסף כלל כדי להחיל מקדם, אילוץ או העדפת שיבוץ על מיקומים, ז׳אנרים, חלקי יום או תוכניות מסוימים.',
+                'No scoped rules yet. Add one to apply a coefficient, a constraint, or a placement preference to specific positions, genres, dayparts, programmes, or weekdays.',
+                'אין עדיין כללים ממוקדים. הוסף כלל כדי להחיל מקדם, אילוץ או העדפת שיבוץ על מיקומים, ז׳אנרים, חלקי יום, תוכניות או ימים מסוימים בשבוע.',
               )}
             </p>
           ) : (
@@ -464,6 +412,7 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
                   condition={rule}
                   locale={locale}
                   scopeOptions={options}
+                  highlight={highlightId !== null && String(rule.rule_id) === String(highlightId)}
                   onSave={(ruleId, draft) => onUpdate(advertiserId, ruleId, draft)}
                   onDelete={(ruleId) => onDelete(advertiserId, ruleId)}
                 />

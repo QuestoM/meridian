@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 // backend applies it. Wired-off layers render struck through, never multiplied.
 function PricingSlotTester({ state, locale, notify, currency }) {
   const [slot, setSlot] = useState({
-    pricing_class: 'News', weekday_iso: 1, day: '', show: '', position: '', break_size: '', ad_type: '', advertiser_base: '',
+    pricing_class: 'News', weekday_iso: 1, day: '', show: '', position: '', break_size: '', ad_type: '', advertiser_base: '', advertiser: '', campaign: '',
   });
   const [breakdown, setBreakdown] = useState(null);
   const [testerError, setTesterError] = useState(null);
@@ -46,6 +46,12 @@ function PricingSlotTester({ state, locale, notify, currency }) {
     if (slot.break_size) body.break_size = Number(slot.break_size);
     if (slot.ad_type) body.ad_type = slot.ad_type;
     if (slot.advertiser_base) body.advertiser_base = Number(slot.advertiser_base);
+    // Naming an advertiser opts the slot into the personal-pricing path: the
+    // backend resolves that advertiser's (and campaign's) targeted overrides.
+    if (slot.advertiser.trim()) {
+      body.advertiser = slot.advertiser.trim();
+      if (slot.campaign.trim()) body.campaign = slot.campaign.trim();
+    }
     try {
       const response = await fetch(`${API_BASE}/api/pricing/price-slot`, {
         method: 'POST',
@@ -139,6 +145,14 @@ function PricingSlotTester({ state, locale, notify, currency }) {
           {pageText(locale, 'Advertiser base', 'בסיס מפרסם')}
           <input type="number" min="0" dir="ltr" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
         </label>
+        <label>
+          {pageText(locale, 'Advertiser (optional)', 'מפרסם (לא חובה)')}
+          <input dir="ltr" value={slot.advertiser} placeholder="ADV_01" onChange={(e) => setSlot({ ...slot, advertiser: e.target.value })} />
+        </label>
+        <label>
+          {pageText(locale, 'Campaign (optional)', 'קמפיין (לא חובה)')}
+          <input dir="ltr" value={slot.campaign} onChange={(e) => setSlot({ ...slot, campaign: e.target.value })} />
+        </label>
       </div>
 
       {testerError && (
@@ -171,9 +185,55 @@ function PricingSlotTester({ state, locale, notify, currency }) {
             <span>= {pageText(locale, 'Final CPP', 'מחיר סופי')} ({currency})</span>
             <span dir="ltr">{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</span>
           </div>
+          <OverrideBlocks breakdown={breakdown} advertiser={slot.advertiser.trim()} locale={locale} />
         </div>
       )}
     </div>
+  );
+}
+
+// The personal-pricing blocks of a priced slot: which advertiser overrides were
+// applied, which were shadowed by a more specific rule, and any final-price
+// guardrail breaches. Each block renders only what the backend reported; an
+// advertiser with no matching rule gets a plain no-match line, never silence.
+function OverrideBlocks({ breakdown, advertiser, locale }) {
+  const applied = Array.isArray(breakdown.applied_overrides) ? breakdown.applied_overrides : [];
+  const shadowed = Array.isArray(breakdown.shadowed_overrides) ? breakdown.shadowed_overrides : [];
+  const warnings = Array.isArray(breakdown.guardrail_warnings) ? breakdown.guardrail_warnings : [];
+  return (
+    <>
+      {advertiser && applied.length > 0 && (
+        <>
+          <p className="pricing-base-note">{pageText(locale, `Personal pricing rules of ${advertiser} applied to this slot:`, `כללי תמחור אישיים של ${advertiser} שהוחלו על המשבצת:`)}</p>
+          {applied.map((entry, idx) => (
+            <div className="pricing-break-row" key={`applied-${entry.rule_id}-${idx}`}>
+              <span dir="auto">{layerLabel(entry.target_layer || 'final', locale)} <span className="src" dir="ltr">({entry.rule_id})</span></span>
+              <span className="mult" dir="ltr">{Number.isFinite(entry.multiplier) ? `x ${Number(entry.multiplier).toFixed(3)}` : '-'}</span>
+            </div>
+          ))}
+        </>
+      )}
+      {advertiser && applied.length === 0 && (
+        <p className="pricing-base-note">{pageText(locale, `No personal pricing rule of ${advertiser} matches this slot, so the rate-card price stands.`, `אף כלל תמחור אישי של ${advertiser} אינו תואם למשבצת זו, ולכן מחיר המחירון נשאר בתוקף.`)}</p>
+      )}
+      {advertiser && shadowed.length > 0 && (
+        <>
+          <p className="pricing-base-note">{pageText(locale, 'Rules not applied because a more specific rule wins the layer:', 'כללים שלא הוחלו כי כלל ממוקד יותר גובר באותה שכבה:')}</p>
+          {shadowed.map((entry, idx) => (
+            <div className="pricing-break-row off" key={`shadowed-${entry.rule_id}-${idx}`}>
+              <span dir="auto">{layerLabel(entry.target_layer || 'final', locale)} <span className="src" dir="ltr">({entry.rule_id})</span></span>
+              <span className="src" dir="auto">{pageText(locale, `${entry.winner_rule_id} wins`, `${entry.winner_rule_id} גובר`)}</span>
+            </div>
+          ))}
+        </>
+      )}
+      {warnings.map((warning, idx) => (
+        <p className="pricing-layer-warning" key={`guardrail-${warning.code || idx}`} dir="auto">
+          {pageText(locale, 'Price guardrail breached: ', 'חריגה מגבול מחיר: ')}
+          {warning.message || warning.code}
+        </p>
+      ))}
+    </>
   );
 }
 

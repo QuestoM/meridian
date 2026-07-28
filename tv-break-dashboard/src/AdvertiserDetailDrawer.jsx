@@ -19,7 +19,9 @@ import {
   totalRules,
 } from './advertiser-stats-helpers';
 import AdvertiserConditions from './AdvertiserConditions';
+import AdvertiserPricingSummary from './AdvertiserPricingSummary';
 import { normalizeOverlaps, overlapMessage, overlapTone } from './advertisers-helpers';
+import { useAssistantEntity } from './assistant-page-context';
 import './advertiser-drawer.css';
 
 // A compact chip multi-select reused inside the drawer baseline editor. Mirrors
@@ -236,10 +238,16 @@ function AdvertiserDetailDrawer({
   onDeleteCondition,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // One-shot jump command for the scoped-rules section: set from the personal
+  // pricing section to open the builder on a specific rule or on the add form.
+  const [condFocus, setCondFocus] = useState(null);
 
   useEffect(() => {
     setConfirmDelete(false);
+    setCondFocus(null);
   }, [row && row.advertiser_id, open]);
+
+  useAssistantEntity('advertiser', open && row ? row.advertiser_id : '', open && row ? row.display_name || row.advertiser_id : '');
 
   if (!row) {
     return null;
@@ -319,6 +327,18 @@ function AdvertiserDetailDrawer({
         </section>
 
         <section className="amz-drawer-section">
+          <h3>{pageText(locale, 'Personal pricing', 'תמחור אישי')}</h3>
+          <AdvertiserPricingSummary
+            advertiserId={row.advertiser_id}
+            conditions={row.conditions}
+            scopeOptions={scopeOptions}
+            locale={locale}
+            onEditRule={(ruleId) => setCondFocus({ seq: Date.now(), ruleId })}
+            onAddRule={() => setCondFocus({ seq: Date.now(), ruleId: null })}
+          />
+        </section>
+
+        <section className="amz-drawer-section">
           <h3>{pageText(locale, 'Scoped rules', 'כללים ממוקדים')}</h3>
           <AdvertiserConditions
             advertiserId={row.advertiser_id}
@@ -329,6 +349,7 @@ function AdvertiserDetailDrawer({
             onCreate={onCreateCondition}
             onUpdate={onUpdateCondition}
             onDelete={onDeleteCondition}
+            focusRequest={condFocus}
           />
         </section>
 
