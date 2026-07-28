@@ -20,7 +20,7 @@ import AdvertiserDetailDrawer from './AdvertiserDetailDrawer';
 import AddAdvertiserForm from './AddAdvertiserForm';
 import './advertiser-management.css';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 const FILTERS = [
   { key: 'all', en: 'All', he: 'הכול' },

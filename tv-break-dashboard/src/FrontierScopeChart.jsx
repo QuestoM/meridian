@@ -349,7 +349,7 @@ export default function FrontierScopeChart({
               their axes even though the numbers are correct. */}
           <div className="frontier-axis-legend" dir="ltr">
             <span>{pageText(locale, 'X: average retention', 'ציר X: שימור ממוצע')}</span>
-            <span>{pageText(locale, 'Y: projected revenue', 'ציר Y: הכנסה צפויה')}</span>
+            <span>{pageText(locale, 'Y: revenue (representative day)', 'ציר Y: הכנסה (יום מייצג)')}</span>
           </div>
 
           <p className="frontier-scope-hint frontier-basis-note" dir={he ? 'rtl' : 'ltr'}>
@@ -364,7 +364,7 @@ export default function FrontierScopeChart({
                   <strong className="numeric" dir="ltr">{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</strong>
                 </div>
                 <div>
-                  <span>{pageText(locale, 'Projected revenue', 'הכנסה צפויה')}</span>
+                  <span>{pageText(locale, 'Revenue (representative day)', 'הכנסה (יום מייצג)')}</span>
                   <strong className="numeric" dir="ltr">{formatCurrency(focusPoint.revenue, locale)}</strong>
                 </div>
                 <div>

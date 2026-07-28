@@ -29,7 +29,7 @@ function SummaryCard({ title, summary, accent, locale }) {
       </div>
       <dl className="scenario-stat-list">
         <div>
-          <dt>{pageText(locale, 'Projected revenue', 'הכנסה צפויה')}</dt>
+          <dt>{pageText(locale, 'Plan revenue (scenario day)', 'הכנסת תוכנית (יום התרחיש)')}</dt>
           <dd className="numeric" dir="ltr">{formatCurrency(summary.projected_revenue, locale)}</dd>
         </div>
         <div>

@@ -12,3 +12,6 @@ behavior itself is still fully tested.
 import os
 
 os.environ.setdefault("KAIROS_AUTH_DISABLED", "1")
+# Ambient Claude Code Keychain OAuth on a developer machine must not make
+# assistant suites report available=true without an explicit test key.
+os.environ.setdefault("KAIROS_ASSISTANT_USE_CLAUDE_CODE_OAUTH", "0")

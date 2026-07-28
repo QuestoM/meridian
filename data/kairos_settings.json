@@ -25,5 +25,14 @@
   "gold_breaks_max_per_day": 3,
   "require_manual_approval": true,
   "notes": "Configurable baseline. Validate with current counsel and broadcaster policy before production use.",
-  "operator_channel": "עכשיו 14"
+  "operator_channel": "רשת 13",
+  "pacing_enabled": true,
+  "pacing_reference_date": "",
+  "pacing_urgency_k": 1.0,
+  "pacing_urgency_max": 2.0,
+  "pacing_ahead_k": 1.0,
+  "pacing_weight_floor": 0.5,
+  "pacing_epsilon": 0.05,
+  "objective_mode": "blend",
+  "pricing_overrides": {}
 }

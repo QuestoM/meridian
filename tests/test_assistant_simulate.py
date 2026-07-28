@@ -245,9 +245,10 @@ def test_goal_seek_simulates_then_proposes_one_effect_bearing_change(
     assert "source" not in trace[2]
 
     # Wiring: the opening call stays a plain answer; the search turns enable adaptive
-    # thinking with a medium effort, drop temperature, and cache the tools+system prefix.
+    # thinking with a medium effort, and every call (opening included) omits
+    # temperature, which newer Claude models reject and thinking turns forbid.
     opening = recorder["calls"][0]
-    assert opening["temperature"] == assistant.ANSWER_TEMPERATURE
+    assert "temperature" not in opening
     # Every call (opening included) sends the system list with the cache_control
     # breakpoint on the LAST block (the operator handbook), so the whole stable
     # tools+system prefix is written once and read across turns.

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { AlertTriangle, CheckCircle2, Database, RefreshCcw, Upload } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 function pageText(locale, en, he) {
   return locale === 'he' ? he : en;

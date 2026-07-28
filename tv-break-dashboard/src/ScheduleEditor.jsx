@@ -23,7 +23,7 @@ import {
   programClassLabel,
 } from './schedule-editor-format';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // Local helpers kept self-contained so the editor can live in its own module
 // without exporting internals from TVBreakDashboard.jsx. They mirror the time

@@ -4,7 +4,7 @@ import { Plus, PlusSquare, Save, Send, Trash2, X } from 'lucide-react';
 import DateField from './DateField';
 import { daypartLabel } from './surface-helpers';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 function t(locale, en, he) {
   return locale === 'he' ? he : en;

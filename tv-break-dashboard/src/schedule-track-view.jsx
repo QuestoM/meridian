@@ -12,7 +12,7 @@ import {
   pixelToMinute,
 } from './schedule-track';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // Shared zoom state for the schedule track. Held in component state per page
 // visit so switching between timeline and editor keeps the same scale; nothing

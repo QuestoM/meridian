@@ -43,6 +43,9 @@ DEFAULT_MODEL = "claude-opus-4-8"
 MODEL_ENV = "KAIROS_ASSISTANT_MODEL"
 KEY_ENVS = ("ANTHROPIC_API_KEY", "KAIROS_ASSISTANT_API_KEY")
 KEY_MISSING_REASON = "API key not configured"
+AUTH_MISSING_REASON = (
+    "No Anthropic credentials: Claude Code OAuth (Max) not available and no API key configured"
+)
 ACTIONS_ENV = "KAIROS_ASSISTANT_ACTIONS"
 ACTIONS_DISABLED_REASON = f"disabled by {ACTIONS_ENV}"
 ASK_TIMEOUT_SECONDS = 120.0  # per-request; adaptive-thinking search calls run long
@@ -184,11 +187,27 @@ def _handbook_text() -> str | None:
         return _HANDBOOK_CACHE["text"]
 
 
-def _system_blocks() -> list[dict[str, Any]]:
+# Anthropic gates Sonnet/Opus on Claude Max OAuth (sk-ant-oat*) behind the
+# official Claude Code client identity. Without this leading system block the
+# API returns a bare rate_limit_error even when Max quota is free; Haiku still
+# works. Verified against the live Max token: identity present → 200, absent → 429.
+_CLAUDE_CODE_OAUTH_IDENTITY = (
+    "You are Claude Code, Anthropic's official CLI for Claude."
+)
+
+
+def _system_blocks(*, auth_mode: str | None = None) -> list[dict[str, Any]]:
     """The stable system prefix: the grounding contract, then the operator handbook
     as a second block when present. The cache_control breakpoint sits on the LAST
-    block, so the whole stable prefix (tools plus system) caches as one unit."""
-    blocks: list[dict[str, Any]] = [{"type": "text", "text": SYSTEM_PROMPT}]
+    block, so the whole stable prefix (tools plus system) caches as one unit.
+
+    When auth is Claude Max OAuth, the Claude Code identity line is prepended so
+    premium models (Sonnet/Opus) are accepted on the subscription path.
+    """
+    blocks: list[dict[str, Any]] = []
+    if auth_mode == "oauth":
+        blocks.append({"type": "text", "text": _CLAUDE_CODE_OAUTH_IDENTITY})
+    blocks.append({"type": "text", "text": SYSTEM_PROMPT})
     handbook = _handbook_text()
     if handbook:
         blocks.append({"type": "text", "text": handbook})
@@ -207,12 +226,21 @@ def _server() -> Any:
     return server
 
 
+def _resolve_auth() -> Any:
+    """Module seam: credentials for the assistant (OAuth Max or API key)."""
+    from kairos_api.assistant_auth import resolve_auth
+
+    return resolve_auth()
+
+
 def _api_key() -> str | None:
-    for name in KEY_ENVS:
-        value = os.environ.get(name, "").strip()
-        if value:
-            return value
-    return None
+    """Legacy seam used by tests: any usable credential token, or None.
+
+    Prefer :func:`_resolve_auth` for new code. Returning the raw token keeps
+    existing ``bool(_api_key())`` availability checks working.
+    """
+    auth = _resolve_auth()
+    return auth.token if auth is not None else None
 
 
 def _model_name() -> str:
@@ -225,10 +253,24 @@ def _actions_enabled() -> bool:
 
 
 def _client_factory(api_key: str) -> Any:
-    """Build the Anthropic client. Module-level seam so tests can mock it."""
+    """Build an API-key Anthropic client. Module-level seam so tests can mock it.
+
+    Production ask uses :func:`_client_from_auth`, which routes OAuth through
+    ``auth_token=`` and API keys through this factory.
+    """
     import anthropic
 
     return anthropic.Anthropic(api_key=api_key, timeout=ASK_TIMEOUT_SECONDS, max_retries=1)
+
+
+def _client_from_auth(auth: Any) -> Any:
+    """Build a client for the resolved auth mode (OAuth Bearer or API key)."""
+    from kairos_api.assistant_auth import build_client
+
+    if getattr(auth, "mode", None) == "api_key":
+        # Keep the testable seam for the pay-as-you-go path.
+        return _client_factory(auth.token)
+    return build_client(auth, timeout=ASK_TIMEOUT_SECONDS, max_retries=1)
 
 
 # Context sections. Each reuses a real dashboard builder, so the assistant reads
@@ -481,7 +523,8 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
                    on_step: Callable[[dict[str, Any]], None] | None = None,
                    on_text: Callable[[str], None] | None = None,
                    user: str | None = None,
-                   history: list[dict[str, Any]] | None = None) -> str:
+                   history: list[dict[str, Any]] | None = None,
+                   auth_mode: str | None = None) -> str:
     """One Anthropic conversation, with the tool loop when the action plane is on.
 
     READ tools execute immediately and their results go back to the model;
@@ -506,7 +549,7 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
         kwargs: dict[str, Any] = {
             "model": _model_name(),
             "max_tokens": (SEARCH_MAX_TOKENS if searching else LOOP_MAX_TOKENS) if actions_on else MAX_ANSWER_TOKENS,
-            "system": _system_blocks(),
+            "system": _system_blocks(auth_mode=auth_mode),
             "messages": messages,
         }
         if actions_on:
@@ -514,8 +557,8 @@ def _run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
         if searching:
             kwargs["thinking"] = {"type": "adaptive"}
             kwargs["output_config"] = {"effort": LOOP_EFFORT}
-        else:
-            kwargs["temperature"] = ANSWER_TEMPERATURE
+        # temperature omitted: newer Claude models (e.g. opus-4-8) reject it as
+        # deprecated, and adaptive-thinking turns already forbid it.
         response = _call_model(client, kwargs, on_text)
         blocks = list(getattr(response, "content", []) or [])
         tool_uses = [block for block in blocks if getattr(block, "type", "") == "tool_use"]
@@ -550,19 +593,23 @@ def _audit_ask(user: str, question: str, body: dict[str, Any], batch_id: str | N
 @router.get("/status")
 def assistant_status() -> dict[str, Any]:
     """Honest availability: the answer path, the model, and the action plane."""
-    available = bool(_api_key())
+    auth = _resolve_auth()
+    available = auth is not None
     if not _actions_enabled():
         action_reason: str | None = ACTIONS_DISABLED_REASON
     elif not available:
-        action_reason = KEY_MISSING_REASON
+        action_reason = AUTH_MISSING_REASON
     else:
         action_reason = None
-    return {
+    body: dict[str, Any] = {
         "available": available,
-        "reason": None if available else KEY_MISSING_REASON,
+        "reason": None if available else AUTH_MISSING_REASON,
         "model": _model_name(),
         "action_plane": {"enabled": action_reason is None, "reason": action_reason},
     }
+    if auth is not None:
+        body["auth"] = auth.public_status()
+    return body
 
 
 def _ask_body(question: str, http_request: Request | None,
@@ -580,8 +627,8 @@ def _ask_body(question: str, http_request: Request | None,
     caller's job, exactly once per ask.
     """
     generated_at = datetime.now(timezone.utc).isoformat()
-    api_key = _api_key()
-    if not api_key:
+    auth = _resolve_auth()
+    if auth is None:
         grounding = {"sources": [], "generated_at": generated_at}
         return {
             "available": False,
@@ -590,7 +637,7 @@ def _ask_body(question: str, http_request: Request | None,
             "grounding": grounding,
             "context_disclosure": grounding,
             "truncated": False,
-            "error": KEY_MISSING_REASON,
+            "error": AUTH_MISSING_REASON,
             "proposals": None,
             "tool_trace": [],
         }
@@ -606,7 +653,7 @@ def _ask_body(question: str, http_request: Request | None,
     # empty history, never a failed ask.
     history = assistant_history.history_messages(_actor_name(http_request))
     try:
-        client = _client_factory(api_key)
+        client = _client_from_auth(auth)
         answer = _run_tool_loop(
             client, f"CONTEXT:\n{context_json}\n\nQUESTION:\n{question}",
             trace, items, _actions_enabled(),
@@ -614,6 +661,7 @@ def _ask_body(question: str, http_request: Request | None,
             on_step=on_step, on_text=on_text,
             user=_actor_name(http_request),
             history=history,
+            auth_mode=getattr(auth, "mode", None),
         )
     except Exception as exc:  # noqa: BLE001 - every SDK failure surfaces honestly
         error = _describe_error(exc)

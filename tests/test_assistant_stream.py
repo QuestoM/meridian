@@ -265,6 +265,6 @@ def test_stream_without_key_final_frame_is_honest(client: TestClient, monkeypatc
     final = frames[0][1]
     assert final["available"] is False
     assert final["answer"] is None
-    assert final["error"] == "API key not configured"
+    assert final["error"] == assistant.AUTH_MISSING_REASON
     # No answer means no thread entry.
     assert client.get("/api/assistant/thread").json()["entries"] == []

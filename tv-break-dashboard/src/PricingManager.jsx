@@ -4,7 +4,7 @@ import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
 import './pricing-management.css';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // Maps a layer's display name to the YAML override key the engine reads.
 const LAYER_TO_YAML = {

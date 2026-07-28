@@ -6,7 +6,7 @@ import { formatCurrency, formatPercent } from './surface-helpers';
 import { asList, isNum, fmtNum, anchorText, isStale, runDayRecomputeJob, KINDS, kindLabel } from './override-console-lib';
 import './override-console.css';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 function OverrideConsole({ copy, locale, notify, onGlobalRefresh, prefill, onPrefillConsumed }) {
   const [overrides, setOverrides] = useState([]);

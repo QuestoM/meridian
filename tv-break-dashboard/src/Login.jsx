@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './login.css';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // All auth calls carry credentials so the kairos_session cookie flows on the
 // same-origin production setup (dist served by the API) and on a same-site

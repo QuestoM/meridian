@@ -36,9 +36,19 @@ from kairos_api import advertisers as advertisers_api
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The three competitor channels present in the real committed schedule. The
-# operator owns "עכשיו 14"; none of these three may surface in any tool output.
-COMPETITOR_CHANNELS = ["כאן 11", "קשת 12", "רשת 13"]
+# The four channels the real committed schedule carries. Whichever one the live
+# settings name as the operator's channel is OWNED; the other three are the
+# competitors that may never surface in any tool output. Derived at call time
+# (not hardcoded) so an operator-channel change in settings cannot silently
+# turn the boundary test into a false alarm on the owned name.
+PLAN_CHANNELS = ["עכשיו 14", "כאן 11", "קשת 12", "רשת 13"]
+
+
+def _competitor_channels() -> list[str]:
+    from kairos_api.core import _load_settings
+
+    owned = str(_load_settings().operator_channel or "").strip()
+    return [name for name in PLAN_CHANNELS if name != owned]
 
 
 # --- shared fixtures ------------------------------------------------------------
@@ -391,7 +401,7 @@ def test_a_rejected_item_can_never_be_applied_and_writes_nothing(tmp_advertisers
 
 # --- competitor boundary: no competitor name in any tool output -----------------
 def _has_competitor(blob: str) -> list[str]:
-    return [name for name in COMPETITOR_CHANNELS if name in blob]
+    return [name for name in _competitor_channels() if name in blob]
 
 
 @pytest.mark.parametrize(

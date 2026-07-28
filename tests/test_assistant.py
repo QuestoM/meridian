@@ -95,9 +95,9 @@ def test_status_honest_without_key(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "available": False,
-        "reason": "API key not configured",
+        "reason": assistant.AUTH_MISSING_REASON,
         "model": "claude-opus-4-8",
-        "action_plane": {"enabled": False, "reason": "API key not configured"},
+        "action_plane": {"enabled": False, "reason": assistant.AUTH_MISSING_REASON},
     }
 
 
@@ -110,6 +110,7 @@ def test_status_reports_key_and_model_override(client: TestClient, monkeypatch: 
         "reason": None,
         "model": "claude-opus-4-8",
         "action_plane": {"enabled": True, "reason": None},
+        "auth": {"mode": "api_key", "source": "KAIROS_ASSISTANT_API_KEY"},
     }
 
 
@@ -120,7 +121,7 @@ def test_ask_without_key_is_honest(client: TestClient) -> None:
     body = response.json()
     assert body["available"] is False
     assert body["answer"] is None
-    assert body["error"] == "API key not configured"
+    assert body["error"] == assistant.AUTH_MISSING_REASON
     assert body["grounding"]["sources"] == []
     assert body["grounding"]["generated_at"]
 
@@ -160,7 +161,7 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
     assert recorder["api_key"] == "test-key"
     assert kwargs["model"] == "claude-opus-4-8"
     assert kwargs["max_tokens"] == assistant.LOOP_MAX_TOKENS  # the tool-use loop budget
-    assert kwargs["temperature"] == 0.2
+    assert "temperature" not in kwargs  # omitted on every call: newer models reject it
     assert {tool["name"] for tool in kwargs["tools"]} >= {"get_settings", "propose_settings_change"}
     assert "must be taken from the CONTEXT block" in _system_text(kwargs)
     assert "Never invent" in _system_text(kwargs)

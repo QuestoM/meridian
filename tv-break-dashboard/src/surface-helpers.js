@@ -3,7 +3,10 @@
 // upgraded frontier chart. These mirror the formatters in TVBreakDashboard.jsx
 // so each surface stays self-contained without reaching into that 3.8k-line file.
 
-export const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+// Empty default = same origin. In Vite dev the /api proxy reaches the Kairos
+// API; in production the API serves the built SPA. An absolute override is only
+// for split deployments.
+export const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 export function pageText(locale, en, he) {
   return locale === 'he' ? he : en;

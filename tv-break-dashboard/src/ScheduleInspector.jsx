@@ -6,7 +6,7 @@ import { programTypeLabel } from './surface-helpers';
 import { KINDS, kindLabel, runDayRecomputeJob, isNum } from './override-console-lib';
 import './schedule-inspector.css';
 
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // Click-to-inspect drawer for one owned-channel programme (segment). It shows the
 // full saved-plan detail the engine holds (identity, break plan, economics, and
@@ -235,14 +235,14 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
 
           <section className="si-section">
             <h4>{pageText(locale, 'Economics', 'כלכלה')}</h4>
-            <Row label={pageText(locale, 'Predicted revenue', 'הכנסה צפויה')} value={fmtMoney(eco.predicted_revenue, locale)} />
+            <Row label={pageText(locale, 'Plan revenue (this segment)', 'הכנסת תוכנית (סגמנט זה)')} value={fmtMoney(eco.predicted_revenue, locale)} />
             <Row label={pageText(locale, 'Base rate', 'תעריף בסיס')} value={fmtNum2(eco.base_rate, locale)} />
             <Row label={pageText(locale, 'Baseline audience (TVR)', 'קהל בסיס (TVR)')} value={fmtNum2(eco.baseline_tvr, locale)} />
           </section>
 
           <section className="si-section">
             <h4>{pageText(locale, 'Retention', 'שימור')}</h4>
-            <Row label={pageText(locale, 'Predicted retention', 'שימור חזוי')} value={isNum(ret.predicted_retention) ? `${fmtNum2(ret.predicted_retention, locale)}%` : '-'} />
+            <Row label={pageText(locale, 'Plan retention (this segment)', 'שימור בתוכנית (סגמנט זה)')} value={isNum(ret.predicted_retention) ? `${fmtNum2(ret.predicted_retention, locale)}%` : '-'} />
             <Row
               label={pageText(locale, 'Credible interval', 'רווח סמך')}
               value={isNum(ret.ci_low) && isNum(ret.ci_high) ? `${fmtNum2(ret.ci_low, locale)}% - ${fmtNum2(ret.ci_high, locale)}%` : pageText(locale, 'not measured', 'לא נמדד')}

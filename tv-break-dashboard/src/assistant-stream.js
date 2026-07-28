@@ -9,8 +9,11 @@ import { API_BASE } from './surface-helpers';
 // plain ask endpoint; a server-sent error frame resolves as an error body,
 // exactly like the non-streaming path, so the ask is never run twice.
 
-export async function requestJson(path, options) {
-  const response = await fetch(`${API_BASE}${path}`, options);
+export async function requestJson(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: options.credentials || 'include',
+  });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = body && (body.detail || body.error);
@@ -20,7 +23,11 @@ export async function requestJson(path, options) {
 }
 
 export function postJson(path, payload) {
-  return requestJson(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  return requestJson(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 // One raw SSE frame (the text between blank lines) to { event, data }. Data
@@ -40,6 +47,7 @@ function parseFrame(frame) {
 export async function streamAsk(question, { onStep, onDelta } = {}) {
   const response = await fetch(`${API_BASE}/api/assistant/ask/stream`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ question }),
   });

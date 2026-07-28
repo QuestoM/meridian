@@ -232,11 +232,13 @@ def test_inspector_returns_404_for_a_competitor_segment(client) -> None:
 # TASK 2.2: the assistant grounding excludes competitor names and stays honest.
 # --------------------------------------------------------------------------- #
 def test_assistant_status_is_honest_without_a_key(client, monkeypatch) -> None:
+    from kairos_api import assistant
+
     for name in ("ANTHROPIC_API_KEY", "KAIROS_ASSISTANT_API_KEY"):
         monkeypatch.delenv(name, raising=False)
     body = client.get("/api/assistant/status").json()
     assert body["available"] is False
-    assert body["reason"] == "API key not configured"
+    assert body["reason"] == assistant.AUTH_MISSING_REASON
 
 
 def test_assistant_context_carries_owned_day_table_and_no_competitor_name() -> None:
