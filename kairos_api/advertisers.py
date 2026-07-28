@@ -5,6 +5,13 @@ writes it back preserving column order, serialized under a module lock and
 written via a temp file plus ``os.replace`` so concurrent edits cannot lose
 rows and readers never see a torn CSV. Types are coerced so the optimizer
 reads clean values: default_premium as float, prime_time_only as bool.
+
+Each record also carries a display-name layer: ``display_name`` is the editable
+operator-facing name stored beside the raw ``advertiser_id`` (tolerant read, a
+legacy CSV without the column reads as empty), and ``name_source`` says honestly
+where the shown name comes from: ``operator`` (stored), ``observed`` (the id is
+a real advertiser name seen in the daily spot data) or ``unnamed`` (raw token
+only; the UI prettifies it but never invents a company name).
 """
 
 from __future__ import annotations
@@ -24,6 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 BACKUP_DIR = DATA_DIR / "_backups"
 RULES_PATH = DATA_DIR / "advertiser_rules.csv"
+# The observed Hebrew advertiser vocabulary from the real daily spot files, as
+# persisted by the agency layer. Used only to classify a record's name source;
+# it is never written from here.
+OBSERVED_NAMES_PATH = DATA_DIR / "agency_advertisers.csv"
 
 COLUMNS = [
     "advertiser_id",
@@ -34,6 +45,7 @@ COLUMNS = [
     "urgency_k",
     "ahead_k",
     "notes",
+    "display_name",
 ]
 
 router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
@@ -61,6 +73,9 @@ class AdvertiserUpdate(BaseModel):
     clear_urgency_k: bool = False
     clear_ahead_k: bool = False
     notes: str | None = None
+    # The operator-facing name shown beside the raw advertiser_id. Sending an
+    # empty string clears it, so the record reads as unnamed again.
+    display_name: str | None = None
 
 
 class AdvertiserCreate(BaseModel):
@@ -78,6 +93,7 @@ class AdvertiserCreate(BaseModel):
     urgency_k: float | None = None
     ahead_k: float | None = None
     notes: str = ""
+    display_name: str = ""
 
 
 def _coerce_bool(value: Any) -> bool:
@@ -113,9 +129,45 @@ def _load_frame() -> pd.DataFrame:
     return frame
 
 
-def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
+def _observed_names() -> frozenset[str]:
+    """Advertiser names observed on the real daily spot data.
+
+    Read tolerantly from the agency links store: a missing file or a missing
+    column yields an empty set, never an error, so the advertisers list keeps
+    working without the agency layer.
+    """
+    if not OBSERVED_NAMES_PATH.exists():
+        return frozenset()
+    try:
+        frame = pd.read_csv(OBSERVED_NAMES_PATH, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    except Exception:  # noqa: BLE001 - a broken side file must not break the list
+        return frozenset()
+    if "advertiser" not in frame.columns:
+        return frozenset()
+    return frozenset(name.strip() for name in frame["advertiser"].astype(str) if name.strip())
+
+
+def _name_source(display_name: str, advertiser_id: str, observed: frozenset[str]) -> str:
+    """Classify where a record's shown name comes from, tri-state and honest.
+
+    ``operator``: the operator stored a display name. ``observed``: the raw id
+    itself is a real advertiser name seen in the daily data. ``unnamed``: only a
+    raw token exists; the UI prettifies it but flags it for the operator to fill.
+    """
+    if display_name:
+        return "operator"
+    if advertiser_id.strip() in observed:
+        return "observed"
+    return "unnamed"
+
+
+def _row_to_record(row: "pd.Series[Any]", observed: frozenset[str] | None = None) -> dict[str, Any]:
+    if observed is None:
+        observed = _observed_names()
+    advertiser_id = str(row.get("advertiser_id", ""))
+    display_name = str(row.get("display_name", "")).strip()
     return {
-        "advertiser_id": str(row.get("advertiser_id", "")),
+        "advertiser_id": advertiser_id,
         "default_premium": round(_coerce_float(row.get("default_premium")), 6),
         "allow_positions": str(row.get("allow_positions", "ANY")),
         "allow_genres": str(row.get("allow_genres", "ANY")),
@@ -123,6 +175,8 @@ def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "urgency_k": _coerce_opt_float(row.get("urgency_k")),
         "ahead_k": _coerce_opt_float(row.get("ahead_k")),
         "notes": str(row.get("notes", "")),
+        "display_name": display_name,
+        "name_source": _name_source(display_name, advertiser_id, observed),
     }
 
 
@@ -161,9 +215,10 @@ def list_advertisers() -> dict[str, Any]:
     from kairos_api.advertiser_conditions import conditions_for, overlaps_for
 
     frame = _load_frame()
+    observed = _observed_names()
     advertisers = []
     for _, row in frame.iterrows():
-        record = _row_to_record(row)
+        record = _row_to_record(row, observed)
         advertiser_id = record["advertiser_id"]
         record["conditions"] = conditions_for(advertiser_id)
         record["overlaps"] = overlaps_for(advertiser_id)
@@ -197,12 +252,13 @@ def advertiser_stats() -> dict[str, Any]:
 
     engine = AdvertiserRuleEngine.from_files()
     frame = _load_frame()
+    observed = _observed_names()
     effect_keys = [PREMIUM, REQUIRE, FORBID, PRESSURE]
 
     advertisers: list[dict[str, Any]] = []
     for _, row in frame.iterrows():
         advertiser_id = str(row.get("advertiser_id", ""))
-        baseline = _row_to_record(row)
+        baseline = _row_to_record(row, observed)
         conditions = conditions_for(advertiser_id)
         breakdown = {key: 0 for key in effect_keys}
         for condition in conditions:
@@ -212,6 +268,8 @@ def advertiser_stats() -> dict[str, Any]:
         advertisers.append(
             {
                 "advertiser_id": advertiser_id,
+                "display_name": baseline["display_name"],
+                "name_source": baseline["name_source"],
                 "rule_count": len(conditions),
                 "effect_breakdown": breakdown,
                 "baseline_premium": round(baseline["default_premium"], 6),
@@ -260,6 +318,8 @@ def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate,
             frame.at[index, "ahead_k"] = "" if payload.ahead_k < 0 else str(float(payload.ahead_k))
         if payload.notes is not None:
             frame.at[index, "notes"] = payload.notes
+        if payload.display_name is not None:
+            frame.at[index, "display_name"] = payload.display_name.strip()
 
         _snapshot_before_write(request)
         _write_frame(frame)
@@ -282,6 +342,7 @@ def create_advertiser(payload: AdvertiserCreate, request: Request = None) -> dic
             "urgency_k": "" if payload.urgency_k is None or payload.urgency_k < 0 else str(float(payload.urgency_k)),
             "ahead_k": "" if payload.ahead_k is None or payload.ahead_k < 0 else str(float(payload.ahead_k)),
             "notes": payload.notes,
+            "display_name": payload.display_name.strip(),
         }
         frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
         _snapshot_before_write(request)

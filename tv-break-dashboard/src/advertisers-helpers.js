@@ -10,7 +10,35 @@ export const GENRE_PRESETS = ['ANY'];
 export const CONDITION_EFFECTS = ['premium', 'require', 'forbid', 'pressure'];
 
 // How a premium rule's value is read by the engine (mirrors advertiser_rules.py).
-export const PREMIUM_MODES = ['multiplier', 'percent', 'cpp_absolute', 'cpp_add', 'cpp_discount'];
+// premium_discount is a percent 0..100 taken off the premium surcharge only:
+// final_premium = 1 + (final_premium_before_rule - 1) * (1 - value/100). It can
+// never push a premium below 1.0 or above its pre-discount value.
+export const PREMIUM_MODES = ['multiplier', 'percent', 'cpp_absolute', 'cpp_add', 'cpp_discount', 'premium_discount'];
+
+// Weekday scope chips in Hebrew week order (Sunday first), mapped to ISO weekday
+// numbers per the conditions contract: Monday=1 .. Sunday=7, so Hebrew שבת is 6.
+export const WEEKDAY_OPTIONS = [
+  { value: '7', he: 'א', en: 'Sun' },
+  { value: '1', he: 'ב', en: 'Mon' },
+  { value: '2', he: 'ג', en: 'Tue' },
+  { value: '3', he: 'ד', en: 'Wed' },
+  { value: '4', he: 'ה', en: 'Thu' },
+  { value: '5', he: 'ו', en: 'Fri' },
+  { value: '6', he: 'שבת', en: 'Sat' },
+];
+
+// Normalize a stored weekday scope to a stable form: "ANY", or known ISO tokens
+// sorted ascending with unknown tokens preserved after them (engine data is
+// never dropped). A missing column reads as ANY, like the other scopes.
+export function normalizeWeekdayScope(value) {
+  const tokens = parseTokens(value);
+  if (isAnySelected(tokens)) {
+    return 'ANY';
+  }
+  const known = tokens.filter((token) => /^[1-7]$/.test(token)).sort();
+  const unknown = tokens.filter((token) => !/^[1-7]$/.test(token));
+  return serializeTokens([...known, ...unknown]);
+}
 
 // Normalize a stored/incoming mode to one of PREMIUM_MODES; default 'multiplier'
 // so a legacy rule (no mode) reads exactly as before.
@@ -21,6 +49,7 @@ export function normalizeMode(value) {
 
 export const EMPTY_ADVERTISER = {
   advertiser_id: '',
+  display_name: '',
   default_premium: 1,
   allow_positions: 'ANY',
   allow_genres: 'ANY',
@@ -130,7 +159,7 @@ export function suggestNextId(advertisers) {
 }
 
 // Stable comparison of two advertiser rows on the editable fields only.
-const EDITABLE_FIELDS = ['default_premium', 'allow_positions', 'allow_genres', 'prime_time_only', 'urgency_k', 'ahead_k', 'notes'];
+const EDITABLE_FIELDS = ['display_name', 'default_premium', 'allow_positions', 'allow_genres', 'prime_time_only', 'urgency_k', 'ahead_k', 'notes'];
 
 export function isDirty(original, draft) {
   if (!original || !draft) {
@@ -169,6 +198,7 @@ function pacingField(draft, field) {
 
 export function toPayload(draft) {
   return {
+    display_name: String(draft.display_name ?? '').trim(),
     default_premium: Number(draft.default_premium ?? 0),
     allow_positions: serializeTokens(parseTokens(draft.allow_positions)),
     allow_genres: serializeTokens(parseTokens(draft.allow_genres)),
@@ -209,6 +239,7 @@ export function parseCondition(condition) {
     scope_genres: serializeTokens(parseTokens(source.scope_genres)),
     scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
     scope_programmes: serializeTokens(parseTokens(source.scope_programmes)),
+    scope_weekdays: normalizeWeekdayScope(source.scope_weekdays),
     effect,
     mode: normalizeMode(source.mode),
     // Keep value sane: premium and pressure use it, but we always carry a number.
@@ -230,6 +261,7 @@ export function toConditionPayload(draft) {
     scope_genres: serializeTokens(parseTokens(source.scope_genres)),
     scope_dayparts: serializeTokens(parseTokens(source.scope_dayparts)),
     scope_programmes: serializeTokens(parseTokens(source.scope_programmes)),
+    scope_weekdays: normalizeWeekdayScope(source.scope_weekdays),
     effect,
     mode: effect === 'premium' ? normalizeMode(source.mode) : 'multiplier',
     value: usesValue ? Number(source.value ?? 1) : 1,
@@ -238,7 +270,7 @@ export function toConditionPayload(draft) {
 }
 
 const CONDITION_FIELDS = [
-  'scope_positions', 'scope_genres', 'scope_dayparts', 'scope_programmes',
+  'scope_positions', 'scope_genres', 'scope_dayparts', 'scope_programmes', 'scope_weekdays',
   'effect', 'mode', 'value', 'notes',
 ];
 
@@ -269,6 +301,10 @@ export function isConditionDirty(original, draft) {
     if (field === 'notes') {
       return String(original.notes ?? '') !== String(draft.notes ?? '');
     }
+    // Weekdays compare order-blind (sorted) so re-toggling the same days is clean.
+    if (field === 'scope_weekdays') {
+      return normalizeWeekdayScope(original[field]) !== normalizeWeekdayScope(draft[field]);
+    }
     // scope_* fields: compare normalized token form.
     return serializeTokens(parseTokens(original[field])) !== serializeTokens(parseTokens(draft[field]));
   });
@@ -283,6 +319,7 @@ export function emptyCondition() {
     scope_genres: 'ANY',
     scope_dayparts: 'ANY',
     scope_programmes: 'ANY',
+    scope_weekdays: 'ANY',
     effect: 'premium',
     mode: 'percent',
     value: 15,
@@ -313,6 +350,16 @@ export function coefficientHint(value, mode, locale) {
   }
   if (normalized === 'cpp_discount') {
     return { text: pageText(locale, `CPP −${amount}`, `נקודה −${amount}`), tone: 'amber' };
+  }
+  if (normalized === 'premium_discount') {
+    if (amount < 0 || amount > 100) {
+      return { text: pageText(locale, 'must be 0-100', 'הערך חייב להיות בין 0 ל-100'), tone: 'amber' };
+    }
+    if (amount === 0) {
+      return { text: pageText(locale, 'no discount', 'ללא הנחה'), tone: 'muted' };
+    }
+    // The isolate marks (U+2066/U+2069) keep the signed percent one LTR run in RTL.
+    return { text: pageText(locale, `surcharge −${amount}%`, `⁦−${amount}%⁩ מהתוספת בלבד`), tone: 'amber' };
   }
   // multiplier
   return premiumHint(amount, locale);

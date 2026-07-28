@@ -79,6 +79,17 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
     <div className="adv-add-form">
       <div className="adv-add-grid">
         <div className="adv-id-field">
+          <span className="adv-field-label">{pageText(locale, 'Display name', 'שם תצוגה')}</span>
+          <TextField
+            size="small"
+            value={draft.display_name || ''}
+            placeholder={pageText(locale, 'The name shown across the dashboard', 'השם שיוצג בכל הדשבורד')}
+            helperText=' '
+            onChange={(event) => update('display_name', event.target.value)}
+            inputProps={{ dir: 'auto', 'aria-label': pageText(locale, 'Display name', 'שם תצוגה') }}
+          />
+        </div>
+        <div className="adv-id-field">
           <span className="adv-field-label">{pageText(locale, 'Advertiser ID', 'מזהה מפרסם')}</span>
           <TextField
             size="small"

@@ -2,6 +2,7 @@ import React from 'react';
 import { Tooltip } from '@mui/material';
 import { ChevronLeft, ChevronRight, Info, Layers, TriangleAlert } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
+import { displayNameOf, isUnnamed, showsRawIdLine } from './advertiser-name-helpers';
 import {
   EFFECT_META,
   conflictCount,
@@ -74,6 +75,9 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
   const baseline = row.baseline_premium ?? row.default_premium;
   const effective = row.avg_effective_premium;
   const Caret = locale === 'he' ? ChevronLeft : ChevronRight;
+  const shownName = displayNameOf(row, locale);
+  const unnamed = isUnnamed(row);
+  const showRawId = showsRawIdLine(row, locale);
 
   const open = () => onOpen(row.advertiser_id);
   const onKeyDown = (event) => {
@@ -92,13 +96,22 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
       onKeyDown={onKeyDown}
       aria-label={pageText(
         locale,
-        `Open ${row.advertiser_id} management area`,
-        `פתיחת אזור הניהול של ${row.advertiser_id}`,
+        `Open ${shownName} (${row.advertiser_id}) management area`,
+        `פתיחת אזור הניהול של ${shownName} (${row.advertiser_id})`,
       )}
     >
       <header className="amz-card-head">
         <div className="amz-card-id-wrap">
-          <span className="amz-card-id" dir="ltr">{row.advertiser_id}</span>
+          <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`} dir="auto">
+            {shownName}
+            {unnamed && (
+              <Tooltip title={pageText(locale, 'Only a raw ID exists for this advertiser. Open the card and set a display name.', 'למפרסם זה קיים רק מזהה גולמי. פתחו את הכרטיס והזינו שם תצוגה.')} arrow placement="top">
+                <span className="amz-unnamed-chip">{pageText(locale, 'unnamed', 'ללא שם')}</span>
+              </Tooltip>
+            )}
+          </span>
+          {/* The raw id stays visible as a quiet secondary line whenever it differs from the shown name. */}
+          {showRawId && <span className="amz-card-rawid" dir="ltr">{row.advertiser_id}</span>}
           {/* Native title is a truncation echo of the ellipsised notes, not an explanation. */}
           {row.notes ? <span className="amz-card-notes" title={row.notes}>{row.notes}</span> : null}
         </div>

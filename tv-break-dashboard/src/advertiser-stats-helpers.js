@@ -4,6 +4,7 @@
 // the four effect types, and drive the card grid's search / filter / sort.
 
 import { pageText } from './advertisers-helpers';
+import { nameSearchHaystack, sortByDisplayName } from './advertiser-name-helpers';
 
 // The four scoped-rule effect types, each with a stable colour tone and a
 // bilingual label. Tones map to classes in advertiser-management.css. Order
@@ -92,13 +93,14 @@ export function premiumDelta(value) {
   return `${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`;
 }
 
-// Apply the management-zone search + filter. Search matches id and notes;
-// filters: all | with-rules | custom-premium | conflicts.
+// Apply the management-zone search + filter. Search matches the display name
+// (both locales), the raw id and notes; filters: all | with-rules |
+// custom-premium | conflicts.
 export function filterManaged(rows, { search, filter }) {
   const term = (search || '').trim().toLowerCase();
   return (rows || []).filter((row) => {
     if (term) {
-      const haystack = `${row.advertiser_id || ''} ${row.notes || ''}`.toLowerCase();
+      const haystack = `${row.advertiser_id || ''} ${row.notes || ''} ${nameSearchHaystack(row)}`.toLowerCase();
       if (!haystack.includes(term)) {
         return false;
       }
@@ -117,11 +119,15 @@ export function filterManaged(rows, { search, filter }) {
   });
 }
 
-// Sort a merged list. Keys: id | rules-desc | premium-desc | premium-asc.
+// Sort a merged list. Keys: name | id | rules-desc | premium-desc | premium-asc.
+// 'name' sorts by display name with unnamed raw-token records grouped last.
 // Premium sorts on avg_effective_premium when present, baseline otherwise.
-export function sortManaged(rows, sortKey) {
+export function sortManaged(rows, sortKey, locale) {
   const list = [...(rows || [])];
   const premiumOf = (row) => Number(row.avg_effective_premium ?? row.default_premium ?? 1);
+  if (sortKey === 'name') {
+    return sortByDisplayName(list, locale);
+  }
   if (sortKey === 'rules-desc') {
     return list.sort((a, b) => totalRules(b) - totalRules(a));
   }

@@ -15,10 +15,11 @@ import {
   mergeRowWithStats,
   sortManaged,
 } from './advertiser-stats-helpers';
-import AdvertiserStatCard from './AdvertiserStatCard';
+import AdvertiserCardGrid from './AdvertiserCardGrid';
 import AdvertiserDetailDrawer from './AdvertiserDetailDrawer';
 import AddAdvertiserForm from './AddAdvertiserForm';
 import './advertiser-management.css';
+import './advertiser-names.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -38,7 +39,7 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
   const [statsError, setStatsError] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
-  const [sortKey, setSortKey] = useState('rules-desc');
+  const [sortKey, setSortKey] = useState('name');
   const [showAdd, setShowAdd] = useState(false);
   const [scopeOptions, setScopeOptions] = useState({});
   const [openId, setOpenId] = useState(null);
@@ -120,8 +121,8 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
   const existingIds = useMemo(() => advertisers.map((row) => row.advertiser_id), [advertisers]);
   const suggestedId = useMemo(() => suggestNextId(advertisers), [advertisers]);
   const visible = useMemo(
-    () => sortManaged(filterManaged(merged, { search, filter }), sortKey),
-    [merged, search, filter, sortKey],
+    () => sortManaged(filterManaged(merged, { search, filter }), sortKey, locale),
+    [merged, search, filter, sortKey, locale],
   );
   const openRow = useMemo(
     () => merged.find((row) => row.advertiser_id === openId) || null,
@@ -341,7 +342,7 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={pageText(locale, 'Search by ID or notes', 'חיפוש לפי מזהה או הערות')}
+            placeholder={pageText(locale, 'Search by name, ID or notes', 'חיפוש לפי שם, מזהה או הערות')}
             aria-label={pageText(locale, 'Search advertisers', 'חיפוש מפרסמים')}
           />
         </div>
@@ -361,6 +362,7 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
         <div className="amz-sort">
           <label htmlFor="amz-sort-select">{pageText(locale, 'Sort', 'מיון')}</label>
           <select id="amz-sort-select" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+            <option value="name">{pageText(locale, 'Name (unnamed last)', 'שם (ללא שם בסוף)')}</option>
             <option value="rules-desc">{pageText(locale, 'Rule count (high to low)', 'מספר כללים (גבוה לנמוך)')}</option>
             <option value="premium-desc">{pageText(locale, 'Premium (high to low)', 'מקדם (גבוה לנמוך)')}</option>
             <option value="premium-asc">{pageText(locale, 'Premium (low to high)', 'מקדם (נמוך לגבוה)')}</option>
@@ -415,11 +417,7 @@ function AdvertisersManager({ copy, locale, notify, onGlobalRefresh }) {
       )}
 
       {!loading && online && visible.length > 0 && (
-        <div className="amz-grid">
-          {visible.map((row) => (
-            <AdvertiserStatCard key={row.advertiser_id} row={row} locale={locale} onOpen={setOpenId} />
-          ))}
-        </div>
+        <AdvertiserCardGrid rows={visible} locale={locale} grouped={sortKey === 'name'} onOpen={setOpenId} />
       )}
 
       {!loading && online && visible.length > 0 && hasActiveQuery && (
