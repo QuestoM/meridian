@@ -164,10 +164,22 @@ def genre_options() -> list[str]:
 
 
 def weekday_options() -> list[dict[str, Any]]:
-    """ISO weekday tokens 1..7 with bilingual labels (Mon..Sun)."""
-    names_en = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    names_he = ["שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת", "ראשון"]
-    return [{"key": str(i + 1), "en": names_en[i], "he": names_he[i]} for i in range(7)]
+    """ISO weekday tokens 1..7 with bilingual labels, in Israeli week order.
+
+    The keys stay the ISO numbers (Monday=1 .. Sunday=7, the data-layer
+    contract); only the LIST ORDER is presentational: the Israeli week starts on
+    Sunday and ends on Saturday, so the dropdown offers Sunday first.
+    """
+    ordered = [
+        ("7", "Sunday", "ראשון"),
+        ("1", "Monday", "שני"),
+        ("2", "Tuesday", "שלישי"),
+        ("3", "Wednesday", "רביעי"),
+        ("4", "Thursday", "חמישי"),
+        ("5", "Friday", "שישי"),
+        ("6", "Saturday", "שבת"),
+    ]
+    return [{"key": key, "en": en, "he": he} for key, en, he in ordered]
 
 
 def daypart_options_list() -> list[dict[str, Any]]:

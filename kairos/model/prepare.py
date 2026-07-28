@@ -392,7 +392,12 @@ def _date_range(*frames: pd.Series) -> list[str]:
 
 
 def _control_frame(time_values: list[str]) -> tuple[np.ndarray, list[str]]:
-    """Build day-of-week one-hots plus is_weekend controls for the time axis."""
+    """Build day-of-week one-hots plus is_weekend controls for the time axis.
+
+    ``is_weekend`` follows the Israeli week: the weekend is Friday and Saturday,
+    and Sunday is a regular workday. pandas ``weekday()`` is Monday=0, so the
+    weekend days are 4 (Friday) and 5 (Saturday), never 6 (Sunday).
+    """
     control_names = [f"day_of_week_{day}" for day in _DAY_ORDER] + ["is_weekend"]
     controls = np.zeros((1, len(time_values), len(control_names)), dtype=float)
     for time_idx, day in enumerate(time_values):
@@ -400,7 +405,7 @@ def _control_frame(time_values: list[str]) -> tuple[np.ndarray, list[str]]:
         day_name = stamp.day_name()
         if day_name in _DAY_ORDER:
             controls[0, time_idx, _DAY_ORDER.index(day_name)] = 1.0
-        controls[0, time_idx, len(_DAY_ORDER)] = 1.0 if stamp.weekday() >= 5 else 0.0
+        controls[0, time_idx, len(_DAY_ORDER)] = 1.0 if stamp.weekday() in (4, 5) else 0.0
     return controls, control_names
 
 

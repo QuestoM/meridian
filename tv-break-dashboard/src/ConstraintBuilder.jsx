@@ -66,7 +66,9 @@ const OPERATORS_BY_TYPE = {
 };
 
 const DAYPART_VOCAB = ['morning', 'noon', 'evening', 'prime', 'night'];
-const WEEKDAY_VOCAB = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// Israeli week order: the week starts on Sunday and ends on Saturday. The values
+// stay the frozen predicate-contract tokens; only the display order is Israeli.
+const WEEKDAY_VOCAB = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function fieldDef(fieldName) {
   return FIELD_DEFS.find((f) => f.field === fieldName) || FIELD_DEFS[0];
@@ -148,7 +150,7 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
   if (def.type === 'weekday') {
     if (operator === 'in') {
       const arr = Array.isArray(value) ? value : [];
-      return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'Mon, Fri, ...', 'Mon, Fri, ...')} options={WEEKDAY_VOCAB} locale={locale} />;
+      return <ChipInput value={arr} onChange={onChange} placeholder={t(locale, 'Sun, Fri, ...', 'Sun, Fri, ...')} options={WEEKDAY_VOCAB} locale={locale} />;
     }
     return (
       <FormControl size="small" sx={{ minWidth: 140 }}>
