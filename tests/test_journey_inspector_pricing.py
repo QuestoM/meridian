@@ -251,13 +251,17 @@ def test_pricing_edit_moves_the_tester_and_reset_restores(client, tmp_settings):
 
 
 def test_pricing_rejects_invalid_edit(client, tmp_settings):
-    """A negative premium must be rejected with 422 and not persisted."""
+    """A negative premium must be rejected with 422 and change nothing on disk.
+
+    Compared against the pre-request bytes, not against an empty overrides map:
+    the seeded settings mirror the operator's real file, which may legitimately
+    carry saved pricing edits already."""
+    before = tmp_settings.read_bytes()
     response = client.put("/api/pricing", json={
         "overrides": {"base_price_per_second_per_tvr_point": -5},
     })
     assert response.status_code == 422, response.text
-    persisted = json.loads(tmp_settings.read_text(encoding="utf-8"))
-    assert persisted.get("pricing_overrides", {}) == {}
+    assert tmp_settings.read_bytes() == before, "a rejected edit must not touch the settings file"
 
 
 def test_uploads_status_reports_honest_in_use(client):

@@ -105,6 +105,10 @@ import Login, {
   resetAccountPassword,
   roleLabel,
 } from './Login';
+// Engine daypart keys (kairos/data/dayparts.py) -> operator-facing labels. This
+// is a different taxonomy from the local clock-derived daypartLabel below, so it
+// keeps its own name.
+import { daypartLabel as engineDaypartLabel } from './surface-helpers';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
@@ -330,7 +334,7 @@ const copyByLocale = {
     exportOptions: ['Break detail', 'Weekly traffic plan', 'Guardrail report'],
     frontier: 'Revenue vs retention',
     frontierMode: 'Measured retention model',
-    frontierPickChannel: 'Pick your channel in settings to forecast your own inventory. The frontier projects revenue for your channel only; competing programmes feed the retention model, never the revenue forecast.',
+    frontierPickChannel: 'Pick your channel in settings to forecast your own inventory. The chart projects revenue for your channel only; competing programmes feed the retention model, never the revenue forecast.',
     frontierComputing: 'Computing your channel forecast. This runs a real optimisation in the background and appears here once ready; refresh in a moment.',
     heatmap: 'Daypart inventory heatmap',
     heatmapEmpty: 'No daypart heatmap data yet',
@@ -365,16 +369,16 @@ const copyByLocale = {
     gold: 'Gold breaks enabled',
     approval: 'Manual approval required',
     riskCaution: 'Caution level',
-    riskCautionHelp: 'Sets which retention cost the reported numbers carry. 0 uses the central estimate; higher values price each break at the worst plausible cost in its measured range. A reporting choice: on current data it does not change the chosen plan.',
+    riskCautionHelp: 'How conservative the money on screen is. Every break carries a measured uncertainty range around its retention cost: at 0 the numbers use the central estimate (the likely case); sliding up prices each break closer to the worst plausible cost in its range, so the reported net is a cautious promise you can commit to. On the current data this changes only the reported numbers, never which breaks are scheduled.',
     riskCautionSetting: 'Default caution level',
     retentionCostTitle: 'Retention cost confidence',
     retentionCostIntro: 'How trustworthy the retention cost is behind each segment in this plan.',
     retentionCostConfidence: { low: 'Low', medium: 'Medium', high: 'High' },
     retentionCostAssumption: 'assumption',
-    retentionCostInterval: 'Interval',
+    retentionCostInterval: 'Uncertainty range',
     retentionCostBreaks: 'real breaks',
-    retentionCostNoInterval: 'No interval known',
-    retentionCostPoint: 'Point estimate',
+    retentionCostNoInterval: 'No uncertainty range measured',
+    retentionCostPoint: 'Likely value',
     retentionCostUsed: 'Value used',
   },
   he: {
@@ -414,7 +418,8 @@ const copyByLocale = {
     // הכותרת מדברת באופק העבודה של המפעיל: שבוע התכנון (summary.week מה-API).
     // התאריכים המדויקים מפורטים בשורת המשנה של האריח ומתחת לרצועה.
     metrics: ['הכנסה שבועית צפויה', 'שימור צופים בברייקים', 'דקות פרסום בשבוע', 'סיכון שימור'],
-    risk: { High: 'גבוהה', Medium: 'בינונית', Low: 'נמוכה', Unknown: 'לא ידוע' },
+    // Masculine forms: they qualify סיכון (the tile is labeled 'סיכון שימור').
+    risk: { High: 'גבוה', Medium: 'בינוני', Low: 'נמוך', Unknown: 'לא ידוע' },
     toolbar: ['תצוגת גריד', 'ציר זמן', 'רצועות שידור', 'מלאי', 'תוכניות', 'ברייקים', 'מדדים'],
     canvas: 'משטח תכנון שידור',
     channelProgram: 'ערוץ / תוכנית',
@@ -431,8 +436,8 @@ const copyByLocale = {
     exportOptions: ['פרטי ברייק', 'תוכנית טראפיק שבועית', 'דוח בקרות'],
     frontier: 'הכנסה מול שימור',
     frontierMode: 'מודל שימור מדוד',
-    frontierPickChannel: 'בחרו את הערוץ שלכם בהגדרות כדי לחזות את המלאי שלכם בלבד. החזית מציגה תחזית הכנסה לערוץ שלכם בלבד; תוכניות מתחרות מזינות את מודל השימור, לעולם לא את תחזית ההכנסה.',
-    frontierComputing: 'מחשבים את תחזית הערוץ שלכם. זהו אופטימיזציה אמיתית שרצה ברקע ותופיע כאן ברגע שתהיה מוכנה; רעננו עוד רגע.',
+    frontierPickChannel: 'בחרו את הערוץ שלכם בהגדרות כדי לחזות את המלאי שלכם בלבד. הגרף מציג תחזית הכנסה לערוץ שלכם בלבד; תוכניות מתחרות מזינות את מודל השימור, לעולם לא את תחזית ההכנסה.',
+    frontierComputing: 'מחשבים את תחזית הערוץ שלכם. זוהי אופטימיזציה אמיתית שרצה ברקע ותופיע כאן ברגע שתהיה מוכנה; רעננו עוד רגע.',
     heatmap: 'מפת חום לפי רצועת שידור',
     heatmapEmpty: 'אין עדיין נתוני מפת חום לפי רצועה',
     opportunity: 'פוטנציאל הכנסה',
@@ -466,16 +471,16 @@ const copyByLocale = {
     gold: 'ברייקי זהב פעילים',
     approval: 'נדרש אישור ידני',
     riskCaution: 'רמת זהירות',
-    riskCautionHelp: 'קובע איזו עלות צפייה נכנסת למספרים המדווחים. 0 משתמש באומדן המרכזי, וערכים גבוהים מתמחרים כל ברייק לפי העלות הסבירה הגרועה ביותר בטווח המדידה שלו. זו בחירת דיווח: בנתונים הנוכחיים היא אינה משנה את התוכנית שנבחרת.',
+    riskCautionHelp: 'כמה שמרניים המספרים שעל המסך. לכל ברייק יש טווח אי-ודאות מדוד סביב עלות השימור שלו: ב-0 המספרים מחושבים לפי האומדן המרכזי (התרחיש הסביר), וככל שמעלים, כל ברייק מתומחר קרוב יותר לעלות הגרועה הסבירה בטווח שלו, כך שהנטו המדווח הוא הבטחה זהירה שאפשר להתחייב עליה. בנתונים הנוכחיים זה משנה רק את המספרים המדווחים, אף פעם לא את הברייקים שמשובצים.',
     riskCautionSetting: 'רמת זהירות כברירת מחדל',
     retentionCostTitle: 'מהימנות עלות השימור',
     retentionCostIntro: 'עד כמה אפשר לסמוך על עלות השימור שמאחורי כל סגמנט בתוכנית הזו.',
     retentionCostConfidence: { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה' },
     retentionCostAssumption: 'הנחה',
-    retentionCostInterval: 'רווח סמך',
+    retentionCostInterval: 'טווח אי-ודאות',
     retentionCostBreaks: 'ברייקים אמיתיים',
-    retentionCostNoInterval: 'אין רווח סמך ידוע',
-    retentionCostPoint: 'אומדן נקודתי',
+    retentionCostNoInterval: 'לא נמדד טווח אי-ודאות',
+    retentionCostPoint: 'הערך הסביר',
     retentionCostUsed: 'הערך שנעשה בו שימוש',
   },
 };
@@ -515,7 +520,8 @@ const fallbackSchedule = {
 
 const fallbackInventory = {
   summary: { spots: 0, revenue: 0, seconds: 0 },
-  by_channel: [],
+  scope_channel: null,
+  by_daypart: [],
   by_hour: [],
 };
 
@@ -1004,7 +1010,7 @@ function freshnessChangedLabels(freshness, locale) {
     settings: pageText(locale, 'settings', 'הגדרות'),
     constraints: pageText(locale, 'constraints', 'אילוצים'),
     overrides: pageText(locale, 'manual overrides', 'עקיפות ידניות'),
-    coefficients: pageText(locale, 'model coefficients', 'מקדמי המודל'),
+    coefficients: pageText(locale, 'model measurements', 'מדידות המודל'),
     data: pageText(locale, 'source data', 'נתוני מקור'),
   };
   return normalizeRows(freshness?.changed)
@@ -1950,7 +1956,7 @@ function TVBreakDashboard() {
     await persistSettings(nextSettings);
     notify(
       'Saved these levers and rebuilding the whole weekly schedule.',
-      'הלברים נשמרו והלוח השבועי כולו נבנה מחדש.',
+      'ההגדרות נשמרו והלוח השבועי כולו נבנה מחדש.',
     );
     await handleRecomputeSchedule();
   }
@@ -2026,7 +2032,7 @@ function TVBreakDashboard() {
     }
 
     if (activeView === 'Break Library') {
-      return <BreakLibraryPage breakLibrary={breakLibrary} copy={copy} locale={locale} />;
+      return <BreakLibraryPage breakLibrary={breakLibrary} copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
     if (activeView === 'Campaigns') {
@@ -2234,21 +2240,24 @@ function TVBreakDashboard() {
             </Menu>
           </>
         ) : (
-          <div
-            className="operator-card operator-open"
+          <Tooltip
             title={pageText(
               locale,
               'To set up sign-in and roles, run python scripts/init_auth.py on the server.',
               'להגדרת כניסה ותפקידים הריצו בשרת את python scripts/init_auth.py.',
             )}
+            arrow
+            placement="bottom"
           >
-            <span className="operator-avatar">?</span>
-            <div>
-              <strong>{pageText(locale, 'Open access', 'גישה פתוחה')}</strong>
-              <small>{pageText(locale, 'Sign-in is not set up yet', 'כניסה למערכת טרם הוגדרה')}</small>
+            <div className="operator-card operator-open">
+              <span className="operator-avatar">?</span>
+              <div>
+                <strong>{pageText(locale, 'Open access', 'גישה פתוחה')}</strong>
+                <small>{pageText(locale, 'Sign-in is not set up yet', 'כניסה למערכת טרם הוגדרה')}</small>
+              </div>
+              <Info size={14} />
             </div>
-            <Info size={14} />
-          </div>
+          </Tooltip>
         )}
       </aside>
 
@@ -2350,7 +2359,9 @@ function TVBreakDashboard() {
             <span className={online ? (partial ? 'api-state offline partial' : 'api-state online') : 'api-state offline'}>
               {online ? (partial ? copy.partialData : copy.liveApi) : copy.snapshot}
             </span>
-            <span className="freshness" title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'}>{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} -`}</span>
+            <Tooltip title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'} arrow placement="bottom">
+              <span className="freshness">{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} -`}</span>
+            </Tooltip>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />
             </IconButton>
@@ -2383,7 +2394,7 @@ function TVBreakDashboard() {
                   {optimizationState === 'running' ? <RefreshCcw size={15} className="upload-spinner" /> : <Play size={15} fill="currentColor" />}
                   {optimizationState === 'running' ? `${pageText(locale, 'Running', 'מריץ')} ${elapsedSec}s` : copy.runOptimization}
                 </Button>
-                <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את הלברים האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
+                <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את ההגדרות האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
                   <span>
                     <Button
                       className="apply-button"
@@ -2782,9 +2793,9 @@ function CoefficientFreshnessChip({ plan, parameters, locale }) {
 
   const label =
     status === 'fresh'
-      ? pageText(locale, 'Coefficients current', 'המקדמים עדכניים')
+      ? pageText(locale, 'Model measurements current', 'מדידות המודל עדכניות')
       : status === 'stale'
-        ? pageText(locale, 'Coefficients out of date', 'המקדמים אינם עדכניים')
+        ? pageText(locale, 'Model measurements out of date', 'מדידות המודל אינן עדכניות')
         : pageText(locale, 'Freshness unverifiable', 'לא ניתן לאמת עדכניות');
 
   return (
@@ -3069,7 +3080,7 @@ function StatusBadge({ status, locale, mode = 'inline' }) {
   return <span className={`status-badge ${mode} ${normalized}`}>{labelMap[normalized] || status}</span>;
 }
 
-function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
+function DataTable({ columns, rows, emptyLabel, locale = 'en', onRowClick, pageSize = 10, fit = false }) {
   const safeRows = normalizeRows(rows);
   const gridRows = safeRows.map((row, index) => ({
     ...row,
@@ -3114,26 +3125,35 @@ function DataTable({ columns, rows, emptyLabel, locale = 'en' }) {
       column.headerAlign || (column.numeric || numericKeys.has(column.key) ? 'right' : locale === 'he' ? 'right' : 'left'),
   }));
 
+  const wrapClassName = [
+    'data-table-wrap',
+    'mui-grid-wrap',
+    fit ? 'grid-fit' : '',
+    onRowClick ? 'grid-row-clickable' : '',
+  ].filter(Boolean).join(' ');
   return (
-    <div className="data-table-wrap mui-grid-wrap">
+    <div className={wrapClassName}>
       <React.Suspense fallback={<div className="grid-loading">{emptyLabel}</div>}>
         <LazyDataGrid
           rows={gridRows}
           columns={gridColumns}
           density="compact"
           disableRowSelectionOnClick
+          onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}
           pageSizeOptions={[10, 25, 50]}
-        initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+        initialState={{ pagination: { paginationModel: { pageSize, page: 0 } } }}
         localeText={{
           noRowsLabel: emptyLabel,
           paginationRowsPerPage: pageText(locale, 'Rows per page:', 'שורות בעמוד:'),
           paginationDisplayedRows: ({ from, to, count, estimated }) => {
             const total = count !== -1 ? formatNumber(count, locale) : pageText(locale, `more than ${to}`, `יותר מ-${to}`);
             const estimate = estimated && estimated > to ? formatNumber(estimated, locale) : total;
+            // The from-to range is isolated as one LTR run (LRI/PDI marks) so
+            // the RTL line never reorders it into to-from.
             return pageText(
               locale,
               `${formatNumber(from, locale)}-${formatNumber(to, locale)} of ${estimate}`,
-              `${formatNumber(from, locale)}-${formatNumber(to, locale)} מתוך ${estimate}`,
+              `⁦${formatNumber(from, locale)}-${formatNumber(to, locale)}⁩ מתוך ${estimate}`,
             );
           },
         }}
@@ -3197,7 +3217,7 @@ function OverviewPage({ overview, compliance, files, copy, locale, setActiveView
             <div><span>{pageText(locale, 'Programmes', 'תוכניות')}</span><strong>{formatNumber(sourceCounts.programmes, locale)}</strong></div>
             <div><span>{pageText(locale, 'Spots', 'ספוטים')}</span><strong>{formatNumber(sourceCounts.spots, locale)}</strong></div>
             <div><span>{pageText(locale, 'Planned break rows', 'שורות תכנון ברייקים')}</span><strong>{formatNumber(sourceCounts.planned_break_rows, locale)}</strong></div>
-            <div><span>{pageText(locale, 'Available source files', 'קבצי מקור זמינים')}</span><strong>{existingFiles} / {fileRows.length}</strong></div>
+            <div><span>{pageText(locale, 'Available source files', 'קבצי מקור זמינים')}</span><strong><Numeric>{existingFiles} / {fileRows.length}</Numeric></strong></div>
           </div>
         </section>
       </div>
@@ -3390,8 +3410,14 @@ function SchedulePage({ schedule, overview, copy, locale, notify, onRecompute, r
 }
 
 function InventoryPage({ inventory, overview, copy, locale }) {
-  const channels = normalizeRows(inventory.by_channel);
+  // The inventory payload is scoped to the operator's own channel and broken
+  // down by broadcast daypart (by_daypart), disclosed via scope_channel. All
+  // inventory belongs to that channel, so a market split by channel must not
+  // exist here: an older payload that still carries by_channel has no daypart
+  // rows and renders an honest empty table, never the channel split.
+  const dayparts = normalizeRows(inventory.by_daypart);
   const hours = normalizeRows(inventory.by_hour);
+  const scopeChannel = typeof inventory.scope_channel === 'string' ? inventory.scope_channel.trim() : '';
   // The spots source may carry no revenue column; the API then reports
   // revenue: null with revenue_available: false. Say so once instead of
   // leaving the operator to guess why every money figure is a dash.
@@ -3406,9 +3432,12 @@ function InventoryPage({ inventory, overview, copy, locale }) {
         locale={locale}
         titleEn="Inventory yield"
         titleHe="תשואת מלאי"
-        bodyEn="Inspect sellable spot supply, channel mix, and hourly demand pressure before committing a plan."
-        bodyHe="בדיקת היצע ספוטים, תמהיל ערוצים ולחץ ביקוש שעתי לפני אישור תוכנית."
+        bodyEn="Check sellable spot supply and hourly demand pressure on your channel before approving a plan."
+        bodyHe="בדיקת היצע הספוטים ולחץ הביקוש השעתי בערוץ שלכם לפני אישור תוכנית."
       />
+      {scopeChannel && (
+        <p className="inventory-scope-line">{pageText(locale, `Your channel's inventory: ${scopeChannel}`, `המלאי של הערוץ שלכם: ${scopeChannel}`)}</p>
+      )}
       <section className="metric-strip page-metrics">
         <Metric label={pageText(locale, 'Inventory spots', 'ספוטים במלאי')} value={formatNumber(inventory.summary?.spots, locale)} icon={TableProperties} positive />
         <Metric label={pageText(locale, 'Booked value', 'ערך מוזמן')} value={formatCurrency(inventory.summary?.revenue, locale)} icon={CircleDollarSign} positive />
@@ -3427,25 +3456,25 @@ function InventoryPage({ inventory, overview, copy, locale }) {
       <div className="page-grid two-one">
         <section className="page-panel">
           <div className="panel-head">
-            <h2>{pageText(locale, 'Channel inventory', 'מלאי לפי ערוץ')}</h2>
-            <span>{channels.length} {pageText(locale, 'channels', 'ערוצים')}</span>
+            <h2>{pageText(locale, 'Inventory by broadcast daypart', 'מלאי לפי רצועת שידור')}</h2>
+            <span>{dayparts.length} {pageText(locale, 'dayparts', 'רצועות שידור')}</span>
           </div>
           <DataTable
             locale={locale}
-            emptyLabel={pageText(locale, 'No inventory rows were found.', 'לא נמצאו שורות מלאי.')}
-            rows={channels}
+            fit
+            emptyLabel={pageText(locale, 'No daypart inventory rows were found.', 'לא נמצאו שורות מלאי לפי רצועת שידור.')}
+            rows={dayparts}
             columns={[
-              { key: 'Channel', label: pageText(locale, 'Channel', 'ערוץ') },
+              { key: 'daypart', label: pageText(locale, 'Daypart', 'רצועה'), render: (row) => engineDaypartLabel(row.daypart, locale) },
               { key: 'spots', label: pageText(locale, 'Spots', 'ספוטים'), render: (row) => formatNumber(row.spots, locale) },
               { key: 'seconds', label: pageText(locale, 'Minutes', 'דקות'), render: (row) => formatMinutes(row.seconds, locale) },
               { key: 'revenue', label: pageText(locale, 'Revenue', 'הכנסה'), render: (row) => formatCurrency(row.revenue, locale) },
-              { key: 'target_spots', label: pageText(locale, 'Target', 'יעד'), render: (row) => formatNumber(row.target_spots, locale) },
             ]}
           />
         </section>
         <section className="page-panel">
           <div className="panel-head">
-            <h2>{pageText(locale, 'Hourly pressure', 'לחץ לפי שעה')}</h2>
+            <h2>{pageText(locale, 'Hourly pressure on your channel', 'לחץ שעתי בערוץ שלכם')}</h2>
             <span>
               {revenueAvailable
                 ? pageText(locale, 'Booked value', 'ערך מוזמן')
@@ -3469,24 +3498,69 @@ function InventoryPage({ inventory, overview, copy, locale }) {
   );
 }
 
-function BreakLibraryPage({ breakLibrary, copy, locale }) {
+function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalRefresh }) {
   const rows = normalizeRows(breakLibrary.breaks);
+  // Click-to-open reuses the Schedule page's inspector drawer: every ranked row
+  // carries the saved plan's segment_id, so the same /api/schedule/segment/{id}
+  // detail and edit affordances open in place on this page. A row without a
+  // segment id (older saved plan) gets an honest notice instead of a dead click.
+  const [inspect, setInspect] = useState(null);
+  const openBreak = (row) => {
+    if (row && row.segment_id) {
+      setInspect({ segmentId: row.segment_id, channel: row.channel, day: row.day });
+    } else if (notify) {
+      notify('This row carries no segment id in the saved plan, so there is no detail to open.', 'לשורה זו אין מזהה מקטע בתוכנית השמורה, ולכן אין פירוט לפתיחה.');
+    }
+  };
+  // Exports every ranked row, not only the visible grid page. Vocabulary values
+  // are localized; numbers stay raw so spreadsheet sorting works.
+  const exportLibraryCsv = () => {
+    const csv = buildCsv([
+      { label: pageText(locale, 'Status', 'סטטוס'), value: (row) => row.status },
+      { label: pageText(locale, 'Channel', 'ערוץ'), value: (row) => row.channel },
+      { label: pageText(locale, 'Date', 'תאריך'), value: (row) => row.date },
+      { label: pageText(locale, 'Start time', 'שעת התחלה'), value: (row) => row.start_time },
+      { label: pageText(locale, 'Programme type', 'סוג תוכנית'), value: (row) => programTypeLabel(row.program_type, locale) },
+      { label: pageText(locale, 'Position', 'מיקום'), value: (row) => breakPositionLabel(row.position, locale) },
+      { label: pageText(locale, 'Break type', 'סוג ברייק'), value: (row) => breakLengthLabel(row.break_type, locale) },
+      { label: pageText(locale, 'Length (seconds)', 'אורך (שניות)'), value: (row) => row.total_break_time },
+      { label: pageText(locale, 'Expected revenue (ILS)', 'הכנסה צפויה (ש"ח)'), value: (row) => Math.round(Number(row.predicted_revenue) || 0) },
+      { label: pageText(locale, 'Expected retention (%)', 'שימור צפוי (%)'), value: (row) => (Number(row.predicted_retention || 0) * 100).toFixed(2) },
+      { label: pageText(locale, 'Segment id', 'מזהה מקטע'), value: (row) => row.segment_id },
+    ], rows);
+    downloadCsv('kairos-break-library.csv', csv);
+    if (notify) notify('Break library exported as CSV.', 'ספריית הברייקים יוצאה כ־CSV.');
+  };
   return (
     <section className="page-workspace">
       <PageHeader
         locale={locale}
         titleEn="Break library"
         titleHe="ספריית ברייקים"
-        bodyEn="A reusable working set of candidate breaks ranked by yield, retention, load, and approval status."
-        bodyHe="מאגר עבודה של ברייקים מועמדים, מדורג לפי תשואה, שימור צפייה, עומס וסטטוס אישור."
+        bodyEn="The ranked shelf of the strongest breaks in the saved plan. Review the ranking, open a break for its full detail and edits, and export the list for the traffic meeting."
+        bodyHe="מדף מדורג של הברייקים החזקים בתוכנית השמורה. עברו על הדירוג, פתחו ברייק לפרטים המלאים ולעריכה, וייצאו את הרשימה לישיבת הטראפיק."
       />
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Ranked break candidates', 'ברייקים מדורגים')}</h2>
-          <span>{rows.length} {pageText(locale, 'breaks', 'ברייקים')}</span>
+          <div className="panel-head-tools">
+            <span>{rows.length} {pageText(locale, 'breaks', 'ברייקים')}</span>
+            <Tooltip title={pageText(locale, 'Exports every ranked break, not only the visible page.', 'הייצוא כולל את כל הברייקים המדורגים, לא רק את העמוד המוצג.')} arrow placement="bottom">
+              <span>
+                <Button className="secondary-button" type="button" variant="outlined" disabled={rows.length === 0} onClick={exportLibraryCsv}>
+                  <Download size={14} />
+                  {pageText(locale, 'CSV export', 'ייצוא CSV')}
+                </Button>
+              </span>
+            </Tooltip>
+          </div>
         </div>
+        <p className="row-open-hint">{pageText(locale, 'Selecting a row opens the break detail.', 'לחיצה על שורה פותחת את פרטי הברייק.')}</p>
         <DataTable
           locale={locale}
+          fit
+          pageSize={25}
+          onRowClick={openBreak}
           emptyLabel={pageText(locale, 'No break candidates were found.', 'לא נמצאו ברייקים מועמדים.')}
           rows={rows}
           columns={[
@@ -3502,6 +3576,17 @@ function BreakLibraryPage({ breakLibrary, copy, locale }) {
           ]}
         />
       </section>
+      {inspect && (
+        <ScheduleInspector
+          segmentId={inspect.segmentId}
+          channel={inspect.channel}
+          day={inspect.day}
+          locale={locale}
+          notify={notify}
+          onClose={() => setInspect(null)}
+          onGlobalRefresh={onGlobalRefresh}
+        />
+      )}
     </section>
   );
 }
@@ -3580,15 +3665,17 @@ function ForecastsPage({ forecasts, overview, copy, locale, loading }) {
             {scenarios.map((item) => {
               const weight = finiteNumber(item.revenue_weight);
               const weightTitle = weight === null
-                ? undefined
-                : pageText(locale, `Revenue weight ${weight}`, `משקל הכנסה ${weight}`);
+                ? ''
+                : pageText(locale, `This scenario runs the optimizer at revenue weight ${weight} of 100 (higher chases revenue harder, lower protects viewers more)`, `התרחיש הזה מריץ את האופטימייזר עם משקל הכנסה ${weight} מתוך 100 (גבוה יותר רודף הכנסה, נמוך יותר מגן על הצופים)`);
               return (
-                <div className="scenario-row" key={item.name} title={weightTitle}>
-                  <span>{scenarioNameLabel(item.name, locale)}</span>
-                  <i style={{ '--bar': Number(item.revenue || 0) / maxRevenue }} />
-                  <strong>{formatCurrency(item.revenue, locale)}</strong>
-                  <small>{formatPercent(item.retention, locale)}</small>
-                </div>
+                <Tooltip title={weightTitle} arrow placement="bottom" key={item.name}>
+                  <div className="scenario-row">
+                    <span>{scenarioNameLabel(item.name, locale)}</span>
+                    <i style={{ '--bar': Number(item.revenue || 0) / maxRevenue }} />
+                    <strong>{formatCurrency(item.revenue, locale)}</strong>
+                    <small>{formatPercent(item.retention, locale)}</small>
+                  </div>
+                </Tooltip>
               );
             })}
           </div>
@@ -3722,18 +3809,21 @@ function ReportsPage({ reports, files, overview, copy, locale, notify }) {
                 <StatusBadge status={report.status} locale={locale} />
                 <small>{formatNumber(report.rows, locale)} {pageText(locale, 'rows', 'שורות')}</small>
               </div>
-              <Button
-                className="report-card-download"
-                type="button"
-                variant="outlined"
-                size="small"
-                disabled={!downloadable}
-                onClick={() => info && info.download()}
-                title={downloadable ? undefined : pageText(locale, 'This report has no data to download yet.', 'לדוח זה אין עדיין נתונים להורדה.')}
-              >
-                <Download size={13} />
-                {pageText(locale, 'Download CSV', 'הורדת CSV')}
-              </Button>
+              <Tooltip title={downloadable ? '' : pageText(locale, 'This report has no data to download yet.', 'לדוח זה אין עדיין נתונים להורדה.')} arrow placement="bottom">
+                <span className="report-card-download-wrap">
+                  <Button
+                    className="report-card-download"
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    disabled={!downloadable}
+                    onClick={() => info && info.download()}
+                  >
+                    <Download size={13} />
+                    {pageText(locale, 'Download CSV', 'הורדת CSV')}
+                  </Button>
+                </span>
+              </Tooltip>
             </article>
           );
         })}
@@ -3741,7 +3831,7 @@ function ReportsPage({ reports, files, overview, copy, locale, notify }) {
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Source package', 'חבילת מקורות')}</h2>
-          <span>{fileRows.filter((file) => file.exists).length} / {fileRows.length}</span>
+          <span><Numeric>{fileRows.filter((file) => file.exists).length} / {fileRows.length}</Numeric></span>
         </div>
         <DataTable
           locale={locale}
@@ -3898,14 +3988,18 @@ function ImpactPreview({ title, rows, locale }) {
         <small>{pageText(locale, 'Retention delta per break', 'שינוי שימור לכל ברייק')}</small>
       </header>
       {first.length === 0 ? (
-        <span>{pageText(locale, 'No extract', 'אין קובץ')}</span>
+        <span>{pageText(locale, 'No measurements yet', 'אין עדיין מדידות')}</span>
       ) : (
         first.map((row, index) => {
           const magnitude = row.coefficient === null ? 0 : Math.abs(row.coefficient);
-          const sample = row.sampleCount ? `n=${formatNumber(row.sampleCount, locale)}` : pageText(locale, 'sample pending', 'מדגם לא זמין');
+          // The range and the n= figure are Latin-and-digit runs inside RTL
+          // text, so both carry the ltr-isolating numeric class; only the plain
+          // Hebrew "sample pending" text renders without it.
           const range = row.ciLow !== null && row.ciHigh !== null
             ? `${formatRetentionDelta(row.ciLow, locale)} / ${formatRetentionDelta(row.ciHigh, locale)}`
-            : sample;
+            : row.sampleCount
+              ? `n=${formatNumber(row.sampleCount, locale)}`
+              : null;
           const coefficientLabel = formatRetentionDelta(row.coefficient, locale);
           return (
             <div className="impact-row" key={`${title}-${row.segment}-${index}`}>
@@ -3914,7 +4008,7 @@ function ImpactPreview({ title, rows, locale }) {
                 <i style={{ '--impact-width': `${Math.max(8, (magnitude / maxMagnitude) * 100)}%` }} />
               </span>
               <strong>{row.coefficient === null ? coefficientLabel : <Numeric>{coefficientLabel}</Numeric>}</strong>
-              <small className={row.ciLow !== null && row.ciHigh !== null ? 'numeric' : undefined}>{range}</small>
+              <small className={range !== null ? 'numeric' : undefined}>{range !== null ? range : pageText(locale, 'sample pending', 'מדגם לא זמין')}</small>
             </div>
           );
         })
@@ -3973,7 +4067,15 @@ function DriftMonitorCard({ drift, locale }) {
           <strong><Numeric>{seLabel ? `${driftLabel} ${seLabel}` : driftLabel}</Numeric></strong>
           <small>{pageText(locale, 'Drift per week', 'סחיפה לשבוע')}</small>
         </div>
-        <span className={`drift-chip ${bindingState}`} title={typeof block.criterion === 'string' ? block.criterion : undefined}>{chipLabel}</span>
+        <Tooltip
+          title={typeof block.criterion === 'string' && block.criterion
+            ? <span>{pageText(locale, 'The measured rule behind this verdict:', 'הכלל המדוד שמאחורי הקביעה הזו:')} <span dir="ltr">{block.criterion}</span></span>
+            : ''}
+          arrow
+          placement="bottom"
+        >
+          <span className={`drift-chip ${bindingState}`}>{chipLabel}</span>
+        </Tooltip>
       </div>
       {weeks.length > 0 ? (
         <div className="drift-week-block">
@@ -4030,12 +4132,12 @@ function ParameterLedger({ parameters, locale }) {
     {
       label: pageText(locale, 'Retention assumption', 'הנחת שימור'),
       value: retentionAssumption === null ? '-' : formatRetentionDelta(retentionAssumption, locale),
-      detail: pageText(locale, 'Fallback when a cell is unseen', 'fallback לסגמנט שלא נמדד'),
+      detail: pageText(locale, 'Default used when a segment has no measurements', 'ברירת מחדל כשסגמנט לא נמדד'),
     },
     {
       label: pageText(locale, 'Base price', 'מחיר בסיס'),
       value: basePrice === null ? '-' : formatCurrency(basePrice, locale),
-      detail: pageText(locale, 'Per TVR-second', 'ל-TVR שנייה'),
+      detail: pageText(locale, 'Per second per TVR point', 'לשנייה לכל נקודת TVR'),
     },
   ];
   const premiumRows = Object.entries(pricing.program_type_premiums || {})
@@ -4291,14 +4393,13 @@ function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRefresh, s
                   // as readable as the editor's.
                   const { left } = positionStyle(breakItem.start_time, breakItem.end_time);
                   return (
+                    <Tooltip title={`${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`} arrow placement="bottom" key={breakItem.id}>
                     <Button
                       className={className}
-                      key={breakItem.id}
                       type="button"
                       variant="contained"
                       disableRipple
                       style={{ left }}
-                      title={`${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`}
                       aria-pressed={selected}
                       onClick={() => onSelectProgram(selectedProgram)}
                     >
@@ -4309,6 +4410,7 @@ function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRefresh, s
                         goldLabel={pageText(locale, 'gold', 'זהב')}
                       />
                     </Button>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -4369,7 +4471,7 @@ function DaypartView({ rows, locale, selectedProgramKey, onSelectProgram }) {
                   onClick={() => onSelectProgram(program)}
                 >
                   <span>{program.title}</span>
-                  <small>{program.channel} / {program.day} / {program.time}</small>
+                  <small>{program.channel} / {dayLabel(program.day, locale)} / <Numeric>{program.time}</Numeric></small>
                   <strong><Numeric>{formatCurrency(program.revenue, locale)}</Numeric></strong>
                 </Button>
               ))}
@@ -4431,7 +4533,7 @@ function OptimizerInventoryView({ rows, locale, selectedProgramKey, onSelectProg
                 onClick={() => onSelectProgram(program)}
               >
                 <span>{program.title}</span>
-                <small>{program.day} / {program.time}</small>
+                <small>{dayLabel(program.day, locale)} / <Numeric>{program.time}</Numeric></small>
               </Button>
             ))}
           </div>
@@ -4528,17 +4630,19 @@ function ProgramCell({
   });
   const revenue = totalRevenue ?? program.revenue;
   const retention = averageRetention ?? program.retention;
+  // Time ranges and clock values are isolated LTR runs (Numeric): a bare
+  // "20:00 - 22:30" inside an RTL cell renders with the end time first.
   const meta = programCount > 1
-    ? `${formatNumber(programCount, locale)} ${pageText(locale, 'programs', 'תוכניות')} / ${timeRange}`
-    : `${program.time} / ${formatMinutes(Number(program.duration_minutes || 0) * 60, locale)}`;
+    ? <>{formatNumber(programCount, locale)} {pageText(locale, 'programs', 'תוכניות')} / <Numeric>{timeRange}</Numeric></>
+    : <><Numeric>{program.time}</Numeric> / {formatMinutes(Number(program.duration_minutes || 0) * 60, locale)}</>;
   return (
+    <Tooltip title={`${program.title} / ${program.channel} / ${dayLabel(program.day, locale)} ${program.time}`} arrow placement="bottom">
     <Button
       className={selected ? 'program-cell selected' : 'program-cell'}
       type="button"
       variant="text"
       disableRipple
       aria-pressed={selected}
-      title={`${program.title} / ${program.channel} / ${program.day} ${program.time}`}
       onClick={() => onSelect?.(program)}
     >
       {showPrograms ? (
@@ -4559,6 +4663,7 @@ function ProgramCell({
         <span><Numeric>{formatPercent(retention, locale)}</Numeric></span>
       </span>
     </Button>
+    </Tooltip>
   );
 }
 
@@ -4591,7 +4696,7 @@ function Inspector({ selectedProgram, recommendation, approved, rejected, retent
     <aside className="inspector" aria-label="Selected break inspector">
       <div className="inspector-head">
         <span>{copy.selectedBreak}</span>
-        <IconButton className="icon-button small" type="button" aria-label={pageText(locale, 'Close inspector', 'סגירת המפקח')} size="small" onClick={onClose}>
+        <IconButton className="icon-button small" type="button" aria-label={pageText(locale, 'Close the break detail panel', 'סגירת פאנל פרטי הברייק')} size="small" onClick={onClose}>
           <X size={14} />
         </IconButton>
       </div>
@@ -5031,7 +5136,7 @@ function OperatorChannelPanel({ settings, parameters, locale, onSave, saveState,
             <span className="settings-channel-kicker">{he ? 'נקודת הפתיחה' : 'Start here'}</span>
           )}
           <h2>{he ? 'הערוץ שלכם' : 'Your channel'}</h2>
-          <p>{he ? 'הערוץ שבבעלות המפעיל. האילוצים שלכם חלים על ערוץ זה, והוא משער את ההכנסה מול שימור הצופים.' : 'The channel this operator owns. Your constraints apply to this channel, and it is the gateway to the revenue versus retention view.'}</p>
+          <p>{he ? 'הערוץ שבבעלות המפעיל. האילוצים שלכם חלים על ערוץ זה, ותחזית ההכנסה מול שימור הצופים מחושבת עבורו.' : 'The channel this operator owns. Your constraints apply to this channel, and the revenue versus retention forecast is computed for it.'}</p>
         </div>
         <Tv size={18} />
       </div>
@@ -5250,7 +5355,7 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
     { key: 'balanced', label: he ? 'מאוזן' : 'Balanced', desc: he ? 'נוטה-להכנסה אך שומר על הצופים' : 'Revenue-leaning, viewer-protective', values: { revenue_weight: 60, risk_lambda: 0, min_retention_floor: 0.72 } },
     { key: 'revenue', label: he ? 'מקסום הכנסה' : 'Revenue priority', desc: he ? 'ממקסם הכנסה עד גבול הרגולציה' : 'Maximize revenue to the guardrails', values: { revenue_weight: 85, risk_lambda: 0, min_retention_floor: 0.70 } },
     { key: 'retention', label: he ? 'הגנת שימור' : 'Retention guardrail', desc: he ? 'פחות ברייקים, רצפת צפייה גבוהה' : 'Fewer breaks, higher floor', values: { revenue_weight: 35, risk_lambda: 0, min_retention_floor: 0.78 } },
-    { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מדווח לפי עלות הצפייה הסבירה הגרועה ביותר' : 'Reports at the worst plausible retention cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
+    { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מדווח לפי עלות השימור הסבירה הגרועה ביותר' : 'Reports at the worst plausible retention cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
   ];
   const revenueWeight = Number.isFinite(finiteNumber(draft.revenue_weight)) ? finiteNumber(draft.revenue_weight) : 60;
   const recomputeText =
@@ -5332,7 +5437,7 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
           <div className="settings-panel-head">
             <div>
               <h2>{he ? 'איזון האופטימיזציה' : 'Optimizer balance'}</h2>
-              <p>{he ? 'הלֶבֶר המרכזי שמניע את הלוח, ההכנסה מול השימור והתחזיות' : 'The central lever that drives the schedule, revenue vs retention, and forecasts'}</p>
+              <p>{he ? 'ההגדרה המרכזית שמניעה את הלוח, את ההכנסה מול השימור ואת התחזיות' : 'The central setting that drives the schedule, revenue vs retention, and forecasts'}</p>
             </div>
             <SlidersHorizontal size={18} />
           </div>
@@ -5552,13 +5657,13 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
               label={he ? 'תאריך ייחוס לקצב' : 'Pacing reference date'}
               value={draft.pacing_reference_date}
               onChange={(value) => updateField('pacing_reference_date', value)}
-              helperText={he ? 'התאריך שנחשב כהיום בעת מדידת קצב הקמפיין. ריק משתמש בתאריך התוקף של הלוח.' : 'The date treated as today when measuring campaign pace. Empty uses the schedule effective date.'}
+              helperText={he ? 'התאריך שנחשב כהיום בעת מדידת קצב הקמפיין. אם נשאר ריק, נעשה שימוש בתאריך התחולה של הלוח.' : 'The date treated as today when measuring campaign pace. When empty, the schedule effective date is used.'}
             />
             <NumberControl
               label={he ? 'עוצמת פיגור בקצב' : 'Behind-pace strength'}
               value={draft.pacing_urgency_k ?? 1.0}
               onChange={(value) => updateNumber('pacing_urgency_k', Math.min(5, Math.max(0, Number(value))))}
-              helperText={he ? 'כמה חזק קמפיין בתת-דילוור מושך פרסומות למלאי שלו.' : 'How hard an under-delivered campaign pulls breaks toward its inventory.'}
+              helperText={he ? 'כמה חזק קמפיין שמפגר בדילוור מושך אליו ברייקים בשיבוץ.' : 'How hard an under-delivered campaign pulls breaks toward its inventory.'}
             />
             <NumberControl
               label={he ? 'תקרת פיגור בקצב' : 'Behind-pace cap'}
@@ -5576,13 +5681,13 @@ function SettingsPanel({ settings, parameters, copy, locale, saveState, onSave, 
               label={he ? 'רצפת דילוור-יתר' : 'Over-delivery floor'}
               value={draft.pacing_weight_floor ?? 0.5}
               onChange={(value) => updateNumber('pacing_weight_floor', Math.min(1.0, Math.max(0.25, Number(value))))}
-              helperText={he ? 'המשקל הנמוך ביותר בשיבוץ שקמפיין בדילוור-יתר יכול לקבל. לעולם לא אפס, כך שפרסומת לעולם אינה נחסמת.' : 'The lowest placement weight an over-delivered campaign can receive. Never zero, so a slot is never forbidden.'}
+              helperText={he ? 'המשקל הנמוך ביותר בשיבוץ שקמפיין בדילוור-יתר יכול לקבל. לעולם לא אפס, כך שאף שיבוץ אינו נחסם לחלוטין.' : 'The lowest placement weight an over-delivered campaign can receive. Never zero, so a slot is never forbidden.'}
             />
             <NumberControl
               label={he ? 'רצפת מכנה הקצב' : 'Pace denominator floor'}
               value={draft.pacing_epsilon ?? 0.05}
               onChange={(value) => updateNumber('pacing_epsilon', Math.min(0.5, Math.max(0.01, Number(value))))}
-              helperText={he ? 'רצפה נומרית כדי שהדחיפות תישאר סופית ביום הראשון והאחרון של הקמפיין.' : 'Numerical floor so urgency stays finite on the first and last flight day.'}
+              helperText={he ? 'רצפה חישובית ששומרת על חישוב הקצב יציב ביום הראשון והאחרון של הקמפיין.' : 'A computational floor that keeps the pace calculation stable on the first and last flight day.'}
             />
           </div>
         </section>
@@ -5807,7 +5912,7 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
             <p className="auth-error">{t('Could not load the account list.', 'טעינת רשימת החשבונות נכשלה.')}</p>
             <div className="auth-actions">
               <button type="button" className="auth-secondary" onClick={() => setReloadKey((key) => key + 1)}>
-                {t('Try again', 'לנסות שוב')}
+                {t('Try again', 'ניסיון נוסף')}
               </button>
             </div>
           </div>
@@ -5851,10 +5956,7 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                           >
                             {t('Reset password', 'איפוס סיסמה')}
                           </button>
-                          <button
-                            type="button"
-                            className={`auth-mini auth-danger${confirmDelete === account.username ? ' auth-confirming' : ''}`}
-                            disabled={busy || isSelf || lastAdmin}
+                          <Tooltip
                             title={
                               isSelf
                                 ? t(
@@ -5863,12 +5965,22 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                                   )
                                 : lastAdmin
                                   ? t('The last admin account cannot be deleted.', 'אי אפשר למחוק את חשבון הניהול האחרון.')
-                                  : undefined
+                                  : ''
                             }
-                            onClick={() => submitDelete(account.username)}
+                            arrow
+                            placement="bottom"
                           >
-                            {confirmDelete === account.username ? t('Confirm delete', 'לאשר מחיקה') : t('Delete', 'מחיקה')}
-                          </button>
+                            <span className="auth-mini-wrap">
+                              <button
+                                type="button"
+                                className={`auth-mini auth-danger${confirmDelete === account.username ? ' auth-confirming' : ''}`}
+                                disabled={busy || isSelf || lastAdmin}
+                                onClick={() => submitDelete(account.username)}
+                              >
+                                {confirmDelete === account.username ? t('Confirm delete', 'אישור מחיקה') : t('Delete', 'מחיקה')}
+                              </button>
+                            </span>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>

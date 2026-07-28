@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Tooltip } from '@mui/material';
 import { Info } from 'lucide-react';
 import {
   API_BASE,
@@ -18,8 +19,8 @@ import {
 function estimateExplainer(locale) {
   return pageText(
     locale,
-    'The value of the audience worn away by the breaks, priced at the actual advertising rate. A model estimate, not an invoice.',
-    'שווי הקהל שנשחק בעקבות הברייקים, מתומחר לפי מחיר הפרסום בפועל. אומדן מהמודל, לא חשבונית.',
+    'The money cost of viewers stepping away during breaks: each break airs to a slightly smaller audience, so its rating and billing are lower. The gap is priced at the actual advertising rate. A model estimate, not an invoice.',
+    'העלות הכספית של הצופים שמתרחקים בזמן הברייקים: כל ברייק משודר לקהל מעט קטן יותר, ולכן הרייטינג והחיוב שלו נמוכים יותר. ההפרש מתומחר לפי מחיר הפרסום בפועל. אומדן מהמודל, לא חשבונית.',
   );
 }
 
@@ -34,7 +35,7 @@ function estimateExplainer(locale) {
 function bandBasisNote(locale, payload) {
   if (!payload || !Number.isFinite(payload.retention_cost_low) || !Number.isFinite(payload.retention_cost_high)) return '';
   if (locale === 'he') {
-    return 'הרצועה סביב עלות השימור נגזרת מרווחי הסמך המכוילים (95 אחוז) של מקדמי המודל.';
+    return 'טווח האומדן מראה כמה עלות השימור עשויה להיות נמוכה או גבוהה מהמספר המרכזי, לפי אי-הוודאות שנמדדה לכל ברייק (רמת ביטחון 95 אחוז).';
   }
   return typeof payload.retention_cost_basis === 'string' ? payload.retention_cost_basis : '';
 }
@@ -87,11 +88,13 @@ export default function MoneyWaterfall({
       {hasCostAndNet ? (
         <>
           <div className="mw-row mw-cost">
-            <span className="mw-label" title={estimateExplainer(locale)}>
-              {pageText(locale, 'Retention cost', 'עלות שימור')}
-              <span className="mw-chip">{pageText(locale, 'Model estimate', 'אומדן מודל')}</span>
-              <Info size={12} className="mw-info" aria-hidden="true" />
-            </span>
+            <Tooltip title={estimateExplainer(locale)} arrow placement="bottom">
+              <span className="mw-label">
+                {pageText(locale, 'Retention cost', 'עלות שימור')}
+                <span className="mw-chip">{pageText(locale, 'Model estimate', 'אומדן מודל')}</span>
+                <Info size={12} className="mw-info" aria-hidden="true" />
+              </span>
+            </Tooltip>
             <span className="mw-money">
               <strong className="mw-value numeric" dir="ltr">{`-${formatCurrency(costValue, locale)}`}</strong>
             </span>
@@ -121,10 +124,13 @@ export default function MoneyWaterfall({
             <span className="mw-bar-net" style={{ width: `${netFrac * 100}%` }} />
             <span className="mw-bar-cost" style={{ width: `${costFrac * 100}%` }} />
             {bandLowFrac !== null && bandHighFrac !== null ? (
+              // No tooltip on the sliver itself: the legend key below carries the
+              // themed MUI explanation for the band, and a hover-managed MUI
+              // tooltip on an absolutely-positioned bar sliver is not worth the
+              // wrapper.
               <i
                 className="mw-bar-band"
                 style={{ insetInlineEnd: `${bandLowFrac * 100}%`, width: `${Math.max(0, bandHighFrac - bandLowFrac) * 100}%` }}
-                title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}
               />
             ) : null}
           </div>
@@ -132,11 +138,13 @@ export default function MoneyWaterfall({
             <span className="mw-bar-key"><i className="mw-dot net" />{pageText(locale, 'Net kept', 'נטו שנשמר')}</span>
             <span className="mw-bar-key"><i className="mw-dot cost" />{pageText(locale, 'Retention cost', 'עלות שימור')}</span>
             {hasBand ? (
-              <span className="mw-bar-key" title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')}>
-                <i className="mw-dot band" />
-                {pageText(locale, 'Estimate range', 'טווח האומדן')}
-                <span className="numeric" dir="ltr">{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</span>
-              </span>
+              <Tooltip title={pageText(locale, 'The plausible range of the model estimate.', 'הטווח הסביר של אומדן המודל.')} arrow placement="bottom">
+                <span className="mw-bar-key">
+                  <i className="mw-dot band" />
+                  {pageText(locale, 'Estimate range', 'טווח האומדן')}
+                  <span className="mw-band-range" dir="ltr">{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</span>
+                </span>
+              </Tooltip>
             ) : null}
           </div>
         </div>
@@ -321,7 +329,7 @@ export function NetComparisonCard({ locale, refreshSignal = '', currentFocus = '
               <div className="net-compare-row" key={row.key}>
                 <span className="net-compare-label">
                   {row.label}
-                  {row.estimate ? <span className="mw-chip" title={estimateExplainer(locale)}>{pageText(locale, 'Model estimate', 'אומדן מודל')}</span> : null}
+                  {row.estimate ? <Tooltip title={estimateExplainer(locale)} arrow placement="bottom"><span className="mw-chip">{pageText(locale, 'Model estimate', 'אומדן מודל')}</span></Tooltip> : null}
                 </span>
                 <strong className="numeric" dir="ltr">{row.value}</strong>
               </div>

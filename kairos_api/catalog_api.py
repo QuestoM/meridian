@@ -156,11 +156,30 @@ def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
 
 
 def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
+    """Spot inventory for the OPERATOR'S channel only.
+
+    The spots source carries every channel because the retention model needs
+    the competitor rows, but inventory is an ownership concept: everything the
+    operator can sell sits on their own channel, so a per-channel split of the
+    market has no place on this surface. The payload is scoped to
+    ``settings.operator_channel`` (whole-frame only when no channel is
+    configured yet, disclosed via ``scope_channel``), and the breakdown the
+    operator actually plans with is by broadcast daypart, not by channel.
+    """
+    settings = _load_settings()
+    owned = str(settings.operator_channel or "").strip()
+    scope_channel: str | None = None
+    if not spots.empty and owned and "Channel" in spots.columns:
+        scoped = spots[spots["Channel"].astype(str).str.strip() == owned]
+        spots = scoped
+        scope_channel = owned
+
     if spots.empty:
         return {
             "summary": {"spots": 0, "revenue": None, "seconds": 0},
             "revenue_available": False,
-            "by_channel": [],
+            "scope_channel": scope_channel,
+            "by_daypart": [],
             "by_hour": [],
         }
 
@@ -179,16 +198,24 @@ def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
             lambda value: getattr(value, "hour", None)
         )
     frame["hour_of_day"] = pd.to_numeric(_series(frame, "hour_of_day", -1), errors="coerce").fillna(-1).astype(int)
-    frame["target"] = _series(frame, "is_target_channel", False).astype(str).str.lower().isin(["true", "1", "yes"])
     valid_hours = frame[(frame["hour_of_day"] >= 0) & (frame["hour_of_day"] <= 23)]
 
-    sort_key = "revenue" if has_revenue else "seconds"
-    by_channel = (
-        frame.groupby("Channel", dropna=False)
-        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"), target_spots=("target", "sum"))
+    # Broadcast-daypart breakdown on the engine's own taxonomy; hours without a
+    # parseable airing time land in an honest "unclassified" bucket rather than
+    # being silently dropped.
+    try:
+        from kairos.data.dayparts import daypart_for_hour
+    except Exception:  # pragma: no cover - taxonomy optional
+        def daypart_for_hour(_hour: int) -> str:  # type: ignore[misc]
+            return "unclassified"
+    frame["daypart"] = frame["hour_of_day"].map(
+        lambda hour: (daypart_for_hour(int(hour)) or "unclassified") if 0 <= int(hour) <= 23 else "unclassified"
+    )
+    by_daypart = (
+        frame.groupby("daypart", dropna=False)
+        .agg(spots=("Campaign", "count"), seconds=("Duration", "sum"), revenue=("revenue_ils", "sum"))
         .reset_index()
-        .sort_values(sort_key, ascending=False)
-        .head(12)
+        .sort_values("seconds", ascending=False)
     )
     by_hour = (
         valid_hours.groupby("hour_of_day", dropna=False)
@@ -197,7 +224,7 @@ def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
         .sort_values("hour_of_day")
     )
     if not has_revenue:
-        by_channel["revenue"] = None
+        by_daypart["revenue"] = None
         by_hour["revenue"] = None
 
     return {
@@ -207,7 +234,8 @@ def _build_inventory(spots: pd.DataFrame) -> dict[str, Any]:
             "seconds": int(frame["Duration"].sum()),
         },
         "revenue_available": has_revenue,
-        "by_channel": _records(by_channel),
+        "scope_channel": scope_channel,
+        "by_daypart": _records(by_daypart, 8),
         "by_hour": _records(by_hour, 24),
     }
 
@@ -551,10 +579,12 @@ def impact() -> dict[str, Any]:
 def inventory() -> dict[str, Any]:
     # _load_spots prefers the reference workbook, so the workbook belongs in the
     # cache key; keying on the legacy CSV alone kept serving a stale inventory
-    # after a reference re-ingest.
+    # after a reference re-ingest. The settings file is in the key because the
+    # payload is scoped to the operator's channel.
     return _inventory_cached(_signature([
         DATA_DIR / "reference" / "Spots.xlsx",
         DATA_DIR / "Spots.csv",
+        SETTINGS_PATH,
     ]))
 
 

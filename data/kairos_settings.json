@@ -34,5 +34,9 @@
   "pacing_weight_floor": 0.5,
   "pacing_epsilon": 0.05,
   "objective_mode": "blend",
-  "pricing_overrides": {}
+  "pricing_overrides": {
+    "pricing_activation": {
+      "show": false
+    }
+  }
 }

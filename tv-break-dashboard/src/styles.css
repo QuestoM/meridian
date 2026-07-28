@@ -5764,6 +5764,24 @@ button {
 .mw-dot.cost { background: var(--amber-soft); border: 1px solid var(--amber); }
 .mw-dot.band { background: var(--amber); opacity: 0.35; border: 1px solid var(--amber); }
 
+/* The range numbers are one LTR run (currency amounts with a hyphen). Isolate
+   and forbid wrapping: an RTL line break inside the run visually scrambles it
+   into "2.2M6.09 - M". */
+.mw-band-range {
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
+/* Shared LTR isolate for any Latin/number run embedded in RTL copy (unit
+   suffixes such as "ILS/s", formulas, X - Y ranges). Same recipe as
+   .mw-band-range, reusable outside the money waterfall. */
+.ltr-run {
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+}
+
 .money-story-empty {
   display: grid;
   gap: 3px;
@@ -6055,4 +6073,98 @@ button {
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   margin-inline-start: 6px;
+}
+
+/* Inventory and break library respec (new classes only). grid-fit removes the
+   shared grid wrapper's reserved minimum height so a short table sizes to its
+   rows instead of leaving dead vertical whitespace. */
+.mui-grid-wrap.grid-fit {
+  min-height: 0;
+}
+
+/* Rows that open a detail drawer read as clickable. */
+.grid-row-clickable .MuiDataGrid-row {
+  cursor: pointer;
+}
+
+/* Quiet one-line scope disclosure under the inventory page header. */
+.inventory-scope-line {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* Right-side cluster in a panel head: row count plus a small action button. */
+.panel-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* One-line affordance hint between a panel head and its clickable grid. */
+.row-open-hint {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Frontier selected-point stat tiles: one row of four labeled tiles, replacing
+   the old two-column grid whose empty gray cells read as missing data. */
+.frontier-point-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface);
+}
+
+.frontier-point-tile {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.frontier-point-tile span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.frontier-point-tile strong {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+/* Yield panel: quiet pointer up at the money story card, the per-ad-second unit
+   line under the yield chip value, and the bordered breakdown sub-panels. */
+.yield-net-pointer {
+  margin: 10px 16px 0;
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.yield-unit-line {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.yield-split-panel {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.yield-split-panel .yield-subhead {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
 }

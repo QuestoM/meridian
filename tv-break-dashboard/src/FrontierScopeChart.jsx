@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@mui/material';
-import { Check, Globe, Tv } from 'lucide-react';
+import { Button, Tooltip } from '@mui/material';
+import { Check, Tv } from 'lucide-react';
 import {
   API_BASE,
   finiteNumber,
@@ -13,9 +13,13 @@ import {
 } from './surface-helpers';
 
 // FrontierScopeChart: the revenue-vs-retention panel, upgraded with
-//  (a) a SCOPE selector (whole schedule vs the operator's owned channel) wired to
-//      GET /api/overview?scope=channel:<id>, with the active scope always shown as
-//      a breadcrumb label;
+//  (a) a SCOPE bar that DEFAULTS to the operator's owned channel whenever one is
+//      configured, wired to GET /api/overview?scope=channel:<id> (warmed at
+//      startup by the backend), with the active scope always shown as a
+//      breadcrumb label. There is no all-channels option: an empty scope falls
+//      to the engine's auto-picked representative channel-day, which can be a
+//      competitor, so the unscoped path survives only as the fallback when no
+//      operator channel is configured, and its breadcrumb says so honestly;
 //  (b) CLICKABLE Pareto points - selecting a point reveals its retention floor,
 //      projected revenue and average retention, plus an "apply this floor"
 //      affordance that saves the retention floor through the settings PUT path;
@@ -69,7 +73,11 @@ export default function FrontierScopeChart({
   const he = locale === 'he';
   const chartFrameRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(760);
-  const [scope, setScope] = useState('');
+  // The owned channel is the default and only channel scope; the unscoped ''
+  // value survives solely as the fallback when no operator channel is set.
+  const ownedChannel = String(operatorChannel || '').trim();
+  const ownedScope = ownedChannel ? `channel:${ownedChannel}` : '';
+  const [scope, setScope] = useState(ownedScope);
   const [data, setData] = useState(initialData || []);
   const [scopeLoading, setScopeLoading] = useState(false);
   const [scopeError, setScopeError] = useState(false);
@@ -86,6 +94,13 @@ export default function FrontierScopeChart({
   // response provides one. The unscoped view is driven by the parent's frontier
   // array, which does not include a basis, so basis is cleared there.
   const [basis, setBasis] = useState(null);
+
+  // Keep the scope pinned to the owned channel: settings can load (or change)
+  // after mount, and the owned scope must win whenever one exists.
+  useEffect(() => {
+    setScope(ownedScope);
+    setSelectedIndex(null);
+  }, [ownedScope]);
 
   // When no scope is active, mirror the parent-provided frontier so the panel
   // reflects the same overview payload the rest of the page consumes.
@@ -179,14 +194,13 @@ export default function FrontierScopeChart({
     return () => clearTimeout(timer);
   }, [isComputing, scope]);
 
+  // No all-channels chip: the owned channel is the only channel scope. Day
+  // scoping does not exist on this endpoint yet; when it does its options
+  // belong here beside the channel chip.
   const scopeOptions = useMemo(() => {
-    const options = [{ value: '', labelHe: 'כל הערוצים', labelEn: 'All channels', icon: 'globe' }];
-    const owned = String(operatorChannel || '').trim();
-    if (owned) {
-      options.push({ value: `channel:${owned}`, labelHe: owned, labelEn: owned, icon: 'tv' });
-    }
-    return options;
-  }, [operatorChannel]);
+    if (!ownedScope) return [];
+    return [{ value: ownedScope, labelHe: ownedChannel, labelEn: ownedChannel, icon: 'tv' }];
+  }, [ownedScope, ownedChannel]);
 
   const width = chartWidth;
   const [retMin, retMax] = paddedDomain(points.map((point) => point.retention), 0.8);
@@ -212,7 +226,7 @@ export default function FrontierScopeChart({
   const activeScopeLabel = (() => {
     const match = scopeOptions.find((option) => option.value === scope);
     if (match) return he ? match.labelHe : match.labelEn;
-    return he ? 'כל הערוצים' : 'All channels';
+    return pageText(locale, 'Auto-picked representative channel', 'ערוץ מייצג שנבחר אוטומטית');
   })();
 
   // Honest disclosure of what the plotted revenue actually is. Prefer the
@@ -237,27 +251,28 @@ export default function FrontierScopeChart({
       </div>
 
       <div className="frontier-scope-bar" dir={he ? 'rtl' : 'ltr'}>
-        <div className="frontier-scope-control" role="group" aria-label={he ? 'היקף החזית' : 'Frontier scope'}>
-          {scopeOptions.map((option) => {
-            const active = option.value === scope;
-            const Icon = option.icon === 'tv' ? Tv : Globe;
-            return (
-              <button
-                key={option.value || 'all'}
-                type="button"
-                className={`frontier-scope-chip${active ? ' active' : ''}`}
-                aria-pressed={active}
-                onClick={() => {
-                  setScope(option.value);
-                  setSelectedIndex(null);
-                }}
-              >
-                <Icon size={13} />
-                {he ? option.labelHe : option.labelEn}
-              </button>
-            );
-          })}
-        </div>
+        {scopeOptions.length > 0 && (
+          <div className="frontier-scope-control" role="group" aria-label={he ? 'היקף החזית' : 'Frontier scope'}>
+            {scopeOptions.map((option) => {
+              const active = option.value === scope;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`frontier-scope-chip${active ? ' active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setScope(option.value);
+                    setSelectedIndex(null);
+                  }}
+                >
+                  <Tv size={13} />
+                  {he ? option.labelHe : option.labelEn}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <span className="frontier-scope-breadcrumb">
           {he ? 'היקף נוכחי' : 'Scope'}
           <strong>{activeScopeLabel}</strong>
@@ -282,9 +297,7 @@ export default function FrontierScopeChart({
             ? pageText(locale, 'This scope could not be computed right now.', 'לא ניתן לחשב את ההיקף הזה כרגע.')
             : isComputing
               ? pageText(locale, 'The frontier is being computed, refresh in a moment.', 'החזית בחישוב, רעננו בעוד רגע.')
-              : scope && !String(operatorChannel || '').trim()
-                ? pageText(locale, 'No channel selected, so there is no frontier to draw.', 'לא נבחר ערוץ, ולכן אין חזית לשרטוט.')
-                : pageText(locale, 'Not enough scenarios to draw a frontier yet.', 'אין מספיק תרחישים לשרטוט החזית עדיין.')}
+              : pageText(locale, 'Not enough scenarios to draw a frontier yet.', 'אין מספיק תרחישים לשרטוט החזית עדיין.')}
         </div>
       ) : (
         <>
@@ -358,23 +371,34 @@ export default function FrontierScopeChart({
 
           {focusPoint && (
             <div className="frontier-point-readout" dir={he ? 'rtl' : 'ltr'}>
-              <div className="frontier-point-grid">
-                <div>
-                  <span>{pageText(locale, 'Retention floor', 'רף שימור')}</span>
-                  <strong className="numeric" dir="ltr">{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</strong>
-                </div>
-                <div>
-                  <span>{pageText(locale, 'Revenue (representative day)', 'הכנסה (יום מייצג)')}</span>
-                  <strong className="numeric" dir="ltr">{formatCurrency(focusPoint.revenue, locale)}</strong>
-                </div>
-                <div>
-                  <span>{pageText(locale, 'Average retention', 'שימור ממוצע')}</span>
-                  <strong className="numeric" dir="ltr">{formatPercent(focusPoint.retention, locale)}</strong>
-                </div>
-                <div>
-                  <span>{pageText(locale, 'Breaks', 'ברייקים')}</span>
-                  <strong className="numeric" dir="ltr">{focusPoint.breaks !== null ? formatNumber(focusPoint.breaks, locale) : '-'}</strong>
-                </div>
+              {/* Four stat tiles in one row, each with a one-line explanation
+                  tooltip, replacing the old two-column grid whose empty gray
+                  cells read as missing data and whose boundaries were unclear. */}
+              <div className="frontier-point-tiles">
+                <Tooltip title={pageText(locale, 'The constraint this point was optimized under: no break in the plan may fall below this retention floor.', 'האילוץ שתחתיו הנקודה חושבה: אף ברייק בתוכנית אינו רשאי לרדת מתחת לרף השימור הזה.')} arrow placement="bottom">
+                  <div className="frontier-point-tile">
+                    <span>{pageText(locale, 'Retention floor tested', 'רף שימור שנבדק')}</span>
+                    <strong className="numeric" dir="ltr">{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</strong>
+                  </div>
+                </Tooltip>
+                <Tooltip title={pageText(locale, 'What the resulting plan actually averaged, naturally far above the floor because the floor only blocks the worst breaks.', 'הממוצע שהתוכנית שהתקבלה השיגה בפועל, גבוה בהרבה מהרף באופן טבעי כי הרף חוסם רק את הברייקים הגרועים ביותר.')} arrow placement="bottom">
+                  <div className="frontier-point-tile">
+                    <span>{pageText(locale, 'Retention achieved', 'שימור שהושג')}</span>
+                    <strong className="numeric" dir="ltr">{formatPercent(focusPoint.retention, locale)}</strong>
+                  </div>
+                </Tooltip>
+                <Tooltip title={pageText(locale, 'Projected revenue for a single representative day in this scope, not the saved weekly total.', 'הכנסה צפויה ליום מייצג יחיד בהיקף הזה, לא הסך השבועי השמור.')} arrow placement="bottom">
+                  <div className="frontier-point-tile">
+                    <span>{pageText(locale, 'Revenue (representative day)', 'הכנסה (יום מייצג)')}</span>
+                    <strong className="numeric" dir="ltr">{formatCurrency(focusPoint.revenue, locale)}</strong>
+                  </div>
+                </Tooltip>
+                <Tooltip title={pageText(locale, 'How many breaks the plan of this point airs on the representative day.', 'כמה ברייקים משדרת התוכנית של הנקודה הזו ביום המייצג.')} arrow placement="bottom">
+                  <div className="frontier-point-tile">
+                    <span>{pageText(locale, 'Breaks', 'ברייקים')}</span>
+                    <strong className="numeric" dir="ltr">{focusPoint.breaks !== null ? formatNumber(focusPoint.breaks, locale) : '-'}</strong>
+                  </div>
+                </Tooltip>
               </div>
               <div className="frontier-point-action">
                 {isSavedFloorSelected ? (

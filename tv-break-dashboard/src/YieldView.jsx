@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Tooltip } from '@mui/material';
 import { Gauge } from 'lucide-react';
 import {
   API_BASE,
@@ -11,16 +12,14 @@ import {
   pageText,
   programTypeLabel,
 } from './surface-helpers';
-import MoneyWaterfall from './MoneyWaterfall';
 
 // YieldView: revenue and yield-per-second by daypart and programme, sourced from
 // GET /api/yield-per-second. Surfaces where each ad-second earns the most and
-// where inventory is under-monetized. The money stats render through the shared
-// MoneyWaterfall: gross stays the dominant figure, the retention cost is an
-// explicitly marked model estimate, and the net after retention cost is the
-// bottom line, shown only when the endpoint computes it exactly
-// (revenue_net_available:true); otherwise the reason is shown and no figure is
-// fabricated.
+// where inventory is under-monetized. The gross/cost/net money story is NOT
+// repeated here: the money story card directly above this one renders exactly
+// those three figures from the same payload, so this card keeps only its own
+// content (the yield and ad-seconds stat chips plus the two breakdowns) and one
+// quiet line pointing up at the money card.
 
 // labelFor localizes the engine group key for display (daypart keys such as
 // "prime", classifier program types such as "News"); the row key stays raw.
@@ -36,6 +35,7 @@ function YieldBars({ rows, locale, labelKey, labelFor }) {
         const label = labelFor ? labelFor(row[labelKey]) : row[labelKey];
         return (
           <div className="yield-bar-row" key={`${row[labelKey] || index}`}>
+            {/* Native title is a truncation echo of the ellipsised label, not an explanation. */}
             <span className="yield-bar-label" title={String(label || '')}>{label || pageText(locale, 'Unknown', 'לא ידוע')}</span>
             <i style={{ '--bar': yps / maxYield }} />
             <strong className="numeric" dir="ltr">{formatRate(yps, locale)}</strong>
@@ -77,8 +77,24 @@ export default function YieldView({ locale, refreshKey = 0 }) {
   const byDaypart = normalizeRows(payload?.by_daypart);
   const byProgramme = normalizeRows(payload?.by_programme);
   const currency = payload?.currency || 'ILS';
-  const netAvailable = Boolean(payload?.revenue_net_available);
-  const basisFormula = payload?.basis?.formula || '';
+  // Ground the per-second rate with a concrete read: what a standard 30 second
+  // spot earns on average at this rate. Rendered only from the real total.
+  const yieldValue = finiteNumber(totals.yield_per_second);
+  const spot30 = yieldValue !== null ? formatCurrency(yieldValue * 30, locale) : null;
+  const yieldTooltip = (
+    <>
+      {pageText(locale, 'Revenue divided by total ad seconds: what one second of commercial airtime earns on average across all of its rating, not per single rating point.', 'הכנסה חלקי סך שניות הפרסום: כמה מרוויחה בממוצע שנייה אחת של זמן פרסום על כל הרייטינג שלה, לא לנקודת רייטינג בודדת.')}
+      {spot30 ? (
+        <>
+          {' '}
+          {pageText(locale, 'For example, a 30 second spot earns on average about', 'לדוגמה, ספוט של 30 שניות מכניס בממוצע בערך')}
+          {' '}
+          <span className="ltr-run">{spot30}</span>
+          {'.'}
+        </>
+      ) : null}
+    </>
+  );
 
   return (
     <section className="page-panel yield-view">
@@ -97,23 +113,18 @@ export default function YieldView({ locale, refreshKey = 0 }) {
         </div>
       ) : (
         <>
+          <p className="yield-net-pointer" dir={he ? 'rtl' : 'ltr'}>
+            {pageText(locale, 'Full net in the from gross to net card.', 'נטו מלא בכרטיס מברוטו לנטו.')}
+          </p>
+
           <div className="yield-totals" dir={he ? 'rtl' : 'ltr'}>
-            <div className="yield-total-card yield-money-card">
-              <MoneyWaterfall
-                variant="panel"
-                locale={locale}
-                gross={netAvailable ? (finiteNumber(payload.revenue_ils) ?? totals.revenue) : totals.revenue}
-                retentionCost={netAvailable ? payload.retention_cost_ils : null}
-                net={netAvailable ? payload.revenue_net_ils : null}
-                retentionCostLow={payload.retention_cost_low}
-                retentionCostHigh={payload.retention_cost_high}
-                unavailableReason={netAvailable ? '' : String(payload.revenue_net_reason || '')}
-              />
-            </div>
-            <div className="yield-total-card">
-              <span><Gauge size={13} /> {pageText(locale, 'Yield per second', 'תשואה לשנייה')}</span>
-              <strong className="numeric" dir="ltr">{formatRate(totals.yield_per_second, locale)} {currency}/s</strong>
-            </div>
+            <Tooltip title={yieldTooltip} arrow placement="bottom">
+              <div className="yield-total-card">
+                <span><Gauge size={13} /> {pageText(locale, 'Yield per second', 'תשואה לשנייה')}</span>
+                <strong className="numeric" dir="ltr">{formatRate(totals.yield_per_second, locale)}</strong>
+                <small className="yield-unit-line">{pageText(locale, `${currency} per ad second`, '₪ לשנ׳ פרסום')}</small>
+              </div>
+            </Tooltip>
             <div className="yield-total-card">
               <span>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</span>
               <strong className="numeric" dir="ltr">{formatSeconds(totals.ad_seconds, locale)}</strong>
@@ -121,14 +132,14 @@ export default function YieldView({ locale, refreshKey = 0 }) {
           </div>
 
           <div className="yield-split">
-            <div className="yield-split-col">
+            <div className="yield-split-col yield-split-panel">
               <div className="yield-subhead">
                 <h3>{pageText(locale, 'By daypart', 'לפי רצועת שידור')}</h3>
                 <span>{byDaypart.length}</span>
               </div>
               <YieldBars rows={byDaypart} locale={locale} labelKey="group" labelFor={(value) => daypartLabel(value, locale)} />
             </div>
-            <div className="yield-split-col">
+            <div className="yield-split-col yield-split-panel">
               <div className="yield-subhead">
                 <h3>{pageText(locale, 'By programme', 'לפי תוכנית')}</h3>
                 <span>{byProgramme.length}</span>
@@ -138,17 +149,10 @@ export default function YieldView({ locale, refreshKey = 0 }) {
           </div>
 
           <p className="yield-foot-note">
-            {netAvailable
-              ? pageText(
-                  locale,
-                  `Yield per second = revenue / ad-seconds (${currency}/s). The net after retention cost prices the audience lost to breaks in ILS and subtracts it: ${basisFormula}`,
-                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הנטו אחרי עלות שימור מתמחר בשקלים את הקהל שאבד לברייקים ומחסיר אותו: ${basisFormula}`,
-                )
-              : pageText(
-                  locale,
-                  `Yield per second = revenue / ad-seconds (${currency}/s). The net after retention cost is not available: ${payload?.revenue_net_reason || 'the saved schedule lacks the per-segment audience needed to price it.'}`,
-                  `תשואה לשנייה = הכנסה / שניות פרסום (${currency}/s). הנטו אחרי עלות שימור אינו זמין: ${payload?.revenue_net_reason || 'ללוח השמור חסר הקהל לכל מקטע הדרוש לתמחור.'}`,
-                )}
+            {pageText(locale, 'Yield per second = revenue / ad-seconds', 'תשואה לשנייה = הכנסה / שניות פרסום')}
+            {' ('}
+            <span className="ltr-run">{`${currency}/s`}</span>
+            {').'}
           </p>
         </>
       )}

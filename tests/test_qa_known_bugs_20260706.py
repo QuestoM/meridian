@@ -70,7 +70,7 @@ def test_inventory_reports_honest_unavailable_not_a_fabricated_zero(client) -> N
     assert "revenue_available" in body
     if not body["revenue_available"]:
         assert summary["revenue"] is None
-        assert all(row.get("revenue") is None for row in body["by_channel"])
+        assert all(row.get("revenue") is None for row in body["by_daypart"])
     else:
         assert summary["revenue"] is not None
     # The forbidden state: spots present but revenue a hard fabricated 0.

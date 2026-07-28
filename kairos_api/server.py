@@ -262,6 +262,16 @@ app.include_router(scenario_router)
 app.include_router(dashboard_router)
 
 
+def _warm_owned_frontier() -> None:
+    """Warm the balance-curve sweep for the operator's channel, when one is
+    configured. The dashboard's balance chart defaults to that scope, so it
+    should be ready at first load like the unscoped sweep."""
+    settings = _load_settings()
+    owned = str(settings.operator_channel or "").strip()
+    if owned:
+        _frontier_async(settings, f"channel:{owned}")
+
+
 @app.on_event("startup")
 def _warm_overview_cache() -> None:
     """Pre-compute the expensive caches in a background thread so the first
@@ -306,13 +316,17 @@ def _warm_overview_cache() -> None:
             ("inventory", lambda: _inventory_cached(_signature([
                 DATA_DIR / "reference" / "Spots.xlsx",
                 DATA_DIR / "Spots.csv",
+                SETTINGS_PATH,
             ]))),
-            # Kick off the background frontier sweep at startup so it is "ready"
-            # by the time the operator opens the dashboard (it spawns its own
-            # thread and returns immediately, never blocking warm-up). The same
-            # sweep also computes the net-comparison bundle, so that surface warms
-            # with it and no second background thread is needed.
+            # Kick off the background frontier sweeps at startup so they are
+            # "ready" by the time the operator opens the dashboard (each spawns
+            # its own thread and returns immediately, never blocking warm-up).
+            # The unscoped sweep also computes the net-comparison bundle. The
+            # owned-channel sweep is warmed too because the balance chart
+            # defaults to the operator's channel, never to the engine's
+            # auto-picked representative day.
             ("frontier", lambda: _frontier_async(_load_settings(), None)),
+            ("frontier-owned", _warm_owned_frontier),
             # Prime the scenario-preview cache on the owned channel-day scope so the
             # first slider read is a cache hit, reusing this single warm thread.
             ("scenario", _warm_scenario),
