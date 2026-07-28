@@ -320,9 +320,65 @@ def test_seeded_links_match_the_measured_daily_mapping() -> None:
 
 
 def test_seeded_conditions_file_is_header_only() -> None:
+    """The shipped seed carries zero rules. Its header may lag newly added
+    optional columns (scope_weekdays landed after the seed); _load_csv pads any
+    missing column with "" (which the scope helpers read as ANY), so the pin is:
+    empty, only known columns, and the store loads it with the full column set."""
     frame = pd.read_csv(ROOT / "data" / "agency_conditions.csv", encoding="utf-8-sig")
     assert len(frame) == 0
-    assert list(frame.columns) == agc.CONDITION_COLUMNS
+    assert set(frame.columns) <= set(agc.CONDITION_COLUMNS)
+    loaded = agc._load_csv(ROOT / "data" / "agency_conditions.csv", agc.CONDITION_COLUMNS)
+    assert set(agc.CONDITION_COLUMNS) <= set(loaded.columns)
+
+
+# --- status vocabulary contract ------------------------------------------------
+
+def test_status_vocabulary_is_active_or_suspended(temp_stores) -> None:
+    """The drawer's deactivate/reactivate flow depends on exactly this vocabulary:
+    'inactive' is NOT a status and must 400, never silently pass."""
+    assert ag.STATUSES == ("active", "suspended")
+    _create()
+    with pytest.raises(Exception) as excinfo:
+        ag.update_agency("AGY_T1", ag.AgencyUpdate(status="inactive"))
+    assert getattr(excinfo.value, "status_code", None) == 400
+    assert ag.get_agency("AGY_T1")["status"] == "active"
+
+
+# --- ledger summary endpoint ----------------------------------------------------
+
+def test_summary_route_precedes_the_agency_id_route() -> None:
+    """'summary' must resolve to the totals endpoint, never be read as an id."""
+    paths = [route.path for route in ag.router.routes]
+    assert paths.index("/api/agencies/summary") < paths.index("/api/agencies/{agency_id}")
+
+
+def test_summary_is_honest_nulls_without_a_daily_file(monkeypatch) -> None:
+    import kairos_api.exporters as exporters
+
+    monkeypatch.setattr(exporters, "_load_daily_pricing", lambda: None)
+    summary = ag.agencies_summary()
+    assert summary["available"] is False
+    for key in ("gross_revenue", "net_revenue", "rebate_total", "spot_count", "basis"):
+        assert summary[key] is None
+    assert summary["boundary"] == ag.BOUNDARY_NOTE
+
+
+def test_summary_reports_the_ledger_totals(monkeypatch) -> None:
+    import kairos_api.exporters as exporters
+    import kairos_api.uploads as uploads
+
+    result = _price(_daily_frame(), _layer(rebate=10.0))
+    monkeypatch.setattr(exporters, "_load_daily_pricing", lambda: result)
+    monkeypatch.setattr(uploads, "_newest_daily", lambda: Path("some_daily_file.csv"))
+    summary = ag.agencies_summary()
+    assert summary["available"] is True
+    assert summary["gross_revenue"] == pytest.approx(result.total_revenue)
+    assert summary["net_revenue"] == pytest.approx(result.total_net_revenue)
+    assert summary["rebate_total"] == pytest.approx(
+        round(result.total_revenue - result.total_net_revenue, 2))
+    assert summary["rebate_total"] > 0  # the 10% rebate really shows up
+    assert summary["spot_count"] == len(result.priced)
+    assert summary["basis"] == "some_daily_file.csv"
 
 
 # --- cross-level overlap detection --------------------------------------------

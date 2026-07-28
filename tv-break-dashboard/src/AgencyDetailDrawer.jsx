@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
 import { Link2, Power, RotateCcw, Save, X } from 'lucide-react';
 import {
-  AGENCY_NUMBER_FIELDS,
   isAgencyDirty,
   isSynthetic,
   linkSourceLabel,
@@ -13,6 +12,7 @@ import {
   toAgencyPayload,
 } from './agencies-helpers';
 import { toConditionPayload } from './advertisers-helpers';
+import { useAssistantEntity } from './assistant-page-context';
 import AdvertiserConditions from './AdvertiserConditions';
 import './agency-management.css';
 
@@ -48,17 +48,18 @@ function Field({ label, value, onChange, type = 'text', ltr = false, full = fals
   );
 }
 
-// One contact block (primary or secondary): name, role, phone, email.
+// One contact block bound to the API's field names: prefix "contact" edits the
+// primary contact_* columns, prefix "contact2" the secondary contact2_* ones.
 function ContactFields({ prefix, title, draft, update, locale }) {
-  const key = (name) => (prefix ? `${prefix}_${name}` : name);
+  const key = (name) => `${prefix}_${name}`;
   return (
     <fieldset className="agz-contact-block">
       <legend>{title}</legend>
       <div className="agz-field-grid">
-        <Field label={pageText(locale, 'Name', 'שם')} value={draft[key('contact_name')]} onChange={(value) => update(key('contact_name'), value)} />
-        <Field label={pageText(locale, 'Role', 'תפקיד')} value={draft[key('contact_role')]} onChange={(value) => update(key('contact_role'), value)} />
-        <Field label={pageText(locale, 'Phone', 'טלפון')} value={draft[key('contact_phone')]} onChange={(value) => update(key('contact_phone'), value)} ltr />
-        <Field label={pageText(locale, 'Email', 'דוא״ל')} value={draft[key('contact_email')]} onChange={(value) => update(key('contact_email'), value)} ltr />
+        <Field label={pageText(locale, 'Name', 'שם')} value={draft[key('name')]} onChange={(value) => update(key('name'), value)} />
+        <Field label={pageText(locale, 'Role', 'תפקיד')} value={draft[key('role')]} onChange={(value) => update(key('role'), value)} />
+        <Field label={pageText(locale, 'Phone', 'טלפון')} value={draft[key('phone')]} onChange={(value) => update(key('phone'), value)} ltr />
+        <Field label={pageText(locale, 'Email', 'דוא״ל')} value={draft[key('email')]} onChange={(value) => update(key('email'), value)} ltr />
       </div>
     </fieldset>
   );
@@ -94,25 +95,27 @@ function LinkedAdvertisers({ state, locale }) {
   );
 }
 
-// Full record editor + linked advertisers + conditions builder for one agency.
-function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, onClose }) {
+// The drawer body for ONE agency record. Mounted only when a row exists and
+// keyed by agency_id, so the draft state initializes from a real record: the
+// old always-mounted variant read draft.status while draft was still null on
+// the first open render, which crashed the whole page white.
+function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose }) {
   const [draft, setDraft] = useState(row);
   const [saving, setSaving] = useState(false);
-  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
   const [linksState, setLinksState] = useState({ status: 'loading', links: [] });
   const [condState, setCondState] = useState({ status: 'loading', conditions: [] });
 
-  const agencyId = row ? row.agency_id : null;
+  const agencyId = row.agency_id;
 
+  useAssistantEntity('agency', agencyId, row.display_name || row.name || agencyId);
+
+  // After a save reloads the list, the row object is replaced; follow it.
   useEffect(() => {
     setDraft(row);
-    setConfirmDeactivate(false);
   }, [row]);
 
   const loadLinks = useCallback(async () => {
-    if (!agencyId) {
-      return;
-    }
     setLinksState({ status: 'loading', links: [] });
     try {
       const response = await fetch(`${API_BASE}/api/agencies/${encodeURIComponent(agencyId)}/advertisers`);
@@ -126,9 +129,6 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
   }, [agencyId]);
 
   const loadConditions = useCallback(async () => {
-    if (!agencyId) {
-      return;
-    }
     try {
       const response = await fetch(`${API_BASE}/api/agencies/${encodeURIComponent(agencyId)}/conditions`);
       if (!response.ok) {
@@ -141,20 +141,15 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
   }, [agencyId]);
 
   useEffect(() => {
-    if (open && agencyId) {
-      loadLinks();
-      loadConditions();
-    }
-  }, [open, agencyId, loadLinks, loadConditions]);
-
-  if (!row) {
-    return null;
-  }
+    loadLinks();
+    loadConditions();
+  }, [loadLinks, loadConditions]);
 
   const dirty = isAgencyDirty(row, draft);
   const status = statusMeta(draft.status, locale);
-  const active = status.key !== 'inactive';
-  const anchor = locale === 'he' ? 'left' : 'right';
+  // The API status vocabulary is exactly active | suspended: the footer keys
+  // off suspended so a suspended agency always shows Reactivate.
+  const suspended = status.key === 'suspended';
   const update = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
 
   async function putAgency(body) {
@@ -184,14 +179,14 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
   async function setStatusTo(nextStatus) {
     try {
       await putAgency(toAgencyPayload({ ...draft, status: nextStatus }));
-      const en = nextStatus === 'inactive' ? `Agency ${row.agency_id} deactivated.` : `Agency ${row.agency_id} reactivated.`;
-      const he = nextStatus === 'inactive' ? `הסוכנות ${row.agency_id} הושבתה.` : `הסוכנות ${row.agency_id} הופעלה מחדש.`;
+      const en = nextStatus === 'suspended' ? `Agency ${row.agency_id} suspended.` : `Agency ${row.agency_id} reactivated.`;
+      const he = nextStatus === 'suspended' ? `הסוכנות ${row.agency_id} הושהתה.` : `הסוכנות ${row.agency_id} הופעלה מחדש.`;
       notify(en, he);
       await onSaved();
     } catch (error) {
       notify(`Status change failed for ${row.agency_id} (${error.message}).`, `שינוי הסטטוס נכשל עבור ${row.agency_id} (${error.message}).`);
     } finally {
-      setConfirmDeactivate(false);
+      setConfirmSuspend(false);
     }
   }
 
@@ -241,12 +236,7 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
   }
 
   return (
-    <Drawer
-      anchor={anchor}
-      open={open}
-      onClose={onClose}
-      slotProps={{ paper: { className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' } }}
-    >
+    <>
       <div className="amz-drawer">
         <header className="amz-drawer-head">
           <div className="amz-drawer-title">
@@ -281,8 +271,8 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
 
         <section className="amz-drawer-section">
           <h3>{pageText(locale, 'Contacts', 'אנשי קשר')}</h3>
-          <ContactFields prefix="" title={pageText(locale, 'Primary contact', 'איש קשר ראשי')} draft={draft} update={update} locale={locale} />
-          <ContactFields prefix="secondary" title={pageText(locale, 'Secondary contact', 'איש קשר משני')} draft={draft} update={update} locale={locale} />
+          <ContactFields prefix="contact" title={pageText(locale, 'Primary contact', 'איש קשר ראשי')} draft={draft} update={update} locale={locale} />
+          <ContactFields prefix="contact2" title={pageText(locale, 'Secondary contact', 'איש קשר משני')} draft={draft} update={update} locale={locale} />
         </section>
 
         <section className="amz-drawer-section">
@@ -318,7 +308,7 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
             <AdvertiserConditions
               advertiserId={row.agency_id}
               conditions={condState.conditions}
-              overlaps={[]}
+              overlaps={row.overlaps}
               locale={locale}
               scopeOptions={scopeOptions}
               onCreate={handleCreateCondition}
@@ -329,36 +319,64 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
         </section>
 
         <footer className="amz-drawer-foot">
-          {active ? (
-            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDeactivate(true)}>
-              <Power size={14} />
-              {pageText(locale, 'Deactivate agency', 'השבתת הסוכנות')}
-            </Button>
-          ) : (
+          {suspended ? (
             <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setStatusTo('active')}>
               <Power size={14} />
               {pageText(locale, 'Reactivate agency', 'הפעלה מחדש של הסוכנות')}
+            </Button>
+          ) : (
+            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(true)}>
+              <Power size={14} />
+              {pageText(locale, 'Suspend agency', 'השהיית הסוכנות')}
             </Button>
           )}
         </footer>
       </div>
 
-      <Dialog open={confirmDeactivate} onClose={() => setConfirmDeactivate(false)} dir={locale === 'he' ? 'rtl' : 'ltr'}>
-        <DialogTitle>{pageText(locale, 'Deactivate this agency', 'השבתת הסוכנות')}</DialogTitle>
+      <Dialog open={confirmSuspend} onClose={() => setConfirmSuspend(false)} dir={locale === 'he' ? 'rtl' : 'ltr'}>
+        <DialogTitle>{pageText(locale, 'Suspend this agency', 'השהיית הסוכנות')}</DialogTitle>
         <DialogContent>
           <p className="agz-dialog-text">
-            {pageText(locale, `The agency ${row.agency_id} will be marked inactive. Its advertiser links and rules are kept, nothing is deleted, and it can be reactivated at any time.`, `הסוכנות ${row.agency_id} תסומן כלא פעילה. קישורי המפרסמים והכללים שלה נשמרים, דבר אינו נמחק, וניתן להפעיל אותה מחדש בכל עת.`)}
+            {pageText(locale, `The agency ${row.agency_id} will be marked suspended. Its rules and rebate go inert on the pricing path, its advertiser links and history are kept, nothing is deleted, and it can be reactivated at any time.`, `הסוכנות ${row.agency_id} תסומן כמושהית. הכללים והרבייט שלה מפסיקים לפעול בנתיב התמחור, קישורי המפרסמים וההיסטוריה נשמרים, דבר אינו נמחק, וניתן להפעיל אותה מחדש בכל עת.`)}
           </p>
         </DialogContent>
         <DialogActions>
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDeactivate(false)}>
+          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(false)}>
             {pageText(locale, 'Cancel', 'ביטול')}
           </Button>
-          <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => setStatusTo('inactive')}>
-            {pageText(locale, 'Deactivate', 'השבתה')}
+          <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => setStatusTo('suspended')}>
+            {pageText(locale, 'Suspend', 'השהיה')}
           </Button>
         </DialogActions>
       </Dialog>
+    </>
+  );
+}
+
+// Full record editor + linked advertisers + conditions builder for one agency.
+// The Drawer shell always mounts (so the open/close transition works); the body
+// mounts only with a real row, keyed by agency_id so all per-agency state
+// (draft, links, conditions, confirm dialog) resets cleanly between records.
+function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, onClose }) {
+  const anchor = locale === 'he' ? 'left' : 'right';
+  return (
+    <Drawer
+      anchor={anchor}
+      open={open && Boolean(row)}
+      onClose={onClose}
+      slotProps={{ paper: { className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' } }}
+    >
+      {row && (
+        <AgencyDrawerBody
+          key={row.agency_id}
+          row={row}
+          locale={locale}
+          scopeOptions={scopeOptions}
+          notify={notify}
+          onSaved={onSaved}
+          onClose={onClose}
+        />
+      )}
     </Drawer>
   );
 }

@@ -1,7 +1,10 @@
 /* Calendar events tab. Reuses the shared page-workspace / page-panel shell from
-   styles.css; everything here is specific to the events list, the bundled
-   holidays, the model-context disclosure and the overlap view, plus the
-   display-only event badges on the plan surfaces. */
+   styles.css; everything here is specific to the operator events list (search,
+   filter chips, compact expandable rows, pagination), the bundled holidays
+   accordions, the model-context disclosure and the overlap view, plus the
+   display-only event badges on the plan surfaces. Shared patterns (muted 12px
+   text, wrapping flex rows, reset buttons) are grouped selectors on purpose:
+   keep them merged rather than re-duplicating per class. */
 
 .cal-grid {
   display: grid;
@@ -24,18 +27,32 @@
   border: 1px solid #dde2e8;
   border-radius: 6px;
   background: #fbfcfd;
-  color: #5b6573;
-  font-size: 12px;
 }
 
 .cal-banner p {
   margin: 0;
 }
 
-.cal-panel-note {
-  margin: 0 0 10px;
+/* The shared muted 12px text treatment. */
+.cal-banner,
+.cal-editor-field,
+.cal-panel-note,
+.cal-empty,
+.cal-count-note,
+.cal-open-ended,
+.cal-event-notes,
+.cal-event-facts,
+.cal-event-dates,
+.cal-context-source,
+.cal-overlap-facts,
+.cal-holiday-row {
   font-size: 12px;
   color: #5b6573;
+  font-weight: 400;
+}
+
+.cal-panel-note {
+  margin: 0 0 10px;
 }
 
 .cal-verify-note {
@@ -45,71 +62,153 @@
 
 .cal-empty {
   margin: 6px 0;
-  font-size: 12px;
-  color: #5b6573;
 }
 
-/* Event rows */
-
-.cal-event-row {
-  border-top: 1px solid #dde2e8;
-  padding: 10px 0;
-  display: grid;
-  gap: 6px;
-}
-
-.cal-event-row.inactive .cal-event-name,
-.cal-event-row.inactive .cal-event-facts {
-  color: #8a94a3;
-}
-
-.cal-event-main {
+/* Wrapping horizontal rows share one flex treatment. */
+.cal-toolbar,
+.cal-filter-chips,
+.cal-search,
+.cal-event-facts,
+.cal-event-dates,
+.cal-event-actions,
+.cal-editor-actions,
+.cal-show-more,
+.cal-confirm,
+.cal-weekday-table,
+.cal-overlap-head,
+.cal-overlap-dates,
+.cal-holiday-row,
+.plan-event-badges {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.cal-event-name {
+.cal-toolbar {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cal-search {
+  gap: 6px;
+  flex-wrap: nowrap;
+  flex: 1 1 200px;
+  min-height: 32px;
+  border: 1px solid #dde2e8;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 0 8px;
+  color: #5b6573;
+}
+
+.cal-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: #111827;
+}
+
+.cal-filter-chips,
+.plan-event-badges {
+  gap: 6px;
+}
+
+/* Event rows: a compact always-visible head line plus a collapsed details area */
+
+.cal-event-row {
+  border-top: 1px solid #dde2e8;
+  padding: 2px 0;
+}
+
+.cal-event-row.inactive .cal-event-name,
+.cal-event-row.inactive .cal-event-facts,
+.cal-event-row.inactive .cal-event-dates {
+  color: #8a94a3;
+}
+
+/* Reset-button treatment shared by the row head and the year accordion toggle. */
+.cal-event-head,
+.cal-holiday-year-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 8px 4px;
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+}
+
+.cal-event-head {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.cal-event-head:focus-visible,
+.cal-holiday-year-toggle:focus-visible,
+.cal-banner-link:focus-visible {
+  outline: 2px solid #0f8b7e;
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+.cal-row-caret {
+  color: #5b6573;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.cal-row-caret.open {
+  transform: rotate(180deg);
+}
+
+.cal-event-name,
+.cal-holiday-year-head {
   font-size: 13px;
   font-weight: 640;
   color: #111827;
 }
 
-.cal-event-facts {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: #5b6573;
+.cal-event-dates {
+  margin-inline-start: auto;
+}
+
+.cal-event-details,
+.cal-overlap-row,
+.cal-context-value,
+.cal-drift-block {
+  display: grid;
+  gap: 6px;
+}
+
+.cal-event-details {
+  padding: 0 26px 10px;
 }
 
 .cal-event-notes {
   margin: 0;
-  font-size: 12px;
-  color: #5b6573;
 }
 
-.cal-event-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.cal-row-highlight {
+  background: #eef7f5;
+  border-radius: 6px;
+}
+
+.cal-show-more {
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #dde2e8;
 }
 
 .cal-confirm {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   font-size: 12px;
   color: #111827;
-}
-
-.cal-open-ended {
-  font-size: 12px;
-  color: #5b6573;
 }
 
 .cal-open-ended.war {
@@ -120,7 +219,8 @@
 /* Chips */
 
 .cal-type-chip,
-.cal-chip {
+.cal-chip,
+.cal-date-chip {
   display: inline-flex;
   align-items: center;
   padding: 1px 8px;
@@ -139,7 +239,8 @@
   color: #0f8b7e;
 }
 
-.cal-type-chip.war {
+.cal-type-chip.war,
+.cal-chip.warn {
   border-color: #e5c9a6;
   background: #fbf3e7;
   color: #b86e00;
@@ -155,12 +256,6 @@
   border-color: #d3cbe8;
   background: #f2effb;
   color: #5b4a9e;
-}
-
-.cal-chip.warn {
-  border-color: #e5c9a6;
-  background: #fbf3e7;
-  color: #b86e00;
 }
 
 .cal-chip.off {
@@ -184,8 +279,6 @@
 .cal-editor-field {
   display: grid;
   gap: 4px;
-  font-size: 12px;
-  color: #5b6573;
 }
 
 .cal-editor-field select,
@@ -199,7 +292,9 @@
   padding: 0 8px;
 }
 
-.cal-label-hint {
+.cal-label-hint,
+.plan-event-label,
+.cal-context-label {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -207,17 +302,14 @@
 }
 
 .cal-editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   grid-column: 1 / -1;
 }
 
-/* Bundled holidays */
+/* Bundled holidays: per-year accordions, collapsed by default */
 
 .cal-holiday-year {
   border-top: 1px solid #dde2e8;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .cal-holiday-year-head {
@@ -225,20 +317,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 640;
-  color: #111827;
 }
 
 .cal-holiday-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 3px 0;
-  font-size: 12px;
-  color: #5b6573;
+  padding: 6px 8px;
+  padding-inline-start: 26px;
 }
 
 .cal-holiday-name {
@@ -246,11 +329,6 @@
 }
 
 /* Model context panel */
-
-.cal-context-list {
-  display: grid;
-  gap: 0;
-}
 
 .cal-context-row {
   display: grid;
@@ -269,24 +347,12 @@
 }
 
 .cal-context-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
   color: #5b6573;
   font-weight: 640;
-  cursor: help;
 }
 
 .cal-context-value {
   color: #111827;
-  display: grid;
-  gap: 6px;
-}
-
-.cal-weekday-table {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .cal-weekday-cell {
@@ -304,13 +370,7 @@
   color: #5b6573;
 }
 
-.cal-context-source {
-  color: #5b6573;
-}
-
 .cal-drift-block {
-  display: grid;
-  gap: 6px;
   justify-items: start;
 }
 
@@ -322,7 +382,7 @@
 .cal-weekly-table th,
 .cal-weekly-table td {
   border: 1px solid #dde2e8;
-  padding: 3px 10px;
+  padding: 6px 12px;
   text-align: center;
 }
 
@@ -336,62 +396,42 @@
   color: #b86e00;
 }
 
+/* In-banner link to another dashboard page */
+
+.cal-banner-link {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-inline-start: 6px;
+  font-size: 12px;
+  color: #315d8c;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Overlap panel */
 
 .cal-overlap-row {
   border-top: 1px solid #dde2e8;
   padding: 8px 0;
-  display: grid;
-  gap: 6px;
-}
-
-.cal-overlap-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .cal-overlap-facts {
   display: grid;
   gap: 4px;
-  font-size: 12px;
-  color: #5b6573;
 }
 
 .cal-overlap-dates {
-  display: flex;
-  align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
 }
 
 .cal-date-chip {
-  display: inline-flex;
   padding: 0 6px;
-  border: 1px solid #dde2e8;
   border-radius: 4px;
-  background: #fbfcfd;
-  font-size: 11px;
   color: #111827;
-  white-space: nowrap;
 }
 
 /* Display-only event badges on the plan surfaces */
-
-.plan-event-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.plan-event-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: help;
-}
 
 .canvas-day-event {
   display: block;

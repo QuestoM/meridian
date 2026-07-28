@@ -34,6 +34,19 @@ const ISO_DAY_NAMES = {
   5: ['Fri', 'שישי'], 6: ['Sat', 'שבת'], 7: ['Sun', 'ראשון'],
 };
 
+// Presentation order for weekday displays: the Israeli week starts Sunday
+// (ISO 7) and ends Saturday (ISO 6). Data stays keyed ISO; only the display
+// order changes. Unknown keys sort after the known week, never dropped.
+const ISRAELI_WEEKDAY_ORDER = [7, 1, 2, 3, 4, 5, 6];
+
+export function israeliWeekdaySort(entries) {
+  const rank = (entry) => {
+    const index = ISRAELI_WEEKDAY_ORDER.indexOf(Number(entry?.iso_weekday));
+    return index === -1 ? ISRAELI_WEEKDAY_ORDER.length : index;
+  };
+  return [...(entries || [])].sort((a, b) => rank(a) - rank(b));
+}
+
 // JS Date.getDay() order, mapped onto the planner's day keys.
 const WEEKDAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -216,7 +229,7 @@ export function ModelContextPanel({ context, locale }) {
               ) : (
                 <>
                   <div className="cal-weekday-table">
-                    {ctx.premiums.values.map((entry) => {
+                    {israeliWeekdaySort(ctx.premiums.values).map((entry) => {
                       const day = ISO_DAY_NAMES[Number(entry.iso_weekday)];
                       const value = finiteNumber(entry.multiplier);
                       return (

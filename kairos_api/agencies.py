@@ -282,6 +282,55 @@ def list_agencies() -> dict[str, Any]:
     return {"agencies": agencies, "columns": COLUMNS, "boundary": BOUNDARY_NOTE}
 
 
+@router.get("/summary")
+def agencies_summary() -> dict[str, Any]:
+    """Gross vs net totals of the daily per-spot ledger, for the Agencies page.
+
+    Runs the same real pricing pipeline the spots.csv export uses over the newest
+    daily file and reports its totals: gross revenue, net revenue after agency
+    rebates (reporting only, distinct from the retention net), the rebate total,
+    and the priced spot count. ``basis`` names the daily file the totals came
+    from. With no daily file (or a pipeline failure) every figure is null and
+    ``available`` is false; nothing is estimated.
+
+    Declared before the ``/{agency_id}`` route so "summary" is never read as an
+    agency id.
+    """
+    empty: dict[str, Any] = {
+        "available": False,
+        "gross_revenue": None,
+        "net_revenue": None,
+        "rebate_total": None,
+        "spot_count": None,
+        "basis": None,
+        "boundary": BOUNDARY_NOTE,
+    }
+    try:
+        from kairos_api.exporters import _load_daily_pricing
+        from kairos_api.uploads import _newest_daily
+
+        result = _load_daily_pricing()
+    except Exception:
+        return empty
+    if result is None:
+        return empty
+    gross = result.total_revenue
+    net = result.total_net_revenue
+    try:
+        path = _newest_daily()
+    except Exception:
+        path = None
+    return {
+        "available": True,
+        "gross_revenue": gross,
+        "net_revenue": net,
+        "rebate_total": round(gross - net, 2),
+        "spot_count": len(result.priced),
+        "basis": path.name if path is not None else None,
+        "boundary": BOUNDARY_NOTE,
+    }
+
+
 @router.get("/{agency_id}")
 def get_agency(agency_id: str) -> dict[str, Any]:
     from kairos_api.agency_conditions import conditions_for, link_summary_for, overlaps_for

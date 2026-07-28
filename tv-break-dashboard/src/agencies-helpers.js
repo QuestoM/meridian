@@ -1,7 +1,7 @@
 // Pure helpers for the Agencies page. Framework-free so they are trivially
 // testable and reusable. The record shape mirrors the /api/agencies contract:
-// agency_id, name, display_name, aliases, agency_type, contact_*,
-// secondary_contact_*, address_city, address_street, vat_id,
+// agency_id, name, display_name, aliases, agency_type, contact_* (primary),
+// contact2_* (secondary), address_city, address_street, vat_id,
 // payment_terms_days, rebate_percent, commission_percent, credit_limit_ils,
 // status, onboarded_at, notes, data_source.
 
@@ -20,10 +20,10 @@ export const AGENCY_TEXT_FIELDS = [
   'contact_role',
   'contact_phone',
   'contact_email',
-  'secondary_contact_name',
-  'secondary_contact_role',
-  'secondary_contact_phone',
-  'secondary_contact_email',
+  'contact2_name',
+  'contact2_role',
+  'contact2_phone',
+  'contact2_email',
   'address_city',
   'address_street',
   'vat_id',
@@ -124,7 +124,7 @@ export function filterAgencies(agencies, { search, status }) {
     }
     const haystack = [
       row.agency_id, row.name, row.display_name, row.aliases,
-      row.contact_name, row.secondary_contact_name, row.notes,
+      row.contact_name, row.contact2_name, row.notes,
     ].map((value) => String(value ?? '').toLowerCase()).join(' ');
     return haystack.includes(term);
   });
@@ -178,4 +178,23 @@ export function linkSourceLabel(source, locale) {
 // The best human name for a card title; the raw id stays visible separately.
 export function agencyTitle(row) {
   return String(row.display_name || row.name || row.agency_id || '');
+}
+
+// Normalize the /api/agencies/summary payload. available is true only when the
+// backend says so AND the money figures are real numbers; anything else renders
+// the honest empty state, never a fabricated zero.
+export function normalizeAgencySummary(payload) {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  const gross = numberOrNull(source.gross_revenue);
+  const net = numberOrNull(source.net_revenue);
+  const rebate = numberOrNull(source.rebate_total);
+  const spots = numberOrNull(source.spot_count);
+  return {
+    available: source.available === true && gross !== null && net !== null,
+    gross,
+    net,
+    rebate,
+    spots,
+    basis: typeof source.basis === 'string' && source.basis.trim() ? source.basis : null,
+  };
 }

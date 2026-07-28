@@ -104,6 +104,64 @@
   color: var(--muted);
 }
 
+/* ----- Daily-ledger totals strip ----- */
+.agz-totals-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.agz-totals-strip.empty {
+  padding: 10px 16px;
+}
+.agz-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+.agz-total-label {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+.agz-total-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.agz-total-net .agz-total-value {
+  color: var(--teal-ink);
+}
+.agz-totals-basis {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  min-width: 220px;
+}
+.agz-totals-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.agz-totals-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
 /* ----- Drawer: header chips ----- */
 .agz-head-chips {
   display: flex;

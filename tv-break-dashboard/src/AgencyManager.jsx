@@ -6,10 +6,12 @@ import {
   filterAgencies,
   isSynthetic,
   normalizeAgencies,
+  normalizeAgencySummary,
   pageText,
   statusKeys,
   statusMeta,
 } from './agencies-helpers';
+import { formatCurrency, formatNumber } from './surface-helpers';
 import AgencyDetailDrawer, { SyntheticChip } from './AgencyDetailDrawer';
 import './agency-management.css';
 
@@ -52,7 +54,56 @@ function BoundaryNote({ locale }) {
   );
 }
 
-function AgencyManager({ copy, locale, notify, onGlobalRefresh }) {
+// Compact totals strip for the daily ledger money. The headline figure is net
+// revenue AFTER agency rebates, which is a reporting figure distinct from the
+// retention net; the basis (the daily ledger and its source file) is stated on
+// the strip so the two nets can never be confused. Honest empty state when no
+// daily file is loaded; nothing renders while the summary is still loading.
+function LedgerTotalsStrip({ summary, locale, setActiveView }) {
+  if (summary === undefined) {
+    return null;
+  }
+  if (!summary || !summary.available) {
+    return (
+      <div className="agz-totals-strip empty" role="note">
+        <span className="agz-subnote">{pageText(locale, 'No daily spot file is loaded, so there are no gross or net totals to show.', 'לא טעון קובץ ספוטים יומי, ולכן אין סכומי ברוטו או נטו להצגה.')}</span>
+      </div>
+    );
+  }
+  const basis = summary.basis
+    ? pageText(locale, `Basis: the daily ledger (${summary.basis}). This net is the reporting net after agency rebates, not the retention net.`, `הבסיס: הלדג'ר היומי (${summary.basis}). זהו נטו לדיווח אחרי החזרי סוכנויות, לא הנטו של עלות השימור.`)
+    : pageText(locale, 'Basis: the daily ledger. This net is the reporting net after agency rebates, not the retention net.', "הבסיס: הלדג'ר היומי. זהו נטו לדיווח אחרי החזרי סוכנויות, לא הנטו של עלות השימור.");
+  return (
+    <div className="agz-totals-strip" role="group" aria-label={pageText(locale, 'Daily ledger totals', 'סיכומי הלדג\'ר היומי')}>
+      <div className="agz-total agz-total-net">
+        <span className="agz-total-label">{pageText(locale, 'Net revenue after agency rebates', 'הכנסה נטו אחרי החזרי סוכנויות')}</span>
+        <span className="agz-total-value ltr-run">{formatCurrency(summary.net, locale)}</span>
+      </div>
+      <div className="agz-total">
+        <span className="agz-total-label">{pageText(locale, 'Gross revenue', 'הכנסה ברוטו')}</span>
+        <span className="agz-total-value ltr-run">{formatCurrency(summary.gross, locale)}</span>
+      </div>
+      <div className="agz-total">
+        <span className="agz-total-label">{pageText(locale, 'Agency rebates', 'החזרי סוכנויות')}</span>
+        <span className="agz-total-value ltr-run">{formatCurrency(summary.rebate, locale)}</span>
+      </div>
+      <div className="agz-total">
+        <span className="agz-total-label">{pageText(locale, 'Priced spots', 'ספוטים מתומחרים')}</span>
+        <span className="agz-total-value ltr-run">{formatNumber(summary.spots, locale)}</span>
+      </div>
+      <div className="agz-totals-basis">
+        <span className="agz-subnote" dir="auto">{basis}</span>
+        {typeof setActiveView === 'function' && (
+          <button type="button" className="agz-totals-link" onClick={() => setActiveView('Reports')}>
+            {pageText(locale, 'Open the ledger on the Reports page', "לצפייה בלדג'ר בעמוד הדוחות")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AgencyManager({ copy, locale, notify, onGlobalRefresh, setActiveView }) {
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
@@ -60,6 +111,9 @@ function AgencyManager({ copy, locale, notify, onGlobalRefresh }) {
   const [status, setStatus] = useState('all');
   const [openId, setOpenId] = useState(null);
   const [scopeOptions, setScopeOptions] = useState({});
+  // undefined = still loading (strip hidden), null = fetch failed (honest empty
+  // state), object = normalized summary payload.
+  const [summary, setSummary] = useState(undefined);
 
   // The scope vocabulary (positions, genres, dayparts, programmes) is shared
   // with the advertiser rules and served by the advertisers options endpoint.
@@ -101,9 +155,22 @@ function AgencyManager({ copy, locale, notify, onGlobalRefresh }) {
     }
   }, []);
 
+  const loadSummary = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/agencies/summary`);
+      if (!response.ok) {
+        throw new Error(String(response.status));
+      }
+      setSummary(normalizeAgencySummary(await response.json()));
+    } catch {
+      setSummary(null);
+    }
+  }, []);
+
   useEffect(() => {
     loadAgencies();
-  }, [loadAgencies]);
+    loadSummary();
+  }, [loadAgencies, loadSummary]);
 
   const statuses = useMemo(() => statusKeys(agencies), [agencies]);
   const visible = useMemo(
@@ -118,6 +185,8 @@ function AgencyManager({ copy, locale, notify, onGlobalRefresh }) {
 
   async function handleSaved() {
     await loadAgencies();
+    // A rebate or status edit changes the reported net, so refresh the totals.
+    loadSummary();
     onGlobalRefresh?.();
   }
 
@@ -130,13 +199,23 @@ function AgencyManager({ copy, locale, notify, onGlobalRefresh }) {
             {pageText(locale, 'A record per media agency: contacts, commercial terms, the advertisers it books, and its pricing rules. Click a card to open the full record.', 'כרטיס לכל סוכנות מדיה: אנשי קשר, תנאים מסחריים, המפרסמים שהיא מנהלת וכללי התמחור שלה. לחיצה על כרטיס פותחת את הרשומה המלאה.')}
           </p>
         </div>
-        <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadAgencies}>
+        <Button
+          className="secondary-button compact"
+          type="button"
+          variant="outlined"
+          onClick={() => {
+            loadAgencies();
+            loadSummary();
+          }}
+        >
           <RefreshCcw size={14} />
           {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
         </Button>
       </div>
 
       <BoundaryNote locale={locale} />
+
+      <LedgerTotalsStrip summary={summary} locale={locale} setActiveView={setActiveView} />
 
       <div className="amz-toolbar">
         <div className="amz-search">
