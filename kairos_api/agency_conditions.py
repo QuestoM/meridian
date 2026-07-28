@@ -42,6 +42,11 @@ from kairos.optimize.advertiser_rules import (
     _normalize_mode,
     normalize_scope,
 )
+from kairos_api.condition_validation import (
+    validate_effective_mode_value,
+    validate_mode_value,
+    validate_weekday_scope,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -57,6 +62,7 @@ CONDITION_COLUMNS = [
     "scope_genres",
     "scope_dayparts",
     "scope_programmes",
+    "scope_weekdays",
     "effect",
     "value",
     "mode",
@@ -76,7 +82,11 @@ class LinkCreate(BaseModel):
 
 
 class ConditionCreate(BaseModel):
-    """A new scoped agency condition, the advertiser condition shape."""
+    """A new scoped agency condition, the advertiser condition shape.
+
+    ``scope_weekdays`` is ANY or comma-joined ISO weekday numbers 1..7
+    (Monday=1, Saturday=6, Sunday=7).
+    """
 
     rule_id: str
     effect: str
@@ -86,6 +96,7 @@ class ConditionCreate(BaseModel):
     scope_genres: str = "ANY"
     scope_dayparts: str = "ANY"
     scope_programmes: str = "ANY"
+    scope_weekdays: str = "ANY"
     notes: str = ""
 
 
@@ -99,6 +110,7 @@ class ConditionUpdate(BaseModel):
     scope_genres: Optional[str] = None
     scope_dayparts: Optional[str] = None
     scope_programmes: Optional[str] = None
+    scope_weekdays: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -232,6 +244,7 @@ def _condition_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "scope_genres": normalize_scope(row.get("scope_genres")),
         "scope_dayparts": normalize_scope(row.get("scope_dayparts")),
         "scope_programmes": normalize_scope(row.get("scope_programmes")),
+        "scope_weekdays": normalize_scope(row.get("scope_weekdays")),
         "notes": str(row.get("notes", "")),
     }
 
@@ -352,16 +365,19 @@ def list_conditions(agency_id: str) -> dict[str, Any]:
 def create_condition(agency_id: str, payload: ConditionCreate,
                      request: Request = None) -> dict[str, Any]:
     _require_agency(agency_id)
+    mode = _normalize_mode(payload.mode)
+    validate_mode_value(mode, payload.value)
     new_row = {
         "agency_id": agency_id,
         "rule_id": payload.rule_id,
         "effect": _validate_effect(payload.effect),
         "value": str(float(payload.value)),
-        "mode": _normalize_mode(payload.mode),
+        "mode": mode,
         "scope_positions": normalize_scope(payload.scope_positions),
         "scope_genres": normalize_scope(payload.scope_genres),
         "scope_dayparts": normalize_scope(payload.scope_dayparts),
         "scope_programmes": normalize_scope(payload.scope_programmes),
+        "scope_weekdays": validate_weekday_scope(payload.scope_weekdays),
         "notes": payload.notes,
     }
     with _STORE_LOCK:
@@ -399,16 +415,22 @@ def update_condition(agency_id: str, rule_id: str, payload: ConditionUpdate,
     with _STORE_LOCK:
         frame = _load_csv(CONDITIONS_PATH, CONDITION_COLUMNS)
         index = _locate_condition(frame, agency_id, rule_id)
+        effective_mode = _normalize_mode(
+            payload.mode if payload.mode is not None else frame.at[index, "mode"]
+        )
+        validate_effective_mode_value(effective_mode, payload.value, frame.at[index, "value"])
         if payload.effect is not None:
             frame.at[index, "effect"] = _validate_effect(payload.effect)
         if payload.value is not None:
             frame.at[index, "value"] = str(float(payload.value))
         if payload.mode is not None:
-            frame.at[index, "mode"] = _normalize_mode(payload.mode)
+            frame.at[index, "mode"] = effective_mode
         for scope in ("scope_positions", "scope_genres", "scope_dayparts", "scope_programmes"):
             value = getattr(payload, scope)
             if value is not None:
                 frame.at[index, scope] = normalize_scope(value)
+        if payload.scope_weekdays is not None:
+            frame.at[index, "scope_weekdays"] = validate_weekday_scope(payload.scope_weekdays)
         if payload.notes is not None:
             frame.at[index, "notes"] = payload.notes
         _snapshot(request, "agency_conditions")

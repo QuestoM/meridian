@@ -6,7 +6,8 @@ genres, prime-time-only flag). Until now that file was written by the CRUD in
 ``kairos_api/advertisers.py`` and never read by the engine. This module makes it
 real and adds a second, finer store: ``data/advertiser_conditions.csv`` holds
 scoped conditional rules (premium multipliers, requirements, forbids) keyed by
-advertiser and scoped by position, genre and daypart.
+advertiser and scoped by position, genre, daypart, programme, campaign and
+weekday (ISO 1..7, so a rule can price Saturdays, שבת = 6, differently).
 
 Where the rules take effect. The weekly break-count optimizer
 (:mod:`kairos.optimize.optimizer`) decides how many breaks a programme segment
@@ -26,10 +27,14 @@ segment scope (genre, daypart, programme) into a placement-preference weight
 
 Honesty rules: an unknown advertiser yields a premium of 1.0 (never zero) and is
 allowed; scopes are token sets per dimension where an empty scope or ``ANY``
-matches everything; nothing is invented to fill an empty conditions file.
+matches everything; a weekday-scoped rule never matches a caller that has no
+date (``weekday=None``), so nothing is guessed; nothing is invented to fill an
+empty conditions file.
 
-Pure math helpers and CSV loaders live in
-:mod:`kairos.optimize._rule_helpers` to keep this file under 450 lines.
+Pure math helpers and CSV loaders live in :mod:`kairos.optimize._rule_helpers`,
+and the Baseline/Condition dataclasses in :mod:`kairos.optimize._rule_models`,
+to keep this file under the project line limit. Both are re-exported here so
+import paths are stable.
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from typing import Optional
 
 from kairos.optimize._rule_helpers import (
     CPP_MODES,
+    apply_surcharge_discount,
     compute_premium_factor,
     condition_from_row as _condition_from_row_helper,
     dimension_matches,
@@ -51,36 +57,38 @@ from kairos.optimize._rule_helpers import (
     scope_tokens,
     scopes_intersect,
 )
+from kairos.optimize._rule_models import (  # noqa: F401 - re-exported names
+    ANY,
+    FORBID,
+    GOLD_POSITION,
+    PREMIUM,
+    PRESSURE,
+    REQUIRE,
+    _EFFECTS,
+    AllowDecision,
+    Baseline,
+    Condition,
+    OverlapFinding,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RULES_PATH = ROOT / "data" / "advertiser_rules.csv"
 DEFAULT_CONDITIONS_PATH = ROOT / "data" / "advertiser_conditions.csv"
 
-# Effects a conditional rule can carry.
-PREMIUM = "premium"
-REQUIRE = "require"
-FORBID = "forbid"
-# PRESSURE is a placement-only lever: steers WHERE the optimizer wants to place
-# a spot (raises the slot's apparent value) but is NEVER charged, so the real
-# revenue total is unchanged. Its value is a percent uplift (10 means +10%).
-PRESSURE = "pressure"
-_EFFECTS = (PREMIUM, REQUIRE, FORBID, PRESSURE)
-
-ANY = "ANY"
-
-# How the optimizer/pricing path describes positions inside a break.
-GOLD_POSITION = "gold"
-
 # How a PREMIUM rule's value is interpreted.
 #   * MULTIPLIER (default): value IS the multiplier, e.g. 1.15 means +15%.
 #   * PERCENT: value is a signed percent, e.g. +15 -> 1.15, -15 -> 0.85.
 #   * CPP_ABSOLUTE / CPP_ADD / CPP_DISCOUNT: value is a cost-per-point AMOUNT.
+#   * PREMIUM_DISCOUNT: value is a percent 0..100 taken off the premium
+#     SURCHARGE only, applied AFTER every other premium mode; it never pushes
+#     the premium below 1.0 or above its pre-discount value.
 MULTIPLIER = "multiplier"
 PERCENT = "percent"
 CPP_ABSOLUTE = "cpp_absolute"
 CPP_ADD = "cpp_add"
 CPP_DISCOUNT = "cpp_discount"
-_PREMIUM_MODES = (MULTIPLIER, PERCENT, CPP_ABSOLUTE, CPP_ADD, CPP_DISCOUNT)
+PREMIUM_DISCOUNT = "premium_discount"
+_PREMIUM_MODES = (MULTIPLIER, PERCENT, CPP_ABSOLUTE, CPP_ADD, CPP_DISCOUNT, PREMIUM_DISCOUNT)
 _CPP_MODES = CPP_MODES
 
 # Private aliases matching the underscore style used in the rest of this file.
@@ -91,133 +99,6 @@ _to_float = parse_float
 _to_bool = parse_bool
 _normalize_mode = parse_mode
 _premium_factor = compute_premium_factor
-
-
-@dataclass(frozen=True)
-class Baseline:
-    """The baseline rule for one advertiser, from advertiser_rules.csv."""
-
-    advertiser_id: str
-    default_premium: float = 1.0
-    allow_positions: frozenset[str] = frozenset()
-    allow_genres: frozenset[str] = frozenset()
-    prime_time_only: bool = False
-    # Optional per-advertiser delivery-pacing defaults, read from the urgency_k /
-    # ahead_k columns of advertiser_rules.csv. ``None`` means "use the channel-wide
-    # default". They steer how aggressively this advertiser's campaigns are leaned
-    # toward (behind pace) or away from (over-delivered) when no per-campaign
-    # override is set, the same layering the premium rules use. They touch only the
-    # optimizer's placement ranking, never charged revenue.
-    urgency_k: Optional[float] = None
-    ahead_k: Optional[float] = None
-
-    def allows(self, *, position: Optional[int], genre: Optional[str], daypart: Optional[str]) -> bool:
-        """True when a spot passes this advertiser's baseline constraints."""
-        position_token = None if position is None else str(position)
-        if not _dimension_matches(self.allow_positions, position_token):
-            return False
-        if not _dimension_matches(self.allow_genres, genre):
-            return False
-        if self.prime_time_only:
-            if daypart is None or str(daypart).strip().lower() != "prime":
-                return False
-        return True
-
-
-@dataclass(frozen=True)
-class Condition:
-    """One scoped conditional rule for an advertiser.
-
-    ``effect`` is one of PREMIUM, REQUIRE, FORBID or PRESSURE. ``value`` is the
-    premium amount (a multiplier, a percent or a cost-per-point amount depending
-    on ``mode``) or the pressure percent, ignored for require/forbid. ``mode``
-    defaults to MULTIPLIER so legacy rows behave unchanged. The four scope sets
-    are token sets (empty = ANY = matches everything).
-    """
-
-    advertiser_id: str
-    rule_id: str
-    effect: str
-    value: float = 1.0
-    mode: str = MULTIPLIER
-    scope_positions: frozenset[str] = frozenset()
-    scope_genres: frozenset[str] = frozenset()
-    scope_dayparts: frozenset[str] = frozenset()
-    scope_programmes: frozenset[str] = frozenset()
-    # A campaign always belongs to one advertiser, so a campaign-scoped rule
-    # narrows this advertiser's rule to specific campaigns. Empty = ANY campaign.
-    scope_campaigns: frozenset[str] = frozenset()
-    # Which named rate-card layer a PREMIUM rule REPLACES, instead of stacking
-    # on the running premium. "" (the default) keeps the legacy whole-stack
-    # behavior so every existing rule is byte-identical. A non-empty target_layer
-    # (one of program/prime/day/show/position/ad_type, or "final" for an
-    # adjust-the-whole-price rule) makes the rule a per-layer or final override,
-    # consumed by kairos.optimize.layer_overrides; the legacy effective_premium
-    # path ignores targeted rules so charged revenue is unchanged until the
-    # layered spot-pricing path is switched on.
-    target_layer: str = ""
-    priority: int = 0
-    notes: str = ""
-
-    def matches(
-        self,
-        *,
-        position: Optional[int] = None,
-        genre: Optional[str] = None,
-        daypart: Optional[str] = None,
-        programme: Optional[str] = None,
-        campaign: Optional[str] = None,
-    ) -> bool:
-        """True when an observed (position, genre, daypart, programme, campaign) is in scope."""
-        position_token = None if position is None else str(position)
-        return (
-            _dimension_matches(self.scope_positions, position_token)
-            and _dimension_matches(self.scope_genres, genre)
-            and _dimension_matches(self.scope_dayparts, daypart)
-            and _dimension_matches(self.scope_programmes, programme)
-            and _dimension_matches(self.scope_campaigns, campaign)
-        )
-
-    def specificity(self) -> int:
-        """How many scope dimensions this rule constrains (more = more specific).
-
-        Used by the most-specific-wins resolver: a rule scoped to advertiser +
-        campaign + position is more specific than one scoped to advertiser + position,
-        so it wins per layer. An empty scope set counts as unconstrained (ANY).
-        """
-        return sum(1 for s in (
-            self.scope_positions, self.scope_genres, self.scope_dayparts,
-            self.scope_programmes, self.scope_campaigns,
-        ) if s)
-
-    def scope_intersects(self, other: "Condition") -> bool:
-        """True when this rule's scope can describe the same spot as ``other``."""
-        return (
-            _scopes_intersect(self.scope_positions, other.scope_positions)
-            and _scopes_intersect(self.scope_genres, other.scope_genres)
-            and _scopes_intersect(self.scope_dayparts, other.scope_dayparts)
-            and _scopes_intersect(self.scope_programmes, other.scope_programmes)
-            and _scopes_intersect(self.scope_campaigns, other.scope_campaigns)
-        )
-
-
-@dataclass(frozen=True)
-class AllowDecision:
-    """Whether a spot is allowed, with a human-readable reason for diagnostics."""
-
-    allowed: bool
-    reason: str
-
-
-@dataclass(frozen=True)
-class OverlapFinding:
-    """One overlap or conflict between two of an advertiser's conditional rules."""
-
-    advertiser_id: str
-    kind: str
-    rule_id_a: str
-    rule_id_b: str
-    detail: str
 
 
 @dataclass
@@ -273,6 +154,7 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
         base_cpp: Optional[float] = None,
     ) -> float:
         """The premium multiplier to apply to a spot's REAL revenue.
@@ -289,20 +171,37 @@ class AdvertiserRuleEngine:
         a relative rule after an absolute still composes on the absolute's result. An
         absolute with no usable ``base_cpp`` resolves to a 1.0 factor and is therefore
         a no-op, leaving the running premium unchanged rather than collapsing it.
+
+        PREMIUM_DISCOUNT rules compose LAST, whatever their row order: each one
+        takes its percent off the composed premium's surcharge (the part above
+        1.0), so discounts stack multiplicatively on the surcharge, never push
+        the premium below 1.0, and are a no-op when there is no surcharge.
+
+        ``weekday`` is the spot date's ISO weekday (1..7, Monday=1, Saturday=6);
+        pass ``None`` when the caller has no date and weekday-scoped rules will
+        simply not match.
         """
         baseline = self.baselines.get(advertiser_id)
         premium = baseline.default_premium if baseline is not None else 1.0
+        discounts: list[Condition] = []
         for condition in self._conditions_for(advertiser_id):
             if condition.target_layer:
                 continue  # targeted layer/final override: handled by the layered path
-            if condition.effect == PREMIUM and condition.matches(
-                position=position, genre=genre, daypart=daypart, programme=programme
+            if condition.effect != PREMIUM or not condition.matches(
+                position=position, genre=genre, daypart=daypart,
+                programme=programme, weekday=weekday,
             ):
-                factor = _premium_factor(condition.value, condition.mode, base_cpp)
-                if condition.mode == CPP_ABSOLUTE and not (base_cpp is None or base_cpp <= 0):
-                    premium = factor  # authoritative: SET the CPP, override prior factors
-                else:
-                    premium *= factor
+                continue
+            if condition.mode == PREMIUM_DISCOUNT:
+                discounts.append(condition)
+                continue
+            factor = _premium_factor(condition.value, condition.mode, base_cpp)
+            if condition.mode == CPP_ABSOLUTE and not (base_cpp is None or base_cpp <= 0):
+                premium = factor  # authoritative: SET the CPP, override prior factors
+            else:
+                premium *= factor
+        for condition in discounts:
+            premium = apply_surcharge_discount(premium, condition.value)
         return premium
 
     def pressure_multiplier(
@@ -313,6 +212,7 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
     ) -> float:
         """The placement-only multiplier from matching pressure rules (never charged).
 
@@ -322,7 +222,8 @@ class AdvertiserRuleEngine:
         multiplier = 1.0
         for condition in self._conditions_for(advertiser_id):
             if condition.effect == PRESSURE and condition.matches(
-                position=position, genre=genre, daypart=daypart, programme=programme
+                position=position, genre=genre, daypart=daypart,
+                programme=programme, weekday=weekday,
             ):
                 multiplier *= max(0.0, 1.0 + condition.value / 100.0)
         return multiplier
@@ -335,6 +236,7 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
         base_cpp: Optional[float] = None,
     ) -> float:
         """The value the optimizer should RANK on: real premium times pressure.
@@ -344,9 +246,10 @@ class AdvertiserRuleEngine:
         """
         return self.effective_premium(
             advertiser_id, position=position, genre=genre, daypart=daypart,
-            programme=programme, base_cpp=base_cpp,
+            programme=programme, weekday=weekday, base_cpp=base_cpp,
         ) * self.pressure_multiplier(
-            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
+            advertiser_id, position=position, genre=genre, daypart=daypart,
+            programme=programme, weekday=weekday,
         )
 
     def segment_demand(
@@ -356,6 +259,7 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
     ) -> float:
         """Placement-preference weight for a programme segment, >= 1.0.
 
@@ -373,7 +277,11 @@ class AdvertiserRuleEngine:
 
         Position-scoped rules are excluded: positions belong to individual spots,
         not to the programme segment as a whole. CPP-mode premium rules are
-        skipped because no ``base_cpp`` is available at segment scope.
+        skipped because no ``base_cpp`` is available at segment scope, and
+        premium_discount rules never contribute (a discount is not demand; its
+        standalone factor is 1.0). A weekday-scoped rule participates only when
+        the caller supplies the segment day's ISO ``weekday``; with no weekday
+        it never matches, so nothing is guessed.
 
         The per-advertiser contributions are multiplied together; then all
         advertisers' products are multiplied into a single weight. A weight of
@@ -384,6 +292,7 @@ class AdvertiserRuleEngine:
         and is NEVER charged. Reported revenue is identical whether the signal is
         supplied or not.
         """
+        weekday_token = None if weekday is None else str(int(weekday))
         weight = 1.0
         for advertiser_id, conditions in self.conditions.items():
             adv_factor = 1.0
@@ -395,6 +304,8 @@ class AdvertiserRuleEngine:
                 if not _dimension_matches(condition.scope_dayparts, daypart):
                     continue
                 if not _dimension_matches(condition.scope_programmes, programme):
+                    continue
+                if not _dimension_matches(condition.scope_weekdays, weekday_token):
                     continue
                 if condition.effect == PRESSURE:
                     adv_factor *= max(0.0, 1.0 + condition.value / 100.0)
@@ -415,6 +326,7 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
     ) -> AllowDecision:
         """Whether a spot is allowed, plus a reason string for diagnostics.
 
@@ -430,7 +342,8 @@ class AdvertiserRuleEngine:
         rules = self._conditions_for(advertiser_id)
         for condition in rules:
             if condition.effect == FORBID and condition.matches(
-                position=position, genre=genre, daypart=daypart, programme=programme
+                position=position, genre=genre, daypart=daypart,
+                programme=programme, weekday=weekday,
             ):
                 return AllowDecision(False, f"forbidden by rule {condition.rule_id}")
 
@@ -438,7 +351,8 @@ class AdvertiserRuleEngine:
         if requires:
             matched = next(
                 (c for c in requires if c.matches(
-                    position=position, genre=genre, daypart=daypart, programme=programme)),
+                    position=position, genre=genre, daypart=daypart,
+                    programme=programme, weekday=weekday)),
                 None,
             )
             if matched is None:
@@ -454,10 +368,12 @@ class AdvertiserRuleEngine:
         genre: Optional[str] = None,
         daypart: Optional[str] = None,
         programme: Optional[str] = None,
+        weekday: Optional[int] = None,
     ) -> bool:
         """Boolean shorthand for :meth:`allow_decision`."""
         return self.allow_decision(
-            advertiser_id, position=position, genre=genre, daypart=daypart, programme=programme
+            advertiser_id, position=position, genre=genre, daypart=daypart,
+            programme=programme, weekday=weekday,
         ).allowed
 
     def overlaps(self, advertiser_id: str) -> list[OverlapFinding]:
@@ -466,7 +382,8 @@ class AdvertiserRuleEngine:
         For every unordered pair whose scopes intersect: a require/forbid pair is
         a ``conflict``, two premium rules are ``stacked_premium``, two pressure
         rules are ``stacked_pressure``, and any other same-effect pair is
-        ``overlap``.
+        ``overlap``. Scope intersection understands weekday scopes, so two rules
+        on disjoint weekdays (Saturday-only versus Sunday-only) do not overlap.
         """
         rules = self._conditions_for(advertiser_id)
         findings: list[OverlapFinding] = []
@@ -499,7 +416,7 @@ class AdvertiserRuleEngine:
 
 
 # Thin wrappers so the rest of the codebase and tests keep their import paths.
-# The real logic lives in _rule_helpers to stay within the 450-line limit.
+# The real logic lives in _rule_helpers to stay within the line limit.
 
 
 def _condition_from_row(row: dict[str, str]) -> Optional[Condition]:

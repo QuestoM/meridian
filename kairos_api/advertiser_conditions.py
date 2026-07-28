@@ -41,6 +41,12 @@ from kairos.optimize.advertiser_rules import (
     _normalize_mode,
     normalize_scope,
 )
+from kairos_api.condition_validation import (
+    validate_effective_mode_value,
+    validate_mode_value,
+    validate_weekday_scope,
+    weekday_options,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -54,6 +60,7 @@ COLUMNS = [
     "scope_genres",
     "scope_dayparts",
     "scope_programmes",
+    "scope_weekdays",
     "effect",
     "value",
     "mode",
@@ -72,8 +79,10 @@ class ConditionCreate(BaseModel):
 
     ``effect`` is premium / require / forbid / pressure. ``mode`` only matters for
     a premium effect; it says how to read ``value`` (multiplier / percent /
-    cpp_absolute / cpp_add / cpp_discount, see the engine). ``scope_programmes``
-    scopes the rule to specific show titles, like the other scope dimensions.
+    cpp_absolute / cpp_add / cpp_discount / premium_discount, see the engine).
+    ``scope_programmes`` scopes the rule to specific show titles, like the other
+    scope dimensions. ``scope_weekdays`` is ANY or comma-joined ISO weekday
+    numbers 1..7 (Monday=1, Saturday=6, Sunday=7).
     """
 
     rule_id: str
@@ -84,6 +93,7 @@ class ConditionCreate(BaseModel):
     scope_genres: str = "ANY"
     scope_dayparts: str = "ANY"
     scope_programmes: str = "ANY"
+    scope_weekdays: str = "ANY"
     notes: str = ""
 
 
@@ -97,6 +107,7 @@ class ConditionUpdate(BaseModel):
     scope_genres: str | None = None
     scope_dayparts: str | None = None
     scope_programmes: str | None = None
+    scope_weekdays: str | None = None
     notes: str | None = None
 
 
@@ -156,6 +167,7 @@ def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "scope_genres": normalize_scope(row.get("scope_genres")),
         "scope_dayparts": normalize_scope(row.get("scope_dayparts")),
         "scope_programmes": normalize_scope(row.get("scope_programmes")),
+        "scope_weekdays": normalize_scope(row.get("scope_weekdays")),
         "notes": str(row.get("notes", "")),
     }
 
@@ -252,6 +264,7 @@ def scope_options() -> dict[str, Any]:
         "genres": _genre_options(),
         "dayparts": _daypart_options(),
         "programmes": _programme_options(),
+        "weekdays": weekday_options(),
         "effects": sorted(_EFFECTS),
         "modes": list(_PREMIUM_MODES),
     }
@@ -265,16 +278,19 @@ def list_conditions(advertiser_id: str) -> dict[str, Any]:
 @router.post("/{advertiser_id}/conditions", status_code=201)
 def create_condition(advertiser_id: str, payload: ConditionCreate,
                      request: Request = None) -> dict[str, Any]:
+    mode = _normalize_mode(payload.mode)
+    validate_mode_value(mode, payload.value)
     new_row = {
         "advertiser_id": advertiser_id,
         "rule_id": payload.rule_id,
         "effect": _validate_effect(payload.effect),
         "value": str(float(payload.value)),
-        "mode": _normalize_mode(payload.mode),
+        "mode": mode,
         "scope_positions": normalize_scope(payload.scope_positions),
         "scope_genres": normalize_scope(payload.scope_genres),
         "scope_dayparts": normalize_scope(payload.scope_dayparts),
         "scope_programmes": normalize_scope(payload.scope_programmes),
+        "scope_weekdays": validate_weekday_scope(payload.scope_weekdays),
         "notes": payload.notes,
     }
     with _STORE_LOCK:
@@ -313,12 +329,16 @@ def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate,
     with _STORE_LOCK:
         frame = _load_frame()
         index = _locate(frame, advertiser_id, rule_id)
+        effective_mode = _normalize_mode(
+            payload.mode if payload.mode is not None else frame.at[index, "mode"]
+        )
+        validate_effective_mode_value(effective_mode, payload.value, frame.at[index, "value"])
         if payload.effect is not None:
             frame.at[index, "effect"] = _validate_effect(payload.effect)
         if payload.value is not None:
             frame.at[index, "value"] = str(float(payload.value))
         if payload.mode is not None:
-            frame.at[index, "mode"] = _normalize_mode(payload.mode)
+            frame.at[index, "mode"] = effective_mode
         if payload.scope_positions is not None:
             frame.at[index, "scope_positions"] = normalize_scope(payload.scope_positions)
         if payload.scope_genres is not None:
@@ -327,6 +347,8 @@ def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate,
             frame.at[index, "scope_dayparts"] = normalize_scope(payload.scope_dayparts)
         if payload.scope_programmes is not None:
             frame.at[index, "scope_programmes"] = normalize_scope(payload.scope_programmes)
+        if payload.scope_weekdays is not None:
+            frame.at[index, "scope_weekdays"] = validate_weekday_scope(payload.scope_weekdays)
         if payload.notes is not None:
             frame.at[index, "notes"] = payload.notes
         _snapshot_before_write(request)

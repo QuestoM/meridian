@@ -9,8 +9,9 @@ a campaign and a position per individual spot (see
 :class:`~kairos.optimize.advertiser_rules.AdvertiserRuleEngine` is wired in:
 
   * each priced spot's revenue is multiplied by ``effective_premium`` for its
-    advertiser, position, genre, daypart and programme (so a programme-scoped
-    rule bites here, on the path that actually prices the spot),
+    advertiser, position, genre, daypart, programme and the spot date's ISO
+    weekday (so a programme-scoped premium discount or a Saturday-only price
+    bites here, on the path that actually prices the spot),
   * each priced spot also carries ``placement_value`` (the same spot valued with
     the placement-preference/pressure multiplier), so a steer is visible without
     inflating the charged revenue, and
@@ -19,9 +20,8 @@ a campaign and a position per individual spot (see
     lost or silently kept.
 
 ONE HONEST SENTENCE (for the module and the dashboard status text): advertiser
-rules now take effect on the per-spot daily pricing/export path
-(:func:`price_daily_spots`); the weekly break-count optimizer does not yet honor
-them, because it does not attribute breaks to advertisers.
+rules take effect on the per-spot daily pricing/export path only; the weekly
+break-count optimizer does not attribute breaks to advertisers.
 
 Spot revenue uses the same CPP math as the rest of the engine
 (:func:`kairos.optimize.objective.break_revenue`) on the same per-second basis:
@@ -41,7 +41,6 @@ are untouched (see docs/agency-layer-design.md).
 """
 
 from __future__ import annotations
-
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -70,8 +69,6 @@ from kairos.optimize.pricing import PricingModel
 # (kairos.data.dayparts.daypart_for_hour) so a daypart-scoped rule means the
 # same minutes here as in the weekly plan and the training data. A None or
 # invalid hour yields None (no guess).
-
-
 def _hour_from_time(value: Any) -> Optional[int]:
     text = str(value or "").strip()
     if not text:
@@ -80,6 +77,28 @@ def _hour_from_time(value: Any) -> Optional[int]:
     if pd.isna(parsed):
         return None
     return int(parsed.hour)
+
+
+def _weekday_from_date(value: Any) -> Optional[int]:
+    """The spot date's ISO weekday (Monday=1 .. Sunday=7; Saturday, שבת, is 6).
+
+    The daily loader parses the file's date column into real datetimes, so this
+    normally just reads ``isoweekday``. A missing or unparseable date yields
+    ``None``, and a weekday-scoped rule then never matches the spot (no guess).
+    """
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    parsed = value if hasattr(value, "isoweekday") else pd.to_datetime(
+        str(value).strip(), errors="coerce"
+    )
+    if parsed is None or (not hasattr(parsed, "isoweekday")) or pd.isna(parsed):
+        return None
+    return int(parsed.isoweekday())
 
 
 @dataclass(frozen=True)
@@ -276,6 +295,7 @@ def price_daily_spots(
         campaign = str(getattr(row, "campaign", "") or "")
         ad = str(getattr(row, "creative", "") or "")
         break_id = str(getattr(row, "break_start", "") or "")
+        weekday = _weekday_from_date(getattr(row, "date", None))
 
         override = spot_overrides.get(
             _spot_id(advertiser, campaign, getattr(row, "date", None), position)
@@ -300,7 +320,8 @@ def price_daily_spots(
         agency_premium, agency_placement = 1.0, 1.0
         if agency_key:
             agency_decision = agency_layer.engine.allow_decision(
-                agency_key, position=position, genre=genre, daypart=daypart, programme=program,
+                agency_key, position=position, genre=genre, daypart=daypart,
+                programme=program, weekday=weekday,
             )
             if not agency_decision.allowed and not locked:
                 dropped.append(DroppedSpot(
@@ -311,15 +332,16 @@ def price_daily_spots(
                 continue
             agency_premium = agency_layer.engine.effective_premium(
                 agency_key, position=position, genre=genre, daypart=daypart,
-                programme=program, base_cpp=pricing.base_price,
+                programme=program, weekday=weekday, base_cpp=pricing.base_price,
             )
             agency_placement = agency_layer.engine.placement_multiplier(
                 agency_key, position=position, genre=genre, daypart=daypart,
-                programme=program, base_cpp=pricing.base_price,
+                programme=program, weekday=weekday, base_cpp=pricing.base_price,
             )
 
         decision = engine.allow_decision(
-            advertiser, position=position, genre=genre, daypart=daypart, programme=program,
+            advertiser, position=position, genre=genre, daypart=daypart,
+            programme=program, weekday=weekday,
         )
         if not decision.allowed and not locked:
             dropped.append(DroppedSpot(
@@ -331,11 +353,11 @@ def price_daily_spots(
 
         premium = engine.effective_premium(
             advertiser, position=position, genre=genre, daypart=daypart,
-            programme=program, base_cpp=pricing.base_price,
+            programme=program, weekday=weekday, base_cpp=pricing.base_price,
         ) * agency_premium
         placement_premium = engine.placement_multiplier(
             advertiser, position=position, genre=genre, daypart=daypart,
-            programme=program, base_cpp=pricing.base_price,
+            programme=program, weekday=weekday, base_cpp=pricing.base_price,
         ) * agency_placement
         duration = _coerce_float(getattr(row, "duration_sec", None))
         planned_tvr = _coerce_float(getattr(row, "planned_tvr", None))
