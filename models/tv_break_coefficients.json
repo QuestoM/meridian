@@ -92,6 +92,12 @@
       "min_relative_improvement": 0.02
     },
     "detrend_seasonality_reason": "month_minute RMSE (1.70793) does not beat the global RMSE (1.70793) by the required 2% (actual improvement 0.0%); mode stays global",
+    "event_layer_gate": {
+      "verdict": "off",
+      "reason": "no event on/off contrast in the measured window: all 2532 measured breaks lie inside an active calendar event, so an event retention effect cannot be separated from the baseline; the gate re-measures automatically once history with both conditions exists",
+      "held_out_delta_pct": null,
+      "measured_at": "2026-07-29T00:12:13.093402+00:00"
+    },
     "level_drift": {
       "status": "measured",
       "reason": null,
@@ -146,7 +152,7 @@
     "prior_df": 5.8473394512644346,
     "width_factor_measured": 1.1538966152974144,
     "interval_calibration_reason": "active by default: ci_low/ci_high are seeded parametric-bootstrap mixture quantiles (B=2000, measured width factor 1.15x at 95%); predictive_low/predictive_high added per cell for a single future break",
-    "computed_at": "2026-07-05T22:03:31.769308+00:00",
+    "computed_at": "2026-07-29T00:12:13.100043+00:00",
     "source_fingerprints": {
       "data/reference/Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
       "data/reference/Programmes.xlsx": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",

@@ -132,6 +132,7 @@ from kairos.model.competitor_model import (
 )
 from kairos.model.detrend_gate import detrend_seasonality_gate
 from kairos.model.drift_monitor import level_drift
+from kairos.model.event_gate import annotate_event_columns, event_layer_gate
 from kairos.model.measure import (
     between_cell_variance,
     break_effects,
@@ -321,6 +322,11 @@ def main() -> None:
     dayparts_frame = load_dayparts()
     classifier = ProgramClassifier.from_yaml()
     effects = break_effects(spots, programmes, dayparts_frame, classifier)
+    # Calendar-event annotation seam: join the operator's events store onto the
+    # measured breaks by date (event_active / event_intensity / event_type).
+    # Purely additive columns; the pooling below never reads them, so every
+    # emitted coefficient is byte-identical with or without the seam.
+    effects = annotate_event_columns(effects)
 
     # Genre-only coefficients (always computed).
     coefficients = channel_coefficients(effects)
@@ -575,6 +581,13 @@ def main() -> None:
     # used above stays "global" regardless (activation is a deliberate switch).
     dt_gate = detrend_seasonality_gate(dayparts_frame)
 
+    # Event layer gate: five temporal folds, +2 percent held-out RMSE bar,
+    # re-measured on every rebuild against the events store, so the layer
+    # self-activates the day history with real event contrast lands. The
+    # verdict never alters the coefficients above; it is a recorded decision
+    # the events API's model context surfaces (tri-state honest).
+    ev_gate = event_layer_gate(effects)
+
     # Weekly level drift of the measurement base: the binding nonstationarity
     # risk from docs/model-validation/uncertainty-calibration.md, measured from
     # the same plain effects on every rebuild (like the other gates, it never
@@ -643,6 +656,10 @@ def main() -> None:
         "detrend_seasonality_recommended": dt_gate["detrend_seasonality_recommended"],
         "detrend_seasonality_holdout": dt_gate["detrend_seasonality_holdout"],
         "detrend_seasonality_reason": dt_gate["detrend_seasonality_reason"],
+        # Event layer gate: verdict on/off, reason, fold-mean held-out delta in
+        # percent (null when no contrast could be measured) and the measurement
+        # timestamp, re-measured on every rebuild from the events store.
+        "event_layer_gate": dict(ev_gate),
         # Weekly level drift of the measurement base: weekly_levels,
         # drift_per_week, drift_se, binding and the criterion, measured at
         # rebuild time so the artifact always says whether the level the plan
@@ -709,6 +726,7 @@ def main() -> None:
               f"{pc_meta['pooled_corrected_delta']:+.5f})")
     print(f"  detrend seasonality gate: {dt_gate['detrend_seasonality_reason']} "
           "(baseline mode used: global)")
+    print(f"  event layer gate: {ev_gate['verdict']} ({ev_gate['reason']})")
     if drift["status"] == "measured":
         print(f"  level drift: {drift['drift_per_week']:+.4f} per week (se {drift['drift_se']:.4f}) "
               f"vs binding threshold {drift['binding_threshold']:.4f} over {drift['n_weeks']} weeks; "
