@@ -1,0 +1,92 @@
+# Israeli broadcast calendar, 2024-01-01 through 2027-12-31.
+# Rich range table behind kairos/data/israel_calendar.py: yom tov days, chol
+# hamoed ranges, Hanukkah ranges, civil holidays and fasts, the school summer
+# break, and election days. Complements (does not replace) the single-date
+# kairos/config/israel_holidays.csv and the operator-maintained events store.
+# start_date and end_date are INCLUSIVE Gregorian ranges; single days repeat
+# the same date in both columns. Jewish days begin at sundown the prior
+# evening; the dates listed are the Gregorian daytime dates of the day itself.
+# Clock-level nuance (Friday candle-lighting hour) is a v2 refinement.
+# is_yom_tov=1 marks the days on which religiously observant viewers do not
+# turn on the TV: both days of Rosh Hashana, Yom Kippur, the first day of
+# Sukkot, Shmini Atzeret/Simchat Torah, the first and seventh days of Pesach,
+# and Shavuot (Israel observance; diaspora second days do not apply).
+# This is a static checked-in table, not a live calendar service.
+# לאימות מול הלוח הרשמי לפני שימוש תפעולי.
+# Rows whose notes say "verify" carry lower confidence; keep the row and
+# correct the date here if the official calendar disagrees.
+start_date,end_date,name_he,kind,is_yom_tov,is_school_holiday,notes
+2024-01-25,2024-01-25,ט״ו בשבט,holiday_civil,0,0,Tu BiShvat; minor observance; schools in session
+2024-02-27,2024-02-27,בחירות לרשויות המקומיות,election,0,1,Municipal elections nationwide; statutory day off
+2024-03-24,2024-03-24,פורים,holiday_civil,0,1,Purim; Shushan Purim in Jerusalem on 2024-03-25
+2024-04-23,2024-04-23,פסח,yom_tov,1,1,First day of Pesach
+2024-04-24,2024-04-28,חול המועד פסח,chol_hamoed,0,1,Pesach intermediate days; daytime viewing pattern like school holidays
+2024-04-29,2024-04-29,שביעי של פסח,yom_tov,1,1,Seventh day of Pesach
+2024-05-06,2024-05-06,יום השואה,holiday_civil,0,0,Observed date; postponed from Nisan 27 (2024-05-05 Sunday); somber broadcast schedule
+2024-05-13,2024-05-13,יום הזיכרון,holiday_civil,0,0,Memorial Day; somber broadcast schedule
+2024-05-14,2024-05-14,יום העצמאות,holiday_civil,0,1,Independence Day
+2024-05-26,2024-05-26,ל״ג בעומר,holiday_civil,0,0,Lag BaOmer; evening bonfires on the eve
+2024-06-12,2024-06-12,שבועות,yom_tov,1,1,Shavuot
+2024-07-01,2024-08-31,החופש הגדול,school_summer,0,1,School summer break; daytime audience composition shift
+2024-08-13,2024-08-13,תשעה באב,holiday_civil,0,0,Tisha BeAv fast; verify exact Gregorian date
+2024-10-03,2024-10-04,ראש השנה,yom_tov,1,1,Rosh Hashana; both days are yom tov
+2024-10-12,2024-10-12,יום כיפור,yom_tov,1,1,Yom Kippur; broadcast shutdown in Israel
+2024-10-17,2024-10-17,סוכות,yom_tov,1,1,First day of Sukkot
+2024-10-18,2024-10-23,חול המועד סוכות,chol_hamoed,0,1,Sukkot intermediate days; Hoshana Rabbah 2024-10-23
+2024-10-24,2024-10-24,שמיני עצרת ושמחת תורה,yom_tov,1,1,Shmini Atzeret and Simchat Torah (same day in Israel)
+2024-12-26,2025-01-02,חנוכה,hanukkah,0,1,Hanukkah; 8 days from Kislev 25; evening candle lighting
+2025-02-13,2025-02-13,ט״ו בשבט,holiday_civil,0,0,Tu BiShvat; minor observance; schools in session
+2025-03-14,2025-03-14,פורים,holiday_civil,0,1,Purim; Shushan Purim in Jerusalem on 2025-03-16 (postponed from Shabbat)
+2025-04-13,2025-04-13,פסח,yom_tov,1,1,First day of Pesach
+2025-04-14,2025-04-18,חול המועד פסח,chol_hamoed,0,1,Pesach intermediate days
+2025-04-19,2025-04-19,שביעי של פסח,yom_tov,1,1,Seventh day of Pesach
+2025-04-24,2025-04-24,יום השואה,holiday_civil,0,0,Observed date; advanced from Nisan 27 (2025-04-25 Friday)
+2025-04-30,2025-04-30,יום הזיכרון,holiday_civil,0,0,Memorial Day; observed date advanced with Independence Day
+2025-05-01,2025-05-01,יום העצמאות,holiday_civil,0,1,Independence Day; advanced from Iyar 5 (2025-05-03 Shabbat)
+2025-05-16,2025-05-16,ל״ג בעומר,holiday_civil,0,0,Lag BaOmer
+2025-06-02,2025-06-02,שבועות,yom_tov,1,1,Shavuot
+2025-07-01,2025-08-31,החופש הגדול,school_summer,0,1,School summer break
+2025-08-03,2025-08-03,תשעה באב,holiday_civil,0,0,Tisha BeAv fast; verify exact Gregorian date
+2025-09-23,2025-09-24,ראש השנה,yom_tov,1,1,Rosh Hashana; both days are yom tov
+2025-10-02,2025-10-02,יום כיפור,yom_tov,1,1,Yom Kippur; broadcast shutdown in Israel
+2025-10-07,2025-10-07,סוכות,yom_tov,1,1,First day of Sukkot
+2025-10-08,2025-10-13,חול המועד סוכות,chol_hamoed,0,1,Sukkot intermediate days; Hoshana Rabbah 2025-10-13
+2025-10-14,2025-10-14,שמיני עצרת ושמחת תורה,yom_tov,1,1,Shmini Atzeret and Simchat Torah (same day in Israel)
+2025-12-15,2025-12-22,חנוכה,hanukkah,0,1,Hanukkah; 8 days from Kislev 25
+2026-02-02,2026-02-02,ט״ו בשבט,holiday_civil,0,0,Tu BiShvat; minor observance; schools in session
+2026-03-03,2026-03-03,פורים,holiday_civil,0,1,Purim; Shushan Purim in Jerusalem on 2026-03-04
+2026-04-02,2026-04-02,פסח,yom_tov,1,1,First day of Pesach
+2026-04-03,2026-04-07,חול המועד פסח,chol_hamoed,0,1,Pesach intermediate days
+2026-04-08,2026-04-08,שביעי של פסח,yom_tov,1,1,Seventh day of Pesach
+2026-04-14,2026-04-14,יום השואה,holiday_civil,0,0,Nisan 27; no observed-date shift this year
+2026-04-21,2026-04-21,יום הזיכרון,holiday_civil,0,0,Memorial Day
+2026-04-22,2026-04-22,יום העצמאות,holiday_civil,0,1,Independence Day; Iyar 5; no shift this year
+2026-05-05,2026-05-05,ל״ג בעומר,holiday_civil,0,0,Lag BaOmer
+2026-05-22,2026-05-22,שבועות,yom_tov,1,1,Shavuot
+2026-07-01,2026-08-31,החופש הגדול,school_summer,0,1,School summer break
+2026-07-23,2026-07-23,תשעה באב,holiday_civil,0,0,Tisha BeAv fast; verify exact Gregorian date
+2026-09-12,2026-09-13,ראש השנה,yom_tov,1,1,Rosh Hashana; both days are yom tov
+2026-09-21,2026-09-21,יום כיפור,yom_tov,1,1,Yom Kippur; broadcast shutdown in Israel
+2026-09-26,2026-09-26,סוכות,yom_tov,1,1,First day of Sukkot; falls on Shabbat
+2026-09-27,2026-10-02,חול המועד סוכות,chol_hamoed,0,1,Sukkot intermediate days; Hoshana Rabbah 2026-10-02
+2026-10-03,2026-10-03,שמיני עצרת ושמחת תורה,yom_tov,1,1,Shmini Atzeret and Simchat Torah; falls on Shabbat
+2026-10-27,2026-10-27,בחירות לכנסת ה-26,election,0,1,PROVISIONAL scheduled statutory date for the 26th Knesset election; verify against actual writ; early elections would move it
+2026-12-05,2026-12-12,חנוכה,hanukkah,0,1,Hanukkah; 8 days from Kislev 25
+2027-01-23,2027-01-23,ט״ו בשבט,holiday_civil,0,0,Tu BiShvat; verify exact Gregorian date
+2027-03-23,2027-03-23,פורים,holiday_civil,0,1,Purim; Shushan Purim in Jerusalem on 2027-03-24
+2027-04-22,2027-04-22,פסח,yom_tov,1,1,First day of Pesach
+2027-04-23,2027-04-27,חול המועד פסח,chol_hamoed,0,1,Pesach intermediate days
+2027-04-28,2027-04-28,שביעי של פסח,yom_tov,1,1,Seventh day of Pesach
+2027-05-04,2027-05-04,יום השואה,holiday_civil,0,0,Nisan 27; no observed-date shift this year
+2027-05-11,2027-05-11,יום הזיכרון,holiday_civil,0,0,Memorial Day
+2027-05-12,2027-05-12,יום העצמאות,holiday_civil,0,1,Independence Day; Iyar 5; no shift this year
+2027-05-25,2027-05-25,ל״ג בעומר,holiday_civil,0,0,Lag BaOmer
+2027-06-11,2027-06-11,שבועות,yom_tov,1,1,Shavuot
+2027-07-01,2027-08-31,החופש הגדול,school_summer,0,1,School summer break
+2027-08-12,2027-08-12,תשעה באב,holiday_civil,0,0,Tisha BeAv fast; verify exact Gregorian date
+2027-10-02,2027-10-03,ראש השנה,yom_tov,1,1,Rosh Hashana; both days are yom tov
+2027-10-11,2027-10-11,יום כיפור,yom_tov,1,1,Yom Kippur; broadcast shutdown in Israel
+2027-10-16,2027-10-16,סוכות,yom_tov,1,1,First day of Sukkot; falls on Shabbat
+2027-10-17,2027-10-22,חול המועד סוכות,chol_hamoed,0,1,Sukkot intermediate days; Hoshana Rabbah 2027-10-22
+2027-10-23,2027-10-23,שמיני עצרת ושמחת תורה,yom_tov,1,1,Shmini Atzeret and Simchat Torah; falls on Shabbat
+2027-12-25,2028-01-01,חנוכה,hanukkah,0,1,Hanukkah; 8 days from Kislev 25; verify start date; range extends past the table window into 2028
