@@ -215,6 +215,7 @@ export function ModelContextPanel({ context, locale }) {
       <div className="panel-head">
         <h2>{pageText(locale, 'What the model relies on today', 'על מה המודל מסתמך היום')}</h2>
       </div>
+      <div className="cal-panel-body">
       {!ctx ? (
         <p className="cal-empty">{pageText(locale, 'The backend did not report the model context, so nothing is shown rather than an invented summary.', 'השרת לא דיווח על הקשר המודל, ולכן לא מוצג דבר במקום סיכום מומצא.')}</p>
       ) : (
@@ -344,6 +345,7 @@ export function ModelContextPanel({ context, locale }) {
           )}
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -358,6 +360,7 @@ export function OverlapPanel({ events, locale }) {
         <h2>{pageText(locale, 'Event overlaps: training window and current plan', 'חפיפות אירועים: חלון האימון והתוכנית הנוכחית')}</h2>
         <span>{rows.length} {pageText(locale, 'events', 'אירועים')}</span>
       </div>
+      <div className="cal-panel-body">
       <p className="cal-panel-note">{pageText(locale, 'For each event: whether the training data even saw that condition, and which saved-plan days sit inside it.', 'לכל אירוע: האם נתוני האימון בכלל ראו את התנאי הזה, ואילו ימים בתוכנית השמורה נמצאים בתוכו.')}</p>
       {rows.length === 0 ? (
         <p className="cal-empty">{pageText(locale, 'No events are stored yet, so there is nothing to intersect.', 'אין עדיין אירועים שמורים, ולכן אין מה להצליב.')}</p>
@@ -394,6 +397,7 @@ export function OverlapPanel({ events, locale }) {
           })}
         </div>
       )}
+      </div>
     </section>
   );
 }

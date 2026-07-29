@@ -8,7 +8,7 @@ import { pageText } from './surface-helpers';
 // never dominate the page. Each group header carries the year, its row count
 // and the import-as-events button; rows render only when a year is opened.
 
-function HolidayYearGroup({ year, rows, locale, busy, open, onToggle, onImport }) {
+function HolidayYearGroup({ year, rows, locale, busy, canEdit, open, onToggle, onImport }) {
   return (
     <div className="cal-holiday-year">
       <div className="cal-holiday-year-head">
@@ -22,13 +22,15 @@ function HolidayYearGroup({ year, rows, locale, busy, open, onToggle, onImport }
           <span className="ltr-run">{year}</span>
           <span className="cal-count-note">{pageText(locale, `${rows.length} rows`, `${rows.length} שורות`)}</span>
         </button>
-        <Tooltip title={pageText(locale, 'Creates one event per holiday of this year, with intensity 1 until you judge it, so you can attach intensity or deactivate single rows. Holidays already in the list are skipped.', 'יוצר אירוע לכל חג בשנה הזו, עם עוצמה 1 עד שתקבעו אותה, כך שתוכלו לצרף עוצמה או להשבית שורות בודדות. חגים שכבר ברשימה מדולגים.')} arrow>
-          <span>
-            <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onImport}>
-              {pageText(locale, `Import ${year} as events`, `ייבוא חגי ${year} כאירועים`)}
-            </Button>
-          </span>
-        </Tooltip>
+        {canEdit && (
+          <Tooltip title={pageText(locale, 'Creates one event per holiday of this year, with intensity 1 until you judge it, so you can attach intensity or deactivate single rows. Holidays already in the list are skipped.', 'יוצר אירוע לכל חג בשנה הזו, עם עוצמה 1 עד שתקבעו אותה, כך שתוכלו לצרף עוצמה או להשבית שורות בודדות. חגים שכבר ברשימה מדולגים.')} arrow>
+            <span>
+              <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onImport}>
+                {pageText(locale, `Import ${year} as events`, `ייבוא חגי ${year} כאירועים`)}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </div>
       {open && rows.map((holiday) => (
         <div className="cal-holiday-row" key={`${holiday.date}-${holiday.name}`}>
@@ -42,7 +44,7 @@ function HolidayYearGroup({ year, rows, locale, busy, open, onToggle, onImport }
   );
 }
 
-function CalendarHolidays({ holidays, holidaysNote, locale, busy, onImportYear }) {
+function CalendarHolidays({ holidays, holidaysNote, locale, busy, canEdit, onImportYear }) {
   const [openYears, setOpenYears] = useState(() => new Set());
 
   const holidayYears = useMemo(() => {
@@ -74,23 +76,26 @@ function CalendarHolidays({ holidays, holidaysNote, locale, busy, onImportYear }
         <h2>{pageText(locale, 'Bundled holidays (read only)', 'חגים מובנים (לקריאה בלבד)')}</h2>
         <span>{(holidays || []).length} {pageText(locale, 'rows', 'שורות')}</span>
       </div>
-      {holidaysNote && <p className="cal-panel-note cal-verify-note">{holidaysNote}</p>}
-      {holidayYears.length === 0 ? (
-        <p className="cal-empty">{pageText(locale, 'The backend did not report a bundled holiday list.', 'השרת לא דיווח על רשימת חגים מובנית.')}</p>
-      ) : (
-        holidayYears.map(([year, rows]) => (
-          <HolidayYearGroup
-            key={year}
-            year={year}
-            rows={rows}
-            locale={locale}
-            busy={busy}
-            open={openYears.has(year)}
-            onToggle={() => toggleYear(year)}
-            onImport={() => onImportYear(year, rows)}
-          />
-        ))
-      )}
+      <div className="cal-panel-body">
+        {holidaysNote && <p className="cal-panel-note cal-verify-note">{holidaysNote}</p>}
+        {holidayYears.length === 0 ? (
+          <p className="cal-empty">{pageText(locale, 'The backend did not report a bundled holiday list.', 'השרת לא דיווח על רשימת חגים מובנית.')}</p>
+        ) : (
+          holidayYears.map(([year, rows]) => (
+            <HolidayYearGroup
+              key={year}
+              year={year}
+              rows={rows}
+              locale={locale}
+              busy={busy}
+              canEdit={canEdit}
+              open={openYears.has(year)}
+              onToggle={() => toggleYear(year)}
+              onImport={() => onImportYear(year, rows)}
+            />
+          ))
+        )}
+      </div>
     </section>
   );
 }

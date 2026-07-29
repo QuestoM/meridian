@@ -57,7 +57,9 @@ export function eventMatchesSearch(event, term) {
   return `${String(event.name || '')} ${String(event.notes || '')}`.toLowerCase().includes(term);
 }
 
-function EventEditor({ initial, locale, busy, onSave, onCancel }) {
+// Shared with the month-grid view, which opens the same editor for the same
+// event fields; persistence stays with the container's onSave either way.
+export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
   const [form, setForm] = useState({
     name: initial?.name || '',
     type: initial?.type || 'special',
@@ -129,7 +131,7 @@ function EventEditor({ initial, locale, busy, onSave, onCancel }) {
 
 // One compact event row: the always-visible header line carries name, type and
 // dates; details and actions live in the expansion so the list stays scannable.
-function EventRow({ event, locale, busy, expanded, highlighted, confirming, onToggle, onEdit, onConfirmDeactivate, onCancelConfirm, onDeactivate, onReactivate }) {
+function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirming, onToggle, onEdit, onConfirmDeactivate, onCancelConfirm, onDeactivate, onReactivate }) {
   const openEnded = !event.end_date;
   const classes = ['cal-event-row'];
   if (event.active === false) {
@@ -167,6 +169,7 @@ function EventRow({ event, locale, busy, expanded, highlighted, confirming, onTo
             )}
           </div>
           {event.notes && <p className="cal-event-notes" dir="auto">{event.notes}</p>}
+          {canEdit && (
           <div className="cal-event-actions">
             {!confirming && (
               <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onEdit}>
@@ -195,13 +198,14 @@ function EventRow({ event, locale, busy, expanded, highlighted, confirming, onTo
               </span>
             )}
           </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function CalendarEventsList({ events, locale, busy, highlightId, onSave, onSetActive }) {
+function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave, onSetActive }) {
   const [editor, setEditor] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -269,11 +273,14 @@ function CalendarEventsList({ events, locale, busy, highlightId, onSave, onSetAc
     <section className="page-panel cal-panel">
       <div className="panel-head">
         <h2>{pageText(locale, 'Operator events', 'אירועי מפעיל')}</h2>
-        <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy || Boolean(editor)} onClick={() => setEditor({ event: null })}>
-          <Plus size={14} />
-          {pageText(locale, 'New event', 'הוספת אירוע')}
-        </Button>
+        {canEdit && (
+          <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy || Boolean(editor)} onClick={() => setEditor({ event: null })}>
+            <Plus size={14} />
+            {pageText(locale, 'New event', 'הוספת אירוע')}
+          </Button>
+        )}
       </div>
+      <div className="cal-panel-body">
       <p className="cal-panel-note">{pageText(locale, 'Active and upcoming events first, newest start date on top. Every save keeps a version snapshot, restorable from the Restore changes page.', 'אירועים פעילים וקרובים תחילה, תאריך ההתחלה החדש ביותר למעלה. כל שמירה שומרת תמונת גרסה, הניתנת לשחזור מעמוד שחזור שינויים.')}</p>
 
       <div className="cal-toolbar">
@@ -325,6 +332,7 @@ function CalendarEventsList({ events, locale, busy, highlightId, onSave, onSetAc
             event={event}
             locale={locale}
             busy={busy}
+            canEdit={canEdit}
             expanded={expandedId === event.event_id}
             highlighted={highlightId === event.event_id}
             confirming={confirmId === event.event_id}
@@ -346,6 +354,7 @@ function CalendarEventsList({ events, locale, busy, highlightId, onSave, onSetAc
           </Button>
         </div>
       )}
+      </div>
     </section>
   );
 }

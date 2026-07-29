@@ -3,15 +3,19 @@ import { Button } from '@mui/material';
 import { Info, RefreshCcw } from 'lucide-react';
 import { API_BASE, pageText } from './surface-helpers';
 import { readEventsLayer } from './pricing-layers-lib';
-import { ModelContextPanel, OverlapPanel } from './CalendarEventsModel';
+import { ModelContextPanel, OverlapPanel, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 import CalendarEventsList from './CalendarEventsList';
 import CalendarHolidays from './CalendarHolidays';
+import CalendarMonthGrid from './CalendarMonthGrid';
+import { eventRange, isoDay, localIsoDate, readStoredCalendarView, storeCalendarView, upcomingEvents } from './calendar-events-lib';
 import './calendar-events.css';
 
 // The Calendar page container: loads /api/events, owns every write (create,
 // update, deactivate, holiday import) and the page-level banners, and delegates
-// presentation to CalendarEventsList (searchable, paged operator events) and
-// CalendarHolidays (per-year read-only accordions).
+// presentation to the month grid (primary view), CalendarEventsList (searchable,
+// paged operator events) and CalendarHolidays (per-year read-only accordions).
+// The events GET may carry can_edit per the permissions contract; absent means
+// editable, exactly as before, so an older backend changes nothing.
 
 // Only the CRUD contract fields travel back to the API; server-computed overlap
 // fields never round-trip into a write. An empty end_date string is the API's
@@ -38,6 +42,15 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActive
   // hiding filters, widen the page window, expand the row) instead of letting a
   // new event land invisibly at the bottom of 60+ rows.
   const [highlightId, setHighlightId] = useState(null);
+  // Grid (primary) or list; the choice persists across sessions.
+  const [view, setView] = useState(readStoredCalendarView);
+  // A one-shot jump target for the month grid, set by the upcoming strip.
+  const [gridFocus, setGridFocus] = useState(null);
+
+  function switchView(next) {
+    setView(next);
+    storeCalendarView(next);
+  }
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +94,11 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActive
 
   const events = useMemo(() => (Array.isArray(data?.events) ? data.events : []), [data]);
   const holidays = useMemo(() => (Array.isArray(data?.holidays) ? data.holidays : []), [data]);
+  // Permissions contract: company users edit, channel users read. An absent
+  // field means an older backend without the affiliation model, so editable.
+  const canEdit = data?.can_edit !== false;
+  const todayIso = localIsoDate();
+  const upcoming = useMemo(() => upcomingEvents(events, todayIso), [events, todayIso]);
   // Verify-before-use label: prefer a backend-sent note; the fallback mirrors
   // the bundled table's own header (a static checked-in list, not a calendar
   // service), so the caution is never silently dropped.
@@ -212,12 +230,21 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActive
     );
   }
 
+  // The upcoming strip jumps the grid to the event: an ongoing event lands on
+  // today (where its bar is visible), a future one on its start day.
+  function jumpToEvent(event) {
+    const { start, end } = eventRange(event);
+    switchView('grid');
+    setGridFocus({ date: start <= todayIso && end >= todayIso ? todayIso : isoDay(event.start_date), nonce: Date.now() });
+  }
+
   return (
     <section className="page-workspace">
       <div className="page-header">
         <div>
           <h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1>
           <p>{pageText(locale, 'Manage holidays, wars and special events next to an honest picture of what the model actually measures today. Events do not change retention numbers until an effect is measured on richer history.', 'ניהול חגים, מלחמות ואירועים מיוחדים לצד תמונה כנה של מה שהמודל באמת מודד היום. אירועים אינם משנים מספרי שימור עד שנמדדת השפעה על היסטוריה עשירה יותר.')}</p>
+          {!canEdit && <p className="cal-readonly-note">{pageText(locale, 'Event editing is available to the company team only.', 'עריכת אירועים זמינה לצוות החברה בלבד.')}</p>}
         </div>
         <Button className="secondary-button compact" type="button" variant="outlined" onClick={load}>
           <RefreshCcw size={14} />
@@ -225,23 +252,72 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActive
         </Button>
       </div>
 
-      <div className="cal-grid">
-        <CalendarEventsList
-          events={events}
-          locale={locale}
-          busy={busy}
-          highlightId={highlightId}
-          onSave={saveEvent}
-          onSetActive={setEventActive}
-        />
-        <CalendarHolidays
-          holidays={holidays}
-          holidaysNote={holidaysNote}
-          locale={locale}
-          busy={busy}
-          onImportYear={importYear}
-        />
+      {upcoming.length > 0 && (
+        <div className="cal-upcoming" role="list" aria-label={pageText(locale, 'Upcoming events', 'אירועים קרובים')}>
+          <span className="cal-upcoming-label">{pageText(locale, 'Coming up:', 'הקרובים:')}</span>
+          {upcoming.map((event) => (
+            <button type="button" role="listitem" className="cal-upcoming-item" key={event.event_id || event.name} onClick={() => jumpToEvent(event)}>
+              <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
+              <span dir="auto">{event.name}</span>
+              <span className="cal-upcoming-dates">
+                {eventRange(event).start <= todayIso
+                  ? pageText(locale, 'ongoing', 'מתמשך')
+                  : <span className="ltr-run">{formatEventDate(event.start_date, locale)}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="cal-view-bar" role="group" aria-label={pageText(locale, 'Calendar view', 'תצוגת הלוח')}>
+        <button type="button" className={view === 'grid' ? 'segmented active' : 'segmented'} aria-pressed={view === 'grid'} onClick={() => switchView('grid')}>
+          {pageText(locale, 'Calendar', 'לוח')}
+        </button>
+        <button type="button" className={view === 'list' ? 'segmented active' : 'segmented'} aria-pressed={view === 'list'} onClick={() => switchView('list')}>
+          {pageText(locale, 'List', 'רשימה')}
+        </button>
       </div>
+
+      {view === 'grid' ? (
+        <>
+          <CalendarMonthGrid
+            events={events}
+            locale={locale}
+            busy={busy}
+            canEdit={canEdit}
+            onSave={saveEvent}
+            focus={gridFocus}
+          />
+          <CalendarHolidays
+            holidays={holidays}
+            holidaysNote={holidaysNote}
+            locale={locale}
+            busy={busy}
+            canEdit={canEdit}
+            onImportYear={importYear}
+          />
+        </>
+      ) : (
+        <div className="cal-grid">
+          <CalendarEventsList
+            events={events}
+            locale={locale}
+            busy={busy}
+            canEdit={canEdit}
+            highlightId={highlightId}
+            onSave={saveEvent}
+            onSetActive={setEventActive}
+          />
+          <CalendarHolidays
+            holidays={holidays}
+            holidaysNote={holidaysNote}
+            locale={locale}
+            busy={busy}
+            canEdit={canEdit}
+            onImportYear={importYear}
+          />
+        </div>
+      )}
 
       <div className="cal-banner">
         <Info size={16} aria-hidden="true" />

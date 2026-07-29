@@ -2,9 +2,14 @@
    styles.css; everything here is specific to the operator events list (search,
    filter chips, compact expandable rows, pagination), the bundled holidays
    accordions, the model-context disclosure and the overlap view, plus the
-   display-only event badges on the plan surfaces. Shared patterns (muted 12px
-   text, wrapping flex rows, reset buttons) are grouped selectors on purpose:
-   keep them merged rather than re-duplicating per class. */
+   display-only event badges on the plan surfaces. The month grid, the upcoming
+   strip, the view toggle and the shared .cal-panel-body inset live in
+   calendar-month-grid.css. Spacing sits on the --space-* scale; the only
+   off-scale values are the 16px page rhythm shared with page-workspace and the
+   22px detail indent that aligns text under a 14px caret plus its 8px gap.
+   Shared patterns (muted small text, wrapping flex rows, reset buttons) are
+   grouped selectors on purpose: keep them merged rather than re-duplicating
+   per class. */
 
 .cal-grid {
   display: grid;
@@ -22,18 +27,18 @@
 .cal-banner {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid #dde2e8;
-  border-radius: 6px;
-  background: #fbfcfd;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
 }
 
 .cal-banner p {
   margin: 0;
 }
 
-/* The shared muted 12px text treatment. */
+/* The shared muted small-text treatment. */
 .cal-banner,
 .cal-editor-field,
 .cal-panel-note,
@@ -46,22 +51,22 @@
 .cal-context-source,
 .cal-overlap-facts,
 .cal-holiday-row {
-  font-size: 12px;
-  color: #5b6573;
-  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  font-weight: var(--weight-regular);
 }
 
 .cal-panel-note {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-3);
 }
 
 .cal-verify-note {
-  border-inline-start: 3px solid #b86e00;
-  padding-inline-start: 8px;
+  border-inline-start: 3px solid var(--amber);
+  padding-inline-start: var(--space-2);
 }
 
 .cal-empty {
-  margin: 6px 0;
+  margin: var(--space-2) 0;
 }
 
 /* Wrapping horizontal rows share one flex treatment. */
@@ -81,25 +86,24 @@
 .plan-event-badges {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .cal-toolbar {
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .cal-search {
-  gap: 6px;
   flex-wrap: nowrap;
   flex: 1 1 200px;
   min-height: 32px;
-  border: 1px solid #dde2e8;
-  border-radius: 6px;
-  background: #ffffff;
-  padding: 0 8px;
-  color: #5b6573;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 0 var(--space-2);
+  color: var(--muted);
 }
 
 .cal-search input {
@@ -109,20 +113,14 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 12px;
-  color: #111827;
-}
-
-.cal-filter-chips,
-.plan-event-badges {
-  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--ink);
 }
 
 /* Event rows: a compact always-visible head line plus a collapsed details area */
 
 .cal-event-row {
-  border-top: 1px solid #dde2e8;
-  padding: 2px 0;
+  border-top: 1px solid var(--line);
 }
 
 .cal-event-row.inactive .cal-event-name,
@@ -131,15 +129,16 @@
   color: #8a94a3;
 }
 
-/* Reset-button treatment shared by the row head and the year accordion toggle. */
+/* Reset-button treatment shared by the row head and the year accordion toggle.
+   Inline padding is zero because .cal-panel-body already carries the inset. */
 .cal-event-head,
 .cal-holiday-year-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   border: none;
   background: none;
-  padding: 8px 4px;
+  padding: var(--space-2) 0;
   cursor: pointer;
   text-align: start;
   font: inherit;
@@ -153,13 +152,13 @@
 .cal-event-head:focus-visible,
 .cal-holiday-year-toggle:focus-visible,
 .cal-banner-link:focus-visible {
-  outline: 2px solid #0f8b7e;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .cal-row-caret {
-  color: #5b6573;
+  color: var(--muted);
   flex-shrink: 0;
   transition: transform 0.15s ease;
 }
@@ -170,9 +169,9 @@
 
 .cal-event-name,
 .cal-holiday-year-head {
-  font-size: 13px;
+  font-size: var(--text-base);
   font-weight: 640;
-  color: #111827;
+  color: var(--ink);
 }
 
 .cal-event-dates {
@@ -184,11 +183,12 @@
 .cal-context-value,
 .cal-drift-block {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
+/* The 22px indent aligns the details under the head text (14px caret + 8px gap). */
 .cal-event-details {
-  padding: 0 26px 10px;
+  padding: 0 22px var(--space-3);
 }
 
 .cal-event-notes {
@@ -197,22 +197,22 @@
 
 .cal-row-highlight {
   background: #eef7f5;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .cal-show-more {
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #dde2e8;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
 }
 
 .cal-confirm {
-  font-size: 12px;
-  color: #111827;
+  font-size: var(--text-sm);
+  color: var(--ink);
 }
 
 .cal-open-ended.war {
-  color: #b86e00;
+  color: var(--amber);
   font-weight: 620;
 }
 
@@ -223,27 +223,27 @@
 .cal-date-chip {
   display: inline-flex;
   align-items: center;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid #dde2e8;
-  background: #fbfcfd;
-  font-size: 11px;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+  font-size: var(--text-xs);
   line-height: 1.6;
-  color: #5b6573;
+  color: var(--muted);
   white-space: nowrap;
 }
 
 .cal-type-chip.holiday {
   border-color: #bfd9d4;
   background: #eef7f5;
-  color: #0f8b7e;
+  color: var(--teal);
 }
 
 .cal-type-chip.war,
 .cal-chip.warn {
   border-color: #e5c9a6;
   background: #fbf3e7;
-  color: #b86e00;
+  color: var(--amber);
 }
 
 .cal-type-chip.special {
@@ -265,31 +265,31 @@
 /* Inline editor */
 
 .cal-editor {
-  border: 1px solid #dde2e8;
-  border-radius: 6px;
-  background: #fbfcfd;
-  padding: 12px;
-  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
   align-items: start;
 }
 
 .cal-editor-field {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cal-editor-field select,
 .cal-editor-field input {
   min-height: 34px;
-  border: 1px solid #dde2e8;
-  border-radius: 6px;
-  background: #ffffff;
-  font-size: 12px;
-  color: #111827;
-  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  padding: 0 var(--space-2);
 }
 
 .cal-label-hint,
@@ -297,7 +297,7 @@
 .cal-context-label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   cursor: help;
 }
 
@@ -308,24 +308,24 @@
 /* Bundled holidays: per-year accordions, collapsed by default */
 
 .cal-holiday-year {
-  border-top: 1px solid #dde2e8;
-  padding: 4px 0;
+  border-top: 1px solid var(--line);
+  padding: var(--space-1) 0;
 }
 
 .cal-holiday-year-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .cal-holiday-row {
-  padding: 6px 8px;
-  padding-inline-start: 26px;
+  padding: var(--space-1) 0;
+  padding-inline-start: 22px;
 }
 
 .cal-holiday-name {
-  color: #111827;
+  color: var(--ink);
 }
 
 /* Model context panel */
@@ -333,41 +333,41 @@
 .cal-context-row {
   display: grid;
   grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid #dde2e8;
-  font-size: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
 }
 
 @media (max-width: 800px) {
   .cal-context-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
+    gap: var(--space-1);
   }
 }
 
 .cal-context-label {
-  color: #5b6573;
+  color: var(--muted);
   font-weight: 640;
 }
 
 .cal-context-value {
-  color: #111827;
+  color: var(--ink);
 }
 
 .cal-weekday-cell {
   display: grid;
   gap: 2px;
   min-width: 44px;
-  padding: 4px 8px;
-  border: 1px solid #dde2e8;
-  border-radius: 6px;
-  background: #fbfcfd;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
   text-align: center;
 }
 
 .cal-weekday-cell small {
-  color: #5b6573;
+  color: var(--muted);
 }
 
 .cal-drift-block {
@@ -376,24 +376,24 @@
 
 .cal-weekly-table {
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cal-weekly-table th,
 .cal-weekly-table td {
-  border: 1px solid #dde2e8;
-  padding: 6px 12px;
+  border: 1px solid var(--line);
+  padding: var(--space-2) var(--space-3);
   text-align: center;
 }
 
 .cal-weekly-table th {
-  background: #fbfcfd;
-  color: #5b6573;
+  background: var(--surface-muted);
+  color: var(--muted);
   font-weight: 640;
 }
 
 .cal-wartime-line {
-  color: #b86e00;
+  color: var(--amber);
 }
 
 /* In-banner link to another dashboard page */
@@ -402,9 +402,9 @@
   border: none;
   background: none;
   padding: 0;
-  margin-inline-start: 6px;
-  font-size: 12px;
-  color: #315d8c;
+  margin-inline-start: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--blue);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -412,23 +412,23 @@
 /* Overlap panel */
 
 .cal-overlap-row {
-  border-top: 1px solid #dde2e8;
-  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  padding: var(--space-2) 0;
 }
 
 .cal-overlap-facts {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cal-overlap-dates {
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cal-date-chip {
-  padding: 0 6px;
-  border-radius: 4px;
-  color: #111827;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
 }
 
 /* Display-only event badges on the plan surfaces */
@@ -437,9 +437,9 @@
   display: block;
   margin-top: 2px;
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 620;
-  color: #b86e00;
+  color: var(--amber);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
