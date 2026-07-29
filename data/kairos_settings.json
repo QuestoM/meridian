@@ -36,7 +36,8 @@
   "objective_mode": "blend",
   "pricing_overrides": {
     "pricing_activation": {
-      "show": false
+      "show": false,
+      "events": true
     }
   }
 }
