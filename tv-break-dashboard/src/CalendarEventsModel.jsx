@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Tooltip } from '@mui/material';
 import { Info } from 'lucide-react';
 import { API_BASE, pageText, finiteNumber, formatNumber } from './surface-helpers';
+import { AudienceModelBlock } from './CalendarAudienceModel';
 
 // Companion module for the Calendar tab (CalendarEvents.jsx): the read-only
 // "what the model relies on today" panel, the overlap panel, and the small
@@ -345,6 +346,7 @@ export function ModelContextPanel({ context, locale }) {
           )}
         </div>
       )}
+      <AudienceModelBlock locale={locale} />
       </div>
     </section>
   );

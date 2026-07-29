@@ -1,6 +1,7 @@
-"""READ tool executors for the agencies, calendar-events and money-coverage tools.
+"""READ tool executors for the agencies, calendar-events, money-coverage and
+audience-model tools.
 
-Six more read tools, split out of kairos_api.assistant_read_tools so every file
+These read tools are split out of kairos_api.assistant_read_tools so every file
 stays under the size cap. Conventions are identical to the sibling modules:
 each executor reuses the real store or builder of the owning module, returns an
 honest ``{"error": ...}`` or an explicit unavailable-with-reason payload
@@ -339,8 +340,10 @@ def register(executors: dict[str, Any], sources: dict[str, str]) -> None:
     """Merge these executors and their source labels into the shared registry."""
     executors.update(_CATALOG_READ_EXECUTORS)
     sources.update(CATALOG_SOURCE_BY_TOOL)
-    # The event-pipeline snapshot executor lives in its own module (size cap);
-    # registering it here keeps the one-registry rule.
+    # The event-pipeline and audience-model executors live in their own modules
+    # (size cap); registering them here keeps the one-registry rule.
+    from kairos_api.assistant_audience_model import register as register_audience
     from kairos_api.assistant_event_pipeline import register as register_pipeline
 
     register_pipeline(executors, sources)
+    register_audience(executors, sources)

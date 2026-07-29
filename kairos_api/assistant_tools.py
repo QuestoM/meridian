@@ -214,6 +214,20 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "event writes. Call this when the operator asks how to handle a new war, holiday "
         "or special event, or how the event pipeline works end to end.",
     ),
+    _tool(
+        "get_audience_model",
+        "Read the audience model disclosure: the activation flag state (default off, "
+        "forward-dated segments only), when the artifact was computed, and the "
+        "per-family training-gate verdicts (weekday and slot, series, school holidays "
+        "and Chol HaMoed, Hanukkah, religious blackout, season, operator events, "
+        "competitor lineup), each measured on a held-out gate, never asserted. "
+        "Expected rating and predicted retention are DIFFERENT models: this tool "
+        "covers expected rating only, and with every gate off the forward prediction "
+        "equals the historical mean path. Call this when the operator asks about the "
+        "expected rating, the audience model, viewership forecasts, or which calendar "
+        "factors are measured versus pending data. Reports an honest unavailable "
+        "when the artifact has not been built.",
+    ),
 ]
 
 PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [

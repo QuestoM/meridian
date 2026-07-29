@@ -1,0 +1,55 @@
+/* Audience-model disclosure block inside the Calendar tab's model panel.
+   Split from calendar-events.css to respect the file-size cap; reuses the
+   shared classes it defines (.cal-chip, .cal-empty, .cal-context-label,
+   .cal-context-source, .cal-weekly-table) and only adds what is new here:
+   the block frame, the small facts row, the green active chip and the
+   all-gates-off headline. Colour tokens follow the calendar chip palette. */
+
+.aud-block {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.aud-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.aud-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The active (measured on) verdict chip, green like the holiday chip family. */
+.cal-chip.aud-on {
+  border-color: #bfd9d4;
+  background: #eef7f5;
+  color: var(--teal);
+}
+
+.aud-gate-table {
+  width: auto;
+  min-width: 260px;
+}
+
+.aud-headline {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  border-inline-start: 3px solid var(--line);
+  padding-inline-start: var(--space-2);
+}
+
+.aud-reason {
+  display: block;
+  margin-top: var(--space-1);
+}

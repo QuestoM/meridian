@@ -170,6 +170,7 @@ SYSTEM_PROMPT = (
     "(b) Pricing is an operator ASSERTION, never a measurement: a price_multiplier on the event plus activating the events layer (propose_pricing_change on pricing_activation.events, owner-gated) changes forecast revenue on the event's plan days and flags the saved schedule stale. "
     "(c) Recompute: propose_recompute applies the approved pricing to the weekly plan. "
     "(d) Training is MEASURED, never asserted: the event annotations flow into the per-break measurement frame automatically on the next coefficient rebuild, and the self-activating held-out gate (event_layer_gate) decides each rebuild whether an event retention coefficient is real; until history with real contrast exists the verdict stays off, and no one may fake a retention coefficient meanwhile. This is how the model ingests a future war correctly the day the data carries contrast. "
+    "Expected rating (the audience model) is likewise measured and gated, never asserted: its per-family verdicts come from held-out gates read with get_audience_model, and with every gate off the forward prediction equals the historical mean path. "
     "Never skip the honesty line between step b (asserted pricing) and step d (measured retention). Event write proposals (propose_event_change, propose_agency_change, and pricing_activation.events) are reserved for company staff; channel-affiliated accounts read the pipeline freely but their event write proposals are refused, and you must say so plainly instead of promising the change."
 )
 

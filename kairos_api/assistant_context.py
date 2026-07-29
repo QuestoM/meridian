@@ -416,14 +416,17 @@ def enforce_budget(context: dict[str, Any]) -> None:
         if any(bool(context[key].get("truncated")) for key in day_keys):
             context["day_detail_truncated"] = True
         while _serialized_size(context) > budget:
+            # Floor of one row per section: an answer with zero data rows is
+            # worthless, so the top-revenue row always survives even when the
+            # base sections leave almost no budget for day detail.
             pools = [
                 (len(context[key]["segments"]), key, "segments")
                 for key in day_keys
-                if context[key].get("segments")
+                if len(context[key].get("segments") or []) > 1
             ] or [
                 (len(context[key]["matched_full_rows"]), key, "matched_full_rows")
                 for key in day_keys
-                if context[key].get("matched_full_rows")
+                if len(context[key].get("matched_full_rows") or []) > 1
             ]
             if not pools:
                 break

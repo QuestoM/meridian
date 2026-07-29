@@ -4,7 +4,8 @@ When the operator's question carries a matching Hebrew or English keyword, ONE
 compact hard-capped section per topic is attached to the composed context:
 ``gold_breaks``, ``active_constraints``, ``active_overrides``,
 ``pricing_state``, ``pacing_status``, ``agencies_state``, ``calendar_events``,
-``event_pricing``, ``custom_pricing`` and ``event_pipeline``. Each section
+``event_pricing``, ``custom_pricing``, ``event_pipeline`` and
+``audience_model``. Each section
 reuses the real builder
 behind the matching dashboard surface (the insights gold builder, the
 constraints and overrides stores, the pricing hierarchy payload, the pacing
@@ -82,6 +83,10 @@ _TRIGGERS: dict[str, dict[str, Any]] = {
         "hebrew": ("פרץ", "פרצה"),
         "phrases": ("מלחמה חדשה", "אירוע חדש", "עדכון אירועים", "עדכון האירועים"),
         "english": re.compile(r"\bnew (?:war|event)\b|\bwar (?:broke|started)\b|\bevent pipeline\b"),
+    },
+    "audience_model": {
+        "phrases": ("רייטינג צפוי", "רייטינג הצפוי", "מודל קהל", "מודל הקהל", "תחזית צפייה", "תחזית הצפייה"),
+        "english": re.compile(r"\baudience model\b|\bexpected rating\b|\bviewership forecast\b|\btvr forecast\b"),
     },
 }
 
@@ -334,6 +339,18 @@ def _section_event_pipeline() -> dict[str, Any]:
     return pipeline_snapshot(None, include_permissions=False)
 
 
+def _section_audience_model() -> dict[str, Any]:
+    """The audience-model disclosure: activation, computed_at and the per-family
+    held-out gate verdicts, honest about an absent artifact. The base summary is
+    dropped here so the section stays compact; the get_audience_model read tool
+    carries it in full."""
+    from kairos_api.assistant_audience_model import audience_model_summary
+
+    section = audience_model_summary()
+    section.pop("base_summary", None)
+    return section
+
+
 _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("gold_breaks", _section_gold_breaks),
     ("active_constraints", _section_active_constraints),
@@ -345,6 +362,7 @@ _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("event_pricing", _section_event_pricing),
     ("custom_pricing", _section_custom_pricing),
     ("event_pipeline", _section_event_pipeline),
+    ("audience_model", _section_audience_model),
 )
 
 SECTION_NAMES = tuple(name for name, _ in _SECTIONS)
