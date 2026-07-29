@@ -203,6 +203,17 @@ READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "get_activity_recent",
         "Read the newest activity-log entries, metadata only (action, user, time, path), scoped by the caller's role. Call this when the operator asks who changed what recently.",
     ),
+    _tool(
+        "get_event_pipeline",
+        "Read one honest snapshot of the whole event pipeline in operational order: the "
+        "calendar events store (active counts by type, open-ended events), the "
+        "operator-asserted pricing layer (pricing_activation.events state and the "
+        "non-neutral multipliers), schedule freshness (whether the plan is stale because "
+        "of an events change), the measured training gate (the event_layer_gate verdict, "
+        "unknown until a rebuild carries it), and whether the acting account may propose "
+        "event writes. Call this when the operator asks how to handle a new war, holiday "
+        "or special event, or how the event pipeline works end to end.",
+    ),
 ]
 
 PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -384,6 +395,15 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
         trace.append({"tool": name, "ok": False})
         return {"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result, ensure_ascii=False)}
     elif name in PROPOSE_TOOL_NAMES:
+        # Company-only event writes, enforced in the propose path itself: a
+        # refused call captures NO item, so no pending batch can carry it.
+        from kairos_api.assistant_event_pipeline import company_refusal
+
+        refusal = company_refusal(name, args, user)
+        if refusal is not None:
+            trace.append({"tool": name, "ok": False})
+            return {"type": "tool_result", "tool_use_id": block.id,
+                    "content": json.dumps({"error": refusal}, ensure_ascii=False)}
         item = build_proposal_item(name, args)
         items.append(item)
         ok = item["status"] == "pending"

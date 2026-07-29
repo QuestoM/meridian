@@ -4,7 +4,8 @@ When the operator's question carries a matching Hebrew or English keyword, ONE
 compact hard-capped section per topic is attached to the composed context:
 ``gold_breaks``, ``active_constraints``, ``active_overrides``,
 ``pricing_state``, ``pacing_status``, ``agencies_state``, ``calendar_events``,
-``event_pricing`` and ``custom_pricing``. Each section reuses the real builder
+``event_pricing``, ``custom_pricing`` and ``event_pipeline``. Each section
+reuses the real builder
 behind the matching dashboard surface (the insights gold builder, the
 constraints and overrides stores, the pricing hierarchy payload, the pacing
 loader plus the make-good projection), so the assistant reads exactly what the
@@ -76,6 +77,11 @@ _TRIGGERS: dict[str, dict[str, Any]] = {
         "hebrew": ("הנחה", "הנחות", "שבת"),
         "phrases": ("תמחור אישי", "תמחור מותאם"),
         "english": re.compile(r"\bdiscounts?\b|\bcustom[- ]pricing\b|\bsaturday\b"),
+    },
+    "event_pipeline": {
+        "hebrew": ("פרץ", "פרצה"),
+        "phrases": ("מלחמה חדשה", "אירוע חדש", "עדכון אירועים", "עדכון האירועים"),
+        "english": re.compile(r"\bnew (?:war|event)\b|\bwar (?:broke|started)\b|\bevent pipeline\b"),
     },
 }
 
@@ -318,6 +324,16 @@ def _section_custom_pricing() -> dict[str, Any]:
     return section
 
 
+def _section_event_pipeline() -> dict[str, Any]:
+    """The full event pipeline in operational order, for a new-war or new-event
+    question: the four-step playbook plus the live state of every stage. The
+    permissions stage is omitted here because the composer has no actor; the
+    get_event_pipeline read tool carries it per acting account."""
+    from kairos_api.assistant_event_pipeline import pipeline_snapshot
+
+    return pipeline_snapshot(None, include_permissions=False)
+
+
 _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("gold_breaks", _section_gold_breaks),
     ("active_constraints", _section_active_constraints),
@@ -328,6 +344,7 @@ _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("calendar_events", _section_calendar_events),
     ("event_pricing", _section_event_pricing),
     ("custom_pricing", _section_custom_pricing),
+    ("event_pipeline", _section_event_pipeline),
 )
 
 SECTION_NAMES = tuple(name for name, _ in _SECTIONS)
