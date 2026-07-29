@@ -223,3 +223,30 @@ def _events_fingerprint(root: Path) -> Optional[str]:
         root / "data" / "calendar_events.csv",
     )
     return checksum_file(events_path) or ABSENT
+
+
+def _audience_model_fingerprint(root: Path) -> Optional[str]:
+    """The audience-model artifact's fingerprint, ONLY while its activation is on.
+
+    Mirrors :func:`_events_fingerprint`: the ``audience_model_activation``
+    settings flag (shipped OFF) makes forward-dated segments take their
+    baseline from ``models/audience_model.json``, so once it is on a retrained
+    artifact changes the next recompute and the saved schedule must read stale.
+    While the flag is OFF the engine never reads the artifact, so this returns
+    ``None`` and the group is omitted entirely, keeping the off-state sidecar
+    byte-identical to the pre-model stamp. Activation is read exactly the way
+    the transform seam reads it (:func:`kairos.data.audience_overlay.
+    audience_model_active`); when it cannot be established the group stays
+    omitted (never a guessed "stale"), and the settings group already flags the
+    activation flip itself because the flag is engine input. On with no
+    artifact on disk records :data:`ABSENT`, an honest value, never an error.
+    """
+    try:
+        from kairos.data.audience_overlay import audience_model_active
+
+        active = audience_model_active(root / "data" / "kairos_settings.json")
+    except Exception:  # pragma: no cover - defensive: never block the stamp
+        return None
+    if not active:
+        return None
+    return checksum_file(root / "models" / "audience_model.json") or ABSENT

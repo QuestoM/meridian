@@ -44,12 +44,14 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
     campaigns: t('campaign flights', 'נתוני הקמפיינים'),
     classifications: t('program classifications', 'סיווגי התוכניות'),
     events: t('special events', 'אירועים מיוחדים'),
+    audience_model: t('the audience model', 'מודל קהל הצופים'),
     'the impact model': t('the impact model', 'מודל ההשפעה'),
     'inventory data': t('inventory data', 'נתוני המלאי'),
     'advertiser rules': t('advertiser rules', 'כללי המפרסמים'),
     'campaign flights': t('campaign flights', 'נתוני הקמפיינים'),
     'program classifications': t('program classifications', 'סיווגי התוכניות'),
     'special events': t('special events', 'אירועים מיוחדים'),
+    'the audience model': t('the audience model', 'מודל קהל הצופים'),
   };
 
   const changed = Array.isArray(freshness.changed) ? freshness.changed : [];

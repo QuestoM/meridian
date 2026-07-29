@@ -10,7 +10,11 @@ Two honesty rules shape it:
 
   * ``baseline_tvr`` is the real rating from the data, never invented. A row with
     no rating contributes a segment the optimizer simply will not load (it earns
-    nothing), rather than a fabricated number.
+    nothing), rather than a fabricated number. When the operator activates the
+    audience model (``audience_model_activation``, shipped OFF), FORWARD-dated
+    segments take the trained model's expected rating instead, each carrying a
+    basis marker; see :mod:`kairos.data.audience_overlay`. Historical dates and
+    every measurement path are never touched.
   * The retention impact, baseline and break defaults come from
     :class:`~kairos.optimize.pricing.OptimizerAssumptions`. They are declared
     assumptions until the Meridian impact model is trained, and they travel with
@@ -28,6 +32,7 @@ from typing import Iterable
 
 import pandas as pd
 
+from kairos.data.audience_overlay import apply_audience_model
 from kairos.data.classifier import ProgramClassifier
 from kairos.model.impact import ImpactModel, RetentionEstimate
 from kairos.model.spec import DEFAULT_BREAK_POSITIONS
@@ -265,7 +270,7 @@ def build_segments_from_daily_input(
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
         ))
-    return segments
+    return apply_audience_model(segments)
 
 
 def _daily_day(frame: pd.DataFrame) -> str:
@@ -400,4 +405,4 @@ def build_segments_from_programmes(
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
         ))
-    return segments
+    return apply_audience_model(segments)

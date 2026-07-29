@@ -132,6 +132,15 @@ class KairosSettings(BaseModel):
     # value. Default-OFF activation keeps revenue unchanged until the operator opts in.
     # See docs/pricing-hierarchy-design.md and the /api/pricing endpoints.
     pricing_overrides: dict[str, Any] = Field(default_factory=dict)
+    # Audience model activation: when True, FORWARD-dated optimizer segments take
+    # their baseline_tvr from the trained audience model (models/audience_model.json
+    # through kairos.model.audience_model.predict_tvr, applied at the transform seam
+    # in kairos.data.audience_overlay) instead of the historical mean path, each
+    # segment carrying a basis marker. Historical dates and every measurement path
+    # never see a prediction. Default False (an absent key reads False) keeps the
+    # transform byte-identical to today; flipping it is engine input, so it stays
+    # in the freshness fingerprint and marks the saved schedule stale on a flip.
+    audience_model_activation: bool = False
 
 
 def _read_csv(path: Path, **kwargs: Any) -> pd.DataFrame:
@@ -432,6 +441,22 @@ def _risk_from_retention(average_retention_percent: float, floor_percent: float)
     return round(max(0.0, min(100.0, shortfall / _RISK_FULL_SHORTFALL * 100.0)), 1)
 
 
+def _audience_model_note_safe() -> dict[str, Any]:
+    """The audience-model basis note, never allowed to break a payload builder.
+
+    Delegates to :func:`kairos_api.audience_api.audience_model_note` (lazy
+    import, no cycle: audience_api imports this kernel). On any failure the
+    state is honestly ``unknown``, never a fabricated off or on.
+    """
+    try:
+        from kairos_api.audience_api import audience_model_note
+
+        return audience_model_note()
+    except Exception:  # pragma: no cover - defensive, payloads must not break
+        logger.exception("audience model note failed")
+        return {"state": "unknown", "computed_at": None}
+
+
 def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
     """Headline summary of the saved plan, scoped to the OPERATOR'S channel.
 
@@ -478,6 +503,9 @@ def _summarize_schedule(schedule: pd.DataFrame) -> dict[str, Any]:
         "date_from": date_from,
         "date_to": date_to,
         "n_channels_total": n_channels_total,
+        # Honest audience-model disclosure: which rating basis the forward-dated
+        # forecast numbers stand on (off / on with the artifact's computed_at).
+        "audience_model": _audience_model_note_safe(),
     }
 
     if scoped.empty:

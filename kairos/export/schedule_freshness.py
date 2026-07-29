@@ -52,6 +52,7 @@ from kairos.export._freshness_groups import (  # noqa: F401 - re-exported names
     ABSENT,
     SETTINGS_COSMETIC_KEYS,
     _advertiser_fingerprint,
+    _audience_model_fingerprint,
     _coefficients_fingerprint,
     _constant_path,
     _data_fingerprint,
@@ -91,6 +92,7 @@ GROUP_LABELS = {
     "campaigns": "campaign flights",
     "classifications": "program classifications",
     "events": "special events",
+    "audience_model": "the audience model",
 }
 _GROUP_ORDER = (
     "settings",
@@ -104,6 +106,7 @@ _GROUP_ORDER = (
     "campaigns",
     "classifications",
     "events",
+    "audience_model",
 )
 
 
@@ -155,6 +158,11 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
                          layer off the engine never reads the store, the group
                          is omitted entirely and the sidecar stays
                          byte-identical to the pre-events stamp.
+      * ``audience_model`` the trained audience-model artifact
+                         (``models/audience_model.json``), counted ONLY while
+                         ``audience_model_activation`` is on (same pattern as
+                         ``events``); off, the engine never reads the artifact
+                         and the group is omitted entirely.
 
     A group whose source file is missing is recorded as :data:`ABSENT` (so
     freshness can tell a present-then-gone input from an unchanged one), never
@@ -251,6 +259,13 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
     events = _events_fingerprint(root)
     if events is not None:
         prints["events"] = events
+
+    # audience model: the trained artifact, ONLY while audience_model_activation
+    # is on. Off (the shipped default) the transform never reads the artifact, so
+    # the group is omitted and the sidecar is byte-identical to the prior stamp.
+    audience = _audience_model_fingerprint(root)
+    if audience is not None:
+        prints["audience_model"] = audience
 
     return prints
 

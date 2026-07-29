@@ -625,6 +625,22 @@ def scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# 7. Audience model status, read from the trained artifact.
+# ---------------------------------------------------------------------------
+@router.get("/api/model/audience")
+def model_audience() -> dict[str, Any]:
+    """Honest tri-state status of the trained audience model.
+
+    Frozen payload ``{available, computed_at, activation, gates, base_summary}``;
+    the read itself lives in :mod:`kairos_api.audience_api` so this route and
+    the forecast basis note can never disagree.
+    """
+    from kairos_api.audience_api import build_audience_model_payload
+
+    return build_audience_model_payload()
+
+
+# ---------------------------------------------------------------------------
 # 6. Make-good alerts, from the pacing make-good projection helper.
 # ---------------------------------------------------------------------------
 @router.get("/api/make-good-alerts")
