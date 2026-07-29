@@ -33,6 +33,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 ROLES = ("admin", "operator", "viewer")
 
+# Company staff manage everything; channel-affiliated accounts are walled off
+# the event-management surface (calendar event writes and the event pricing
+# activation switch). A record without the field reads as company, so every
+# account that predates the field keeps its full access.
+AFFILIATIONS = ("company", "channel")
+
 COOKIE_NAME = "kairos_session"
 
 SCRYPT_N = 2**14
@@ -166,6 +172,12 @@ def normalize_username(value: str) -> str:
     return str(value or "").strip().lower()
 
 
+def normalize_affiliation(value: Any) -> str:
+    """Missing, empty or unrecognized values read as company (the permissive
+    legacy default), so only an explicitly stored channel value restricts."""
+    return "channel" if str(value or "").strip().lower() == "channel" else "company"
+
+
 def get_user(username: str) -> dict[str, Any] | None:
     username = normalize_username(username)
     for user in load_users():
@@ -187,6 +199,7 @@ def add_user(
     role: str,
     display_name: str = "",
     must_change_password: bool = False,
+    affiliation: str = "company",
 ) -> dict[str, Any]:
     username = normalize_username(username)
     if not USERNAME_RE.match(username):
@@ -195,6 +208,9 @@ def add_user(
         )
     if role not in ROLES:
         raise ValueError(f"The role must be one of: {', '.join(ROLES)}.")
+    affiliation = str(affiliation or "company").strip().lower()
+    if affiliation not in AFFILIATIONS:
+        raise ValueError(f"The affiliation must be one of: {', '.join(AFFILIATIONS)}.")
     _require_password(password)
     record = {
         "username": username,
@@ -203,6 +219,7 @@ def add_user(
         "display_name": str(display_name or "").strip() or username,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "must_change_password": bool(must_change_password),
+        "affiliation": affiliation,
     }
     with _LOCK:
         users = load_users()
@@ -226,6 +243,43 @@ def set_password(username: str, new_password: str, must_change_password: bool) -
                 save_users(users)
                 return user
     raise UnknownUserError(f"No account named {username}.")
+
+
+def set_affiliation(username: str, affiliation: str) -> dict[str, Any]:
+    affiliation = str(affiliation or "").strip().lower()
+    if affiliation not in AFFILIATIONS:
+        raise ValueError(f"The affiliation must be one of: {', '.join(AFFILIATIONS)}.")
+    username = normalize_username(username)
+    with _LOCK:
+        users = load_users()
+        for user in users:
+            if user.get("username") == username:
+                user["affiliation"] = affiliation
+                save_users(users)
+                return user
+    raise UnknownUserError(f"No account named {username}.")
+
+
+def is_company_user(username: str) -> bool:
+    """Whether this account may manage the company-only surfaces (calendar
+    events and the event pricing activation switch).
+
+    True when the stored affiliation reads company (including every legacy
+    record without the field) and whenever auth is off (bypass env or an
+    uninitialized store), so a deployment without login keeps full access.
+    With auth on, an unknown username reads False: never grant the company
+    surface to an identity the store cannot vouch for.
+    """
+    auth_off = (
+        os.getenv("KAIROS_AUTH_DISABLED", "").strip().lower() in {"1", "true", "yes"}
+        or not store_initialized()
+    )
+    if auth_off:
+        return True
+    user = get_user(username)
+    if user is None:
+        return False
+    return normalize_affiliation(user.get("affiliation")) == "company"
 
 
 def remove_user(username: str) -> None:

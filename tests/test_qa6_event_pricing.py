@@ -13,7 +13,7 @@ settings file are relocated to tmp so nothing under data/ is ever written.
 from __future__ import annotations
 
 import csv
-import shutil
+import json
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -75,20 +75,27 @@ def _programmes(dates: list[str]) -> pd.DataFrame:
 
 # --- (a) identity guarantee: OFF is byte-identical --------------------------------
 def test_off_is_byte_identical_on_a_real_settings_load(tmp_path, monkeypatch, classifier):
-    """With the shipped default (events activation OFF), the layer must change
-    nothing: same premiums to the last bit, and the events store never read,
-    even while an active 2.0x event covers the schedule dates."""
+    """With the shipped default (events activation absent, meaning OFF), the
+    layer must change nothing: same premiums to the last bit, and the events
+    store never read, even while an active 2.0x event covers the schedule
+    dates. The live settings file may legitimately carry an operator
+    activation, so the default is pinned on the real overrides WITHOUT the
+    events key, never on live operator state."""
     store = _write_store(tmp_path / "calendar_events.csv", [
         {"start_date": "2024-11-04", "end_date": "2024-11-05", "price_multiplier": "2.0"},
     ])
     monkeypatch.setattr(event_pricing, "DEFAULT_EVENTS_PATH", store)
 
-    settings = core._load_settings()   # the real shipped settings file
-    model = pricing_from_settings(settings)
+    settings = core._load_settings()   # the real settings file, activation stripped below
+    raw = dict(getattr(settings, "pricing_overrides", None) or {})
+    activation = dict(raw.get("pricing_activation") or {})
+    activation.pop("events", None)
+    cleaned = {**raw, "pricing_activation": activation}
+    model = pricing_from_settings({"pricing_overrides": cleaned})
     assert model.enable_events is False, "the events layer must ship OFF"
     assert model.event_day_multipliers == {}, "OFF must never even read the store"
 
-    baseline = PricingModel.from_config(getattr(settings, "pricing_overrides", None) or {})
+    baseline = PricingModel.from_config(cleaned)
     frame = _programmes(["2024-11-04", "2024-11-05"])
     with_layer = build_segments_from_programmes(frame, classifier, model)
     before = build_segments_from_programmes(frame, classifier, baseline)
@@ -223,8 +230,15 @@ def test_legacy_store_without_column_reads_and_updates_as_neutral(events_client,
 def pricing_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv(vs.VERSIONS_DIR_ENV, str(tmp_path / "versions"))
     monkeypatch.delenv(vs.ASSISTANT_DIR_ENV, raising=False)
+    # Copy the live settings but strip any operator events activation: these
+    # tests pin the SHIPPED default (key absent means off), not live operator
+    # state, which may legitimately carry an activation.
     target = tmp_path / "kairos_settings.json"
-    shutil.copy(ROOT / "data" / "kairos_settings.json", target)
+    payload = json.loads((ROOT / "data" / "kairos_settings.json").read_text(encoding="utf-8"))
+    activation = (payload.get("pricing_overrides") or {}).get("pricing_activation")
+    if isinstance(activation, dict):
+        activation.pop("events", None)
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     monkeypatch.setattr(core, "SETTINGS_PATH", target)
     store = _write_store(tmp_path / "calendar_events.csv", [
         {"start_date": "2024-11-08", "end_date": "2024-11-08", "price_multiplier": "2.0"},

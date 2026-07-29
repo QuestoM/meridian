@@ -103,6 +103,7 @@ import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 import Login, {
   ChangePasswordDialog,
   MIN_PASSWORD_LENGTH,
+  affiliationLabel,
   createAccount,
   deleteAccount,
   fetchAccounts,
@@ -110,6 +111,7 @@ import Login, {
   requestLogout,
   resetAccountPassword,
   roleLabel,
+  setAccountAffiliation,
 } from './Login';
 // Engine daypart keys (kairos/data/dayparts.py) -> operator-facing labels. This
 // is a different taxonomy from the local clock-derived daypartLabel below, so it
@@ -5882,7 +5884,7 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
   const [accounts, setAccounts] = useState([]);
   const [loadState, setLoadState] = useState('loading');
   const [reloadKey, setReloadKey] = useState(0);
-  const [form, setForm] = useState({ username: '', display_name: '', role: 'viewer', password: '' });
+  const [form, setForm] = useState({ username: '', display_name: '', role: 'viewer', affiliation: 'company', password: '' });
   const [formError, setFormError] = useState('');
   const [busy, setBusy] = useState(false);
   const [resetFor, setResetFor] = useState('');
@@ -5947,10 +5949,11 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
       role: form.role,
       display_name: form.display_name.trim(),
       must_change_password: true,
+      affiliation: form.affiliation,
     });
     setBusy(false);
     if (result.ok && result.data) {
-      setForm({ username: '', display_name: '', role: 'viewer', password: '' });
+      setForm({ username: '', display_name: '', role: 'viewer', affiliation: 'company', password: '' });
       setReloadKey((key) => key + 1);
       notify('Account created.', 'החשבון נוצר.');
     } else {
@@ -5969,6 +5972,20 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
       setResetValue('');
       setReloadKey((key) => key + 1);
       notify('Temporary password set.', 'נקבעה סיסמה זמנית חדשה.');
+    } else {
+      setRowError(describeFailure(result));
+    }
+  }
+
+  async function submitAffiliation(username, affiliation) {
+    if (busy) return;
+    setBusy(true);
+    setRowError('');
+    const result = await setAccountAffiliation(username, affiliation);
+    setBusy(false);
+    if (result.ok) {
+      setReloadKey((key) => key + 1);
+      notify('Affiliation updated.', 'השיוך עודכן.');
     } else {
       setRowError(describeFailure(result));
     }
@@ -6024,6 +6041,7 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                 <th>{t('Name', 'שם')}</th>
                 <th>{t('Display name', 'שם תצוגה')}</th>
                 <th>{t('Role', 'תפקיד')}</th>
+                <th>{t('Affiliation', 'שיוך')}</th>
                 <th aria-label={t('Actions', 'פעולות')} />
               </tr>
             </thead>
@@ -6041,6 +6059,17 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                         {account.must_change_password && (
                           <span className="auth-flag">{t('Temporary password', 'סיסמה זמנית')}</span>
                         )}
+                      </td>
+                      <td>
+                        <select
+                          value={account.affiliation === 'channel' ? 'channel' : 'company'}
+                          disabled={busy}
+                          aria-label={t('Affiliation', 'שיוך')}
+                          onChange={(event) => submitAffiliation(account.username, event.target.value)}
+                        >
+                          <option value="company">{affiliationLabel('company', locale)}</option>
+                          <option value="channel">{affiliationLabel('channel', locale)}</option>
+                        </select>
                       </td>
                       <td>
                         <div className="auth-row-actions">
@@ -6086,7 +6115,7 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                     </tr>
                     {resetFor === account.username && (
                       <tr className="auth-reset-row">
-                        <td colSpan={4}>
+                        <td colSpan={5}>
                           <div className="auth-inline-form">
                             <input
                               type="password"
@@ -6154,6 +6183,13 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                 </select>
               </label>
               <label className="auth-field">
+                <span>{t('Affiliation', 'שיוך')}</span>
+                <select value={form.affiliation} onChange={(event) => setForm({ ...form, affiliation: event.target.value })}>
+                  <option value="company">{affiliationLabel('company', locale)}</option>
+                  <option value="channel">{affiliationLabel('channel', locale)}</option>
+                </select>
+              </label>
+              <label className="auth-field">
                 <span>{t('Temporary password', 'סיסמה זמנית')}</span>
                 <input
                   type="password"
@@ -6168,6 +6204,12 @@ function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
               {t(
                 'At least 10 characters; a password change is required at the first sign-in. The viewer role reads only, operator edits and runs, admin also manages accounts.',
                 'לפחות 10 תווים; בכניסה הראשונה תידרש החלפת סיסמה. תפקיד צפייה מאפשר קריאה בלבד, תפעול מאפשר עריכה והרצה, וניהול מוסיף ניהול חשבונות.',
+              )}
+            </p>
+            <p className="auth-hint">
+              {t(
+                'A channel-affiliated account cannot manage calendar events or event pricing.',
+                'חשבון המשויך לערוץ אינו יכול לנהל אירועים ביומן או תמחור אירועים.',
               )}
             </p>
             {formError && (

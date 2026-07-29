@@ -448,6 +448,11 @@ def _resolve_items(
                     if item_id in by_id and by_id[item_id].get("status") == "pending"]
         extra: dict[str, Any] = {}
         if event == "apply":
+            from kairos_api.events_access import assistant_apply_block
+
+            blocked = assistant_apply_block(user, [by_id[item_id] for item_id in approved])
+            if blocked:
+                raise HTTPException(status_code=403, detail=blocked)
             kinds = {str(by_id[item_id].get("kind")) for item_id in approved}
             extra["restore_id"] = _snapshot(_state_files_for(kinds), batch_id, approved)
             extra["pruned_restore_points"] = _prune_restore_points() or None

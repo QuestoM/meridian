@@ -159,10 +159,17 @@ class CreateUserRequest(BaseModel):
     # Admin-created accounts get a temporary password by default, so the
     # dashboard forces a password change at the first sign-in.
     must_change_password: bool = True
+    # Company staff manage everything; a channel-affiliated account cannot
+    # manage calendar events or the event pricing activation switch.
+    affiliation: Literal["company", "channel"] = "company"
 
 
 class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=store.MIN_PASSWORD_LENGTH)
+
+
+class AffiliationRequest(BaseModel):
+    affiliation: Literal["company", "channel"]
 
 
 def _public_user(record: dict[str, Any]) -> dict[str, Any]:
@@ -173,6 +180,7 @@ def _public_user(record: dict[str, Any]) -> dict[str, Any]:
         "role": record.get("role", ""),
         "created_at": record.get("created_at", ""),
         "must_change_password": bool(record.get("must_change_password", False)),
+        "affiliation": store.normalize_affiliation(record.get("affiliation")),
     }
 
 
@@ -289,6 +297,7 @@ def create_user(payload: CreateUserRequest, request: Request) -> dict[str, Any]:
             payload.role,
             payload.display_name,
             must_change_password=payload.must_change_password,
+            affiliation=payload.affiliation,
         )
     except store.DuplicateUserError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -311,6 +320,22 @@ def delete_user(username: str, request: Request) -> dict[str, Any]:
     store.remove_user(username)
     store.drop_sessions_for(username)
     return {"deleted": username}
+
+
+@router.put("/users/{username}/affiliation")
+def set_affiliation(username: str, payload: AffiliationRequest, request: Request) -> dict[str, Any]:
+    """Flip an account between company and channel affiliation (admin only).
+
+    Takes effect immediately: the events write guard and the event pricing
+    activation guard read the store per request, so live sessions do not need
+    to sign in again to gain or lose the company surface.
+    """
+    _require_admin(request)
+    username = store.normalize_username(username)
+    if store.get_user(username) is None:
+        raise HTTPException(status_code=404, detail=f"No account named {username}.")
+    updated = store.set_affiliation(username, payload.affiliation)
+    return _public_user(updated)
 
 
 @router.post("/users/{username}/reset-password")

@@ -35,7 +35,6 @@ the held-out gate once history with real contrast exists.
 
 from __future__ import annotations
 
-import csv
 import json
 import os
 import threading
@@ -48,10 +47,12 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from kairos_api.events_access import requester_is_company, require_company_editor, training_gate
+from kairos_api.events_holidays import _load_holidays
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 EVENTS_PATH = DATA_DIR / "calendar_events.csv"
-HOLIDAYS_PATH = ROOT / "kairos" / "config" / "israel_holidays.csv"
 WEIGHTS_CONFIG_PATH = ROOT / "config" / "optimization_weights.yaml"
 COEFFICIENTS_PATH = ROOT / "models" / "tv_break_coefficients.json"
 
@@ -269,26 +270,6 @@ def _plan_overlap_dates(record: dict[str, Any], plan_dates: list[str]) -> list[s
     return overlap
 
 
-# --- holidays ------------------------------------------------------------------
-def _load_holidays() -> list[dict[str, Any]]:
-    """The bundled holiday reference table. Comment lines (leading '#') carry the
-    verify-before-use note and are skipped. Missing file returns empty."""
-    if not HOLIDAYS_PATH.exists():
-        return []
-    with HOLIDAYS_PATH.open(encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(line for line in handle if not line.startswith("#"))
-        rows = []
-        for row in reader:
-            rows.append({
-                "date": str(row.get("date", "")).strip(),
-                "name": str(row.get("name", "")).strip(),
-                "kind": str(row.get("kind", "")).strip(),
-                "is_school_holiday": str(row.get("is_school_holiday", "")).strip().lower()
-                in ("true", "1", "yes"),
-            })
-    return rows
-
-
 # --- model context -------------------------------------------------------------
 def _coefficients_metadata() -> "dict[str, Any] | None":
     try:
@@ -368,14 +349,17 @@ def _model_context() -> dict[str, Any]:
         "weekday_premiums": _weekday_premiums(),
         "measurement": measurement,
         "wartime_disclosure": _wartime_disclosure(metadata),
+        "training_gate": training_gate(metadata),
     }
 
 
 # --- routes --------------------------------------------------------------------
 @router.get("")
-def list_events() -> dict[str, Any]:
+def list_events(request: Request = None) -> dict[str, Any]:
     """All stored events (with training-window and plan overlaps), the bundled
-    holiday table, and the model-context disclosure block."""
+    holiday table, and the model-context disclosure block. ``can_edit`` says
+    whether this session may write events (company staff yes, channel no);
+    reads stay open to every authenticated account."""
     frame = _load_frame()
     plan_dates = _plan_dates()
     events = []
@@ -384,11 +368,14 @@ def list_events() -> dict[str, Any]:
         record["window_overlap_days"] = _window_overlap_days(record)
         record["plan_overlap_dates"] = _plan_overlap_dates(record, plan_dates)
         events.append(record)
-    return {"events": events, "holidays": _load_holidays(), "model_context": _model_context()}
+    return {"events": events, "holidays": _load_holidays(),
+            "model_context": _model_context(),
+            "can_edit": requester_is_company(request)}
 
 
 @router.post("", status_code=201)
 def create_event(payload: EventCreate, request: Request = None) -> dict[str, Any]:
+    require_company_editor(request)
     validated = _validate(payload.name, payload.type, payload.start_date,
                           payload.end_date, payload.intensity,
                           payload.price_multiplier)
@@ -409,6 +396,7 @@ def create_event(payload: EventCreate, request: Request = None) -> dict[str, Any
 @router.put("/{event_id}")
 def update_event(event_id: str, payload: EventUpdate,
                  request: Request = None) -> dict[str, Any]:
+    require_company_editor(request)
     with _STORE_LOCK:
         frame = _load_frame()
         index = _locate(frame, event_id)
@@ -435,6 +423,7 @@ def update_event(event_id: str, payload: EventUpdate,
 
 @router.delete("/{event_id}")
 def delete_event(event_id: str, request: Request = None) -> dict[str, Any]:
+    require_company_editor(request)
     with _STORE_LOCK:
         frame = _load_frame()
         index = _locate(frame, event_id)

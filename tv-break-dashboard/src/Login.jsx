@@ -69,6 +69,13 @@ export function resetAccountPassword(username, newPassword) {
   });
 }
 
+export function setAccountAffiliation(username, affiliation) {
+  return authRequest(`/api/auth/users/${encodeURIComponent(username)}/affiliation`, {
+    method: 'PUT',
+    body: JSON.stringify({ affiliation }),
+  });
+}
+
 export const MIN_PASSWORD_LENGTH = 10;
 
 const ROLE_LABELS = {
@@ -80,6 +87,17 @@ const ROLE_LABELS = {
 export function roleLabel(role, locale) {
   const labels = ROLE_LABELS[role];
   if (!labels) return role || '';
+  return locale === 'he' ? labels.he : labels.en;
+}
+
+// A missing affiliation reads as company, matching the server-side default.
+const AFFILIATION_LABELS = {
+  company: { en: 'Company', he: 'חברה' },
+  channel: { en: 'Channel', he: 'ערוץ' },
+};
+
+export function affiliationLabel(affiliation, locale) {
+  const labels = AFFILIATION_LABELS[affiliation] || AFFILIATION_LABELS.company;
   return locale === 'he' ? labels.he : labels.en;
 }
 

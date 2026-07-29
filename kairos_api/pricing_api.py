@@ -35,6 +35,10 @@ from kairos.optimize.pricing import (
     load_price_events,
     pricing_from_settings,
 )
+from kairos_api.events_access import (
+    EVENT_PRICING_COMPANY_ONLY_DETAIL,
+    require_company_editor,
+)
 
 router = APIRouter(tags=["pricing"])
 
@@ -220,10 +224,21 @@ def put_pricing(update: PricingUpdate, request: Request = None) -> dict[str, Any
     The edit is deep-merged onto the saved overrides, validated by constructing the
     PricingModel (a negative premium is rejected), then saved. The merged overrides flow
     into the next optimizer run, dashboard forecast and spot export. Returns the new state.
+
+    The event pricing activation switch (``pricing_activation.events``) is a
+    company-only surface: a channel-affiliated session touching that key answers
+    403; every other pricing edit stays open to any operator or admin session.
     """
+    activation = update.overrides.get("pricing_activation")
+    if isinstance(activation, dict) and "events" in activation:
+        require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
     load, save = _settings_io()
     settings = load()
     current = dict(getattr(settings, "pricing_overrides", None) or {})
+    # A reset clears every override, including a live events activation, so it
+    # is walled the same way whenever that activation is currently on.
+    if update.reset and bool((current.get("pricing_activation") or {}).get("events")):
+        require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
     merged: dict[str, Any] = {} if update.reset else _deep_merge(current, update.overrides)
     try:
         PricingModel.from_config(merged)  # validate before persisting
