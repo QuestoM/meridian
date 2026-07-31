@@ -1376,9 +1376,21 @@ Changing one is an escalation with a measurement, never a task.
 Revision 2 named no test path anywhere, so under its own closure rule no builder
 could write a test, while Bar 4 requires the suite green and W0-1's own bar is a
 response diff, which is a test. Measured today: **125 Python files under
-`tests/`, 122 at the top level and 3 under `tests/validation/`, and 3,102 tests
-collected in 6.17 s** with `~/.venvs/meridian/bin/python -m pytest
---collect-only -q`.
+`tests/`, 122 at the top level and 3 under `tests/validation/`**.
+
+**Correction, 2026-08-01, and it changes every piece's Bar 4.** This section
+first recorded 3,102 collected tests, taken with a bare `pytest --collect-only`
+from the repository root. That command also collects the vendored Google
+Meridian library under `meridian/`, whose twenty test files are not this
+product's and whose hundreds of failures are identical on both trees. Two
+independent measurements caught it, one in the wave-close gate and one in the
+verification harness, both after the gate refused to pass a tree because of
+failures nobody here owns. **The product's suite is `tests/` and nothing else**,
+which is roughly 1,600 tests: the brief's original figure of 1,438 passing was
+about right for the product, and the 3,102 that replaced it was measuring
+somebody else's code. Every count in this campaign, and every invocation in the
+gate, is scoped to `tests/`. The number a piece must keep green is the product
+suite, never the repository.
 
 1. **Adding a test needs no permission and cannot collide.** A piece creates test
    files under its own reserved prefix, `tests/test_<piece>_*.py` with the piece
@@ -1731,7 +1743,7 @@ Recorded because the lead needs to know which numbers are load-bearing.
 | **"the same two words name both activities 159 and 124 times"** | **One word, two counts, and a second word with two more** | `04-training-vs-runs.md:670-671` measured `recompute` at 159 in the UI and 124 in the backend, and `rebuild` at 9 and 85. Revision 1 compressed two rows into one sentence. Section 4 now states it correctly |
 | **"Six gate-override flags"** | **Five** | I enumerated the `add_argument` calls in `scripts/compute_measured_coefficients.py`: `--series`, `--counterprogramming`, `--placebo-correction`, `--interval-calibration`, `--moderated-variances`, `--output`. `--output` is an output path, not a gate override. `04-training-vs-runs.md:651` says five and is right |
 | Assistant allowed settings fields: discovery says 20 | **19** | Enumerated `ALLOWED_SETTINGS_FIELDS` in process. `audience_model_activation` is not among them either way, so the conclusion is unaffected |
-| Test count: the brief says 1,438 passing and 4 skipped | **3,102 collected at this HEAD**, pass count unverified | `pytest --collect-only`. I did not run the suite, so I make no claim about passes. The brief's figure appears to predate this HEAD, and the lead should re-baseline before using it as a gate |
+| Test count: the brief says 1,438 passing and 4 skipped | **The brief was right and this row was wrong.** The 3,102 recorded here came from a bare `pytest --collect-only` at the repository root, which also collects the vendored Google Meridian library under `meridian/`. Scoped to `tests/`, the product suite is roughly 1,600 tests | Caught on 2026-08-01 by two independent measurements after the wave-close gate refused a tree over failures nobody here owns. Every count and every gate invocation is now scoped to `tests/` |
 | `/api/overview` latency: 1.28 s, 5.84 s and 3.5 to 6.7 s reported by three investigators | **The range is real and the variance is the defect** | A read that varies 5x is a UX problem in itself, so W0-5 is graded on p95, not on a best case |
 | `run_log.jsonl`: 488 versus 489 records | **489 lines**, re-measured this session | Trivial, recorded for completeness |
 | Version store: 200 manifests versus 201 directory entries | **200 manifests** | The extra entry is a directory listing artifact. The load-bearing number is that 187 of them point at pytest paths |
@@ -1806,7 +1818,7 @@ nothing else in the document moved.
 
 | Finding | Where it is closed |
 |---|---|
-| Section 8.2 declares itself total and never names `tests/`, while Bar 4 requires 3,102 tests green | Section 8.2, "Tests": a reserved prefix per piece for new tests, a derived owner for existing ones (measured: 16 of 125 files resolve to one owner, 106 are shared, 3 are the harness), and a four-part test-change protocol ruled on by C2 |
+| Section 8.2 declares itself total and never names `tests/`, while Bar 4 requires the product suite green | Section 8.2, "Tests": a reserved prefix per piece for new tests, a derived owner for existing ones (measured: 16 of 125 files resolve to one owner, 106 are shared, 3 are the harness), and a four-part test-change protocol ruled on by C2 |
 | `server.py` is W0-1's, is never handed over, and four later pieces must mount a router in it | Section 8.2, "`kairos_api/server.py` after wave 0": frozen above a marker, append-only below it, one two-line stanza per piece, with an OpenAPI diff against 90 paths and 113 operations as the bar |
 | Six of the 51 `kairos_api` modules are absent from the table and therefore frozen, five on wave-1 critical paths | Section 8.2, "The six modules the table did not name": each assigned by its importer, with the dual-consumer duty on `audience_api.py` stated |
 | The 450-line law will force helpers nobody owns | Same subsection: naming convention plus the section 8.8 publication as the collision check, with the six owned files already over the cap measured |
