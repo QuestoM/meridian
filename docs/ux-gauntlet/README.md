@@ -22,6 +22,25 @@ Drop `--embed` only if you deliberately want the disk-opened page to keep showin
 only the keys you send, so a partial record clears nothing, and re-sending the same `round` merges into it
 rather than duplicating. Add `--dry-run` to validate a record and write nothing.
 
-**The one rule.** It refuses a record that claims anything without an `evidence` entry carrying a `path`, a
-measurement whose value is null without a `note_he` saying why, or a piece id the state does not know. An
-unknown value stays null with its reason and the page draws it as an honest empty state, never as a zero.
+## How a claim enters this page
+
+The script enforces the format. These five hold up the content, and a claim that skips them is worth less
+than no claim, because it looks like evidence.
+
+1. **Measure it, do not argue it.** A conclusion reached by reasoning over facts is an argument. Run the
+   thing, count the rows, time the call, read the rendered geometry. Report what came back.
+2. **Prefer a discriminator that cannot be a mistake.** A capability someone mentioned can be a mistake in
+   the mentioning. A recorded file length of 6,236 that matches one commit exactly and misses another by 397
+   lines cannot be. When two explanations are open, look for the measurement that only one of them survives.
+3. **Run the counter-check, and say it came back empty.** Do not stop at the first confirming fact. Go
+   looking for evidence of the opposite conclusion, and report the result either way. "No file was deleted
+   across the range, so no artifact could exist under the old commit and not the new one" is what makes a
+   verdict safe. An investigation that only confirms has not been tested.
+4. **Distrust your eye, trust the instrument.** A screenshot that looks wrong is a hypothesis. Measure before
+   you fix, or you will correct something that was already right.
+5. **An unknown stays unknown.** Null with a stated reason, rendered as an honest empty state. Never a zero,
+   never a placeholder, never a number carried over from a nearby thing that happened to be measured.
+
+**The one rule the script enforces.** It refuses a record that claims anything without an `evidence` entry
+carrying a `path`, a measurement whose value is null without a `note_he` saying why, or a piece id the state
+does not know.
