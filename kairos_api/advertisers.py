@@ -12,6 +12,14 @@ legacy CSV without the column reads as empty), and ``name_source`` says honestly
 where the shown name comes from: ``operator`` (stored), ``observed`` (the id is
 a real advertiser name seen in the daily spot data) or ``unnamed`` (raw token
 only; the UI prettifies it but never invents a company name).
+
+Beside it sits the identity layer, in the shape ``data/agencies.csv`` already
+uses and for the same reason: ``name`` is the advertiser this row is about and
+``aliases`` is a pipe-joined list of other spellings of it. Writing either one
+BINDS the row to that advertiser, so the row's premium and its conditions start
+pricing that advertiser's spots; leaving both blank, which is how all 45 shipped
+rows read, binds nothing and prices nothing. The read that joins the name space,
+the rules and the daily money is :mod:`kairos_api.advertisers_identity`.
 """
 
 from __future__ import annotations
@@ -45,7 +53,9 @@ COLUMNS = [
     "urgency_k",
     "ahead_k",
     "notes",
+    "name",
     "display_name",
+    "aliases",
 ]
 
 router = APIRouter(prefix="/api/advertisers", tags=["advertisers"])
@@ -76,6 +86,11 @@ class AdvertiserUpdate(BaseModel):
     # The operator-facing name shown beside the raw advertiser_id. Sending an
     # empty string clears it, so the record reads as unnamed again.
     display_name: str | None = None
+    # The advertiser this row is about, and other spellings of it. Setting
+    # either binds the row to that advertiser on the daily pricing path; an
+    # empty string clears it and the row goes back to pricing nothing.
+    name: str | None = None
+    aliases: str | None = None
 
 
 class AdvertiserCreate(BaseModel):
@@ -94,6 +109,8 @@ class AdvertiserCreate(BaseModel):
     ahead_k: float | None = None
     notes: str = ""
     display_name: str = ""
+    name: str = ""
+    aliases: str = ""
 
 
 def _coerce_bool(value: Any) -> bool:
@@ -147,14 +164,16 @@ def _observed_names() -> frozenset[str]:
     return frozenset(name.strip() for name in frame["advertiser"].astype(str) if name.strip())
 
 
-def _name_source(display_name: str, advertiser_id: str, observed: frozenset[str]) -> str:
+def _name_source(display_name: str, advertiser_id: str, observed: frozenset[str],
+                 name: str = "") -> str:
     """Classify where a record's shown name comes from, tri-state and honest.
 
-    ``operator``: the operator stored a display name. ``observed``: the raw id
-    itself is a real advertiser name seen in the daily data. ``unnamed``: only a
-    raw token exists; the UI prettifies it but flags it for the operator to fill.
+    ``operator``: the operator stored a display name or bound this row to an
+    advertiser by name. ``observed``: the raw id itself is a real advertiser
+    name seen in the daily data. ``unnamed``: only a raw token exists; the UI
+    prettifies it but flags it for the operator to fill.
     """
-    if display_name:
+    if display_name or name:
         return "operator"
     if advertiser_id.strip() in observed:
         return "observed"
@@ -166,6 +185,7 @@ def _row_to_record(row: "pd.Series[Any]", observed: frozenset[str] | None = None
         observed = _observed_names()
     advertiser_id = str(row.get("advertiser_id", ""))
     display_name = str(row.get("display_name", "")).strip()
+    name = str(row.get("name", "")).strip()
     return {
         "advertiser_id": advertiser_id,
         "default_premium": round(_coerce_float(row.get("default_premium")), 6),
@@ -176,8 +196,43 @@ def _row_to_record(row: "pd.Series[Any]", observed: frozenset[str] | None = None
         "ahead_k": _coerce_opt_float(row.get("ahead_k")),
         "notes": str(row.get("notes", "")),
         "display_name": display_name,
-        "name_source": _name_source(display_name, advertiser_id, observed),
+        "name": name,
+        "aliases": str(row.get("aliases", "")).strip(),
+        "name_source": _name_source(display_name, advertiser_id, observed, name),
     }
+
+
+def _unclaimed_name(frame: pd.DataFrame, candidate: str, advertiser_id: str) -> str:
+    """The name to store, refusing one another row is already bound to.
+
+    Two rows bound to the same advertiser would make which row prices its spots
+    depend on file order, so the second binding is rejected at the door with the
+    id that already holds it, rather than resolved silently.
+    """
+    from kairos_api.advertisers_identity import name_is_taken
+
+    wanted = str(candidate or "").strip()
+    if not wanted:
+        return ""
+    rows = frame.to_dict("records")
+    if name_is_taken(rows, wanted, advertiser_id):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Another advertiser row is already bound to '{wanted}'",
+        )
+    return wanted
+
+
+def _unclaimed_aliases(frame: pd.DataFrame, candidate: str, advertiser_id: str) -> str:
+    """The alias cell to store, refusing any alias another row already holds."""
+    from kairos_api.advertisers_identity import normalized_aliases
+
+    cleaned = normalized_aliases(candidate)
+    if not cleaned:
+        return ""
+    for alias in cleaned.split("|"):
+        _unclaimed_name(frame, alias, advertiser_id)
+    return cleaned
 
 
 def _backup() -> None:
@@ -290,6 +345,19 @@ def advertiser_stats() -> dict[str, Any]:
     }
 
 
+@router.get("/identity")
+def advertiser_identity() -> dict[str, Any]:
+    """Every advertiser as a named record, with its rules and its money.
+
+    Declared before the ``/{advertiser_id}`` routes so "identity" is never read
+    as an advertiser id. The join and every honest empty state live in
+    :mod:`kairos_api.advertisers_identity`; this route only exposes them.
+    """
+    from kairos_api.advertisers_identity import identity_report
+
+    return identity_report()
+
+
 @router.put("/{advertiser_id}")
 def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate,
                       request: Request = None) -> dict[str, Any]:
@@ -320,6 +388,10 @@ def update_advertiser(advertiser_id: str, payload: AdvertiserUpdate,
             frame.at[index, "notes"] = payload.notes
         if payload.display_name is not None:
             frame.at[index, "display_name"] = payload.display_name.strip()
+        if payload.name is not None:
+            frame.at[index, "name"] = _unclaimed_name(frame, payload.name, advertiser_id)
+        if payload.aliases is not None:
+            frame.at[index, "aliases"] = _unclaimed_aliases(frame, payload.aliases, advertiser_id)
 
         _snapshot_before_write(request)
         _write_frame(frame)
@@ -343,6 +415,8 @@ def create_advertiser(payload: AdvertiserCreate, request: Request = None) -> dic
             "ahead_k": "" if payload.ahead_k is None or payload.ahead_k < 0 else str(float(payload.ahead_k)),
             "notes": payload.notes,
             "display_name": payload.display_name.strip(),
+            "name": _unclaimed_name(frame, payload.name, payload.advertiser_id),
+            "aliases": _unclaimed_aliases(frame, payload.aliases, payload.advertiser_id),
         }
         frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
         _snapshot_before_write(request)

@@ -25,6 +25,13 @@ segment scope (genre, daypart, programme) into a placement-preference weight
 >= 1.0, supplied to :func:`~kairos.optimize.optimizer.optimize_breaks` as
 ``demand_weights`` to bias WHERE breaks go without changing revenue. Off by default.
 
+Who a rule is about (:meth:`AdvertiserRuleEngine.key_for`). A lookup takes the
+advertiser string its caller holds, which on the daily path is the real name the
+file carries. A stored key is used as it comes; anything else resolves through
+the store's ``name``, ``display_name`` and ``aliases`` columns
+(:mod:`kairos.optimize.advertiser_rules_identity`), and a name bound to no row
+resolves to nothing and keeps the unknown-advertiser outcome below.
+
 Honesty rules: an unknown advertiser yields a premium of 1.0 (never zero) and is
 allowed; scopes are token sets per dimension where an empty scope or ``ANY``
 matches everything; a weekday-scoped rule never matches a caller that has no
@@ -57,6 +64,7 @@ from kairos.optimize._rule_helpers import (
     scope_tokens,
     scopes_intersect,
 )
+from kairos.optimize.advertiser_rules_identity import NameIndex, load_name_index
 from kairos.optimize._rule_models import (  # noqa: F401 - re-exported names
     ANY,
     FORBID,
@@ -112,6 +120,8 @@ class AdvertiserRuleEngine:
 
     baselines: dict[str, Baseline] = field(default_factory=dict)
     conditions: dict[str, list[Condition]] = field(default_factory=dict)
+    # Names and aliases the store binds to its rows; empty means keys only.
+    names: NameIndex = field(default_factory=NameIndex)
 
     @classmethod
     def from_files(
@@ -120,11 +130,18 @@ class AdvertiserRuleEngine:
         rules_path: str | Path | None = None,
         conditions_path: str | Path | None = None,
     ) -> "AdvertiserRuleEngine":
-        baselines = _load_baselines(Path(rules_path) if rules_path else DEFAULT_RULES_PATH)
+        rules = Path(rules_path) if rules_path else DEFAULT_RULES_PATH
+        baselines = _load_baselines(rules)
         conditions = _load_conditions(
             Path(conditions_path) if conditions_path else DEFAULT_CONDITIONS_PATH
         )
-        return cls(baselines=baselines, conditions=conditions)
+        return cls(baselines=baselines, conditions=conditions, names=load_name_index(rules))
+
+    def key_for(self, advertiser: str) -> str:
+        """The stored key an advertiser string addresses (see the module note)."""
+        if advertiser in self.baselines or advertiser in self.conditions:
+            return advertiser
+        return self.names.get(advertiser) or advertiser
 
     def _conditions_for(self, advertiser_id: str) -> list[Condition]:
         return self.conditions.get(advertiser_id, [])
@@ -181,6 +198,7 @@ class AdvertiserRuleEngine:
         pass ``None`` when the caller has no date and weekday-scoped rules will
         simply not match.
         """
+        advertiser_id = self.key_for(advertiser_id)
         baseline = self.baselines.get(advertiser_id)
         premium = baseline.default_premium if baseline is not None else 1.0
         discounts: list[Condition] = []
@@ -220,7 +238,7 @@ class AdvertiserRuleEngine:
         is >= 0 and is 1.0 when no pressure rule matches.
         """
         multiplier = 1.0
-        for condition in self._conditions_for(advertiser_id):
+        for condition in self._conditions_for(self.key_for(advertiser_id)):
             if condition.effect == PRESSURE and condition.matches(
                 position=position, genre=genre, daypart=daypart,
                 programme=programme, weekday=weekday,
@@ -333,6 +351,7 @@ class AdvertiserRuleEngine:
         Precedence: baseline limits first, then forbid rules (always win over
         require), then require rules (at least one must match when any exist).
         """
+        advertiser_id = self.key_for(advertiser_id)
         baseline = self.baselines.get(advertiser_id)
         if baseline is not None and not baseline.allows(
             position=position, genre=genre, daypart=daypart
@@ -385,7 +404,7 @@ class AdvertiserRuleEngine:
         ``overlap``. Scope intersection understands weekday scopes, so two rules
         on disjoint weekdays (Saturday-only versus Sunday-only) do not overlap.
         """
-        rules = self._conditions_for(advertiser_id)
+        rules = self._conditions_for(self.key_for(advertiser_id))
         findings: list[OverlapFinding] = []
         for i in range(len(rules)):
             for j in range(i + 1, len(rules)):
