@@ -210,7 +210,7 @@ details.piece > summary::-webkit-details-marker{display:none}
 <body>
 <header class="top">
   <div class="wrap top-in">
-    <h1 class="brand">שולחן העבודה של גאונטלט החוויה<small>Meridian experience gauntlet workbench</small></h1>
+    <h1 class="brand">שולחן העבודה של גאונטלט החוויה<small><bdi>Meridian experience gauntlet workbench</bdi></small></h1>
     <nav class="jump" aria-label="קפיצה לסעיפים">
       <a href="#now">איפה הריצה</a>
       <a href="#blocked">מה חסום</a>
@@ -338,6 +338,7 @@ function pickFile(){
 }
 
 /* ---------- provenance strip ---------- */
+var SJ='<bdi dir="ltr">state.json</bdi>';
 function renderProv(S,src){
   var gen=S.meta&&S.meta.generated_at, age=gen?ageText(gen):null, when=gen?fmtDate(gen):null;
   var h="";
@@ -345,21 +346,21 @@ function renderProv(S,src){
     var drift="";
     if(src.embedded && !src.embedded.__EMBED_PLACEHOLDER__ && src.embedded.meta &&
        src.embedded.meta.generated_at!==gen){
-      drift=' העותק המוטמע בדף עצמו ישן יותר, מ־'+esc(fmtDate(src.embedded.meta.generated_at))+", והוא אינו זה שמוצג כאן.";
+      drift=' העותק המוטמע בדף עצמו ישן יותר, מ־'+t(fmtDate(src.embedded.meta.generated_at))+", והוא אינו זה שמוצג כאן.";
     }
-    h='<div class="prov live"><div class="wrap prov-in"><p><b>מוצג מתוך state.json החי.</b> '+
+    h='<div class="prov live"><div class="wrap prov-in"><p><b>מוצג מתוך '+SJ+' החי.</b> '+
       "נכתב "+t(when)+", "+t(age)+"."+drift+"</p></div></div>";
   }else if(src.mode==="picked"){
     h='<div class="prov live"><div class="wrap prov-in"><p><b>מוצג מתוך קובץ שנבחר ידנית.</b> '+
       t(src.filename)+", נכתב "+t(when)+", "+t(age)+".</p>"+
       '<div class="prov-act"><button class="btn" id="pick">בחרו קובץ אחר</button></div></div></div>';
   }else{
-    h='<div class="prov embedded"><div class="wrap prov-in"><p><b>מוצג מתוך העותק המוטמע בדף, לא מתוך state.json.</b> '+
+    h='<div class="prov embedded"><div class="wrap prov-in"><p><b>מוצג מתוך העותק המוטמע בדף, לא מתוך '+SJ+'.</b> '+
       "הדף נפתח מהדיסק, ולכן הדפדפן חוסם קריאת קבצים לידו. העותק המוטמע נכתב "+t(when)+", "+t(age)+
-      ", והמצב בפועל עשוי להיות חדש יותר, כי סוכנים מעדכנים את state.json ולא את הדף."+
-      '<span class="hint">כדי לראות את המצב החי, הריצו מתוך תיקיית הגאונטלט <code>python3 -m http.server 8021</code> ופתחו '+
-      "<code>http://127.0.0.1:8021/workbench.html</code>, או בחרו את הקובץ ידנית כאן.</span></p>"+
-      '<div class="prov-act"><button class="btn" id="pick">בחרו את state.json</button></div></div></div>';
+      ", והמצב בפועל עשוי להיות חדש יותר, כי סוכנים מעדכנים את "+SJ+" ולא את הדף."+
+      '<span class="hint">כדי לראות את המצב החי, הריצו מתוך תיקיית הגאונטלט <code dir="ltr">python3 -m http.server 8021</code> ופתחו '+
+      '<code dir="ltr">http://127.0.0.1:8021/workbench.html</code>, או בחרו את הקובץ ידנית כאן.</span></p>'+
+      '<div class="prov-act"><button class="btn" id="pick">בחרו את '+SJ+"</button></div></div></div>";
   }
   document.getElementById("prov").innerHTML=h;
   var b=document.getElementById("pick"); if(b) b.addEventListener("click",pickFile);
