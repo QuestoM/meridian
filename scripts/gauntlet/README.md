@@ -8,6 +8,22 @@ changed, because that claim is cheap to assert and tedious to prove.
 ~/.venvs/meridian/bin/python scripts/gauntlet/verify_wave.py --reference 5a80a709
 ```
 
+## Two corrections to the record, kept here because this is where someone looks
+
+The commit that introduced this harness, 503d1a79, says it materialises the
+reference through a detached worktree. It does not. It uses `git archive`, which
+writes nothing under `.git` and takes no lock a live builder could block on, and
+that choice is deliberate and documented at the top of `materialise.py`. The
+commit message asserted the mechanism the instruction had suggested rather than
+the one the code actually used, which is the same failure this campaign exists to
+catch, committed by the lead inside a message about rigour.
+
+That commit was also written believing the harness had not been delivered,
+because a search for it returned nothing minutes before it landed. The file was
+real and is tracked. A check is only true for the moment it ran, which is the
+rule this project writes on every measured claim, and it binds a lead's checks
+exactly as it binds an agent's.
+
 ## What it checks
 
 | check | what it proves | cost |
