@@ -1,5 +1,34 @@
 # Decisions only you can make
 
+> **Owner ruling, 2026-08-01: full approval given for everything.**
+>
+> That resolves every decision here that was waiting on a choice, and each one
+> proceeds on the recommendation written below it: decision 1 takes option A and
+> re-keys advertiser identity on the 41 observed names, archiving the 45
+> synthetic rows as demo data; decision 2 takes option A, an explicit break
+> identifier per ad, with the stated splitting rule as the fallback for
+> historical data that will never carry one; decision 5 makes publishing an
+> internal freeze with a named version performed by the planner alone, and moves
+> the regulatory guardrails into their own store with an effective date, a change
+> record and a company-only permission until a real owner is named.
+>
+> Two of the five were never blocked on permission and approval cannot unblock
+> them, so they are recorded honestly rather than marked resolved. Decision 3
+> needs a number: what a week is measured against, its unit, its grain and its
+> owner. Decision 4 needs data: a current or near-future broadcast week, real
+> campaign flights, and ideally a delivery feed. Neither is a choice anyone can
+> approve; they are facts that exist outside this repository. Both surfaces ship
+> with an honest empty state that names the missing input and offers the path to
+> supply it, which is what the specification already committed to, so nothing
+> waits on them and nothing pretends to know them.
+>
+> This approval covers the decisions on this page and the build that follows from
+> them. It is not read as standing authorisation for anything irreversible that
+> was never proposed here: deployments, purchases, outbound messages, credential
+> use or destructive data operations still get asked for individually, because a
+> blanket yes to a page of design choices is not a yes to an action nobody
+> described.
+
 Written 2026-07-31 against HEAD `5a80a709`. Five decisions. Every other question
 raised during discovery I answered myself from the code and the data; these five
 cannot be answered that way, and each one blocks a named build piece.
