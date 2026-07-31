@@ -30,6 +30,10 @@ class Result:
     detail: list[str] = field(default_factory=list)
     measurements: dict[str, Any] = field(default_factory=dict)
     seconds: float | None = None
+    # A check nobody asked for is not the same as a check that tried and could not
+    # run. Both print as not checked, because both are gaps in the proof, but only
+    # the second one is a failure to verify and only it moves the exit code.
+    requested: bool = True
 
     def passed(self, summary: str, **measurements: Any) -> "Result":
         self.status = PASS
@@ -91,11 +95,13 @@ def render(results: list[Result], reference: str, tree_note: str) -> str:
         for ev in r.evidence:
             lines.append("  evidence: %s" % ev)
 
-    counts = {s: sum(1 for r in results if r.status == s) for s in (PASS, FAIL, UNCHECKED)}
+    asked = [r for r in results if r.requested]
+    not_asked = [r for r in results if not r.requested]
+    counts = {s: sum(1 for r in asked if r.status == s) for s in (PASS, FAIL, UNCHECKED)}
     lines.append("")
     lines.append(_rule("="))
     lines.append(
-        "%d passed, %d failed, %d not checked"
+        "of the checks requested: %d passed, %d failed, %d could not run"
         % (counts[PASS], counts[FAIL], counts[UNCHECKED])
     )
     if counts[FAIL]:
@@ -103,7 +109,12 @@ def render(results: list[Result], reference: str, tree_note: str) -> str:
     elif counts[UNCHECKED]:
         lines.append(
             "VERDICT: no failure found, but the proof is incomplete. "
-            "Every check above marked not checked is a gap, not a pass."
+            "Every check above that could not run is a gap, not a pass."
+        )
+    elif not_asked:
+        lines.append(
+            "VERDICT: everything asked for passed. This is not a full gate: %s were not run."
+            % ", ".join(sorted(r.name for r in not_asked))
         )
     else:
         lines.append("VERDICT: the working tree is behaviourally identical to the reference.")
@@ -112,8 +123,11 @@ def render(results: list[Result], reference: str, tree_note: str) -> str:
 
 
 def exit_code(results: list[Result], allow_unchecked: bool) -> int:
-    if any(r.status == FAIL for r in results):
+    """Scored on what was asked for. Declining to run a check is the caller's
+    choice; a check that tried and could not finish is a hole in the proof."""
+    asked = [r for r in results if r.requested]
+    if any(r.status == FAIL for r in asked):
         return 1
-    if any(r.status == UNCHECKED for r in results) and not allow_unchecked:
+    if any(r.status == UNCHECKED for r in asked) and not allow_unchecked:
         return 2
     return 0

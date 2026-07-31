@@ -106,10 +106,15 @@ def dependency_sets_match(repo: Path, ref_dir: Path) -> bool:
 def materialise(repo: Path, reference: str, keep: bool, need_work_copy: bool) -> Materialised:
     root = Path(tempfile.mkdtemp(prefix="gauntlet-verify-"))
     m = Materialised(root, reference, keep)
-    m.scratch.mkdir(parents=True, exist_ok=True)
-    export_reference(repo, reference, m.ref)
-    if need_work_copy:
-        copy_working_tree(repo, m.work)
+    try:
+        m.scratch.mkdir(parents=True, exist_ok=True)
+        export_reference(repo, reference, m.ref)
+        if need_work_copy:
+            copy_working_tree(repo, m.work)
+    except BaseException:
+        # Failing to set up must not leave a couple of hundred megabytes behind.
+        shutil.rmtree(root, ignore_errors=True)
+        raise
     return m
 
 

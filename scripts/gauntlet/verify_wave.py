@@ -34,8 +34,8 @@ from checks_bodies import check_response_bodies  # noqa: E402
 from checks_engine import check_engine_golden, check_test_suite  # noqa: E402
 from checks_files import check_moved_files  # noqa: E402
 from checks_frontend import check_frontend_text  # noqa: E402
-from materialise import copy_working_tree, dependency_sets_match, link_node_modules, materialise  # noqa: E402
-from result import FAIL, Result, exit_code, render  # noqa: E402
+from materialise import dependency_sets_match, link_node_modules, materialise  # noqa: E402
+from result import Result, exit_code, render  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 ALL_CHECKS = ("api", "bodies", "engine", "moved", "suite", "frontend")
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--golden-timeout", type=int, default=900)
     ap.add_argument("--suite-timeout", type=int, default=3600)
     ap.add_argument("--build-timeout", type=int, default=900)
-    ap.add_argument("--settle", type=float, default=2.5, help="seconds to let a route render")
+    ap.add_argument("--settle", type=float, default=8.0, help="seconds to let a route render before its text is read")
     ap.add_argument("--allow-unchecked", action="store_true",
                     help="exit 0 when checks could not run; off by default so a gap cannot pass as a pass")
     ap.add_argument("--keep", action="store_true", help="leave the temporary trees in place")
@@ -90,7 +90,13 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
     needs_copy = bool({"api", "bodies", "engine", "suite", "frontend"} & set(requested))
     print("materialising %s and the working tree ..." % args.reference, file=sys.stderr)
-    m = materialise(REPO, args.reference, args.keep, needs_copy)
+    try:
+        m = materialise(REPO, args.reference, args.keep, needs_copy)
+    except (RuntimeError, OSError) as exc:
+        # A gate that cannot set itself up says so in one line and fails; a traceback
+        # here reads as a bug in the harness rather than an answer about the tree.
+        print("could not verify: %s" % exc, file=sys.stderr)
+        return 2
     results: list[Result] = []
 
     try:
@@ -115,10 +121,10 @@ def main(argv: list[str] | None = None) -> int:
                 results.append(check_test_suite(args.python, m.ref, m.work, m.scratch,
                                                 args.suite_timeout, args.suite_both))
             elif name == "frontend":
-                results.append(check_frontend_text(m.ref, m.work, m.scratch, args.build_timeout, args.settle))
+                results.append(check_frontend_text(args.python, m.ref, m.work, m.scratch, args.build_timeout, args.settle))
 
         for skipped in [c for c in ALL_CHECKS if c not in requested]:
-            r = Result(skipped, "%s (not requested)" % skipped)
+            r = Result(skipped, "%s (not requested)" % skipped, requested=False)
             results.append(r.cannot_check("not requested on this run"))
 
         note = tree_state(REPO) + ", verified from a copy so nothing here touched it"

@@ -6,10 +6,16 @@ precisely what a module split can break. So every GET that needs no arguments is
 called on both trees and its body compared.
 
 Some fields move on their own between two runs a minute apart: a computed-at
-stamp, an elapsed time, a freshness fingerprint. Those are not normalised away,
-because silently ignoring a field is how a real difference hides. They are
-reported, flagged as time-like, and counted separately so a reader can tell a
-clock apart from a defect.
+stamp, an elapsed time, a file modification time, a freshness fingerprint. Those
+are not normalised away, because silently ignoring a field is how a real
+difference hides. They are reported, flagged as time-like, and counted separately
+so a reader can tell a clock apart from a defect.
+
+One caveat worth stating, because it decides how a failure here should be read.
+This compares the two trees as they actually are, code and data together. A body
+can therefore differ because a data file moved rather than because any code did,
+and the `moved` check is what tells the two apart. Read a failure here next to
+that one before calling it a regression.
 """
 
 from __future__ import annotations
@@ -23,12 +29,23 @@ from result import Result
 from materialise import isolated_env
 
 TIME_LIKE = ("_at", "timestamp", "elapsed", "duration", "_ms", "generated", "computed",
-             "fingerprint", "uptime", "now")
+             "fingerprint", "uptime", "now", "modified", "mtime")
+
+# Routes with no upper bound when called without arguments. The alarm below cannot
+# stop them: SIGALRM is only delivered between bytecodes, and these spend their time
+# inside numpy, so the interpreter never gets a chance to raise. Measured in
+# 06-baseline.md: the preview runs the day optimizer twice, 16.55s scoped, 55.60s
+# unscoped, and unparameterised it ran past thirty minutes before being killed.
+# Excluded by name and reported as unproven, which is honest; pretending the check
+# covered them would not be.
+UNBOUNDED = ("/api/constraints/effect", "/api/overrides/effect")
 
 PROBE = r"""
 import hashlib, json, signal, sys
 sys.path.insert(0, sys.argv[1])
 DEADLINE = float(sys.argv[2])
+OUT_PATH = sys.argv[3]
+UNBOUNDED = set(sys.argv[4].split(",")) if len(sys.argv) > 4 and sys.argv[4] else set()
 from fastapi.testclient import TestClient
 from kairos_api.server import app
 
@@ -61,7 +78,18 @@ for path, item in (schema.get("paths") or {}).items():
     targets.append(path)
 
 out = {}
+
+
+def flush():
+    with open(OUT_PATH, "w") as fh:
+        json.dump(out, fh, default=str)
+
 for path in sorted(targets):
+    if path in UNBOUNDED:
+        out[path] = {"status": None, "timed_out": True,
+                     "error": "excluded: no upper bound without arguments"}
+        flush()
+        continue
     signal.setitimer(signal.ITIMER_REAL, DEADLINE)
     try:
         resp = client.get(path)
@@ -79,6 +107,7 @@ for path in sorted(targets):
         out[path] = {"status": None, "error": "%s: %s" % (type(exc).__name__, exc)}
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
+    flush()
 sys.stdout.write("<<<BODIES>>>" + json.dumps(out, default=str))
 """
 
@@ -87,13 +116,20 @@ def _dump(python: str, tree: Path, scratch: Path, timeout: int, deadline: float)
     scratch.mkdir(parents=True, exist_ok=True)
     probe = scratch / "probe_bodies.py"
     probe.write_text(PROBE, encoding="utf-8")
+    partial = scratch / "partial.json"
+    args = [python, str(probe), str(tree), str(deadline), str(partial), ",".join(UNBOUNDED)]
     try:
-        proc = subprocess.run([python, str(probe), str(tree), str(deadline)], cwd=str(tree),
-                              env=isolated_env(scratch), capture_output=True, text=True,
-                              timeout=timeout)
+        proc = subprocess.run(args, cwd=str(tree), env=isolated_env(scratch),
+                              capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return None, "timed out after %ds" % timeout
+        # A hang still leaves everything measured before it, and those routes are
+        # real evidence. The ones never reached come back as unproven, not as agreeing.
+        if partial.is_file():
+            return json.loads(partial.read_text()), ""
+        return None, "timed out after %ds with nothing written" % timeout
     if "<<<BODIES>>>" not in proc.stdout:
+        if partial.is_file():
+            return json.loads(partial.read_text()), ""
         tail = (proc.stderr or proc.stdout or "").strip().splitlines()
         return None, "\n".join(tail[-6:]) if tail else "no output"
     return json.loads(proc.stdout.split("<<<BODIES>>>", 1)[1]), ""
@@ -149,7 +185,8 @@ def check_response_bodies(python: str, ref: Path, work: Path, scratch: Path, tim
         a, b = ref_out[path], work_out[path]
         if a.get("timed_out") or b.get("timed_out"):
             untimed.append(path)
-            r.note("%s: no response inside the per-route deadline, so this route is unproven" % path)
+            why = a.get("error") or b.get("error") or "no response inside the per-route deadline"
+            r.note("%s: unproven, %s" % (path, why))
             continue
         if a.get("error") or b.get("error"):
             untimed.append(path)

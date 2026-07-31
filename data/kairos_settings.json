@@ -39,5 +39,6 @@
       "show": false,
       "events": true
     }
-  }
+  },
+  "audience_model_activation": false
 }

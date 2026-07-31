@@ -85,8 +85,15 @@ def check_engine_golden(python: str, ref: Path, work: Path, scratch: Path, timeo
 
 
 def _pytest(python: str, tree: Path, scratch: Path, timeout: int) -> tuple[dict, str]:
+    # Scope: tests/ only. A bare pytest at the repo root also collects the
+    # vendored Google Meridian library under meridian/, whose own suite carries
+    # hundreds of failures unrelated to this product and identical on both
+    # trees, which drowned the real signal and made the gate always fail. The
+    # product's suite is tests/, which is what every count in this campaign
+    # refers to.
     try:
-        proc = subprocess.run([python, "-m", "pytest", "-q", "--no-header", "-p", "no:cacheprovider"],
+        proc = subprocess.run([python, "-m", "pytest", "tests/", "-q", "--no-header",
+                               "-p", "no:cacheprovider"],
                               cwd=str(tree), env=isolated_env(scratch),
                               capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:

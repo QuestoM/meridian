@@ -21,8 +21,26 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tv-break-dashboard" / "src"
 
 
+def _sources(pattern: str) -> list[Path]:
+    """Every source under src/, at any depth, ignoring installed packages."""
+    return sorted(p for p in SRC.rglob(pattern) if "node_modules" not in p.parts)
+
+
+def _find(name: str) -> Path:
+    """A component by basename, wherever the tree puts it.
+
+    These contracts are about what a component says, not where it sits, and the
+    components move between trees as surfaces are reorganised. Resolving by
+    basename keeps the assertions pinned to the content. The uniqueness check is
+    the point: two files with one name would make the assertion ambiguous.
+    """
+    matches = [p for p in _sources(name) if p.name == name]
+    assert len(matches) == 1, f"expected exactly one {name} under src/, found {matches}"
+    return matches[0]
+
+
 def _read(name: str) -> str:
-    return (SRC / name).read_text(encoding="utf-8")
+    return _find(name).read_text(encoding="utf-8")
 
 
 def test_staleness_banner_covers_every_backend_group_label() -> None:
@@ -78,9 +96,15 @@ def test_removed_dead_exports_stay_gone_and_unreferenced() -> None:
         "fetchJsonOrError",
     ]
     sources = {
-        path.name: path.read_text(encoding="utf-8")
-        for path in list(SRC.glob("*.js")) + list(SRC.glob("*.jsx"))
+        str(path.relative_to(SRC)): path.read_text(encoding="utf-8")
+        for path in _sources("*.js") + _sources("*.jsx")
     }
+    # The sweep must reach the whole tree. A flat glob here went vacuous the
+    # moment the components moved into per-surface directories: it kept passing
+    # while checking almost nothing, so the reach is asserted before the content.
+    assert "shell/surface-helpers.js" in sources, (
+        f"the sweep did not reach the moved sources; it found {sorted(sources)}"
+    )
     for name in removed:
         hits = [file for file, text in sources.items() if name in text]
         assert hits == [], f"dead export {name!r} is still referenced in {hits}"

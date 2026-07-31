@@ -24,9 +24,25 @@ checked, never as passed.
 
 ## Exit codes
 
-`0` everything requested ran and passed. `1` something failed. `2` nothing
-failed but something could not run, so the proof is incomplete. A gap is not a
-pass, which is why `2` is not `0`; pass `--allow-unchecked` if you want it to be.
+Scored on what you asked for. `0` everything requested ran and passed. `1`
+something failed. `2` a requested check tried and could not finish, so the proof
+has a hole in it; pass `--allow-unchecked` to accept that.
+
+Declining to run a check and a check failing to run are different things and are
+scored differently. Checks you did not request never move the exit code, but the
+verdict line still names them, so a partial run cannot read as a full gate.
+
+`--route-deadline` bounds each GET in the `bodies` check, and the probe writes its
+results as it goes, so a hang still yields every route measured before it rather
+than nothing.
+
+Two routes are excluded by name and reported as unproven: `/api/constraints/effect`
+and `/api/overrides/effect`. Called without arguments they have no upper bound, and
+the deadline cannot stop them, because it is a signal and they spend their time
+inside numpy where the interpreter never gets a chance to raise it. Naming them as
+unproven is honest; letting them hang the run, or quietly counting them as
+agreeing, would not be. Proving those two needs a parameterised call, which is
+work this harness does not yet do.
 
 ## What it will not do
 
