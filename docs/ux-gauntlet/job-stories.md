@@ -7,9 +7,12 @@ A builder does not renegotiate a target. A critic does not soften one. If a
 story turns out to be wrong, that is an escalation to the owner and a written
 amendment, not a quiet edit.
 
-Eighteen stories. Ten are the seeds from `docs/ux-gauntlet-prompt.md`, corrected
+Nineteen stories. Ten are the seeds from `docs/ux-gauntlet-prompt.md`, corrected
 against what discovery found. Eight are new, because discovery found people the
-seeds did not name and one seed turned out to be two different jobs.
+seeds did not name and one seed turned out to be two different jobs. The
+nineteenth was added on 2026-07-31 by amendment 3 at the foot of this file,
+because the brief makes model improvement a titled section and none of the
+original eighteen improved anything.
 
 ## How to read a story
 
@@ -56,6 +59,12 @@ the repository.
 | 16 | Model steward (company) | Decide whether to ship | Cannot start (no surface) | 120 s |
 | 17 | Deployment owner | Bring it up enforced | Partial | 180 s |
 | 18 | Critic | The boundary holds | Fails on all four doors | 0 breaches |
+| 19 | Model steward (company) | Improve the model | Cannot start (no adoption path) | 120 s |
+
+Every row also carries a Bar 3 floor, in the section "What must not get worse"
+below. The floor is what today's product already does; the target is what the
+rebuild must reach. A piece that hits its target and breaks its floor has
+failed.
 
 ---
 
@@ -668,6 +677,94 @@ enabled and refuses after the click.
 
 ---
 
+## JS-19. The model steward improves the model
+
+**Person.** The same model steward as JS-16. Company side of the line. Added by
+amendment 3 below, because the brief makes model improvement a titled section
+(`docs/ux-gauntlet-prompt.md:94`) and the original eighteen contained no story
+that improves anything.
+
+**Trigger.** JS-16 ended in a ship decision and a candidate is on the shelf.
+
+**Sequence.** Open the candidate. Read what its gates decided differently from
+the shipped artifact. Read the money the adopted plan would move. Adopt it or
+reject it. Record the verdict against a named model version.
+
+**Done.** The candidate is either adopted, with its gate deltas, its coefficient
+deltas and its measured money movement recorded against a new model version and
+a release note authored for the operator side, or explicitly rejected with the
+measurement that lost. Either way the verdict is stored and a later reader can
+see what was tried.
+
+**Target.** 120 s from opening a candidate to a recorded verdict. Every gate
+delta visible with its held-out figure. The money movement stated in shekels
+with its scope, never as a direction alone. Any adoption that would move a
+shipped figure stops and escalates rather than landing. Unaided: no.
+
+**Baseline today. Cannot start.** `models/candidates/` holds exactly five
+artifacts, which I listed: `tv_break_coefficients_afterwindow.json` (12,410 B),
+`_calibrated.json` (20,682 B), `_competitor.json` (13,917 B),
+`_placebo_corrected.json` (15,069 B), `_spotclip.json` (12,457 B), all dated
+2026-07-05 and 2026-07-06. `scripts/estimate_candidate_revenue_movement.py`
+(2,885 B) already computes "Revenue movement if a candidate coefficients
+artifact were adopted". Nothing in the product reads either. There is no
+adoption path, no verdict store, and no model version identity to record a
+verdict against: the only identifier is a `computed_at` timestamp on a file that
+is overwritten in place (`04-training-vs-runs.md:387`, F12).
+
+**What must exist.** A model version identity, a candidate comparison view, a
+held-out re-measurement per candidate, and a stored ship or no-ship verdict.
+Nothing is needed from the owner except approval when a figure would move.
+
+---
+
+## What must not get worse (Bar 3)
+
+`docs/ux-gauntlet-prompt.md:178` makes the three-way comparison a bar in its own
+right: today's Meridian, the new Meridian, and the reference. If today's version
+wins on any story, that is a gap and it goes back to the builder.
+
+Added by amendment 1 below. These are floors, not targets. No target above
+moves; each row names the specific thing measured today that the rebuild may not
+lose, so a critic can check a regression without re-deriving it.
+
+| Story | The floor it may never fall below |
+|---|---|
+| JS-1 | Cold: any page text by 2,461 ms, the revenue tile, the staleness banner and the five priority decisions all by 3,588 ms, the net figure by 5,167 ms. The banner still names what changed. The five decisions still carry the same figures |
+| JS-2 | The frontier point is still clickable and still applies as a saved retention floor, which is unique to Overview today. The plan CSV still downloads 8,704 rows. The four objective templates survive |
+| JS-3 | The drag still works: a real pointer drag moved a chip 02:12:00 to 02:36:00 in 2,430 ms, and 30 s and 60 s snap plus the zoom scale survive. "Save as pin" and "Discard change" still appear after a drop |
+| JS-4 | The AND/OR predicate builder still saves the same rows against the same frozen contract. `/api/constraints/effect` still returns the commit path's own before and after figures |
+| JS-5 | Agency records keep payment terms, rebate percent, commission percent, credit limit, VAT id and two contacts. Deactivate still beats delete. The 41 observed advertiser links still render |
+| JS-6 | The make-good panel still names the exact missing file rather than showing a figure |
+| JS-7 | Nothing exists today. No floor |
+| JS-8 | Nothing exists today. No floor |
+| JS-9 | Advertiser revenue still reads null with its stated reason until identity lands, never a number. The agency portfolio total stays exact: gross ₪699,450, rebates ₪29,472, net ₪669,978, 119 priced spots |
+| JS-10 | The propose-only contract holds: 31 read tools, 8 propose, 0 write. The grounded Hebrew answer still carries its source, its window and its unprompted staleness warning |
+| JS-11 | 17 entries become 5, and no capability reachable in one click today becomes unreachable |
+| JS-12 | The upload validator still refuses a bad file at the door with the contract's own findings, and every `in_use: false` still carries its honest reason naming the file the engine reads instead |
+| JS-13 | The six pricing layers keep their honest Live and Wired-off chips, and the price tester still resolves to the exact layers that produced the number |
+| JS-14 | The seven checks still return with profile "Israel commercial TV", `effective_date` 2026-06-14, `source_url`, status and the honest disclaimer |
+| JS-15 | **Passes today.** 30 s per account, the last-admin guard, the own-account guard and the forced password change all survive unchanged. This is the sharpest Bar 3 row in the set |
+| JS-16 | Nothing exists today. But every gate verdict currently visible on the Events calendar must be visible on the new console before it is removed from the calendar |
+| JS-17 | The bootstrap still writes a one-time password to a mode-600 file and still logs loudly when auth is bypassed |
+| JS-18 | Every refusal that works today keeps working: the three event writes and the two pricing checks still refuse a channel account with their existing Hebrew denials |
+| JS-19 | Nothing exists today. No floor |
+
+Product-wide, the five measured honest empty states (`06-baseline.md:445`) are a
+floor of their own: campaign revenue dashes with the reason, advertiser revenue
+null with the reason, "Net after retention cost: Not exposed" with the reason,
+the make-good panel naming the missing file, and the gold-breaks panel. Each may
+become a control with a path forward. None may become a figure.
+
+One provenance warning for whoever grades against these. `06-baseline.md:5`
+records its tree as `342a2896` while `05-gaps.md:8`, `03-people.md:9` and
+`04-training-vs-runs.md:9` record `5a80a709`, and `git rev-parse HEAD` returns
+`5a80a709`, with `342a2896` an ancestor 31 commits back. **Re-measure the
+`06-baseline.md` figures at `5a80a709` before treating any of them as a
+regression floor.**
+
+---
+
 ## What these stories deliberately do not cover
 
 Named so a critic does not mark their absence as a miss.
@@ -683,6 +780,67 @@ Named so a critic does not mark their absence as a miss.
 
 ## Amendments
 
-None. This section exists so that any future change to a story is visible as an
-addition here with its date, its reason and the owner's decision, rather than as
-an edit above.
+Three, all dated 2026-07-31, all additions. **No target above has moved and no
+done condition has been softened.** Each amendment says what was added, why, and
+whether it needs an owner decision.
+
+### Amendment 1, 2026-07-31. The Bar 3 floor per story
+
+**Added:** the section "What must not get worse (Bar 3)".
+
+**Reason:** the blind critique of `spec.md` found that Bar 3, which
+`docs/ux-gauntlet-prompt.md:178` states as one of the four bars, appeared zero
+times in a specification that dissolves or merges twelve of seventeen surfaces.
+These stories carried Bar 3 in prose at JS-15 ("it may not get slower or
+harder") and nowhere else, so a critic had no per-story floor to grade against.
+
+**Owner decision needed:** none.
+
+**Consequence:** a piece is not done until the three-way has been run against
+its row. The spec assigns that to critic C2 and repeats the same rows per build
+piece in its section 8.5.
+
+### Amendment 2, 2026-07-31. JS-9's advertiser count is 41, not 45
+
+**Added:** nothing to the story. This amendment records that JS-9's "What must
+exist" clause, "Advertiser identity, per-spot revenue attribution joined to a
+named advertiser", has a measured upper bound the story did not state.
+
+**Reason:** `spec.md` revision 1 set a build bar of "45 of 45 advertisers
+named". I re-measured with pandas: `advertiser_rules.csv` is 45 rows and 8
+columns with no name column, no alias column, and `notes` empty in 45 of 45
+rows; the real vocabulary is 41 Hebrew names present in both
+`agency_advertisers.csv` (41 rows, all `source = observed`) and the daily file
+(41 distinct), matching each other 41 of 41; and the intersection with the 45
+ids is exactly 0. Forty-five cannot map onto forty-one, so naming all 45 would
+require inventing at least four advertisers, which the honest-math law forbids.
+
+**JS-9's target does not move.** 30 s, 0 exports, the amount opening its rows at
+more than one level, unaided. What changes is only the count a builder is graded
+against: **every advertiser that appears in the daily file resolves to a named
+record, 41 of 41, with zero invented advertisers.**
+
+**Owner decision needed: yes.** Which of two honest methods, written up as
+decision 1 in `docs/ux-gauntlet/decisions-for-owner.md`. Both methods bind the
+same 41 names; they differ only in what happens to the 45 synthetic rows and
+their premiums, none of which has ever priced a spot.
+
+### Amendment 3, 2026-07-31. JS-19, the model steward improves the model
+
+**Added:** JS-19 in full, above.
+
+**Reason:** the brief carries a titled section, "The model is in scope, and it
+must be the best one this data can support"
+(`docs/ux-gauntlet-prompt.md:94-102`), and none of the original eighteen stories
+improves a model. JS-16 stops at a ship decision about an artifact somebody else
+already produced. The critique traced the specification's model-improvement gap
+back to this omission in the stories rather than to the specification, and it
+was right to.
+
+**Owner decision needed:** none to build it. Approval is needed only if a
+candidate is adopted and a shipped figure would move, and JS-19's done condition
+requires that adoption to stop and escalate rather than land.
+
+**Consequence:** the scoreboard is now nineteen stories. JS-19's baseline
+verdict is "Cannot start (no adoption path, no model version identity)" and its
+target is 120 s to a recorded verdict.

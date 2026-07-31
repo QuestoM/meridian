@@ -1,0 +1,213 @@
+# Decisions only you can make
+
+Written 2026-07-31 against HEAD `5a80a709`. Five decisions. Every other question
+raised during discovery I answered myself from the code and the data; these five
+cannot be answered that way, and each one blocks a named build piece.
+
+Each carries the options, the evidence I measured, my recommendation, and what
+stops until you answer.
+
+---
+
+## 1. Advertiser identity: which of two honest methods
+
+**The situation, measured with pandas this session.**
+
+- `data/advertiser_rules.csv` is 45 rows and 8 columns. There is no name column
+  and no alias column, and `notes` is empty in 45 of 45 rows. The ids are
+  `ADV_01` through `ADV_45`.
+- The real advertiser vocabulary is **41 Hebrew names**. They are in
+  `data/agency_advertisers.csv` (41 rows, `source = observed` on all 41) and in
+  the daily file's `מפרסם` column (41 distinct). The two name spaces match each
+  other **41 of 41**.
+- The intersection between the 45 ids and either name space is **zero**.
+- Consequence today: all 45 advertisers return `display_name: ""`,
+  `revenue: null`, `rule_count: 0`. Not one of them has ever priced a spot.
+
+Forty-five cannot map onto forty-one. There is no artifact anywhere on disk
+that says which `ADV_xx` is `בנק הפועלים`.
+
+**Option A. Re-key the store on the observed names.** Give
+`advertiser_rules.csv` a `name` and an `aliases` column, exactly the shape
+`agencies.csv` already has, and key it on the 41 observed advertisers. The 45
+synthetic rows are archived to `data/_backups/` and declared demo data. Their
+premiums go with them, including `ADV_02`'s `default_premium` of 1.27.
+
+**Option B. You supply the mapping.** Send a list of which `ADV_xx` is which
+Hebrew name. The 45 rows keep their premiums, 41 get names, and the 4 that map
+to nothing stay visibly unnamed.
+
+**Recommendation: A.** The premiums in those 45 rows have never moved a shekel.
+I measured it: `advertiser_rules ∩ daily = 0`, `rule_count: 0` on all 45,
+`avg_effective_premium: 1.0` on all 45, and the rules engine's own honesty rule
+means an unknown advertiser yields a premium of 1.0, so every lookup has always
+missed silently. Re-keying orphans nothing that was ever live. Option B is
+strictly better only if those 45 premiums are real commercial terms somebody
+negotiated, in which case say so and I will do B.
+
+**Blocked until you answer:** W0-3's final shape, and through it P3 (the break's
+delivered money), P4 (Clients, and with it JS-9's money question) and P11
+(pacing). W0-3 can start regardless: the columns and the resolver are the same
+either way, and the 41 observed names bind under both options. Only the
+disposition of the 45 synthetic rows waits.
+
+---
+
+## 2. The pod boundary: what makes one break one break
+
+**The situation, measured on both files that could answer it.**
+
+- In the daily file, grouping by `שעת התחלת ברייק` gives 10 groups of 1, 1, 3,
+  3, 7, 28, 29, 30, 35 and 38 spots. The 38-spot group airs continuously from
+  22:04:16 to 22:18:06, which is 13.4 minutes of unbroken commercial time. A
+  gap rule at 60 seconds reproduces those same 10 groups exactly, so the file is
+  internally consistent and the groups really are contiguous.
+- I then checked whether `data/Spots.csv` settles it, because it carries a
+  `break_id` column with 9,492 distinct values over 30 days. It does not. Within
+  a break only **2 of 15,214** consecutive gaps exceed 60 seconds, so
+  within-break contiguity is real, but **702 of 2,412 break boundaries, 29.1
+  percent, have a gap of 60 seconds or less**. So a gap rule does not reproduce
+  `break_id`, and whatever rule produced it is not on disk.
+
+A 13.4-minute block is also above the 12 minutes per hour your own compliance
+profile enforces, so calling it one break would put every plan in breach.
+
+**Option A. An explicit break identifier per ad**, carried on the daily file as
+a new column. Unambiguous, and it makes the traffic operator's surface exact.
+
+**Option B. A splitting rule you state**, for example "a new break starts after
+a gap of N seconds, or at a maximum of M seconds of ad time, whichever comes
+first". I can implement any rule you can state in one sentence.
+
+**Recommendation: A, with B as the fallback for historical data.** A costs your
+traffic department one column on a file they already produce, and it is the only
+option that is exact. B is derivable and cheap but it will disagree with what
+the traffic department believes on some days, and disagreements about which
+break an ad sat in are exactly the errors this product exists to catch.
+
+**Blocked until you answer:** P10, the break contents and the traffic operator's
+door, which is JS-7 and JS-8. P3 can still build the break entity, because the
+break identity comes from the plan side (airing plus ordinal), not from the
+daily file. Only filling a break with real historical ads waits.
+
+---
+
+## 3. The plan target: what is a week measured against
+
+**The situation.** "Is this week on plan" is the first of the three answers JS-1
+asks for and it is the only one the product cannot give. I searched
+`/api/overview`'s 111 distinct keys for `goal`, `target`, `budget`, `on_plan`
+and `variance` and the only hit was the unrelated `workspace`. There is no
+budget, goal or quota entity anywhere in the data model.
+
+I will not derive a target from the plan itself. That is circular: the plan
+would always be exactly on plan.
+
+**What I need from you, in one line:** the number, its unit, its grain and its
+owner. For example, "₪9.5M of projected revenue per week for רשת 13, set by the
+revenue owner each quarter". Revenue, GRP, ad minutes or breaks all work; I need
+to know which one you actually manage against, and the threshold that separates
+on plan from at risk from behind.
+
+**Recommendation:** weekly projected revenue per channel, with a two-sided
+threshold you set once, because it is the only quantity the plan already
+computes at that grain and it needs no new measurement to be honest. If you
+manage against GRP instead, say so; the machinery is the same and the store is a
+column either way.
+
+**Blocked until you answer:** P1's third answer. Until then Today ships an
+honest empty state that names the missing input and offers the path to set it,
+which is what section 9 item 2 of the spec commits to. It is not a placeholder
+figure and it never will be.
+
+---
+
+## 4. A current week, and where delivery comes from
+
+**The situation.** Nothing in this system represents now. `effective_date` is
+2026-06-14, the saved plan covers 2024-11-01 to 2024-11-30, and the single daily
+ad file is 2025-04-27. Three vintages on screen at once and none of them is
+today. Every story that says "on air", "this week" or "tonight" stands on this.
+
+`data/campaign_flights.csv` is header-only, zero rows, and
+`GET /api/make-good-alerts` answers `data_available: false` with the reason
+naming that file. The pacing math behind it is real, implemented and honest; it
+has nothing to run on.
+
+**What I need from you, three things:**
+
+1. A current or near-future broadcast week: the EPG for it, so a plan can be
+   about a week that has not happened yet.
+2. Real campaign flights with start dates, end dates and delivery goals. The
+   eleven-column contract already exists at `kairos_api/uploads.py:115-127` and
+   the upload door is already built.
+3. A delivery or as-run feed, so `delivered_to_date` updates instead of sitting
+   static. Without it, pacing compares a goal against a number that never moves.
+
+**Recommendation:** send 1 and 2 first, even without 3. With a current week and
+real flights, the pacing board becomes honest for everything except live
+delivery, and P11 can ship the goal, the forecast state and the make-good object
+with delivery shown as unavailable rather than guessed. That is most of the
+value and it does not wait on an integration.
+
+**Blocked until you answer:** P11 entirely, JS-6, and the delivered half of the
+money layer. The spec's section 3.4 states the limit explicitly rather than
+papering over it: projected and delivered are never summed into one figure while
+they cover non-overlapping dates.
+
+---
+
+## 5. Publishing, and who owns the regulatory limits
+
+These are two questions and they have one shape: both are about which acts need
+an authority that today's three roles cannot express.
+
+**5a. What publishing means.** The word `publish` appears zero times in
+`kairos_api/`, and the weekly plan is not among the nine logical files the
+version store captures. So today there is no published state, no author, no
+record of what superseded what. JS-2's done condition is "a named, dated plan
+version is published with an author and a timestamp, and everyone downstream is
+reading it". I need to know what "everyone downstream is reading it" means in
+your operation: is publishing an internal freeze, or does it emit something to
+somebody, and may a planner do it alone or does it need a second person.
+
+**5b. Who owns the regulatory limits.** `max_ad_minutes_per_hour` 12.0,
+`max_breaks_per_hour` 4, `min_break_spacing_minutes` 7 and
+`protected_program_max_ad_minutes_per_hour` 8.0 are ordinary settings fields
+today, editable through `PUT /api/settings` with exactly the same permission as
+the revenue-weight slider. There is no approval, no effective-date workflow and
+no alert when one changes. Your compliance owner is accountable for numbers
+anybody can move without telling them.
+
+**Recommendation on 5a:** publish is an internal freeze plus a named version,
+performed by the planner alone, with the previous version one click away. That
+is the smallest thing that satisfies JS-2 and it emits nothing, so it cannot be
+wrong about a downstream system nobody has named yet. If publishing must notify
+or export, tell me to whom and in what format and it becomes a second increment.
+
+**Recommendation on 5b:** the guardrails move into their own store with an
+effective date, a change record and a distinct permission, and I gate them on
+`affiliation = company` as an interim owner until you name a real one.
+`kairos_api/events_access.py` already implements exactly this kind of gate for
+calendar events, so the mechanism is proven rather than new. If your compliance
+owner should hold it instead, that is a fourth role and I will add it.
+
+**Blocked until you answer:** P2's done condition for 5a, and the second half of
+JS-14 for 5b. Both pieces can build everything else in the meantime; the
+guardrail store lands either way and only its permission waits.
+
+---
+
+## What I did not ask you
+
+For completeness, so you can see the line I drew. I answered these myself from
+the code and the data rather than sending them to you: how many of the sixteen
+accountabilities are distinct people (the doors work whether one human holds
+three of them or three humans hold one each), which surfaces merge, what the
+vocabulary should be, whether the competitor lanes are a law breach (they are,
+and the removal is flagged in the spec's section 10 because it removes something
+visible today), whether to keep the Reports page (yes, Bar 3), whether to delete
+the second upload system (no, it is the only ad-hoc spreadsheet path), and
+whether `data/Spots.csv` is usable as money (no, its revenue column is a
+synthetic price computed from a constant base rate of 50, verified on 99.67
+percent of 50,386 rows).
