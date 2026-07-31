@@ -24,7 +24,7 @@ rather than duplicating. Add `--dry-run` to validate a record and write nothing.
 
 ## How a claim enters this page
 
-The script enforces the format. These five hold up the content, and a claim that skips them is worth less
+The script enforces the format. These six hold up the content, and a claim that skips them is worth less
 than no claim, because it looks like evidence.
 
 1. **Measure it, do not argue it.** A conclusion reached by reasoning over facts is an argument. Run the
@@ -40,6 +40,12 @@ than no claim, because it looks like evidence.
    you fix, or you will correct something that was already right.
 5. **An unknown stays unknown.** Null with a stated reason, rendered as an honest empty state. Never a zero,
    never a placeholder, never a number carried over from a nearby thing that happened to be measured.
+6. **Attribute against a commit, never against the working tree.** The working tree is not any wave's output.
+   It is the sum of every wave that has touched it plus whatever is in flight this second, so a finding
+   measured there has no owner until you diff it against a commit. Extract the commit with `git archive` and
+   run the same thing twice. This is rule 3 applied to attribution rather than to evidence: a failure that is
+   real, reproducible and correctly diagnosed can still be pinned on the wrong wave, and blaming the wrong
+   wave is worse than reporting nothing, because it sends someone to fix code that is already correct.
 
 **The one rule the script enforces.** It refuses a record that claims anything without an `evidence` entry
 carrying a `path`, a measurement whose value is null without a `note_he` saying why, or a piece id the state
