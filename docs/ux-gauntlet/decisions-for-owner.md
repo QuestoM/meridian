@@ -59,17 +59,27 @@ disposition of the 45 synthetic rows waits.
 
 - In the daily file, grouping by `שעת התחלת ברייק` gives 10 groups of 1, 1, 3,
   3, 7, 28, 29, 30, 35 and 38 spots. The 38-spot group airs continuously from
-  22:04:16 to 22:18:06, which is 13.4 minutes of unbroken commercial time. A
-  gap rule at 60 seconds reproduces those same 10 groups exactly, so the file is
-  internally consistent and the groups really are contiguous.
+  22:04:16 to 22:18:12, which is 836 seconds, or 13.93 minutes of unbroken
+  commercial time.
+- A 60 second gap rule does NOT reproduce those groups. Measured, it yields 1,
+  3, 4, 7, 7, 22, 28, 30, 35 and 38, and two rows show why in both directions:
+  the 21:22:12 group merges across a 22 second gap, and the 22:59:40 group
+  splits at a 93 second internal gap while spanning 642 seconds against 432
+  seconds of actual ad time. So the file's own declared grouping and any gap
+  rule disagree, which is precisely why this decision cannot be inferred.
 - I then checked whether `data/Spots.csv` settles it, because it carries a
-  `break_id` column with 9,492 distinct values over 30 days. It does not. Within
-  a break only **2 of 15,214** consecutive gaps exceed 60 seconds, so
-  within-break contiguity is real, but **702 of 2,412 break boundaries, 29.1
-  percent, have a gap of 60 seconds or less**. So a gap rule does not reproduce
-  `break_id`, and whatever rule produced it is not on disk.
+  `break_id` column with 9,492 distinct values over 30 days. It does not.
+  Within-break contiguity is real and method-independent: **0 of 15,614**
+  consecutive within-break gaps exceed 60 seconds. But the boundaries between
+  breaks are not: on second-resolution rows, **625 of 1,880 boundaries, 33.24
+  percent, have a gap of 60 seconds or less**, and if the 1,145 rows that
+  resolve only to the minute are recovered the figure is 1,667 of 3,025, or
+  55.11 percent. Either way a gap rule does not reproduce `break_id`, and
+  whatever rule produced it is not on disk. Both figures were measured three
+  times by two independent readers; the method is stated here because the
+  answer depends on it.
 
-A 13.4-minute block is also above the 12 minutes per hour your own compliance
+A 13.93-minute block is also above the 12 minutes per hour your own compliance
 profile enforces, so calling it one break would put every plan in breach.
 
 **Option A. An explicit break identifier per ad**, carried on the daily file as

@@ -6,6 +6,14 @@ Revision 2, written 2026-07-31 against HEAD `5a80a709` (verified with
 `discovery/08-spec-critique.md`, and my own measurements on the running
 instance at `http://127.0.0.1:8010`. It is a recommendation, not a survey.
 
+A further pass on 2026-07-31 closed the six items the second blind critique
+(`discovery/09-spec-critique-2.md`) left open; section 11 lists them. That pass
+measured at HEAD `eef9ff91`, two commits later. `git diff --name-only
+5a80a709..eef9ff91` filtered to anything outside `docs/ux-gauntlet/` returns
+nothing, so every code and data measurement in this document still stands at the
+later HEAD, and the ones that did not reproduce failed for their own reasons and
+are corrected in place.
+
 Revision 1 was returned NOT READY. The three blockers were the build order
 (allocated by surface while the code is shaped by layer), one bar the data
 cannot satisfy, and two new training-versus-runs leaks. All three are closed
@@ -79,6 +87,25 @@ re-walk the product.
 | Deployment owner | INFERRED (`03-people.md:590`, from the operational assumptions the code states about itself) | Is it up, enforced and secret-safe | Outside the product, plus one honest banner | JS-17 |
 | Channel-affiliated account | EVIDENCED as an identity class, not a person (`03-people.md:611`) | Not a person | The wall in section 4 | JS-18 |
 | Kai | EVIDENCED (`03-people.md:628`) | Not a person: a delegated actor | Docked everywhere | JS-10 |
+
+**One door has to carry an answer it does not carry today, and it is named here
+rather than left to a builder.** The revenue and yield owner's question is "what
+is a second of airtime worth", and the product already answers it:
+`GET /api/yield-per-second` returns `yield_per_second: 142.7044` with a
+`basis.formula` naming every input (I fetched it this session). That endpoint is
+served from `insights_api.py:400`, and revision 2 handed the module W0-1 splits
+out of it to Plan. So the answer sat on Plan while this person's door was Rules,
+and a door that does not answer the question it is chosen for is not a door.
+**The rate card carries the figure.** Rules, the rate card opens with what a
+second is worth under the card as saved, and the same figure recomputed under the
+unsaved edit is JS-13's "money delta on screen before the save". It is one
+quantity, computed once, printed with its scope, and it is the same number Plan
+shows for the planner's comparison, read from the piece that owns it. Section
+8.2 therefore assigns `yield_api.py` to **P5** and P2 consumes it read-only under
+the published-contract rule of section 8.8. The person does not move; the answer
+does. JS-13's target still says "45 s from opening **Money**", a destination this
+document does not ship; amendment 4 in the job stories records that Money reads
+as Rules, the rate card, and the 45 s does not move.
 
 ### 2.1 Job is a new dimension, orthogonal to role
 
@@ -292,7 +319,7 @@ story; they just have to be labelled as what they are.
 | Kai assistant | Demote to dock | dock on every surface | It already is a dock; the navigation entry resolves to Overview | **Measured defect**, not a story (`01-surfaces.md:51-54`) |
 | Restore changes | Merge | **History** | JS-3 needs undo where the work is, not on a separate page measured at 27 to 53 s to load | JS-3, JS-10 |
 | Settings | Split | guardrails, protected content, frequency, restrictions to **Rules**; objective and pacing to **Plan, week**; channel, profile, locale, accounts to **account settings** | A programming representative should not register an objection by scrolling past `risk_lambda` and a pace denominator floor (`06-baseline.md:201-204`) | JS-4 |
-| Inventory heatmap | **Delete** | nowhere | `InventoryHeatmap` (`TVBreakDashboard.jsx:5159-5172`) is a hard-coded empty state with no data path at all, the one component graded DEAD by construction. Deleting it is the only deletion in this spec and the proof is the twelve lines themselves | **Proven dead**, not a story |
+| Inventory heatmap | **Delete** | nowhere | `InventoryHeatmap` (`TVBreakDashboard.jsx:5159-5172`) is a hard-coded empty state with no data path at all, the one component graded DEAD by construction. Deleting it is the only deletion in this spec and the proof is the fourteen lines themselves, 5159 to 5172, plus its single call site at `:3131` | **Proven dead**, not a story |
 
 **New, and not a rearrangement of anything:**
 
@@ -379,6 +406,8 @@ one writes:
 | `POST /api/optimizer-plan`, `/api/scenario`, `/api/scenario-compare` | nothing, transient | RUN | Plan |
 | `POST|PUT|DELETE /api/events` | `data/calendar_events.csv` | **CONFIGURATION** (`04-training-vs-runs.md:131`) | **Rules, the calendar**, company-gated by affiliation |
 | `PUT /api/settings`, `PUT /api/pricing` | `data/kairos_settings.json` | CONFIGURATION | Rules and Plan |
+| Throwing `pricing_activation.events` | `data/kairos_settings.json` | **CONFIGURATION**, company-gated | **Rules, the rate card** (this is what the product already does, `pricing_api.py:232-241`) |
+| Throwing `audience_model_activation` | `data/kairos_settings.json` | **CONFIGURATION**, company-gated | **Rules**, beside the switch above |
 | `POST /api/uploads/{kind}` | `data/` | CONFIGURATION | Sources |
 | `POST /api/versions/{id}/restore` | the nine logical files | CONFIGURATION | History |
 
@@ -395,6 +424,44 @@ any object header sees plan versions, configuration changes and Kai's actions,
 and no model version has ever landed in their timeline. This is a filter on the
 read, not a hidden section, so there is no rendered trace that the other side
 exists (JS-18's requirement).
+
+**Blur 1 appeared a second time, in a place the first fix did not reach, and it
+is closed the same way.** The two rows added to the table above are activation
+switches, and revision 2 sent one of them to the Model console because it is
+company-only. That is the permission rule being read as evidence of training
+again, which the box above forbids in bold. The second blind critique found it
+and named it correctly as blur 1 restated. Apply the test literally. `audience_model_activation` is a field on `KairosSettings`
+(`kairos_api/core.py:143`) and throwing it writes `data/kairos_settings.json`,
+so it is configuration. It is also, by the code's own comment at
+`core.py:139-143`, engine input: "flipping it is engine input, so it stays in
+the freshness fingerprint and marks the saved schedule stale on a flip". An act
+that writes `data/` and makes the plan stale is a run-side act by every part of
+the rule at once.
+
+**The artifact and the switch are different things and they live on different
+sides.** `models/audience_model.json` is a training output: its coverage, its
+gate verdicts and its fitness live in the Model console and nowhere else.
+Whether runs consume it is a run-side configuration act with a money
+consequence, and it lives on Rules. Section 4.5 states the control, the gate and
+what each side sees. **The product already does exactly this for the other
+switch**: the event pricing activation is thrown through `PUT /api/pricing` on a
+run surface, writes `data/kairos_settings.json`, and is refused to a
+channel-affiliated account with its own Hebrew denial at `pricing_api.py:232-241`
+by way of `events_access.EVENT_PRICING_COMPANY_ONLY_DETAIL`. So this is a
+precedent to follow, not a mechanism to invent.
+
+**Every other switch, checked against the same rule.** Guardrails and the pacing
+knobs write `data/`, so configuration, and section 4.5 moves them to their own
+store on Rules, which is where they already were. The remaining pricing layers
+(position, ad type, specific show) write `data/`, so configuration, and section 9
+item 5 keeps them owner-gated and off. `first_break_multiplier` is not a switch
+anybody throws: it is read out of the coefficients metadata on every
+optimization (`kairos/service.py:102-125`), so it is a training output reaching a
+run, which is exactly what the release note of section 4.6 exists to explain.
+The five gate-override flags in `scripts/compute_measured_coefficients.py` write
+`models/`, so training, Model console only. **Two switches are company-gated and
+run-side, three are operator-side and run-side, five are training, and no switch
+is filed by its permission.**
 
 ### 4.2 The check a critic can run on any surface
 
@@ -515,11 +582,44 @@ Concretely, and each of these is a task with a named owner in section 8:
   The four open reads are `GET /api/impact`, `GET /api/model/audience`,
   `GET /api/parameters` and `/api/events`'s `model_context`.
 - `audience_model_activation` (`kairos_api/core.py:143`) leaves the free-form
-  settings document and becomes a company-only model-activation control. Today
-  it decides where every forward-dated rating comes from, has no control
-  anywhere in the dashboard, and is settable by any channel operator with one
-  `PUT /api/settings`, because that endpoint takes the whole settings model and
-  has no affiliation guard.
+  settings document and becomes a named, company-only control **on Rules, not in
+  the Model console**, for the reason section 4.1 gives. Today it decides where
+  every forward-dated rating comes from, has no control anywhere in the dashboard
+  (measured: zero occurrences of the field name under `tv-break-dashboard/src/`),
+  and is settable by any channel operator with one `PUT /api/settings`, because
+  that endpoint takes the whole settings model and has no affiliation guard.
+  Specified in full, because a switch that moves money and has no surface is how
+  this defect happened:
+  - **Where it lives.** Rules, in the same activation group as the event pricing
+    switch. That is the one place in the product where a company-only, run-side
+    activation already lives, and reusing it means one guard rather than two.
+  - **Who may throw it.** `affiliation = company` only, enforced by W0-4's
+    decorator over the same path `pricing_api.py:232-241` already takes, with a
+    Hebrew denial built exactly like the one on disk: "הפעלת מודל הקהל שמורה
+    לצוות החברה", beside the existing "הפעלת תמחור אירועים שמורה לצוות החברה".
+    Affiliation is the outer gate, so a channel administrator may not throw it;
+    role is still the inner one, so a company-affiliated viewer sees the state
+    and not the switch. That is the sentence at the head of this section applied
+    without an exception.
+  - **What a channel account sees.** The switch, rendered as state and not as a
+    control, carrying `can_edit: false` with its reason, plus the three-state
+    basis label the engine already computes: `off` means forward-dated ratings
+    are the historical baseline, `on` names the model version's date, and
+    `on_no_artifact` means the switch is on and nothing is trained so the numbers
+    are still historical (`kairos_api/audience_api.py:91-113`, which returns
+    exactly `{state, computed_at}` and nothing else). No gate verdict, no
+    coverage, no coefficient, no p-value. That payload passes section 4.2's
+    lexicon test as it stands today, and keeping it that way is a stated duty of
+    the piece that owns it.
+  - **What a company account sees.** The same switch, throwable, with its
+    consequence stated before the click in the same plain language section 4.6
+    demands of a release note: flipping it changes the freshness fingerprint, so
+    the saved plan goes stale and the operator will be asked to run it, and
+    forward-dated ratings change source. In the Model console the
+    company account sees the artifact itself and a read-only mirror of the switch
+    state that links back to Rules. **The console never carries the control**,
+    because throwing it changes a run, and a run-side act on the training side is
+    the blur this section exists to prevent.
 - The regulatory guardrails leave the same document and become their own store
   with an effective date and a change record, so JS-14's second half becomes
   possible.
@@ -762,7 +862,8 @@ the critique's reading of it.
 | `position_in_break` | 100% | 48 | 1..48 |
 | `revenue_ils` | 100% | 7,004 | sums to ₪306,936,788 |
 | `advertiser_id` | 100% | 35 | derived garbage: values include `2024` and `פ` (`02-api-and-data.md:571`) |
-| `competitor_flag` | 100% | 2 | 23,707 rows are `קשת 12`, 18,669 are the operator's `רשת 13` |
+| `competitor_flag` | 100% | 2 | **True on 26,679 rows, False on 23,707.** It does not partition two channels: the False side is `קשת 12` alone and the True side is `רשת 13`, `כאן 11` and `עכשיו 14` together. Revision 2 read this row as a two-channel split and it is not one |
+| `is_target_channel` | 100% | 2 | The exact complement: True on all 23,707 `קשת 12` rows, False on all 18,669 `רשת 13` rows. `include_as_media` is True only for `קשת 12` |
 
 **Who reads it:** nothing reads those columns. The file appears in nine source
 locations and every one is either a cache-key signature
@@ -790,17 +891,76 @@ source of money or of advertisers.** Specifically:
   spots, p95 24, max 47, of which **875 hold seven or more spots**. JS-7's
   target is a seven-ad break and today it is testable against exactly one group
   in one daily file. This gives 875 on the right channel.
-- It settles nothing about the pod boundary, and I checked rather than assumed.
-  Within a break, only **2 of 15,214** consecutive gaps exceed 60 s, so
-  within-break contiguity is real. But **702 of 2,412 break boundaries (29.1
-  percent) have a gap of 60 s or less**, so a gap rule does not reproduce
-  `break_id` and the rule that produced it is not on disk. On the daily file a
-  gap rule at 60 s reproduces the declared `שעת התחלת ברייק` grouping exactly,
-  10 groups for 10 groups, and those groups are still 1 to 38 spots. **The pod
-  boundary stays owner decision 2.**
+- It settles nothing about the pod boundary. **The four gap counts revision 2
+  printed here did not reproduce, under eight variants between two people, so
+  they are replaced with numbers and a method.** The method: read the file with
+  pandas, keep `Channel == רשת 13` (18,669 rows, 3,055 `break_id` values, 30
+  dates), parse `Date` plus `Start time` as `%d/%m/%Y %H:%M:%S`, set each spot's
+  end to its start plus `Duration` seconds, sort within a date by start then
+  `position_in_break`, and take consecutive pairs. A pair is within-break when
+  the two rows share a `break_id` and a boundary when they do not.
+  - **1,145 of the 18,669 rows carry an Excel `01/01/1900 HH:MM` artifact in
+    `Start time`** and do not parse. Each is the only row of its own break, so
+    dropping them removes 1,145 whole breaks and no within-break pair.
+  - **Within a break: 15,614 consecutive pairs, of which 0 exceed 60 s.** That
+    count is method-independent, because it is rows minus breaks
+    (18,669 - 3,055), and recovering the 1,145 artifact rows onto their own date
+    gives the same 15,614 with the same zero. **Within-break contiguity is real,
+    and it is stronger than the "2 of 15,214" this section used to claim.**
+  - **Between breaks the count is method-dependent, and that is the honest
+    answer rather than a number.** On the 17,524 second-resolution rows: 1,880
+    boundaries, 625 at 60 s or less, 33.24 percent. Recovering the 1,145
+    minute-resolution rows: 3,025 boundaries, 1,667 at 60 s or less, 55.11
+    percent, but those rows resolve only to the minute so a 60 s test on their
+    boundaries is not decidable. **Either way, between a third and a half of
+    adjacent break pairs sit 60 s or less apart, so a gap rule does not reproduce
+    `break_id` and the rule that produced it is not on disk.** The other three
+    channels behave the same way and none of them yields the 2,412 boundaries
+    previously claimed: `קשת 12` 2,185 boundaries at 23.34 percent, `כאן 11` 892
+    at 4.15 percent, `עכשיו 14` 1,153 at 50.48 percent.
+  - One structural fact worth keeping, measured while doing this:
+    **`break_id` never interleaves in time.** Sorting each date by start and
+    counting runs of equal `break_id` gives exactly 3,055 runs for 3,055 ids,
+    zero extra. So in this file every break is one unbroken run of rows and its
+    spots really are back to back, which is the opposite of what the daily file
+    shows below. The two facts are about two different files and they do not
+    conflict: the gap rule fails here because breaks sit too close together, and
+    it fails there because one declared break has a hole in it.
+- **On the daily file a 60 s gap rule does not reproduce the declared grouping,
+  and the claim that it does was wrong in both this document and the owner's.**
+  It yields 10 groups against the declared 10, which is what the earlier claim
+  rested on, but not the same partition. Sizes under the rule are 1, 3, 4, 7, 7,
+  22, 28, 30, 35, 38; declared sizes are 1, 1, 3, 3, 7, 28, 29, 30, 35, 38. Two
+  counterexample rows: the declared break `21:22:12` holds one 32 s spot starting
+  21:22:16 and the next declared break `21:23:10` begins 22 s after it ends, so
+  the rule **merges** two declared breaks; the declared break `22:59:40` holds 29
+  spots with a 93 s internal gap before the spot at 23:12:58 and spans 642 s
+  against 432 s of ad time, so the rule **splits** one declared break and that
+  break is not contiguous. Thresholds of 30, 45, 90, 120, 180 and 300 s do not
+  reproduce the declared partition either. **The same sentence sits in
+  `decisions-for-owner.md:63` and must be corrected there before that document
+  goes to the owner; the same paragraph's "13.4 minutes" for the 38-spot group is
+  13.93 minutes measured (22:04:16 to 22:18:12, 836 s), which strengthens rather
+  than weakens its point.** The owner's decision does not change; it becomes more
+  obviously necessary. **The pod boundary stays owner decision 2.**
 - Its `advertiser_id` is derived garbage and is never used for identity.
-- It carries competitor channels, so the channel scope of section 4.5 applies
-  to it like everything else.
+- **Its channel flags are inverted against this operator, and that is a data
+  defect the rebuild must not inherit.** In this file `is_target_channel` marks
+  `קשת 12` and `competitor_flag` marks the operator's own `רשת 13`, while
+  `data/kairos_settings.json` sets `operator_channel: רשת 13`. So the file calls
+  a rival the target and the operator a competitor. A builder who applies the
+  channel scope of section 4.5 by reading either column selects `קשת 12` and
+  breaches Bar 4's competitor law with the product's own data. **The rule: the
+  channel scope always comes from `operator_channel` in settings through
+  `channel_scope.py` (section 8.3), never from a column in this file, and
+  `is_target_channel`, `competitor_flag` and `include_as_media` are read by
+  nothing in the rebuild.** They are an artifact of whoever generated the file
+  for a different operator. The file is not corrected in place, because it is a
+  frozen test corpus and editing it would destroy the only historical break
+  corpus the product has. Nothing reads those columns today, as measured above,
+  so this is a rule that keeps a true thing true rather than a fix, and it is
+  already inside C1's remit: the boundary sweep looks at every competitor name on
+  every surface.
 
 Recorded as a decision rather than an omission, which is what the critique
 asked for.
@@ -857,14 +1017,31 @@ the disposition of the 45 synthetic rows waits.
   a visible, editable commercial rule on Rules with its 56 dropped spots as a
   drill target, because a rule that removes a third of the day's inventory and
   is invisible is the worst kind of dead end.
-- `data/kairos_constraints.csv` does not exist on disk while four modules
-  reference it. The new store is created explicitly rather than implicitly.
-- The version store's 187 of 200 entries that point at pytest temporary paths
-  are marked unrestorable rather than deleted, and the store gains an isolation
-  guard so tests cannot write into the operator's history again.
-- `data/enriched/` (19.7 MB, read by nothing), `data/Programmes - today.csv`
-  (125 rows, zero readers repo-wide) and `kairos/optimize/agreements.py` (zero
-  callers) are proven dead before removal, and the proof is written down.
+- `data/kairos_constraints.csv` does not exist on disk while **seven non-test
+  modules** reference it: `kairos_api/constraints.py`, `kairos/service.py`,
+  `kairos/optimize/constraints_store.py`, `kairos/optimize/_constraints_io.py`,
+  `kairos/export/schedule.py`, `kairos/export/schedule_freshness.py` and
+  `scripts/export_schedule.py`. Revision 2 said four; I counted with a repo-wide
+  grep excluding `tests/`. The new store is created explicitly rather than
+  implicitly, and five of those seven modules are frozen, so P5 creates the store
+  and changes no reader.
+- The version store's entries that point outside the repository are marked
+  unrestorable rather than deleted, and the store gains an isolation guard so
+  tests cannot write into the operator's history again. **The count, with its
+  method, because revision 2's 187 reproduces under neither:** 200 manifests,
+  of which **186 carry a file path containing `pytest`** and **2 more carry a
+  different temporary path** under `/var/folders/.../T/tmp*`, so **188 of 200
+  point outside the repository and 186 of those name a pytest temp directory**.
+  Method: parse every `data/versions/*/manifest.json` and test each entry of its
+  `files` array's `path`.
+- `data/enriched/` (19.7 MB, read by nothing) and `data/Programmes - today.csv`
+  (125 rows, zero readers repo-wide) are proven dead before removal, and the
+  proof is written down. **`kairos/optimize/agreements.py` is removed from that
+  list: it is not dead.** It is imported and re-exported at
+  `kairos/optimize/__init__.py:26` and `:44`, and `tests/test_agreements.py`
+  exercises `load_agreements`. Revision 2 called it "zero callers" and authorized
+  its removal; removing it breaks an import and fails the suite, which Bar 4
+  forbids. It stays.
 - `AssistantUpload.jsx` and its whole second upload system
   (`kairos_api/assistant_uploads.py`, 245 lines, three routes, its own per-user
   store) is **kept and re-scoped, not deleted**. It is DUPLICATE-OF
@@ -879,6 +1056,46 @@ the disposition of the 45 synthetic rows waits.
   claiming the panel stays in sync with it while there is no fetch. Rules and
   Plan drive their lever labels, help and bounds from it. That is one fewer
   hardcoded bilingual string table and it is already written.
+- **The upload consequence, blur 3 of the first critique, which revision 2
+  claimed was closed here and was not.** Section 11 said "an operator upload
+  invalidates the model and the remedy is an act they cannot perform" was closed
+  at 5.6 and P6, and nothing in this document said anything about it. It is
+  closed now, and the measurement changes the answer. **Today an operator upload
+  cannot make the model stale, and the product can already prove it.** `models/tv_break_coefficients.json` carries
+  `source_fingerprints` for exactly `data/reference/Spots.xlsx`,
+  `Programmes.xlsx` and `Dayparts.xlsx`, while the three matching upload kinds
+  write `data/Spots.csv`, `data/Programmes.csv` and `data/Dayparts.csv`. All
+  three read `in_use: false` on the live instance with the reason already
+  written: the engine resolves the reference workbook first and adopts the upload
+  only when that workbook is absent (`kairos/data/loaders.py:30-60`). So the
+  upload touches no fingerprinted file and does not reach the engine.
+  - **The condition under which it does.** `_source_fingerprints()` in
+    `scripts/compute_measured_coefficients.py:178-193` resolves through the same
+    `_resolve_reference_path`, so the fingerprints follow the file that actually
+    fed the model. Remove a reference workbook and the uploaded CSV becomes both
+    the live engine input and the fingerprinted one; the next upload of that kind
+    then rewrites a fingerprinted file and the model really is stale. That is one
+    condition, it is computable, and the product already computes it.
+  - **What Sources shows, and it is three states, not two.**
+    `kairos/model/freshness.py:45` returns `fresh`, `stale` with the changed
+    paths, or `unknown` when a fingerprinted file is missing on disk, and it
+    never invents a fresh. P6 puts that verdict on the source card and on the
+    upload confirmation, using the payload it already owns: `GET
+    /api/uploads/status` ships `in_use`, `in_use_reason` and `engine_reads` per
+    kind today, measured. Before the upload the card states which of the two
+    consequences this upload has, in the operator's terms: **stored but not read
+    by anything**, or **this is the live input, so uploading changes what the
+    model was measured on**.
+  - **The remedy names its owner and carries no button.** Training is a company
+    act by section 4.1, so the operator's control is a request with a named
+    owner, in the words section 4.8 already fixes: "the model needs training when
+    new data lands", never a verb the operator cannot perform. The message names
+    the changed source files and the model version's date, and carries no gate
+    verdict, no coefficient and no p-value, so it crosses nothing.
+  - **Owner: P6**, on files P6 owns. `kairos/model/freshness.py` is frozen under
+    `kairos/model/**` and is read, never written. JS-12's Bar 3 row already
+    requires that every `in_use: false` keeps its honest reason, so this extends
+    a floor rather than inventing a surface.
 - **The source-file list is corrected.** `GET /api/files` lists
   `models/tv_break_posterior.pkl` (1.2 MB, dated 2026-07-01) which
   `kairos/model/impact.py:289-304` never reads because the measured JSON
@@ -955,8 +1172,9 @@ at 499 s.
 
 New, because discovery found them missing:
 
-- **Grounding for the retention model.** There are twelve keyword-triggered
-  grounding sections and none is triggered by מקדמים, coefficients, אימון,
+- **Grounding for the retention model.** There are eleven keyword-triggered
+  grounding sections (`_SECTIONS` at `kairos_api/assistant_keywords.py:354`,
+  counted; revision 2 said twelve) and none is triggered by מקדמים, coefficients, אימון,
   training or drift, so an operator asking in Hebrew why the plan moved gets no
   coefficient context, even though a read tool exists that would answer it.
   What it returns to a channel account is the release note of section 4.6 and
@@ -1008,13 +1226,27 @@ This section is re-cut so that **every piece owns a vertical slice of files**.
 ### 8.0 The three ownership rules
 
 1. **One file, one owner, for the whole run.** Not per wave. Every path in the
-   table below appears exactly once. A builder that needs to change a path it
-   does not own raises it; it never reaches for it.
+   table below has exactly one **final** owner. A path may appear a second time
+   in a wave-0 create-and-hand-over column, and that second appearance names the
+   same final owner in brackets rather than a second claimant. Revision 2 said
+   "appears exactly once", which is literally false: I extracted every backticked
+   path in this section and 26 appear more than once, 25 of them the declared
+   hand-over pattern. The rule is one owner, not one mention. A builder that
+   needs to change a path it does not own raises it; it never reaches for it.
 2. **Where a shared file must serve several pieces, splitting it is its own
    earlier piece with its own bar.** That is what wave 0 is. Wave 0 creates the
    files wave 1 owns and then hands them over; a created path is listed against
-   its wave-1 owner, not against the splitter.
+   its wave-1 owner, not against the splitter. **A wave-0 piece that must edit a
+   wave-1 file to perform its split carries a bounded, written authorisation
+   naming the exact lines, as W0-2 already does for the frontend move.** Wave 0
+   closes before wave 1 opens, so an authorisation is a sequence, never an
+   overlap.
 3. **A frozen file has no owner.** Changing one is an escalation, not a task.
+4. **Three classes of path are governed by a rule rather than by a table row**,
+   because enumerating them would go stale on the first split: tests, the router
+   registration in `server.py`, and the helper modules the 450-line law forces a
+   piece to create. Each rule is stated below the tables and is as binding as a
+   row.
 
 ### 8.1 What wave 0 splits, measured
 
@@ -1036,36 +1268,85 @@ break-decisions.
 
 ### 8.2 The file-ownership table
 
-Every path a builder may write. Nothing else. A path absent from this table is
-frozen.
+Every path a builder may write, either as a row below or under one of the three
+rules that follow the tables: tests, the router registration in `server.py`, and
+a declared helper module. Nothing else. A path absent from both the table and
+those rules is frozen.
 
 #### Wave 0, five pieces, mutually disjoint
 
 | Piece | Paths it may write | Paths it creates and hands over (owner in brackets) |
 |---|---|---|
-| **W0-1 Router seams** | `kairos_api/dashboard_api.py`, `kairos_api/insights_api.py`, `kairos_api/catalog_api.py`, `kairos_api/version_store.py`, `kairos_api/server.py` | `kairos_api/plan_read.py` **[frozen]**, `kairos_api/preview_inputs.py` **[W0-5]**, `overview_api.py` **[P1]**, `week_api.py` **[P2]**, `yield_api.py` **[P2]**, `scenario_compare_api.py` **[P2]**, `day_api.py` **[P3]**, `gold_api.py` **[P3]**, `campaigns_read.py` **[P4]**, `compliance_api.py` **[P5]**, `downloads_api.py` **[P6]**, `model_audience_api.py` **[P7]**, `model_impact_api.py` **[P7]**, `history_api.py` **[P8]**, `pacing_alerts_api.py` **[P11]** |
-| **W0-2 Shell seams** | `tv-break-dashboard/src/TVBreakDashboard.jsx`, `App.jsx`, `index.jsx`, `surface-helpers.js`, and every existing `src/*.jsx` and `src/*.js` **during the move only** | `src/shell/**` **[frozen after wave 0]**, plus the destination trees `src/today/**` **[P1]**, `src/plan/week/**` **[P2]**, `src/plan/day/**` and `src/plan/break/**` **[P3]**, `src/clients/**` **[P4]**, `src/rules/**` **[P5]**, `src/sources/**` **[P6]**, `src/model/**` **[P7]**, `src/history/**` **[P8]**, `src/kai/**` **[P9]** |
-| **W0-3 Identity** | `kairos_api/advertisers.py`, `kairos_api/advertiser_conditions.py`, `kairos/optimize/advertiser_rules.py`, `kairos/data/transform.py`, `data/advertiser_rules.csv` | `data/advertiser_names.csv`, `scripts/migrate_advertiser_identity.py`, `kairos_api/spot_ledger.py` **[frozen after wave 0]** |
-| **W0-4 The wall and the words** | `kairos_api/auth.py`, `kairos_api/auth_store.py`, `kairos_api/events_access.py`, `kairos_api/core.py`, `kairos_api/settings_api.py` | `kairos_api/affiliation_wall.py` **[frozen]**, `kairos_api/channel_scope.py` **[frozen]**, `kairos_api/guardrail_store.py` **[P5]**, `kairos_api/model_activation.py` **[P7]**, `data/regulatory_guardrails.json` **[P5]**, `tv-break-dashboard/src/vocabulary.js` **[frozen]**, `tv-break-dashboard/src/session.js` **[frozen]** |
-| **W0-5 Evaluation seam and cache** | `kairos_api/preview_inputs.py` (after W0-1 creates it) | `kairos/optimize/evaluate.py` **[frozen]**, `kairos_api/read_cache.py` **[frozen]** |
+| **W0-1 Router seams** | `kairos_api/dashboard_api.py`, `kairos_api/insights_api.py`, `kairos_api/catalog_api.py`, `kairos_api/version_store.py`, `kairos_api/server.py` | `kairos_api/plan_read.py` **[frozen]**, `overview_api.py` **[P1]**, `week_api.py` **[P2]**, `scenario_compare_api.py` **[P2]**, `yield_api.py` **[P5]**, `day_api.py` **[P3]**, `gold_api.py` **[P3]**, `campaigns_read.py` **[P4]**, `compliance_api.py` **[P5]**, `downloads_api.py` **[P6]**, `model_audience_api.py` **[P7]**, `model_impact_api.py` **[P7]**, `history_api.py` **[P8]**, `pacing_alerts_api.py` **[P11]** |
+| **W0-2 Shell seams** | `tv-break-dashboard/src/TVBreakDashboard.jsx`, `App.jsx`, `index.jsx`, `surface-helpers.js`, every existing `src/*.jsx` and `src/*.js` **during the move only**, and all fifteen existing `src/*.css` files (9,306 lines, of which `styles.css` is 6,170) **during the move and the token extraction only** | `src/shell/**` **[frozen after wave 0]**, `src/tokens.css` **[frozen after wave 0]**, plus the destination trees `src/today/**` **[P1]**, `src/plan/week/**` **[P2]**, `src/plan/day/**` and `src/plan/break/**` **[P3]**, `src/clients/**` **[P4]**, `src/rules/**` **[P5]**, `src/sources/**` **[P6]**, `src/model/**` **[P7]**, `src/history/**` **[P8]**, `src/kai/**` **[P9]** |
+| **W0-3 Identity** | `kairos_api/advertisers.py`, `kairos_api/advertiser_conditions.py`, `kairos_api/condition_validation.py`, `kairos/optimize/advertiser_rules.py`, `kairos/data/transform.py`, `data/advertiser_rules.csv` | `data/advertiser_names.csv`, `scripts/migrate_advertiser_identity.py`, `kairos_api/spot_ledger.py` **[frozen after wave 0]**, `kairos_api/condition_validation.py` **[frozen after wave 0]** |
+| **W0-4 The wall and the words** | `kairos_api/auth.py`, `kairos_api/auth_store.py`, `kairos_api/events_access.py`, `kairos_api/core.py`, `kairos_api/settings_api.py` | `kairos_api/affiliation_wall.py` **[frozen]**, `kairos_api/channel_scope.py` **[frozen]**, `kairos_api/guardrail_store.py` **[P5]**, `kairos_api/model_activation.py` **[P5]**, `data/regulatory_guardrails.json` **[P5]**, `tv-break-dashboard/src/vocabulary.js` **[frozen]**, `tv-break-dashboard/src/session.js` **[frozen]** |
+| **W0-5 Evaluation seam and cache** | `kairos_api/overrides.py` and `kairos_api/constraints.py`, **for the bounded extraction below and nothing else** | `kairos_api/preview_inputs.py` **[frozen]**, `kairos/optimize/evaluate.py` **[frozen]**, `kairos_api/read_cache.py` **[frozen]** |
 
-W0-2 is the only piece that may touch a frontend file it does not finally own,
-and only to move it. Its handover is complete when every `src/*.jsx` at the
+W0-2 is the only piece that may touch a **frontend** file it does not finally
+own, and only to move it. Its handover is complete when every `src/*.jsx` at the
 top level is either in `src/shell/` or in a destination tree.
+
+**Stylesheets travel with their component.** The third critique found all
+fifteen `src/*.css` files frozen by absence while W0-2 owed the design tokens,
+which would have stalled the piece on its first line. W0-2 therefore owns them
+for the duration of wave zero: it extracts the shared scale, colour and
+typography variables into `src/tokens.css`, which freezes at wave-zero close and
+is the only place a token may be defined, and it moves every other stylesheet
+into the destination tree of the component it styles, where that tree's owner
+inherits it. `styles.css` is the shell's and stays with `src/shell/`. No later
+piece may define a token; a piece that needs one that does not exist raises it
+through the same escalation as a frozen file.
+
+**W0-5 owns `preview_inputs.py` outright, and it carries the one backend
+authorisation in the run.** Revision 2 listed the file twice inside a wave whose
+heading says its pieces are mutually disjoint, and gave the creation to a piece
+that cannot perform it. Measured: the function is `_preview_inputs` at
+`kairos_api/overrides.py:244-302`, 59 lines; it is called at `overrides.py:392`
+and imported at `kairos_api/constraints.py:328` and `:352` and called at `:330`
+and `:355`; `constraints.py:324` names it in a docstring. `overrides.py` is P3's
+and `constraints.py` is P5's, both wave 1, and neither file is on W0-1's list. So
+W0-1 could not have built it.
+
+- **Owner: W0-5**, from creation. It is W0-5's subject: the cache in section 8.4
+  is this function's warm path, and W0-5's first deliverable, the attribution,
+  cannot be produced without it.
+- **The authorisation, bounded exactly.** W0-5 may write `kairos_api/overrides.py`
+  and `kairos_api/constraints.py` for this extraction only: move
+  `overrides.py:244-302` into `kairos_api/preview_inputs.py`, delete those lines,
+  and rewrite the five referring lines listed above. No other line in either file
+  changes. The bar is a diff: `git diff` on those two files touches the moved
+  function and the referring lines and nothing else, and every route in both
+  modules returns a byte-identical body.
+- **The import path every dependent uses:**
+  `from kairos_api.preview_inputs import preview_inputs`. The leading underscore
+  goes with the move, because a module-private name imported across three modules
+  is what created the ambiguity. This is safe to rename: measured, zero files
+  under `tests/` reference `_preview_inputs`. The three call sites are
+  `overrides.py:392`, `constraints.py:330` and `constraints.py:355`.
+- **What does not move.** `_resolved_store_overrides`, `_segment_anchors` and
+  `_stored_constraints` stay in `overrides.py` and belong to P3; they are about
+  the override store, not about segment construction. `preview_inputs.py`'s only
+  `kairos_api` dependency is `kairos_api.core`, imported lazily inside the
+  function body today, so the extracted module imports nothing that would create
+  a cycle.
+- **Sequence.** W0-5 extracts, freezes the module, and hands `overrides.py` and
+  `constraints.py` on to P3 and P5 already extracted. Wave 1 never sees a shared
+  file.
 
 #### Wave 1, nine pieces, parallel
 
 | Piece | Backend paths it may write | Frontend paths it may write |
 |---|---|---|
 | **P1 Today** | `overview_api.py`, `kairos_api/target_store.py` (new), `data/plan_targets.csv` (new) | `src/today/**` |
-| **P2 Plan, week** | `week_api.py`, `yield_api.py`, `scenario_compare_api.py`, `kairos_api/scenario_api.py`, `kairos_api/recompute_api.py`, `kairos_api/plan_version_store.py` (new) | `src/plan/week/**` |
+| **P2 Plan, week** | `week_api.py`, `scenario_compare_api.py`, `kairos_api/scenario_api.py`, `kairos_api/recompute_api.py`, `kairos_api/jobs.py`, `kairos_api/plan_version_store.py` (new) | `src/plan/week/**` |
 | **P3 Plan, day and break** | `day_api.py`, `gold_api.py`, `kairos_api/overrides.py`, `kairos_api/break_api.py` (new), `kairos_api/break_store.py` (new), `data/breaks.csv` (new), `kairos/export/spots.py` | `src/plan/day/**`, `src/plan/break/**` |
 | **P4 Clients** | `campaigns_read.py`, `kairos_api/agencies.py`, `kairos_api/agency_conditions.py`, `kairos_api/campaigns_api.py` (new), `data/campaigns.csv` (new) | `src/clients/**` |
-| **P5 Rules** | `compliance_api.py`, `kairos_api/constraints.py`, `kairos_api/pricing_api.py`, `kairos_api/events_api.py`, `guardrail_store.py`, `data/regulatory_guardrails.json`, `data/frequency_rules.csv` | `src/rules/**` |
+| **P5 Rules** | `compliance_api.py`, `yield_api.py`, `kairos_api/constraints.py`, `kairos_api/_constraint_options.py`, `kairos_api/pricing_api.py`, `kairos_api/events_api.py`, `kairos_api/events_holidays.py`, `model_activation.py`, `guardrail_store.py`, `data/regulatory_guardrails.json`, `data/frequency_rules.csv` | `src/rules/**` |
 | **P6 Sources** | `downloads_api.py`, `kairos_api/uploads.py`, `kairos_api/exporters.py` | `src/sources/**` |
-| **P7 Model console** | `model_audience_api.py`, `model_impact_api.py`, `model_activation.py`, `kairos_api/model_console_api.py` (new), `kairos_api/model_version_store.py` (new), `models/releases/` (new) | `src/model/**` |
+| **P7 Model console** | `model_audience_api.py`, `model_impact_api.py`, `kairos_api/audience_api.py`, `kairos_api/model_console_api.py` (new), `kairos_api/model_version_store.py` (new), `models/releases/` (new) | `src/model/**` |
 | **P8 History** | `history_api.py`, `kairos_api/activity_log.py` | `src/history/**` |
-| **P9 Kai** | `kairos_api/assistant*.py` (11 modules, none owned by any other piece) | `src/kai/**` |
+| **P9 Kai** | `kairos_api/assistant*.py` (**22 modules**, none owned by any other piece; revision 2 said 11 and I counted the glob) | `src/kai/**` |
 
 #### Wave 2, four pieces
 
@@ -1090,6 +1371,131 @@ declared moment in the run, not an overlap: P3 freezes, then P10 owns.
 `config/optimization_weights.yaml`, plus every path marked **[frozen]** above.
 Changing one is an escalation with a measurement, never a task.
 
+#### Tests
+
+Revision 2 named no test path anywhere, so under its own closure rule no builder
+could write a test, while Bar 4 requires the suite green and W0-1's own bar is a
+response diff, which is a test. Measured today: **125 Python files under
+`tests/`, 122 at the top level and 3 under `tests/validation/`, and 3,102 tests
+collected in 6.17 s** with `~/.venvs/meridian/bin/python -m pytest
+--collect-only -q`.
+
+1. **Adding a test needs no permission and cannot collide.** A piece creates test
+   files under its own reserved prefix, `tests/test_<piece>_*.py` with the piece
+   id lowercased and hyphens dropped: `tests/test_w0_1_route_identity.py`,
+   `tests/test_p3_break_store.py`. The prefix is unique per piece by
+   construction, so no table entry and no lead ruling is needed. Every piece is
+   expected to use it; a piece that adds behaviour and no test has not finished.
+2. **An existing test file's owner is derived, not listed.** A test file belongs
+   to the piece that owns every production path it imports. If it imports paths
+   owned by two or more pieces, or any frozen path, it has no owner and is
+   frozen, like any other shared file. **Measured against the table above: 16 of
+   the 125 files resolve to exactly one owner (W0-1 six, P9 five, W0-4 three,
+   W0-3 two), 106 span owners or reach a frozen path, and 3 import no production
+   module at all (`conftest.py`, `test_rebuild_equivalence.py`, which drives the
+   product through a subprocess, and `validation/test_placebo_fast.py`), which
+   are frozen as the harness.**
+3. **That 106 is the rule working, not the rule failing.** A piece never needs to
+   change a shared test in order to add something; it needs to change one only
+   when it changes behaviour that a shared test asserts, and behaviour another
+   piece depends on is exactly what Bar 3 forbids changing quietly. So the
+   expected number of test-change requests is not 106, it is the number of
+   deliberate behaviour changes, and this document already enumerates those.
+4. **The protocol when a piece must change a test it does not own.** It does not
+   edit it. It opens a test-change request naming four things: the test path, the
+   assertion that must change, the production change that forces it, and which of
+   the two it believes is wrong. **The request goes to C2, not to the lead**,
+   because a changed assertion is Bar 3's own subject: a test asserting today's
+   behaviour is the machine-readable form of "what works today that this piece
+   must not make worse". C2 rules one of three ways, and records the ruling: the
+   test encodes a defect this document declares fixed, so C2 makes the edit and
+   the piece cites the ruling; or the test encodes behaviour Bar 3 protects, so
+   the piece changes its own code; or the test's only other owner has not started,
+   so ownership transfers with the ruling attached. **Deleting a test is never a
+   resolution unless the module it covers is deleted, and that deletion needs the
+   written proof section 5.6 requires.**
+5. **Two forced requests are already known, so this is not hypothetical.** The
+   version-store isolation guard of section 5.6 changes where a test may write,
+   and 186 of the 200 manifests on disk were written by pytest, so every test that
+   writes the store is affected. And `tests/test_agreements.py` is why section 5.6
+   no longer authorises removing `kairos/optimize/agreements.py`: the file is
+   imported and re-exported at `kairos/optimize/__init__.py:26,44` and the test
+   exercises it, so the removal revision 2 authorised would have failed the suite
+   with no owner able to fix the test.
+
+#### `kairos_api/server.py` after wave 0
+
+Every router is mounted by an explicit line: **20 `app.include_router(...)` calls
+between `server.py:112` and `:271`**, interleaved with the auth middleware, the
+activity recorder and CORS, whose order is load-bearing and documented in the
+file. W0-1 owns that structure and mounts everything wave 0 creates, including
+the thirteen route-carrying modules it splits out of the four files in section
+8.1. Four later pieces create a router of their own
+(`break_api.py` P3, `campaigns_api.py` P4, `model_console_api.py` P7,
+`media_api.py` P13), and `pacing_alerts_api.py` needs no append because W0-1
+creates and mounts it in wave 0.
+
+`server.py` is not handed over and is not frozen. It becomes **frozen above a
+marker and append-only below it**:
+
+- W0-1's last act in wave 0 is to add one marked region after the final existing
+  mount and to leave everything above it unchanged. Everything above the marker
+  is frozen for the rest of the run, exactly as if it were on the frozen list.
+- Below the marker a piece appends **exactly one stanza of two lines**: the
+  import of its own router and the `include_router` call for it. It may not
+  reorder, edit or remove another piece's stanza, and it may not touch a line
+  above the marker. Anything else in this file is an escalation to W0-1's owner.
+- Stanzas are appended in piece order. Two pieces appending at once produce a
+  conflict whose only correct resolution is to keep both stanzas, so no ruling is
+  needed.
+- **The bar on an append is an OpenAPI diff, because the real risk is a late
+  mount shadowing an existing route.** Baseline measured this session on the live
+  instance: **90 paths, 113 operations, 56 of them writes.** After a piece
+  appends, `GET /openapi.json` must show those 90 paths unchanged plus exactly
+  the paths that piece published and froze under section 8.8, and no path may be
+  redefined.
+
+#### The six modules the table did not name, and the ones the 450-line law will create
+
+I diffed every backticked path in this section against the real file list by
+exact basename. `kairos_api` holds **51 modules** and six were absent, so rule
+8.2 froze them, and five sit on a wave-1 critical path. Each now has an owner,
+chosen by who imports it and who must change it:
+
+| Module | Lines | Imported by | Owner, and why |
+|---|---|---|---|
+| `_constraint_options.py` | 249 | `constraints.py:44` at module level, `scenario_api.py:425` and `assistant_propose_tools.py:44` lazily | **P5.** P5's restriction language translates the option payload this module builds. P2 and P9 read it |
+| `audience_api.py` | 114 | `insights_api.py:638`, `core.py:452`, `assistant_audience_model.py:25` | **P7.** It is the single reader of `models/audience_model.json` on the API side by its own docstring, and P7 has to wall that read. **Stated duty:** `audience_model_note` rides run payloads and returns `{state, computed_at}` today (`audience_api.py:91-113`); it may never gain a gate, a coefficient or a p-value, because that would fail section 4.2's lexicon test on every operator surface at once |
+| `jobs.py` | 114 | `recompute_api.py:91,126,159` only | **P2.** One importer, one owner |
+| `condition_validation.py` | 74 | `advertiser_conditions.py:44` (W0-3), `agency_conditions.py:45` (P4) | **W0-3, frozen at wave-0 close.** Two claimants in two different waves, so the earlier one owns it and the later one reads it, which is rule 8.0.2 |
+| `events_holidays.py` | 35 | `events_api.py:51` only | **P5.** One importer, one owner |
+| `__init__.py` | 2 | n/a | **Frozen.** One docstring line, no code |
+
+**The rule for the helpers that do not exist yet.** The 450-line law
+(`docs/ux-gauntlet-prompt.md:205`, "No source file over 450 lines. Split rather
+than compress") will force more of these, and enumerating them now would be a
+guess. Measured, it is already binding on owned files before anyone adds a line:
+`assistant.py` 775, `uploads.py` 713, `core.py` 698, `assistant_actions.py` 496,
+`scenario_api.py` 477 and `overrides.py` 467 all exceed the cap today, on top of
+the five files wave 0 exists to split.
+
+- **The frontend needs no rule.** Every wave-1 frontend path is a glob
+  (`src/plan/week/**`), so a split inside an owned tree is owned by
+  construction. This is a backend problem only, because `kairos_api/` is a flat
+  package owned file by file.
+- **Naming.** A helper split from an owned module is named
+  `<parent stem>_<role>.py` and lives beside its parent, which is what the code
+  already does: `events_access.py` says in its own docstring that it was "split
+  out of events_api.py to keep that module under the file-size cap".
+- **The collision check is the one section 8.8 already runs.** Before its wave
+  starts, each piece publishes and freezes the files it will touch. That
+  publication now includes the helper names it intends to create. The lead
+  rejects a duplicate at publication time, before any code exists, which is the
+  cheapest possible moment.
+- **A helper declared that way is not frozen by absence.** It is owned by the
+  piece that declared it, from the moment the publication is frozen, and it
+  inherits that piece's bar.
+
 ### 8.3 The five cross-cutting rules, each with a named owner
 
 Revision 1 stated these and assigned them to nobody. Each now has one owner for
@@ -1097,11 +1503,11 @@ the mechanism and a stated adoption duty for every other piece.
 
 | Rule | Owner of the mechanism | What the owner ships | What every other piece must do |
 |---|---|---|---|
-| **The `job` field and per-job landing** | **W0-4** | `job` on the account record with `unset` default, the eleven-value list, the door map, `session.js` exposing it, and the job picker card contract | P1 renders the picker. Every piece registers its door name in the map. Nobody else writes the field |
+| **The `job` field and per-job landing** | **W0-4** | `job` on the account record with `unset` default, the **thirteen-value** list (revision 2 said eleven here and thirteen at sections 2 and 2.2; thirteen is right, and eleven is the count of roles landing inside the five workspaces), the door map, `session.js` exposing it, and the job picker card contract | P1 renders the picker. Every piece registers its door name in the map. Nobody else writes the field |
 | **The affiliation wall, `can_edit`, session affiliation** | **W0-4** | `affiliation_wall.py`: one decorator that gates a route on `affiliation = company` for read and write, one helper that stamps `can_edit` into any response, `session.js` exposing affiliation to every surface | Every piece applies the decorator to its own walled routes and stamps `can_edit` on its own responses. The four open reads (`/api/impact`, `/api/model/audience`, `/api/parameters`, `/api/events` `model_context`) are closed by **P7, P7, W0-4, P5** respectively |
 | **The competitor boundary** | **W0-4** | `channel_scope.py`: one function that takes the operator channel from settings and filters any plan projection to it, plus the unnamed-aggregate form for the model's competitor factor | P2 applies it to `/api/schedule` (measured: 96 `קשת 12`, 73 `כאן 11`, 28 `עכשיו 14`, 3 of the operator's own). P3 applies it to `/api/break-operations` (measured: 12 programmes per channel, all four). P9 applies it to Kai's context. C1 verifies |
 | **The vocabulary rename, both languages** | **W0-4** | `vocabulary.js`: the section 4.8 and 4.9 tables as the single string source, with the retired words absent from it | Every piece imports its labels. **The critic's check is a grep:** zero occurrences of recompute, rebuild, חישוב מחדש or בנייה מחדש anywhere under `tv-break-dashboard/src/` outside `vocabulary.js`. Today that grep returns 159 hits |
-| **Lifting guardrails and `audience_model_activation` out of `KairosSettings`** | **W0-4** | `guardrail_store.py` with effective date and change record, `model_activation.py` company-gated, and a compatibility shim in `core.py` so no reader's import changes | Nobody. The change is subtractive and its bar is that every other module's imports are unchanged, proven by grep |
+| **Lifting guardrails and `audience_model_activation` out of `KairosSettings`** | **W0-4** | `guardrail_store.py` with effective date and change record, `model_activation.py` with the company gate built from the same guard `pricing_api.py:232-241` already uses, and a compatibility shim in `core.py` so no reader's import changes | Nobody, and **both stores hand over to P5, not to P7**. The switch is a run-side configuration act by section 4.1 and its surface is Rules. P7 renders a read-only mirror of the state in the console and owns no control. The change is subtractive and its bar is that every other module's imports are unchanged, proven by grep |
 
 ### 8.4 The latency bars, and the engine change each one actually needs
 
@@ -1132,7 +1538,8 @@ response. Removing one saves 0.9 s. The critique, revision 1 and
 **Segment construction is the largest attributed cost and it is cacheable.**
 6.38 s cold, 0.01 s warm, and it is placement-independent, so a cache genuinely
 does answer a placement nobody has made yet. That is W0-5's `read_cache.py`
-applied to `preview_inputs.py`.
+applied to `preview_inputs.py`, which W0-5 extracts itself as its first act under
+the bounded authorisation in section 8.2.
 
 **About 13 s of the 19.77 s is unattributed today.** I measured the components
 and the endpoint; they do not sum. So **W0-5's first deliverable is an
@@ -1181,12 +1588,12 @@ its own regression row.**
 | W0-2 | Every one of the 17 current routes renders the same DOM text after the split. The drag in the schedule editor still moves a chip in 2.43 s (`06-baseline.md:172`). The `#Assistant` hash still opens the dock over the current page |
 | W0-3 | Agencies still resolve 9 of 9 and still total gross ₪699,450 / net ₪669,978 / 119 spots. Every engine figure byte-identical |
 | W0-4 | The three event writes still refuse a channel account with the existing Hebrew denial. `GET /api/events` still returns `can_edit`. The five `require_company_editor` call sites still fire |
-| W0-5 | No endpoint gets slower. The saved plan is byte-identical after the cache lands |
+| W0-5 | No endpoint gets slower. The saved plan is byte-identical after the cache lands. The extraction moves `overrides.py:244-302` and the five referring lines and nothing else, proven by the diff, and `/api/overrides/effect` and `/api/constraints/effect` return byte-identical bodies before and after it |
 | P1 | The amber staleness banner still names what changed and still offers the run. "Priority decisions, 5 actions" still lists the same five with the same figures. The cold answer still lands by 3.59 s |
 | P2 | The frontier point can still be clicked and applied as a saved retention floor, which is unique to Overview today (`01-surfaces.md:77`). The plan CSV still downloads 8,704 rows. The four objective templates survive |
 | P3 | Drag and resize still work with 30 s and 60 s snap and the zoom scale. The segment inspector still opens from the break list. The override preview still reports rejected overrides verbatim |
 | P4 | Agency records keep payment terms, rebate percent, commission percent, credit limit, VAT id and two contacts. Deactivate still beats delete. The 41 observed advertiser links still render |
-| P5 | The seven compliance checks still return with profile, `effective_date` 2026-06-14 and `source_url`. The predicate builder's AND/OR grammar still saves the same rows. The six pricing layers keep their honest live and wired-off chips |
+| P5 | The seven compliance checks still return with profile, `effective_date` 2026-06-14 and `source_url`. The predicate builder's AND/OR grammar still saves the same rows. The six pricing layers keep their honest live and wired-off chips. `GET /api/yield-per-second`, which moves to P5 with the rate card, still returns `yield_per_second` 142.7044 with its `basis.formula` and its named inputs |
 | P6 | All five report CSVs still download, all with the same row counts, and Download all still works. The upload validator still refuses a bad file at the door with the contract's own findings |
 | P7 | Nothing regresses: the surface does not exist today. The gate table must show every verdict the calendar shows today, and no operator surface may keep showing them |
 | P8 | The restore path still restores the same nine logical files and still snapshots first. Viewer write-lock at `AssistantVersions.jsx:296` survives |
@@ -1208,7 +1615,10 @@ forward, never be replaced by a figure.**
   workspaces.
 - **C2 The three-way.** Bar 3, run per piece against the regression rows in
   8.5 and against `06-baseline.md`'s frozen figures. This critic exists in this
-  revision and did not exist in revision 1.
+  revision and did not exist in revision 1. **C2 also rules on every
+  test-change request**, by the protocol in section 8.2, because a request to
+  change an assertion is a request to change behaviour something else depends on,
+  which is the same question C2 is already answering.
 - **C3 The integration critic.** One fresh critic over the whole product:
   vocabulary and interaction consistency across all surfaces, correctness end
   to end, and whether the assembled thing serves the jobs it was decomposed
@@ -1227,13 +1637,19 @@ piece whose bar cannot be met without data the owner has not supplied.
 
 ### 8.8 The contract that keeps pieces independent
 
-Before a wave starts, each piece publishes and freezes: the endpoints it owns,
-the payload shapes it emits, and the files from section 8.2 it will touch. The
-shared surface is exactly four things and no more: the design tokens and shell
-from W0-2, `vocabulary.js` from W0-4, `evaluate.py` and `read_cache.py` from
-W0-5, and `plan_read.py` and `spot_ledger.py` as frozen read layers. Every one
-of those is frozen when wave 0 closes, so a wave-1 builder reads them and never
-writes them.
+Before a wave starts, each piece publishes and freezes four things: the endpoints
+it owns, the payload shapes it emits, the files from section 8.2 it will touch,
+and the helper module names it intends to create. The lead rejects a duplicate
+helper name at that moment, which is the collision check section 8.2's helper
+rule relies on.
+
+The shared surface is five things and no more: the design tokens and shell from
+W0-2, `vocabulary.js` from W0-4, `evaluate.py` and `read_cache.py` from W0-5,
+`plan_read.py`, `preview_inputs.py` and `spot_ledger.py` as frozen read layers,
+and **the append-only registration region at the foot of `server.py`**, which is
+the only shared file any piece writes to and the only one with an append
+protocol rather than an owner. Everything else on that list is frozen when wave 0
+closes, so a wave-1 builder reads it and never writes it.
 
 ---
 
@@ -1320,6 +1736,13 @@ Recorded because the lead needs to know which numbers are load-bearing.
 | `run_log.jsonl`: 488 versus 489 records | **489 lines**, re-measured this session | Trivial, recorded for completeness |
 | Version store: 200 manifests versus 201 directory entries | **200 manifests** | The extra entry is a directory listing artifact. The load-bearing number is that 187 of them point at pytest paths |
 | The competitor lanes in the planning grid: one investigator measured them and explicitly declined to rule | **It is a law breach and it is fixed** | The law reads "No rival channel's name or data reaches an operator surface or the assistant's context." I fetched both myself: `/api/schedule`'s 200-row projection is 96 `קשת 12`, 73 `כאן 11`, 28 `עכשיו 14` and 3 of the operator's own; `/api/break-operations` returns 12 programmes on each of the four channels. The model may continue to use competitor lineup internally (its gate is on, at +2.16 percent held out). The operator surface shows the operator's channel and, where the model uses a competing lineup, an unnamed aggregate. **This removes something visible today, so it is flagged for the owner rather than done silently** |
+| **`data/Spots.csv` gap counts: revision 2 printed "2 of 15,214 within" and "702 of 2,412 boundaries, 29.1 percent"** | **15,614 within-break pairs with 0 above 60 s; boundaries are method-dependent, 1,880 with 625 at 60 s or less on the second-resolution rows, 3,025 with 1,667 if the minute-resolution rows are recovered** | Neither of revision 2's counts reproduces under eight variants between the second critic and me, and no channel yields 2,412 boundaries. Section 5.4 now carries the method beside the numbers so a third party can run it. The within count is structural (rows minus breaks, 18,669 - 3,055) and identical under both parses. The conclusion, that a gap rule does not reproduce `break_id`, is supported more strongly by the corrected numbers than by the originals |
+| **The daily file: revision 2 said a 60 s gap rule "reproduces those same 10 groups exactly"** | **It does not. Ten groups for ten, but a different partition, with two counterexample rows** | Measured on all 175 rows, all of which parse. Sizes under the rule are 1, 3, 4, 7, 7, 22, 28, 30, 35, 38 against declared 1, 1, 3, 3, 7, 28, 29, 30, 35, 38; `21:22:12` merges forward across a 22 s gap and `22:59:40` splits at a 93 s internal gap. Six other thresholds fail too. **The same sentence, and a 13.4 minute figure that measures 13.93, are in `decisions-for-owner.md:62-63`, which I may not write. Both must be corrected there before it reaches the owner** |
+| **`data/Spots.csv` channel flags: revision 2 read `competitor_flag` as a two-channel partition** | **The flag does not partition two channels, and it is inverted against this operator** | `is_target_channel` is True on all 23,707 `קשת 12` rows and False on all 18,669 `רשת 13` rows; `competitor_flag` is the complement, True for the operator's own `רשת 13` and the two other rivals; `include_as_media` is True only for `קשת 12`. Settings set `operator_channel: רשת 13`. Flagged in section 5.4 as a data defect the rebuild must not inherit, with the rule that the scope comes from settings and never from these columns |
+| **Version store pollution: revision 2 called "187 of 200" the load-bearing number** | **188 of 200 point outside the repository; 186 of those name a pytest temp directory** | Parsed every `data/versions/*/manifest.json` and tested each `files[].path`. 187 reproduces under neither method, so section 5.6 now states the method with the number |
+| **`data/kairos_constraints.csv`: revision 2 said four modules reference it** | **Seven non-test modules** | Repo-wide grep excluding `tests/`, listed in section 5.6. The file is absent from disk |
+| **`kairos/optimize/agreements.py` listed as "zero callers" and authorised for removal** | **It has callers and a test** | `kairos/optimize/__init__.py:26` imports it and `:44` re-exports `load_agreements`, and `tests/test_agreements.py` exercises it. Removing it fails the suite. Section 5.6 no longer authorises the removal |
+| **`kairos_api/assistant*.py`: revision 2 said 11 modules** | **22** | Counted the glob. It doubles P9's surface, so section 8.2 states it |
 | **`data/Spots.csv`: `02-api-and-data.md:301` says "nothing on the engine path", the critique says "read by nothing"** | **Referenced in nine places, none of which reads the three columns in question** | Six are cache-key signatures, one is the uploaded-CSV fallback used only when the xlsx is absent, and that fallback "reads only the shared columns" by its own docstring at `loaders.py:38`. A repo-wide grep for `break_id` outside the daily path returns nothing. Both statements are right about the columns and loose about the file |
 
 ### What still needs a human decision
@@ -1357,7 +1780,7 @@ is stated in full in P13's row of section 6; it blocks nothing else.
 | "45 of 45 advertisers named" is impossible | Section 5.5, replaced with "41 of 41 that appear in the daily file", and the method is owner decision 1 |
 | Events authoring filed under training | Section 4.1, one test, applied. It writes `data/`, so it is configuration and lives on Rules |
 | History merges model releases affiliation-blind | Section 4.1, History filters by artifact root; `models/` entries are company-only |
-| Six further blur points | Sections 4.1 to 4.7: the upload consequence (5.6 and P6), `model_context` on operator surfaces (4.2 test 2), the silent money move (4.6 release note), the unowned wall (8.3), the two output nouns (4.8), the context switcher (4.7) |
+| Six further blur points | Sections 4.1 to 4.7: `model_context` on operator surfaces (4.2 test 2), the silent money move (4.6 release note), the unowned wall (8.3), the two output nouns (4.8), the context switcher (4.7). **The remaining one, blur 3, the upload consequence, was claimed closed at "5.6 and P6" and was not in the document at all. It is closed now, in section 5.6, and this row is corrected rather than left standing** |
 | `data/Spots.csv` dropped | Section 5.4, measured myself, adopted as a test corpus, rejected as money with the formula |
 | Bar 3 absent | Section 8.5, a regression row per piece, plus critic C2 |
 | Model mandate became a console | Section 9, P12, plus JS-19 |
@@ -1373,3 +1796,22 @@ is stated in full in P13's row of section 6; it blocks nothing else.
 | Five roles ambiguous | Section 2, each ambiguous role now lands on a named view rather than a destination |
 | The `job` field has no builder | Section 8.3, W0-4 |
 | Owner-blocked marking inconsistent | Section 6, decisions 1 to 5 named in the rows they block, and section 10 |
+
+### What the second blind critique closed, in one further pass
+
+The second critique returned NOT READY narrowly, with blocker 2 fully closed,
+blocker 1 closed for all six named collisions, Bar 3 genuinely closed and twelve
+of thirteen roles landing clean. Six things remained. They are closed here, and
+nothing else in the document moved.
+
+| Finding | Where it is closed |
+|---|---|
+| Section 8.2 declares itself total and never names `tests/`, while Bar 4 requires 3,102 tests green | Section 8.2, "Tests": a reserved prefix per piece for new tests, a derived owner for existing ones (measured: 16 of 125 files resolve to one owner, 106 are shared, 3 are the harness), and a four-part test-change protocol ruled on by C2 |
+| `server.py` is W0-1's, is never handed over, and four later pieces must mount a router in it | Section 8.2, "`kairos_api/server.py` after wave 0": frozen above a marker, append-only below it, one two-line stanza per piece, with an OpenAPI diff against 90 paths and 113 operations as the bar |
+| Six of the 51 `kairos_api` modules are absent from the table and therefore frozen, five on wave-1 critical paths | Section 8.2, "The six modules the table did not name": each assigned by its importer, with the dual-consumer duty on `audience_api.py` stated |
+| The 450-line law will force helpers nobody owns | Same subsection: naming convention plus the section 8.8 publication as the collision check, with the six owned files already over the cap measured |
+| `preview_inputs.py` has two wave-0 claimants and neither can build it | Section 8.2: W0-5 owns it from creation and carries a bounded extraction authorisation over `overrides.py:244-302` and five referring lines, with the import path every dependent uses |
+| `audience_model_activation` writes `data/` yet was filed on the training side | Sections 4.1 and 4.5: the artifact stays training, the switch is a run-side company-gated configuration act on Rules built from the guard `pricing_api.py:232-241` already uses, with what each side sees. Every other flag re-checked against the rule in 4.1 |
+| The upload-staleness closure claim at section 11 pointed at text that did not exist | Section 5.6, and the row above is corrected. The measurement changes the answer: today an upload cannot make the model stale, and the one condition under which it can is computable and already computed |
+| Two measured claims do not reproduce, plus a data defect | Section 5.4 for the gap counts with their method, the daily-file grouping with its two counterexamples, and the inverted channel flags; section 10 records all three plus four smaller corrections |
+| The revenue and yield owner's door does not hold the answer to their question | Section 2, and `yield_api.py` moves to P5 in section 8.2 so the rate card can carry the figure and its unsaved-edit delta |

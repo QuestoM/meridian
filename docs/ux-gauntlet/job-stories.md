@@ -780,8 +780,9 @@ Named so a critic does not mark their absence as a miss.
 
 ## Amendments
 
-Three, all dated 2026-07-31, all additions. **No target above has moved and no
-done condition has been softened.** Each amendment says what was added, why, and
+Four, all dated 2026-07-31. Three are additions and the fourth corrects a
+destination name inside a target. **No target above has moved and no done
+condition has been softened.** Each amendment says what was added, why, and
 whether it needs an owner decision.
 
 ### Amendment 1, 2026-07-31. The Bar 3 floor per story
@@ -844,3 +845,27 @@ requires that adoption to stop and escalate rather than land.
 **Consequence:** the scoreboard is now nineteen stories. JS-19's baseline
 verdict is "Cannot start (no adoption path, no model version identity)" and its
 target is 120 s to a recorded verdict.
+
+### Amendment 4, 2026-07-31. JS-13's target names a destination that does not exist
+
+**Added:** nothing to the story, and nothing to its target. This amendment
+records that JS-13's target reads "45 s from opening **Money** to a saved
+change", and Money is not a destination. `spec.md` ships five workspaces, Today,
+Plan, Clients, Rules and Sources, and files the rate card under Rules. A builder
+following the target as written opens nothing.
+
+**Reason:** the second blind critique found the revenue and yield owner landing
+on a door that does not answer their question. Their stated question is "what is
+a second of airtime worth", the product answers it at `GET /api/yield-per-second`
+(`yield_per_second: 142.7044` with a `basis.formula`, fetched from the running
+instance), and the specification had put that answer on Plan while their door was
+Rules. The specification's fix is to make the rate card carry the figure and to
+move `yield_api.py` to the piece that builds Rules. The story's own wording was
+the last place the old name survived.
+
+**The target does not move.** 45 s, with the money delta on screen before the
+save, unaided no. **Money reads as Rules, the rate card**, and the two figures
+that door must answer with are the worth of a second under the card as saved and
+the same figure under the unsaved edit.
+
+**Owner decision needed:** none.
