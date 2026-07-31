@@ -270,6 +270,69 @@ app.include_router(catalog_router)
 app.include_router(scenario_router)
 app.include_router(dashboard_router)
 
+# ---------------------------------------------------------------------------
+# ROUTER REGISTRATION REGION, APPEND ONLY.
+#
+# Everything ABOVE this marker is frozen for the rest of the run: no piece may
+# reorder, edit or remove a line there, including the middleware order and the
+# twenty registrations, whose sequence is load bearing.
+#
+# Below the marker a piece appends exactly one stanza of two lines, the import
+# of its own router and the include_router call for it, in piece order. It may
+# not touch another piece's stanza. Two pieces appending at once conflict, and
+# the only correct resolution is to keep both stanzas.
+#
+# The bar on an append is an OpenAPI diff, because the real risk is a late
+# mount shadowing an existing route: every path already published stays
+# unchanged, exactly the appending piece's own published paths appear, and no
+# path is redefined. The region sits before the StaticFiles mount at the foot
+# of this file, which serves "/" and would shadow anything mounted after it.
+#
+# Wave zero registers the thirteen route-carrying modules it split out of
+# dashboard_api, insights_api, catalog_api and version_store. history_api is
+# the single exception and it is deliberate: its router is already mounted by
+# the version_store stanza above, which resolves to the same object, so a
+# second mount here would define all five version paths twice.
+# ---------------------------------------------------------------------------
+from kairos_api.overview_api import router as overview_router  # noqa: E402
+app.include_router(overview_router)
+
+from kairos_api.overview_api_decisions import router as overview_decisions_router  # noqa: E402
+app.include_router(overview_decisions_router)
+
+from kairos_api.week_api import router as week_router  # noqa: E402
+app.include_router(week_router)
+
+from kairos_api.scenario_compare_api import router as scenario_compare_router  # noqa: E402
+app.include_router(scenario_compare_router)
+
+from kairos_api.day_api import router as day_router  # noqa: E402
+app.include_router(day_router)
+
+from kairos_api.gold_api import router as gold_router  # noqa: E402
+app.include_router(gold_router)
+
+from kairos_api.campaigns_read import router as campaigns_read_router  # noqa: E402
+app.include_router(campaigns_read_router)
+
+from kairos_api.compliance_api import router as compliance_router  # noqa: E402
+app.include_router(compliance_router)
+
+from kairos_api.yield_api import router as yield_router  # noqa: E402
+app.include_router(yield_router)
+
+from kairos_api.downloads_api import router as downloads_router  # noqa: E402
+app.include_router(downloads_router)
+
+from kairos_api.model_audience_api import router as model_audience_router  # noqa: E402
+app.include_router(model_audience_router)
+
+from kairos_api.model_impact_api import router as model_impact_router  # noqa: E402
+app.include_router(model_impact_router)
+
+from kairos_api.pacing_alerts_api import router as pacing_alerts_router  # noqa: E402
+app.include_router(pacing_alerts_router)
+
 
 def _warm_owned_frontier() -> None:
     """Warm the balance-curve sweep for the operator's channel, when one is
