@@ -2,8 +2,22 @@
 
 Measured 2026-07-31 against the running app at http://127.0.0.1:8010 (uvicorn
 `kairos_api.server:app`, single worker, authentication disabled, repo working
-tree at `main` 342a2896). These numbers are the floor every future critic must
+tree at `main` 5a80a709). These numbers are the floor every future critic must
 beat.
+
+**Provenance, settled by evidence on 2026-07-31.** This header first named
+342a2896, which is thirteen days and thirty-one commits behind the tree these
+numbers were taken from. Had that been true, Bar 3 would have been broken for
+the whole campaign: every critic in every wave would have been comparing the new
+Meridian against a today that was not today. It was not true. The measurements
+below reference Kai and the assistant dock eighteen times, and neither existed
+under 342a2896, where the assistant was still a separate page under a different
+name; they also reference the audience model, which landed on 2026-07-29. Both
+capabilities post-date 342a2896 (2026-07-18) and pre-date 5a80a709
+(2026-07-31), and the measurement instance on port 8010 was started from the
+5a80a709 tree before any builder ran. The numbers are current and only the hash
+was transcribed wrong. No re-measurement is needed and no critic should spend a
+round on this.
 
 ## How this was measured, and what the numbers mean
 
