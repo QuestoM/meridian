@@ -384,7 +384,30 @@ function provenanceBlock(S){
       "<p style='color:var(--ink-3);font-size:var(--t-micro);margin:var(--s2) 0 0'>"+t(bp.method_he)+"</p>"+
       "<ul class='notelist' style='font-size:var(--t-small)'>"+list(bp.evidence_he)+"</ul>"+
       "<p style='color:var(--ink-3);font-size:var(--t-micro);margin:0'>"+t(bp.floor_note_he)+"</p>"+
-    "</details></div>";
+    "</details>"+cleanBaselineBlock(S)+"</div>";
+}
+
+/* A property the lead relies on to diff a whole wave, and one that expires the
+   moment that wave commits, so it is rendered with its measurement and its expiry. */
+function cleanBaselineBlock(S){
+  var cb=S.campaign.clean_baseline_property;
+  if(!cb) return "";
+  return "<div style='margin-block-start:var(--s4);padding-block-start:var(--s3);border-block-start:1px solid var(--line)'>"+
+    '<p class="phase-k">'+t("בסיס נקי להשוואת הגל")+"</p>"+
+    "<p>"+chip(cb.holds?"passed":"blocked",cb.holds?"מחזיקה":"אינה מחזיקה עוד")+"</p>"+
+    "<p style='margin-block-start:var(--s2);font-size:var(--t-small)'>"+t(cb.statement_he)+"</p>"+
+    "<div class='measures'>"+
+      '<div class="measure"><div class="v">'+num(cb.committed_non_docs_changes_since_reference)+
+        '</div><div class="k">קבצי מוצר ששונו בהיסטוריה</div></div>'+
+      '<div class="measure"><div class="v">'+num(cb.working_tree_non_docs_modified)+
+        '</div><div class="k">שונו בעץ העבודה</div></div>'+
+      '<div class="measure"><div class="v">'+num(cb.working_tree_non_docs_untracked)+
+        '</div><div class="k">חדשים בעץ העבודה</div></div>'+
+    "</div>"+
+    "<p class='who' style='margin-block-start:var(--s3)'>"+t(cb.expires_he)+"</p>"+
+    "<p style='color:var(--ink-3);font-size:var(--t-micro);margin:var(--s1) 0 0'>"+
+      t("נמדד "+fmtDate(cb.measured_at)+". ")+t(cb.how_to_recheck_he)+"</p>"+
+  "</div>";
 }
 
 /* ---------- 1. where the run is ---------- */
