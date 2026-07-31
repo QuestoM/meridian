@@ -241,67 +241,6 @@ def delete_override(override_id: str, request: Request = None) -> dict[str, Any]
     return {"deleted": override_id}
 
 
-def _preview_inputs(
-    channel: Optional[str], day: Optional[str], daily_input: Optional[str],
-) -> tuple[list, dict[str, Any]]:
-    """Build real ProgramSegments plus the exact engine kwargs the commit path uses.
-
-    Mirrors :func:`kairos.export.schedule.build_weekly_schedule` seam for seam:
-    pricing from the SAVED settings, the impact model loaded on the raw assumptions
-    and THEN the measured first-break multiplier folded in (the export's ordering),
-    and the service's wrapped classifier. The returned kwargs feed
-    :func:`kairos.optimize.day_core._optimize_one_day` with the saved guardrails,
-    weights, objective mode, pacing reference and operator channel, so a preview
-    optimized with these inputs is the plan the weekly recompute would write, not a
-    parallel engine. Raises when the data to build real segments is absent.
-    """
-    from kairos.data.loaders import load_daily_input, load_programmes
-    from kairos.data.transform import (
-        build_segments_from_daily_input,
-        build_segments_from_programmes,
-    )
-    from kairos.model.impact import load_impact_model
-    from kairos.optimize.pricing import OptimizerAssumptions
-    from kairos.service import (
-        _apply_first_break_multiplier,
-        _build_classifier,
-        _pacing_knobs_from_settings,
-        guardrails_from_settings,
-        pricing_from_settings,
-    )
-    from kairos_api.core import _load_settings, _model_dump, _reference_today
-
-    saved = _load_settings()
-    settings_map = _model_dump(saved)
-    pricing = pricing_from_settings(settings_map)
-    assumptions = OptimizerAssumptions()
-    impact = load_impact_model(ROOT / "models" / "tv_break_posterior.pkl", assumptions=assumptions)
-    assumptions = _apply_first_break_multiplier(assumptions)
-    classifier = _build_classifier()
-    if daily_input:
-        daily = load_daily_input(daily_input)
-        segments = build_segments_from_daily_input(
-            daily, classifier, pricing, assumptions=assumptions, impact_model=impact,
-        )
-    else:
-        programmes = load_programmes()
-        segments = build_segments_from_programmes(
-            programmes, classifier, pricing,
-            assumptions=assumptions, impact_model=impact, channel=channel, day=day,
-        )
-    engine_kwargs: dict[str, Any] = {
-        "guardrails": guardrails_from_settings(settings_map),
-        "revenue_weight": saved.revenue_weight / 100.0,
-        "risk_lambda": saved.risk_lambda,
-        "objective_mode": getattr(saved, "objective_mode", "blend"),
-        "pacing_today": _reference_today(saved),
-        "pacing_knobs": _pacing_knobs_from_settings(settings_map),
-        "operator_channel": str(saved.operator_channel or ""),
-        "pricing": pricing,
-    }
-    return segments, engine_kwargs
-
-
 def _stored_constraints() -> list:
     """The operator's stored placement constraints, from the same file the weekly
     recompute reads. Empty when the store was never created, so the preview stays
@@ -366,6 +305,7 @@ def override_effect(
     considered before it is saved. Nothing is written.
     """
     from kairos.optimize.day_core import _optimize_one_day
+    from kairos_api.preview_inputs import preview_inputs
 
     candidate: Override | None = None
     if target_id:
@@ -389,7 +329,7 @@ def override_effect(
         )
 
     try:
-        segments, engine_kwargs = _preview_inputs(channel, day, daily_input)
+        segments, engine_kwargs = preview_inputs(channel, day, daily_input)
     except Exception as exc:  # pragma: no cover - data/environment dependent
         raise HTTPException(status_code=503, detail=f"Could not build segments for preview: {exc}")
     if not segments:

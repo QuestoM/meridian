@@ -321,13 +321,13 @@ def _build_segments(channel: Optional[str], day: Optional[str],
     """Back-compat seam: the preview's segments alone.
 
     The segments and the engine kwargs are built together by
-    :func:`kairos_api.overrides._preview_inputs` (the commit path's seams);
+    :func:`kairos_api.preview_inputs.preview_inputs` (the commit path's seams);
     this keeps the historical entry point for callers that only need the
     segments.
     """
-    from kairos_api.overrides import _preview_inputs
+    from kairos_api.preview_inputs import preview_inputs
 
-    return _preview_inputs(channel, day, daily_input)[0]
+    return preview_inputs(channel, day, daily_input)[0]
 
 
 @router.get("/effect")
@@ -349,10 +349,11 @@ def constraint_effect(
     and a count pin sets it.
     """
     from kairos.optimize.day_core import _optimize_one_day
-    from kairos_api.overrides import _preview_inputs, _resolved_store_overrides
+    from kairos_api.overrides import _resolved_store_overrides
+    from kairos_api.preview_inputs import preview_inputs
 
     try:
-        segments, engine_kwargs = _preview_inputs(channel, day, daily_input)
+        segments, engine_kwargs = preview_inputs(channel, day, daily_input)
     except Exception as exc:  # pragma: no cover - data/environment dependent
         raise HTTPException(status_code=503, detail=f"Could not build segments for preview: {exc}")
     if not segments:
