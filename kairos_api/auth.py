@@ -162,6 +162,10 @@ class CreateUserRequest(BaseModel):
     # Company staff manage everything; a channel-affiliated account cannot
     # manage calendar events or the event pricing activation switch.
     affiliation: Literal["company", "channel"] = "company"
+    # What this person's work is. Optional, because an administrator does not
+    # have to know it: an unset job lands on the picker, which is the person's
+    # own one-click answer. Not a permission (see auth_store.JOBS).
+    job: str = store.UNSET_JOB
 
 
 class ResetPasswordRequest(BaseModel):
@@ -170,6 +174,10 @@ class ResetPasswordRequest(BaseModel):
 
 class AffiliationRequest(BaseModel):
     affiliation: Literal["company", "channel"]
+
+
+class JobRequest(BaseModel):
+    job: str
 
 
 def _public_user(record: dict[str, Any]) -> dict[str, Any]:
@@ -181,6 +189,9 @@ def _public_user(record: dict[str, Any]) -> dict[str, Any]:
         "created_at": record.get("created_at", ""),
         "must_change_password": bool(record.get("must_change_password", False)),
         "affiliation": store.normalize_affiliation(record.get("affiliation")),
+        # Every record that predates the field reads unset, so adding it changed
+        # nobody's access and nobody's screen.
+        "job": store.normalize_job(record.get("job")),
     }
 
 
@@ -262,6 +273,25 @@ def me(request: Request) -> dict[str, Any]:
     return {"auth_disabled": False, **_public_user(user)}
 
 
+@router.put("/job")
+def set_own_job(payload: JobRequest, request: Request) -> dict[str, Any]:
+    """Record the job the signed-in person does. Self-service on purpose.
+
+    A job decides where somebody lands and the order of their sidebar, not what
+    they may write, so it needs no administrator and a viewer may set their
+    own. The job picker writes here; the account menu reopens it, so a wrong
+    choice is one click to correct.
+    """
+    session = _require_session(request)
+    try:
+        updated = store.set_job(session["username"], payload.job)
+    except store.UnknownUserError as exc:
+        raise HTTPException(status_code=401, detail="This account no longer exists.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _public_user(updated)
+
+
 @router.post("/change-password")
 def change_password(payload: ChangePasswordRequest, request: Request) -> dict[str, Any]:
     session = _require_session(request)
@@ -298,6 +328,7 @@ def create_user(payload: CreateUserRequest, request: Request) -> dict[str, Any]:
             payload.display_name,
             must_change_password=payload.must_change_password,
             affiliation=payload.affiliation,
+            job=payload.job,
         )
     except store.DuplicateUserError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

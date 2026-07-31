@@ -1,0 +1,14 @@
+{
+  "profile_name": "Israel commercial TV",
+  "source_url": "https://www.rashut2.org.il/",
+  "baseline": {
+    "effective_date": "2026-06-14",
+    "values": {
+      "max_ad_minutes_per_hour": 12.0,
+      "max_breaks_per_hour": 4,
+      "min_break_spacing_minutes": 7,
+      "protected_program_max_ad_minutes_per_hour": 8.0
+    }
+  },
+  "changes": []
+}

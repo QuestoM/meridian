@@ -14,8 +14,6 @@ a multi-worker deployment would need a shared session store instead.
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import logging
 import os
@@ -26,6 +24,20 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+# Re-exported so every caller keeps reaching the password helpers through this
+# module, exactly as before the split (auth.py calls store.verify_password and
+# store.burn_password_check).
+from kairos_api.auth_store_password import (  # noqa: F401
+    SCRYPT_DKLEN,
+    SCRYPT_MAXMEM,
+    SCRYPT_N,
+    SCRYPT_P,
+    SCRYPT_R,
+    burn_password_check,
+    hash_password,
+    verify_password,
+)
 
 logger = logging.getLogger("kairos.auth")
 
@@ -39,13 +51,31 @@ ROLES = ("admin", "operator", "viewer")
 # account that predates the field keeps its full access.
 AFFILIATIONS = ("company", "channel")
 
-COOKIE_NAME = "kairos_session"
+# What this person's work is, which decides the view they land on and the order
+# of their sidebar. It is not a permission: role and affiliation decide those,
+# so a misconfigured job costs somebody a good first screen and never their
+# access. Thirteen door-bearing roles plus the unset default that every
+# existing record reads as, which is what makes the field safe to add. The
+# same thirteen ids and the door each one opens live in
+# tv-break-dashboard/src/session.js, and a test pins the two lists together.
+JOBS = (
+    "general_manager",
+    "planner",
+    "scheduler",
+    "traffic_operator",
+    "programming_representative",
+    "compliance_owner",
+    "yield_owner",
+    "account_manager",
+    "campaign_manager",
+    "analyst",
+    "data_steward",
+    "account_administrator",
+    "model_steward",
+)
+UNSET_JOB = "unset"
 
-SCRYPT_N = 2**14
-SCRYPT_R = 8
-SCRYPT_P = 1
-SCRYPT_DKLEN = 32
-SCRYPT_MAXMEM = 64 * 1024 * 1024
+COOKIE_NAME = "kairos_session"
 
 SESSION_TTL_SECONDS = 12 * 3600
 RATE_LIMIT_MAX_FAILURES = 5
@@ -63,7 +93,6 @@ USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{2,31}$")
 _LOCK = threading.RLock()
 _SESSIONS: dict[str, dict[str, Any]] = {}
 _FAILED_LOGINS: dict[str, list[float]] = {}
-_DUMMY_RECORD: dict[str, Any] | None = None
 
 
 class DuplicateUserError(Exception):
@@ -123,48 +152,6 @@ def save_users(users: list[dict[str, Any]]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Password hashing (stdlib scrypt, constant-time compare)
-# ---------------------------------------------------------------------------
-
-def hash_password(password: str) -> dict[str, Any]:
-    salt = secrets.token_bytes(32)
-    digest = hashlib.scrypt(
-        password.encode("utf-8"), salt=salt,
-        n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P, maxmem=SCRYPT_MAXMEM, dklen=SCRYPT_DKLEN,
-    )
-    return {
-        "salt_hex": salt.hex(),
-        "hash_hex": digest.hex(),
-        "n": SCRYPT_N,
-        "r": SCRYPT_R,
-        "p": SCRYPT_P,
-    }
-
-
-def verify_password(password: str, record: dict[str, Any]) -> bool:
-    try:
-        salt = bytes.fromhex(str(record["salt_hex"]))
-        expected = bytes.fromhex(str(record["hash_hex"]))
-        digest = hashlib.scrypt(
-            password.encode("utf-8"), salt=salt,
-            n=int(record["n"]), r=int(record["r"]), p=int(record["p"]),
-            maxmem=SCRYPT_MAXMEM, dklen=len(expected),
-        )
-    except (KeyError, TypeError, ValueError):
-        return False
-    return hmac.compare_digest(digest, expected)
-
-
-def burn_password_check(password: str) -> None:
-    """Verify against a throwaway record so unknown usernames cost the same
-    time as a real password check (no account enumeration via timing)."""
-    global _DUMMY_RECORD
-    if _DUMMY_RECORD is None:
-        _DUMMY_RECORD = hash_password(secrets.token_urlsafe(16))
-    verify_password(password, _DUMMY_RECORD)
-
-
-# ---------------------------------------------------------------------------
 # User records
 # ---------------------------------------------------------------------------
 
@@ -176,6 +163,14 @@ def normalize_affiliation(value: Any) -> str:
     """Missing, empty or unrecognized values read as company (the permissive
     legacy default), so only an explicitly stored channel value restricts."""
     return "channel" if str(value or "").strip().lower() == "channel" else "company"
+
+
+def normalize_job(value: Any) -> str:
+    """Missing, empty or unrecognized values read as unset, which is the safe
+    default: an unset job lands on Today with the picker, never on somebody
+    else's first screen."""
+    text = str(value or "").strip().lower()
+    return text if text in JOBS else UNSET_JOB
 
 
 def get_user(username: str) -> dict[str, Any] | None:
@@ -200,6 +195,7 @@ def add_user(
     display_name: str = "",
     must_change_password: bool = False,
     affiliation: str = "company",
+    job: str = UNSET_JOB,
 ) -> dict[str, Any]:
     username = normalize_username(username)
     if not USERNAME_RE.match(username):
@@ -220,6 +216,7 @@ def add_user(
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "must_change_password": bool(must_change_password),
         "affiliation": affiliation,
+        "job": normalize_job(job),
     }
     with _LOCK:
         users = load_users()
@@ -255,6 +252,22 @@ def set_affiliation(username: str, affiliation: str) -> dict[str, Any]:
         for user in users:
             if user.get("username") == username:
                 user["affiliation"] = affiliation
+                save_users(users)
+                return user
+    raise UnknownUserError(f"No account named {username}.")
+
+
+def set_job(username: str, job: str) -> dict[str, Any]:
+    """Record which job this account does. Never touches role or affiliation."""
+    normalized = normalize_job(job)
+    if normalized == UNSET_JOB and str(job or "").strip().lower() != UNSET_JOB:
+        raise ValueError(f"The job must be one of: {', '.join(JOBS)}, or {UNSET_JOB}.")
+    username = normalize_username(username)
+    with _LOCK:
+        users = load_users()
+        for user in users:
+            if user.get("username") == username:
+                user["job"] = normalized
                 save_users(users)
                 return user
     raise UnknownUserError(f"No account named {username}.")
