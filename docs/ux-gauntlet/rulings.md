@@ -8,6 +8,9 @@ production change said to force it, the ruling, and the reasoning. C2 has write
 authority over a test file only in the way its own ruling states, and deleting a
 test is never a resolution.
 
+The Bar 3 three-way on each wave-zero piece is the companion document,
+`three-way.md`. Rulings live here, regression verdicts live there.
+
 Method note. A ruling is only worth as much as the measurement under it, so
 every request below was re-measured from the tree rather than inherited from the
 requesting piece. Where a request rests on a premise about what a test does, the
