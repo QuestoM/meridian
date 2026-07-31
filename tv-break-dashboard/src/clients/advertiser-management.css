@@ -1,0 +1,346 @@
+/* Advertiser MANAGEMENT ZONE styles. Co-located with the new components so the
+   parallel agent's styles.css is never touched. Colour tokens (--teal, --amber,
+   --red, --blue, --line, etc.) are inherited from styles.css :root. */
+
+/* ----- Zone summary strip ----- */
+.amz-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.amz-summary-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.amz-summary-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  line-height: 1.1;
+}
+.amz-summary-card.warn .amz-summary-value {
+  color: var(--red);
+}
+.amz-summary-label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* ----- Honest status banner ----- */
+.amz-status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--amber-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: 16px;
+}
+.amz-status-banner svg {
+  color: var(--amber);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.amz-status-banner p {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* ----- Toolbar (search / filter / sort) ----- */
+.amz-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.amz-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 7px 11px;
+  background: var(--surface);
+  flex: 1 1 220px;
+}
+.amz-search:focus-within {
+  border-color: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.amz-search svg {
+  color: var(--subtle);
+  flex-shrink: 0;
+}
+.amz-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  width: 100%;
+  color: var(--ink);
+}
+.amz-filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.amz-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.amz-sort label {
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+.amz-sort select {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ----- Card grid ----- */
+.amz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+.amz-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  cursor: pointer;
+  text-align: start;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.amz-card:hover,
+.amz-card:focus-visible {
+  border-color: var(--teal);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+.amz-card.has-conflict {
+  background: var(--red-soft);
+}
+.amz-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.amz-card-id-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.amz-card-id {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+.amz-card-notes {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.amz-card-caret {
+  color: var(--subtle);
+  flex-shrink: 0;
+}
+
+/* ----- Prominent rule count ----- */
+.amz-card-rulecount {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.amz-rulecount-icon {
+  color: var(--teal);
+  align-self: center;
+}
+.amz-rulecount-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  line-height: 1;
+}
+.amz-rulecount-label {
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+.amz-conflict-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  margin-inline-start: auto;
+}
+
+/* ----- Effect chips ----- */
+.amz-effect-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.amz-effect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border: 1px solid transparent;
+}
+.amz-effect-chip .amz-effect-count {
+  font-weight: var(--weight-bold);
+}
+.amz-effect-none,
+.amz-effect-pending {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+  font-style: italic;
+}
+.amz-effect-chip.teal {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+  border-color: var(--teal-soft);
+}
+.amz-effect-chip.amber {
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border-color: var(--amber-soft);
+}
+.amz-effect-chip.red {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: #f0c9c9;
+}
+.amz-effect-chip.blue {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-color: #c6d6e8;
+}
+.amz-effect-chip.muted {
+  color: var(--muted);
+  background: #eef1f4;
+  border-color: var(--line);
+}
+
+/* ----- Card stats grid ----- */
+.amz-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+/* The grid stretches every block to the row's height, and the value below carries
+   margin-top:auto, so the value is bottom-anchored to a shared baseline. A label
+   that wraps to two lines therefore cannot push its value below its siblings.
+   Keep the full-height block + margin-top:auto value pairing if you restyle this. */
+.amz-stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  height: 100%;
+}
+.amz-stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.amz-stat-info {
+  display: inline-flex;
+  align-items: center;
+  color: var(--subtle);
+  cursor: help;
+}
+.amz-stat-info:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  border-radius: var(--radius-xs);
+}
+.amz-stat-figure {
+  /* margin-top:auto pins the value to the block's bottom edge so a one-line and a
+     two-line label leave the value at the same offset. Do not remove. */
+  margin-top: auto;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.amz-stat-figure.teal {
+  color: var(--teal);
+}
+.amz-stat-figure.amber {
+  color: var(--amber);
+}
+.amz-stat-figure.empty {
+  color: var(--subtle);
+  font-weight: var(--weight-medium);
+}
+.amz-stat-delta {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+/* ----- Empty states ----- */
+.amz-empty {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.amz-result-note {
+  margin-top: 12px;
+  font-size: var(--text-base);
+  color: var(--subtle);
+}
+
+/* Detail-drawer styles live in advertiser-drawer.css (co-located with the
+   AdvertiserDetailDrawer component) to keep each stylesheet focused. */
+
+@media (max-width: 540px) {
+  .amz-card-stats {
+    grid-template-columns: 1fr;
+  }
+}

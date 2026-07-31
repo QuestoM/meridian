@@ -1,0 +1,214 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { postJson, requestJson } from './assistant-stream';
+
+// State hooks for the assistant console, split out of AssistantPanel.jsx so
+// the panel stays a readable render component. useAssistantBatches owns the
+// proposal-batch lifecycle (rail refresh, apply, reject); useAssistantThread
+// owns the saved-conversation thread (load, append, legacy clear). Behavior is
+// byte-identical to the logic that previously lived inline in the panel.
+
+export function asArray(value, ...keys) {
+  if (Array.isArray(value)) return value;
+  for (const key of keys) {
+    if (value && Array.isArray(value[key])) return value[key];
+  }
+  return [];
+}
+
+// Normalizes a batch from either the ask response or GET /proposals into one
+// shape. Items without an id stay visible but cannot be selected or applied.
+export function normalizeBatch(raw) {
+  if (!raw || typeof raw !== 'object' || !raw.batch_id) return null;
+  const items = asArray(raw.items).map((item, index) => ({
+    id: item && item.id != null ? String(item.id) : null,
+    key: item && item.id != null ? String(item.id) : `row-${index}`,
+    kind: item && item.kind ? String(item.kind) : '',
+    summary: item && item.summary ? String(item.summary) : '',
+    payload: item && item.payload && typeof item.payload === 'object' ? item.payload : null,
+    reason: item && item.reason ? String(item.reason) : '',
+    status: item && item.status ? String(item.status) : 'pending',
+    error: item && item.error ? String(item.error) : '',
+    effect: item && item.effect && typeof item.effect === 'object' ? item.effect : null,
+    diff: item && Array.isArray(item.diff) ? item.diff : null,
+  }));
+  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
+}
+
+export function useAssistantBatches(notify) {
+  const [batchMap, setBatchMap] = useState({});
+  const [batchOrder, setBatchOrder] = useState([]);
+  const [proposalsState, setProposalsState] = useState('loading');
+  const [proposalsError, setProposalsError] = useState('');
+  const [applyBusyId, setApplyBusyId] = useState(null);
+  const [applyResults, setApplyResults] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
+
+  const mergeBatches = useCallback((incoming, fromServer) => {
+    const clean = incoming.filter(Boolean);
+    if (!clean.length) return;
+    setBatchMap((prev) => {
+      const next = { ...prev };
+      for (const batch of clean) {
+        const existing = prev[batch.batch_id];
+        if (!existing) {
+          next[batch.batch_id] = batch;
+        } else {
+          const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
+          const effectByKey = new Map(existing.items.map((item) => [item.key, item.effect]));
+          const diffByKey = new Map(existing.items.map((item) => [item.key, item.diff]));
+          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null, diff: item.diff || diffByKey.get(item.key) || null })) };
+        }
+      }
+      return next;
+    });
+    setBatchOrder((prev) => {
+      const ids = clean.map((batch) => batch.batch_id);
+      if (fromServer) return [...ids, ...prev.filter((id) => !ids.includes(id))];
+      return [...ids.filter((id) => !prev.includes(id)), ...prev];
+    });
+  }, []);
+
+  const refreshRail = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const value = await requestJson('/api/assistant/proposals');
+      mergeBatches(asArray(value, 'batches', 'proposals', 'items').map(normalizeBatch), true);
+      setProposalsState('ready');
+      setProposalsError('');
+    } catch (err) {
+      setProposalsState('error');
+      setProposalsError(err && err.message ? err.message : 'unknown');
+    }
+    setRefreshing(false);
+  }, [mergeBatches]);
+
+  const applyItems = useCallback(async (batchId, itemIds) => {
+    if (!itemIds.length || applyBusyId) return;
+    setApplyBusyId(batchId);
+    try {
+      const body = await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/apply`, { item_ids: itemIds });
+      const results = asArray(body, 'results', 'items');
+      const restoreId = body.restore_id || null;
+      setApplyResults((prev) => ({ ...prev, [batchId]: { results, restoreId } }));
+      setBatchMap((prev) => {
+        const batch = prev[batchId];
+        if (!batch) return prev;
+        const byId = new Map(results.filter((row) => row && row.id != null).map((row) => [String(row.id), row]));
+        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
+      });
+      const applied = results.filter((row) => row && row.status === 'applied').length;
+      const failed = results.filter((row) => row && row.status === 'failed').length;
+      if (failed) notify(`Applied ${applied} of ${itemIds.length} actions, ${failed} failed. Details are on the action card.`, `הוחלו ${applied} מתוך ${itemIds.length} פעולות, ${failed === 1 ? 'אחת נכשלה' : `${failed} נכשלו`}. הפרטים מופיעים בכרטיס הפעולות.`);
+      else if (applied === 1) notify('Applied one action and created a restore point.', 'הוחלה פעולה אחת ונוצרה נקודת שחזור.');
+      else notify(`Applied ${applied} actions and created a restore point.`, `הוחלו ${applied} פעולות ונוצרה נקודת שחזור.`);
+      refreshRail();
+    } catch (error) {
+      notify(`Applying the actions failed (${error.message}).`, `החלת הפעולות נכשלה (${error.message}).`);
+    } finally {
+      setApplyBusyId(null);
+    }
+  }, [applyBusyId, notify, refreshRail]);
+
+  const rejectItems = useCallback(async (batchId, itemIds) => {
+    if (!itemIds.length || applyBusyId) return;
+    setApplyBusyId(batchId);
+    try {
+      await postJson(`/api/assistant/proposals/${encodeURIComponent(batchId)}/reject`, { item_ids: itemIds });
+      setBatchMap((prev) => {
+        const batch = prev[batchId];
+        if (!batch) return prev;
+        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && itemIds.includes(item.id) ? { ...item, status: 'rejected' } : item)) } };
+      });
+      notify('The selected actions were rejected.', 'הפעולות שנבחרו נדחו.');
+      refreshRail();
+    } catch (error) {
+      notify(`Rejecting the actions failed (${error.message}).`, `דחיית הפעולות נכשלה (${error.message}).`);
+    } finally {
+      setApplyBusyId(null);
+    }
+  }, [applyBusyId, notify, refreshRail]);
+
+  const pendingCount = useMemo(() => Object.values(batchMap).reduce((sum, batch) => sum + batch.items.filter((item) => item.status === 'pending').length, 0), [batchMap]);
+  const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id])), [batchOrder, batchMap, applyResults]);
+
+  return { batchMap, mergeBatches, refreshRail, refreshing, proposalsState, proposalsError, applyBusyId, applyResults, applyItems, rejectItems, pendingCount, visibleBatches };
+}
+
+export function useAssistantThread(conv) {
+  const [thread, setThread] = useState([]);
+  const [threadLoading, setThreadLoading] = useState(true);
+  const [actingUser, setActingUser] = useState('');
+  const idRef = useRef(0);
+  // Conversation ids the server minted during an ask: the thread on screen is
+  // already current, so the load effect skips exactly one refetch for them.
+  const adoptedRef = useRef(null);
+
+  // Load the saved conversation so returning to the assistant shows the past
+  // exchanges instead of an empty chat. Each stored entry (question, answer,
+  // time, batch id) becomes a thread row; keeping the stored batch_id is what
+  // lets a proposal card reattach to its exchange after a reload. With no
+  // active id the server returns the newest conversation and its id is
+  // adopted quietly; picking a conversation in the rail reloads here.
+  useEffect(() => {
+    if (conv.activeId && adoptedRef.current === conv.activeId) {
+      adoptedRef.current = null;
+      return undefined;
+    }
+    let active = true;
+    setThreadLoading(true);
+    const path = conv.activeId ? `/api/assistant/thread?conversation_id=${encodeURIComponent(conv.activeId)}` : '/api/assistant/thread';
+    requestJson(path)
+      .then((body) => {
+        if (!active) return;
+        const entries = Array.isArray(body.entries) ? body.entries : [];
+        const rows = entries.map((entry, index) => ({
+          id: `saved-${index}`,
+          at: entry && entry.at ? entry.at : null,
+          question: entry && entry.question ? String(entry.question) : '',
+          answer: entry && entry.answer ? String(entry.answer) : null,
+          error: null,
+          disclosure: '',
+          sources: [],
+          toolTrace: [],
+          truncated: false,
+          batchId: entry && entry.batch_id ? String(entry.batch_id) : null,
+        }));
+        idRef.current = rows.length;
+        setThread(rows);
+        if (typeof body.user === 'string' && body.user) setActingUser(body.user);
+        if (body.conversation_id && String(body.conversation_id) !== conv.activeId) {
+          adoptedRef.current = String(body.conversation_id);
+          conv.adopt(String(body.conversation_id));
+        }
+      })
+      .catch(() => {
+        // Honest empty chat if the thread cannot be read; the requested
+        // conversation may have been deleted, so resync the list.
+        if (!active) return;
+        setThread([]);
+        if (conv.activeId) conv.refreshList();
+      })
+      .finally(() => { if (active) setThreadLoading(false); });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conv.activeId, conv.loadNonce]);
+
+  // The on-screen thread keeps the newest 20 exchanges, matching the previous
+  // inline HISTORY_CAP; the server stores the full conversation regardless.
+  const appendEntry = useCallback((entry) => {
+    idRef.current += 1;
+    const row = { id: `ask-${idRef.current}`, at: new Date().toISOString(), answer: null, error: null, disclosure: '', sources: [], toolTrace: [], truncated: false, batchId: null, ...entry };
+    setThread((prev) => [...prev, row].slice(-20));
+  }, []);
+
+  // Local wipe for the legacy whole-thread delete path (a backend without
+  // conversations); the conversation-aware clear reloads through the hook.
+  const resetLocal = useCallback(() => {
+    setThread([]);
+    idRef.current = 0;
+  }, []);
+
+  const markAdopted = useCallback((id) => { adoptedRef.current = id; }, []);
+
+  return { thread, threadLoading, actingUser, appendEntry, resetLocal, markAdopted };
+}

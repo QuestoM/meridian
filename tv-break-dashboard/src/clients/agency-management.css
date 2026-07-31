@@ -1,0 +1,253 @@
+/* Agencies page styles. Co-located with AgencyManager/AgencyDetailDrawer so
+   styles.css is never touched. Structural amz-* classes (grid, toolbar, empty
+   states, drawer shell) are reused from the advertiser zone stylesheets, which
+   are always in the same bundle; colour tokens come from styles.css :root. */
+
+/* ----- Card additions ----- */
+.agz-card {
+  gap: 10px;
+}
+.agz-agency-id {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+.agz-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.agz-card-contact {
+  font-size: var(--text-base);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----- Status / type chips ----- */
+.agz-status-chip,
+.agz-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border: 1px solid transparent;
+}
+.agz-status-chip.teal {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+  border-color: var(--teal-soft);
+}
+.agz-status-chip.amber {
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border-color: var(--amber-soft);
+}
+.agz-status-chip.blue {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-color: #c6d6e8;
+}
+.agz-status-chip.muted {
+  color: var(--muted);
+  background: #eef1f4;
+  border-color: var(--line);
+}
+.agz-type-chip {
+  color: var(--muted);
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+
+/* ----- Synthetic seed marker ----- */
+.agz-synthetic-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border: 1px dashed var(--amber);
+  cursor: help;
+}
+.agz-synthetic-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* ----- Quiet boundary note ----- */
+.agz-boundary-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-inline-start: 3px solid var(--line-strong);
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.agz-boundary-note svg {
+  color: var(--subtle);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.agz-boundary-note p {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ----- Daily-ledger totals strip ----- */
+.agz-totals-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.agz-totals-strip.empty {
+  padding: 10px 16px;
+}
+.agz-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+.agz-total-label {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+.agz-total-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.agz-total-net .agz-total-value {
+  color: var(--teal-ink);
+}
+.agz-totals-basis {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  min-width: 220px;
+}
+.agz-totals-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.agz-totals-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* ----- Drawer: header chips ----- */
+.agz-head-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ----- Drawer: field grids and contact blocks ----- */
+.agz-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+  row-gap: 14px;
+  align-items: start;
+}
+.agz-field-full {
+  grid-column: 1 / -1;
+}
+.agz-contact-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px 14px;
+  margin: 0 0 12px;
+}
+.agz-contact-block legend {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+/* ----- Drawer: linked advertisers ----- */
+.agz-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agz-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  padding: 6px 10px;
+}
+.agz-link-row svg {
+  color: var(--subtle);
+  flex-shrink: 0;
+}
+.agz-link-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin-inline-end: auto;
+}
+
+/* ----- Small notes ----- */
+.agz-subnote {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+.agz-inline-warn {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+.agz-dialog-text {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 42ch;
+}
+
+@media (max-width: 540px) {
+  .agz-field-grid {
+    grid-template-columns: 1fr;
+  }
+}

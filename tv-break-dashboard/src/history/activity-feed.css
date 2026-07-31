@@ -1,0 +1,117 @@
+/* Persistent activity feed panel. Slides from the inline-end edge under the
+   header bell; readable, dismissible, restorable. */
+
+.activity-feed {
+  position: fixed;
+  top: 0;
+  inset-inline-end: 0;
+  height: 100vh;
+  width: min(380px, 92vw);
+  background: var(--surface);
+  border-inline-start: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  z-index: var(--z-feed);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.af-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.af-kicker {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.af-head h3 { margin: 4px 0 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--ink); }
+.af-close { border: none; background: transparent; cursor: pointer; color: var(--muted); padding: 4px; border-radius: var(--radius-md); }
+.af-close:hover { background: var(--surface-muted); }
+
+.af-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.af-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 5px 9px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+.af-action:disabled { opacity: 0.45; cursor: default; }
+.af-action:not(:disabled):hover { background: var(--surface-muted); }
+
+.af-body { padding: 8px 14px 24px; overflow-y: auto; flex: 1; }
+.af-empty { padding: 24px 6px; font-size: var(--text-base); color: var(--muted); line-height: 1.45; }
+
+.af-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.af-item.dismissed { opacity: 0.6; }
+.af-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.af-item-time { font-size: var(--text-xs); color: var(--muted); }
+.af-item-text { font-size: var(--text-base); line-height: 1.4; color: var(--ink); }
+.af-item-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.af-item-btn:hover { background: var(--surface-muted); color: var(--ink); }
+.af-item-btn.restore { color: var(--teal); }
+
+.af-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 8px 6px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.af-restore-all {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--teal);
+  font-size: var(--text-xs);
+}
+
+/* Unread count badge on the header bell. The bell glyph is only 15px, so the
+   badge must sit clear of it on the corner (not on the strokes) with a surface
+   ring separating the two; the icon button's own padding gives it the room. */
+.bell-wrap { position: relative; display: inline-flex; }
+.bell-badge {
+  position: absolute;
+  top: -8px;
+  inset-inline-end: -9px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: var(--radius-pill);
+  background: var(--teal);
+  color: var(--surface);
+  font-size: var(--text-2xs);
+  line-height: 14px;
+  text-align: center;
+  font-weight: var(--weight-bold);
+  box-shadow: 0 0 0 2px var(--surface);
+}

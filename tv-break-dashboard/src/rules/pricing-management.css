@@ -1,0 +1,265 @@
+/* Pricing hierarchy workspace: rate-card layer stack + price-any-slot tester. */
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-base-card,
+.pricing-layer-card,
+.pricing-tester {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--space-5);
+}
+
+.pricing-base-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pricing-base-value input {
+  width: 110px;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  text-align: end;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+}
+
+.pricing-base-note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.pricing-layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.pricing-layer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pricing-layer-title {
+  font-weight: var(--weight-medium);
+}
+
+.pricing-layer-desc {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.pricing-chip {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.pricing-chip.live {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.pricing-chip.off {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.pricing-chip.empty {
+  background: var(--surface-muted);
+  color: var(--subtle);
+}
+
+.pricing-multipliers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pricing-mult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 5px 8px;
+  font-size: var(--text-base);
+}
+
+.pricing-mult span {
+  color: var(--muted);
+}
+
+/* Label may shrink and ellipsis (full text on hover via title) so even the longest
+   key never pushes the numeric input out of its field box. */
+.pricing-mult-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Labels hold either Hebrew or Latin names (News, PrimeShow1). In an RTL panel a
+     Latin label would otherwise clip its meaningful start ("...imeShow1"); plaintext
+     lays each label out in its own natural direction so any clip lands at the end. */
+  unicode-bidi: plaintext;
+}
+
+.pricing-mult input {
+  flex: 0 0 auto;
+  width: 64px;
+  text-align: end;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+
+.pricing-mult.edited input {
+  border-color: var(--teal);
+}
+
+.pricing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.pricing-empty {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+  margin-top: 8px;
+}
+
+.pricing-tester {
+  position: sticky;
+  top: var(--space-3);
+}
+
+.pricing-tester h3 {
+  margin: 0 0 4px;
+  font-size: var(--text-lg);
+}
+
+.pricing-tester-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.pricing-tester-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.pricing-tester-form input,
+.pricing-tester-form select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 5px 7px;
+}
+
+.pricing-breakdown {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.pricing-break-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--text-base);
+  padding: 3px 0;
+}
+
+.pricing-break-row .src {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.pricing-break-row.off {
+  opacity: 0.55;
+}
+
+.pricing-break-row.off .mult {
+  text-decoration: line-through;
+}
+
+.pricing-break-row.total {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+}
+
+.pricing-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: var(--text-base);
+  margin-bottom: 16px;
+  background: var(--surface-muted);
+}
+
+/* Inline confirm for activating the events layer: activation moves forecast
+   revenue on event days, so it is an explicit two-step decision. */
+.pricing-events-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.pricing-layer-warning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+}

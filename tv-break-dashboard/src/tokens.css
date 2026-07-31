@@ -1,0 +1,58 @@
+/* Design tokens: the scale, colour and typography variables every Meridian
+   surface reads. This file freezes at wave-zero close and is the only place a
+   token may be defined. A piece that needs a token that does not exist raises
+   it rather than adding one here or defining a local variable. */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-muted: #fbfcfd;
+  --ink: #111827;
+  --muted: #5b6573;
+  --subtle: #6b7480;
+  --line: #dde2e8;
+  --line-strong: #cbd3dc;
+  --teal: #0f8b7e;
+  --teal-soft: #e8f4f2;
+  --teal-ink: #0c6b5f;
+  --blue: #315d8c;
+  --blue-soft: #e9f0f8;
+  --amber: #b86e00;
+  --amber-soft: #fff5e5;
+  --amber-ink: #8a5200;
+  --red: #c24141;
+  --red-soft: #f8e8e8;
+  --teal-deep: #0f3d36;
+  --focus-ring: var(--teal);
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --z-drawer: 1300;
+  --z-feed: 1350;
+  --z-toast: 1400;
+  --primary: #0d1b2a;
+  --primary-hover: #18304a;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --weight-regular: 400;
+  --weight-soft: 500;
+  --weight-medium: 600;
+  --weight-semibold: 680;
+  --weight-bold: 720;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 21px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 14px;
+  --space-5: 18px;
+  --space-6: 24px;
+}

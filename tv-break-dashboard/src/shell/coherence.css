@@ -1,0 +1,29 @@
+/* Coherence pass additions. Kept separate from styles.css (owned elsewhere).
+   Only new classes live here; nothing overrides existing rules. */
+
+.rebuild-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: var(--text-base);
+  line-height: 1.4;
+}
+
+.optimizer-objective { margin-top: 16px; }
+.optimizer-objective-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.optimizer-objective-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+}
