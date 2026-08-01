@@ -45,8 +45,18 @@ def get_settings() -> dict[str, Any]:
 
 @router.put("/api/settings")
 def update_settings(settings: KairosSettings, request: Request = None) -> dict[str, Any]:
+    # The operator channel is the scoping declaration the whole product hangs
+    # on, and this route takes the settings model whole, so before P5 measured
+    # it an operator of either affiliation could move it here after being
+    # refused at the declaration route. That does not leak a rival's data, it
+    # inverts the boundary, which is worse. The rule lives with the wall it
+    # uses and is called in one line, so the two enforcement points cannot
+    # drift apart. A write that does not move the channel, which is what both
+    # shipped clients send, returns immediately.
+    from kairos_api.compliance_api_licence import guard_channel_move
     from kairos_api import version_store
 
+    guard_channel_move(settings, request)
     version_store.snapshot_manual_edit(request, "settings")
     return _model_dump(_save_settings(settings))
 
