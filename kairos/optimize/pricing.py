@@ -34,13 +34,17 @@ from kairos.optimize.event_pricing import (  # noqa: F401
     load_event_day_multipliers,
     load_price_events,
 )
+from kairos.optimize.positions import (
+    canonical_token,
+    parse_preferred,
+    premium_token,
+    resolve_preferred,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_WEIGHTS_PATH = ROOT / "config" / "optimization_weights.yaml"
 
 _OTHER = "Other"
-_MIDDLE_KEY = "default_middle"
-_LAST_KEY = "last"
 
 
 def pricing_from_settings(
@@ -209,6 +213,14 @@ class PricingModel:
     # revenue.
     event_day_multipliers: dict[str, float] = field(default_factory=dict)
     enable_events: bool = False
+    # Which of the six positions count as PREFERRED. The trade sets this per
+    # client and per agreement, so it is configuration and never a constant, and
+    # it is tri-state: None means unset, and a preferred-position percentage may
+    # not be computed at all until somebody configures one (an unlabelled or
+    # guessed percentage is worse than no percentage, docs/media-domain-from-the-
+    # trade.md). Both ship unset, so nothing computes one today.
+    preferred_positions_default: frozenset[str] | None = None
+    preferred_positions_by_advertiser: dict[str, frozenset[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.base_price_per_second_per_tvr_point < 0:
@@ -223,15 +235,25 @@ class PricingModel:
         premiums = (weights or {}).get("premiums") or {}
         day_raw = premiums.get("day_of_week") or {}
         activation = (weights or {}).get("pricing_activation") or {}
+        preferred = (weights or {}).get("preferred_positions") or {}
+        by_advertiser = {}
+        for key, raw in (preferred.get("per_advertiser") or {}).items():
+            parsed = parse_preferred(raw)
+            if parsed is not None:
+                by_advertiser[str(key)] = parsed
         return cls(
             base_price_per_second_per_tvr_point=float(
                 (weights or {}).get("base_price_per_second_per_tvr_point", 0.0)
             ),
             program_type_premiums={str(k): float(v) for k, v in (premiums.get("program_type") or {}).items()},
             ad_type_premiums={str(k): float(v) for k, v in (premiums.get("ad_type") or {}).items()},
+            # Canonical string tokens, so "2", 2, "last" and "L" are one key and
+            # a dashboard edit (JSON object keys are always strings) can never
+            # silently no-op against a differently typed rate-card key.
             position_premiums={
-                (int(k) if str(k).lstrip("-").isdigit() else str(k)): float(v)
+                canonical_token(k): float(v)
                 for k, v in (premiums.get("position_in_break") or {}).items()
+                if canonical_token(k) is not None
             },
             day_of_week_premiums={int(k): float(v) for k, v in day_raw.items()},
             show_premiums={str(k): float(v) for k, v in (premiums.get("show") or {}).items()},
@@ -240,6 +262,8 @@ class PricingModel:
             enable_show=bool(activation.get("show", False)),
             enable_qh_settlement=bool(activation.get("qh_settlement", False)),
             enable_events=bool(activation.get("events", False)),
+            preferred_positions_default=parse_preferred(preferred.get("channel_default")),
+            preferred_positions_by_advertiser=by_advertiser,
         )
 
     @classmethod
@@ -310,20 +334,42 @@ class PricingModel:
             return 1.0
         return self.event_day_multipliers.get(str(day)[:10], 1.0)
 
+    def position_key(self, position: int, break_size: int | None) -> str:
+        """Which rate-card key prices this spot: an ordinal, ``L``, or the middle.
+
+        The trade's six positions are 1 to 5 and L, where L is LAST and is its
+        own position rather than the fifth ordinal (docs/media-domain-from-the-
+        trade.md). A spot can hold two of them at once, so pricing has to choose:
+        an ordinal the operator has priced explicitly wins, otherwise the tail of
+        the break is L, otherwise the middle default. Ordinals 4 and 5 ship
+        unpriced, which is a no-op, so every spot prices exactly as it did before
+        they became addressable.
+        """
+        return premium_token(position, break_size, self.position_premiums.keys())
+
     def position_premium(self, position: int, break_size: int) -> float:
         """Premium for a 1-based ad position within a break of ``break_size`` ads.
 
-        Positions 1, 2 and 3 use their explicit premiums. A last position beyond
-        the third uses the ``last`` premium. Anything else uses ``default_middle``.
+        The multiplier behind :meth:`position_key`. An unpriced key is 1.0, so an
+        ordinal nobody has set never changes a price.
         """
-        if position < 1:
-            raise ValueError("position must be >= 1")
-        table = self.position_premiums
-        if position in table:
-            return float(table[position])
-        if position == break_size and position > 3:
-            return float(table.get(_LAST_KEY, 1.0))
-        return float(table.get(_MIDDLE_KEY, 1.0))
+        return float(self.position_premiums.get(self.position_key(position, break_size), 1.0))
+
+    def preferred_positions(
+        self, advertiser: str | None = None, agreement: Any = None
+    ) -> tuple[frozenset[str] | None, str]:
+        """The preferred-position set that applies, and the scope it came from.
+
+        Most specific wins: the agreement, then the client, then the channel
+        default. ``(None, "unset")`` when nobody has configured one, which is the
+        shipped state and which forbids computing a percentage at all.
+        """
+        return resolve_preferred(
+            agreement=agreement,
+            per_advertiser=self.preferred_positions_by_advertiser,
+            advertiser=advertiser,
+            channel_default=self.preferred_positions_default,
+        )
 
     def segment_premium(self, *, pricing_class: str, weekday_iso: int) -> float:
         """The premium that applies to a whole break segment: program class x day.

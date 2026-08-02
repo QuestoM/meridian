@@ -1,0 +1,24 @@
+{
+  "task": "TRADE-GAP-SURVEY",
+  "started": "2026-08-03",
+  "status": "complete",
+  "output": "docs/trade-gap-analysis.md",
+  "files_read": [
+    "docs/media-domain-from-the-trade.md",
+    "config/optimization_weights.yaml",
+    "kairos/optimize/pricing.py",
+    "kairos_api/pricing_api.py",
+    "kairos_api/campaigns_assets.py",
+    "kairos_api/campaigns_api_store.py",
+    "kairos_api/campaigns_commitment.py",
+    "kairos_api/pacing_alerts_api.py",
+    "kairos_api/advertiser_conditions.py",
+    "kairos_api/break_store_pins.py",
+    "kairos/optimize/event_pricing.py",
+    "kairos/optimize/pacing.py",
+    "kairos/optimize/advertiser_rules.py",
+    "kairos/model/spec.py",
+    "data/campaign_assets.csv",
+    "data/campaigns.csv"
+  ]
+}

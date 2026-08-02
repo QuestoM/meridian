@@ -123,6 +123,9 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         <label>
           {pageText(locale, 'Position', 'מיקום')}
           <input type="number" min="1" dir="ltr" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
+          <span className="pricing-base-note">{pageText(locale,
+            'Positions are 1 to 5 and L for last. A spot equal to the break size is the L position, so set the break size to test L.',
+            'המיקומים הם 1 עד 5 ו-L לאחרון. ספוט ששווה לגודל הברייק הוא מיקום L, לכן הגדירו גודל ברייק כדי לבדוק את L.')}</span>
         </label>
         <label>
           {pageText(locale, 'Break size', 'גודל ברייק')}
@@ -181,6 +184,14 @@ function PricingSlotTester({ state, locale, notify, currency }) {
               <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
             </div>
           ))}
+          {breakdown.position_key && (
+            <div className="pricing-break-row">
+              <span className="src">{pageText(locale,
+                `Position resolved to ${breakdown.position_label_en || breakdown.position_key}`,
+                `המיקום נקבע כ${breakdown.position_label_he || breakdown.position_key}`)}</span>
+              <span className="mult" dir="ltr">{breakdown.position_key}</span>
+            </div>
+          )}
           <div className="pricing-break-row total">
             <span>= {pageText(locale, 'Final CPP', 'מחיר סופי')} ({currency})</span>
             <span dir="ltr">{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</span>

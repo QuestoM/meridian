@@ -4,6 +4,7 @@ import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { LAYER_TEXT, LAYER_TO_YAML, keyLabel, layerEntries, layerLabel } from './pricing-layers-lib';
 import PricingEventsLayer from './PricingEventsLayer';
+import PricingPreferredPositions from './PricingPreferredPositions';
 import PricingSlotTester from './PricingSlotTester';
 import RateCardEffect from './RateCardEffect';
 import { draftValueAt, dropOverride, mergeOverrides } from './rules-lib';
@@ -100,6 +101,13 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
   }
 
   function saveMultiplier(layerName, key, value) {
+    // An empty box means the key is UNSET, which is a real state on the position
+    // layer (nobody has priced position 4 or 5). Blurring an untouched empty box
+    // must leave it unset, never stage a premium of 0.
+    if (String(value).trim() === '') {
+      unstage(['premiums', LAYER_TO_YAML[layerName], key]);
+      return;
+    }
     const num = Number(value);
     if (!Number.isFinite(num) || num < 0) {
       notify('A premium must be a number of 0 or more.', 'מקדם חייב להיות מספר אפס ומעלה.');
@@ -284,13 +292,19 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                       {entries.map(([key, value]) => {
                         const edited = defaults[key] !== undefined && Number(defaults[key]) !== Number(value);
                         const label = keyLabel(layer.name, key, locale);
-                        const shown = draftValueAt(pending, ['premiums', LAYER_TO_YAML[layer.name], key]) ?? value;
+                        // A null value is a key nobody has priced (the trade's
+                        // positions 4 and 5 ship unset). It shows empty rather
+                        // than as a premium of 1 somebody chose, and the box,
+                        // its remount key and the draft all read one value.
+                        const shown = draftValueAt(pending, ['premiums', LAYER_TO_YAML[layer.name], key]) ?? value ?? '';
+                        const unset = shown === '';
                         return (
-                          <div className={`pricing-mult${edited ? ' edited' : ''}`} key={key}>
+                          <div className={`pricing-mult${edited ? ' edited' : ''}${unset ? ' unset' : ''}`} key={key}>
                             <span className="pricing-mult-label" title={label}>{label}</span>
                             <input
                               type="number" min="0" step="0.01" dir="ltr"
                               defaultValue={shown}
+                              placeholder={pageText(locale, 'not set', 'לא הוגדר')}
                               key={`${layer.name}-${key}-${shown}`}
                               onBlur={(event) => saveMultiplier(layer.name, key, event.target.value)}
                               aria-label={`${layerLabel(layer.name, locale)} ${label}`}
@@ -309,6 +323,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
               stagedEnabled={draftValueAt(pending, ['pricing_activation', 'events'])}
               onToggle={(enabled) => toggleLayer('events', enabled)}
             />
+            <PricingPreferredPositions state={state} locale={locale} />
           </div>
         </div>
 

@@ -23,6 +23,7 @@ import { exactMoney } from './clients-money-helpers';
 import AdvertiserConditions from './AdvertiserConditions';
 import AdvertiserPricingSummary from './AdvertiserPricingSummary';
 import { normalizeOverlaps, overlapMessage, overlapTone } from './advertisers-helpers';
+import { boundName, identityName, operatorName } from './advertiser-name-helpers';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import './advertiser-drawer.css';
 
@@ -249,7 +250,11 @@ function AdvertiserDetailDrawer({
     setCondFocus(null);
   }, [row && row.advertiser_id, open]);
 
-  useAssistantEntity('advertiser', open && row ? row.advertiser_id : '', open && row ? row.display_name || row.name || row.advertiser_id : '');
+  useAssistantEntity(
+    'advertiser',
+    open && row ? row.advertiser_id : '',
+    open && row ? operatorName(row) || identityName(row) || boundName(row) || row.advertiser_id : '',
+  );
 
   if (!row) {
     return null;
@@ -261,8 +266,12 @@ function AdvertiserDetailDrawer({
   const baseline = row.baseline_premium ?? row.default_premium;
   const effective = row.avg_effective_premium;
   const anchor = locale === 'he' ? 'left' : 'right';
-  // The advertiser this row prices, which is what makes the row a named record.
-  const bound = String(row.name || '').trim();
+  // The advertiser this row prices: the operator's own label, then the daily
+  // ledger's real name (joined by advertiser_id), then the rules store's own
+  // name cell, which is what makes the row a named record. This mirrors
+  // displayNameOf/isUnnamed in advertiser-name-helpers so the drawer never
+  // disagrees with the card that opened it.
+  const bound = operatorName(row) || identityName(row) || boundName(row);
 
   return (
     <Drawer

@@ -274,6 +274,11 @@ export function pickMostSpecific(rules) {
 }
 
 // Map a position scope token to the numeric position the tester understands.
+// The vocabulary is 1 to 5 and L. L is the tail of a break rather than an
+// ordinal, so it has no single numeric slot to price and the worked example
+// omits the position instead of inventing one; the gold break is a break tag,
+// not a position, and is omitted for the same reason. "first" is the legacy
+// word form and still reads.
 function positionNumber(tokens) {
   if (tokens.length === 0) return null;
   if (tokens[0] === 'first') return 1;

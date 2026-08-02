@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { changedFields, goalLabel, localized, refusalText, vocabularyLabel, windowLabel } from './clients-money-helpers';
 import { addFlight, removeFlight, updateFlight } from './clients-api';
+import DemoBadge from './DemoBadge';
 
 // The flights of one campaign, as rows that can be changed in place. A flight
 // is a line of the campaign, so it is added, amended and removed on the row
@@ -158,6 +159,7 @@ export default function CampaignFlights({
                   <td>
                     <span className="clients-cell-name">
                       {flight.name ? <strong>{flight.name}</strong> : null}
+                      <DemoBadge demo={flight.demo} locale={locale} />
                       <small className="clients-flight-id">{flight.flight_id}</small>
                     </span>
                   </td>

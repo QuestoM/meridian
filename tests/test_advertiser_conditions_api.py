@@ -71,7 +71,12 @@ def test_options_endpoint_serves_real_vocabularies() -> None:
     options = ac.scope_options()
     position_keys = {p["key"] for p in options["positions"]}
     assert "gold" in position_keys
-    assert {"first", "middle", "last"}.issubset(position_keys)
+    # The trade's six positions: ordinals 1 to 5 plus L, where L is LAST and is
+    # its own position, not the fifth ordinal. This list used to serve the
+    # model's break-in-programme vocabulary (first/middle/last), whose word
+    # tokens could never match the integer position the engine matches on.
+    assert {"1", "2", "3", "4", "5", "L"}.issubset(position_keys)
+    assert "first" not in position_keys
     assert {d["key"] for d in options["dayparts"]} == {
         "morning", "noon", "evening", "prime", "night",
     }

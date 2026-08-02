@@ -116,12 +116,17 @@ const PRICE_LAYERS = {
   show: ['Specific show', 'תוכנית ספציפית'],
 };
 
+// The trade's positions inside a break are 1 to 5 and L, where L is LAST and is
+// its own position. "last" is the rate card's legacy key for L and still reads.
 const POSITION_KEYS = {
   1: ['First', 'ראשון'],
   2: ['Second', 'שני'],
   3: ['Third', 'שלישי'],
+  4: ['Fourth', 'רביעי'],
+  5: ['Fifth', 'חמישי'],
+  L: ['Last (L)', 'אחרון (L)'],
   default_middle: ['Middle default', 'אמצע, ברירת מחדל'],
-  last: ['Last', 'אחרון'],
+  last: ['Last (L)', 'אחרון (L)'],
 };
 
 function pairText(found, locale) {

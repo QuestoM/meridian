@@ -48,6 +48,22 @@ def scope_tokens(raw: object) -> frozenset[str]:
     return frozenset(part.strip() for part in text.split(",") if part.strip())
 
 
+def position_scope_tokens(raw: object) -> frozenset[str]:
+    """Split a position scope, then canonicalise every token onto 1..5 / L / gold.
+
+    The stores grew three parallel position vocabularies (``1,2,3`` in the rate
+    card, ``first,last`` in advertiser_rules.csv, ``first,middle,last`` in the
+    conditions dropdown), and a word-form token could never match an observed
+    ``position_in_break`` integer, so a rule written in words silently matched
+    nothing. Canonicalising here gives one vocabulary at the door, so scope
+    matching, overlap detection and specificity all read the same tokens.
+    """
+    from kairos.optimize.positions import canonical_token
+
+    tokens = {canonical_token(token) for token in scope_tokens(raw)}
+    return frozenset(token for token in tokens if token)
+
+
 def dimension_matches(scope: frozenset[str], value: Optional[str]) -> bool:
     """True when a single observed ``value`` falls inside a scope token set."""
     if not scope:
@@ -166,7 +182,7 @@ def load_baselines(path: Path) -> dict[str, "Baseline"]:
             out[advertiser_id] = Baseline(
                 advertiser_id=advertiser_id,
                 default_premium=parse_float(row.get("default_premium"), 1.0),
-                allow_positions=scope_tokens(row.get("allow_positions")),
+                allow_positions=position_scope_tokens(row.get("allow_positions")),
                 allow_genres=scope_tokens(row.get("allow_genres")),
                 prime_time_only=parse_bool(row.get("prime_time_only")),
                 urgency_k=parse_opt_float(row.get("urgency_k")),
@@ -222,7 +238,7 @@ def condition_from_row(row: dict[str, str]) -> "Optional[Condition]":
         effect=effect,
         value=parse_float(row.get("value"), 1.0),
         mode=mode,
-        scope_positions=scope_tokens(row.get("scope_positions")),
+        scope_positions=position_scope_tokens(row.get("scope_positions")),
         scope_genres=scope_tokens(row.get("scope_genres")),
         scope_dayparts=scope_tokens(row.get("scope_dayparts")),
         scope_programmes=scope_tokens(row.get("scope_programmes")),

@@ -427,3 +427,16 @@
   font-size: var(--text-xs);
   color: var(--subtle);
 }
+
+.clients-demo-flag {
+  display: inline-flex;
+  align-items: center;
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: var(--radius-xs);
+  padding: 1px var(--space-1);
+  cursor: help;
+}

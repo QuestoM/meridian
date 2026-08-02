@@ -35,12 +35,12 @@ from pydantic import BaseModel
 from kairos.optimize.advertiser_rules import (
     _EFFECTS,
     _PREMIUM_MODES,
-    GOLD_POSITION,
     MULTIPLIER,
     AdvertiserRuleEngine,
     _normalize_mode,
     normalize_scope,
 )
+from kairos.optimize.positions import normalize_position_scope
 from kairos_api.condition_validation import (
     validate_effective_mode_value,
     validate_mode_value,
@@ -163,7 +163,7 @@ def _row_to_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "effect": str(row.get("effect", "")).strip().lower(),
         "value": round(_coerce_float(row.get("value")), 6),
         "mode": _normalize_mode(row.get("mode")),
-        "scope_positions": normalize_scope(row.get("scope_positions")),
+        "scope_positions": normalize_position_scope(row.get("scope_positions")),
         "scope_genres": normalize_scope(row.get("scope_genres")),
         "scope_dayparts": normalize_scope(row.get("scope_dayparts")),
         "scope_programmes": normalize_scope(row.get("scope_programmes")),
@@ -193,21 +193,20 @@ def overlaps_for(advertiser_id: str) -> list[dict[str, Any]]:
 
 
 def _position_options() -> list[dict[str, str]]:
-    """The break-position tokens a rule can scope, including the gold break.
+    """The spot-in-break positions a rule can scope, plus the gold break.
 
-    The model's break positions are first/middle/last (the daily path also tags an
-    integer position); the premium gold break (Hebrew: ברייק זהב) is offered as an
-    explicit token so an operator can scope a rule to it.
+    The trade's positions are 1, 2, 3, 4, 5 and L, where L is LAST and is its own
+    position rather than the fifth ordinal (docs/media-domain-from-the-trade.md).
+    This list used to come from the model's break-position vocabulary
+    (first/middle/last), which describes where a BREAK sits in a PROGRAMME, not
+    where a SPOT sits in a break: those word tokens could never match the integer
+    ``position_in_break`` the engine matches on, so a rule scoped from this list
+    silently matched nothing. The premium gold break (Hebrew: ברייק זהב) stays an
+    explicit token because the rule engine has always accepted it here.
     """
-    from kairos.model.spec import DEFAULT_BREAK_POSITIONS
+    from kairos.optimize.positions import position_options
 
-    labels_he = {"first": "ראשון", "middle": "אמצעי", "last": "אחרון"}
-    options = [
-        {"key": key, "he": labels_he.get(key, key), "en": key.capitalize()}
-        for key in DEFAULT_BREAK_POSITIONS
-    ]
-    options.append({"key": GOLD_POSITION, "he": "ברייק זהב", "en": "Gold break"})
-    return options
+    return position_options()
 
 
 def _genre_options() -> list[str]:
@@ -286,7 +285,7 @@ def create_condition(advertiser_id: str, payload: ConditionCreate,
         "effect": _validate_effect(payload.effect),
         "value": str(float(payload.value)),
         "mode": mode,
-        "scope_positions": normalize_scope(payload.scope_positions),
+        "scope_positions": normalize_position_scope(payload.scope_positions),
         "scope_genres": normalize_scope(payload.scope_genres),
         "scope_dayparts": normalize_scope(payload.scope_dayparts),
         "scope_programmes": normalize_scope(payload.scope_programmes),
@@ -340,7 +339,7 @@ def update_condition(advertiser_id: str, rule_id: str, payload: ConditionUpdate,
         if payload.mode is not None:
             frame.at[index, "mode"] = effective_mode
         if payload.scope_positions is not None:
-            frame.at[index, "scope_positions"] = normalize_scope(payload.scope_positions)
+            frame.at[index, "scope_positions"] = normalize_position_scope(payload.scope_positions)
         if payload.scope_genres is not None:
             frame.at[index, "scope_genres"] = normalize_scope(payload.scope_genres)
         if payload.scope_dayparts is not None:

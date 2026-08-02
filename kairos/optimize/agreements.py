@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from kairos.optimize.positions import parse_preferred
+
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_AGREEMENTS_PATH = ROOT / "data" / "reference" / "AdvertiserAgreements.csv"
 
@@ -69,6 +71,11 @@ _COLUMN_ALIASES = {
     "day_of_week": "day_of_week",
     "positioninbreak": "position_in_break",
     "position_in_break": "position_in_break",
+    # Which of the six positions (1 to 5 and L) this agreement treats as
+    # preferred. The trade agrees the set per client and per agreement, so an
+    # agreement row is the most specific place it can be stated.
+    "preferredpositions": "preferred_positions",
+    "preferred_positions": "preferred_positions",
     "daypart": "daypart",
     "channel": "channel",
     "date": "date",
@@ -124,6 +131,10 @@ class AdvertiserAgreement:
     daypart: Optional[str] = None
     program_title: Optional[str] = None
     constraints: tuple[AgreementConstraint, ...] = ()
+    # The positions this agreement counts as preferred, tri-state: ``None`` means
+    # the agreement says nothing and the client or channel default applies, and no
+    # preferred-position percentage is invented for it.
+    preferred_positions: Optional[frozenset[str]] = None
     raw: dict[str, Any] = field(default_factory=dict)
 
     def validate(self) -> None:
@@ -231,6 +242,7 @@ def _agreement_from_row(mapped: dict[str, str]) -> Optional[AdvertiserAgreement]
         daypart=mapped.get("daypart") or mapped.get("day_of_week"),
         program_title=mapped.get("program_title"),
         constraints=_constraints_from_row(mapped),
+        preferred_positions=parse_preferred(mapped.get("preferred_positions")),
         raw=dict(mapped),
     )
     agreement.validate()

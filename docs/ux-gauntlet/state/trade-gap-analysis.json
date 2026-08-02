@@ -1,0 +1,13 @@
+{
+  "task": "trade-gap-analysis",
+  "status": "done",
+  "output": "docs/trade-gap-analysis.md",
+  "changed_code": false,
+  "summary": "Measured the codebase against docs/media-domain-from-the-trade.md's nine gaps, file and line, no code changed. Wrote docs/trade-gap-analysis.md.",
+  "key_findings": {
+    "positions": "config/optimization_weights.yaml:22-29 and kairos/optimize/pricing.py:313-326 model only 1/2/3/default_middle/last (last derived as position==break_size, not a stored L). kairos_api/advertiser_conditions.py:195-209 offers an even narrower first/middle/last+gold vocabulary. No preferred-position percentage exists anywhere (zero matches for preferred_position).",
+    "creatives": "data/campaign_assets.csv + kairos_api/campaigns_assets.py model house_number/version/duration for real; no validity-window column, no Top-and-Tail adjacency modelling, no cross-channel creative identity (house number is per-row per-channel with no shared creative_id).",
+    "goal_based_order": "data/campaigns.csv + kairos_api/campaigns_api_store.py + campaigns_delivery.py:276-306 have rating_goal_points/rating_goal_audience but only as a pacing-progress figure computed from an already-built schedule, never as an order type or optimizer objective.",
+    "other_six": "make good (kairos/optimize/pacing.py) is a forward risk alert not a 3-level accrual ledger; As Run ingestion is entirely absent; pressure/run-priority lever exists (kairos/optimize/advertiser_rules.py) but is advertiser-scoped not campaign-scoped despite _rule_models.py already modelling scope_campaigns, and there is no run-level priority set for large-media/direct/success-deals/new-campaigns; rate card has a calendar-events per-date/seasonal layer (data/calendar_events.csv, wired off) but no hour-of-day layer; block booking/email approval state machine absent (status is unvalidated free text); Owner/Jumbo integration seams absent (zero matches)."
+  }
+}

@@ -3,6 +3,28 @@ import { Building2, ChevronDown, ChevronUp, Plus, Search, UserPlus } from 'lucid
 import { pageText } from '../shell/format';
 import { basisLine, exactMoney, filterAgencies, filterClients, localized } from './clients-money-helpers';
 
+// The tree's own read carries no demo tally (it is a join of agencies, clients
+// and the priced ledger, none of which know about the campaign seed), but every
+// campaign record inside it carries its own is_demo flag from the campaigns
+// store. Counting it here is arithmetic on data already on the payload, not a
+// figure invented on this screen.
+function demoTally(agencies, unlinked, booked) {
+  let demo = 0;
+  let total = 0;
+  const walk = (client) => {
+    (client.campaigns || []).forEach((campaign) => {
+      total += 1;
+      if (campaign.is_demo) {
+        demo += 1;
+      }
+    });
+  };
+  (agencies || []).forEach((agency) => (agency.clients || []).forEach(walk));
+  (unlinked || []).forEach(walk);
+  (booked || []).forEach(walk);
+  return { demo, total };
+}
+
 // The commercial spine as one containment: agency, then the clients that buy
 // through it, then what each of them has booked and delivered. Google Ads keeps
 // account, campaign and ad group in one containment and invents no fourth layer
@@ -80,6 +102,7 @@ function Terms({ agency, locale }) {
 }
 
 function ClientRow({ client, locale, onOpen }) {
+  const demoCampaigns = (client.campaigns || []).filter((campaign) => campaign.is_demo).length;
   return (
     <tr>
       <td>
@@ -93,7 +116,18 @@ function ClientRow({ client, locale, onOpen }) {
       <td className="numeric" dir="ltr">{client.gross === null ? '-' : exactMoney(client.gross, locale)}</td>
       <td className="numeric" dir="ltr">{client.net === null ? '-' : exactMoney(client.net, locale)}</td>
       <td className="numeric" dir="ltr">{client.spots === null ? '-' : client.spots}</td>
-      <td className="numeric" dir="ltr">{client.campaign_count}</td>
+      <td className="numeric" dir="ltr">
+        {client.campaign_count}
+        {demoCampaigns > 0 ? (
+          <span className="clients-flag">
+            {pageText(
+              locale,
+              demoCampaigns === client.campaign_count ? 'all demo' : `${demoCampaigns} demo`,
+              demoCampaigns === client.campaign_count ? 'כולם הדגמה' : `⁦${demoCampaigns}⁩ הדגמה`,
+            )}
+          </span>
+        ) : null}
+      </td>
       <td>
         {localized(client, 'money_reason', locale) ? <small className="clients-reason">{localized(client, 'money_reason', locale)}</small> : null}
         {client.campaign_count === 0 ? (
@@ -176,6 +210,21 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
     pageText(locale, 'campaign', 'קמפיין'),
     pageText(locale, 'campaigns', 'קמפיינים'),
   );
+  const { demo: demoCampaignCount } = useMemo(
+    () => demoTally(tree.agencies, tree.unlinked, tree.clients_booked_without_spots),
+    [tree],
+  );
+  const countsLine = demoCampaignCount > 0
+    ? pageText(
+      locale,
+      `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord} (${demoCampaignCount} demo seed data)`,
+      `⁦${agencyCount}⁩ ${agencyWord}, ⁦${clientCount}⁩ ${clientsWord(clientCount, locale)}, ⁦${campaignCount}⁩ ${campaignWord} (⁦${demoCampaignCount}⁩ נתוני זרע הדגמה)`,
+    )
+    : pageText(
+      locale,
+      `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord}`,
+      `⁦${agencyCount}⁩ ${agencyWord}, ⁦${clientCount}⁩ ${clientsWord(clientCount, locale)}, ⁦${campaignCount}⁩ ${campaignWord}`,
+    );
   return (
     <section className="clients-tree" dir={he ? 'rtl' : 'ltr'}>
       <div className="clients-toolbar">
@@ -189,13 +238,7 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
             aria-label={pageText(locale, 'Find an agency or a client', 'חפשו סוכנות או לקוח')}
           />
         </label>
-        <span className="clients-counts">
-          {pageText(
-            locale,
-            `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord}`,
-            `⁦${agencyCount}⁩ ${agencyWord}, ⁦${clientCount}⁩ ${clientsWord(clientCount, locale)}, ⁦${campaignCount}⁩ ${campaignWord}`,
-          )}
-        </span>
+        <span className="clients-counts">{countsLine}</span>
         {canEdit ? (
           <button type="button" className="clients-primary" onClick={onOnboard}>
             <UserPlus size={14} aria-hidden="true" />

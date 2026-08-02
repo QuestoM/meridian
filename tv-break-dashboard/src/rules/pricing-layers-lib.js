@@ -24,10 +24,15 @@ export const DAY_NAMES = {
 // reading order changes here. The keys, the values and the saved payload do not.
 export const DAY_ORDER = ['7', '1', '2', '3', '4', '5', '6'];
 
-// Position-in-break keys are internal engine keys; these are the human labels.
+// The trade's positions inside a break are 1, 2, 3, 4, 5 and L, where L is LAST
+// and is its own position rather than the fifth ordinal. These are the human
+// labels for those engine keys; "last" is the rate card's legacy key for L and
+// still reads, so a card saved before the rename still labels correctly.
 export const POSITION_NAMES = {
   1: ['First', 'ראשון'], 2: ['Second', 'שני'], 3: ['Third', 'שלישי'],
-  default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last', 'אחרון'],
+  4: ['Fourth', 'רביעי'], 5: ['Fifth', 'חמישי'],
+  L: ['Last (L)', 'אחרון (L)'],
+  default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last (L)', 'אחרון (L)'],
 };
 
 // Bilingual titles + Hebrew descriptions for the stable engine layers; the API text is English-only.
@@ -35,7 +40,7 @@ export const LAYER_TEXT = {
   program: { en: 'Programme type', he: 'סוג תוכנית', descHe: 'פרמיית מחלקת תוכנית (חדשות, תוכניות פריים, אחר). חלה תמיד.' },
   day: { en: 'Day of week', he: 'יום בשבוע', descHe: 'פרמיית יום בשבוע. חלה תמיד.' },
   show: { en: 'Specific show', he: 'תוכנית ספציפית', descHe: 'פרמיה לתוכנית ספציפית (למשל האח הגדול). נערמת על מחלקת התוכנית.' },
-  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (ראשון, שני, אחרון). כבויה עד להפעלה.' },
+  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (1 עד 5 ו-L לאחרון). כבויה עד להפעלה.' },
   ad_type: { en: 'Ad type', he: 'סוג פרסומת', descHe: 'פרמיית סוג פרסומת (פרסומת, חסות, פרומו). כבויה עד להפעלה.' },
   events: { en: 'Calendar events', he: 'אירועי לוח שנה', descHe: 'מכפיל תמחור לימים שבתוך אירועים פעילים מלוח האירועים. הצהרת מפעיל, לא מדידה. כבויה עד להפעלה.' },
   event: { en: 'Calendar event', he: 'אירוע לוח שנה' },
@@ -77,8 +82,20 @@ export function keyLabel(layerName, key, locale) {
 // Only the day layer has a reading order of its own; every other layer keeps the
 // order the server sent. A day key the order does not name is kept and appended
 // rather than dropped, so a rate card carrying something new still shows it.
+//
+// A layer that ships a vocabulary (the position layer) is read in that order and
+// includes the keys nobody has priced yet, with a null value. Position 4 and
+// position 5 exist in the trade and are unset on the shipped card, so they are
+// shown as unset and settable rather than hidden or faked as a premium of 1.
 export function layerEntries(layer) {
   const entries = Object.entries((layer && layer.values) || {});
+  if (layer && Array.isArray(layer.vocabulary) && layer.vocabulary.length > 0) {
+    const named = new Map(entries.map(([key, value]) => [String(key), value]));
+    const ordered = layer.vocabulary.map((entry) => [String(entry.key), named.has(String(entry.key)) ? named.get(String(entry.key)) : null]);
+    const seen = new Set(layer.vocabulary.map((entry) => String(entry.key)));
+    const rest = entries.filter(([key]) => !seen.has(String(key)));
+    return [...ordered, ...rest];
+  }
   if (!layer || layer.name !== 'day') return entries;
   const named = new Map(entries.map(([key, value]) => [String(key), value]));
   const ordered = DAY_ORDER.filter((key) => named.has(key)).map((key) => [key, named.get(key)]);

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import ClientRuleCard from './ClientRuleCard';
 import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, sourceLabel, step, vocabularyLabel, windowLabel } from './clients-money-helpers';
+import DemoBadge from './DemoBadge';
 
 // One client, opened without losing the set it came from. The counter and the
 // two arrows are Linear's device: a record page that knows it is the nth of a
@@ -83,6 +84,7 @@ function Flights({ campaign, locale, goalWords }) {
       {campaign.flights.map((flight) => (
         <li key={flight.flight_id}>
           <span className="clients-flight-id">{flight.flight_id}</span>
+          <DemoBadge demo={flight.demo} locale={locale} />
           <span className="numeric" dir="ltr">{windowLabel(flight.starts_on, flight.ends_on, locale)}</span>
           <span className="clients-goal">
             <small>{pageText(locale, 'booked', 'הוזמן')}</small>
@@ -121,6 +123,7 @@ export default function ClientRecord({
   const he = locale === 'he';
   const found = positionOf(rows, client.advertiser);
   const opensRows = hasLedgerRow(client);
+  const demoCampaignCount = (client.campaigns || []).filter((campaign) => campaign.is_demo).length;
   // The agency record is one tab away with all of its terms on it, so the line
   // that names the agency is the way to it. It stays a plain line when there is
   // no id to open, because a control that opens nothing is worse than a label.
@@ -214,7 +217,13 @@ export default function ClientRecord({
       <dl className="clients-properties">
         <Property
           label={pageText(locale, 'Campaigns booked', 'קמפיינים שהוזמנו')}
-          value={client.campaign_count ? String(client.campaign_count) : ''}
+          value={client.campaign_count
+            ? pageText(
+              locale,
+              demoCampaignCount > 0 ? `${client.campaign_count} (${demoCampaignCount} demo seed data)` : String(client.campaign_count),
+              demoCampaignCount > 0 ? `⁦${client.campaign_count}⁩ (⁦${demoCampaignCount}⁩ נתוני זרע הדגמה)` : String(client.campaign_count),
+            )
+            : ''}
           action={canEdit
             ? pageText(locale, 'Book the first campaign', 'הזמינו קמפיין ראשון')
             : pageText(locale, 'Nothing is booked yet', 'לא הוזמן דבר עדיין')}
@@ -230,6 +239,7 @@ export default function ClientRecord({
             <article key={campaign.campaign_id} className="clients-campaign">
               <header>
                 <strong>{campaign.name}</strong>
+                <DemoBadge demo={campaign.demo} locale={locale} />
                 <span className="clients-campaign-id">{campaign.campaign_id}</span>
                 <span className="numeric" dir="ltr">{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</span>
                 <span className={`clients-state ${campaign.status}`}>{vocabularyLabel(statuses, campaign.status, locale)}</span>

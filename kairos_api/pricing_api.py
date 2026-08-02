@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.layer_overrides import apply_overrides, resolve_layer_overrides
 from kairos.optimize.price_guardrails import Guardrails
+from kairos.optimize.positions import label as position_label
 from kairos.optimize.pricing import (
     PriceBreakdown,
     PricingModel,
@@ -40,6 +41,7 @@ from kairos_api.events_access import (
     require_company_editor,
     requester_is_company,
 )
+from kairos_api.pricing_positions import position_vocabulary, preferred_payload
 
 router = APIRouter(tags=["pricing"])
 
@@ -57,7 +59,7 @@ _LAYER_META = [
     {"name": "show", "kind": "premium", "always_live": False, "activation_key": "show",
      "description": "Per-show premium (for example Big Brother). Stacks on the program class."},
     {"name": "position", "kind": "premium", "always_live": False, "activation_key": "position",
-     "description": "Position-in-break premium (first, second, last). Off until activated."},
+     "description": "Position-in-break premium (1 to 5 and L for last). Off until activated."},
     {"name": "ad_type", "kind": "premium", "always_live": False, "activation_key": "ad_type",
      "description": "Ad-type premium (commercial, sponsorship, promo). Off until activated."},
 ]
@@ -130,7 +132,7 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             getattr(effective, f"enable_{meta['name']}", False)
         )
         layer_values = _table(effective, meta["name"])
-        layers.append({
+        entry = {
             "name": meta["name"], "kind": "premium",
             "description": meta["description"],
             "values": layer_values,
@@ -139,7 +141,10 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             "enabled": enabled,
             "live_today": enabled,
             "warnings": _layer_warnings(meta["name"], layer_values, enabled),
-        })
+        }
+        if meta["name"] == "position":
+            entry["vocabulary"] = position_vocabulary(layer_values)
+        layers.append(entry)
     return {
         "currency": getattr(settings, "currency", "ILS"),
         "units": "currency per second per rating point",
@@ -160,6 +165,7 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             "active_event_count": len(load_price_events()),
             "basis": "operator assertion per calendar event, not measured",
         },
+        "preferred_positions": preferred_payload(effective),
         "has_overrides": bool(overrides),
         "note": ("Rate card only. No operator edits yet." if not overrides
                  else "Operator edits applied. Every value traces to base x named layers."),
@@ -346,6 +352,13 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
         if mult != 1.0:
             wired_off.append({"name": "position", "multiplier": mult,
                               "source": "rate_card", "applied": False})
+    # Which of the six positions the slot resolved to. A spot can hold two at
+    # once (the last spot of a three-spot break is both 3 and L), so naming the
+    # key that actually priced it stops an operator reading "5" where the tail
+    # premium applied, or the reverse.
+    position_key = None
+    if req.position is not None:
+        position_key = model.position_key(req.position, req.break_size)
     if not model.enable_ad_type and req.ad_type and model.ad_type_premium(req.ad_type) != 1.0:
         wired_off.append({"name": "ad_type", "multiplier": model.ad_type_premium(req.ad_type),
                           "source": "rate_card", "applied": False})
@@ -367,6 +380,9 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
         "applied_overrides": applied_overrides,
         "shadowed_overrides": shadowed_overrides,
         "guardrail_warnings": warnings,
+        "position_key": position_key,
+        "position_label_en": None if position_key is None else position_label(position_key, "en"),
+        "position_label_he": None if position_key is None else position_label(position_key, "he"),
         "total_premium": breakdown.total_premium,
         "final_cpp": breakdown.final_cpp,
         "currency": getattr(settings, "currency", "ILS"),

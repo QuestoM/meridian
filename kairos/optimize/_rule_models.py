@@ -12,11 +12,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 from kairos.optimize._rule_helpers import dimension_matches, scopes_intersect
+from kairos.optimize.positions import GOLD_POSITION, canonical_token  # noqa: F401
 
 ANY = "ANY"
 
-# How the optimizer/pricing path describes positions inside a break.
-GOLD_POSITION = "gold"
+# GOLD_POSITION is re-exported above from kairos.optimize.positions, which owns
+# the one position vocabulary (ordinals 1 to 5, L for last, and the gold break).
 
 # Effects a conditional rule can carry.
 PREMIUM = "premium"
@@ -49,7 +50,7 @@ class Baseline:
 
     def allows(self, *, position: Optional[int], genre: Optional[str], daypart: Optional[str]) -> bool:
         """True when a spot passes this advertiser's baseline constraints."""
-        position_token = None if position is None else str(position)
+        position_token = canonical_token(position)
         if not dimension_matches(self.allow_positions, position_token):
             return False
         if not dimension_matches(self.allow_genres, genre):
@@ -118,7 +119,7 @@ class Condition:
         weekday never matches, so a weekday-scoped rule cannot bite a dateless
         path by accident.
         """
-        position_token = None if position is None else str(position)
+        position_token = canonical_token(position)
         weekday_token = None if weekday is None else str(int(weekday))
         return (
             dimension_matches(self.scope_positions, position_token)

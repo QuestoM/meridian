@@ -27,10 +27,26 @@ export function boundName(row) {
   return String(row?.name ?? '').trim();
 }
 
+// The real name the identity join found for the advertiser this row prices:
+// the daily ledger's own name space, joined by advertiser_id, attached by
+// mergeRowWithIdentity as `bound_advertiser`. This is what turns "ADV_01" into
+// the Hebrew name an operator actually recognises; the rules store's own
+// `name` cell is empty on every seeded row, so this is the source that matters
+// in practice.
+export function identityName(row) {
+  return String(row?.bound_advertiser ?? '').trim();
+}
+
 // True when the record has no real name at all: nothing bound, nothing stored by
-// the operator, and the raw id is not an observed daily-data advertiser name.
+// the operator, no identity join, and the raw id is not an observed daily-data
+// advertiser name.
 export function isUnnamed(row) {
-  return !operatorName(row) && !boundName(row) && String(row?.name_source ?? '') !== 'observed';
+  return (
+    !operatorName(row)
+    && !boundName(row)
+    && !identityName(row)
+    && String(row?.name_source ?? '') !== 'observed'
+  );
 }
 
 // Honest prettification of a raw token for display. A seed key is shown as
@@ -54,10 +70,11 @@ export function prettifyRawId(rawId, locale) {
 }
 
 // The name shown prominently for a record: the operator's stored name first,
-// then the raw id itself when it is a real observed name, then the honest
-// prettified token. Never empty for a row with an advertiser_id.
+// then the identity join's real observed name, then the rules store's own
+// bound name, then the raw id itself when it is a real observed name, then the
+// honest prettified token. Never empty for a row with an advertiser_id.
 export function displayNameOf(row, locale) {
-  const stored = operatorName(row) || boundName(row);
+  const stored = operatorName(row) || identityName(row) || boundName(row);
   if (stored) {
     return stored;
   }
@@ -79,6 +96,7 @@ export function showsRawIdLine(row, locale) {
 export function nameSearchHaystack(row) {
   return [
     operatorName(row),
+    identityName(row),
     boundName(row),
     String(row?.aliases ?? ''),
     displayNameOf(row, 'en'),

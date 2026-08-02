@@ -19,14 +19,20 @@ premiums:
     פרומו: 0.00       # Channel promo (typically no direct revenue, but can have placement goals)
     # Gold Break ads might be priced differently or fall under a special 'Ad_Type'
 
-  position_in_break: # Multiplier for ad position within a break
-    # Values are for position index (1-based)
-    1: 1.30          # 30% premium for First in Break
-    2: 1.15          # 15% premium for Second in Break
-    3: 1.05          # 5% premium for Third in Break
-    # For breaks longer than 3 ads, can define more or use a default for middle
+  position_in_break: # Multiplier for the position of a spot inside a break
+    # The trade's positions are 1, 2, 3, 4, 5 and L, where L is LAST and is its
+    # own position, not the fifth ordinal: the last spot of a three-spot break is
+    # both position 3 and L. An ordinal priced here wins for a spot that holds
+    # both; L prices the tail of any break whose tail ordinal is not priced here.
+    # Ordinals 4 and 5 are addressable but deliberately UNSET, which is a no-op:
+    # a spot at 4 or 5 keeps pricing at L (when it is the tail) or at the middle
+    # default, exactly as before they became addressable. Setting one is a
+    # deliberate, visible revenue change, like activating the layer itself.
+    1: 1.30          # 30% premium for first in break
+    2: 1.15          # 15% premium for second in break
+    3: 1.05          # 5% premium for third in break
     default_middle: 1.00
-    last: 1.20       # 20% premium for Last in Break (if not 1, 2, or 3)
+    L: 1.20          # 20% premium for last in break. The legacy key "last" still reads.
 
   day_of_week: # Multiplier based on the day of the week (1=Monday, 7=Sunday)
     1: 1.00 # Monday
@@ -51,6 +57,17 @@ pricing_activation:
   show: false
   qh_settlement: false
   events: false
+
+# --- Preferred positions (per client and per agreement, so never a constant) ---
+# Which of the six positions (1, 2, 3, 4, 5, L) count as PREFERRED is agreed with
+# each client, so this is configuration. It is tri-state: null means UNSET, and
+# while it is unset no preferred-position percentage may be computed anywhere,
+# because a guessed or unlabelled percentage is worse than none (two parties
+# audit each other with this number). An agreement row may override a client, and
+# a client overrides the channel default. Shipped unset, so nothing computes one.
+preferred_positions:
+  channel_default: null
+  per_advertiser: {}
 
 # --- Constraints ---
 constraints:

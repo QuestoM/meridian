@@ -4,6 +4,7 @@ import { pageText } from '../shell/format';
 import { localized } from './clients-money-helpers';
 import CampaignFlights from './CampaignFlights';
 import CampaignTerms from './CampaignTerms';
+import DemoBadge from './DemoBadge';
 
 // What sits under one campaign row: the terms that were agreed, and the flights
 // that carry the booked goals. Both are amendable here, which is the whole
@@ -85,6 +86,13 @@ export default function CampaignDetail({
 
   return (
     <>
+      {campaign.is_demo ? (
+        <p className="clients-basis-note">
+          <DemoBadge demo={campaign.demo} locale={locale} />
+          {' '}
+          {localized(campaign.demo, 'meaning', locale)}
+        </p>
+      ) : null}
       <div className="clients-detail-terms">
         <dl className="clients-properties">
           <Term

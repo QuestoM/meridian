@@ -49,11 +49,15 @@ def test_position_premiums(pricing: PricingModel) -> None:
     assert pricing.position_premium(1, break_size=5) == 1.30
     assert pricing.position_premium(2, break_size=5) == 1.15
     assert pricing.position_premium(3, break_size=5) == 1.05
-    # Position 4 of 5 is neither top-three nor last, so it is a middle position.
+    # Position 4 of 5 is neither a priced ordinal nor the tail, so it is middle.
     assert pricing.position_premium(4, break_size=5) == 1.00
-    # The last position beyond the third gets the last-in-break premium.
+    # The tail of the break is position L, whatever its ordinal number.
     assert pricing.position_premium(5, break_size=5) == 1.20
     assert pricing.position_premium(4, break_size=4) == 1.20
+    assert pricing.position_key(5, break_size=5) == "L"
+    assert pricing.position_key(4, break_size=5) == "default_middle"
+    # A priced ordinal wins over L for a spot that holds both.
+    assert pricing.position_key(3, break_size=3) == "3"
 
 
 def test_position_zero_is_rejected(pricing: PricingModel) -> None:

@@ -1,0 +1,8 @@
+{
+  "task": "reference-product-map",
+  "status": "blocked",
+  "attempted_at": "2026-08-03",
+  "blocker": "claude-in-chrome browser extension not connected; mcp__claude-in-chrome__tabs_context_mcp returned 'Browser extension is not connected'. Could not navigate to https://traffica.base44.app or perform any browser observation.",
+  "work_done": "Read docs/media-domain-from-the-trade.md in full (domain ground truth). No browser access was available so no screens of the reference product (traffica.base44.app) were mapped. docs/reference-product-map.md was NOT written because there is no observed data to put in it - writing it would violate HONEST MATH / no fabricated content.",
+  "next_steps": "Retry once the Chrome extension is installed/connected and logged into the same claude.ai account as this session. Ensure the extension is running before invoking tabs_context_mcp again."
+}

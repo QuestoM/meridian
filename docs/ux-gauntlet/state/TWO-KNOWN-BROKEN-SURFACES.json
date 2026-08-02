@@ -1,0 +1,36 @@
+{
+  "task": "TWO-KNOWN-BROKEN-SURFACES",
+  "status": "complete",
+  "completed_at": "2026-08-03",
+  "goal": "Close two owner-visible broken surfaces on main: demo campaigns rendering unmarked, and the Advertisers tab showing seed ids instead of real names.",
+  "scope": "tv-break-dashboard/src/clients/** and tests/, no backend stores touched.",
+  "files_created": [
+    "tv-break-dashboard/src/clients/DemoBadge.jsx",
+    "tests/test_two_known_broken_surfaces.py"
+  ],
+  "files_changed": [
+    "tv-break-dashboard/src/clients/CampaignBoard.jsx (header states demo/booked split using board.demo_count/booked_count; DemoBadge on each campaign row)",
+    "tv-break-dashboard/src/clients/CampaignDetail.jsx (demo meaning banner when campaign.is_demo, explains booked-on date is the seed's)",
+    "tv-break-dashboard/src/clients/CampaignFlights.jsx (DemoBadge on each flight row)",
+    "tv-break-dashboard/src/clients/ClientTree.jsx (header states demo campaign tally computed client-side from each client.campaigns[].is_demo already on the payload; per-client demo count flag in the campaigns cell)",
+    "tv-break-dashboard/src/clients/ClientRecord.jsx (DemoBadge on each booked campaign and each flight; 'Campaigns booked' property states the demo count)",
+    "tv-break-dashboard/src/clients/clients-campaigns.css (.clients-demo-flag, 12 lines)",
+    "tv-break-dashboard/src/clients/clients-record.css (.clients-demo-flag, 12 lines, duplicated because clients-workspace.css is already at its 477-line cap and not mine to touch)",
+    "tv-break-dashboard/src/clients/advertiser-name-helpers.js (new identityName() reads row.bound_advertiser; displayNameOf/isUnnamed/nameSearchHaystack now consider it, ahead of the rules store's own empty name/display_name cells)",
+    "tv-break-dashboard/src/clients/AdvertiserDetailDrawer.jsx (drawer header now resolves the same way the card does: operatorName || identityName || boundName, instead of row.name alone)"
+  ],
+  "the_two_defects_as_found": {
+    "demo_marking": "Confirmed still live exactly as the verifier described: grep for is_demo/isDemo across tv-break-dashboard/src returned zero files before this change. The backend payload was already complete (campaigns_commitment.demo_block, board.demo_count/booked_count, flight.demo) but nothing rendered it.",
+    "advertiser_names": "Not what the prompt described verbatim (an earlier committed wave, 8f0c78c9, had already wired AdvertiserRecordsPanel.jsx to fetch /api/advertisers/identity and merge it as row.bound_advertiser). But the merge was a dead end: advertiser-name-helpers.js, the module every card (AdvertiserStatCard.jsx) and the detail drawer (AdvertiserDetailDrawer.jsx) actually render display names through, only ever read row.name/row.display_name, both empty on all 45 seeded rules rows, and row.name_source, which mergeRowWithIdentity never set. So the join's money worked (tests/test_p4_advertiser_card_money.py already covered that and passed) but the name never crossed the last hop: a card still showed ADV_01 through ADV_45. This is the actual live bug, found by reading the render path end to end rather than trusting that 'a fetch call exists' meant the surface was fixed."
+  },
+  "measured": {
+    "build": "npm run build clean, 3476 modules, 0 errors (checked twice, before and after all edits)",
+    "tests": "~/.venvs/meridian/bin/python -m pytest tests/test_two_known_broken_surfaces.py -q: 14 passed. Also re-ran tests/test_p4_advertiser_card_money.py (9 passed, unchanged behavior on the money join) and tests/test_p4_campaign_board_wiring.py (16 passed, 1 pre-existing failure not caused here) and tests/test_campaign_entity.py + test_campaign_seed.py (38 passed) to confirm no regression.",
+    "line_counts": "DemoBadge.jsx 30, CampaignBoard.jsx 267, CampaignDetail.jsx 150, CampaignFlights.jsx 248, ClientTree.jsx 341, ClientRecord.jsx 288, advertiser-name-helpers.js 125, AdvertiserDetailDrawer.jsx 405, clients-campaigns.css 95, clients-record.css 442. All under the 450 cap."
+  },
+  "pre_existing_not_mine": [
+    "tv-break-dashboard/src/clients/clients-workspace.css is 477 lines (over the 450 cap), flagged by tests/test_p4_campaign_board_wiring.py::test_no_source_file_on_this_destination_is_over_the_cap. This predates this task (owned by the NAV-DEDUP-ERROR-PADDING wave per docs/ux-gauntlet/state/verify.json's V7). Not touched here.",
+    "The campaign-delivery-shown-as-a-hardcoded-'unknown'-constant defect (verify.json V2, in CampaignFlights.jsx and ClientRecord.jsx's own inline Flights) is real and adjacent but out of the two named surfaces; not changed here to keep the round to what was assigned. Worth a follow-up round: campaign.delivery/flight-level delivery already exists on the payload."
+  ],
+  "verification_still_needed": "Could not drive the live app in a browser (no chrome-devtools/claude-in-chrome session available in this environment, same limitation the mappers hit). Verification here is build-clean plus source-level and shipped-module tests (the advertiser name test actually executes advertiser-name-helpers.js under node with the real payload shape, not just a string match), not a rendered screenshot."
+}

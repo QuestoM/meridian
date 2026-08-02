@@ -2,9 +2,12 @@
 // Kept framework-free so they are trivially testable and reusable.
 
 // Fallback presets used only until the backend /api/advertisers/options list
-// loads. "gold" is the premium gold break (Hebrew: ברייק זהב). Real vocabularies
-// (genres, programmes, dayparts) come from the options endpoint at runtime.
-export const POSITION_PRESETS = ['ANY', 'first', 'middle', 'last', 'gold'];
+// loads. The trade's positions inside a break are 1, 2, 3, 4, 5 and L, where L
+// is LAST and is its own position rather than the fifth ordinal. "gold" is the
+// premium gold break (Hebrew: ברייק זהב), a break tag the rule engine accepts in
+// this dimension. Real vocabularies (genres, programmes, dayparts) come from the
+// options endpoint at runtime.
+export const POSITION_PRESETS = ['ANY', '1', '2', '3', '4', '5', 'L', 'gold'];
 export const GENRE_PRESETS = ['ANY'];
 
 export const CONDITION_EFFECTS = ['premium', 'require', 'forbid', 'pressure'];

@@ -5,6 +5,7 @@ import { localized, refusalText, vocabularyLabel, vocabularyRemedy, windowLabel 
 import { endCampaign, loadOnboardingOptions } from './clients-api';
 import CampaignDetail from './CampaignDetail';
 import CampaignTerms from './CampaignTerms';
+import DemoBadge from './DemoBadge';
 import './clients-campaigns.css';
 
 // Every campaign booked in this product, with its flights and what each flight
@@ -67,6 +68,15 @@ export default function CampaignBoard({
 
   const campaigns = board.campaigns || [];
   const statuses = board.status_vocabulary || [];
+  const demoCount = board.demo_count ?? campaigns.filter((campaign) => campaign.is_demo).length;
+  const bookedCount = board.booked_count ?? (campaigns.length - demoCount);
+  const countLine = demoCount > 0
+    ? pageText(
+      locale,
+      `${campaigns.length} campaigns on this board: ${bookedCount} booked, ${demoCount} demo seed data`,
+      `⁦${campaigns.length}⁩ קמפיינים על הלוח: ⁦${bookedCount}⁩ הוזמנו, ⁦${demoCount}⁩ נתוני זרע הדגמה`,
+    )
+    : pageText(locale, `${campaigns.length} campaigns booked`, `⁦${campaigns.length}⁩ קמפיינים הוזמנו`);
 
   async function end(campaignId) {
     try {
@@ -97,9 +107,7 @@ export default function CampaignBoard({
   return (
     <section className="clients-campaigns" dir={he ? 'rtl' : 'ltr'}>
       <div className="clients-toolbar">
-        <span className="clients-counts">
-          {pageText(locale, `${campaigns.length} campaigns booked`, `⁦${campaigns.length}⁩ קמפיינים הוזמנו`)}
-        </span>
+        <span className="clients-counts">{countLine}</span>
         {canEdit ? (
           <>
             <button type="button" className="clients-primary" onClick={onOnboard}>
@@ -185,6 +193,7 @@ export default function CampaignBoard({
                         {campaign.name}
                         {open ? <ChevronUp size={13} aria-hidden="true" /> : <ChevronDown size={13} aria-hidden="true" />}
                       </button>
+                      <DemoBadge demo={campaign.demo} locale={locale} />
                       <small className="clients-campaign-id">{campaign.campaign_id}</small>
                     </td>
                     <td>

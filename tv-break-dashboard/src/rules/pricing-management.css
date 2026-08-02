@@ -263,3 +263,15 @@
   border: 1px solid var(--amber);
   border-radius: var(--radius-md);
 }
+
+/* A rate-card key nobody has priced. It is a real, honest state (the trade's
+   positions 4 and 5 exist and ship unset), so it is drawn as absent rather than
+   as a chosen premium. */
+.pricing-mult.unset {
+  border-style: dashed;
+}
+
+.pricing-mult.unset input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}

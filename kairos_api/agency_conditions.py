@@ -34,18 +34,12 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from kairos.optimize.advertiser_rules import (
-    _EFFECTS,
-    _PREMIUM_MODES,
-    FORBID,
-    MULTIPLIER,
-    REQUIRE,
-    _normalize_mode,
-    normalize_scope,
+    _EFFECTS, _PREMIUM_MODES, FORBID, MULTIPLIER, REQUIRE,
+    _normalize_mode, normalize_scope,
 )
+from kairos.optimize.positions import normalize_position_scope
 from kairos_api.condition_validation import (
-    validate_effective_mode_value,
-    validate_mode_value,
-    validate_weekday_scope,
+    validate_effective_mode_value, validate_mode_value, validate_weekday_scope,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -240,7 +234,7 @@ def _condition_record(row: "pd.Series[Any]") -> dict[str, Any]:
         "effect": str(row.get("effect", "")).strip().lower(),
         "value": value,
         "mode": _normalize_mode(row.get("mode")),
-        "scope_positions": normalize_scope(row.get("scope_positions")),
+        "scope_positions": normalize_position_scope(row.get("scope_positions")),
         "scope_genres": normalize_scope(row.get("scope_genres")),
         "scope_dayparts": normalize_scope(row.get("scope_dayparts")),
         "scope_programmes": normalize_scope(row.get("scope_programmes")),
@@ -373,7 +367,7 @@ def create_condition(agency_id: str, payload: ConditionCreate,
         "effect": _validate_effect(payload.effect),
         "value": str(float(payload.value)),
         "mode": mode,
-        "scope_positions": normalize_scope(payload.scope_positions),
+        "scope_positions": normalize_position_scope(payload.scope_positions),
         "scope_genres": normalize_scope(payload.scope_genres),
         "scope_dayparts": normalize_scope(payload.scope_dayparts),
         "scope_programmes": normalize_scope(payload.scope_programmes),
@@ -428,7 +422,10 @@ def update_condition(agency_id: str, rule_id: str, payload: ConditionUpdate,
         for scope in ("scope_positions", "scope_genres", "scope_dayparts", "scope_programmes"):
             value = getattr(payload, scope)
             if value is not None:
-                frame.at[index, scope] = normalize_scope(value)
+                # Positions carry their own vocabulary (1 to 5 and L); every
+                # other scope dimension stays free text.
+                reader = normalize_position_scope if scope == "scope_positions" else normalize_scope
+                frame.at[index, scope] = reader(value)
         if payload.scope_weekdays is not None:
             frame.at[index, "scope_weekdays"] = validate_weekday_scope(payload.scope_weekdays)
         if payload.notes is not None:

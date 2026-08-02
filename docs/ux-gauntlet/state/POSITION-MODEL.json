@@ -1,0 +1,65 @@
+{
+  "task": "POSITION-MODEL",
+  "started": "2026-08-03",
+  "finished": "2026-08-03",
+  "status": "complete",
+  "goal": "Extend the spot-position model from {1,2,3,last} to {1,2,3,4,5,L} with L distinct from the ordinals, make the preferred set configurable per client and per agreement, and make any preferred-position percentage state its counting method.",
+  "ground_truth_read": [
+    "docs/media-domain-from-the-trade.md (positions section, lines 71-98)",
+    "docs/trade-gap-analysis.md (gap 2)"
+  ],
+  "design": {
+    "axes": "kairos/model/spec.py DEFAULT_BREAK_POSITIONS (first/middle/last) is the position of a BREAK inside a PROGRAMME, the retention model channel grid. It is NOT the trade's position and was left untouched. The trade's position is the position of a SPOT inside a BREAK (position_in_break).",
+    "resolution_rule": "An explicitly priced ordinal wins; L applies when position == break_size and that ordinal is not priced; otherwise default_middle. Ordinals 4 and 5 ship UNSET, which is the no-op.",
+    "preferred_set": "Tri-state, unset everywhere by default. Precedence agreement > client > channel default. No percentage may be computed while unset.",
+    "counting": "AGENCY_METHOD and CHANNEL_METHOD, method is a required argument and is welded to the returned number, bilingually labelled."
+  },
+  "proof": {
+    "golden_note": "tests/golden_weekly_schedule.py was ALREADY RED at HEAD before any edit in this task, so its committed constant is stale. Proof of no-change is a live pre-edit hash against a live post-edit hash of the same engine.",
+    "golden_csv_sha256_before": "355bdbe7b372bd3ec0c6cecb7131c0852c06f5a6519e7178928ebe7cae122fbc",
+    "golden_csv_sha256_after": "355bdbe7b372bd3ec0c6cecb7131c0852c06f5a6519e7178928ebe7cae122fbc",
+    "golden_agg_sha256_before": "1cc285de7ef1e04c7c3454457e8dd35c17692844ab6f51f4d9803832d87d76df",
+    "golden_agg_sha256_after": "1cc285de7ef1e04c7c3454457e8dd35c17692844ab6f51f4d9803832d87d76df",
+    "rows": 8704,
+    "total_predicted_revenue_ils": 221569688.39,
+    "committed_stale_csv_sha256": "1b9d42983fc0cb38c0c288984e2e69b2f6c042cdca084b40672fc62b392b8f5c",
+    "position_grid_parity": "position_premium matches the previous derived rule for every (position, break_size) over break sizes 1 to 12, asserted in tests/test_positions.py::test_shipped_rate_card_prices_every_slot_exactly_as_before",
+    "daily_spot_ledger": "119 priced, 0 dropped, 699450.00 ILS on data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv; zero of its 41 advertisers resolve to any advertiser_rules.csv baseline, so the scope canonicalisation is a measured no-op on the shipped data",
+    "frontend_build": "npm run build green in tv-break-dashboard"
+  },
+  "files_changed": [
+    "kairos/optimize/positions.py (new)",
+    "kairos/optimize/pricing.py",
+    "kairos/optimize/_rule_helpers.py",
+    "kairos/optimize/_rule_models.py",
+    "kairos/optimize/agreements.py",
+    "config/optimization_weights.yaml",
+    "data/reference/AdvertiserAgreements.csv",
+    "kairos_api/pricing_api.py",
+    "kairos_api/pricing_positions.py (new)",
+    "kairos_api/advertiser_conditions.py",
+    "kairos_api/agency_conditions.py",
+    "tv-break-dashboard/src/rules/PricingPreferredPositions.jsx (new)",
+    "tv-break-dashboard/src/rules/PricingManager.jsx",
+    "tv-break-dashboard/src/rules/PricingSlotTester.jsx",
+    "tv-break-dashboard/src/rules/pricing-layers-lib.js",
+    "tv-break-dashboard/src/rules/pricing-management.css",
+    "tv-break-dashboard/src/history/history-fields.js",
+    "tv-break-dashboard/src/clients/advertisers-helpers.js",
+    "tv-break-dashboard/src/clients/AdvertiserPricingSummary.jsx",
+    "tests/test_positions.py (new)",
+    "tests/test_pricing.py",
+    "tests/test_advertiser_conditions_api.py",
+    "tests/test_p5_israeli_week.py"
+  ],
+  "not_done": [
+    "No preferred-position percentage is surfaced on any dashboard page. The engine primitive exists and refuses to compute while the preferred set is unset; wiring a real percentage needs a per-campaign appearance feed (traffic log position_in_break plus break size) and an owner decision on which method a channel surface quotes.",
+    "Top and Tail (two creatives in one break separated by exactly one or two other ads) is still unmodelled; it is gap 3 of the trade doc, not the position model.",
+    "kairos/export/spots.py still exports a bare integer position_in_break and does not name the resolved position key, so a spot ledger row cannot be read as L. Changing that CSV shape was out of scope for this round."
+  ],
+  "pre_existing_red_at_head_not_caused_here": [
+    "tests/golden_weekly_schedule.py and tests/test_refiner_net.py::test_blend_golden_is_byte_identical and tests/test_qa_adoption_integrity.py::test_golden_weekly_schedule_reproduces_from_the_artifact: the committed golden constant and output/weekly_break_schedule.csv are stale against the live engine",
+    "tests/test_journey_inspector_pricing.py::test_effect_preview_baseline_matches_committed_day: same staleness, proven by the pre-edit capture (live 1062669.88 vs committed 1067845.56 for רשת 13 2024-11-01)",
+    "tests/test_p1_job_picker.py, tests/test_p7_model_surface.py, tests/test_w0_2_shell_seams.py, tests/test_p4_* : shell/nav.js lost navigation entries and clients/clients-workspace.css is over the line cap, both from other work in this wave"
+  ]
+}

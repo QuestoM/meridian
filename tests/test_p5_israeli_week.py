@@ -245,12 +245,29 @@ def test_without_the_order_the_same_card_reads_monday_first(without_the_order):
 
 
 def test_every_other_layer_keeps_the_order_the_server_sent(shipped, without_the_order):
-    """Only the week has a reading order of its own; nothing else is reshuffled."""
+    """Only the week and the positions have a reading order of their own.
+
+    The position layer is the second exception and it is the server's own doing:
+    it ships a ``vocabulary`` (the trade's positions 1 to 5 then L then the
+    middle default) and the reader follows it, so an ordinal nobody has priced
+    still appears and is settable. Every other layer keeps the order it was sent.
+    """
     for name, layer in shipped["layers"].items():
-        if name == "day":
+        if name in ("day", "position"):
             continue
         assert layer["keys"] == layer["server_keys"], f"{name} was reordered and should not be"
         assert layer["keys"] == without_the_order["layers"][name]["keys"]
+
+
+def test_the_position_layer_reads_its_declared_vocabulary_and_keeps_every_key(shipped):
+    """1 to 5, then L, then the middle default, and nothing the server sent is lost."""
+    position = shipped["layers"]["position"]
+    assert position["keys"] == ["1", "2", "3", "4", "5", "L", "default_middle"]
+    assert set(position["server_keys"]) <= set(position["keys"]), "no priced key was dropped"
+    # 4 and 5 are unset on the shipped card, so they read as absent, not as 1.0.
+    by_key = dict(zip(position["keys"], position["values"]))
+    assert by_key["4"] is None and by_key["5"] is None
+    assert by_key["L"] == 1.2
 
 
 def test_a_day_the_order_does_not_name_is_kept_rather_than_dropped(tmp_path, pricing):
