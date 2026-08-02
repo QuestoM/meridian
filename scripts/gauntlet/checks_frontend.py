@@ -32,6 +32,10 @@ ROUTES = ["Overview", "Optimizer", "Schedule", "Inventory", "Break Library", "Ca
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
+# Poll interval, and how many identical consecutive reads count as settled.
+POLL = 1.5
+STABLE_SAMPLES = 3
+
 
 def _free_port() -> int:
     with socket.socket() as s:
@@ -147,6 +151,9 @@ def _cdp(port: int, url: str, routes: list[str], settle: float) -> dict[str, str
     import asyncio
     import websockets as ws
 
+    settled: dict[str, bool] = {}
+    out_partial: dict[str, str] = {}
+
     async def run() -> dict[str, str] | str:
         for _ in range(80):
             try:
@@ -178,14 +185,45 @@ def _cdp(port: int, url: str, routes: list[str], settle: float) -> dict[str, str
             await send("Runtime.enable")
             for route in routes:
                 await send("Page.navigate", url="%s#%s" % (url, route.replace(" ", "%20")))
-                await asyncio.sleep(settle)
-                res = await send("Runtime.evaluate",
-                                 expression="document.body ? document.body.innerText : ''",
-                                 returnByValue=True)
-                out[route] = (res.get("result") or {}).get("value") or ""
+                # Wait for the page to stop changing rather than for a fixed number of
+                # seconds. A constant is a guess about the slowest page, and the two
+                # heaviest routes here disproved every guess: same build, two cold
+                # browsers, 1,104 characters then 3,382. Quiescence is the thing the
+                # measurement actually needs, so it is what is waited for.
+                previous, stable, waited, text = None, 0, 0.0, ""
+                while waited < settle:
+                    await asyncio.sleep(POLL)
+                    waited += POLL
+                    res = await send("Runtime.evaluate",
+                                     expression="document.body ? document.body.innerText : ''",
+                                     returnByValue=True)
+                    text = (res.get("result") or {}).get("value") or ""
+                    if text and text == previous:
+                        stable += 1
+                        if stable >= STABLE_SAMPLES:
+                            break
+                    else:
+                        stable = 0
+                    previous = text
+                out[route] = text
+                out_partial[route] = text
+                settled[route] = stable >= STABLE_SAMPLES
         return out
 
-    return asyncio.run(run())
+    try:
+        result = asyncio.run(run())
+    except Exception as exc:
+        # A dropped debugging socket is a fact about the measurement, not about the
+        # product. It is reported as an inability to check, never as a difference.
+        partial = dict(out_partial)
+        if partial:
+            partial["__settled__"] = json.dumps(settled)
+            partial["__incomplete__"] = "%s: %s" % (type(exc).__name__, exc)
+            return partial
+        return "the browser connection dropped: %s: %s" % (type(exc).__name__, exc)
+    if isinstance(result, dict):
+        result["__settled__"] = json.dumps(settled)
+    return result
 
 
 def _launch_chrome(profile: Path) -> tuple[subprocess.Popen | None, int]:
@@ -201,8 +239,10 @@ def _launch_chrome(profile: Path) -> tuple[subprocess.Popen | None, int]:
 
 
 def check_frontend_text(python: str, ref: Path, work: Path, scratch: Path, build_timeout: int,
-                        settle: float) -> Result:
-    r = Result("frontend", "Rendered text of all seventeen routes")
+                        settle: float, self_check: bool = False) -> Result:
+    title = ("Rendered text of all seventeen routes, reference against itself"
+             if self_check else "Rendered text of all seventeen routes")
+    r = Result("frontend", title)
     started = time.time()
 
     if shutil.which("npm") is None:
@@ -210,9 +250,15 @@ def check_frontend_text(python: str, ref: Path, work: Path, scratch: Path, build
     ref_dist, err = _build(ref, build_timeout)
     if ref_dist is None:
         return r.cannot_check("reference build: %s" % err)
-    work_dist, err = _build(work, build_timeout)
-    if work_dist is None:
-        return r.cannot_check("working build: %s" % err)
+    if self_check:
+        work_dist = ref_dist
+        r.note("self-check: the reference is compared against itself, one build served twice, "
+               "each read by its own cold browser. A check that cannot reproduce its own "
+               "baseline cannot judge anything.")
+    else:
+        work_dist, err = _build(work, build_timeout)
+        if work_dist is None:
+            return r.cannot_check("working build: %s" % err)
 
     api_proc, api_port = _start_api(python, ref, scratch, isolated_env)
     if api_proc is None:
@@ -220,20 +266,29 @@ def check_frontend_text(python: str, ref: Path, work: Path, scratch: Path, build
                "that still compares the shell but not the data-bearing pages")
     ref_srv, ref_port = _serve(ref_dist, api_port or None)
     work_srv, work_port = _serve(work_dist, api_port or None)
-    chrome, cdp_port = _launch_chrome(scratch / "chrome-profile")
-    if chrome is None:
-        ref_srv.shutdown(); work_srv.shutdown()
-        return r.cannot_check("Chrome is not installed at %s" % CHROME)
+    if api_port:
+        _warm(api_port)
+
+    def read(url: str, profile: str):
+        """One cold browser per pass, so a shared warm profile cannot flatter the second."""
+        chrome, cdp_port = _launch_chrome(scratch / profile)
+        if chrome is None:
+            return "Chrome is not installed at %s" % CHROME
+        try:
+            return _cdp(cdp_port, url, ROUTES, settle)
+        finally:
+            chrome.terminate()
+            time.sleep(1.0)
+
     try:
-        if api_port:
-            _warm(api_port)
-        # Measured in both orders. If a route only disagrees in one order, the
-        # disagreement is the measurement warming up, not the frontends differing.
-        ref_text = _cdp(cdp_port, "http://127.0.0.1:%d/" % ref_port, ROUTES, settle)
-        work_text = _cdp(cdp_port, "http://127.0.0.1:%d/" % work_port, ROUTES, settle)
-        ref_again = _cdp(cdp_port, "http://127.0.0.1:%d/" % ref_port, ROUTES, settle)
+        ref_url = "http://127.0.0.1:%d/" % ref_port
+        work_url = "http://127.0.0.1:%d/" % work_port
+        ref_text = read(ref_url, "chrome-a")
+        work_text = read(work_url, "chrome-b")
+        # A third cold pass over the reference. If a route disagrees with the working
+        # side AND with its own earlier self, it never settled and is not comparable.
+        ref_again = read(ref_url, "chrome-c")
     finally:
-        chrome.terminate()
         ref_srv.shutdown()
         work_srv.shutdown()
         if api_proc is not None:
@@ -246,6 +301,18 @@ def check_frontend_text(python: str, ref: Path, work: Path, scratch: Path, build
         return r.cannot_check("working render: %s" % work_text)
     if isinstance(ref_again, str):
         ref_again = {}
+
+    for side, payload in (("reference", ref_text), ("working", work_text)):
+        if isinstance(payload, dict) and payload.get("__incomplete__"):
+            return r.cannot_check("the %s pass did not complete: %s"
+                                  % (side, payload["__incomplete__"]))
+    ref_settled = json.loads(ref_text.pop("__settled__", "{}"))
+    work_settled = json.loads(work_text.pop("__settled__", "{}"))
+    if isinstance(ref_again, dict):
+        ref_again.pop("__settled__", None)
+    never = [x for x in ROUTES if not ref_settled.get(x, True) or not work_settled.get(x, True)]
+    for route in never:
+        r.note("%s: never stopped changing inside the %.0fs budget" % (route, settle))
 
     differing, unstable = [], []
     for route in ROUTES:
@@ -271,10 +338,18 @@ def check_frontend_text(python: str, ref: Path, work: Path, scratch: Path, build
                     "empty_on_both": sum(1 for x in ROUTES if not ref_text.get(x) and not work_text.get(x))}
     if measurements["empty_on_both"] == len(ROUTES):
         return r.cannot_check("every route rendered empty on both sides, so the comparison proves nothing")
+    if differing and self_check:
+        return r.failed(
+            "the check cannot reproduce its own baseline: %d of %d routes differ between two cold "
+            "reads of the same build, so it is not fit to judge anything"
+            % (len(differing), len(ROUTES)), **measurements)
     if differing:
         return r.failed("%d of %d routes render different text" % (len(differing), len(ROUTES)), **measurements)
     if unstable:
         return r.cannot_check(
             "%d of %d routes never settled on the reference, so they are unproven; the other %d matched"
             % (len(unstable), len(ROUTES), len(ROUTES) - len(unstable)))
+    if self_check:
+        return r.passed("all %d routes reproduce identically across two cold reads of the same build, "
+                        "so the check is fit to judge" % len(ROUTES), **measurements)
     return r.passed("all %d routes render identical text" % len(ROUTES), **measurements)

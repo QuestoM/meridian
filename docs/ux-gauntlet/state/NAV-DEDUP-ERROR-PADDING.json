@@ -1,0 +1,38 @@
+{
+  "task": "NAV-DEDUP-ERROR-PADDING",
+  "status": "complete",
+  "completed_at": "2026-08-02",
+  "goal": "1) Remove Calendar and Pricing from the rail (they live as tabs inside Rules/Settings); redirect their routes. 2) Name the failing section in the ClientsWorkspace error and add a retry button. 3) Fix workspace inline padding with logical properties.",
+  "files_changed": [
+    "tv-break-dashboard/src/shell/nav.js",
+    "tv-break-dashboard/src/shell/workspace-router.jsx",
+    "tv-break-dashboard/src/shell/styles.css",
+    "tv-break-dashboard/src/clients/ClientsWorkspace.jsx",
+    "tv-break-dashboard/src/clients/clients-workspace.css"
+  ],
+  "work_done": {
+    "nav_dedup": {
+      "removed_from_rail": ["Calendar", "Pricing"],
+      "kept_in_allKnownLabels": true,
+      "redirect_Calendar": "activeView=Calendar -> sets ?rules=calendar, replaces hash to #Settings, calls setActiveView('Settings')",
+      "redirect_Pricing": "activeView=Pricing -> sets ?rules=rate_card, replaces hash to #Settings, calls setActiveView('Settings')",
+      "removed_imports": ["CalendarEvents", "PricingManager from workspace-router.jsx"],
+      "removed_icon_imports": ["CalendarClock", "Coins from nav.js"]
+    },
+    "error_naming": {
+      "changed": "failed state from string to array of {en, he} objects (null while loading, [] if all succeeded, non-empty array naming the broken sections)",
+      "section_names": "Reuses VIEW_LABELS[0..3] which match the four Promise.allSettled slots in order: clients, money, campaigns, advertisers",
+      "retry_button": "clients-retry button calls reload() which increments reloadKey",
+      "css": "clients-error changed to flex with space-between; clients-retry button added"
+    },
+    "workspace_padding": {
+      "workspace": "Added padding-inline: 24px",
+      "top_bar": "Added margin-inline: -24px to bleed to edges; padding-inline: 24px (unchanged content)",
+      "schedule_staleness_banner": "Added margin-inline: -24px to bleed; split padding shorthand to padding-block + padding-inline",
+      "page_workspace": "Added .workspace > .page-workspace { padding-inline: 0 } to avoid double-gutter",
+      "responsive_top_bar": "Updated responsive override to use margin-inline: -24px + separate padding-block/padding-inline",
+      "logical_properties": "All new/changed padding/margin rules use logical properties (padding-inline, margin-inline, padding-block)"
+    }
+  },
+  "build": "clean - npm run build produced 0 errors, 3475 modules transformed"
+}

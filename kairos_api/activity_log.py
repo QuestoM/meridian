@@ -19,7 +19,11 @@ runtime state; KAIROS_AUDIT_DIR relocates it, which the tests use). Appends
 happen under an in-process lock, correct for the single-process uvicorn
 deployment, the same model as the auth session store. When the file grows
 past PRUNE_TRIGGER lines it is atomically rewritten (tmp file + os.replace)
-keeping only the newest MAX_KEPT_ENTRIES entries.
+keeping only the newest MAX_KEPT_ENTRIES entries. That bound, the stamp on the
+oldest surviving line and the number of lines held are all published (RETENTION,
+first_entry_ts, entry_count), so a surface reading this record can say how far
+back it reaches and how large it is instead of reporting a pruned day as a day
+on which nothing happened, or a reader's own slice as the size of the store.
 
 Visibility (GET /api/activity-log): the admin role sees every entry and may
 narrow the view with ?user=<name>; any other signed-in role sees only its own
@@ -42,7 +46,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from kairos_api import auth_store
+from kairos_api import auth_store, history_api_actions
 from kairos_api.auth import auth_active
 
 logger = logging.getLogger("kairos.activity")
@@ -55,6 +59,13 @@ LOG_FILENAME = "activity.jsonl"
 # lines, so steady-state appends stay cheap and the file stays bounded.
 MAX_KEPT_ENTRIES = 5000
 PRUNE_TRIGGER = 6000
+
+# The same two numbers, published as a fact a reader can be shown. A bounded file
+# means the oldest days are dropped while nobody is looking, and a surface that
+# reports "nothing was recorded on that day" without saying so is wrong on a
+# destination whose whole job is evidence. Measured on this deployment on
+# 2026-08-01: 5,227 lines held, the oldest stamped five hours before the read.
+RETENTION = {"pruned": True, "keeps": MAX_KEPT_ENTRIES, "prune_at": PRUNE_TRIGGER, "unit": "lines"}
 
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
@@ -164,6 +175,65 @@ def _append_entry(entry: dict[str, Any]) -> None:
             _line_count = _prune_locked(path)
 
 
+def first_entry_ts() -> str | None:
+    """The stamp on the oldest line still in the file, or None when it holds none.
+
+    How far back this record reaches is a fact about the store and not about the
+    account reading it, so it is taken from the file itself rather than from any
+    scoped slice of it. Pruning moves it: the file keeps the newest
+    MAX_KEPT_ENTRIES lines and drops the rest, so a day older than this stamp
+    carries no evidence here either way, and a screen that answers "nothing was
+    recorded" for such a day has answered a question it cannot answer.
+
+    Read line by line and stopped at the first parseable one, so the cost does
+    not grow with the file. A malformed head is skipped rather than returned.
+    """
+    with _LOCK:
+        path = log_path()
+        if not path.is_file():
+            return None
+        with path.open("r", encoding="utf-8") as handle:
+            for raw in handle:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    parsed = json.loads(raw)
+                except ValueError:
+                    continue
+                if isinstance(parsed, dict) and parsed.get("ts"):
+                    return str(parsed["ts"])
+    return None
+
+
+def entry_count() -> int:
+    """How many lines this store holds, whoever happens to be reading it.
+
+    Published beside :func:`first_entry_ts` and for the same reason. How far the
+    evidence goes and how much of it there is are both facts about the store, so
+    both are read from the file rather than from any caller's scoped slice of it.
+
+    Measured live on 2026-08-01 before this existed, against a file holding 5,261
+    lines: an operator's read reported 2 and a viewer's reported 4, each printed
+    under the store's own name and directly beside a sentence saying the recorder
+    keeps the newest 5,000. A store that keeps 5,000 and holds 2 is a
+    contradiction, and the figure that was wrong was the one whose whole job is
+    to say how large the evidence is.
+
+    A blank line is not counted, because a blank line is no record. A line that
+    does not parse is counted, because it still occupies one of the
+    MAX_KEPT_ENTRIES this figure is printed beside. The pruner's own counter
+    counts physical lines instead, which is right for a trigger and would be
+    wrong here.
+    """
+    with _LOCK:
+        path = log_path()
+        if not path.is_file():
+            return 0
+        with path.open("r", encoding="utf-8") as handle:
+            return sum(1 for raw in handle if raw.strip())
+
+
 def _read_entries() -> list[dict[str, Any]]:
     """All parseable entries in file order (oldest first). Malformed lines are
     skipped instead of failing the whole read."""
@@ -259,6 +329,24 @@ def _record_request_safely(request: Request, status: int, started: float) -> Non
 router = APIRouter(tags=["activity-log"])
 
 
+def visibility_scope(request: Request) -> tuple[str, str | None]:
+    """Who this caller may see in the log: ``("all", None)`` or ``("self", name)``.
+
+    The one implementation of the rule, so History and the log itself cannot
+    drift: admin sees every entry, any other signed-in role sees only its own,
+    an anonymous caller is refused, and a deployment without a login wall has no
+    identity to scope by and honestly says "all".
+    """
+    if not auth_active():
+        return "all", None
+    session = auth_store.resolve_session(request.cookies.get(auth_store.COOKIE_NAME))
+    if session is None:
+        raise HTTPException(status_code=401, detail="A signed-in session is required.")
+    if session.get("role") == "admin":
+        return "all", None
+    return "self", str(session.get("username") or "")
+
+
 @router.get("/api/activity-log")
 def get_activity_log(request: Request, limit: int = 100, user: str | None = None) -> dict[str, Any]:
     """Newest-first activity entries, scoped by the caller's role.
@@ -269,19 +357,7 @@ def get_activity_log(request: Request, limit: int = 100, user: str | None = None
     get 401. With auth disabled or unseeded the scope is honestly "all".
     """
     filter_user = (user or "").strip() or None
-    if auth_active():
-        session = auth_store.resolve_session(request.cookies.get(auth_store.COOKIE_NAME))
-        if session is None:
-            raise HTTPException(status_code=401, detail="A signed-in session is required.")
-        if session.get("role") == "admin":
-            scope = "all"
-            self_user = None
-        else:
-            scope = "self"
-            self_user = str(session.get("username") or "")
-    else:
-        scope = "all"
-        self_user = None
+    scope, self_user = visibility_scope(request)
 
     entries = _read_entries()
     entries.reverse()  # newest first
@@ -293,4 +369,20 @@ def get_activity_log(request: Request, limit: int = 100, user: str | None = None
         entries = [entry for entry in entries if entry.get("user") == filter_user]
 
     capped = max(1, min(int(limit), 1000))
-    return {"entries": entries[:capped], "scope": scope}
+    return {"entries": [_with_action(entry) for entry in entries[:capped]], "scope": scope}
+
+
+def _with_action(entry: dict[str, Any]) -> dict[str, Any]:
+    """The stored entry plus the action code the surface renders a word for, and
+    whether that act saved anything.
+
+    Both are derived on the read and never stored, so the file schema is exactly
+    the nine metadata fields it has always been. They exist so no surface has to
+    match on an HTTP path to name what happened: the classification lives in one
+    place and both History and the settings log read the same one.
+    """
+    read = dict(entry)
+    action = history_api_actions.action_for(entry.get("method"), entry.get("path"))
+    read["action"] = action
+    read["saved"] = history_api_actions.kind_for(action) != "preview"
+    return read

@@ -56,6 +56,39 @@ export function mergeRowWithStats(row, statsIndex) {
   };
 }
 
+// Index the identity read by the rules row each advertiser is bound to, so a
+// card can carry the money of the advertiser it actually prices. A row bound to
+// nobody appears in no key here, which is what makes its dash honest rather than
+// a missing lookup.
+export function indexIdentityByRow(payload) {
+  const list = payload && Array.isArray(payload.advertisers) ? payload.advertisers : [];
+  const map = new Map();
+  list.forEach((record) => {
+    const boundTo = record && record.rules ? record.rules.advertiser_id : null;
+    if (boundTo) {
+      map.set(String(boundTo), record);
+    }
+  });
+  return map;
+}
+
+// Attach the bound advertiser's identity and money to one rules row. Nothing is
+// invented: an unbound row gets nulls and the reason, and a bound row with no
+// priced spot keeps its null and the ledger's own reason for it.
+export function mergeRowWithIdentity(row, identityIndex) {
+  const record = identityIndex.get(String(row.advertiser_id)) || null;
+  const money = record && record.money ? record.money : null;
+  return {
+    ...row,
+    bound_advertiser: record ? record.shown_name : '',
+    bound_spots: money ? money.spots : null,
+    revenue: money && money.spots ? money.gross : null,
+    revenue_net: money && money.spots ? money.net : null,
+    revenue_basis: money ? money.basis : '',
+    revenue_reason: money ? money.reason : '',
+  };
+}
+
 // Total scoped rules across one merged row's effect breakdown (or the
 // rule_count fallback when the breakdown has not loaded).
 export function totalRules(row) {
@@ -146,10 +179,39 @@ export function managementSummary(rows) {
   const list = rows || [];
   return {
     total: list.length,
+    // A row prices somebody only when its name cell carries an advertiser, so
+    // this count is the real reach of the store rather than its row count.
+    bound: list.filter((row) => String(row.name ?? '').trim()).length,
     withRules: list.filter((row) => totalRules(row) > 0).length,
     totalRules: list.reduce((sum, row) => sum + totalRules(row), 0),
     conflicts: list.reduce((sum, row) => sum + conflictCount(row), 0),
   };
+}
+
+// Why this row's revenue reads the way it does. Three states, never one blank:
+// a bound row with priced spots names the daily file the figure came from, a
+// bound row without one carries the ledger's own reason, and an unbound row says
+// that it prices nobody and where it would be bound.
+export function revenueProvenance(row, locale) {
+  if (!String(row?.name ?? '').trim()) {
+    return pageText(
+      locale,
+      'This pricing row carries no advertiser name, so it prices nobody and has no money. Name it on the client record.',
+      'שורת התמחור הזו אינה נושאת שם מפרסם, ולכן היא אינה מתמחרת אף אחד ואין לה כסף. תנו לה שם בכרטיס הלקוח.',
+    );
+  }
+  if (row?.revenue === null || row?.revenue === undefined) {
+    return row?.revenue_reason || pageText(
+      locale,
+      'This advertiser has no priced spot in the daily file being read.',
+      'למפרסם הזה אין תשדיר מתומחר בקובץ היומי הנקרא.',
+    );
+  }
+  return pageText(
+    locale,
+    `Source: the priced daily ledger, ${row.revenue_basis}, gross before the agency rebate`,
+    `מקור: הפנקס היומי המתומחר, ⁦${row.revenue_basis}⁩, ברוטו לפני רבייט הסוכנות`,
+  );
 }
 
 // The honest provenance string for the pending revenue/profitability stat.

@@ -3,13 +3,13 @@ import { Button, Tooltip } from '@mui/material';
 import { Numeric, formatCurrency, formatMinutes, formatNumber, formatPercent, pageText } from '../../shell/format';
 import { dayLabel, daypartLabel, gridAxisLabel, programTypeLabel } from '../../shell/labels';
 import {
-  dayKeys,
   daypartForTime,
   daypartKeys,
   flattenScheduleRows,
   hourFromTime,
   programKey,
 } from '../../shell/plan-model';
+import { SUNDAY_FIRST, isWeekend } from './plan-week-model';
 
 export function buildPlannerColumns(rows, axis, locale) {
   if (axis === 'daypart') {
@@ -31,7 +31,10 @@ export function buildPlannerColumns(rows, axis, locale) {
       label: programTypeLabel(programType, locale),
     }));
   }
-  return dayKeys.map((day) => ({ key: day, label: dayLabel(day, locale) }));
+  // The Israeli week: Sunday to Saturday, weekend Friday and Saturday. The
+  // shell's own weekday array is Monday-first and frozen, so this surface reads
+  // its order from this tree instead.
+  return SUNDAY_FIRST.map((day) => ({ key: day, label: dayLabel(day, locale), weekend: isWeekend(day) }));
 }
 
 export function programsForPlannerColumn(programs, column, axis) {
@@ -48,12 +51,10 @@ export function programsForPlannerColumn(programs, column, axis) {
 }
 
 export function PlanningCanvas({ rows, copy, locale, axis = 'day', dayEvents = null, showPrograms = true, showBreaks = true, selectedProgramKey, onSelectProgram }) {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const columns = buildPlannerColumns(rows, axis, locale);
   const cellMinWidth = axis === 'hour' ? 112 : 136;
   const gridTemplateColumns = `142px repeat(${columns.length}, minmax(${cellMinWidth}px, 1fr))`;
   const minWidth = 142 + columns.length * cellMinWidth;
-  const dayLabels = locale === 'he' ? ['ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳', 'א׳'] : days;
   return (
     <div className="planning-canvas">
       <div className="canvas-header" style={{ gridTemplateColumns, minWidth }}>
@@ -63,7 +64,7 @@ export function PlanningCanvas({ rows, copy, locale, axis = 'day', dayEvents = n
           // number on any surface changes because of an event.
           const eventNames = axis === 'day' && dayEvents ? dayEvents[column.key] : null;
           return (
-            <span key={column.key}>
+            <span key={column.key} className={column.weekend ? 'canvas-weekend' : undefined}>
               {column.label}
               {Array.isArray(eventNames) && eventNames.length > 0 && (
                 <Tooltip title={pageText(locale, 'An active calendar event covers this plan day. Display only; no retention or revenue number changes.', 'אירוע פעיל מלוח האירועים חל ביום התוכנית הזה. תצוגה בלבד; אף מספר שימור או הכנסה אינו משתנה.')} arrow>

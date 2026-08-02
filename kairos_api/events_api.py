@@ -2,35 +2,33 @@
 
 The operator-managed events store (``data/calendar_events.csv``) records special
 periods (holidays, wars, sport, other) with a start date, an optional inclusive
-end date (empty means open-ended), a 1..5 operator-judged intensity and an
-active flag. Writes follow the store doctrine: serialized under a module lock,
-written atomically (temp file plus ``os.replace``), and every manual mutation is
-snapshotted first into the unified version timeline as the 'events' logical file.
+end date (empty means open-ended), a 1..5 operator-judged intensity and an active
+flag. Writes are serialized under a module lock, written atomically (temp file
+plus ``os.replace``), and snapshotted first into the version timeline as 'events'.
 
 The GET payload also carries two read-only blocks built ONLY from real sources:
 
 - ``holidays``: the bundled Israeli holiday reference table
   (``kairos/config/israel_holidays.csv``), a static checked-in list the operator
   is told to verify before operational use.
-- ``model_context``: what the model actually conditions on today, read from
-  ``config/optimization_weights.yaml`` (the weekday pricing premiums, which are
-  rate-card assertions, not measured) and from the metadata of
-  ``models/tv_break_coefficients.json`` (detrend mode, the seasonal baseline
-  verdict, the level-drift block, computed_at), plus the measured training
-  window and the wartime disclosure: the whole 30-day window sits inside
-  wartime, with the ceasefire only on 2024-11-27.
+- ``model_context``: what the model actually conditions on today. Every account
+  receives the disclosure half, built from ``config/optimization_weights.yaml``
+  (the weekday pricing premiums, which are rate-card assertions, not measured),
+  the measured training window, the coefficients' computed_at and the wartime
+  disclosure: the whole 30-day window sits inside wartime, with the ceasefire
+  only on 2024-11-27. Company staff additionally receive the training verdicts
+  (the event-layer gate, the held-out seasonality verdict, the detrend mode and
+  the level-drift block), and ``training_visible`` says which copy was served.
 
 Each stored event is returned with its overlap against the coefficient training
-window (``window_overlap_days``) and against the saved weekly plan's dates
-(``plan_overlap_dates``), so the operator can see which plan days sit inside an
-event and whether the training data ever saw that condition.
-
-Each event also carries an operator-asserted ``price_multiplier`` (default 1.0,
-validated to 0.1..5.0). It feeds the owner-gated event pricing layer
-(kairos/optimize/pricing.py, activation flag ``pricing_activation.events``,
-shipped OFF because turning it on moves real forecast revenue). Event RETENTION
-coefficients are untouched by that layer and remain v2 only, measured behind
-the held-out gate once history with real contrast exists.
+window (``window_overlap_days``) and against the saved plan's dates
+(``plan_overlap_dates``), so the operator sees which plan days sit inside an event
+and whether the training data ever saw that condition. Each also carries an
+operator-asserted ``price_multiplier`` (1.0 default, validated to 0.1..5.0)
+feeding the owner-gated event pricing layer (kairos/optimize/pricing.py, flag
+``pricing_activation.events``, shipped OFF because turning it on moves real
+forecast revenue). Event RETENTION coefficients are untouched by that layer and
+remain v2 only, measured behind the held-out gate once real contrast exists.
 """
 
 from __future__ import annotations
@@ -303,14 +301,7 @@ def _weekday_premiums() -> "dict[str, Any]":
 
 def _wartime_disclosure(metadata: "dict[str, Any] | None") -> dict[str, Any]:
     total = int(metadata.get("total_breaks_measured", 0)) if metadata else 0
-    line = (
-        f"The whole 30 day training window ({TRAINING_WINDOW_START.isoformat()} to "
-        f"{TRAINING_WINDOW_END.isoformat()}) was measured under wartime conditions; the "
-        f"ceasefire took effect only on {CEASEFIRE_DATE}, leaving a post-ceasefire tail of "
-        f"{POST_CEASEFIRE_TAIL_BREAKS} of {total or 2532} measured breaks. Holiday or "
-        "war-intensity retention effects claimed from this window would be fabrication; "
-        "they ship only once history with real contrast exists and passes the held-out gate."
-    )
+    line = f"The whole 30 day training window ({TRAINING_WINDOW_START.isoformat()} to {TRAINING_WINDOW_END.isoformat()}) was measured under wartime conditions; the ceasefire took effect only on {CEASEFIRE_DATE}, leaving a post-ceasefire tail of {POST_CEASEFIRE_TAIL_BREAKS} of {total or 2532} measured breaks. Holiday or war-intensity retention effects claimed from this window would be fabrication; they ship only once history with real contrast exists and passes the held-out gate."
     return {
         "line": line,
         "ceasefire_date": CEASEFIRE_DATE,
@@ -319,8 +310,10 @@ def _wartime_disclosure(metadata: "dict[str, Any] | None") -> dict[str, Any]:
     }
 
 
-def _model_context() -> dict[str, Any]:
-    """What the model conditions on today, from real config and metadata only."""
+def _model_context(is_company: bool) -> dict[str, Any]:
+    """What the model conditions on today, from real config and metadata only.
+    The disclosure half goes to every account; the verdict half (event-layer gate,
+    held-out seasonality verdict, detrend mode, level drift) to company staff."""
     metadata = _coefficients_metadata()
     if metadata is None:
         measurement: dict[str, Any] = {
@@ -328,18 +321,18 @@ def _model_context() -> dict[str, Any]:
             "reason": "models/tv_break_coefficients.json not found or unreadable",
         }
     else:
-        measurement = {
-            "available": True,
-            "detrend_baseline_mode": metadata.get("detrend_baseline_mode"),
-            "seasonal_baseline": {
-                "recommended": metadata.get("detrend_seasonality_recommended"),
-                "holdout": metadata.get("detrend_seasonality_holdout"),
-                "reason": metadata.get("detrend_seasonality_reason"),
-            },
-            "level_drift": metadata.get("level_drift"),
-            "computed_at": metadata.get("computed_at"),
-        }
-    return {
+        measurement = {"available": True, "computed_at": metadata.get("computed_at")}
+        if is_company:
+            measurement.update({
+                "detrend_baseline_mode": metadata.get("detrend_baseline_mode"),
+                "seasonal_baseline": {
+                    "recommended": metadata.get("detrend_seasonality_recommended"),
+                    "holdout": metadata.get("detrend_seasonality_holdout"),
+                    "reason": metadata.get("detrend_seasonality_reason"),
+                },
+                "level_drift": metadata.get("level_drift"),
+            })
+    context: dict[str, Any] = {
         "training_window": {
             "start": TRAINING_WINDOW_START.isoformat(),
             "end": TRAINING_WINDOW_END.isoformat(),
@@ -349,17 +342,28 @@ def _model_context() -> dict[str, Any]:
         "weekday_premiums": _weekday_premiums(),
         "measurement": measurement,
         "wartime_disclosure": _wartime_disclosure(metadata),
-        "training_gate": training_gate(metadata),
     }
+    if is_company:
+        context["training_gate"] = training_gate(metadata)
+    return context
 
 
 # --- routes --------------------------------------------------------------------
 @router.get("")
 def list_events(request: Request = None) -> dict[str, Any]:
     """All stored events (with training-window and plan overlaps), the bundled
-    holiday table, and the model-context disclosure block. ``can_edit`` says
-    whether this session may write events (company staff yes, channel no);
-    reads stay open to every authenticated account."""
+    holiday table and the model-context block. ``can_edit`` says whether this
+    session may write events (company yes, channel no); reads stay open to all.
+
+    ``model_context`` is served to every account and the wall inside it is
+    surgical. Withholding the whole block from a channel reader removed the
+    disclosure and left the number it explains: every event still carries
+    ``window_overlap_days``, which the calendar renders as "days inside the
+    training window", so that reader kept the figure and lost the sentence saying
+    no event retention effect is measured. The verdicts are what a run surface
+    must not carry, so those are the company-only half and ``training_visible``
+    names which copy was served.
+    """
     frame = _load_frame()
     plan_dates = _plan_dates()
     events = []
@@ -368,9 +372,14 @@ def list_events(request: Request = None) -> dict[str, Any]:
         record["window_overlap_days"] = _window_overlap_days(record)
         record["plan_overlap_dates"] = _plan_overlap_dates(record, plan_dates)
         events.append(record)
-    return {"events": events, "holidays": _load_holidays(),
-            "model_context": _model_context(),
-            "can_edit": requester_is_company(request)}
+    is_company = requester_is_company(request)
+    return {
+        "events": events,
+        "holidays": _load_holidays(),
+        "can_edit": is_company,
+        "training_visible": is_company,
+        "model_context": _model_context(is_company),
+    }
 
 
 @router.post("", status_code=201)

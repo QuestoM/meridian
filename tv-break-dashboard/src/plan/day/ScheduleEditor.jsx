@@ -22,8 +22,7 @@ import {
   windowRange,
   programClassLabel,
 } from './schedule-editor-format';
-
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
+import { pinBody, postConstraint } from './schedule-editor-pin';
 
 // Local helpers kept self-contained so the editor can live in its own module
 // without exporting internals from TVBreakDashboard.jsx. They mirror the time
@@ -260,33 +259,10 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
     return constraints.find((constraint) => constraint.break_id === item.id);
   }
 
-  async function postConstraint(body) {
-    const response = await fetch(`${API_BASE}/api/constraints`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (response.status === 404) {
-      throw new Error('not-found');
-    }
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`);
-    }
-    return response.json();
-  }
-
   async function savePin(item, scopeType) {
     const { startSec, durationSec } = currentState(item);
     const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
-    const body = {
-      scope_type: scopeType,
-      scope_value: scopeType === 'programme' ? (item.program_key || item.program_title) : (item.date || ''),
-      channel: item.channel || '',
-      effect: 'FIX_OFFSET',
-      offset_seconds: offsetSeconds,
-      duration_seconds: durationSec,
-      order_index: Number(item.break_num_in_program || 0),
-    };
+    const body = pinBody(item, scopeType, startSec, durationSec);
     setSavingPin(item.id);
     try {
       const saved = await postConstraint(body);
@@ -328,8 +304,8 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         <p>
           {editorPageText(
             locale,
-            'Recompute the weekly schedule or upload a plan to populate the editor with draggable breaks.',
-            'חשבו מחדש את הלוח השבועי או העלו תוכנית כדי לאכלס את העורך בברייקים הניתנים לגרירה.',
+            'Run the weekly plan or upload one to populate the editor with draggable breaks.',
+            'הריצו את הלוח השבועי או העלו תוכנית כדי לאכלס את העורך בברייקים הניתנים לגרירה.',
           )}
         </p>
       </div>

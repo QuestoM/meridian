@@ -1,0 +1,340 @@
+/* The effect panel and the restriction list. Split out of
+   rules-workspace.css under the file-size law. Same tokens, same logical
+   properties; only the file boundary is new. */
+
+/* The effect panel */
+
+
+.rules-effect {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  padding: var(--space-4);
+}
+
+.rules-effect-stale {
+  opacity: 0.72;
+}
+
+.rules-effect-idle,
+.rules-effect-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.rules-effect-error {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.rules-effect-sentence {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.rules-effect-count {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.rules-effect-changes {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rules-effect-changes li {
+  display: grid;
+  grid-template-columns: 23ch minmax(0, 1fr) 8ch 8ch;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  font-size: var(--text-sm);
+}
+
+.rules-effect-changes .rules-effect-more {
+  display: block;
+  background: transparent;
+  color: var(--subtle);
+}
+
+.rules-change-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rules-change-day small {
+  margin-inline-start: var(--space-2);
+  color: var(--muted);
+}
+
+.rules-change-breaks,
+.rules-change-length {
+  color: var(--muted);
+}
+
+/* The airings a rule reaches beyond the ones its sentence named. Set apart
+   rather than mixed into the list above, because a reader who cannot tell the
+   two apart reads a rule's own effect and its overreach as one number. */
+.rules-effect-collateral {
+  margin: 0 0 var(--space-4);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--amber);
+}
+
+.rules-effect-collateral-note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.rules-effect-collateral .rules-effect-changes {
+  margin-bottom: 0;
+}
+
+.rules-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.rules-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.rules-figure-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.rules-figure-delta {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.rules-figure-delta.negative {
+  color: var(--red);
+}
+
+.rules-figure-delta.positive {
+  color: var(--teal-ink);
+}
+
+.rules-figure-pair {
+  font-size: var(--text-base);
+  color: var(--ink);
+}
+
+.rules-figure-scope {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--blue);
+}
+
+/* The starting point sits above the scope and below the pair, because it is the
+   fact that makes the pair readable: two figures whose before does not match
+   are two answers to two questions, not a contradiction. */
+.rules-figure-start {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.rules-figure-basis,
+.rules-figure-reason {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.rules-effect-gap {
+  margin: var(--space-3) 0 0;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--line-strong);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* An unknown is not a zero, so it is marked rather than set in the same grey as
+   the counts that are real. */
+.rules-effect-unknown {
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--amber);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rules-figure-empty {
+  border-style: dashed;
+}
+
+.rules-effect-retention {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rules-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+.rules-inline-note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rules-inline-error {
+  font-size: var(--text-sm);
+  color: var(--red);
+}
+
+/* The restriction list */
+
+.rules-restriction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rules-restriction {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.rules-restriction.expired {
+  background: var(--surface-muted);
+  color: var(--subtle);
+}
+
+.rules-restriction-sentence {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.rules-restriction-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.rules-icon-button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: var(--space-1) var(--space-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rules-confirm,
+.rules-confirm-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.rules-confirm-block {
+  margin-block-start: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
+}
+
+.rules-empty {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.rules-unauthored {
+  margin-block-start: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
+  font-size: var(--text-sm);
+  color: var(--amber-ink);
+}
+
+.rules-unauthored ul {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rules-unauthored li {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rules-disclosure {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--teal-ink);
+  cursor: pointer;
+}
+
+/* The condition builder's scope note. The value picker offers the operator's
+   own lineup, and this line says so; with no channel declared it turns into the
+   empty state that names the missing declaration. */
+
+.cb-scope-note {
+  margin: calc(var(--space-1) * -1) 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.cb-scope-note.empty {
+  color: var(--red);
+}

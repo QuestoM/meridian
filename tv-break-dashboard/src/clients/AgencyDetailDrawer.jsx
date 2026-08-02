@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
-import { Link2, Power, RotateCcw, Save, X } from 'lucide-react';
+import { Power, RotateCcw, Save, X } from 'lucide-react';
 import {
   isAgencyDirty,
   isSynthetic,
-  linkSourceLabel,
+  linksSourceFile,
   normalizeAgencyConditions,
   normalizeLinks,
   pageText,
@@ -14,6 +14,7 @@ import {
 import { toConditionPayload } from './advertisers-helpers';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import AdvertiserConditions from './AdvertiserConditions';
+import LinkedAdvertisers from './AgencyLinkedAdvertisers';
 import './agency-management.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -42,7 +43,7 @@ function Field({ label, value, onChange, type = 'text', ltr = false, full = fals
         type={type}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-        inputProps={{ 'aria-label': label, ...(ltr ? { dir: 'ltr' } : {}) }}
+        slotProps={{ htmlInput: { 'aria-label': label, ...(ltr ? { dir: 'ltr' } : {}) } }}
       />
     </div>
   );
@@ -65,36 +66,6 @@ function ContactFields({ prefix, title, draft, update, locale }) {
   );
 }
 
-// The linked-advertisers section: each link carries its provenance (observed
-// in the spot data vs manually linked by an operator).
-function LinkedAdvertisers({ state, locale }) {
-  return (
-    <section className="amz-drawer-section">
-      <h3>{pageText(locale, 'Linked advertisers', 'מפרסמים מקושרים')}</h3>
-      {state.status === 'loading' && (
-        <p className="agz-subnote">{pageText(locale, 'Loading links...', 'טוען קישורים...')}</p>
-      )}
-      {state.status === 'error' && (
-        <p className="agz-inline-warn" role="note">{pageText(locale, 'Advertiser links could not be loaded. This is a load failure, not an empty list.', 'קישורי המפרסמים לא נטענו. זהו כשל טעינה, לא רשימה ריקה.')}</p>
-      )}
-      {state.status === 'ready' && state.links.length === 0 && (
-        <p className="agz-subnote">{pageText(locale, 'No advertisers are linked to this agency yet.', 'אין עדיין מפרסמים המקושרים לסוכנות זו.')}</p>
-      )}
-      {state.status === 'ready' && state.links.length > 0 && (
-        <ul className="agz-link-list">
-          {state.links.map((link) => (
-            <li key={`${link.advertiser}-${link.source}`} className="agz-link-row">
-              <Link2 size={13} aria-hidden="true" />
-              <span className="agz-link-name" dir="ltr">{link.advertiser}</span>
-              <span className={`agz-status-chip ${link.source === 'manual' ? 'blue' : 'teal'}`}>{linkSourceLabel(link.source, locale)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 // The drawer body for ONE agency record. Mounted only when a row exists and
 // keyed by agency_id, so the draft state initializes from a real record: the
 // old always-mounted variant read draft.status while draft was still null on
@@ -103,7 +74,7 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
   const [draft, setDraft] = useState(row);
   const [saving, setSaving] = useState(false);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
-  const [linksState, setLinksState] = useState({ status: 'loading', links: [] });
+  const [linksState, setLinksState] = useState({ status: 'loading', links: [], sourceFile: null });
   const [condState, setCondState] = useState({ status: 'loading', conditions: [] });
 
   const agencyId = row.agency_id;
@@ -116,15 +87,20 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
   }, [row]);
 
   const loadLinks = useCallback(async () => {
-    setLinksState({ status: 'loading', links: [] });
+    setLinksState({ status: 'loading', links: [], sourceFile: null });
     try {
       const response = await fetch(`${API_BASE}/api/agencies/${encodeURIComponent(agencyId)}/advertisers`);
       if (!response.ok) {
         throw new Error(String(response.status));
       }
-      setLinksState({ status: 'ready', links: normalizeLinks(await response.json()) });
+      const payload = await response.json();
+      setLinksState({
+        status: 'ready',
+        links: normalizeLinks(payload),
+        sourceFile: linksSourceFile(payload),
+      });
     } catch {
-      setLinksState({ status: 'error', links: [] });
+      setLinksState({ status: 'error', links: [], sourceFile: null });
     }
   }, [agencyId]);
 

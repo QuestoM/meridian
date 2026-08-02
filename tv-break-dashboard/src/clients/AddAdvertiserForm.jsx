@@ -86,7 +86,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             placeholder={pageText(locale, 'The name shown across the dashboard', 'השם שיוצג בכל הדשבורד')}
             helperText=' '
             onChange={(event) => update('display_name', event.target.value)}
-            inputProps={{ dir: 'auto', 'aria-label': pageText(locale, 'Display name', 'שם תצוגה') }}
+            slotProps={{ htmlInput: { dir: 'auto', 'aria-label': pageText(locale, 'Display name', 'שם תצוגה') } }}
           />
         </div>
         <div className="adv-id-field">
@@ -97,7 +97,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             error={duplicate}
             helperText={duplicate ? pageText(locale, 'This ID already exists', 'מזהה זה כבר קיים') : ' '}
             onChange={(event) => update('advertiser_id', event.target.value)}
-            inputProps={{ dir: 'ltr', 'aria-label': pageText(locale, 'Advertiser ID', 'מזהה מפרסם') }}
+            slotProps={{ htmlInput: { dir: 'ltr', 'aria-label': pageText(locale, 'Advertiser ID', 'מזהה מפרסם') } }}
           />
         </div>
         <div className="adv-premium-field">
@@ -106,7 +106,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             <TextField
               type="number"
               size="small"
-              inputProps={{ min: 0, step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Default premium multiplier', 'מקדם תוספת ברירת מחדל') }}
+              slotProps={{ htmlInput: { min: 0, step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Default premium multiplier', 'מקדם תוספת ברירת מחדל') } }}
               value={draft.default_premium ?? 1}
               onChange={(event) => update('default_premium', event.target.value === '' ? '' : Number(event.target.value))}
             />
@@ -133,7 +133,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             size="small"
             checked={Boolean(draft.prime_time_only)}
             onChange={(event) => update('prime_time_only', event.target.checked)}
-            inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
+            slotProps={{ input: { 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') } }}
           />
         </div>
         <div className="adv-premium-field">
@@ -142,7 +142,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             type="number"
             size="small"
             placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ)') }}
+            slotProps={{ htmlInput: { min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ)') } }}
             value={draft.urgency_k ?? ''}
             onChange={(event) => update('urgency_k', event.target.value)}
           />
@@ -153,7 +153,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             type="number"
             size="small"
             placeholder={pageText(locale, 'channel default', 'ברירת מחדל של הערוץ')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ)') }}
+            slotProps={{ htmlInput: { min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ)') } }}
             value={draft.ahead_k ?? ''}
             onChange={(event) => update('ahead_k', event.target.value)}
           />
@@ -165,7 +165,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
             fullWidth
             value={draft.notes || ''}
             onChange={(event) => update('notes', event.target.value)}
-            inputProps={{ 'aria-label': pageText(locale, 'Notes', 'הערות') }}
+            slotProps={{ htmlInput: { 'aria-label': pageText(locale, 'Notes', 'הערות') } }}
           />
         </div>
       </div>

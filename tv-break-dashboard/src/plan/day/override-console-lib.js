@@ -1,4 +1,4 @@
-// Pure helpers and the scoped day-recompute job client for the override
+// Pure helpers and the scoped one-day run client for the override
 // console. Talks to the
 // async jobs API and reports an honest terminal status; errors come from
 // the server record, never invented here.
@@ -23,8 +23,8 @@ const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 // Returns {status: 'done'|'failed'|'missing'|'timeout', error?: string}.
 // 'missing' means the jobs API is absent (older backend), so callers should
-// point the operator at the full recompute instead.
-export async function runDayRecomputeJob(apiBase, scope) {
+// point the operator at the full run instead.
+export async function runDayPlanJob(apiBase, scope) {
   const startResponse = await fetch(`${apiBase}/api/jobs/recompute`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

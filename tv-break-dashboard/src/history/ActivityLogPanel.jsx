@@ -2,20 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { Activity, RefreshCcw } from 'lucide-react';
 import { API_BASE } from '../shell/api';
+import { ACTION_LABELS, SIGN_IN_LABELS, pair } from './history-labels';
 
-// Compact humanized label for an activity entry. Known actions get a plain
-// language name; everything else falls back to a method+path code chip.
+// Compact humanized label for an activity entry. The classification is the
+// server's: GET /api/activity-log carries the same action code History reads,
+// so one vocabulary names an act in both places and no surface has to match on
+// an HTTP path. An entry with no known action falls back to a method and path
+// code chip, exactly as this panel has always done.
 export function activityActionLabel(entry, he) {
+  const locale = he ? 'he' : 'en';
   const event = entry.event || '';
-  if (event === 'login') return he ? 'כניסה למערכת' : 'Signed in';
-  if (event === 'login_failed') return he ? 'ניסיון כניסה שנכשל' : 'Failed sign-in attempt';
-  if (event === 'logout') return he ? 'יציאה מהמערכת' : 'Signed out';
-  const method = entry.method || '';
-  const path = entry.path || '';
-  if (method === 'PUT' && path === '/api/settings') return he ? 'עדכון הגדרות' : 'Settings update';
-  if (method === 'POST' && /^\/api\/assistant\/proposals\/[^/]+\/apply$/.test(path)) return he ? 'אישור הצעות העוזר' : 'Assistant proposal approval';
-  if (method === 'POST' && (path === '/api/recompute-schedule' || path === '/api/jobs/recompute')) return he ? 'חישוב מחדש' : 'Recompute';
-  return null;
+  if (event && event !== 'request') return pair(SIGN_IN_LABELS, event, locale) || null;
+  const action = entry.action || '';
+  if (!action || action === 'other') return null;
+  return pair(ACTION_LABELS, action, locale) || null;
 }
 
 export function activityTimeLabel(ts, he) {
@@ -104,6 +104,9 @@ export function ActivityLogPanel({ locale }) {
           {log.scope === 'self' && (
             <span className="alog-self-note">{he ? 'מוצגת הפעילות שלכם בלבד' : 'Showing your own activity only'}</span>
           )}
+          <a className="alog-self-note" href="#Versions">
+            {he ? 'לצפייה בהיסטוריה המלאה, כולל הרצות ונקודות שחזור' : 'Open the full history, including runs and restore points'}
+          </a>
         </div>
         <Button
           type="button"

@@ -10,8 +10,6 @@ import BreakLibraryPage from '../plan/break/BreakLibraryPage';
 import CampaignsPage from '../clients/CampaignsPage';
 import AdvertisersManager from '../clients/AdvertisersManager';
 import AgencyManager from '../clients/AgencyManager';
-import CalendarEvents from '../rules/CalendarEvents';
-import PricingManager from '../rules/PricingManager';
 import SettingsPanel from '../rules/SettingsPanel';
 import ReportsPage from '../sources/ReportsPage';
 import DataPage from '../sources/DataPage';
@@ -158,8 +156,17 @@ export function renderWorkspace({
       return <ForecastsPage forecasts={forecasts} overview={overview} copy={copy} locale={locale} loading={loading} />;
     }
 
+    // Calendar is now a tab inside the Rules (Settings) workspace. Old bookmarks
+    // still resolve: the route activates Settings and sets the ?rules= param so
+    // the workspace opens directly on the calendar section.
     if (activeView === 'Calendar') {
-      return <CalendarEvents locale={locale} notify={notify} refreshKey={refreshKey} setActiveView={setActiveView} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.set('rules', 'calendar');
+        window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}#${encodeURIComponent('Settings')}`);
+      }
+      setActiveView('Settings');
+      return null;
     }
 
     if (activeView === 'Reports') {
@@ -189,8 +196,17 @@ export function renderWorkspace({
       return <AgencyManager copy={copy} locale={locale} notify={notify} setActiveView={setActiveView} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
     }
 
+    // Pricing is now a tab inside the Rules (Settings) workspace. Old bookmarks
+    // still resolve: the route activates Settings and sets the ?rules= param so
+    // the workspace opens directly on the rate card section.
     if (activeView === 'Pricing') {
-      return <PricingManager copy={copy} locale={locale} notify={notify} onGlobalRefresh={() => setRefreshKey((k) => k + 1)} />;
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.set('rules', 'rate_card');
+        window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}#${encodeURIComponent('Settings')}`);
+      }
+      setActiveView('Settings');
+      return null;
     }
 
     if (activeView === 'Overrides') {

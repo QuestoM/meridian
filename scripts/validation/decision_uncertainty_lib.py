@@ -44,6 +44,7 @@ import pandas as pd
 
 from kairos.data.transform import build_segments_from_programmes
 from kairos.data.loaders import load_programmes
+from kairos.export.schedule_freshness import schedule_freshness
 from kairos.model.impact import PosteriorImpactModel, RetentionEstimate
 from kairos.optimize._segment_math import _segment_revenue
 from kairos.optimize._types import ProgramSegment
@@ -84,6 +85,18 @@ class ReviewContext:
     classifier: Any = field(repr=False, default=None)
     pricing: Any = field(repr=False, default=None)
     assumptions: OptimizerAssumptions = field(default_factory=OptimizerAssumptions)
+
+
+def shipped_plan_freshness() -> dict[str, Any]:
+    """The product's own verdict on the saved plan this harness reads.
+
+    The plan of record is a live artifact: a recompute rewrites it under the
+    settings on disk at that moment, and its sidecar records a fingerprint of
+    every input group it was built from, so "the saved plan is this process's
+    plan" is measurable, not assumed. ``stale`` names the groups that moved
+    since it was written; ``unknown`` means no sidecar, so no evidence of drift.
+    """
+    return schedule_freshness(ROOT, SHIPPED_CSV_PATH)
 
 
 def representative_day(csv: pd.DataFrame, channel: str) -> str:

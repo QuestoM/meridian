@@ -1,0 +1,17 @@
+{
+  "task": "REFERENCE-MINER",
+  "status": "in_progress",
+  "started_at": "2026-08-02",
+  "goal": "Mine /Users/home/Code/experiments/ads (digital Next.js + Convex ad product) for campaign modelling that transfers to television, and write docs/campaign-reference-notes.md",
+  "deliverable": "docs/campaign-reference-notes.md",
+  "work_done": [
+    "read /Users/home/Code/experiments/ads/convex/schema.ts in full (686 lines)",
+    "read /Users/home/Code/experiments/ads/convex/campaigns.ts in full (885 lines)"
+  ],
+  "next": [
+    "read delivery.ts, deliveryStore.ts, docs/superpowers/specs/*",
+    "recon the meridian side: campaign/client/agency models already present",
+    "write docs/campaign-reference-notes.md"
+  ],
+  "notes": "No prior state existed for this task. Sibling task state file present: CURRENT-STATE-CAMPAIGNS-CLIENTS.json (in_progress, deliverable docs/campaign-current-state.md) - do not collide with that deliverable."
+}

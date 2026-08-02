@@ -1,0 +1,99 @@
+/* Plan, the week: the command palette, split from plan-week-panels.css under
+   the 450-line law. Linear's palette is one component, so its rules are one
+   sheet. Uses the frozen tokens only; defines none of its own. */
+
+.plan-palette-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.18);
+  z-index: var(--z-drawer);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block-start: 12vh;
+}
+
+.plan-palette {
+  inline-size: min(560px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.plan-palette-input {
+  inline-size: 100%;
+  border: none;
+  border-block-end: 1px solid var(--line);
+  padding: var(--space-4);
+  font-size: var(--text-lg);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.plan-palette-input:focus {
+  outline: none;
+}
+
+.plan-palette-list {
+  max-block-size: 46vh;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.plan-palette-group-name {
+  margin: var(--space-2) var(--space-2) var(--space-1);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--subtle);
+}
+
+.plan-palette-row {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  text-align: start;
+}
+
+.plan-palette-row.is-cursor {
+  background: var(--teal-soft);
+}
+
+.plan-palette-row.is-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.plan-palette-label {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-base);
+  color: var(--ink);
+}
+
+.plan-palette-reason {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.plan-palette-empty,
+.plan-palette-foot {
+  margin: 0;
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-palette-foot {
+  border-block-start: 1px solid var(--line);
+}
+

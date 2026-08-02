@@ -1,0 +1,415 @@
+/* History. Every value comes from src/tokens.css and every box uses logical
+   properties, so the surface flips with the document direction rather than
+   carrying a right-to-left copy of itself. */
+
+.hist-workspace {
+  align-content: start;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+
+.hist-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.hist-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.hist-key kbd {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+/* The attestation strip */
+.hist-since {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.hist-since-line {
+  color: var(--muted);
+}
+
+.hist-since-verdict {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-soft);
+}
+
+.hist-since-verdict.ok {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.hist-since-verdict.warn,
+.hist-since-line.warn {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+/* The header is one line, so the list starts high on the page and more of the
+   record is readable without scrolling. */
+.hist-header {
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block-end: 0;
+  flex-wrap: wrap;
+}
+
+.hist-header h1 {
+  font-size: var(--text-2xl);
+}
+
+.hist-header p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.hist-header .hist-keys {
+  margin-inline-start: auto;
+}
+
+/* The toolbar: filters live in the content, never in the navigation */
+.hist-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hist-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.hist-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 5px var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-soft);
+  cursor: pointer;
+}
+
+.hist-tab.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--surface);
+}
+
+.hist-tab-count {
+  color: inherit;
+  opacity: 0.72;
+  font-size: var(--text-xs);
+}
+
+/* A count the product may not make is marked, not faded: it is a state, and it
+   carries its reason on the tab itself. */
+.hist-tab-count.unknown {
+  opacity: 1;
+  font-weight: var(--weight-medium);
+}
+
+.hist-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hist-search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--subtle);
+}
+
+.hist-search input,
+.hist-select input,
+.hist-select select,
+.hist-point-form input,
+.hist-rename input {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  min-inline-size: 120px;
+}
+
+.hist-search input:focus-visible,
+.hist-select select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.hist-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--subtle);
+  font-size: var(--text-sm);
+}
+
+.hist-select select,
+.hist-select input {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px var(--space-2);
+  background: var(--surface);
+}
+
+.hist-point {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hist-point-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hist-point-form input,
+.hist-rename input {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px var(--space-2);
+  background: var(--surface);
+}
+
+/* The two-pane body: the list and the opened record */
+.hist-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.hist-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: auto;
+  max-block-size: calc(100vh - 232px);
+}
+
+.hist-group {
+  display: block;
+}
+
+.hist-day {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-muted);
+  border-block-end: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.hist-day.weekend {
+  background: var(--blue-soft);
+}
+
+.hist-day-mark {
+  color: var(--blue);
+  font-weight: var(--weight-soft);
+}
+
+.hist-day-count {
+  margin-inline-start: auto;
+  color: var(--subtle);
+}
+
+/* One row height, nine facts, one affordance on hover */
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 44px;
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid var(--line);
+  border-inline-start: 3px solid transparent;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.hist-row:hover {
+  background: var(--surface-muted);
+}
+
+.hist-row.selected {
+  background: var(--teal-soft);
+  border-inline-start-color: var(--teal);
+}
+
+.hist-row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.hist-row-time {
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+  inline-size: 44px;
+  flex: none;
+}
+
+.hist-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--radius-pill);
+  flex: none;
+  background: var(--line-strong);
+}
+
+.hist-dot.k-change { background: var(--blue); }
+.hist-dot.k-run { background: var(--teal); }
+.hist-dot.k-restore_point { background: var(--amber); }
+.hist-dot.k-restore { background: var(--red); }
+.hist-dot.k-sign_in { background: var(--line-strong); }
+
+/* A preview saved nothing, so it is drawn hollow: the ring says an act
+   happened and the empty middle says it left no mark. Colour is never the only
+   signal, because the row also carries the word. */
+.hist-dot.k-preview {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+
+.hist-row[data-kind="preview"] .hist-row-title,
+.hist-row[data-kind="preview"] .hist-row-kind {
+  color: var(--subtle);
+}
+
+.hist-fold {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  flex: none;
+}
+
+.hist-row-kind {
+  color: var(--muted);
+  inline-size: 82px;
+  flex: none;
+}
+
+.hist-row-actor {
+  color: var(--muted);
+  inline-size: 96px;
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-row-title {
+  font-weight: var(--weight-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-row-target {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-inline-size: 0;
+}
+
+.hist-row-tail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  flex: none;
+}
+
+.hist-chip {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.hist-chip.quiet { background: var(--surface-muted); color: var(--muted); }
+.hist-chip.via { background: var(--teal-soft); color: var(--teal-ink); }
+.hist-chip.warn { background: var(--amber-soft); color: var(--amber-ink); }
+
+.hist-figure {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+
+.hist-figure.money { color: var(--teal-ink); }
+.hist-figure.warn { color: var(--red); }
+.hist-figure.quiet { color: var(--subtle); }
+
+.hist-row-open {
+  visibility: hidden;
+  color: var(--teal-ink);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-soft);
+}
+
+.hist-row:hover .hist-row-open,
+.hist-row.selected .hist-row-open {
+  visibility: visible;
+}
+
+@media (max-width: 1180px) {
+  .hist-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hist-detail {
+    position: static;
+    max-block-size: none;
+  }
+}

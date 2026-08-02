@@ -1,0 +1,398 @@
+/* Plan, the week. Uses the frozen tokens only; defines none of its own.
+   Everything is written with logical properties so the surface reads correctly
+   in Hebrew without a mirrored copy of the rules. */
+
+.plan-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.plan-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.plan-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.plan-header-top h1 {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.plan-header-scope {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.plan-header-kbd,
+.plan-step-key,
+.plan-palette-keys {
+  font-family: inherit;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: 1px var(--space-1);
+  margin-inline-start: var(--space-2);
+  white-space: nowrap;
+}
+
+.plan-header-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.plan-header-state.is-stale {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.plan-header-state.is-fresh {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.plan-header-state-word {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.plan-header-state.is-stale .plan-header-state-word {
+  color: var(--amber-ink);
+}
+
+.plan-header-state.is-fresh .plan-header-state-word {
+  color: var(--teal-ink);
+}
+
+.plan-header-state-detail {
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.plan-header-versions {
+  margin-inline-start: auto;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-2);
+}
+
+.plan-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-soft);
+  cursor: pointer;
+}
+
+.plan-step:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.plan-step:focus-visible,
+.plan-template:focus-visible,
+.plan-leg-chip:focus-visible,
+.plan-palette-row:focus-visible,
+.plan-version-main:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.plan-step.is-active {
+  background: var(--primary);
+  color: var(--surface);
+  border-color: var(--primary);
+  font-weight: var(--weight-medium);
+}
+
+.plan-step.is-active .plan-step-key,
+.plan-step.is-active .plan-step-number {
+  color: var(--surface);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.plan-step.is-reference {
+  color: var(--subtle);
+}
+
+.plan-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+}
+
+.plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.plan-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.plan-section-head h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.plan-section-head p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-base);
+  color: var(--muted);
+  max-inline-size: 68ch;
+}
+
+.plan-section-subhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-2);
+}
+
+.plan-section-subhead h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-section-subhead span {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-template-row,
+.plan-focus-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+}
+
+.plan-template {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: start;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.plan-template strong {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-template small {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-template.is-active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.plan-lever-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.plan-lever-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-block-end: var(--space-1);
+}
+
+.plan-lever-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-lever-help {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-lever-slider,
+.plan-leg-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.plan-lever-slider span,
+.plan-leg-slider strong,
+.plan-lever-slider strong {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.plan-lever-slider strong,
+.plan-leg-slider strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  min-inline-size: 44px;
+  text-align: end;
+}
+
+.plan-focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-note {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--muted);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+}
+
+.plan-note-amber {
+  background: var(--amber-soft);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+}
+
+.plan-note-red {
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* A note that carries a control is a block, not a paragraph, so its own
+   paragraph must not add a second margin under it. */
+.plan-note p {
+  margin: 0 0 var(--space-2);
+}
+
+.plan-note-detail {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-basis-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+  max-inline-size: 90ch;
+}
+
+.plan-state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.plan-state-stale {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.plan-state strong {
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.plan-state span {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-figure-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.plan-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.plan-figure span {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-figure strong {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.plan-figure small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}

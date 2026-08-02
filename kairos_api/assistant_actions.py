@@ -8,22 +8,23 @@ Safety invariants, each covered by tests: a restore point is snapshotted BEFORE
 the first mutation, copying exactly the state files the approved items touch and
 restorable byte-for-byte, pruned beyond the newest 20; the same pre-apply state
 is also recorded in the unified version timeline (kairos_api.version_store); a
-failed item records {status: 'failed', error} and the rest continue; recompute
-runs through the async job registry; apply/reject/restore require the operator
+failed item records {status: 'failed', error} and the rest continue; a plan run
+goes through the async job registry; apply/reject/restore require the operator
 or admin role via the auth seam (403 for a viewer, 'auth-disabled' when off);
 every transition is audited. Runtime state lives under data/assistant/
 (gitignored); tests relocate it with KAIROS_ASSISTANT_DATA_DIR.
+
+The restore-point store itself, its routes and the preview of what a restore
+would change live in kairos_api.assistant_restore, so both files stay under the
+file-size cap. The names this module re-exports below are the ones its own call
+sites and its callers already used, so nothing that imported them moved.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import re
-import shutil
-import threading
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -31,29 +32,31 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from kairos_api import assistant_tools
-
-ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR_ENV = "KAIROS_ASSISTANT_DATA_DIR"
-MAX_RESTORE_POINTS = 20
-_ID_RE = re.compile(r"^[0-9a-f]{8,32}$")
+from kairos_api.assistant_restore import (
+    DATA_DIR_ENV,
+    MAX_RESTORE_POINTS,
+    ROOT,
+    _data_dir,
+    _ID_RE,
+    _LOCK,
+    _now_iso,
+    _restore_root,
+    manifests as _manifests,
+    prune_restore_points as _prune_restore_points,
+    snapshot as _snapshot,
+    list_restore_points,
+    preview as restore_preview,
+    restore_state,
+)
 
 # No prefix: kairos_api.assistant includes this router under /api/assistant.
 router = APIRouter(tags=["assistant"])
 
-_LOCK = threading.Lock()
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _data_dir() -> Path:
-    raw = os.environ.get(DATA_DIR_ENV, "").strip()
-    return Path(raw) if raw else ROOT / "data" / "assistant"
-
-
-def _restore_root() -> Path:
-    return _data_dir() / "restore"
+__all__ = [
+    "DATA_DIR_ENV", "MAX_RESTORE_POINTS", "ROOT", "router", "audit_append",
+    "create_batch", "apply_proposals", "reject_proposals",
+    "list_restore_points", "restore_state", "restore_preview",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -178,15 +181,30 @@ def create_batch(question: str, items: list[dict[str, Any]], user: str, model: s
 
 @router.get("/proposals")
 def list_proposals(limit: int = 20) -> dict[str, Any]:
-    """Recent proposal batches, newest first."""
+    """Recent proposal batches, newest first, each item carrying the terms its
+    summary was built from so the surface can say it in the reader's language.
+
+    Items written before those terms existed carry none on disk, so they are
+    derived here from the payload the item already stores. The store itself is
+    never touched: a read must not rewrite a file a gate has to diff.
+    """
+    from kairos_api.assistant_summary_terms import terms_for_item
+
     limit = max(1, min(int(limit), 200))
     with _LOCK:
         store = _load_store()
-    return {"batches": list(reversed(store["batches"]))[:limit]}
+    batches = []
+    for batch in list(reversed(store["batches"]))[:limit]:
+        items = []
+        for item in batch.get("items", []):
+            terms = terms_for_item(item)
+            items.append({**item, "summary_terms": terms} if terms else item)
+        batches.append({**batch, "items": items})
+    return {"batches": batches}
 
 
 # ---------------------------------------------------------------------------
-# Restore points: snapshot before the first mutation, restore byte-for-byte.
+# Which state files each item kind touches, so the snapshot covers exactly them.
 # ---------------------------------------------------------------------------
 def _state_files_for(kinds: set[str]) -> list[Path]:
     """The state files these item kinds mutate, resolved from the owning
@@ -207,101 +225,6 @@ def _state_files_for(kinds: set[str]) -> list[Path]:
 
         files.append(Path(advertisers_api.RULES_PATH))
     return files
-
-
-def _snapshot(files: list[Path], batch_id: str, item_ids: list[str]) -> str | None:
-    """Copy the touched state files into one restore point. None when empty."""
-    if not files:
-        return None
-    restore_id = uuid.uuid4().hex[:12]
-    directory = _restore_root() / restore_id
-    directory.mkdir(parents=True, exist_ok=True)
-    manifest_files: list[dict[str, Any]] = []
-    for source in files:
-        existed = source.exists()
-        if existed:
-            shutil.copy2(source, directory / source.name)
-        manifest_files.append({"path": str(source), "name": source.name, "existed": existed})
-    manifest = {"restore_id": restore_id, "batch_id": batch_id, "item_ids": item_ids,
-                "created_at": _now_iso(), "files": manifest_files}
-    # Atomic manifest write: a restore point either exists with a complete
-    # manifest or not at all, never with a torn one the lister reports corrupt.
-    manifest_path = directory / "manifest.json"
-    tmp = manifest_path.with_name(manifest_path.name + ".tmp")
-    tmp.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, manifest_path)
-    return restore_id
-
-
-def _manifests() -> list[dict[str, Any]]:
-    root = _restore_root()
-    if not root.exists():
-        return []
-    found: list[dict[str, Any]] = []
-    for directory in root.iterdir():
-        manifest_path = directory / "manifest.json"
-        if not directory.is_dir() or not manifest_path.exists():
-            continue
-        try:
-            found.append(json.loads(manifest_path.read_text(encoding="utf-8")))
-        except (json.JSONDecodeError, OSError):
-            found.append({"restore_id": directory.name, "corrupt": True})
-    found.sort(key=lambda manifest: str(manifest.get("created_at", "")), reverse=True)
-    return found
-
-
-def _prune_restore_points() -> list[str]:
-    """Delete restore points beyond the newest MAX_RESTORE_POINTS."""
-    pruned: list[str] = []
-    for manifest in _manifests()[MAX_RESTORE_POINTS:]:
-        restore_id = str(manifest.get("restore_id", ""))
-        if _ID_RE.fullmatch(restore_id):
-            shutil.rmtree(_restore_root() / restore_id, ignore_errors=True)
-            pruned.append(restore_id)
-    return pruned
-
-
-@router.get("/restore")
-def list_restore_points() -> dict[str, Any]:
-    """Available restore points with their manifests, newest first."""
-    with _LOCK:
-        return {"restore_points": _manifests()}
-
-
-@router.post("/restore/{restore_id}")
-def restore_state(restore_id: str, request: Request) -> dict[str, Any]:
-    """Put the snapshotted state files back byte-for-byte.
-
-    A file that did not exist at snapshot time is removed again, so the
-    restore reproduces the exact pre-apply state. Requires a writer role.
-    """
-    user = _require_writer(request)
-    if not _ID_RE.fullmatch(restore_id):
-        raise HTTPException(status_code=404, detail=f"no restore point {restore_id!r}")
-    with _LOCK:
-        directory = _restore_root() / restore_id
-        manifest_path = directory / "manifest.json"
-        if not manifest_path.exists():
-            raise HTTPException(status_code=404, detail=f"no restore point {restore_id!r}")
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        restored: list[str] = []
-        removed: list[str] = []
-        for entry in manifest.get("files", []):
-            target = Path(str(entry["path"]))
-            if entry.get("existed", True):
-                snapshot = directory / str(entry["name"])
-                if not snapshot.exists():
-                    raise HTTPException(status_code=500, detail=(
-                        f"restore point {restore_id} is missing snapshot {entry['name']!r}"))
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(snapshot, target)
-                restored.append(str(target))
-            elif target.exists():
-                target.unlink()
-                removed.append(str(target))
-        audit_append("restore", user, restore_id=restore_id, batch_id=manifest.get("batch_id"),
-                     results={"restored": restored, "removed": removed})
-    return {"restore_id": restore_id, "restored": restored, "removed": removed}
 
 
 # ---------------------------------------------------------------------------
@@ -405,6 +328,26 @@ class ItemIdsRequest(BaseModel):
     item_ids: list[str] = Field(min_length=1)
 
 
+def _record_restore_point(batch: dict[str, Any], restore_id: str | None, user: str,
+                          item_ids: list[str]) -> None:
+    """Keep the restore point ON the batch, not only in the apply response.
+
+    Undo was reachable for exactly as long as the browser tab that applied the
+    change: the id came back once in the apply body and was never stored, so a
+    reload lost the only handle to the snapshot. The reference model is
+    Cursor's, where a checkpoint sits on the request that created it and can be
+    opened at any later time, so the batch now carries every restore point it
+    produced, oldest first, each naming who applied what and when. A batch whose
+    approved items touch no state file (a plan run) produces no snapshot and
+    records nothing, which is why the id can be None here.
+    """
+    if not restore_id:
+        return
+    points = batch.setdefault("restore_points", [])
+    points.append({"restore_id": restore_id, "applied_at": _now_iso(),
+                   "applied_by": user, "item_ids": list(item_ids)})
+
+
 def _act_apply(item: dict[str, Any]) -> None:
     """Apply one item through its real seam; per-item isolation lives here."""
     applier = _APPLIERS.get(str(item.get("kind")))
@@ -456,6 +399,7 @@ def _resolve_items(
             kinds = {str(by_id[item_id].get("kind")) for item_id in approved}
             extra["restore_id"] = _snapshot(_state_files_for(kinds), batch_id, approved)
             extra["pruned_restore_points"] = _prune_restore_points() or None
+            _record_restore_point(batch, extra["restore_id"], user, approved)
             from kairos_api import version_store  # unified version timeline
             version_store.snapshot_assistant_apply(kinds, batch, user)
         results: list[dict[str, Any]] = []

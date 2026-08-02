@@ -15,8 +15,27 @@ export function asArray(value, ...keys) {
   return [];
 }
 
+// A tool call written into the text channel, which the server now cuts before
+// an answer is ever returned or stored. Conversations saved before it did still
+// carry one, and a stored line is replayed on screen exactly as stored, so the
+// same cut is applied on load: the reader sees the prose that was written and
+// never a call, which reaches nothing and means nothing to them. The rule is
+// the one in kairos_api/assistant_protocol_text.py, kept identical on purpose.
+const TOOL_PROTOCOL = /<\s*\/?\s*(?:[A-Za-z][\w.-]*:)?(?:invoke|function_calls|parameter|antml)\b/i;
+const PROTOCOL_LEAD_IN = /(?:^|\n)[ \t]*<?[A-Za-z_:]*calls?[ \t]*$/;
+
+export function storedAnswer(text) {
+  const match = TOOL_PROTOCOL.exec(text);
+  if (!match) return text;
+  const kept = text.slice(0, match.index).replace(/\s+$/, '').replace(PROTOCOL_LEAD_IN, '').trim();
+  return kept || null;
+}
+
 // Normalizes a batch from either the ask response or GET /proposals into one
 // shape. Items without an id stay visible but cannot be selected or applied.
+// restore_points ride along so the undo control survives a reload: the server
+// stores every restore point an apply created ON the batch, which is what makes
+// the reversal an object you can come back to rather than one tab's memory.
 export function normalizeBatch(raw) {
   if (!raw || typeof raw !== 'object' || !raw.batch_id) return null;
   const items = asArray(raw.items).map((item, index) => ({
@@ -24,14 +43,30 @@ export function normalizeBatch(raw) {
     key: item && item.id != null ? String(item.id) : `row-${index}`,
     kind: item && item.kind ? String(item.kind) : '',
     summary: item && item.summary ? String(item.summary) : '',
+    // The terms the summary was built from travel with it. A whitelist that
+    // keeps the English record and drops them prints English prose on a Hebrew
+    // screen, which is the one thing this surface may not do.
+    summary_terms: item && item.summary_terms && typeof item.summary_terms === 'object' ? item.summary_terms : null,
     payload: item && item.payload && typeof item.payload === 'object' ? item.payload : null,
     reason: item && item.reason ? String(item.reason) : '',
     status: item && item.status ? String(item.status) : 'pending',
     error: item && item.error ? String(item.error) : '',
     effect: item && item.effect && typeof item.effect === 'object' ? item.effect : null,
+    // The basis travels with the money it qualifies. A whitelist that keeps the
+    // figures and drops their channel and day prints a number with no basis,
+    // which is the one thing this surface may not do.
+    effect_basis: item && item.effect_basis && typeof item.effect_basis === 'object' ? item.effect_basis : null,
     diff: item && Array.isArray(item.diff) ? item.diff : null,
+    permission: item && item.permission && typeof item.permission === 'object' ? item.permission : null,
   }));
-  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items };
+  const restorePoints = asArray(raw.restore_points)
+    .filter((point) => point && point.restore_id)
+    .map((point) => ({
+      restoreId: String(point.restore_id),
+      appliedAt: point.applied_at ? String(point.applied_at) : null,
+      appliedBy: point.applied_by ? String(point.applied_by) : '',
+    }));
+  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items, restorePoints };
 }
 
 export function useAssistantBatches(notify) {
@@ -55,8 +90,11 @@ export function useAssistantBatches(notify) {
         } else {
           const errorByKey = new Map(existing.items.map((item) => [item.key, item.error]));
           const effectByKey = new Map(existing.items.map((item) => [item.key, item.effect]));
+          const basisByKey = new Map(existing.items.map((item) => [item.key, item.effect_basis]));
           const diffByKey = new Map(existing.items.map((item) => [item.key, item.diff]));
-          next[batch.batch_id] = { ...existing, ...batch, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null, diff: item.diff || diffByKey.get(item.key) || null })) };
+          const permissionByKey = new Map(existing.items.map((item) => [item.key, item.permission]));
+          const restorePoints = batch.restorePoints && batch.restorePoints.length ? batch.restorePoints : existing.restorePoints;
+          next[batch.batch_id] = { ...existing, ...batch, restorePoints, items: batch.items.map((item) => ({ ...item, error: item.error || errorByKey.get(item.key) || '', effect: item.effect || effectByKey.get(item.key) || null, effect_basis: item.effect_basis || basisByKey.get(item.key) || null, diff: item.diff || diffByKey.get(item.key) || null, permission: item.permission || permissionByKey.get(item.key) || null })) };
         }
       }
       return next;
@@ -94,7 +132,12 @@ export function useAssistantBatches(notify) {
         const batch = prev[batchId];
         if (!batch) return prev;
         const byId = new Map(results.filter((row) => row && row.id != null).map((row) => [String(row.id), row]));
-        return { ...prev, [batchId]: { ...batch, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
+        // The restore point lands on the batch immediately, so the undo control
+        // is the same object before and after a reload rather than two.
+        const restorePoints = restoreId
+          ? [...(batch.restorePoints || []), { restoreId: String(restoreId), appliedAt: new Date().toISOString(), appliedBy: '' }]
+          : batch.restorePoints;
+        return { ...prev, [batchId]: { ...batch, restorePoints, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
       });
       const applied = results.filter((row) => row && row.status === 'applied').length;
       const failed = results.filter((row) => row && row.status === 'failed').length;
@@ -129,7 +172,10 @@ export function useAssistantBatches(notify) {
   }, [applyBusyId, notify, refreshRail]);
 
   const pendingCount = useMemo(() => Object.values(batchMap).reduce((sum, batch) => sum + batch.items.filter((item) => item.status === 'pending').length, 0), [batchMap]);
-  const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id])), [batchOrder, batchMap, applyResults]);
+  // The rail shows what still needs a decision, plus anything that produced a
+  // restore point: an applied change whose undo is gone from the screen is an
+  // undo that only existed for one browser tab.
+  const visibleBatches = useMemo(() => batchOrder.map((id) => batchMap[id]).filter((batch) => batch && (batch.items.some((item) => item.status === 'pending') || applyResults[batch.batch_id] || (batch.restorePoints || []).length)), [batchOrder, batchMap, applyResults]);
 
   return { batchMap, mergeBatches, refreshRail, refreshing, proposalsState, proposalsError, applyBusyId, applyResults, applyItems, rejectItems, pendingCount, visibleBatches };
 }
@@ -165,7 +211,11 @@ export function useAssistantThread(conv) {
           id: `saved-${index}`,
           at: entry && entry.at ? entry.at : null,
           question: entry && entry.question ? String(entry.question) : '',
-          answer: entry && entry.answer ? String(entry.answer) : null,
+          answer: entry && entry.answer ? storedAnswer(String(entry.answer)) : null,
+          // A stored line that was nothing but a call leaves the exchange with
+          // no answer at all, which the view says in words rather than showing
+          // a question with silence under it.
+          answerWithheld: Boolean(entry && entry.answer && !storedAnswer(String(entry.answer))),
           error: null,
           disclosure: '',
           sources: [],

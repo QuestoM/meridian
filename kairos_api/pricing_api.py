@@ -38,6 +38,7 @@ from kairos.optimize.pricing import (
 from kairos_api.events_access import (
     EVENT_PRICING_COMPANY_ONLY_DETAIL,
     require_company_editor,
+    requester_is_company,
 )
 
 router = APIRouter(tags=["pricing"])
@@ -211,10 +212,22 @@ def _settings_io():
 
 
 @router.get("/api/pricing")
-def get_pricing() -> dict[str, Any]:
-    """Return the full pricing hierarchy for the dashboard rate-card workspace."""
+def get_pricing(request: Request = None) -> dict[str, Any]:
+    """Return the full pricing hierarchy for the dashboard rate-card workspace.
+
+    The events activation is company-only on the write, and until now this read
+    carried no gate at all, so the toggle rendered enabled to a channel account
+    and failed after the click. It now carries ``can_edit_events`` and, when the
+    answer is no, the same Hebrew reason the write would refuse with, so the
+    refusal is legible before the click rather than a 403 after it.
+    """
     load, _ = _settings_io()
-    return _state_payload(load())
+    body = _state_payload(load())
+    allowed = requester_is_company(request)
+    body["can_edit_events"] = allowed
+    if not allowed:
+        body["can_edit_events_reason"] = EVENT_PRICING_COMPANY_ONLY_DETAIL
+    return body
 
 
 @router.put("/api/pricing")
@@ -358,3 +371,11 @@ def price_slot(req: PriceSlotRequest) -> dict[str, Any]:
         "final_cpp": breakdown.final_cpp,
         "currency": getattr(settings, "currency", "ILS"),
     }
+
+
+# The rate-card effect rides on this router: it prices an edit against the same
+# saved overrides this module writes, so it belongs to the same mount and needs
+# no registration of its own below the marker in server.py.
+from kairos_api.pricing_api_effect import router as _effect_router  # noqa: E402
+
+router.include_router(_effect_router)

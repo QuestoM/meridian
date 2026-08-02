@@ -1,0 +1,12 @@
+{
+  "task": "campaign-reference-notes",
+  "status": "complete",
+  "output": "docs/campaign-reference-notes.md",
+  "sources_read": [
+    "/Users/home/Code/experiments/ads/convex/schema.ts",
+    "/Users/home/Code/experiments/ads/convex/campaigns.ts",
+    "/Users/home/Code/experiments/ads/convex/delivery.ts",
+    "/Users/home/Code/experiments/ads/convex/deliveryStore.ts"
+  ],
+  "completed_at": "2026-08-02"
+}

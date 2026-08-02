@@ -2,10 +2,8 @@ import {
   Activity,
   Bot,
   Building2,
-  CalendarClock,
   CalendarDays,
   ClipboardCheck,
-  Coins,
   Database,
   FileBarChart,
   Gauge,
@@ -26,24 +24,34 @@ export const navItems = [
   ['Break Library', ClipboardCheck],
   ['Campaigns', FileBarChart],
   ['Forecasts', Gauge],
-  ['Calendar', CalendarClock],
   ['Reports', ListChecks],
   ['Data', Database],
   ['Advertisers', Users],
   ['Agencies', Building2],
-  ['Pricing', Coins],
   ['Overrides', SlidersHorizontal],
   ['Assistant', Bot],
   ['Versions', History],
   ['Settings', Settings],
 ];
 
+// Routes that were removed from the rail because they now live inside a
+// destination as a tab. These labels are still valid for viewFromLocation so an
+// existing bookmark still reaches something sensible (the router redirects them).
+export const removedRoutes = ['Calendar', 'Pricing'];
+
+// All labels that a hash may legitimately name, including removed rail entries
+// whose bookmarks are still honoured by the workspace router's redirect logic.
+const allKnownLabels = new Set([
+  ...navItems.map(([label]) => label),
+  ...removedRoutes,
+]);
+
 export function viewFromLocation() {
   if (typeof window === 'undefined') {
     return 'Overview';
   }
   const hash = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-  return navItems.some(([label]) => label === hash) ? hash : 'Overview';
+  return allKnownLabels.has(hash) ? hash : 'Overview';
 }
 
 export function gridAxisFromLocation() {

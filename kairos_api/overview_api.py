@@ -10,6 +10,15 @@ The shared reads it composes live in the frozen plan-read layer
 :mod:`kairos_api.plan_read_frontier` for the curve) and are reached through the
 module, never copied. The decision plane sits beside this file in
 :mod:`kairos_api.overview_api_decisions`.
+
+``GET /api/today`` is the Today surface's own read, added in wave one. It is a
+projection of the same cached body ``/api/overview`` serves plus the plan
+target, so the two can never disagree, and it is one round trip because the
+surface it feeds has a five-second bar with zero clicks in it. The composition
+lives in :mod:`kairos_api.overview_api_today`; the target and its verdict live
+in :mod:`kairos_api.target_store`; the second level of the money drill lives in
+:mod:`kairos_api.overview_api_drill`; the target's own three routes live in
+:mod:`kairos_api.overview_api_target`, mounted through this module's router.
 """
 
 from __future__ import annotations
@@ -18,14 +27,23 @@ import logging
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 
 import pandas as pd
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
-from kairos_api import plan_read_compliance, plan_read_frontier
+from kairos_api import (
+    overview_api_drill,
+    overview_api_target,
+    overview_api_today,
+    plan_read_compliance,
+    plan_read_frontier,
+    target_store,
+)
 from kairos_api.core import (
     DATA_DIR,
+    MODELS_DIR,
     OUTPUT_DIR,
     ROOT,
     SETTINGS_PATH,
@@ -45,6 +63,9 @@ from kairos_api.core import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+# The plan target's three routes live beside this file under the file-size law
+# and are mounted through this router, so server.py still mounts exactly one.
+router.include_router(overview_api_target.router)
 
 
 def _proposed_kind(risk: str, num_breaks: int, is_gold: bool) -> str | None:
@@ -294,3 +315,90 @@ def overview(
     except Exception:  # pragma: no cover - defensive, never blocks the overview
         body["schedule_freshness"] = {"status": "unknown", "computed_at": None, "changed": []}
     return body
+
+
+def _plan_freshness() -> dict[str, Any]:
+    """The saved plan's honest fresh/stale/unknown verdict, never cached here."""
+    try:
+        from kairos.export.schedule_freshness import schedule_freshness
+
+        return schedule_freshness(ROOT)
+    except Exception:  # pragma: no cover - defensive, never blocks a read
+        return {"status": "unknown", "computed_at": None, "changed": []}
+
+
+def _model_trained_at() -> Optional[str]:
+    """The date the model version in use was trained, and nothing else about it.
+
+    One field crosses the line here: when it was trained. No gate verdict, no
+    coverage, no fitted value, so this payload passes the lexicon test that
+    every run surface is checked against.
+    """
+    try:
+        from kairos.model.measure import read_coefficients_metadata
+
+        metadata = read_coefficients_metadata(Path(MODELS_DIR) / "tv_break_coefficients.json")
+    except Exception:  # pragma: no cover - defensive
+        return None
+    stamp = metadata.get("computed_at") if isinstance(metadata, dict) else None
+    text = str(stamp or "").strip()
+    return text or None
+
+
+@router.get("/api/today", tags=["dashboard"])
+def today(request: Request) -> dict[str, Any]:
+    """The three answers Today lands on, in one round trip.
+
+    A projection of the same cached body ``/api/overview`` serves, so every
+    figure here is the figure there, plus the plan target and the per-day rows
+    the money figure resolves to.
+    """
+    body = _overview_cached(
+        _signature([
+            OUTPUT_DIR / "weekly_break_schedule.csv",
+            DATA_DIR / "reference" / "Programmes.xlsx",
+            DATA_DIR / "reference" / "Spots.xlsx",
+            DATA_DIR / "Programmes.csv",
+            DATA_DIR / "Spots.csv",
+            SETTINGS_PATH,
+        ]),
+        None,
+    )
+    settings = _load_settings()
+    channel = overview_api_today.owned_channel(settings)
+    summary = body.get("summary") if isinstance(body.get("summary"), dict) else {}
+    window = overview_api_today.window_from_summary(summary)
+    rows, boundary = overview_api_today.day_rows(_load_break_schedule(), window)
+    money = overview_api_today.money_block(summary, window, rows, boundary, getattr(settings, "timezone", ""))
+    target = target_store.payload(channel, window["date_from"] or "", window["date_to"] or "", request)
+    freshness = _plan_freshness()
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "channel": channel or None,
+        "window": window,
+        "money": money,
+        "target": target,
+        "verdict": target_store.verdict(money["amount_ils"], target_store.target_for(channel, window["date_from"] or "", window["date_to"] or "")),
+        "health": overview_api_today.health_block(body, freshness, _model_trained_at(), channel),
+        "decisions": overview_api_today.decisions_block(body, channel),
+        "plan_run_at": freshness.get("computed_at"),
+        "model_trained_at": _model_trained_at(),
+    }
+
+
+@router.get("/api/today/day/{iso_date}", tags=["dashboard"])
+def today_day(iso_date: str) -> dict[str, Any]:
+    """The plan rows behind one day of the window figure.
+
+    The second level of the drill, fetched when a day is opened rather than
+    shipped with the first paint, so the surface that has to answer in five
+    seconds carries seven rows and not five hundred.
+    """
+    summary = _summarize_schedule(_load_break_schedule())
+    window = overview_api_today.window_from_summary(summary)
+    rows, _ = overview_api_today.day_rows(_load_break_schedule(), window)
+    return overview_api_drill.day_detail(
+        _load_break_schedule(),
+        iso_date,
+        [str(row["date"]) for row in rows],
+    )

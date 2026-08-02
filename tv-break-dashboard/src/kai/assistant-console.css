@@ -65,11 +65,71 @@
 .asst-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes asst-pulse { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
 
-/* Live streaming progress row: names the tool running right now */
-.asst-progress { display: inline-flex; align-items: center; gap: var(--space-2); margin-inline-start: var(--space-4); color: var(--subtle); font-size: var(--text-xs); }
-.asst-progress code { direction: ltr; unicode-bidi: isolate; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 var(--space-1); background: var(--surface); }
-.asst-progress-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: asst-pulse 1.2s infinite; }
-.asst-progress-dot.fail { background: var(--amber); animation: none; }
+/* Run trace: what Kai is doing right now, with the clock and the stop control */
+.asst-run { margin: var(--space-2) 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-muted); }
+.asst-run-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
+.asst-run-toggle { flex: 1; display: flex; align-items: center; gap: var(--space-2); background: none; border: 0; padding: 0; cursor: pointer; color: var(--muted); font-size: var(--text-xs); text-align: start; }
+.asst-run-dots { display: inline-flex; gap: 3px; }
+.asst-run-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); animation: asst-pulse 1.2s infinite; }
+.asst-run-dots span:nth-child(2) { animation-delay: 0.2s; }
+.asst-run-dots span:nth-child(3) { animation-delay: 0.4s; }
+.asst-run-clock { margin-inline-start: auto; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; color: var(--subtle); }
+.asst-run-stop { flex: none; display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); color: var(--muted); font-size: var(--text-2xs); padding: 2px var(--space-2); cursor: pointer; }
+.asst-run-stop:hover { color: var(--ink); border-color: var(--ink-soft, var(--line)); }
+.asst-run-steps { list-style: none; margin: 0; padding: 0 var(--space-3) var(--space-2); display: flex; flex-direction: column; gap: 2px; }
+.asst-run-steps li { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-2xs); color: var(--muted); }
+.asst-run-steps li.fail { color: var(--amber); }
+.asst-run-steps li time { margin-inline-start: auto; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; color: var(--subtle); }
+.asst-run-steps li code { direction: ltr; unicode-bidi: isolate; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 var(--space-1); background: var(--surface); }
+.asst-run-source { color: var(--subtle); unicode-bidi: isolate; }
+.asst-run-steps.done { padding: 0; }
+.asst-run-empty { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); color: var(--subtle); }
+.asst-run-grounded { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); }
+.asst-run-grounded-label { color: var(--subtle); font-weight: var(--weight-semibold); }
+.asst-run-chip { border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); color: var(--muted); padding: 0 var(--space-2); unicode-bidi: isolate; }
+.asst-run-chip bdi { font-variant-numeric: tabular-nums; }
+.asst-run-long { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); color: var(--amber); }
+
+/* The licence-limit disclosure on a proposal that would move a regulatory number */
+.asst-permission { margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border-inline-start: 3px solid var(--teal); border-radius: var(--radius-xs); padding: var(--space-2); background: var(--surface); font-size: var(--text-2xs); color: var(--muted); }
+.asst-permission.blocked { border-inline-start-color: var(--amber); }
+.asst-permission p { margin: 0; display: flex; align-items: baseline; gap: var(--space-1); }
+.asst-permission-fields { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.asst-permission-fields code { direction: ltr; unicode-bidi: isolate; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 var(--space-1); background: var(--surface-muted); }
+
+/* The restore points a batch produced, which stay on it after a reload */
+.asst-restore-block { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3) var(--space-3); border-top: 1px solid var(--line); }
+.asst-restore-point { display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start; }
+.asst-restore-line { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); font-size: var(--text-2xs); color: var(--muted); }
+.asst-restore-line time { direction: ltr; unicode-bidi: isolate; color: var(--subtle); font-variant-numeric: tabular-nums; }
+
+/* Undo: the restore point, opened and read before it is used */
+.asst-undo-open { display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); color: var(--muted); font-size: var(--text-2xs); padding: 2px var(--space-2); cursor: pointer; }
+.asst-undo-open:hover { color: var(--ink); }
+.asst-undo-open code { direction: ltr; unicode-bidi: isolate; color: var(--subtle); }
+.asst-undo { margin-top: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.asst-undo-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); font-size: var(--text-2xs); font-weight: var(--weight-semibold); color: var(--subtle); }
+.asst-undo-head code { direction: ltr; unicode-bidi: isolate; font-weight: var(--weight-regular); }
+.asst-undo-close { margin-inline-start: auto; border: 0; background: none; color: var(--muted); font-size: var(--text-2xs); cursor: pointer; }
+.asst-undo-file { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); }
+.asst-undo-file:last-of-type { border-bottom: 0; }
+.asst-undo-file-head { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-2xs); color: var(--muted); }
+.asst-undo-file-head code { direction: ltr; unicode-bidi: isolate; }
+.asst-undo-count { color: var(--subtle); }
+.asst-undo-grid { margin-top: var(--space-1); display: flex; flex-direction: column; }
+.asst-undo-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); padding: 2px 0; font-size: var(--text-2xs); }
+.asst-undo-row.head { color: var(--subtle); font-weight: var(--weight-semibold); border-bottom: 1px solid var(--line); }
+.asst-undo-field { direction: ltr; unicode-bidi: isolate; color: var(--muted); overflow-wrap: anywhere; }
+.asst-undo-now { direction: ltr; unicode-bidi: isolate; color: var(--subtle); text-decoration: line-through; }
+.asst-undo-after { direction: ltr; unicode-bidi: isolate; color: var(--ink); font-weight: var(--weight-medium); }
+.asst-undo-rows { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-1); }
+.asst-undo-rowline { display: flex; flex-direction: column; gap: 2px; }
+.asst-undo-rowkey { font-size: var(--text-2xs); color: var(--ink); unicode-bidi: isolate; }
+.asst-undo-state { font-size: var(--text-2xs); color: var(--subtle); }
+.asst-undo-note { margin: var(--space-1) 0 0; display: flex; align-items: baseline; gap: var(--space-1); font-size: var(--text-2xs); color: var(--subtle); }
+.asst-undo-actions { padding: var(--space-2) var(--space-3); }
+.asst-undo-done { margin: var(--space-2) 0 0; font-size: var(--text-2xs); color: var(--muted); }
+.asst-effect-note { margin: var(--space-1) 0 0; font-size: var(--text-2xs); color: var(--subtle); }
 
 /* Honest unavailable callout: full box plus a single inline-start amber edge */
 .asst-unavailable { margin: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--amber-soft); padding: var(--space-3); }
@@ -143,7 +203,21 @@
 .asst-effect-row.net .asst-effect-label { color: var(--ink); font-weight: var(--weight-medium); }
 .asst-effect-flow { unicode-bidi: isolate; margin-inline-start: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
 .asst-effect-delta { unicode-bidi: isolate; min-width: 60px; text-align: end; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Each figure is isolated from its neighbour, not just from the page. Hebrew
+   currency text carries U+200F marks that reorder a before into an after when
+   the pair shares one isolate. Stated here as well as on the elements. */
+.asst-effect-flow bdi, .asst-effect-delta bdi, .asst-field-value bdi { unicode-bidi: isolate; }
 .asst-effect-note { margin: 0; font-size: var(--text-sm); color: var(--muted); overflow-wrap: anywhere; }
+/* The basis of the money above it: which channel and which representative day
+   both sides were optimized on. It sits under the header and above the first
+   figure, so it is read before the number it qualifies. */
+.asst-effect-basis { margin: 0 0 2px; font-size: var(--text-2xs); color: var(--muted); line-height: 1.5; }
+/* An item stored before the basis was carried says so in this product's own
+   honest-unavailable language, the single inline-start amber edge, and never in
+   fainter grey. Measured: --subtle on this surface is 4.61:1 against the card
+   and --muted is 5.75:1, so the state a reader most needs to read was the one
+   set hardest to read. --amber-ink is 6.2:1. */
+.asst-effect-basis.unknown { color: var(--amber-ink); border-inline-start: 2px solid var(--amber); padding-inline-start: var(--space-2); }
 
 /* Batch action bar, inline confirm, apply results */
 .asst-batch-bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3); background: var(--surface-muted); }

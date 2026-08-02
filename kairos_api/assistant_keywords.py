@@ -4,8 +4,8 @@ When the operator's question carries a matching Hebrew or English keyword, ONE
 compact hard-capped section per topic is attached to the composed context:
 ``gold_breaks``, ``active_constraints``, ``active_overrides``,
 ``pricing_state``, ``pacing_status``, ``agencies_state``, ``calendar_events``,
-``event_pricing``, ``custom_pricing``, ``event_pipeline`` and
-``audience_model``. Each section
+``event_pricing``, ``custom_pricing``, ``event_pipeline``, ``audience_model``
+and ``model_state``. Each section
 reuses the real builder
 behind the matching dashboard surface (the insights gold builder, the
 constraints and overrides stores, the pricing hierarchy payload, the pacing
@@ -16,6 +16,11 @@ uses and compared whole, English keywords match on word boundaries only, and no
 match adds nothing. A section whose builder fails is listed absent by the
 caller, never substituted. The competitor boundary holds: gold rows are scoped
 to the operator's own channel, with excluded rows surfacing only as a count.
+
+The model-disclosure wall holds too: the three sections that carry training
+content pass through kairos_api.assistant_model_disclosure before they enter the
+context, so a channel-affiliated account grounds on the release note and the
+model version and never on a gate verdict.
 """
 
 from __future__ import annotations
@@ -87,6 +92,14 @@ _TRIGGERS: dict[str, dict[str, Any]] = {
     "audience_model": {
         "phrases": ("רייטינג צפוי", "רייטינג הצפוי", "מודל קהל", "מודל הקהל", "תחזית צפייה", "תחזית הצפייה"),
         "english": re.compile(r"\baudience model\b|\bexpected rating\b|\bviewership forecast\b|\btvr forecast\b"),
+    },
+    # "Why did the plan move" in the operator's own words. Discovery measured
+    # that no section answered it, so an operator asking about the model or the
+    # coefficients grounded on nothing at all.
+    "model_state": {
+        "hebrew": ("מקדם", "מקדמים", "אימון", "סחיפה", "היסט"),
+        "phrases": ("המודל השתנה", "למה השתנה", "למה זה השתנה", "גרסת המודל", "גרסת מודל", "מצב המודל"),
+        "english": re.compile(r"\bcoefficients?\b|\btraining\b|\bdrift(?:ed|ing)?\b|\bmodel version\b|\bretention model\b|\bwhy did .{0,40}change\b"),
     },
 }
 
@@ -351,6 +364,17 @@ def _section_audience_model() -> dict[str, Any]:
     return section
 
 
+def _section_model_state(user: "str | None" = None) -> dict[str, Any]:
+    """Why the plan's numbers are what they are: the model version and the
+    release note for every account, plus the measured coefficient state and the
+    drift verdict for a company account. It takes the acting account directly
+    rather than reading one from module state, so two asks in flight at once can
+    never see each other's identity."""
+    from kairos_api.assistant_model_disclosure import model_state_section
+
+    return model_state_section(user)
+
+
 _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("gold_breaks", _section_gold_breaks),
     ("active_constraints", _section_active_constraints),
@@ -363,19 +387,31 @@ _SECTIONS: tuple[tuple[str, Callable[[], dict[str, Any]]], ...] = (
     ("custom_pricing", _section_custom_pricing),
     ("event_pipeline", _section_event_pipeline),
     ("audience_model", _section_audience_model),
+    ("model_state", _section_model_state),
 )
 
 SECTION_NAMES = tuple(name for name, _ in _SECTIONS)
 
+# Builders that take the acting account, because what they may disclose depends
+# on affiliation. Everything else is identical for every account.
+_ACTOR_AWARE = frozenset({"model_state"})
 
-def extend_with_keyword_sections(context: dict[str, Any], sources: list[str], question: str) -> None:
+
+def extend_with_keyword_sections(context: dict[str, Any], sources: list[str], question: str,
+                                 user: "str | None" = None) -> None:
     """Attach each keyword-matched section, absent-marked on failure.
 
     Mutates context and sources in place under the composer's contract: a
     matched section that cannot be built is listed with an absent marker and
     omitted from the context, never substituted; an unmatched section adds
-    nothing at all.
+    nothing at all. ``user`` is the acting account: sections that carry training
+    content pass through the model-disclosure wall before they land, so a
+    channel-affiliated account never grounds on a gate verdict. It defaults to
+    None, which reads as company exactly as every other unknown identity in the
+    process does, so a caller without a session behaves as before.
     """
+    from kairos_api.assistant_model_disclosure import wall_section
+
     for name, build in _SECTIONS:
         try:
             matched = _matches(question, name)
@@ -384,7 +420,8 @@ def extend_with_keyword_sections(context: dict[str, Any], sources: list[str], qu
         if not matched:
             continue
         try:
-            context[name] = build()
+            payload = build(user) if name in _ACTOR_AWARE else build()
+            context[name] = wall_section(name, payload, user)
             sources.append(name)
         except Exception:
             sources.append(f"{name} (absent)")

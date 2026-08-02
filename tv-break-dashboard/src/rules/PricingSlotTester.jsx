@@ -70,7 +70,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
     }
   }, [slot, notify]);
 
-  // Recompute the tester whenever the inputs or the saved rate card change.
+  // Re-price the tester whenever the inputs or the saved rate card change.
   useEffect(() => {
     if (state) runTester();
   }, [state, runTester]);

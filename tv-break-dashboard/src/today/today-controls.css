@@ -1,0 +1,323 @@
+/* Today, the controls half: the target, its form, the rows behind the money
+   figure, and the job picker. Split from today.css under the file-size law.
+   Logical properties only, and every value is a token from tokens.css. */
+
+.today-target {
+  margin-block-start: 10px;
+  padding-block-start: 9px;
+  border-block-start: 1px solid var(--line);
+}
+
+.today-target p {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.today-target-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.today-target-row span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.today-target-row strong {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.today-variance.on_plan {
+  color: var(--teal-ink);
+}
+
+.today-variance.at_risk {
+  color: var(--amber-ink);
+}
+
+.today-variance.behind {
+  color: var(--red);
+}
+
+/* The targets stored on other windows. Set apart from this window's own answer
+   by a rule and a smaller scale, because they are context and never the
+   verdict: a reader must not be able to mistake one of these amounts for the
+   figure this window is measured against. */
+.today-other-windows {
+  margin-block-start: 9px;
+  padding-block-start: 8px;
+  border-block-start: 1px dashed var(--line);
+}
+
+.today-other-windows p.today-note {
+  font-size: var(--text-xs);
+}
+
+.today-other-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+}
+
+.today-other-row span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.today-other-row strong {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.today-target-actions {
+  display: flex;
+  gap: 8px;
+  margin-block-start: 10px;
+}
+
+.today-primary.MuiButton-root {
+  background: var(--primary);
+  color: var(--surface);
+  text-transform: none;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  padding: 6px 14px;
+  box-shadow: none;
+}
+
+.today-primary.MuiButton-root:hover {
+  background: var(--primary-hover);
+  box-shadow: none;
+}
+
+.today-secondary.MuiButton-root {
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  text-transform: none;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  padding: 5px 12px;
+}
+
+.today-target-form {
+  display: grid;
+  gap: 10px;
+  margin-block-start: 14px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--line);
+}
+
+.today-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.today-health-list {
+  display: grid;
+}
+
+.today-health-row,
+.today-health-row.MuiButton-root {
+  width: 100%;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  gap: 10px;
+  align-items: start;
+  min-height: 46px;
+  padding: 7px 0;
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  text-align: start;
+  text-transform: none;
+}
+
+.today-health-row:last-child,
+.today-health-row.MuiButton-root:last-child {
+  border-block-end: 0;
+}
+
+.today-health-row:hover,
+.today-health-row.MuiButton-root:hover {
+  background: var(--surface-muted);
+}
+
+.today-health-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+}
+
+.today-health-icon.ok {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.today-health-icon.attention {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.today-health-icon.notice {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.today-health-icon.unknown {
+  background: var(--surface-muted);
+  color: var(--subtle);
+}
+
+.today-health-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: start;
+}
+
+.today-health-copy strong {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: 1.35;
+}
+
+.today-health-copy span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* What the row opens, taught on the row that does it. Visible at rest rather
+   than on hover, so a reader who never hovers still knows. */
+.today-health-opens {
+  align-self: center;
+  color: var(--teal-ink);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+/* The three answers share one screen, so the decision rows carry the same nine
+   facts in less height than the page they came from. */
+.today-decision-list {
+  padding-block-start: 0;
+}
+
+.today-decision-list .decision-row,
+.today-decision-list .decision-row.MuiButton-root {
+  min-height: 44px;
+  padding-block: 5px;
+}
+
+/* The decision, opened under the row that names it. It borrows the day drill's
+   own frame, because it is the same act one answer over: a figure opening the
+   rows it was made of, in place. */
+.today-decision-detail {
+  display: grid;
+  gap: 4px;
+  margin-block-end: 6px;
+  padding: 10px 12px;
+  border-inline-start: 2px solid var(--teal);
+  background: var(--surface-muted);
+}
+
+.today-decision-detail:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.today-decision-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-decision-detail-head strong {
+  font-size: var(--text-sm);
+}
+
+.today-decision-detail-head .today-key-hint {
+  margin-inline-start: auto;
+}
+
+.today-decision-detail .today-target-actions {
+  margin-block-start: 6px;
+}
+
+.today-decision-list .decision-row.open,
+.today-decision-list .decision-row.MuiButton-root.open {
+  background: var(--surface-muted);
+}
+
+.today-job-picker {
+  padding-block-end: 14px;
+}
+
+.today-job-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.today-job-row,
+.today-job-row.MuiButton-root {
+  display: grid;
+  gap: 2px;
+  /* justify-items aligns each line inside the column track; justify-content
+     places the track itself. The button arrives from MUI centred, and MUI
+     injects that at runtime rather than into this stylesheet, so setting only
+     justify-items left the track centred and the card read as a centred title
+     over start-aligned detail lines. Both are needed, and both are logical
+     properties so the card flips whole in Hebrew instead of stranding the
+     title on the wrong side. */
+  justify-items: start;
+  justify-content: start;
+  text-align: start;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  text-transform: none;
+}
+
+.today-job-row:hover,
+.today-job-row.MuiButton-root:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.today-job-row strong {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.today-job-row span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.today-job-where {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.today-job-picker .today-note {
+  padding-inline: 16px;
+}

@@ -1,0 +1,169 @@
+/* Plan, the week: the comparison's own week table and the states around it.
+   Its own sheet under the 450-line law, and no selector here belongs to another
+   file: everything is scoped to the compare step. */
+
+.plan-compare-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.plan-note-quiet {
+  color: var(--muted);
+}
+
+.plan-money-window {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--subtle);
+}
+
+.plan-delta-window {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+/* The preparation, said quietly. It is a statement about what the machine is
+   doing, never a figure, so it reads as a note and not as a result. */
+.plan-prepare-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-prepare-note.is-ready {
+  color: var(--teal-ink);
+}
+
+.plan-compare-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.plan-compare-days-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.plan-compare-days-head h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-compare-progress {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-compare-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+}
+
+.plan-compare-table th,
+.plan-compare-table td {
+  padding: var(--space-2) var(--space-2);
+  text-align: start;
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-compare-table thead th {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.plan-compare-table tbody th {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.plan-compare-table tbody th small {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--subtle);
+}
+
+.plan-compare-table td {
+  color: var(--ink);
+}
+
+.plan-compare-table td.up {
+  color: var(--teal-ink);
+}
+
+.plan-compare-table td.down {
+  color: var(--red);
+}
+
+.plan-compare-table tr.is-weekend th {
+  border-inline-start: 3px solid var(--line-strong);
+  padding-inline-start: var(--space-2);
+}
+
+.plan-compare-table tr.is-biggest {
+  background: var(--surface-muted);
+}
+
+.plan-compare-reason {
+  color: var(--amber-ink);
+}
+
+.plan-compare-turn {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--ink);
+}
+
+/* A broadcast day is a place, so the cell that names it opens it. The control
+   keeps the cell's own typesetting and adds only the affordance. */
+.plan-compare-day-open {
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+
+.plan-compare-day-open:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.plan-compare-day-open:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.plan-compare-turn .plan-compare-day-open {
+  color: var(--ink);
+}
+
+.plan-compare-legend {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}

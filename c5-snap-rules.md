@@ -1,0 +1,408 @@
+- generic [active] [ref=f3e8]:
+  - generic [ref=f3e10]:
+    - complementary "Kairos navigation" [ref=f3e11]:
+      - generic [ref=f3e17]:
+        - strong [ref=f3e18]: Kairos
+        - generic [ref=f3e19]: ניהול הכנסות מפרסום
+      - navigation [ref=f3e20]:
+        - button "סקירה" [ref=f3e21] [cursor=pointer]
+        - button "אופטימייזר" [ref=f3e30] [cursor=pointer]
+        - button "לוח שידורים" [ref=f3e36] [cursor=pointer]
+        - button "מלאי" [ref=f3e42] [cursor=pointer]
+        - button "ספריית ברייקים" [ref=f3e48] [cursor=pointer]
+        - button "קמפיינים" [ref=f3e56] [cursor=pointer]
+        - button "תחזיות" [ref=f3e63] [cursor=pointer]
+        - button "לוח אירועים" [ref=f3e70] [cursor=pointer]
+        - button "דוחות" [ref=f3e78] [cursor=pointer]
+        - button "נתונים" [ref=f3e85] [cursor=pointer]
+        - button "מפרסמים" [ref=f3e93] [cursor=pointer]
+        - button "סוכנויות" [ref=f3e102] [cursor=pointer]
+        - button "תמחור" [ref=f3e110] [cursor=pointer]
+        - button "עקיפות" [ref=f3e119] [cursor=pointer]
+        - button "קאי, עוזר AI" [ref=f3e124] [cursor=pointer]
+        - button "שחזור שינויים" [ref=f3e131] [cursor=pointer]
+        - button "הגדרות" [ref=f3e139] [cursor=pointer]
+      - generic "להגדרת כניסה ותפקידים הריצו בשרת את python scripts/init_auth.py." [ref=f3e146]:
+        - generic [ref=f3e147]: "?"
+        - generic [ref=f3e148]:
+          - strong [ref=f3e149]: גישה פתוחה
+          - generic [ref=f3e150]: כניסה למערכת טרם הוגדרה
+    - main [ref=f3e153]:
+      - generic [ref=f3e154]:
+        - generic [ref=f3e155]:
+          - generic [ref=f3e156]: סקירה
+          - button "1 בנוב׳" [ref=f3e157] [cursor=pointer]
+        - generic [ref=f3e160]:
+          - generic [ref=f3e161]:
+            - generic [ref=f3e162]: תרחיש
+            - generic [ref=f3e163]:
+              - combobox "תרחיש" [ref=f3e164] [cursor=pointer]: מאוזן
+              - textbox: Balanced
+              - group:
+                - generic: תרחיש
+          - generic [ref=f3e165]:
+            - generic [ref=f3e166]:
+              - generic [ref=f3e167]: רמת זהירות
+              - 'img "כמה שמרניים המספרים שעל המסך. לכל ברייק יש טווח אי-ודאות מדוד סביב עלות השימור שלו: ב-0 המספרים מחושבים לפי האומדן המרכזי (התרחיש הסביר), וככל שמעלים, כל ברייק מתומחר קרוב יותר לעלות הגרועה הסבירה בטווח שלו, כך שהנטו המדווח הוא הבטחה זהירה שאפשר להתחייב עליה. בנתונים הנוכחיים זה משנה רק את המספרים המדווחים, אף פעם לא את הברייקים שמשובצים." [ref=f3e168]'
+              - generic [ref=f3e170]: 0/100
+            - slider "רמת זהירות" [ref=f3e174]: "0"
+          - button "השוואה" [ref=f3e175] [cursor=pointer]
+        - generic [ref=f3e181]:
+          - generic [ref=f3e182]: API חי
+          - generic "מועד עדכון הנתונים האחרון מה־API" [ref=f3e183]: עודכן 18:46
+          - button "רענון" [ref=f3e184] [cursor=pointer]
+          - button "פתיחה או סגירה של קאי, העוזר" [ref=f3e190] [cursor=pointer]
+          - button "התראות" [ref=f3e194] [cursor=pointer]
+          - button "אנגלית" [ref=f3e199] [cursor=pointer]
+          - button "הרצת אופטימיזציה" [ref=f3e204] [cursor=pointer]
+          - generic "שומר את ההגדרות האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה" [ref=f3e207]:
+            - button "החל על לוח השבוע" [ref=f3e208] [cursor=pointer]
+      - generic [ref=f3e211]:
+        - generic [ref=f3e212]:
+          - generic [ref=f3e213]:
+            - heading "היום, ⁨רשת 13⁩" [level=1] [ref=f3e214]
+            - paragraph [ref=f3e215]: ביעד, משהו לא תקין, מה דורש החלטה. שלוש תשובות, בלי קליקים.
+          - generic [ref=f3e216]: גרסת תוכנית, הורצה ב־1 באוג׳ 2026
+        - generic [ref=f3e217]:
+          - region "האם השבוע הזה עומד ביעד" [ref=f3e218]:
+            - generic [ref=f3e219]:
+              - heading "האם השבוע הזה עומד ביעד" [level=2] [ref=f3e220]
+              - generic [ref=f3e221]: בסיכון
+            - generic [ref=f3e222]:
+              - button "‏10.12M‏ ‏₪" [ref=f3e223] [cursor=pointer]
+              - generic [ref=f3e227]: הכנסה צפויה
+              - generic [ref=f3e228]: ⁨רשת 13⁩ · 1 בנוב׳ 2024 עד 7 בנוב׳ 2024 (7 ימים) · שני התאריכים כלולים · Asia/Jerusalem · מהתוכנית השמורה
+              - generic [ref=f3e229]: החלון הזה הוא שבעת הימים הראשונים של התוכנית השמורה, לא שבוע קלנדרי. בתוכנית אין תאריך שנופל בשבוע הנוכחי.
+              - generic [ref=f3e230]: פתחו את 7 הימים שמאחורי המספר
+            - generic [ref=f3e231]:
+              - generic [ref=f3e232]:
+                - generic [ref=f3e233]: יעד
+                - strong [ref=f3e234]: ‏10.5M‏ ‏₪
+              - generic [ref=f3e235]:
+                - generic [ref=f3e236]: מול היעד
+                - strong [ref=f3e237]: ‎-‏384.9K‏ ‏₪ (‎-3.7%)
+              - paragraph [ref=f3e238]: על התוכנית ביעד או מעליו, בסיכון עד 5 אחוז מתחת ליעד, מתחת לכך בפיגור
+              - paragraph [ref=f3e239]: נקבע על ידי p1admin ב30 ביולי 2026
+              - generic [ref=f3e240]:
+                - paragraph [ref=f3e241]: נקבע יעד ל-4 חלונות אחרים בערוץ הזה. יעד שנקבע לטווח אחר אינו נקרא במכוון כיעד של החלון הזה, ולכן הוא נקוב כאן ולא נעלם.
+                - generic [ref=f3e242]:
+                  - generic [ref=f3e243]: 29 בנוב׳ 2024 עד 5 בדצמ׳ 2024
+                  - strong [ref=f3e244]: ‏8.3M‏ ‏₪
+                - generic [ref=f3e245]:
+                  - generic [ref=f3e246]: 22 בנוב׳ 2024 עד 28 בנוב׳ 2024
+                  - strong [ref=f3e247]: ‏9.1M‏ ‏₪
+                - generic [ref=f3e248]:
+                  - generic [ref=f3e249]: 15 בנוב׳ 2024 עד 21 בנוב׳ 2024
+                  - strong [ref=f3e250]: ‏8.75M‏ ‏₪
+                - paragraph [ref=f3e251]: לחלון נוסף אחד יש יעד, מבין היעדים השמורים בערוץ הזה.
+              - generic [ref=f3e252]:
+                - button "שינוי היעד" [ref=f3e253] [cursor=pointer]
+                - button "הסרת היעד" [ref=f3e254] [cursor=pointer]
+          - region "האם משהו לא תקין" [ref=f3e255]:
+            - generic [ref=f3e256]:
+              - heading "האם משהו לא תקין" [level=2] [ref=f3e257]
+              - generic [ref=f3e258]: אין דבר שדורש טיפול
+            - generic [ref=f3e259]:
+              - button "התוכנית מעודכנת מול הקלטים שלה הורצה ב1 באוג׳ 2026 פתחו את התוכנית" [ref=f3e260] [cursor=pointer]:
+                - generic [ref=f3e265]:
+                  - strong [ref=f3e266]: התוכנית מעודכנת מול הקלטים שלה
+                  - generic [ref=f3e267]: הורצה ב1 באוג׳ 2026
+                - generic [ref=f3e268]: פתחו את התוכנית
+              - button "התוכנית בתוך הרישיון 7 מתוך 7 בדיקות עוברות, Israel commercial TV פתחו את הבדיקות" [ref=f3e269] [cursor=pointer]:
+                - generic [ref=f3e274]:
+                  - strong [ref=f3e275]: התוכנית בתוך הרישיון
+                  - generic [ref=f3e276]: 7 מתוך 7 בדיקות עוברות, Israel commercial TV
+                - generic [ref=f3e277]: פתחו את הבדיקות
+              - button "התוכנית קראה את כל הקלטים שהיא זקוקה להם 8,704 שורות תוכניות, 50,386 שורות תשדירים, 8,704 שורות ברייקים מתוכננים, 8 מתוך 8 קבצי מקור קיימים פתחו את המקורות" [ref=f3e278] [cursor=pointer]:
+                - generic [ref=f3e283]:
+                  - strong [ref=f3e284]: התוכנית קראה את כל הקלטים שהיא זקוקה להם
+                  - generic [ref=f3e285]: 8,704 שורות תוכניות, 50,386 שורות תשדירים, 8,704 שורות ברייקים מתוכננים, 8 מתוך 8 קבצי מקור קיימים
+                - generic [ref=f3e286]: פתחו את המקורות
+        - region "מה דורש החלטה" [ref=f3e287]:
+          - generic [ref=f3e288]:
+            - heading "החלטות בעדיפות גבוהה" [level=2] [ref=f3e289]
+            - generic [ref=f3e290]: 5 פעולות
+          - paragraph [ref=f3e291]: ⁨רשת 13⁩ · 1 בנוב׳ 2024 עד 30 בנוב׳ 2024 (30 ימים) · שני התאריכים כלולים · כל התוכנית השמורה, לא רק החלון שלמעלה
+          - paragraph [ref=f3e292]: מדורג לפי ההכנסה הצפויה בערוץ שלכם, מתוך התוכנית השמורה, מהגבוה לנמוך. כל שורה מציגה את ההכנסה ואת חלק הקהל שנשאר לאורך הברייק, ופותחת כאן את שורת התוכנית שמאחוריה, בלי לצאת מהמסך.
+          - generic [ref=f3e293]:
+            - button "בדיקת הברייקים בתוכנית ריאליטי בשעה 21:24 בשבת, 2024-11-23 ריאליטי · 23 בנוב׳ 2024 · מעל רצפת השימור ‏393.3K‏ ‏₪ 80.5%" [ref=f3e294] [cursor=pointer]:
+              - generic [ref=f3e295]:
+                - strong [ref=f3e296]: בדיקת הברייקים בתוכנית ריאליטי בשעה 21:24 בשבת, 2024-11-23
+                - generic [ref=f3e297]: ריאליטי · 23 בנוב׳ 2024 · מעל רצפת השימור
+              - generic [ref=f3e298]:
+                - strong [ref=f3e299]:
+                  - generic [ref=f3e300]: ‏393.3K‏ ‏₪
+                - generic [ref=f3e301]: 80.5%
+            - button "בדיקת הברייקים בתוכנית ריאליטי בשעה 21:44 ביום שני, 2024-11-18 ריאליטי · 18 בנוב׳ 2024 · מעל רצפת השימור ‏287.28K‏ ‏₪ 80.5%" [ref=f3e303] [cursor=pointer]:
+              - generic [ref=f3e304]:
+                - strong [ref=f3e305]: בדיקת הברייקים בתוכנית ריאליטי בשעה 21:44 ביום שני, 2024-11-18
+                - generic [ref=f3e306]: ריאליטי · 18 בנוב׳ 2024 · מעל רצפת השימור
+              - generic [ref=f3e307]:
+                - strong [ref=f3e308]:
+                  - generic [ref=f3e309]: ‏287.28K‏ ‏₪
+                - generic [ref=f3e310]: 80.5%
+            - button "בדיקת הברייקים בתוכנית Documentary בשעה 21:28 ביום ראשון, 2024-11-10 דוקומנטרי · 10 בנוב׳ 2024 · מעל רצפת השימור ‏263.01K‏ ‏₪ 80.5%" [ref=f3e312] [cursor=pointer]:
+              - generic [ref=f3e313]:
+                - strong [ref=f3e314]: בדיקת הברייקים בתוכנית Documentary בשעה 21:28 ביום ראשון, 2024-11-10
+                - generic [ref=f3e315]: דוקומנטרי · 10 בנוב׳ 2024 · מעל רצפת השימור
+              - generic [ref=f3e316]:
+                - strong [ref=f3e317]:
+                  - generic [ref=f3e318]: ‏263.01K‏ ‏₪
+                - generic [ref=f3e319]: 80.5%
+            - button "בדיקת הברייקים בתוכנית ריאליטי בשעה 21:28 ביום ראשון, 2024-11-24 ריאליטי · 24 בנוב׳ 2024 · מעל רצפת השימור ‏263.01K‏ ‏₪ 80.5%" [ref=f3e321] [cursor=pointer]:
+              - generic [ref=f3e322]:
+                - strong [ref=f3e323]: בדיקת הברייקים בתוכנית ריאליטי בשעה 21:28 ביום ראשון, 2024-11-24
+                - generic [ref=f3e324]: ריאליטי · 24 בנוב׳ 2024 · מעל רצפת השימור
+              - generic [ref=f3e325]:
+                - strong [ref=f3e326]:
+                  - generic [ref=f3e327]: ‏263.01K‏ ‏₪
+                - generic [ref=f3e328]: 80.5%
+            - button "בדיקת הברייקים בתוכנית ריאליטי בשעה 21:29 בשבת, 2024-11-30 ריאליטי · 30 בנוב׳ 2024 · מעל רצפת השימור ‏260.12K‏ ‏₪ 85.4%" [ref=f3e330] [cursor=pointer]:
+              - generic [ref=f3e331]:
+                - strong [ref=f3e332]: בדיקת הברייקים בתוכנית ריאליטי בשעה 21:29 בשבת, 2024-11-30
+                - generic [ref=f3e333]: ריאליטי · 30 בנוב׳ 2024 · מעל רצפת השימור
+              - generic [ref=f3e334]:
+                - strong [ref=f3e335]:
+                  - generic [ref=f3e336]: ‏260.12K‏ ‏₪
+                - generic [ref=f3e337]: 85.4%
+        - paragraph [ref=f3e339]: אותו חלון, בארבעה מספרים נוספים. כולם מהתוכנית השמורה של הערוץ שלכם, על החלון שנקוב למעלה.
+        - region "Optimization summary" [ref=f3e340]:
+          - generic "צפי הכנסות הפרסום של הערוץ שלכם לשבוע התכנון, מסוכם מהתוכנית השמורה של האופטימייזר. לא תחזית ליום מחר." [ref=f3e341]:
+            - generic [ref=f3e346]:
+              - generic [ref=f3e347]: הכנסה שבועית צפויה
+              - strong [ref=f3e348]:
+                - generic [ref=f3e349]: ‏10.12M‏ ‏₪
+              - generic [ref=f3e350]: 1 בנוב׳ 2024 - 7 בנוב׳ 2024 · ממוצע יומי ‏1.45M‏ ‏₪
+          - 'generic "כמה מקהל התוכנית נשאר מול המסך במהלך ברייק פרסומות, ממוצע משוקלל TVR על ברייקי שבוע התכנון. זהו מדד רגעי לכל ברייק, לא איבוד צופים מצטבר משבוע לשבוע: מי שעוזב בזמן ברייק לרוב חוזר לתוכנית מיד אחריו, אבל הברייק עצמו משודר לקהל קטן יותר, וזו ההכנסה שהוא מפסיד. זהו הצד הקהלי של עלות השימור בסיפור הכסף." [ref=f3e351]':
+            - generic [ref=f3e358]:
+              - generic [ref=f3e359]: שימור צופים בברייקים
+              - strong [ref=f3e360]:
+                - generic [ref=f3e361]: 94.4%
+              - generic [ref=f3e362]: כ-5.6% עוזבים זמנית בברייק ממוצע, ורובם חוזרים מיד אחריו
+          - generic "סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות." [ref=f3e363]:
+            - generic [ref=f3e368]:
+              - generic [ref=f3e369]: דקות פרסום בשבוע
+              - strong [ref=f3e370]:
+                - generic [ref=f3e371]: 1,106 דק׳
+          - generic "כמה רחוק ממוצע השימור של שבוע התכנון מתחת לרף השימור שלכם (0 = ברף או מעליו). לא ציון סיכון עסקי כללי." [ref=f3e372]:
+            - generic [ref=f3e377]:
+              - generic [ref=f3e378]: סיכון שימור
+              - strong [ref=f3e379]:
+                - generic [ref=f3e380]: נמוך
+            - generic [ref=f3e381]: 0/100
+        - paragraph [ref=f3e383]: המספרים שבכותרת הם הצפי לשבוע התכנון 1 בנוב׳ 2024 - 7 בנוב׳ 2024 (7 ימים), מתוך התוכנית השמורה עבור הערוץ שלכם (רשת 13), 1 בנוב׳ 2024 – 30 בנוב׳ 2024 (30 ימים בתוכנית השמורה).
+        - paragraph [ref=f3e384]:
+          - 'generic "תצוגה בלבד: האירוע מסומן בשמו כדי שתדעו שימי התוכנית האלה נמצאים בתוכו. אף מספר שימור או הכנסה אינו משתנה, כי השפעת אירועים על השימור עדיין לא נמדדה." [ref=f3e385]': "ימי תוכנית בתוך אירוע פעיל:"
+          - generic [ref=f3e388]: חרבות ברזל, מלחמת עזה
+          - generic [ref=f3e389]: הסלמה בצפון מול חזבאללה, חצי הצפון
+        - generic [ref=f3e390]:
+          - generic [ref=f3e391]:
+            - heading "מברוטו לנטו" [level=2] [ref=f3e392]
+            - generic [ref=f3e393]: לפי התוכנית השמורה · ערוץ ⁨רשת 13⁩ · 2024-11-01 עד 2024-11-30 (30 ימים)
+          - generic [ref=f3e395]:
+            - generic [ref=f3e396]:
+              - generic [ref=f3e397]: הכנסות ברוטו
+              - strong [ref=f3e398]: ‏40.9M‏ ‏₪
+            - generic [ref=f3e399]:
+              - 'generic "העלות הכספית של הצופים שמתרחקים בזמן הברייקים: כל ברייק משודר לקהל מעט קטן יותר, ולכן הרייטינג והחיוב שלו נמוכים יותר. ההפרש מתומחר לפי מחיר הפרסום בפועל. אומדן מהמודל, לא חשבונית." [ref=f3e400]':
+                - text: עלות שימור
+                - generic [ref=f3e401]: אומדן מודל
+              - strong [ref=f3e405]: "-‏4.02M‏ ‏₪"
+            - generic [ref=f3e406]:
+              - generic [ref=f3e407]: נטו אחרי עלות שימור
+              - strong [ref=f3e408]: ‏36.88M‏ ‏₪
+            - img "נטו ‏36.88M‏ ‏₪ נשמר ועלות שימור ‏4.02M‏ ‏₪ נגרעה, מתוך ‏40.9M‏ ‏₪ ברוטו." [ref=f3e409]:
+              - generic [ref=f3e414]:
+                - generic [ref=f3e415]: נטו שנשמר
+                - generic [ref=f3e417]: עלות שימור
+                - generic "הטווח הסביר של אומדן המודל." [ref=f3e419]:
+                  - text: טווח האומדן
+                  - generic [ref=f3e421]: ‏2.13M‏ ‏₪ - ‏5.9M‏ ‏₪
+            - generic [ref=f3e422]: טווח האומדן מראה כמה עלות השימור עשויה להיות נמוכה או גבוהה מהמספר המרכזי, לפי אי-הוודאות שנמדדה לכל ברייק (רמת ביטחון 95 אחוז).
+        - generic [ref=f3e423]:
+          - generic [ref=f3e425]:
+            - generic [ref=f3e426]:
+              - heading "יומן תאימות" [level=2] [ref=f3e427]
+              - generic [ref=f3e428]: 7 כללים פעילים
+            - generic [ref=f3e429]:
+              - generic [ref=f3e430]:
+                - generic [ref=f3e431]: דקות פרסום לשעת שידור
+                - strong [ref=f3e432]: תקין
+                - generic [ref=f3e433]:
+                  - generic [ref=f3e434]: 8 / 12
+                  - generic [ref=f3e435]: דק׳ לשעה
+              - generic [ref=f3e436]:
+                - generic [ref=f3e437]: מספר ברייקים בשעה
+                - strong [ref=f3e438]: תקין
+                - generic [ref=f3e439]:
+                  - generic [ref=f3e440]: 4 / 4
+                  - generic [ref=f3e441]: ברייקים לשעה
+              - generic [ref=f3e442]:
+                - generic [ref=f3e443]: רף שימור צפייה
+                - strong [ref=f3e444]: תקין
+                - generic [ref=f3e445]: 78.6% / 78%
+              - generic [ref=f3e447]:
+                - generic [ref=f3e448]: עומס פרסום בתוכן מוגן
+                - strong [ref=f3e449]: תקין
+                - generic [ref=f3e450]:
+                  - generic [ref=f3e451]: 8 / 8
+                  - generic [ref=f3e452]: דק׳ לשעה
+              - generic [ref=f3e453]:
+                - generic [ref=f3e454]: מרווח מינימלי בין ברייקים
+                - strong [ref=f3e455]: תקין
+                - generic [ref=f3e456]:
+                  - generic [ref=f3e457]: 7 / 7
+                  - generic [ref=f3e458]: דק׳
+              - generic [ref=f3e459]:
+                - generic [ref=f3e460]: עומס פרסום יומי
+                - strong [ref=f3e461]: תקין
+                - generic [ref=f3e462]:
+                  - generic [ref=f3e463]: 160 / 160
+                  - generic [ref=f3e464]: דק׳ ביום
+              - generic [ref=f3e465]:
+                - generic [ref=f3e466]: ברייקי זהב ביום
+                - strong [ref=f3e467]: תקין
+                - generic [ref=f3e468]:
+                  - generic [ref=f3e469]: 0 / 3
+                  - generic [ref=f3e470]: ברייקים ביום
+              - paragraph [ref=f3e471]: בסיס הבקרה ניתן להגדרה. יש לאמת מול ייעוץ משפטי ומדיניות הערוץ לפני שימוש בפרודקשן.
+          - generic [ref=f3e472]:
+            - generic [ref=f3e473]:
+              - heading "הכנסה מול שימור" [level=2] [ref=f3e474]
+              - generic [ref=f3e475]: מודל שימור מדוד
+            - generic [ref=f3e476]:
+              - group "היקף החזית" [ref=f3e477]:
+                - button "רשת 13" [pressed] [ref=f3e478] [cursor=pointer]
+              - generic [ref=f3e482]:
+                - text: היקף נוכחי
+                - strong [ref=f3e483]: רשת 13
+            - img "חזית הכנסה צפויה מול שימור ממוצע" [ref=f3e485]:
+              - button "רף שימור 72%, ‏1.41M‏ ‏₪, 95%" [ref=f3e487] [cursor=pointer]
+              - button "רף שימור 78%, ‏1.41M‏ ‏₪, 95%" [ref=f3e488] [cursor=pointer]
+              - button "רף שימור 80%, ‏1.35M‏ ‏₪, 95.2%" [ref=f3e489] [cursor=pointer]
+              - button "רף שימור 85%, ‏1.27M‏ ‏₪, 95.6%" [ref=f3e490] [cursor=pointer]
+              - button "רף שימור 90%, ‏1.07M‏ ‏₪, 96.3%" [ref=f3e491] [cursor=pointer]
+              - button "רף שימור 93%, ‏881.93K‏ ‏₪, 97%" [ref=f3e492] [cursor=pointer]
+              - button "רף שימור 97%, ‏0 ‏₪, 100%" [ref=f3e493] [cursor=pointer]
+              - generic [ref=f3e494]: 94.4%
+              - generic [ref=f3e495]: 100.6%
+              - generic [ref=f3e496]: ‏1.6M‏ ‏₪
+            - generic [ref=f3e497]:
+              - generic [ref=f3e498]: "ציר X: שימור ממוצע"
+              - generic [ref=f3e499]: "ציר Y: הכנסה (יום מייצג)"
+            - paragraph [ref=f3e500]: This frontier sweeps the retention floor at your saved revenue weight, each point a refined single representative-day optimum for the owned channel, not the saved weekly plan total.
+            - generic [ref=f3e501]:
+              - generic [ref=f3e502]:
+                - 'generic "האילוץ שתחתיו הנקודה חושבה: אף ברייק בתוכנית אינו רשאי לרדת מתחת לרף השימור הזה." [ref=f3e503]':
+                  - generic [ref=f3e504]: רף שימור שנבדק
+                  - strong [ref=f3e505]: 78%
+                - generic "הממוצע שהתוכנית שהתקבלה השיגה בפועל, גבוה בהרבה מהרף באופן טבעי כי הרף חוסם רק את הברייקים הגרועים ביותר." [ref=f3e506]:
+                  - generic [ref=f3e507]: שימור שהושג
+                  - strong [ref=f3e508]: 95%
+                - generic "הכנסה צפויה ליום מייצג יחיד בהיקף הזה, לא הסך השבועי השמור." [ref=f3e509]:
+                  - generic [ref=f3e510]: הכנסה (יום מייצג)
+                  - strong [ref=f3e511]: ‏1.41M‏ ‏₪
+                - generic "כמה ברייקים משדרת התוכנית של הנקודה הזו ביום המייצג." [ref=f3e512]:
+                  - generic [ref=f3e513]: ברייקים
+                  - strong [ref=f3e514]: "80"
+              - generic [ref=f3e515]:
+                - generic [ref=f3e516]: הרף השמור הנוכחי
+                - generic [ref=f3e519]: לחצו על נקודה כדי לבחון ולהחיל את רף השימור שלה.
+        - generic [ref=f3e520]:
+          - generic [ref=f3e521]:
+            - heading "תשואה לשנייה" [level=2] [ref=f3e522]
+            - generic [ref=f3e523]: היכן כל שניית פרסום מרוויחה הכי הרבה
+          - paragraph [ref=f3e524]: נטו מלא בכרטיס מברוטו לנטו.
+          - generic [ref=f3e525]:
+            - generic [ref=f3e526]:
+              - generic [ref=f3e527]: תשואה לשנייה
+              - strong [ref=f3e531]: "142.55"
+              - generic [ref=f3e532]: ₪ לשנ׳ פרסום
+            - generic [ref=f3e533]:
+              - generic [ref=f3e534]: שניות פרסום
+              - strong [ref=f3e535]: 286,920 שנ׳
+          - generic [ref=f3e536]:
+            - generic [ref=f3e537]:
+              - generic [ref=f3e538]:
+                - heading "לפי רצועת שידור" [level=3] [ref=f3e539]
+                - generic [ref=f3e540]: "5"
+              - generic [ref=f3e541]:
+                - generic [ref=f3e542]:
+                  - generic "פריים טיים" [ref=f3e543]
+                  - strong [ref=f3e545]: "387.20"
+                  - generic [ref=f3e546]: ‏11.06M‏ ‏₪
+                - generic [ref=f3e547]:
+                  - generic "ערב" [ref=f3e548]
+                  - strong [ref=f3e550]: "274.29"
+                  - generic [ref=f3e551]: ‏12.71M‏ ‏₪
+                - generic [ref=f3e552]:
+                  - generic "צהריים" [ref=f3e553]
+                  - strong [ref=f3e555]: "88.99"
+                  - generic [ref=f3e556]: ‏6.5M‏ ‏₪
+                - generic [ref=f3e557]:
+                  - generic "לילה" [ref=f3e558]
+                  - strong [ref=f3e560]: "78.33"
+                  - generic [ref=f3e561]: ‏5.56M‏ ‏₪
+                - generic [ref=f3e562]:
+                  - generic "בוקר" [ref=f3e563]
+                  - strong [ref=f3e565]: "74.64"
+                  - generic [ref=f3e566]: ‏5.08M‏ ‏₪
+            - generic [ref=f3e567]:
+              - generic [ref=f3e568]:
+                - heading "לפי תוכנית" [level=3] [ref=f3e569]
+                - generic [ref=f3e570]: "13"
+              - generic [ref=f3e571]:
+                - generic [ref=f3e572]:
+                  - generic "חדשות" [ref=f3e573]
+                  - strong [ref=f3e575]: "303.33"
+                  - generic [ref=f3e576]: ‏7.57M‏ ‏₪
+                - generic [ref=f3e577]:
+                  - generic "ריאליטי" [ref=f3e578]
+                  - strong [ref=f3e580]: "198.07"
+                  - generic [ref=f3e581]: ‏7.65M‏ ‏₪
+                - generic [ref=f3e582]:
+                  - generic "קומדיה" [ref=f3e583]
+                  - strong [ref=f3e585]: "177.79"
+                  - generic [ref=f3e586]: ‏1.37M‏ ‏₪
+                - generic [ref=f3e587]:
+                  - generic "דרמה" [ref=f3e588]
+                  - strong [ref=f3e590]: "151.13"
+                  - generic [ref=f3e591]: ‏435.26K‏ ‏₪
+                - generic [ref=f3e592]:
+                  - generic "פרומו" [ref=f3e593]
+                  - strong [ref=f3e595]: "142.51"
+                  - generic [ref=f3e596]: ‏11.06M‏ ‏₪
+                - generic [ref=f3e597]:
+                  - generic "דוקומנטרי" [ref=f3e598]
+                  - strong [ref=f3e600]: "130.92"
+                  - generic [ref=f3e601]: ‏3M‏ ‏₪
+                - generic [ref=f3e602]:
+                  - generic "תוכנית אירוח" [ref=f3e603]
+                  - strong [ref=f3e605]: "128.36"
+                  - generic [ref=f3e606]: ‏2.25M‏ ‏₪
+                - generic [ref=f3e607]:
+                  - generic "אירוע מיוחד" [ref=f3e608]
+                  - strong [ref=f3e610]: "108.31"
+                  - generic [ref=f3e611]: ‏2.82M‏ ‏₪
+                - generic [ref=f3e612]:
+                  - generic "אחר" [ref=f3e613]
+                  - strong [ref=f3e615]: "107.49"
+                  - generic [ref=f3e616]: ‏1.11M‏ ‏₪
+                - generic [ref=f3e617]:
+                  - generic "תוכנית בוקר" [ref=f3e618]
+                  - strong [ref=f3e620]: "78.30"
+                  - generic [ref=f3e621]: ‏2.11M‏ ‏₪
+                - generic [ref=f3e622]:
+                  - generic "לייפסטייל" [ref=f3e623]
+                  - strong [ref=f3e625]: "53.43"
+                  - generic [ref=f3e626]: ‏1.42M‏ ‏₪
+                - generic [ref=f3e627]:
+                  - generic "מוזיקה" [ref=f3e628]
+                  - strong [ref=f3e630]: "21.42"
+                  - generic [ref=f3e631]: ‏74,544 ‏₪
+                - generic [ref=f3e632]:
+                  - generic "דיגיטל" [ref=f3e633]
+                  - strong [ref=f3e635]: "17.03"
+                  - generic [ref=f3e636]: ‏20,433 ‏₪
+          - paragraph [ref=f3e637]: תשואה לשנייה = הכנסה / שניות פרסום (ILS/s).
+  - button "קונסולת המודל (חברה)" [ref=f3e638] [cursor=pointer]

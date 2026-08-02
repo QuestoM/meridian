@@ -1,0 +1,15 @@
+{
+ "computed_at": "2026-08-01T11:11:34.833667+00:00",
+ "fingerprints": {
+  "advertiser": "e555831b4e8aeedd3bd229fb451f1755ff0826f7dd649ce3c7ac32d2e7a16262",
+  "campaigns": "bc3ead0db32e5f46eadbcdee5346c1379269d3899e13a1063c34028380f38686",
+  "classifications": "absent",
+  "coefficients": "2026-07-29T00:12:13.100043+00:00",
+  "constraints": "14499222d736f911114e97d71276cbc68f047673ec31ae9bae799ec269f71bf0",
+  "data": "822c779e614c17c6c0485db4abb191c64b91372c43baf67488287397c90291b8",
+  "impact_model": "d6d77bb42b79fe3a527ea81ac1ed40f2482ae38c15029ef2b689fe9e0cde6434",
+  "inventory": "415b081bb3e8b5051b50788f59342568a55c35ebfca61bc18cb6d38b45c1ba0e",
+  "overrides": "b5286591424e88281e4c10db522fd91ba1984bfee6fc10600f2f789e3667fa05",
+  "settings": "39dca017f569d524f9b2c7ca4b539b30c0ca1711f366f8dda9cfb975483a5176"
+ }
+}

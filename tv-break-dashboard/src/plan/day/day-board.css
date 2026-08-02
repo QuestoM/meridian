@@ -1,0 +1,362 @@
+/* The day board. Logical properties throughout so the surface mirrors itself
+   correctly in Hebrew; the time track itself stays left to right, because time
+   does, and a clock must never be mirrored. Every colour and every step comes
+   from the frozen token set. */
+
+.day-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.day-picker {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+}
+
+.day-picker-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.day-picker-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.day-picker-channel {
+  font-size: var(--text-sm);
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+}
+
+.day-picker-count {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  margin-inline-start: auto;
+}
+
+.day-picker-weeks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.day-picker-week {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.day-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  padding: var(--space-1) 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  line-height: 1.25;
+}
+
+.day-pill b {
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.day-pill.is-weekend b {
+  color: var(--blue);
+}
+
+.day-pill:hover {
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+
+.day-pill.is-on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.day-pill.is-on b {
+  color: #ffffff;
+}
+
+.day-pill:focus-visible,
+.day-chip-button:focus-visible,
+.day-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.day-board {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* A flex item's default min-width is its content, so without this the track,
+     which is nine thousand pixels wide at the default scale, stretched the board
+     and then the whole page instead of scrolling inside it. Measured before the
+     clamp: the scroll container reported a client width of 9,532 px against a
+     1,440 px viewport, so every break sat at a negative page coordinate and the
+     board opened on the far end of the day. */
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The shared scroll container carries a 440 px floor because the weekly editor
+   stacks one lane per programme. The day board has exactly one lane, so that
+   floor is empty surface, and it pushed the money, the compliance verdict and
+   the save and undo controls off the bottom of a day that fits. Measured at
+   1440 x 823 before this override: the box was 440 px tall around 148 px of
+   content, 292 px of it dead, the hour strip started at 869 px, the readout at
+   927 px and the three buttons at 1043 px. The floor is released here rather
+   than lowered in the shell, because the weekly editor still wants it. */
+.day-board .timeline-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  min-height: 0;
+}
+
+.day-board-empty {
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  color: var(--muted);
+}
+
+.day-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.day-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.day-toolbar-basis {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  margin-inline-start: auto;
+}
+
+.day-snap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* The two zoom presets, beside the scale they set. They carry an icon and their
+   words in the accessible name and the tooltip rather than on the face, because
+   at the narrowest the surface has, English with the assistant dock open and a
+   730 px panel, the labelled pair wrapped this row onto a second line and pushed
+   the four commit acts 28 px further down a viewport they already fill. */
+.day-fit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Square, and the same 25 px height as the snap buttons beside it, so the row
+   reads as one set of controls rather than as two sizes of button. */
+.day-chip-button.is-icon {
+  padding: 5px;
+}
+
+.day-chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 3px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.day-chip-button.is-on {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal-ink);
+}
+
+.day-selection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.day-selection.is-empty {
+  color: var(--muted);
+  display: block;
+}
+
+.day-selection-identity {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-selection-ordinal {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.day-selection-scope {
+  font-size: var(--text-xs);
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+}
+
+/* The saved placement and its inverse. It takes the whole row under the fields
+   because it is the one control on this panel that changes the committed plan,
+   and a control that spends money should not sit in a line of controls that do
+   not. */
+.day-selection-pin {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+}
+
+.day-pin-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--teal-ink);
+}
+
+.day-pin-rule {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono, monospace);
+  color: var(--subtle);
+}
+
+.day-pin-note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.day-chip-button.is-inverse {
+  border-color: var(--amber);
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+}
+
+.day-chip-button.is-inverse:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.day-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.day-field input,
+.day-field output {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-field input {
+  width: 62px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+  padding: 2px var(--space-1);
+  background: var(--surface);
+}
+
+/* The start clock is eight characters, so it needs more room than the length
+   field beside it. Both are typed targets, neither is a readout. */
+.day-field input.day-field-time {
+  width: 84px;
+}
+
+.day-track-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.day-track-lane {
+  width: 172px;
+  flex: 0 0 172px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding-inline: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  border-inline-end: 1px solid var(--line);
+}
+
+.day-track-lane strong {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.day-track {
+  position: relative;
+  height: 108px;
+  background: var(--surface-muted);
+}
+
+.day-track-tick {
+  position: absolute;
+  inset-block: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.day-snap-line {
+  position: absolute;
+  inset-block: 0;
+  width: 2px;
+  background: var(--teal);
+  z-index: 3;
+}

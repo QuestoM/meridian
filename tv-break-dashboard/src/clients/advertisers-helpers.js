@@ -393,9 +393,9 @@ export function overlapTone(kind) {
   return 'overlap';
 }
 
-// Pull the human-readable message straight from a backend finding. We do NOT
-// recompute semantics on the client: prefer message, then detail, then a plain
-// fallback that just names the involved rule ids.
+// Pull the human-readable message straight from a backend finding. The client
+// never derives the semantics a second time: prefer message, then detail, then
+// a plain fallback that just names the involved rule ids.
 export function overlapMessage(finding) {
   const source = finding || {};
   if (source.message) {

@@ -1,0 +1,120 @@
+/* Plan, the week: publishing and the frozen versions, split from
+   plan-week-panels.css under the 450-line law. Uses the frozen tokens only;
+   defines none of its own. */
+
+.plan-publish-form {
+  display: grid;
+  grid-template-columns: 2fr 3fr auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.plan-version-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.plan-version-row.is-selected {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.plan-version-main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex: 1 1 auto;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: start;
+  padding: var(--space-1) 0;
+}
+
+.plan-version-name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-version-meta {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-version-figures {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-version-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.plan-diff-days {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-diff-days li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-1);
+}
+
+/* Walking the frozen versions without leaving the one that is open. */
+.plan-version-walk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-version-walk button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.plan-version-walk button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.plan-version-walk button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}

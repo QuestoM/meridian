@@ -2,12 +2,16 @@ import { API_BASE } from '../shell/surface-helpers';
 
 // Transport for the assistant console. requestJson and postJson are the plain
 // JSON helpers shared by the panel and the previous-conversations block.
-// streamAsk consumes the server-sent-event stream of an ask (step frames as
-// tools run, delta frames of answer text, one terminal frame) and resolves
-// with the exact body the non-streaming ask endpoint would have returned.
-// Transport or protocol failures throw so the caller can fall back to the
-// plain ask endpoint; a server-sent error frame resolves as an error body,
-// exactly like the non-streaming path, so the ask is never run twice.
+// streamAsk consumes the server-sent-event stream of an ask (stage frames
+// naming what the server is doing, step frames as tools run, delta frames of
+// answer text, one terminal frame) and resolves with the exact body the
+// non-streaming ask endpoint would have returned. Transport or protocol
+// failures throw so the caller can fall back to the plain ask endpoint; a
+// server-sent error frame resolves as an error body, exactly like the
+// non-streaming path, so the ask is never run twice.
+//
+// Every call takes an optional AbortSignal, because the measured failure this
+// replaces was a browser with no reply, no error and no way to stop waiting.
 
 export async function requestJson(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -22,8 +26,9 @@ export async function requestJson(path, options = {}) {
   return body || {};
 }
 
-export function postJson(path, payload) {
+export function postJson(path, payload, options = {}) {
   return requestJson(path, {
+    ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -48,13 +53,14 @@ function parseFrame(frame) {
 // scopes the ask to the active conversation, and page_context is the advisory
 // current-location grounding ({ view, label, entity } or absent). Both are
 // omitted when null, so the request degrades to exactly today's behavior.
-export async function streamAsk(question, { conversationId = null, pageContext = null, onStep, onDelta } = {}) {
+export async function streamAsk(question, { conversationId = null, pageContext = null, onStep, onDelta, onStage, signal } = {}) {
   const payload = { question };
   if (conversationId) payload.conversation_id = conversationId;
   if (pageContext) payload.page_context = pageContext;
   const response = await fetch(`${API_BASE}/api/assistant/ask/stream`, {
     method: 'POST',
     credentials: 'include',
+    signal,
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify(payload),
   });
@@ -79,7 +85,8 @@ export async function streamAsk(question, { conversationId = null, pageContext =
       if (frame.event === 'final' || frame.event === 'error') throw new Error('the stream returned an unreadable terminal frame');
       return;
     }
-    if (frame.event === 'step' && typeof onStep === 'function' && parsed && typeof parsed === 'object') onStep(parsed);
+    if (frame.event === 'stage' && typeof onStage === 'function' && parsed && typeof parsed === 'object') onStage(parsed);
+    else if (frame.event === 'step' && typeof onStep === 'function' && parsed && typeof parsed === 'object') onStep(parsed);
     else if (frame.event === 'delta' && typeof onDelta === 'function' && parsed && typeof parsed.text === 'string') onDelta(parsed.text);
     else if (frame.event === 'final') terminal = parsed && typeof parsed === 'object' ? parsed : {};
     else if (frame.event === 'error') terminal = { error: String((parsed && parsed.error) || 'stream error') };
@@ -123,4 +130,18 @@ export async function streamAsk(question, { conversationId = null, pageContext =
 
   if (!terminal) throw new Error('the stream ended before a final frame');
   return terminal;
+}
+
+// Build the grounding context before it is needed. Measured on the server: the
+// base sections cost 11.13 s on a cold process and 0.034 s once warm, so the
+// dock asks for the work at the moment it opens, which is the moment the person
+// starts typing rather than the moment they press Enter. A failure is silent on
+// purpose: the ask still works, it is only slower.
+export function warmContext(signal) {
+  return requestJson('/api/assistant/context/warm', {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  }).catch(() => null);
 }

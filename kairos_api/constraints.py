@@ -5,8 +5,8 @@ This is the operator-facing seam for the scoped placement-constraint store
 ``data/kairos_constraints.csv`` with the same read-mutate-backup-write style as
 :mod:`kairos_api.advertiser_conditions` (serialized under a module lock, written
 via a temp file plus ``os.replace`` so readers never see a torn CSV), serves the
-option lists the dashboard needs to build a scoped rule (real programme Titles,
-channels, weekdays, effects, scope types), and serves a preview that runs the
+option lists the dashboard needs to build a scoped rule (the operator channel's
+own programme titles, weekdays, effects, scope types), and a preview that runs the
 weekly schedule with and without the constraints so the operator sees exactly
 which segments change and which constraints were skipped.
 
@@ -41,11 +41,11 @@ from kairos.optimize.constraints_store import (
     load_constraints,
     resolve_constraints,
 )
+from kairos_api.constraints_language import AUTHORING_COLUMNS
 from kairos_api._constraint_options import (
-    channel_options as _channel_options,
     daypart_options_list as _daypart_options_list,
-    genre_options as _genre_options,
     load_operator_channel as _load_operator_channel,
+    operator_scope_options as _operator_scope_options,
     predicate_field_schema as _predicate_field_schema,
     validate_where as _validate_where,
     weekday_options as _weekday_options,
@@ -55,7 +55,18 @@ from kairos_api._constraint_options import (
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 BACKUP_DIR = DATA_DIR / "_backups"
-CONSTRAINTS_PATH = DATA_DIR / "kairos_constraints.csv"
+
+# Relocatable by environment, the same way the guardrail store is: a restriction
+# changes what the optimizer does, so an instance that writes one for a
+# measurement must be able to write it somewhere other than the shared file.
+# Resolved at import, so importers and tests that patch the attribute are
+# unaffected.
+CONSTRAINTS_PATH_ENV = "KAIROS_CONSTRAINTS_PATH"
+_STORE_OVERRIDE = os.getenv(CONSTRAINTS_PATH_ENV, "").strip()
+CONSTRAINTS_PATH = (
+    (Path(_STORE_OVERRIDE) if Path(_STORE_OVERRIDE).is_absolute() else ROOT / _STORE_OVERRIDE)
+    if _STORE_OVERRIDE else DATA_DIR / "kairos_constraints.csv"
+)
 
 router = APIRouter(prefix="/api/constraints", tags=["constraints"])
 
@@ -134,11 +145,18 @@ class ConstraintUpdate(BaseModel):
     where: Optional[dict[str, Any]] = None
 
 
+# The frozen engine columns first, then the authoring columns a restriction
+# adds. The engine loader reads by name, so a column it does not know is a
+# column it ignores: attribution and expiry ride beside the compiled row
+# without changing one thing the optimizer sees.
+STORE_COLUMNS = tuple(COLUMNS) + AUTHORING_COLUMNS
+
+
 def _load_frame() -> pd.DataFrame:
     if not CONSTRAINTS_PATH.exists():
-        return pd.DataFrame(columns=list(COLUMNS))
+        return pd.DataFrame(columns=list(STORE_COLUMNS))
     frame = pd.read_csv(CONSTRAINTS_PATH, encoding="utf-8-sig", dtype=str, keep_default_na=False)
-    for column in COLUMNS:
+    for column in STORE_COLUMNS:
         if column not in frame.columns:
             frame[column] = ""
     return frame
@@ -161,7 +179,10 @@ def _write_frame(frame: pd.DataFrame) -> None:
     _backup()
     CONSTRAINTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = CONSTRAINTS_PATH.with_name(CONSTRAINTS_PATH.name + ".tmp")
-    frame[list(COLUMNS)].to_csv(tmp, index=False, encoding="utf-8-sig")
+    for column in STORE_COLUMNS:
+        if column not in frame.columns:
+            frame[column] = ""
+    frame[list(STORE_COLUMNS)].to_csv(tmp, index=False, encoding="utf-8-sig")
     os.replace(tmp, CONSTRAINTS_PATH)
 
 
@@ -173,7 +194,7 @@ def _snapshot_before_write(request: "Request | None") -> None:
 
 
 def _record(row: "pd.Series[Any]") -> dict[str, Any]:
-    result = {column: str(row.get(column, "")) for column in COLUMNS}
+    result = {column: str(row.get(column, "")) for column in STORE_COLUMNS}
     # Also expose the parsed where predicate (convenience for API consumers).
     raw_json = str(row.get("where_json", "") or "")
     if raw_json.strip():
@@ -212,6 +233,7 @@ def list_constraints() -> dict[str, Any]:
     return {
         "constraints": [_record(row) for _, row in frame.iterrows()],
         "columns": list(COLUMNS),
+        "authoring_columns": list(AUTHORING_COLUMNS),
     }
 
 
@@ -295,24 +317,31 @@ def delete_constraint(constraint_id: str, request: Request = None) -> dict[str, 
 def scope_options() -> dict[str, Any]:
     """Option lists the dashboard needs to build a scoped placement constraint.
 
-    Includes the frozen predicate field/operator schema, real programme and genre
-    lists from the EPG, active daypart and weekday vocabularies, and the
-    operator_channel setting (so the dashboard knows which channel's breaks the
-    constraints will scope to).
-    """
-    from kairos_api.advertiser_conditions import _programme_options
+    Includes the frozen predicate field/operator schema, the programmes and
+    genres of the operator's own channel, the active daypart and weekday
+    vocabularies, and the operator_channel whose breaks the constraints scope to.
 
+    The programme, genre and channel lists are scoped through
+    :mod:`kairos_api.channel_scope`, because this payload feeds the condition
+    builder's value picker and that is an operator surface. Measured on the
+    reference EPG before the scope was applied: 418 titles, of which 106 are the
+    operator's and 312 are three rivals' whole lineups, and all four channel
+    names. ``scope`` is the disclosure that travels with the lists, and when
+    nothing is declared yet it says why they are empty and how to fill them.
+    """
+    scoped = _operator_scope_options()
     return {
         "scope_types": sorted(_SCOPES),
         "effects": sorted(_EFFECTS),
-        "programmes": _programme_options(),
-        "genres": _genre_options(),
-        "channels": _channel_options(),
+        "programmes": scoped["programmes"],
+        "genres": scoped["genres"],
+        "channels": scoped["channels"],
         "weekdays": _weekday_options(),
         "dayparts": _daypart_options_list(),
         "predicate_fields": _predicate_field_schema(),
         "operator_channel": _load_operator_channel(),
-        "available_channels": _channel_options(),
+        "available_channels": scoped["channels"],
+        "scope": scoped["scope"],
     }
 
 
@@ -409,3 +438,12 @@ def constraint_effect(
             for r in constrained.rejected_overrides
         ],
     }
+
+
+# The restriction routes ride on this router: they read and write the same store
+# through the same lock, so they belong to the same module boundary even though
+# the file-size law puts their code next door. Imported at the foot of the module
+# so the lazy imports back into this one resolve against a finished module.
+from kairos_api.constraints_restrictions import router as _restrictions_router  # noqa: E402
+
+router.include_router(_restrictions_router)

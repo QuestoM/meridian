@@ -1,0 +1,279 @@
+/* The Rules workspace: the destination chrome, the sentence composer and the
+   effect panel. Logical properties throughout, so the whole surface mirrors
+   correctly in Hebrew without a single direction-specific rule, and every
+   colour, radius, size and space comes from the frozen token file. The licence,
+   channel and rate-card panels are in rules-panels.css beside it. */
+
+@import './rules-panels.css';
+@import './rules-restrictions.css';
+
+.rules-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-block: var(--space-5);
+}
+
+.rules-hero h1 {
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.rules-hero p {
+  margin: 0;
+  max-inline-size: 68ch;
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.rules-kicker {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teal-ink);
+}
+
+.rules-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-2);
+}
+
+.rules-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rules-tab:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.rules-tab.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal-ink);
+}
+
+.rules-tab:focus-visible,
+.rules-disclosure:focus-visible,
+.rules-icon-button:focus-visible,
+.rules-channel-option:focus-visible,
+.rules-airing-chip:focus-visible,
+.rules-suggestions button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.rules-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.rules-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.rules-card h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.rules-card h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.rules-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rules-card-lead {
+  margin: 0 0 var(--space-3);
+  max-inline-size: 76ch;
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+/* The sentence composer */
+
+.rules-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+  line-height: 2.2;
+  color: var(--ink);
+}
+
+.rules-sentence-word {
+  color: var(--muted);
+}
+
+.rules-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  border-block-end: 2px solid var(--teal);
+  background: var(--teal-soft);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.rules-slot select,
+.rules-slot input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-md);
+  color: var(--teal-ink);
+  padding-block: var(--space-1);
+}
+
+.rules-slot input[type='number'] {
+  inline-size: 4.5ch;
+  text-align: center;
+}
+
+.rules-slot-unit {
+  font-size: var(--text-sm);
+  color: var(--teal-ink);
+}
+
+.rules-typeahead {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--teal-ink);
+}
+
+.rules-typeahead input {
+  inline-size: 26ch;
+}
+
+.rules-suggestions {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  max-block-size: 260px;
+  overflow-y: auto;
+}
+
+.rules-suggestions button {
+  display: flex;
+  inline-size: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.rules-suggestions button:hover {
+  background: var(--teal-soft);
+}
+
+.rules-suggestions small {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.rules-airings {
+  margin-block-end: var(--space-3);
+}
+
+.rules-airings-head {
+  display: block;
+  margin-block-end: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rules-airing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.rules-airing-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.rules-airing-chip.active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.rules-airing-chip small {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.rules-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.rules-attribution label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rules-attribution input[type='text'] {
+  min-inline-size: 20ch;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-base);
+  color: var(--ink);
+}

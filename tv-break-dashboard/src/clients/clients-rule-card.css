@@ -1,0 +1,129 @@
+/* The client's pricing rule, inside the client record. It sits between the money
+   and the campaigns, so the reader meets the premium that priced the figures
+   directly above it. Every rule here is logical (inline start / end), so the
+   Hebrew layout is the same surface mirrored, never a second one. */
+
+.clients-rule-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.clients-rule-card h4,
+.clients-rule-card h5 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.clients-rule-card h5 {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: var(--space-2);
+}
+
+.clients-rule-line {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.clients-rule-line .numeric {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.clients-rule-delta {
+  font-size: var(--text-sm);
+  color: var(--teal-ink);
+  font-weight: 500;
+}
+
+.clients-rule-plain {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.clients-spellings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.clients-spellings li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-base);
+}
+
+.clients-spelling-source {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  color: var(--muted);
+  background: var(--surface-muted);
+}
+
+.clients-spelling-source.rule {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+}
+
+.clients-rule-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-block-start: 1px solid var(--line);
+  padding-block-start: var(--space-2);
+}
+
+.clients-rule-form label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.clients-rule-form input {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.clients-rule-form input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.clients-rule-premium {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.clients-rule-premium input {
+  inline-size: 7rem;
+}
+
+.clients-rule-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.clients-primary.compact {
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+}

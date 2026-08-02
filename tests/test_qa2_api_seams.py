@@ -281,10 +281,35 @@ def test_parameters_pricing_reflects_saved_overrides(client, tmp_path, monkeypat
 # --------------------------------------------------------------------------- #
 @pytest.mark.skipif(not CSV_PATH.exists(), reason="no committed weekly plan on disk")
 def test_schedule_payload_discloses_total_rows_beside_the_display_slice(client):
+    """The slice discloses the size of the set it was cut from, on its own scope.
+
+    That set is the operator's own plan. The payload is scoped to the one owned
+    channel, so a table that can only ever hold the operator's rows must not be
+    labelled with the market's row count: the client prints "the first 200 of N
+    plan rows", and a market N would overstate the operator's plan by every rival
+    row. What the boundary removed is not hidden either, it travels beside the
+    figure under ``scope``. Both counts are checked against the file and the
+    settings on disk rather than against the payload's own note.
+    """
+    from kairos_api.core import _load_settings
+
     body = client.get("/api/schedule").json()
-    total = int(len(pd.read_csv(CSV_PATH, encoding="utf-8-sig")))
-    assert body["break_schedule_total_rows"] == total
-    assert len(body["break_schedule"]) == min(200, total)
+    plan = pd.read_csv(CSV_PATH, encoding="utf-8-sig")
+    rows_in = int(len(plan))
+    owned = str(_load_settings().operator_channel or "").strip()
+    expected = (
+        int((plan["channel"].astype(str).str.strip() == owned).sum()) if owned else rows_in
+    )
+    assert body["break_schedule_total_rows"] == expected
+    assert len(body["break_schedule"]) == min(200, expected)
+
+    note = body["scope"]["plan"]
+    assert note["scoped"] is bool(owned)
+    assert note["rows_in"] == rows_in
+    assert note["rows_out"] == expected
+    assert note["competitor_rows_excluded"] == rows_in - expected
+    if owned and expected:
+        assert {str(row["channel"]) for row in body["break_schedule"]} == {owned}
 
 
 def test_dead_day_key_helper_is_gone():

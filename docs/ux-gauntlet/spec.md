@@ -1361,6 +1361,68 @@ P10 and P12 take files by handover rather than owning them from the start,
 because they extend a thing their predecessor must first prove. A handover is a
 declared moment in the run, not an overlap: P3 freezes, then P10 owns.
 
+##### How the orchestration expresses these dependencies
+
+Three of the four wave-two dependencies point back at wave one, which has
+closed, so P10, P11 and P12 are mutually independent and start together. The
+fourth is inside this wave: P13 writes `src/plan/break/media/**`, which sits
+under P10 `src/plan/break/**`. Two agents in one subtree is a collision, not a
+scheduling preference, so P13 runs chained behind P10 rather than beside it.
+
+The chain is expressed inside a single concurrent branch, not as a barrier
+between two build stages. A barrier would make P13 wait for the slowest of P11
+and P12 as well, for no reason: it needs P10 and nothing else. The rule is to
+make a dependency exactly as tight as it really is, and no tighter.
+
+##### Durable state: surviving a limit without losing the thread
+
+Wave one lost work to a usage limit three times. What was lost was never the
+file edits, which sit on disk and survive anything; it was the thread between
+agents. The gap a critic named was interpolated into the next builder's prompt,
+so it existed only in the running process, and a process that dies takes it
+with it.
+
+The second-order damage was worse than the first. Because the gap text was part
+of the prompt, it was part of the resume cache key. One critic that died before
+its result was journaled changed the hash of every agent downstream of it, so
+agents that had genuinely finished were treated as new calls and ran again.
+Measured on the wave-one journal: 187 agent calls started, 128 recorded a
+result, and 59 started without ever recording one.
+
+So inter-agent state moves out of the prompt and onto the filesystem, which is
+the only thing here that outlives the process. A critic writes its verdict to
+`docs/ux-gauntlet/state/<piece>.json` **before** composing its reply, and also
+returns it. A builder is told **where to read the gap**, never handed its text.
+Three properties follow:
+
+- The prompt now varies only by piece and round number, both deterministic, so
+  the cache key is stable and a resume genuinely continues rather than redoing.
+- A verdict lost in transit no longer ends the piece. The next builder reads the
+  file the dead critic already wrote. Two consecutive losses do stop it, because
+  at that point the limit is not letting critics finish at all and continuing
+  would only burn builders blind.
+- A round that died mid-flight left its edits behind, so every agent is told to
+  look at what is already on disk before writing. A resume that rebuilds work
+  that is already there is not a recovery, it is damage.
+
+The rule generalises: **state that must survive a process belongs in a file, not
+in a prompt.** A prompt is memory, and memory dies with the process holding it.
+
+Two defects in the wave-one script are fixed here, both found by auditing it
+rather than by it failing loudly:
+
+- A critic was spawned unconditionally after its builder. `agent()` returns
+  null when a run is skipped or dies on a terminal error after retries, so a
+  dead builder still bought a full critic round that measured an artifact
+  nobody had written. The critic now runs only against a build that exists.
+- Verification lived outside the workflow entirely, which is how a
+  verification pass once began while builders were still in flight and
+  attributed their work in progress to the previous wave. The integration
+  critic is now a phase after the barrier, so it structurally cannot start
+  before every piece has returned. Attribution against a commit rather than
+  against the working tree, recorded in `scripts/gauntlet/README.md`, is the
+  other half of that fix.
+
 #### Frozen, no owner
 
 `kairos/service.py`, `kairos/optimize/day_core.py`, `kairos/optimize/optimizer.py`,

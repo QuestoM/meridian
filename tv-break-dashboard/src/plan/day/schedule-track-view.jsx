@@ -18,15 +18,24 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 // visit so switching between timeline and editor keeps the same scale; nothing
 // is persisted to storage. A step multiplies or divides the current factor so
 // zoom feels even across the wide band.
+// A fit is the one act allowed to move the floor, and it moves it only down and
+// only to the scale it measured. Nothing else changes for a caller that never
+// fits: the floor starts at the band's own minimum and stays there.
 export function useScheduleZoom(initial = DEFAULT_PX_PER_MIN) {
+  const floorRef = useRef(MIN_PX_PER_MIN);
   const [pxPerMin, setPxPerMin] = useState(() => clampZoom(initial));
   const zoomBy = useCallback((factor) => {
-    setPxPerMin((current) => clampZoom(current * factor));
+    setPxPerMin((current) => clampZoom(current * factor, floorRef.current));
   }, []);
   const setZoom = useCallback((value) => {
-    setPxPerMin(clampZoom(value));
+    setPxPerMin(clampZoom(value, floorRef.current));
   }, []);
-  return { pxPerMin, setZoom, zoomBy };
+  const fitTo = useCallback((value) => {
+    if (!Number.isFinite(value) || value <= 0) return;
+    floorRef.current = Math.min(floorRef.current, value);
+    setPxPerMin(clampZoom(value, floorRef.current));
+  }, []);
+  return { pxPerMin, floor: floorRef.current, setZoom, zoomBy, fitTo };
 }
 
 // Owned-channel segment anchors, fetched once and keyed by channel|date|
@@ -66,7 +75,7 @@ export function useSegmentAnchors() {
 // buttons. It scales the minutes-to-pixels factor shared by both views. The
 // readout shows the current scale relative to the base so the operator has a
 // concrete sense of how far in they are.
-export function ZoomControl({ pxPerMin, onZoom, onStep, locale }) {
+export function ZoomControl({ pxPerMin, onZoom, onStep, locale, min = MIN_PX_PER_MIN }) {
   const label = (en, he) => (locale === 'he' ? he : en);
   const relative = pxPerMin / DEFAULT_PX_PER_MIN;
   const relativeText = relative >= 1 ? `${relative.toFixed(1)}x` : `${relative.toFixed(2)}x`;
@@ -85,7 +94,7 @@ export function ZoomControl({ pxPerMin, onZoom, onStep, locale }) {
       <input
         className="track-zoom-slider"
         type="range"
-        min={MIN_PX_PER_MIN}
+        min={min}
         max={MAX_PX_PER_MIN}
         step={0.1}
         value={pxPerMin}
@@ -111,7 +120,7 @@ export function ZoomControl({ pxPerMin, onZoom, onStep, locale }) {
 // rows. Ctrl or cmd plus wheel zooms centered on the cursor by keeping the time
 // under the pointer fixed while the scale changes. The ruler and every row are
 // sized to the same track width so they stay aligned at any zoom.
-export function ScheduleTrackSurface({ axis, pxPerMin, onZoom, children, locale }) {
+export function ScheduleTrackSurface({ axis, pxPerMin, onZoom, children, locale, floor = MIN_PX_PER_MIN }) {
   const scrollRef = useRef(null);
   const width = trackWidth(axis, pxPerMin);
   const minWidth = LANE_GUTTER + width;
@@ -127,10 +136,10 @@ export function ScheduleTrackSurface({ axis, pxPerMin, onZoom, children, locale 
       // Cursor position within the track area, past the fixed lane gutter.
       const cursorInTrack = event.clientX - rect.left - LANE_GUTTER + node.scrollLeft;
       const minuteUnderCursor = pixelToMinute(axis, pxPerMin, Math.max(0, cursorInTrack));
-      const next = clampZoom(pxPerMin * (event.deltaY < 0 ? 1.12 : 1 / 1.12));
+      const next = clampZoom(pxPerMin * (event.deltaY < 0 ? 1.12 : 1 / 1.12), floor);
       if (next === pxPerMin) return;
       onZoom(next);
-      // Keep the time under the cursor put: recompute where that minute lands at
+      // Keep the time under the cursor put: work out where that minute lands at
       // the new scale and shift scrollLeft to match, after the paint.
       requestAnimationFrame(() => {
         const startMin = axis.startHour * 60;
@@ -140,7 +149,7 @@ export function ScheduleTrackSurface({ axis, pxPerMin, onZoom, children, locale 
     }
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => node.removeEventListener('wheel', onWheel);
-  }, [axis, pxPerMin, onZoom]);
+  }, [axis, pxPerMin, onZoom, floor]);
 
   return (
     <div className="timeline-scroll chart-ltr" dir="ltr" ref={scrollRef}>

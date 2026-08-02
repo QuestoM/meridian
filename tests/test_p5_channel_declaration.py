@@ -14,6 +14,12 @@ write route in the running app whose declared request body can carry the field,
 sends each one a body that carries it, and asserts the channel on disk did not
 move. A route added later that can carry the field is swept in automatically.
 
+The sweep found one open route, ``PUT /api/settings``, in a file frozen to this
+piece, so P5 built the rule, filed the measurement and the two-line patch in
+``docs/ux-gauntlet/contracts/P5.md``, and marked the bar below as a strict
+expected failure. The call has since landed at ``settings_api.py:56-59``, the
+marker came off, and the route that carried the hole keeps a case of its own.
+
 These drive the real app with real resolved sessions. The affiliation wall's own
 unit tests prove the lock works; they cannot prove that a door is locked.
 """
@@ -42,14 +48,6 @@ ROOT = Path(__file__).resolve().parents[1]
 # read out of it, because the field this file is about is writable by anything
 # that can reach PUT /api/settings and cannot be leaned on as a fixture.
 OPERATOR_CHANNEL = "רשת 13"
-
-# The route that used to move the channel for an account with no admin role. It
-# is `kairos_api/settings_api.py`, which is W0-4's row in the section 8.2
-# ownership table and frozen to P5, so P5 built the rule, filed the measurement
-# and the exact patch in `docs/ux-gauntlet/contracts/P5.md`, and could not call
-# it. The call has since landed at `settings_api.py:56-59`, so the sweep below
-# asserts the empty set outright and this route keeps its own case underneath.
-GUARDED_SETTINGS_WRITER = "PUT /api/settings"
 
 
 @pytest.fixture(autouse=True)

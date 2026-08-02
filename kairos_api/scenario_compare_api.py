@@ -7,21 +7,61 @@ Forecasts page.
 
 Both legs of the A/B and every named forecast are real optimizer runs under the
 operator's saved guardrails, scoped to the owned channel-day through the shared
-selector, so no what-if revenue point is ever a competitor's. The objective
-reported is the optimizer's convex-blend score under its own name, never
-relabelled as a revenue net of retention cost.
+selector, so no what-if revenue point is ever a competitor's.
+
+**Net after retention cost is the quantity this surface exists for, and it is now
+computed.** JS-2 defines the planner's comparison on revenue net of retention
+cost, and the panel printed "Not exposed" because the optimizer's own summary
+carries a convex-blend objective rather than a subtraction. The subtraction does
+exist: :func:`kairos_api.plan_read_frontier.scenario_plan_money` prices any
+scenario plan on the engine's per-break retention-cost model, which is the same
+basis the committed plan's yield-per-second money uses. Each leg is priced with
+it, so both legs report gross, retention cost and net on one shared basis, and
+the objective keeps its own name beside them instead of standing in for a figure
+it is not.
+
+**Both legs carry every lever, because the revenue weight alone moves nothing.**
+Measured on ``רשת 13 / 2024-11-11``: weight 60 and weight 85 both return
+1,414,695.20 in revenue, 95.0 percent retention, 80 breaks and 9,600 ad seconds,
+and only the blended score differs. That is the engine being consistent, not a
+defect: at a fixed retention floor the refined optimum is nearly invariant to the
+weight, which the frontier module documents. The floor, the hourly break cap, the
+risk aversion and the engine focus do move the plan, so a comparison that only
+offered the weight could not answer the planner's question. When two legs come
+back identical the payload says so and names which levers were equal.
+
+**And both legs run the plan's own week.** JS-2's comparison is of next week, and
+running it on one representative broadcast day put two different quantities under
+one label on one destination: the goal strip's week beside a single day's money.
+``scope`` now defaults to ``week`` and the run is 14 real optimizations over the
+same seven dates the goal strip reports, in :mod:`scenario_compare_api_week`.
+``scope: "day"`` still runs the single representative day and the payload says
+which of the two happened, in ``scope.mode``, so no figure is ever read against a
+window it was not computed on.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from functools import lru_cache
 from typing import Any, Optional
 
 import pandas as pd
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
 
+# ``_delta`` and ``_scenario_summary`` are re-exported by the frozen wave-zero
+# layer ``insights_api``, which binds them by name from this module, so they stay
+# bound here even where this module no longer calls them itself.
+from kairos_api.scenario_compare_api_money import (  # noqa: F401
+    _delta,
+    _identical_note,
+    _priced,
+    _resolve_levers,
+    _scenario_summary,
+    compare_body,
+)
+from kairos_api.scenario_compare_levers import ScenarioCompareRequest, ScenarioLevers  # noqa: F401
 from kairos_api.core import (
     DATA_DIR,
     OUTPUT_DIR,
@@ -43,22 +83,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class ScenarioCompareRequest(BaseModel):
-    """A what-if A/B: two revenue weights under shared (optional) guardrails.
-
-    ``weight_a``/``weight_b`` are the 0..100 revenue-vs-retention levers. The three
-    guardrails are optional; when omitted they fall back to the operator's saved
-    settings so the comparison reflects the real plan baseline, not an arbitrary
-    default. Both legs run the genuine optimizer; nothing here is synthesized.
-    """
-
-    weight_a: int = Field(ge=0, le=100)
-    weight_b: int = Field(ge=0, le=100)
-    retention_floor: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    max_breaks_per_hour: Optional[int] = Field(default=None, ge=1, le=20)
-    risk_lambda: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-
-
 def _server() -> Any:
     """Lazy handle to server.py helpers (avoids an import cycle at module load)."""
     from kairos_api import server
@@ -66,44 +90,76 @@ def _server() -> Any:
     return server
 
 
-def _scenario_summary(payload: dict[str, Any]) -> dict[str, Any]:
-    """Pull the comparable fields from a run_scenario payload.
+def _resolved(request: ScenarioCompareRequest) -> dict[str, Any]:
+    """The saved settings, the shared guardrails and both legs' levers.
 
-    ``objective`` is the optimizer's convex-blend score (a weighted blend of
-    revenue and retention, NOT a literal revenue-minus-cost subtraction), so it is
-    reported under its own name and never relabeled as revenue_net.
+    One resolution serves the plain route, the streaming route and the weekly
+    runner, so the three cannot disagree about what a request asked for.
     """
-    summary = payload.get("summary", {})
-    return {
-        "revenue_weight": payload.get("controls", {}).get("revenue_weight"),
-        "projected_revenue": summary.get("projected_revenue"),
-        "average_retention": summary.get("average_retention"),
-        "total_breaks": summary.get("total_breaks"),
-        "total_ad_seconds": summary.get("total_ad_seconds"),
-        "objective": summary.get("objective"),
-        "compliant": summary.get("compliant"),
-        "channel": payload.get("channel"),
-        "day": payload.get("day"),
-    }
-
-
-def _delta(a: dict[str, Any], b: dict[str, Any], key: str) -> Optional[float]:
-    """b - a for a numeric summary field, or None when either side is missing."""
-    av, bv = a.get(key), b.get(key)
-    if av is None or bv is None:
-        return None
-    return round(float(bv) - float(av), 4)
-
-
-def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
     server = _server()
     if not server._ENGINE_AVAILABLE:
         return {"available": False, "reason": "Optimization engine unavailable."}
-
     saved = server._load_settings()
     floor = request.retention_floor if request.retention_floor is not None else saved.min_retention_floor
     max_bph = request.max_breaks_per_hour if request.max_breaks_per_hour is not None else saved.max_breaks_per_hour
     risk = request.risk_lambda if request.risk_lambda is not None else saved.risk_lambda
+    shared = {
+        "retention_floor": floor,
+        "max_breaks_per_hour": max_bph,
+        "risk_lambda": risk,
+        "objective_mode": str(getattr(saved, "objective_mode", "blend") or "blend"),
+    }
+    return {
+        "available": True,
+        "saved": saved,
+        "guardrails": {"retention_floor": floor, "max_breaks_per_hour": max_bph, "risk_lambda": risk},
+        "levers_a": _resolve_levers(request.a, request.weight_a, shared),
+        "levers_b": _resolve_levers(request.b, request.weight_b, shared),
+    }
+
+
+def prepare_week(request: ScenarioCompareRequest) -> dict[str, Any]:
+    """What the streaming route needs before it opens the response: the levers,
+    the guardrails and the plan's own week, or the honest reason there is none."""
+    from kairos_api import scenario_compare_api_week as week
+
+    resolved = _resolved(request)
+    if not resolved.get("available"):
+        return resolved
+    window = week.plan_week_window(resolved["saved"])
+    if not window.get("available"):
+        return {"available": False, "reason": window.get("reason"), "window": window}
+    return {
+        "available": True,
+        "window": window,
+        "levers_a": resolved["levers_a"],
+        "levers_b": resolved["levers_b"],
+        "guardrails": resolved["guardrails"],
+    }
+
+
+def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
+    from kairos_api import scenario_compare_api_week as week
+
+    resolved = _resolved(request)
+    if not resolved.get("available"):
+        return resolved
+    saved = resolved["saved"]
+    levers_a = resolved["levers_a"]
+    levers_b = resolved["levers_b"]
+
+    # The plan's own week is the default window, because it is the window the
+    # goal strip, the supply panel and the published plan all report. A caller
+    # that asks for one day, or a plan that has no week yet, falls through to the
+    # single representative day below and the payload says which one it was.
+    day_reason: Optional[str] = None
+    if request.scope == "week":
+        window = week.plan_week_window(saved)
+        if window.get("available"):
+            return compare_body(
+                week.run_week(window, levers_a, levers_b), resolved["guardrails"]
+            )
+        day_reason = str(window.get("reason") or "")
 
     from kairos.service import run_scenario
 
@@ -111,8 +167,9 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
     # exactly as /api/optimizer-plan and the frontier do (server._pacing_call_kwargs),
     # so the A/B baseline honours every operator guardrail, the pricing overrides and
     # the operator channel scope instead of silently falling back to engine defaults.
-    # The scenario overrides (floor/max_bph/risk) still apply on top of this base,
-    # so the scenario-control semantics are unchanged.
+    # The scenario overrides (floor/max_bph/risk/focus) still apply on top of this
+    # base, so the scenario-control semantics are unchanged.
+    server = _server()
     reference_today = server._reference_today(saved)
     settings_map = server._model_dump(saved)
     # Scope both A/B legs to the operator's owned channel-day (the shared selector
@@ -122,44 +179,79 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
 
     channel, day = owned_scope(saved)
 
-    def _run(weight: int) -> dict[str, Any]:
+    def _run(levers: dict[str, Any]) -> dict[str, Any]:
         return run_scenario(
-            revenue_weight=weight,
-            retention_floor=floor,
-            max_breaks_per_hour=max_bph,
-            risk_lambda=risk,
+            revenue_weight=levers["revenue_weight"],
+            retention_floor=levers["retention_floor"],
+            max_breaks_per_hour=levers["max_breaks_per_hour"],
+            risk_lambda=levers["risk_lambda"],
+            objective_mode=levers["objective_mode"],
             today=reference_today,
             settings=settings_map,
             channel=channel,
             day=day,
         )
 
+    started = time.perf_counter()
     try:
-        payload_a = _run(request.weight_a)
-        payload_b = _run(request.weight_b)
+        payload_a = _run(levers_a)
+        payload_b = _run(levers_b)
     except Exception as exc:  # pragma: no cover - data/environment dependent
         return {"available": False, "reason": f"Optimizer run failed: {str(exc)[:200]}"}
 
-    a = _scenario_summary(payload_a)
-    b = _scenario_summary(payload_b)
-    return {
-        "available": True,
-        "guardrails": {"retention_floor": floor, "max_breaks_per_hour": max_bph, "risk_lambda": risk},
-        "a": a,
-        "b": b,
-        "delta": {
-            "revenue": _delta(a, b, "projected_revenue"),
-            "retention": _delta(a, b, "average_retention"),
-            "breaks": _delta(a, b, "total_breaks"),
-            "ad_seconds": _delta(a, b, "total_ad_seconds"),
-            "objective": _delta(a, b, "objective"),
-            "revenue_net": None,
+    # The engine's own segments for the scoped channel-day, rebuilt once and
+    # priced against both legs, so the two nets are on one basis. Measured at 15
+    # to 105 ms against a 2.2 s response, so this is not what the planner waits
+    # for.
+    segments: list[Any] = []
+    segment_reason: Optional[str] = None
+    if channel and day:
+        try:
+            from kairos_api.core import _plan_segment_index
+
+            segments = list(_plan_segment_index(((channel, str(day)),), settings_map).values())
+        except Exception as exc:  # pragma: no cover - data/environment dependent
+            logger.exception("segment rebuild for the A/B money failed")
+            segment_reason = f"segment rebuild failed: {str(exc)[:160]}"
+    else:
+        segment_reason = "no operator channel-day is in scope, so retention cost cannot be priced"
+
+    a = _priced(_scenario_summary(payload_a, levers_a), payload_a, segments, levers_a["risk_lambda"])
+    b = _priced(_scenario_summary(payload_b, levers_b), payload_b, segments, levers_b["risk_lambda"])
+    for leg in (a, b):
+        if segment_reason and not leg.get("money_available"):
+            leg["money_reason"] = segment_reason
+    return compare_body(
+        {
+            "a": a,
+            "b": b,
+            "by_day": None,
+            # The single-day window, declared as plainly as the weekly one. A
+            # reader who sees this mode knows the money on screen is one
+            # broadcast day and not the week, and knows why.
+            "scope": {
+                "mode": "day",
+                "channel": channel,
+                "day": day,
+                "dates": [str(day)] if day else [],
+                "date_from": day,
+                "date_to": day,
+                "n_dates": 1 if day else 0,
+                "basis": "representative_day",
+                # A day counts as priced when its money actually priced, on the
+                # same reading the weekly runner uses. Rebuilt segments alone are
+                # not a price: the pricer still refuses when the plan and the
+                # segments no longer join, and a count that said one there would
+                # contradict the money_available beside it.
+                "days_priced": 1 if a.get("money_available") else 0,
+                "segments": len(segments),
+                "runs": {"total": 2, "computed": 2, "reused": 0},
+                "elapsed_ms": int((time.perf_counter() - started) * 1000),
+                "day_reason": day_reason,
+            },
         },
-        "revenue_net_note": (
-            "A literal revenue-net-of-retention figure is not a summary field of run_scenario; "
-            "the optimizer exposes a convex-blend objective instead, reported under 'objective'."
-        ),
-    }
+        resolved["guardrails"],
+    )
 
 
 def _build_forecasts(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str, Any]:
@@ -329,3 +421,11 @@ def forecasts() -> dict[str, Any]:
         DATA_DIR / "reference" / "Programmes.xlsx",
         DATA_DIR / "Programmes.csv",
     ]))
+
+
+# The streamed comparison rides this module's registration rather than appending
+# another stanza to server.py: it is the same comparison, on the same body,
+# delivered a day at a time, and one mount keeps the OpenAPI diff readable.
+from kairos_api.scenario_compare_api_week import router as _week_router  # noqa: E402
+
+router.include_router(_week_router)

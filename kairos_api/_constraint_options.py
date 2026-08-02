@@ -154,13 +154,86 @@ def genre_options() -> list[str]:
         from kairos.data.loaders import load_programmes
 
         frame = load_programmes()
-        col = next((c for c in ("program_type", "programme_type") if c in frame.columns), None)
+        col = _genre_column(frame)
         if col is None:
             return []
         names = {str(v).strip() for v in frame[col].dropna() if str(v).strip()}
         return sorted(names)
     except Exception:
         return []
+
+
+# ---------------------------------------------------------------------------
+# The same option lists, scoped to the one channel the operator owns
+# ---------------------------------------------------------------------------
+
+# The route an operator follows to supply the declaration, so a surface that
+# cannot scope names the way to fix it rather than only the lack.
+OPERATOR_CHANNEL_ROUTE = "PUT /api/rules/operator-channel"
+NO_PROGRAMME_SOURCE_REASON = "the reference programme schedule could not be read"
+TITLE_COLUMN = "Title"
+
+
+def _genre_column(frame: Any) -> Optional[str]:
+    columns = list(getattr(frame, "columns", []))
+    return next((name for name in ("program_type", "programme_type") if name in columns), None)
+
+
+def _programme_frame() -> Any:
+    """The reference EPG, or None when it cannot be read."""
+    try:
+        from kairos.data.loaders import load_programmes
+
+        return load_programmes()
+    except Exception:  # pragma: no cover - a missing reference file must not 500
+        return None
+
+
+def _distinct(frame: Any, column: Optional[str]) -> list[str]:
+    """Sorted, de-duplicated, blank-free values of one column."""
+    if not column or column not in list(getattr(frame, "columns", [])):
+        return []
+    return sorted({str(value).strip() for value in frame[column].dropna() if str(value).strip()})
+
+
+def operator_scope_options() -> dict[str, Any]:
+    """Programmes, genres and channels, scoped to the channel the operator owns.
+
+    The EPG carries the whole market because the retention model is measured
+    against the competitive lineup. A condition value picker is an operator
+    surface, so it may carry none of it. Measured on the reference EPG before
+    this function existed, with the operator channel set to ``רשת 13``: the
+    option payload offered 418 programme titles, of which 106 are the
+    operator's own and 312 are three rivals' entire lineups, plus all four
+    channel names.
+
+    With no channel declared the scope cannot be applied, and the honest answer
+    is nothing plus the reason and the route that supplies it. Passing the
+    market through unscoped is the exact breach this function exists to close,
+    so the pass-through form of :func:`kairos_api.channel_scope.scope_frame` is
+    deliberately not served. The note travels with the payload, so the surface
+    says which channel it read and how much it left out.
+    """
+    from kairos_api import channel_scope
+
+    empty: dict[str, Any] = {"programmes": [], "genres": [], "channels": []}
+    frame = _programme_frame()
+    if frame is None:
+        note = channel_scope.scope_note("", 0, 0, 0, scoped=False)
+        note["reason"] = NO_PROGRAMME_SOURCE_REASON
+        return {**empty, "scope": note}
+    scoped, note = channel_scope.scope_frame(
+        frame, column=channel_scope.EPG_CHANNEL_COLUMN, channel=load_operator_channel(),
+    )
+    if not note["scoped"]:
+        note["supply_route"] = OPERATOR_CHANNEL_ROUTE
+        return {**empty, "scope": note}
+    return {
+        "programmes": _distinct(scoped, TITLE_COLUMN),
+        "genres": _distinct(scoped, _genre_column(scoped)),
+        "channels": [note["scope_channel"]],
+        "scope": note,
+    }
 
 
 def weekday_options() -> list[dict[str, Any]]:
@@ -237,13 +310,19 @@ def predicate_field_schema() -> list[dict[str, Any]]:
 
 
 def load_operator_channel() -> str:
-    """Read operator_channel from kairos_settings.json, defaulting to empty string."""
-    settings_path = ROOT / "data" / "kairos_settings.json"
-    if not settings_path.exists():
-        return ""
+    """The operator's own channel, through the one settings seam in the product.
+
+    This used to open ``data/kairos_settings.json`` by hand. That made it a
+    second reader of the settings document, so it answered from a different file
+    than every other caller the moment anything relocated or overlaid settings,
+    and the surface that decides which channel a restriction may touch is the
+    last place in the product that should hold its own opinion of that. Imported
+    inside the function because :mod:`kairos_api.core` reaches back into the
+    option builders and a module-level import would close the loop.
+    """
+    from kairos_api.core import _load_settings
+
     try:
-        with settings_path.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        return str(data.get("operator_channel", "") or "")
-    except Exception:
+        return str(getattr(_load_settings(), "operator_channel", "") or "")
+    except Exception:  # pragma: no cover - a settings read must never 500 a list
         return ""

@@ -173,14 +173,26 @@ def simulate_settings_change(changes: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def settings_effect(changes: Any) -> dict[str, Any]:
-    """The owned-channel before/after a settings change would produce.
+# The basis of the figures and the figures themselves, kept as two named groups
+# because the surface that prints the money has to print what it covers. The
+# money is one representative channel-day of the owned channel, never a weekly
+# total, and a reader who cannot see which channel and which day cannot tell
+# those two apart.
+EFFECT_BASIS_KEYS = ("channel", "day")
+EFFECT_MONEY_KEYS = ("before", "after", "delta")
 
-    ``{before, after, delta}`` when the simulation succeeds, else an honest
-    ``{status: 'unavailable', reason}``. Used as the additive effect on a
-    settings-change proposal item; the apply engine ignores it. Never raises.
+
+def settings_effect(changes: Any) -> dict[str, Any]:
+    """The owned-channel before/after a settings change would produce, with its basis.
+
+    ``{channel, day, before, after, delta}`` when the simulation succeeds, else
+    an honest ``{status: 'unavailable', reason}``. ``channel`` is the operator's
+    own channel and ``day`` is the representative broadcast day both sides were
+    optimized on, so the approval surface can name the basis of the money it
+    prints. Used as the additive effect on a settings-change proposal item; the
+    apply engine ignores it. Never raises.
     """
     sim = simulate_settings_change(dict(changes or {}))
     if sim.get("status") == "ok":
-        return {key: sim[key] for key in ("before", "after", "delta")}
+        return {key: sim[key] for key in EFFECT_BASIS_KEYS + EFFECT_MONEY_KEYS}
     return {"status": "unavailable", "reason": str(sim.get("reason") or "simulation unavailable")}

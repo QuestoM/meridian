@@ -8,6 +8,9 @@ import {
   formatNumber,
   pageText,
 } from '../shell/surface-helpers';
+import { isolate } from './today-bidi';
+import ChannelRefusal from './ChannelRefusal';
+import { scopeState, unattributed } from './today-scope';
 
 // The shared money story. Gross revenue is the real invoiced headline and stays
 // visually dominant everywhere. The retention cost is an explicitly marked model
@@ -28,16 +31,21 @@ function estimateExplainer(locale) {
 // Props: gross / retentionCost / net are numbers (or absent), retentionCostLow
 // and retentionCostHigh form the optional uncertainty band, variant picks the
 // size ('headline' for the Overview card, 'panel' for embedded stat areas),
-// The band provenance line: the backend sends one precise English sentence in
-// retention_cost_basis; the Hebrew UI renders an equivalent localized line so a
-// Hebrew page never carries a raw English paragraph. Shown only when the band
-// itself is present.
+// The band provenance line, written here for the reader in both languages and
+// shown only when the band itself is present.
+//
+// The payload also carries retention_cost_basis, one precise sentence that
+// names the interval seam in the engine's own terms and prints five internal
+// field names. That is the right answer for whoever reads the API and the wrong
+// one for a general manager reading a money card, so it stays in the payload and
+// reaches no screen. Both branches below say the same thing as that sentence in
+// the words this reader already uses on this card.
 function bandBasisNote(locale, payload) {
   if (!payload || !Number.isFinite(payload.retention_cost_low) || !Number.isFinite(payload.retention_cost_high)) return '';
   if (locale === 'he') {
     return 'טווח האומדן מראה כמה עלות השימור עשויה להיות נמוכה או גבוהה מהמספר המרכזי, לפי אי-הוודאות שנמדדה לכל ברייק (רמת ביטחון 95 אחוז).';
   }
-  return typeof payload.retention_cost_basis === 'string' ? payload.retention_cost_basis : '';
+  return 'The estimate range shows how much lower or higher the retention cost could be than the central figure, from the uncertainty measured for each break at the 95 percent confidence level.';
 }
 
 // basisNote is an optional muted provenance sentence, and unavailableReason is
@@ -158,7 +166,7 @@ export default function MoneyWaterfall({
 // GET /api/yield-per-second payload the yield panel uses and renders the
 // headline-variant waterfall, with honest loading and absent states when the
 // saved plan cannot price its money story.
-export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
+export function YieldMoneyPanel({ locale, refreshKey = 0, onOpenSettings = null }) {
   const [state, setState] = useState({ status: 'loading', payload: null });
 
   useEffect(() => {
@@ -186,6 +194,12 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
   const totals = payload?.totals || {};
   const gross = netAvailable ? (finiteNumber(payload.revenue_ils) ?? totals.revenue) : totals.revenue;
 
+  // Whose money story this is. The yield body serves the whole market's gross
+  // and net whenever no channel is declared, and discloses that in the same
+  // payload, so the panel refuses on the disclosure rather than printing the
+  // market total under this operator's name.
+  const withheld = unattributed(scopeState(payload, available));
+
   // Scope line from the API only (channel + plan calendar span). Never invent
   // "weekly" when the plan covers a different number of days.
   const scopeChannel = typeof payload?.scope_channel === 'string' && payload.scope_channel.trim()
@@ -200,7 +214,9 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
   const nDates = finiteNumber(payload?.n_dates);
   const scopeParts = [];
   if (scopeChannel) {
-    scopeParts.push(pageText(locale, `channel ${scopeChannel}`, `ערוץ ${scopeChannel}`));
+    // Bidi isolated for the same reason the Today basis line isolates it: the
+    // date that follows the separator would otherwise be dragged into the name.
+    scopeParts.push(pageText(locale, `channel ${isolate(scopeChannel)}`, `ערוץ ${isolate(scopeChannel)}`));
   }
   if (dateFrom && dateTo) {
     scopeParts.push(
@@ -208,8 +224,8 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
         ? dateFrom
         : pageText(
           locale,
-          `${dateFrom} – ${dateTo}${nDates !== null ? ` (${nDates} days)` : ''}`,
-          `${dateFrom} – ${dateTo}${nDates !== null ? ` (${nDates} ימים)` : ''}`,
+          `${dateFrom} to ${dateTo}${nDates !== null ? ` (${nDates} days)` : ''}`,
+          `${dateFrom} עד ${dateTo}${nDates !== null ? ` (${nDates} ימים)` : ''}`,
         ),
     );
   } else if (nDates !== null) {
@@ -227,7 +243,9 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
     <section className="page-panel money-story-panel">
       <div className="panel-head">
         <h2>{pageText(locale, 'From gross to net', 'מברוטו לנטו')}</h2>
-        <span>{scopeLine}</span>
+        {/* The span is the scope of a figure. With no figure to scope, printing
+            it would be the same silent drop the refusal exists to stop. */}
+        {withheld ? null : <span>{scopeLine}</span>}
       </div>
       <div className="money-story-body">
         {status === 'loading' ? (
@@ -237,6 +255,16 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
             {pageText(locale, 'Money figures are not available right now.', 'נתוני הכסף אינם זמינים כרגע.')}
             {payload?.reason ? <small>{payload.reason}</small> : null}
           </p>
+        ) : withheld ? (
+          <ChannelRefusal
+            locale={locale}
+            lead={pageText(
+              locale,
+              'The money story cannot be reported as yours yet.',
+              'אי אפשר עדיין לדווח על סיפור הכסף כשלכם.',
+            )}
+            onOpenSettings={onOpenSettings}
+          />
         ) : (
           <MoneyWaterfall
             variant="headline"
@@ -258,7 +286,13 @@ export function YieldMoneyPanel({ locale, refreshKey = 0 }) {
 // NetComparisonCard: the read-only comparison beside the engine focus control.
 // Reads GET /api/optimizer/net-comparison and shows what the net-focused plan
 // changes versus the current plan, as signed deltas. It adds no save path: the
-// existing settings save and recompute flow stays the only way to switch focus.
+// existing settings save and plan run stays the only way to switch focus.
+//
+// Its basis line is written here in both languages for the same reason the money
+// card's is: the payload's own basis sentence names the engine's measured
+// coefficients, which is the right words for the API and the wrong ones for the
+// person deciding. Both sentences below carry what that basis carries, including
+// that this is a modeled forecast of one day rather than the saved plan's total.
 export function NetComparisonCard({ locale, refreshSignal = '', currentFocus = 'blend' }) {
   const [state, setState] = useState({ status: 'loading', payload: null });
 
@@ -335,7 +369,13 @@ export function NetComparisonCard({ locale, refreshSignal = '', currentFocus = '
               </div>
             ))}
           </div>
-          {locale === 'he' ? <p className="net-compare-basis">שני הצדדים הם אותה אופטימיזציה מלאה על יום מייצג של הערוץ שבבעלותכם, כך שההפרשים ניתנים להשוואה ישירה.</p> : typeof payload?.basis === 'string' && payload.basis ? <p className="net-compare-basis">{payload.basis}</p> : null}
+          <p className="net-compare-basis">
+            {pageText(
+              locale,
+              'Both sides are the same optimization of one representative broadcast day of the channel you own, under the saved rules, so the differences compare directly. A modeled forecast, not the saved plan total.',
+              'שני הצדדים הם אותה אופטימיזציה על יום שידור מייצג של הערוץ שבבעלותכם, תחת אותם כללים שמורים, כך שההפרשים ניתנים להשוואה ישירה. תחזית מודל, לא סך התוכנית השמורה.',
+            )}
+          </p>
           {currentFocus !== 'revenue_net' ? (
             <p className="net-compare-note">{pageText(locale, 'Switching to net focus will lower the displayed gross and raise the net, per the numbers here.', 'מעבר למיקוד נטו יוריד את הברוטו המוצג ויעלה את הנטו, בהתאם למספרים כאן.')}</p>
           ) : null}

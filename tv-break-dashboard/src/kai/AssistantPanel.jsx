@@ -1,36 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@mui/material';
-import { Bot, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
-import { postJson, requestJson, streamAsk } from './assistant-stream';
+import { postJson, requestJson, streamAsk, warmContext } from './assistant-stream';
 import { useConversations } from './AssistantConversationsApi';
 import { asArray, normalizeBatch, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
 import { buildPageContext, useAssistantPage } from '../shell/assistant-page-context';
 import AssistantConversationsSidebar from './AssistantConversationsSidebar';
 import AssistantProposalCard from './AssistantProposalCard';
+import AssistantRunTrace, { useElapsed } from './AssistantRunTrace';
 import AssistantUpload from './AssistantUpload';
-import { AssistantExchange, StreamProgress, RichText } from './AssistantThread';
+import { AssistantExchange, ModelText, RichText } from './AssistantThread';
+import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
+import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
 import './assistant-console.css';
 
 // The assistant console, named Kai: a chat column grounded in the saved data
-// plus a rail for pending proposals and the conversation history. Answers
-// come only from the server; asks stream live (step names and answer text as
-// they are produced) and fall back quietly to the plain ask endpoint when the
-// stream is unavailable. Proposed actions apply only after an explicit
-// operator confirm, with an automatic restore point first. Every surface has
-// honest loading, error and empty states, and nothing is polled in a loop:
-// rail data refreshes on mount, after actions, and via the manual refresh.
-// In dock mode (the persistent side panel) the page chrome is replaced by a
-// compact status row, the current-location chip, and real conversation stats.
+// plus a rail for pending proposals and the conversation history. Answers come
+// only from the server; asks stream live and fall back quietly to the plain ask
+// endpoint when the stream is unavailable. Proposed actions apply only after an
+// explicit confirm, with an automatic restore point first, and that restore
+// point is the undo control on the card that created it.
+//
+// Three things every long-running answer owes the person, all of them measured
+// rather than decorative: a run trace naming what is being read right now, a
+// clock in seconds since the question was sent, and a stop control. Discovery
+// measured this panel sitting on "preparing an answer" for 499 s with no reply,
+// no error and nothing to press.
+//
+// The grounding context is warmed the moment the panel mounts, which is the
+// moment the person starts typing, so the ask does not pay for it afterwards.
 
-const SUGGESTIONS = [
-  ['What is the weekly net and why', 'מה הנטו השבועי ולמה'],
-  ['Suggest a way to raise the net without hurting retention', 'הצע דרך להעלות את הנטו בלי לפגוע בשימור'],
-  ['Create a constraint that blocks a break in the first 15 minutes of the evening news', 'צור אילוץ שאין ברייק ב-15 הדקות הראשונות של מהדורת הערב'],
-  ['Raise the revenue weight to 65 and recompute', 'העלה את משקל ההכנסות ל-65 והרץ חישוב מחדש'],
-  ['Get me to a higher net without dropping retention below 0.75', 'הבא אותי לנטו גבוה יותר בלי לרדת מתחת ל-0.75 שימור'],
-  ['Suggest settings that raise the weekly net, and show me the effect before I approve', 'הצע הגדרות שמגדילות את הנטו השבועי, ותראה לי את ההשפעה לפני שאאשר'],
-];
 
 function startedLabel(iso, locale) {
   const date = new Date(iso);
@@ -55,6 +55,8 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   const pageState = useAssistantPage();
   const threadRef = useRef(null);
   const composerRef = useRef(null);
+  const abortRef = useRef(null);
+  const elapsed = useElapsed(asking, live ? live.startedAt : null);
 
   useEffect(() => {
     let active = true;
@@ -69,10 +71,31 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
         setStatusState('error');
       });
     refreshRail();
+    // Build the grounding context while the person is still typing. Measured on
+    // the server: 11.13 s cold, 0.034 s warm, so this is the difference between
+    // paying for it before the first token and not paying for it at all.
+    const controller = new AbortController();
+    warmContext(controller.signal);
     return () => {
       active = false;
+      controller.abort();
     };
   }, [refreshRail]);
+
+  // Cmd J from any surface opens the dock and lands the cursor here. When the
+  // dock was closed the panel did not exist to hear the event, so the shortcut
+  // leaves a flag this mount consumes.
+  useEffect(() => {
+    function onFocusRequest() {
+      if (composerRef.current) composerRef.current.focus();
+    }
+    window.addEventListener(FOCUS_EVENT, onFocusRequest);
+    if (window[FOCUS_PENDING]) {
+      window[FOCUS_PENDING] = false;
+      onFocusRequest();
+    }
+    return () => window.removeEventListener(FOCUS_EVENT, onFocusRequest);
+  }, []);
 
   useEffect(() => {
     const node = threadRef.current;
@@ -100,7 +123,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
     }
   }, [notify, conv, resetLocal]);
 
-  const finishAsk = useCallback((trimmed, body) => {
+  const finishAsk = useCallback((trimmed, body, measured) => {
     if (body.available === false) {
       setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
       appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
@@ -126,56 +149,96 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       sources: asArray(body.grounding && body.grounding.sources),
       toolTrace: asArray(body.tool_trace),
       truncated: Boolean(body.truncated),
+      // All measured in this browser: the limit stages the server sent while
+      // the answer was still streaming, and the wall clock from the send. The
+      // last is the number a stopwatch beside the screen would read.
+      stoppedAtDeadline: Boolean(measured && measured.stoppedAtDeadline),
+      stoppedAtCeiling: Boolean(measured && measured.stoppedAtCeiling),
+      elapsedSeconds: measured && Number.isFinite(measured.elapsedSeconds) ? measured.elapsedSeconds : null,
       batchId: batch ? batch.batch_id : null,
       at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
     });
     if (batch) refreshRail();
   }, [locale, appendEntry, mergeBatches, refreshRail, conv, markAdopted]);
 
+  const stopAsk = useCallback(() => {
+    if (abortRef.current) abortRef.current.abort();
+  }, []);
+
   const ask = useCallback(async () => {
     const trimmed = question.trim();
     if (!trimmed || asking) return;
     setAsking(true);
     // Clear at send time, not on completion: the composer stays typeable while
-    // the answer streams, so a late clear would wipe whatever the operator has
-    // already started typing for the next question.
+    // the answer streams, so a late clear would wipe whatever has already been
+    // typed for the next question.
     setQuestion('');
-    setLive({ question: trimmed, text: '', step: null });
+    const startedAt = Date.now();
+    setLive({ question: trimmed, text: '', stage: null, steps: [], startedAt });
+    const controller = new AbortController();
+    abortRef.current = controller;
     const conversationId = conv.supported && conv.activeId ? conv.activeId : null;
     // Advisory grounding only, per the frozen contract: where the operator is
     // right now, plus the focused entity when a record is open. Absent context
     // sends nothing and the ask behaves exactly as before.
     const pageContext = buildPageContext(pageState);
+    // Stage frames the finished exchange keeps: the scope Kai grounded on, and
+    // whether the run stopped at one of its own limits, the time limit or the
+    // turn budget. None is in the ask body, whose key set is the frozen
+    // contract, so each is captured as it streams.
+    const measured = { stoppedAtDeadline: false, stoppedAtCeiling: false, elapsedSeconds: null };
     try {
       let body;
       try {
         body = await streamAsk(trimmed, {
           conversationId,
           pageContext,
-          onStep: (step) => setLive((prev) => (prev ? { ...prev, step } : prev)),
+          signal: controller.signal,
+          onStage: (stage) => {
+            if (stage && stage.stage === 'deadline') measured.stoppedAtDeadline = true;
+            if (stage && stage.stage === 'ceiling') measured.stoppedAtCeiling = true;
+            setLive((prev) => (prev ? {
+              ...prev,
+              stage,
+              facts: stage && stage.facts && typeof stage.facts === 'object' ? stage.facts : prev.facts,
+              deadlineSeconds: stage && Number.isFinite(stage.deadline_seconds) ? stage.deadline_seconds : prev.deadlineSeconds,
+            } : prev));
+          },
+          onStep: (step) => setLive((prev) => (prev ? { ...prev, steps: [...prev.steps, step] } : prev)),
           onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
         });
-      } catch {
+      } catch (streamError) {
+        // A stop is the person's own decision, so it ends here rather than
+        // silently starting the same ask again on the plain endpoint.
+        if (controller.signal.aborted) throw streamError;
         // The stream endpoint is unavailable or broke mid-flight; the plain
         // ask returns the same answer without live updates, so retry there.
-        setLive({ question: trimmed, text: '', step: null });
+        setLive({ question: trimmed, text: '', stage: null, steps: [], startedAt });
         body = await postJson('/api/assistant/ask', {
           question: trimmed,
           ...(conversationId ? { conversation_id: conversationId } : {}),
           ...(pageContext ? { page_context: pageContext } : {}),
-        });
+        }, { signal: controller.signal });
       }
-      finishAsk(trimmed, body);
+      measured.elapsedSeconds = (Date.now() - startedAt) / 1000;
+      finishAsk(trimmed, body, measured);
     } catch (error) {
-      appendEntry({ question: trimmed, error: error.message });
-      // Put the failed question back for an easy retry, but never overwrite
-      // text the operator typed while the ask was in flight.
+      const stopped = controller.signal.aborted;
+      appendEntry({
+        question: trimmed,
+        error: stopped
+          ? pageText(locale, 'You stopped this question. Nothing was changed.', 'עצרתם את השאלה הזו. שום דבר לא שונה.')
+          : error.message,
+      });
+      // Put the question back for an easy retry, but never overwrite text
+      // typed while the ask was in flight.
       setQuestion((current) => (current ? current : trimmed));
     } finally {
+      abortRef.current = null;
       setLive(null);
       setAsking(false);
     }
-  }, [question, asking, finishAsk, appendEntry, conv.supported, conv.activeId, pageState]);
+  }, [question, asking, finishAsk, appendEntry, locale, conv.supported, conv.activeId, pageState]);
 
   function onComposerKeyDown(event) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -237,16 +300,20 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   }, [thread, batchMap]);
 
   function renderProposalCard(batch) {
-    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} />;
+    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} notify={notify} onUndone={refreshRail} />;
   }
+
+  // The action plane's own honest state, from the endpoint that owns it. It
+  // says whether Kai may propose a change at all, and when it may not, why.
+  const actionPlane = status && status.action_plane && typeof status.action_plane === 'object' ? status.action_plane : null;
 
   const statusCluster = (
     <div className="asst-status" role="status">
       <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
       <span>{statusText}</span>
       {status && status.model ? <code dir="ltr">{status.model}</code> : null}
-      {status && status.actions_enabled === true ? <span className="asst-chip on">{pageText(locale, 'Actions enabled', 'פעולות מופעלות')}</span> : null}
-      {status && status.actions_enabled === false ? <span className="asst-chip">{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
+      {actionPlane && actionPlane.enabled === true ? <span className="asst-chip on">{pageText(locale, 'Can propose changes', 'יכול להציע שינויים')}</span> : null}
+      {actionPlane && actionPlane.enabled === false ? <span className="asst-chip" title={actionPlane.reason || ''}>{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
     </div>
   );
 
@@ -307,20 +374,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
               <div className="asst-loading">{pageText(locale, 'Loading your conversation', 'טוען את השיחה שלכם')}</div>
             ) : null}
             {!threadLoading && thread.length === 0 && !asking ? (
-              <div className="asst-thread-empty">
-                <Bot size={18} />
-                <p>{pageText(locale, 'No questions asked yet. Kai answers from the saved data only, and the conversation is saved and will appear here next time.', 'עוד לא נשאלו שאלות. קאי עונה מהנתונים השמורים בלבד, והשיחה נשמרת ותופיע כאן בפעם הבאה.')}</p>
-                {!unavailable && statusState !== 'loading' ? (
-                  <div className="asst-suggestions">
-                    <span className="asst-suggestions-label"><Sparkles size={12} />{pageText(locale, 'You can start with one of these', 'אפשר להתחיל מאחת מאלה')}</span>
-                    {SUGGESTIONS.map((pair) => (
-                      <button type="button" className="asst-suggestion" key={pair[1]} onClick={() => pickSuggestion(pageText(locale, pair[0], pair[1]))}>
-                        {pageText(locale, pair[0], pair[1])}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+              <AssistantEmptyThread locale={locale} showSuggestions={!unavailable && statusState !== 'loading'} onPick={pickSuggestion} />
             ) : null}
 
             {thread.map((entry) => (
@@ -330,17 +384,10 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             {live ? (
               <article className="asst-exchange">
                 <RichText className="asst-q" text={live.question} />
-                {live.text ? <RichText className="asst-a" text={live.text} /> : null}
+                <AssistantRunTrace locale={locale} live={live} elapsed={elapsed} onStop={stopAsk} />
+                {live.text ? <ModelText className="asst-a" text={live.text} /> : null}
               </article>
             ) : null}
-
-            {asking ? (
-              <div className="asst-thinking">
-                <span className="asst-thinking-dots" aria-hidden="true"><span /><span /><span /></span>
-                {pageText(locale, 'Kai is preparing an answer from the saved data', 'קאי מכין תשובה מהנתונים השמורים')}
-              </div>
-            ) : null}
-            {asking && live && live.step ? <StreamProgress locale={locale} step={live.step} /> : null}
           </div>
 
           {unavailable ? (
@@ -358,24 +405,17 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             onSuggest={(text) => { setQuestion(text); if (composerRef.current) composerRef.current.focus(); }}
           />
 
-          <div className="asst-composer">
-            <textarea
-              ref={composerRef}
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={onComposerKeyDown}
-              rows={1}
-              maxLength={2000}
-              dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
-              placeholder={unavailable ? pageText(locale, 'Kai is not available right now', 'קאי אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
-              disabled={unavailable}
-              aria-label={pageText(locale, 'Question for Kai', 'שאלה לקאי')}
-            />
-            <Button variant="contained" size="small" className="asst-send-btn" onClick={ask} disabled={asking || unavailable || !question.trim()} endIcon={<Send size={14} style={locale === 'he' ? { transform: 'scaleX(-1)' } : undefined} />}>
-              {asking ? pageText(locale, 'Sending', 'שולח') : pageText(locale, 'Send', 'שליחה')}
-            </Button>
-          </div>
-          <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line.', 'מקש Enter שולח, Shift+Enter יורד שורה.')}</p>
+          <AssistantComposer
+            locale={locale}
+            composerRef={composerRef}
+            question={question}
+            onQuestionChange={setQuestion}
+            onKeyDown={onComposerKeyDown}
+            unavailable={unavailable}
+            asking={asking}
+            onSend={ask}
+            onStop={stopAsk}
+          />
         </section>
 
         <AssistantConversationsSidebar

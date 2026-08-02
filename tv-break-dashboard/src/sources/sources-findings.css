@@ -1,0 +1,38 @@
+/* A finding names the column, the reason and the rows it is about. The rows sit
+   under the sentence in the same column of the finding grid, so a refusal reads
+   as one block per violation and a steward can go straight to the cell. */
+
+.finding-detail {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.finding-rows {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--muted);
+}
+
+.finding-rows-label {
+  font-weight: var(--weight-medium);
+}
+
+/* Each row number stands in its own box: a boxed number cannot be misread as
+   part of the number beside it, which a comma-separated list of grouped row
+   numbers can. */
+.finding-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.finding-rows-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}

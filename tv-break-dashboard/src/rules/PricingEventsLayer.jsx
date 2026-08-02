@@ -40,10 +40,14 @@ function EventsList({ events, locale }) {
 // because turning it on changes forecast revenue on event days. On a server
 // that predates the events layer the card degrades honestly: a clear chip and
 // a disabled toggle with an explanation, never a fabricated off state.
-function PricingEventsLayer({ state, locale, onToggle }) {
+function PricingEventsLayer({ state, locale, stagedEnabled, onToggle }) {
   const [confirmOn, setConfirmOn] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const { supported, enabled, count, events } = readEventsLayer(state);
+  // The chip states what is in force on the saved card; the switch states what
+  // the draft asks for. Bound to the saved value alone, the switch snapped back
+  // the instant it was clicked while the effect panel below priced the change.
+  const shownEnabled = stagedEnabled ?? enabled;
 
   const chip = supported ? (enabled ? 'live' : 'off') : 'empty';
   const chipText = supported
@@ -63,7 +67,7 @@ function PricingEventsLayer({ state, locale, onToggle }) {
     <label className="pricing-toggle">
       <input
         type="checkbox"
-        checked={supported && enabled}
+        checked={supported && shownEnabled}
         disabled={!supported}
         onChange={(event) => requestToggle(event.target.checked)}
       />

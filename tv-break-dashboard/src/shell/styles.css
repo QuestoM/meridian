@@ -257,6 +257,11 @@ button {
   min-width: 0;
   display: grid;
   grid-template-rows: 72px auto minmax(0, 1fr) auto;
+  /* Rows 2 and onward (banners, page content) get a consistent inline gutter.
+     Row 1 is the top-bar, which uses negative margin-inline to reach the edges
+     so its border spans the full width. Logical property so Hebrew reads the
+     same without a mirroring override. */
+  padding-inline: 24px;
 }
 
 .top-bar {
@@ -264,7 +269,10 @@ button {
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 24px;
-  padding: 0 24px;
+  /* Bleed to the workspace edges: the workspace provides the gutter for every
+     other row; the top-bar overrides it to remain a full-width chrome element. */
+  margin-inline: -24px;
+  padding-inline: 24px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -2116,6 +2124,14 @@ button {
   min-height: calc(100vh - 72px);
 }
 
+/* When a page-workspace is a direct child of the shell's .workspace grid, the
+   workspace already provides 24 px of inline gutter, so the page-workspace
+   should not double-pad on those sides. Block padding (top/bottom) stays as-is
+   for the vertical rhythm. Logical property so Hebrew needs no override. */
+.workspace > .page-workspace {
+  padding-inline: 0;
+}
+
 .page-header {
   min-width: 0;
   max-width: 100%;
@@ -3301,7 +3317,9 @@ button {
     grid-template-columns: 1fr;
     height: auto;
     gap: 12px;
-    padding: 14px 16px;
+    margin-inline: -24px;
+    padding-block: 14px;
+    padding-inline: 16px;
     overflow: hidden;
   }
 
@@ -4550,7 +4568,11 @@ button {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-6);
+  /* Bleed to the workspace edges (same device as .top-bar) so the amber strip
+     reads as a full-width system banner, not as a card. */
+  margin-inline: -24px;
+  padding-inline: var(--space-6);
+  padding-block: var(--space-3);
   background: var(--amber-soft);
   border-bottom: 1px solid var(--line);
 }

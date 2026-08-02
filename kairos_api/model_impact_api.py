@@ -4,6 +4,31 @@ Moved verbatim from catalog_api.py as part of the wave-zero router split. The
 payload reads the trained coefficient artifact and reports the pooling note and
 the level drift straight from its metadata; when the artifact predates the drift
 monitor the block is an honest unavailable, never a fabricated verdict.
+
+**Walled, and answering rather than refusing.** The payload is the coefficient
+artifact's own metadata, every gate reason and the drift monitor, which is
+training content, so the content sits behind ``affiliation = company``. It is
+one of the four open reads section 4.5 of the rebuild specification names, and
+it was the widest of them: the dashboard fetched it on every page load for
+every account.
+
+That last sentence is why this route does not answer 403. The shell fetches it
+unconditionally alongside ten other endpoints (``src/shell/use-kairos-data.js``,
+frozen), and any non-200 among them flips ``partial`` true, which renders "Some
+data failed to load" on every page for the whole session. Measured before this
+change: of the eleven endpoints the shell fetches, exactly one was non-200 for a
+channel account and it was this one, so the wall's first act on the product was
+to put a permanent failure banner in front of every operator.
+
+So the wall closes the content and not the door. A channel account gets 200 with
+the tri-state and nothing else: ``state = "unavailable"`` and the reason in the
+words the refusal itself uses. No coefficient, no drift block, no metadata, and
+none of section 4.2's training lexicon, which a test greps for. A company
+account gets the same measured payload it got before, plus the same tri-state
+field, which reads ``real`` when the artifact was read and ``unknown`` when
+there is no artifact to read. One other string moved: the honest unavailable the
+drift block carries when the artifact predates the monitor now says "train"
+rather than a retired verb, which section 4.2's verb test asks for.
 """
 
 from __future__ import annotations
@@ -15,9 +40,14 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from kairos_api.core import MODELS_DIR, _safe_number, _signature
+from kairos_api.model_console_api import MODEL_WALL
+
+# The artifact this route reports on, named once so the honest unknown state can
+# say which file is missing rather than gesturing at one.
+COEFFICIENTS_ARTIFACT = "models/tv_break_coefficients.json"
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +119,7 @@ def _pooling_note(metadata: dict[str, Any]) -> str | None:
     cells = int(_safe_number(metadata.get("channels"), 0)) or None
     method = str(metadata.get("pooling_method") or "empirical_bayes").replace("_", " ")
     cell_phrase = f"{cells} " if cells else ""
-    return (
-        f"The {cell_phrase}(programme type x position x length) cells pool to approximately "
-        f"one shared constant under {method}: between-cell variance tau^2 = {tau2:.2e} sits "
-        f"far below within-cell variance {within:.3f}, so the per-cell effects collapse toward "
-        f"a single pooled value."
-    )
+    return f"The {cell_phrase}(programme type x position x length) cells pool to approximately one shared constant under {method}: between-cell variance tau^2 = {tau2:.2e} sits far below within-cell variance {within:.3f}, so the per-cell effects collapse toward a single pooled value."
 
 
 def _load_measured_impact_summary(path: Path) -> dict[str, Any]:
@@ -161,19 +186,44 @@ def _impact_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any
     if not isinstance(drift, dict) or not drift:
         drift = {
             "status": "unavailable",
-            "reason": (
-                "the coefficients artifact carries no level-drift measurement; "
-                "rebuild the measured coefficients to compute it"
-            ),
+            "reason": "the coefficients artifact carries no level-drift measurement; train the model to compute it",
         }
+    measured = any(summary.get(axis) for axis in ("program_type", "position", "length"))
+    nothing_measured = f"{COEFFICIENTS_ARTIFACT} holds no measured cells to report; train the model to produce them"
     return {
+        "state": "real" if measured else "unknown",
+        "state_reason": None if measured else nothing_measured,
         "coefficient_impacts": summary,
         "drift": drift,
     }
 
 
+def _walled_payload() -> dict[str, Any]:
+    """What an account on the other side of the line gets: the state, and why.
+
+    A fresh dict per call, because the measured branch is cached and a caller
+    that mutated a shared one would poison every later read. Nothing here names
+    a coefficient, a gate or a drift measurement, so a channel account's copy of
+    this response returns zero hits of section 4.2's lexicon.
+    """
+    return {
+        "state": "unavailable",
+        "state_reason": MODEL_WALL.detail,
+    }
+
+
 @router.get("/api/impact", tags=["catalog"])
-def impact() -> dict[str, Any]:
+def impact(request: Request) -> dict[str, Any]:
+    """The measured coefficients for a company account, the tri-state for anyone else.
+
+    ``MODEL_WALL.read_reason`` is the same gate ``guard()`` applies, consulted
+    directly so the refusal becomes a body rather than a status. There is no
+    write on this route, so nothing here carries ``can_edit``: the only question
+    it answers is whether this account may see the measurement, and ``state``
+    answers it.
+    """
+    if not MODEL_WALL.allows_read(request):
+        return _walled_payload()
     return _impact_cached(
         _signature([MODELS_DIR / "tv_break_coefficients.json"])
     )

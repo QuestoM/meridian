@@ -17,9 +17,24 @@ export const DEFAULT_PX_PER_MIN = 3.8;
 export const LANE_GUTTER = 172;
 
 // Clamp a pixels-per-minute value to the supported zoom band.
-export function clampZoom(value) {
+//
+// The floor is a parameter rather than a constant so a surface that has measured
+// a span too wide for the band can open it. A day is 26 hours and the widest
+// supported scale draws it 2,964 px wide against 978 px of visible track, so a
+// fit control that could not go below the floor could not fit the day. Every
+// caller that passes nothing gets exactly the band it had.
+export function clampZoom(value, floor = MIN_PX_PER_MIN) {
   if (!Number.isFinite(value)) return DEFAULT_PX_PER_MIN;
-  return Math.max(MIN_PX_PER_MIN, Math.min(MAX_PX_PER_MIN, value));
+  return Math.max(floor, Math.min(MAX_PX_PER_MIN, value));
+}
+
+// The scale at which a span of minutes exactly fills the width on screen. The
+// inverse of trackWidth below, and the honest form of a fit control: it is
+// computed from the span and the width actually measured, never from a step.
+export function fitZoom(totalMinutes, availableWidth) {
+  const minutes = Math.max(1, Number(totalMinutes) || 0);
+  const width = Math.max(1, Number(availableWidth) || 0);
+  return width / minutes;
 }
 
 // Derive the visible hour window from a set of minute-of-day values, padded by
@@ -46,12 +61,16 @@ function buildAxis(startHour, endHour) {
 // The tick step in minutes for the current zoom. Coarser when compressed (hour
 // lines only), finer as the operator zooms in so the exact start and end of a
 // break become readable: 30 minute, then 15, then 5, then 1 minute ticks.
+// Below the scale's own floor an hour line stops having room for its own clock,
+// so the ruler steps to three hours rather than printing labels into each other.
+// The threshold is the 46 px the labeller below already calls readable.
 export function tickStep(pxPerMin) {
   if (pxPerMin >= 18) return 1;
   if (pxPerMin >= 9) return 5;
   if (pxPerMin >= 5) return 15;
   if (pxPerMin >= 3) return 30;
-  return 60;
+  if (pxPerMin * 60 >= 46) return 60;
+  return 180;
 }
 
 // Whether a given minute tick should carry a clock label. Labels are shown on

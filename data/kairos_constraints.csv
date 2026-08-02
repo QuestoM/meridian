@@ -1,0 +1,1 @@
+﻿constraint_id,scope_type,scope_value,channel,effect,offset_seconds,offset_min_seconds,offset_max_seconds,count,duration_seconds,duration_min_seconds,duration_max_seconds,order_index,notes,where_json,restriction_id,rule_kind,rule_params_json,rule_where_json,author,reason,starts_on,expires_on,created_at

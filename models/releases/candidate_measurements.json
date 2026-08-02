@@ -1,0 +1,407 @@
+{
+ "afterwindow": {
+  "candidate_id": "afterwindow",
+  "fingerprint": "c5c9f5f4c38008a8ee53c78378b07a4c5ee368ab3ca5e6d886b4c0259dfe6cfb",
+  "inputs": {
+   "candidate": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
+   "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "engine": "1.0.0"
+  },
+  "measured_at": "2026-08-01T08:47:20.124212+00:00",
+  "duration_seconds": 87.0,
+  "engine_version": "1.0.0",
+  "operator_channel": "רשת 13",
+  "scope": {
+   "operator_channel": {
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+   },
+   "whole_plan": {
+    "rows": 8704,
+    "channels": 4,
+    "basis": "the same plan summed over every channel the optimizer schedules"
+   }
+  },
+  "shipped_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "candidate_totals": {
+   "operator_channel": {
+    "revenue": 41864404.98,
+    "retention_sum": 2448.9034,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 227138878.98000002,
+    "retention_sum": 8354.2242,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 185274474.0,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "operator_channel_delta": {
+   "revenue_shipped": 40900927.61,
+   "revenue_candidate": 41864404.98,
+   "revenue_delta": 963477.37,
+   "revenue_delta_pct": 2.3556,
+   "breaks_delta": 0,
+   "retention_sum_delta": 26.072
+  },
+  "whole_plan_delta": {
+   "revenue_shipped": 221701567.09,
+   "revenue_candidate": 227138878.98,
+   "revenue_delta": 5437311.89,
+   "revenue_delta_pct": 2.4525,
+   "breaks_delta": 0,
+   "retention_sum_delta": 97.928
+  }
+ },
+ "calibrated": {
+  "candidate_id": "calibrated",
+  "fingerprint": "941b87235ae3b299fadefe94decb2cdf9b465a84b5bc8d64e805f17273bb21b3",
+  "inputs": {
+   "candidate": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
+   "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "engine": "1.0.0"
+  },
+  "measured_at": "2026-08-01T08:48:46.484343+00:00",
+  "duration_seconds": 86.4,
+  "engine_version": "1.0.0",
+  "operator_channel": "רשת 13",
+  "scope": {
+   "operator_channel": {
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+   },
+   "whole_plan": {
+    "rows": 8704,
+    "channels": 4,
+    "basis": "the same plan summed over every channel the optimizer schedules"
+   }
+  },
+  "shipped_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "candidate_totals": {
+   "operator_channel": {
+    "revenue": 41864404.98,
+    "retention_sum": 2448.9034,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 227138878.98000002,
+    "retention_sum": 8354.2242,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 185274474.0,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "operator_channel_delta": {
+   "revenue_shipped": 40900927.61,
+   "revenue_candidate": 41864404.98,
+   "revenue_delta": 963477.37,
+   "revenue_delta_pct": 2.3556,
+   "breaks_delta": 0,
+   "retention_sum_delta": 26.072
+  },
+  "whole_plan_delta": {
+   "revenue_shipped": 221701567.09,
+   "revenue_candidate": 227138878.98,
+   "revenue_delta": 5437311.89,
+   "revenue_delta_pct": 2.4525,
+   "breaks_delta": 0,
+   "retention_sum_delta": 97.928
+  }
+ },
+ "competitor": {
+  "candidate_id": "competitor",
+  "fingerprint": "0c984580e0d0360854567d14aefb8f9e919dd5f0a17a7e2faefb1d7e809832ba",
+  "inputs": {
+   "candidate": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
+   "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "engine": "1.0.0"
+  },
+  "measured_at": "2026-08-01T08:50:11.871980+00:00",
+  "duration_seconds": 85.4,
+  "engine_version": "1.0.0",
+  "operator_channel": "רשת 13",
+  "scope": {
+   "operator_channel": {
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+   },
+   "whole_plan": {
+    "rows": 8704,
+    "channels": 4,
+    "basis": "the same plan summed over every channel the optimizer schedules"
+   }
+  },
+  "shipped_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "candidate_totals": {
+   "operator_channel": {
+    "revenue": 41849383.82,
+    "retention_sum": 2447.4888,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 227299720.37,
+    "retention_sum": 8352.1324,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 185450336.55,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "operator_channel_delta": {
+   "revenue_shipped": 40900927.61,
+   "revenue_candidate": 41849383.82,
+   "revenue_delta": 948456.21,
+   "revenue_delta_pct": 2.3189,
+   "breaks_delta": 0,
+   "retention_sum_delta": 24.658
+  },
+  "whole_plan_delta": {
+   "revenue_shipped": 221701567.09,
+   "revenue_candidate": 227299720.37,
+   "revenue_delta": 5598153.28,
+   "revenue_delta_pct": 2.5251,
+   "breaks_delta": 0,
+   "retention_sum_delta": 95.836
+  }
+ },
+ "placebo_corrected": {
+  "candidate_id": "placebo_corrected",
+  "fingerprint": "1af923477a3eaf1728415f503c435f1e5eff8e85d3e2ef361a9525c585b7c773",
+  "inputs": {
+   "candidate": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
+   "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "engine": "1.0.0"
+  },
+  "measured_at": "2026-08-01T08:51:38.335070+00:00",
+  "duration_seconds": 86.5,
+  "engine_version": "1.0.0",
+  "operator_channel": "רשת 13",
+  "scope": {
+   "operator_channel": {
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+   },
+   "whole_plan": {
+    "rows": 8704,
+    "channels": 4,
+    "basis": "the same plan summed over every channel the optimizer schedules"
+   }
+  },
+  "shipped_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "candidate_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "operator_channel_delta": {
+   "revenue_shipped": 40900927.61,
+   "revenue_candidate": 40900927.61,
+   "revenue_delta": 0.0,
+   "revenue_delta_pct": 0.0,
+   "breaks_delta": 0,
+   "retention_sum_delta": 0.0
+  },
+  "whole_plan_delta": {
+   "revenue_shipped": 221701567.09,
+   "revenue_candidate": 221701567.09,
+   "revenue_delta": 0.0,
+   "revenue_delta_pct": 0.0,
+   "breaks_delta": 0,
+   "retention_sum_delta": 0.0
+  }
+ },
+ "spotclip": {
+  "candidate_id": "spotclip",
+  "fingerprint": "f58340d3071a801399eceab5fe9b4e379bacd29c3aca8168204a6cf4da9f850f",
+  "inputs": {
+   "candidate": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
+   "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "engine": "1.0.0"
+  },
+  "measured_at": "2026-08-01T08:53:05.583529+00:00",
+  "duration_seconds": 87.2,
+  "engine_version": "1.0.0",
+  "operator_channel": "רשת 13",
+  "scope": {
+   "operator_channel": {
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+   },
+   "whole_plan": {
+    "rows": 8704,
+    "channels": 4,
+    "basis": "the same plan summed over every channel the optimizer schedules"
+   }
+  },
+  "shipped_totals": {
+   "operator_channel": {
+    "revenue": 40900927.61,
+    "retention_sum": 2422.8312,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 221701567.09,
+    "retention_sum": 8256.2965,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 180800639.48000002,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "candidate_totals": {
+   "operator_channel": {
+    "revenue": 41803926.22,
+    "retention_sum": 2447.8264999999997,
+    "breaks": 2391,
+    "rows": 2540
+   },
+   "whole_plan": {
+    "revenue": 226657623.18000004,
+    "retention_sum": 8348.3756,
+    "breaks": 9026,
+    "rows": 8704,
+    "channels": 4
+   },
+   "other_channels_aggregate": {
+    "revenue": 184853696.95999998,
+    "rows": 6164,
+    "channels": 3
+   }
+  },
+  "operator_channel_delta": {
+   "revenue_shipped": 40900927.61,
+   "revenue_candidate": 41803926.22,
+   "revenue_delta": 902998.61,
+   "revenue_delta_pct": 2.2078,
+   "breaks_delta": 0,
+   "retention_sum_delta": 24.995
+  },
+  "whole_plan_delta": {
+   "revenue_shipped": 221701567.09,
+   "revenue_candidate": 226657623.18,
+   "revenue_delta": 4956056.09,
+   "revenue_delta_pct": 2.2355,
+   "breaks_delta": 0,
+   "retention_sum_delta": 92.079
+  }
+ }
+}

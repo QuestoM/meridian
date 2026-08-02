@@ -1,0 +1,149 @@
+/* The break board at break zoom. Numbers are tabular so a column of money can be
+   compared down the page, and the table stays in the document direction while
+   every clock and figure inside it is forced left to right. */
+
+.break-board .break-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.break-board .break-filter.is-on {
+  background: var(--amber-soft);
+  border-color: var(--amber);
+  color: var(--amber-ink);
+}
+
+.break-board .break-filter:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.break-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  margin-block-start: var(--space-3);
+}
+
+.break-table th {
+  text-align: start;
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.break-table td {
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.break-table tbody tr {
+  cursor: pointer;
+}
+
+.break-table tbody tr:hover,
+.break-table tbody tr:focus-visible {
+  background: var(--surface-muted);
+  outline: none;
+}
+
+.break-table tbody tr:focus-visible td:first-child {
+  box-shadow: inset 3px 0 0 var(--focus-ring);
+}
+
+.break-table tfoot td {
+  font-weight: var(--weight-medium);
+  border-block-end: none;
+}
+
+/* The count beside the footer label, so the line names how many rows it added
+   up as well as what they came to. Tabular, and forced left to right inside a
+   right to left table. */
+.break-foot-count {
+  margin-inline-start: var(--space-2);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The day's own total, printed only when a filter is on and the column above is
+   a subset. It carries the weight of a reference figure rather than of the
+   answer, because the answer to what is on screen is the line above it. */
+.break-foot-day td {
+  color: var(--muted);
+  font-weight: var(--weight-regular);
+  border-block-start: 1px solid var(--line);
+}
+
+/* What a filter that empties the table says. Amber, because nothing is broken:
+   a real day simply carries no break with this mark yet, and the route to
+   making one is in the panel. */
+.break-board-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-md);
+}
+
+.break-board-empty h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.break-board-empty p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 76ch;
+}
+
+.break-board-empty-day {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.break-cell-muted {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.break-board-basis {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  margin-block-start: var(--space-2);
+}
+
+/* The rounding footnote sits under the basis line and reads as a footnote. */
+.break-board-rounding {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  margin-block-start: var(--space-1);
+}
+
+.break-board-error {
+  color: var(--red);
+  font-size: var(--text-sm);
+}

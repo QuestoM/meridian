@@ -1,0 +1,57 @@
+/* Plan, the week: the basis disclosure, the stylesheet of the block that
+   prints how a figure was computed. Uses the frozen tokens only; defines
+   none of its own. */
+
+/* The basis, in the operator's words, with the engine's own wording one
+   disclosure away rather than printed over the figure it explains. */
+.plan-basis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-band {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.plan-basis-details summary {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+  cursor: pointer;
+}
+
+.plan-basis-details summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.plan-basis-details p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  max-inline-size: 90ch;
+}
+
+.plan-basis-inputs {
+  margin: var(--space-2) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-basis-inputs div {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.plan-basis-inputs dt {
+  color: var(--muted);
+  min-inline-size: 14ch;
+}
+
+.plan-basis-inputs dd {
+  margin: 0;
+}

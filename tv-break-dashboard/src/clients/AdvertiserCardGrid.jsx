@@ -28,8 +28,8 @@ function AdvertiserCardGrid({ rows, locale, grouped, onOpen }) {
       {unnamed.length > 0 && named.length > 0 && (
         <div className="amz-group-head">
           {unnamed.length === 1
-            ? pageText(locale, 'One advertiser without a display name (raw ID only)', 'מפרסם אחד ללא שם תצוגה (מזהה גולמי בלבד)')
-            : pageText(locale, `${unnamed.length} advertisers without a display name (raw IDs only)`, `${unnamed.length} מפרסמים ללא שם תצוגה (מזהים גולמיים בלבד)`)}
+            ? pageText(locale, 'One pricing row bound to no advertiser, so it prices nothing', 'שורת תמחור אחת שאינה קשורה לאף מפרסם, ולכן אינה מתמחרת דבר')
+            : pageText(locale, `${unnamed.length} pricing rows bound to no advertiser, so they price nothing`, `${unnamed.length} שורות תמחור שאינן קשורות לאף מפרסם, ולכן אינן מתמחרות דבר`)}
         </div>
       )}
       {unnamed.length > 0 && renderGrid(unnamed)}

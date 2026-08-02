@@ -1,0 +1,477 @@
+/* The Clients destination. Reads the tokens, defines none.
+   Logical properties throughout, so the same rules lay out correctly in both
+   directions and nothing has to be mirrored by hand. */
+
+.clients-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.clients-views {
+  display: flex;
+  gap: var(--space-1);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.clients-views button,
+.clients-group-tabs button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.clients-views button:hover,
+.clients-group-tabs button:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.clients-views button.active,
+.clients-group-tabs button.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal-ink);
+}
+
+.clients-views button:focus-visible,
+.clients-group-tabs button:focus-visible,
+.clients-link:focus-visible,
+.clients-chip:focus-visible,
+.clients-primary:focus-visible,
+.clients-secondary:focus-visible,
+.clients-inline-action:focus-visible,
+.clients-icon-button:focus-visible,
+.clients-agency-head:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.clients-body {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.clients-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.clients-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.clients-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--muted);
+  flex: 1 1 260px;
+}
+
+.clients-search input {
+  border: 0;
+  outline: none;
+  font-size: var(--text-base);
+  color: var(--ink);
+  background: transparent;
+  inline-size: 100%;
+}
+
+.clients-counts {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.clients-primary,
+.clients-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--surface);
+}
+
+.clients-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.clients-primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.clients-link,
+.clients-inline-action,
+.clients-chip,
+.clients-icon-button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--blue);
+  padding: 0;
+  text-align: start;
+}
+
+.clients-inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.clients-chip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+  margin-inline-end: var(--space-1);
+}
+
+.clients-icon-button {
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+.clients-basis {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  margin: 0;
+}
+
+.clients-basis-note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+.clients-basis-path {
+  font-size: var(--text-sm);
+  color: var(--teal-ink);
+  margin: 0;
+}
+
+.clients-reason {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+.clients-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: var(--text-base);
+  color: var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.clients-error p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.clients-retry {
+  flex: none;
+  border: 1px solid var(--red);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--red);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clients-retry:hover {
+  background: var(--red-soft);
+}
+
+/* Why this account may not change anything here, in the place the control it
+   replaces would have stood, so the refusal is read before the click. */
+.clients-refusal {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+/* What to do about a state, beside the state, never derived by the reader. */
+.clients-remedy {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin-block-end: var(--space-1);
+}
+
+.clients-loading {
+  font-size: var(--text-base);
+  color: var(--muted);
+  padding: var(--space-5);
+}
+
+.clients-answer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.clients-answer-question {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+.clients-answer-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  text-align: start;
+}
+
+.clients-answer-line small {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-regular);
+  color: var(--muted);
+}
+
+.clients-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.clients-tile {
+  display: flex;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+}
+
+.clients-tile-icon {
+  color: var(--teal);
+  display: inline-flex;
+  align-items: center;
+}
+
+.clients-tile.net .clients-tile-icon {
+  color: var(--blue);
+}
+
+.clients-tile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clients-tile-label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.clients-tile-copy strong {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.clients-tile-copy small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.clients-group-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.clients-group-count {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+
+.clients-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.clients-table th,
+.clients-table td {
+  text-align: start;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.clients-table th {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  background: var(--surface-muted);
+  white-space: nowrap;
+}
+
+.clients-table th.numeric-col,
+.clients-table td.numeric {
+  text-align: end;
+}
+
+.clients-table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+.clients-agency {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.clients-agency-head {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink);
+  text-align: start;
+}
+
+.clients-agency-head.static {
+  cursor: default;
+}
+
+.clients-agency-icon {
+  color: var(--teal);
+  display: inline-flex;
+}
+
+.clients-agency-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.clients-agency-name strong {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+.clients-agency-name small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.clients-agency-facts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  flex-wrap: wrap;
+}
+
+.clients-agency-facts small {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.clients-agency-body {
+  padding: 0 var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.clients-unset,
+.clients-unknown {
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.clients-flag {
+  color: var(--amber-ink);
+  font-size: var(--text-xs);
+  margin-inline-start: var(--space-2);
+}
+
+.clients-state {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.clients-state.ended {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+

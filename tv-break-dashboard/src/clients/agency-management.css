@@ -196,6 +196,27 @@
 }
 
 /* ----- Drawer: linked advertisers ----- */
+.agz-link-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.agz-link-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+}
+.agz-link-count .numeric {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.agz-link-count small {
+  font-size: var(--text-sm);
+}
 .agz-link-list {
   list-style: none;
   margin: 0;

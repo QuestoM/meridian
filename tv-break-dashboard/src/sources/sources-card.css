@@ -1,0 +1,47 @@
+/* The two sentences at the foot of a source card, and the labels that say
+   which question each one answers.
+
+   They were moved out of sources.css whole, under the file-size law rather
+   than for style: that sheet had reached 449 lines of a 450-line cap, which is
+   where a law stops holding by itself.
+
+   Measured on the shipped card before the label existed: a shadowed daily input
+   printed a remedy and a consequence as two adjacent unlabelled sentences, and
+   read as one paragraph that contradicted itself. The server no longer writes a
+   pair that disagrees; the label is the other half, because what to do and what
+   an upload here does are two answers and a reader should not have to work out
+   which is which. */
+
+.source-remedy {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.source-remedy.warn {
+  color: var(--amber-ink);
+}
+
+.source-remedy.bad {
+  color: var(--red);
+}
+
+.source-consequence {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* The label reads as a label and not as the first words of the sentence, and
+   it sits on the reading edge in both directions because the margin is
+   logical. */
+.source-line-label {
+  color: var(--subtle);
+  font-weight: 600;
+  margin-inline-end: var(--space-2);
+}

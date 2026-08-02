@@ -2,20 +2,29 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
-import { LAYER_TEXT, LAYER_TO_YAML, keyLabel, layerLabel } from './pricing-layers-lib';
+import { LAYER_TEXT, LAYER_TO_YAML, keyLabel, layerEntries, layerLabel } from './pricing-layers-lib';
 import PricingEventsLayer from './PricingEventsLayer';
 import PricingSlotTester from './PricingSlotTester';
+import RateCardEffect from './RateCardEffect';
+import { draftValueAt, dropOverride, mergeOverrides } from './rules-lib';
 import './pricing-management.css';
+import './rules-workspace.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
-function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
+function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
   // Inline confirm step for the destructive reset: the first click only arms
   // it, the explicit confirm click performs it.
   const [confirmReset, setConfirmReset] = useState(false);
+  // An edit is a draft until it is saved. It used to land on blur, which meant
+  // the revenue owner's own question, what does this do to the money, could only
+  // be answered after the answer had already changed. The draft is priced
+  // against the saved card and the save is a separate, deliberate act.
+  const [pending, setPending] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,14 +74,29 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
     }
   }, [notify, onGlobalRefresh]);
 
+  function stage(patch) {
+    setPending((current) => mergeOverrides(current || {}, patch));
+  }
+
+  // Typing the saved figure back into a box is a revert, not a no-op. Without
+  // the drop, the draft kept the earlier edit while the box showed the saved
+  // value, and the effect panel below priced a figure that was on nobody's
+  // screen.
+  function unstage(path) {
+    setPending((current) => dropOverride(current, path));
+  }
+
   function saveBase(value) {
     const num = Number(value);
     if (!Number.isFinite(num) || num < 0) {
       notify('Base price must be a number of 0 or more.', 'מחיר הבסיס חייב להיות מספר אפס ומעלה.');
       return;
     }
-    if (state && num === state.base.value) return;
-    applyOverride({ base_price_per_second_per_tvr_point: num });
+    if (state && num === state.base.value) {
+      unstage(['base_price_per_second_per_tvr_point']);
+      return;
+    }
+    stage({ base_price_per_second_per_tvr_point: num });
   }
 
   function saveMultiplier(layerName, key, value) {
@@ -81,11 +105,23 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
       notify('A premium must be a number of 0 or more.', 'מקדם חייב להיות מספר אפס ומעלה.');
       return;
     }
-    applyOverride({ premiums: { [LAYER_TO_YAML[layerName]]: { [key]: num } } });
+    const saved = Number(((state?.layers || []).find((entry) => entry.name === layerName) || {}).values?.[key]);
+    if (Number.isFinite(saved) && num === saved) {
+      unstage(['premiums', LAYER_TO_YAML[layerName], key]);
+      return;
+    }
+    stage({ premiums: { [LAYER_TO_YAML[layerName]]: { [key]: num } } });
   }
 
   function toggleLayer(layerName, enabled) {
-    applyOverride({ pricing_activation: { [layerName]: enabled } });
+    stage({ pricing_activation: { [layerName]: enabled } });
+  }
+
+  async function commitPending() {
+    setSaving(true);
+    const ok = await applyOverride(pending || {});
+    setSaving(false);
+    if (ok) setPending(null);
   }
 
   function resetCard() {
@@ -124,14 +160,22 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
     );
   }
 
+  // What a draft-bound control shows: the staged edit while one exists, the
+  // saved card the moment it is discarded. Measured on the shipped surface
+  // before this, the base box was bound with defaultValue and a key made only of
+  // the saved value, so discarding an edit cleared the draft, left the key
+  // unchanged and left the discarded 80 in the box, while the price tester two
+  // columns away read 60 and the server held 60. One screen, one rate card.
+  const shownBase = draftValueAt(pending, ['base_price_per_second_per_tvr_point']) ?? state.base.value;
+
   return (
-    <section className="page-workspace">
+    <section className={embedded ? 'rules-section' : 'page-workspace'}>
       <div className="page-header">
         <div>
-          <h1>{pageText(locale, 'Pricing', 'תמחור')}</h1>
+          {!embedded && <h1>{pageText(locale, 'Pricing', 'תמחור')}</h1>}
           <p>{pageText(locale,
-            'The rate card: base price per rating point and the named premium layers that stack on top. Edit any value and watch the price recompute in the tester. Every number traces to base times named layers.',
-            'כרטיס התעריפים: מחיר בסיס לנקודת רייטינג והשכבות הנקובות שמצטברות מעליו. ערכו כל ערך וצפו במחיר מתעדכן בבודק. כל מספר נגזר מבסיס כפול שכבות נקובות.')}</p>
+            'The rate card: base price per rating point and the named premium layers that stack on top. Edit any value and see what it does to the worth of a second before you save. Every number traces to base times named layers.',
+            'כרטיס התעריפים: מחיר בסיס לנקודת רייטינג והשכבות הנקובות שמצטברות מעליו. ערכו כל ערך וראו מה זה עושה לשווי של שנייה לפני השמירה. כל מספר נגזר מבסיס כפול שכבות נקובות.')}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button className="secondary-button compact" type="button" variant="outlined" onClick={load}>
@@ -177,8 +221,8 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
               <span className="pricing-base-value">
                 <input
                   type="number" min="0" step="1" dir="ltr"
-                  defaultValue={state.base.value}
-                  key={`base-${state.base.value}`}
+                  defaultValue={shownBase}
+                  key={`base-${shownBase}`}
                   onBlur={(event) => saveBase(event.target.value)}
                   aria-label={pageText(locale, 'Base price per rating point per second', 'מחיר בסיס לנקודת רייטינג לשנייה')}
                 />
@@ -191,7 +235,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
 
           <div className="pricing-layer-stack">
             {premiumLayers.map((layer) => {
-              const entries = Object.entries(layer.values || {});
+              const entries = layerEntries(layer);
               const defaults = layer.defaults || {};
               const isEmpty = entries.length === 0;
               const chip = layer.live_today ? 'live' : (isEmpty ? 'empty' : 'off');
@@ -211,7 +255,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                         <label className="pricing-toggle">
                           <input
                             type="checkbox"
-                            checked={!!layer.enabled}
+                            checked={draftValueAt(pending, ['pricing_activation', layer.name]) ?? !!layer.enabled}
                             onChange={(event) => toggleLayer(layer.name, event.target.checked)}
                           />
                           {pageText(locale, 'On', 'הפעלה')}
@@ -240,13 +284,14 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
                       {entries.map(([key, value]) => {
                         const edited = defaults[key] !== undefined && Number(defaults[key]) !== Number(value);
                         const label = keyLabel(layer.name, key, locale);
+                        const shown = draftValueAt(pending, ['premiums', LAYER_TO_YAML[layer.name], key]) ?? value;
                         return (
                           <div className={`pricing-mult${edited ? ' edited' : ''}`} key={key}>
                             <span className="pricing-mult-label" title={label}>{label}</span>
                             <input
                               type="number" min="0" step="0.01" dir="ltr"
-                              defaultValue={value}
-                              key={`${layer.name}-${key}-${value}`}
+                              defaultValue={shown}
+                              key={`${layer.name}-${key}-${shown}`}
                               onBlur={(event) => saveMultiplier(layer.name, key, event.target.value)}
                               aria-label={`${layerLabel(layer.name, locale)} ${label}`}
                             />
@@ -261,6 +306,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
             <PricingEventsLayer
               state={state}
               locale={locale}
+              stagedEnabled={draftValueAt(pending, ['pricing_activation', 'events'])}
               onToggle={(enabled) => toggleLayer('events', enabled)}
             />
           </div>
@@ -268,6 +314,15 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh }) {
 
         <PricingSlotTester state={state} locale={locale} notify={notify} currency={currency} />
       </div>
+
+      <RateCardEffect
+        locale={locale}
+        overrides={pending || {}}
+        dirty={Boolean(pending)}
+        saving={saving}
+        onSave={commitPending}
+        onDiscard={() => setPending(null)}
+      />
     </section>
   );
 }

@@ -115,3 +115,17 @@
   font-weight: var(--weight-bold);
   box-shadow: 0 0 0 2px var(--surface);
 }
+
+/* The feed is the session's own notices; History is the full record. The link
+   is the path from one to the other, so a notice that scrolls away is not the
+   end of the story. */
+.af-foot {
+  padding: var(--space-3) var(--space-4);
+  border-block-start: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.af-foot-link {
+  color: var(--teal-ink);
+  font-size: var(--text-xs);
+}

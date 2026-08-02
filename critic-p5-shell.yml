@@ -1,0 +1,76 @@
+- generic [active] [ref=f1e9]:
+  - generic [ref=f1e11]:
+    - complementary "Kairos navigation" [ref=f1e12]:
+      - generic [ref=f1e18]:
+        - strong [ref=f1e19]: Kairos
+        - generic [ref=f1e20]: ניהול הכנסות מפרסום
+      - navigation [ref=f1e21]:
+        - button "סקירה" [ref=f1e22] [cursor=pointer]
+        - button "אופטימייזר" [ref=f1e31] [cursor=pointer]
+        - button "לוח שידורים" [ref=f1e37] [cursor=pointer]
+        - button "מלאי" [ref=f1e43] [cursor=pointer]
+        - button "ספריית ברייקים" [ref=f1e49] [cursor=pointer]
+        - button "קמפיינים" [ref=f1e57] [cursor=pointer]
+        - button "תחזיות" [ref=f1e64] [cursor=pointer]
+        - button "לוח אירועים" [ref=f1e71] [cursor=pointer]
+        - button "דוחות" [ref=f1e79] [cursor=pointer]
+        - button "נתונים" [ref=f1e86] [cursor=pointer]
+        - button "מפרסמים" [ref=f1e94] [cursor=pointer]
+        - button "סוכנויות" [ref=f1e103] [cursor=pointer]
+        - button "תמחור" [ref=f1e111] [cursor=pointer]
+        - button "עקיפות" [ref=f1e120] [cursor=pointer]
+        - button "קאי, עוזר AI" [ref=f1e125] [cursor=pointer]
+        - button "שחזור שינויים" [ref=f1e132] [cursor=pointer]
+        - button "הגדרות" [ref=f1e140] [cursor=pointer]
+      - button "CO Company operator תפעול" [ref=f1e147] [cursor=pointer]:
+        - generic [ref=f1e148]: CO
+        - generic [ref=f1e149]:
+          - strong [ref=f1e150]: Company operator
+          - generic [ref=f1e151]: תפעול
+    - main [ref=f1e154]:
+      - generic [ref=f1e155]:
+        - generic [ref=f1e156]:
+          - generic [ref=f1e157]: סקירה
+          - button "שבוע התכנון" [ref=f1e158] [cursor=pointer]
+        - generic [ref=f1e161]:
+          - generic [ref=f1e162]
+          - generic [ref=f1e166]
+          - button "השוואה" [ref=f1e176] [cursor=pointer]
+        - generic [ref=f1e182]:
+          - generic [ref=f1e183]: אין חיבור ל־API
+          - generic "מועד עדכון הנתונים האחרון מה־API" [ref=f1e184]: עודכן -
+          - button "רענון" [ref=f1e185] [cursor=pointer]
+          - button "פתיחה או סגירה של קאי, העוזר" [ref=f1e191] [cursor=pointer]
+          - button "התראות" [ref=f1e195] [cursor=pointer]
+          - button "אנגלית" [ref=f1e201] [cursor=pointer]
+          - button "הרצת אופטימיזציה" [ref=f1e206] [cursor=pointer]
+          - generic "שומר את ההגדרות האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה" [ref=f1e209]
+      - generic [ref=f1e213]:
+        - generic [ref=f1e215]:
+          - heading "היום" [level=1] [ref=f1e216]
+          - paragraph [ref=f1e217]: ביעד, משהו לא תקין, מה דורש החלטה. שלוש תשובות, בלי קליקים.
+        - status [ref=f1e218]: קורא את שלוש התשובות.
+        - region "מה מבין אלה התפקיד שלכם" [ref=f1e219]:
+          - generic [ref=f1e220]
+          - generic [ref=f1e223]
+          - paragraph [ref=f1e276]: אפשר לשנות את זה אחר כך מתפריט החשבון.
+        - region "Optimization summary" [ref=f1e277]:
+          - generic "צפי הכנסות הפרסום של הערוץ שלכם לשבוע התכנון, מסוכם מהתוכנית השמורה של האופטימייזר. לא תחזית ליום מחר." [ref=f1e278]
+          - 'generic "כמה מקהל התוכנית נשאר מול המסך במהלך ברייק פרסומות, ממוצע משוקלל TVR על ברייקי שבוע התכנון. זהו מדד רגעי לכל ברייק, לא איבוד צופים מצטבר משבוע לשבוע: מי שעוזב בזמן ברייק לרוב חוזר לתוכנית מיד אחריו, אבל הברייק עצמו משודר לקהל קטן יותר, וזו ההכנסה שהוא מפסיד. זהו הצד הקהלי של עלות השימור בסיפור הכסף." [ref=f1e287]'
+          - generic "סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות." [ref=f1e298]
+          - generic "כמה רחוק ממוצע השימור של שבוע התכנון מתחת לרף השימור שלכם (0 = ברף או מעליו). לא ציון סיכון עסקי כללי." [ref=f1e307]
+        - paragraph [ref=f1e318]:
+          - 'generic "תצוגה בלבד: האירוע מסומן בשמו כדי שתדעו שימי התוכנית האלה נמצאים בתוכו. אף מספר שימור או הכנסה אינו משתנה, כי השפעת אירועים על השימור עדיין לא נמדדה." [ref=f1e319]': "ימי תוכנית בתוך אירוע פעיל:"
+          - generic [ref=f1e322]: חרבות ברזל, מלחמת עזה
+          - generic [ref=f1e323]: הסלמה בצפון מול חזבאללה, חצי הצפון
+        - generic [ref=f1e324]:
+          - generic [ref=f1e325]
+          - paragraph [ref=f1e329]: טוען את נתוני הכסף.
+        - generic [ref=f1e330]:
+          - generic [ref=f1e332]
+          - generic [ref=f1e338]
+        - generic [ref=f1e348]:
+          - heading "תשואה לשנייה" [level=2] [ref=f1e349]
+          - generic [ref=f1e350]: היכן כל שניית פרסום מרוויחה הכי הרבה
+      - generic [ref=f1e352]: טוען סביבת Kairos
+  - button "קונסולת המודל (חברה)" [ref=f1e8] [cursor=pointer]

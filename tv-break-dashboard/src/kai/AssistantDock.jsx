@@ -2,14 +2,20 @@ import React, { useRef, useState } from 'react';
 import { Bot, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import AssistantPanel from './AssistantPanel';
+import './kai-shortcuts';
 import './assistant-console.css';
 
 // The docked assistant column: a real layout sibling of the workspace inside
 // the shell flex row, never an overlay, so opening it shrinks the content
 // beside it. It sits at the shell's inline-end (opposite the navigation rail,
 // which owns inline-start), stays mounted across view switches so the
-// conversation continues until the operator starts a new one from the rail,
-// and its width is drag-resizable within a clamp and remembered per browser.
+// conversation continues until a new one is started from the rail, and its
+// width is drag-resizable within a clamp and remembered per browser.
+//
+// The kai-shortcuts import is deliberate and load-bearing rather than
+// decorative: the shell imports this file at module scope, so importing the
+// shortcut module here is what makes Cmd J work from a screen where the dock is
+// closed and no component of Kai's is mounted.
 
 const WIDTH_KEY = 'kairos.assistant.dockWidth';
 const MIN_WIDTH = 320;

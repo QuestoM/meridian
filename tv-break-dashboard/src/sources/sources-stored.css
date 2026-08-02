@@ -1,0 +1,69 @@
+/* The files a source card names that the engine does not read: the other
+   files of the same kind on disk. Lives beside the card's own sheet because
+   the card's sheet is at the size law, and a block that only appears when
+   something is stored and unread is the one that travels cleanly. */
+
+/* The files on disk for this input that the engine does not read. Logical
+   properties throughout, so the list indents from the reading edge in both
+   directions without a second rule. */
+.source-stored {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-size: var(--text-xs);
+}
+
+.source-stored-head {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.source-stored ul {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.source-stored li {
+  display: grid;
+  gap: var(--space-1);
+  border-inline-start: 2px solid var(--line);
+  padding-inline-start: var(--space-2);
+}
+
+.source-stored li.warn {
+  border-inline-start-color: var(--amber);
+}
+
+.source-stored-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--subtle);
+}
+
+.source-stored-rows {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.source-stored-why {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.source-stored-more {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  color: var(--subtle);
+}

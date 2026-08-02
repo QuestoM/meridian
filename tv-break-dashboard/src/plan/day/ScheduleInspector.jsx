@@ -3,7 +3,7 @@ import { Button } from '@mui/material';
 import { Download, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
 import { pageText } from '../../shell/surface-helpers';
 import { programTypeLabel } from '../../shell/surface-helpers';
-import { KINDS, kindLabel, runDayRecomputeJob, isNum } from './override-console-lib';
+import { KINDS, kindLabel, runDayPlanJob, isNum } from './override-console-lib';
 import './schedule-inspector.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -13,7 +13,7 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 // retention with its credible interval), the segment's current manual overrides,
 // and the edit actions the optimizer honors (pin, force a count, forbid, mark
 // gold) with a live WITH-vs-WITHOUT preview before anything is saved. Saving marks
-// the plan stale; the operator then recomputes this one day (a fast incremental
+// the plan stale; the operator then runs this one day (a fast incremental
 // job) and can download the corrected schedule. Individual ad assignment is a
 // downstream daily step and is not editable here; the drawer says so honestly.
 
@@ -26,7 +26,9 @@ const fmtNum2 = (value, locale) => (isNum(value)
 
 // The engine reports its measurement confidence as low / medium / high; show it
 // in plain words (feminine to agree with "רמה") and pass unknown values through.
-function confidenceLabel(value, locale) {
+// Exported because the break drawer states the same engine field, and two
+// translations of one vocabulary is how a surface ends up half in English.
+export function confidenceLabel(value, locale) {
   const key = String(value || '').toLowerCase();
   if (key === 'high') return pageText(locale, 'High', 'גבוהה');
   if (key === 'medium') return pageText(locale, 'Medium', 'בינונית');
@@ -137,8 +139,8 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       setDirty(true);
-      notify('Decision saved. The plan is now marked stale; recompute this day to apply it.',
-        'ההחלטה נשמרה. התוכנית מסומנת כלא מעודכנת; חשבו מחדש את היום כדי להחיל אותה.');
+      notify('Decision saved. The plan is now marked out of date; run this day to apply it.',
+        'ההחלטה נשמרה. התוכנית מסומנת כלא מעודכנת; הריצו את היום כדי להחיל אותה.');
       await loadDetail();
       onGlobalRefresh?.();
     } catch (error) {
@@ -151,7 +153,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       const response = await fetch(`${API_BASE}/api/overrides/${encodeURIComponent(overrideId)}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`${response.status}`);
       setDirty(true);
-      notify('Decision removed. Recompute this day to apply.', 'ההחלטה הוסרה. חשבו מחדש את היום כדי להחיל.');
+      notify('Decision removed. Run this day to apply.', 'ההחלטה הוסרה. הריצו את היום כדי להחיל.');
       await loadDetail();
       onGlobalRefresh?.();
     } catch (error) {
@@ -159,29 +161,29 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
     }
   }
 
-  async function handleDayRecompute() {
+  async function handleDayRun() {
     const ch = channel || detail?.identity?.channel;
     const d = day || detail?.identity?.date;
     if (!ch || !d) return;
     setDayJobState('running');
     try {
-      const result = await runDayRecomputeJob(API_BASE, [{ channel: ch, day: d }]);
+      const result = await runDayPlanJob(API_BASE, [{ channel: ch, day: d }]);
       setDayJobState('idle');
       if (result.status === 'done') {
         setDirty(false);
-        notify('Day recomputed. The plan reflects your decision.', 'היום חושב מחדש. התוכנית משקפת את ההחלטה.');
+        notify('The day ran. The plan reflects your decision.', 'היום הורץ. התוכנית משקפת את ההחלטה.');
         await loadDetail();
         onGlobalRefresh?.();
       } else if (result.status === 'missing') {
-        notify('Day recompute needs the updated backend. Use the full recompute instead.',
+        notify('Running one day needs the updated backend. Run the whole plan instead.',
           'חישוב יום דורש שרת מעודכן. השתמשו בחישוב המלא במקום.');
       } else {
         const reason = result.error || (result.status === 'timeout' ? 'timed out' : 'unknown error');
-        notify(`Day recompute failed: ${reason}.`, `חישוב היום נכשל: ${reason}.`);
+        notify(`The day run failed: ${reason}.`, `הרצת היום נכשלה: ${reason}.`);
       }
     } catch (error) {
       setDayJobState('idle');
-      notify(`Day recompute failed (${error.message}).`, `חישוב היום נכשל (${error.message}).`);
+      notify(`The day run failed (${error.message}).`, `הרצת היום נכשלה (${error.message}).`);
     }
   }
 
@@ -280,7 +282,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
 
           <section className="si-section si-edit">
             <h4>{pageText(locale, 'Make a decision', 'קבלת החלטה')}</h4>
-            <p className="si-sub">{pageText(locale, 'The planning engine honors these on the next recompute. Read the projected change before saving.', 'מנוע התכנון מכבד את ההחלטות האלה בחישוב הבא. קראו את השינוי הצפוי לפני השמירה.')}</p>
+            <p className="si-sub">{pageText(locale, 'The planning engine honours these on the next run. Read the projected change before saving.', 'מנוע התכנון מכבד את ההחלטות האלה בהרצה הבאה. קראו את השינוי הצפוי לפני השמירה.')}</p>
             <label className="si-field">
               <span>{pageText(locale, 'Decision', 'החלטה')}</span>
               <select value={kind} onChange={(e) => setKind(e.target.value)}>
@@ -328,15 +330,15 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
           </section>
 
           <section className="si-section si-apply">
-            <Button className="compact" type="button" variant="outlined" disabled={dayJobState === 'running'} onClick={handleDayRecompute}>
+            <Button className="compact" type="button" variant="outlined" disabled={dayJobState === 'running'} onClick={handleDayRun}>
               <RefreshCcw size={14} className={dayJobState === 'running' ? 'spin' : undefined} />
-              {dayJobState === 'running' ? pageText(locale, 'Recomputing this day', 'מחשב את היום') : pageText(locale, 'Recompute this day', 'חישוב מחדש ליום זה')}
+              {dayJobState === 'running' ? pageText(locale, 'Running this day', 'מריץ את היום') : pageText(locale, 'Run this day', 'הרצת היום הזה')}
             </Button>
             <Button className="compact" type="button" variant="text" onClick={handleDownload}>
               <Download size={14} />
               {pageText(locale, 'Download schedule', 'הורדת הלוח')}
             </Button>
-            {dirty && <span className="si-stale">{pageText(locale, 'Saved schedule is stale, recompute to apply.', 'הלוח השמור אינו מעודכן, חשבו מחדש להחלה.')}</span>}
+            {dirty && <span className="si-stale">{pageText(locale, 'The saved plan is out of date, run it to apply.', 'התוכנית השמורה אינה מעודכנת, הריצו אותה להחלה.')}</span>}
           </section>
 
           <p className="si-footnote">

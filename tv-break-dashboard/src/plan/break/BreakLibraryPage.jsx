@@ -7,6 +7,7 @@ import { normalizeRows } from '../../shell/plan-model';
 import { buildCsv, downloadCsv } from '../../shell/downloads';
 import { DataTable, PageHeader, StatusBadge } from '../../shell/primitives';
 import ScheduleInspector from '../day/ScheduleInspector';
+import BreakBoard from './BreakBoard';
 
 export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalRefresh }) {
   const rows = normalizeRows(breakLibrary.breaks);
@@ -45,11 +46,12 @@ export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalR
     <section className="page-workspace">
       <PageHeader
         locale={locale}
-        titleEn="Break library"
-        titleHe="ספריית ברייקים"
-        bodyEn="The ranked shelf of the strongest breaks in the saved plan. Review the ranking, open a break for its full detail and edits, and export the list for the traffic meeting."
-        bodyHe="מדף מדורג של הברייקים החזקים בתוכנית השמורה. עברו על הדירוג, פתחו ברייק לפרטים המלאים ולעריכה, וייצאו את הרשימה לישיבת הטראפיק."
+        titleEn="Plan, the break"
+        titleHe="תוכנית, הברייק"
+        bodyEn="Every break in one broadcast day, with what the plan expects it to earn. Open one for its full detail, or use the ranked shelf below to find the strongest breaks in the whole plan."
+        bodyHe="כל הברייקים ביום שידור אחד, עם ההכנסה שהתוכנית מייחסת לכל אחד. פתחו ברייק לפרטים המלאים, או השתמשו במדף המדורג שלמטה כדי למצוא את הברייקים החזקים בכל התוכנית."
       />
+      <BreakBoard locale={locale} notify={notify} />
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Ranked break candidates', 'ברייקים מדורגים')}</h2>

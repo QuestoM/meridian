@@ -190,6 +190,38 @@ def _settings_diff(changes: dict[str, Any] | None) -> list[dict[str, Any]]:
     ]
 
 
+def _attach_settings_context(item: dict[str, Any], payload: dict[str, Any],
+                             user: "str | None") -> None:
+    """Everything a person needs beside a settings proposal before approving it.
+
+    The measured before and after from the real optimizer, the basis those two
+    figures were computed on, the per-field diff, and, when the change would
+    move one of the four broadcast licence limits, the permission block naming
+    the limit, the date the limits in force took effect and whether this account
+    may change them. The apply engine ignores all of them: they are disclosure,
+    never instructions.
+
+    The basis rides beside the money rather than inside it. ``effect`` keeps
+    exactly the three money keys a shared contract suite pins by equality, and
+    ``effect_basis`` carries the channel and the representative day, so the card
+    gains the basis without moving a key set another piece asserts. An item
+    whose simulation was unavailable carries no basis key at all rather than an
+    empty one.
+    """
+    from kairos_api import assistant_permissions, assistant_simulate
+
+    changes = payload.get("changes")
+    effect = dict(assistant_simulate.settings_effect(changes) or {})
+    basis = {key: effect.pop(key) for key in assistant_simulate.EFFECT_BASIS_KEYS if key in effect}
+    item["effect"] = effect
+    if basis:
+        item["effect_basis"] = basis
+    item["diff"] = _settings_diff(changes)
+    permission = assistant_permissions.guardrail_permission(changes, user)
+    if permission is not None:
+        item["permission"] = permission
+
+
 def _advertiser_diff(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """Per-field {field, before, after} for an advertiser change; before null on create."""
     changes = payload.get("changes") or {}

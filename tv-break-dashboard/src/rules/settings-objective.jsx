@@ -88,8 +88,8 @@ export function renderObjectivePanel({
               {(draft.objective_mode || 'blend') === 'revenue_net' && (
                 <p className="optimizer-objective-note" role="status">
                   {he
-                    ? 'שימו לב: מיקוד נטו משנה את התוכנית השמורה בעת חישוב מחדש, וההכנסות ברוטו בכותרת יירדו. זו בחירה מכוונת לטובת הנטו.'
-                    : 'Note: net focus changes the saved plan on recompute, and the gross revenue headline will fall. It is a deliberate choice in favor of the net.'}
+                    ? 'שימו לב: מיקוד נטו משנה את התוכנית השמורה בהרצה הבאה, וההכנסות ברוטו בכותרת יירדו. זו בחירה מכוונת לטובת הנטו.'
+                    : 'Note: net focus changes the saved plan on the next run, and the gross revenue headline will fall. It is a deliberate choice in favor of the net.'}
                 </p>
               )}
               <NetComparisonCard locale={locale} refreshSignal={recomputeState || ''} currentFocus={draft.objective_mode || 'blend'} />
@@ -97,8 +97,8 @@ export function renderObjectivePanel({
             <div className="optimizer-recompute">
               <p>
                 {he
-                  ? 'שמרו את ההגדרות, ואז חשבו מחדש את הלוח השבועי כדי שהמסכים יראו את ההחלטה החדשה.'
-                  : 'Save the settings, then recompute the weekly schedule so the screens reflect the new decision.'}
+                  ? 'שמרו את ההגדרות, ואז הריצו את הלוח השבועי כדי שהמסכים יראו את ההחלטה החדשה.'
+                  : 'Save the settings, then run the weekly plan so the screens reflect the new decision.'}
               </p>
               <Button
                 type="button"

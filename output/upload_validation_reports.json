@@ -1,0 +1,25 @@
+{
+  "dayparts": {
+    "dataset": "dayparts",
+    "filename": "Dayparts.csv",
+    "checked_at": "2026-08-02T01:31:05.863671+00:00",
+    "accepted": false,
+    "is_valid": false,
+    "rows_loaded": 0,
+    "findings": [
+      {
+        "column": "channels",
+        "code": "no_recognized_channel_columns",
+        "severity": "error",
+        "boundary": {
+          "names": [
+            "Channel_A",
+            "Channel_B"
+          ],
+          "withheld": 0
+        }
+      }
+    ],
+    "renders_at_read": true
+  }
+}

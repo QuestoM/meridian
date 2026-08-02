@@ -1,0 +1,26 @@
+[
+ {
+  "id": "mv-2026-07-29-35cc2e21",
+  "name": "2026-07-29",
+  "short": "35cc2e21",
+  "first_seen_at": "2026-08-01T14:31:48.870296+00:00",
+  "trained_at": {
+   "retention": "2026-07-29T00:12:13.100043+00:00",
+   "audience": "2026-07-29T06:41:29.045699+00:00"
+  },
+  "artifacts": {
+   "retention": {
+    "path": "models/tv_break_coefficients.json",
+    "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+    "computed_at": "2026-07-29T00:12:13.100043+00:00",
+    "bytes": 21014
+   },
+   "audience": {
+    "path": "models/audience_model.json",
+    "sha256": "862cf829bc0e898be3c616a15a6f4f82bd7322591ee1c5fd49b1a74eaddf7600",
+    "computed_at": "2026-07-29T06:41:29.045699+00:00",
+    "bytes": 121514
+   }
+  }
+ }
+]

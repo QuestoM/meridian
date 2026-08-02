@@ -16,8 +16,10 @@ import {
   formatPremium,
   premiumDelta,
   revenuePendingTooltip,
+  revenueProvenance,
   totalRules,
 } from './advertiser-stats-helpers';
+import { exactMoney } from './clients-money-helpers';
 import AdvertiserConditions from './AdvertiserConditions';
 import AdvertiserPricingSummary from './AdvertiserPricingSummary';
 import { normalizeOverlaps, overlapMessage, overlapTone } from './advertisers-helpers';
@@ -127,7 +129,7 @@ function BaselineEditor({ row, locale, onSave }) {
             <TextField
               type="number"
               size="small"
-              inputProps={{ min: 0, step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Default premium multiplier', 'מקדם תוספת ברירת מחדל') }}
+              slotProps={{ htmlInput: { min: 0, step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Default premium multiplier', 'מקדם תוספת ברירת מחדל') } }}
               value={draft.default_premium ?? 1}
               onChange={(event) => update('default_premium', event.target.value === '' ? '' : Number(event.target.value))}
             />
@@ -154,7 +156,7 @@ function BaselineEditor({ row, locale, onSave }) {
             size="small"
             checked={Boolean(draft.prime_time_only)}
             onChange={(event) => update('prime_time_only', event.target.checked)}
-            inputProps={{ 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') }}
+            slotProps={{ input: { 'aria-label': pageText(locale, 'Prime time only', 'פריים טיים בלבד') } }}
           />
         </div>
         <div className="amz-drawer-field">
@@ -170,7 +172,7 @@ function BaselineEditor({ row, locale, onSave }) {
             type="number"
             size="small"
             placeholder={pageText(locale, 'channel default (1.0)', 'ברירת מחדל של הערוץ (1.0)')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default 1.0)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ 1.0)') }}
+            slotProps={{ htmlInput: { min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Behind-pace pacing strength (blank uses channel default 1.0)', 'עוצמת השלמת קצב כשמאחור בלוז (ריק = ברירת מחדל של הערוץ 1.0)') } }}
             value={draft.urgency_k ?? ''}
             onChange={(event) => update('urgency_k', event.target.value)}
           />
@@ -189,7 +191,7 @@ function BaselineEditor({ row, locale, onSave }) {
             type="number"
             size="small"
             placeholder={pageText(locale, 'channel default (1.0)', 'ברירת מחדל של הערוץ (1.0)')}
-            inputProps={{ min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default 1.0)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ 1.0)') }}
+            slotProps={{ htmlInput: { min: 0, step: 0.1, dir: 'ltr', 'aria-label': pageText(locale, 'Over-delivery pacing restraint (blank uses channel default 1.0)', 'עוצמת ריסון בהקדמת לוז (ריק = ברירת מחדל של הערוץ 1.0)') } }}
             value={draft.ahead_k ?? ''}
             onChange={(event) => update('ahead_k', event.target.value)}
           />
@@ -202,7 +204,7 @@ function BaselineEditor({ row, locale, onSave }) {
             fullWidth
             value={draft.notes || ''}
             onChange={(event) => update('notes', event.target.value)}
-            inputProps={{ 'aria-label': pageText(locale, 'Notes', 'הערות') }}
+            slotProps={{ htmlInput: { 'aria-label': pageText(locale, 'Notes', 'הערות') } }}
           />
         </div>
       </div>
@@ -247,7 +249,7 @@ function AdvertiserDetailDrawer({
     setCondFocus(null);
   }, [row && row.advertiser_id, open]);
 
-  useAssistantEntity('advertiser', open && row ? row.advertiser_id : '', open && row ? row.display_name || row.advertiser_id : '');
+  useAssistantEntity('advertiser', open && row ? row.advertiser_id : '', open && row ? row.display_name || row.name || row.advertiser_id : '');
 
   if (!row) {
     return null;
@@ -259,6 +261,8 @@ function AdvertiserDetailDrawer({
   const baseline = row.baseline_premium ?? row.default_premium;
   const effective = row.avg_effective_premium;
   const anchor = locale === 'he' ? 'left' : 'right';
+  // The advertiser this row prices, which is what makes the row a named record.
+  const bound = String(row.name || '').trim();
 
   return (
     <Drawer
@@ -270,8 +274,15 @@ function AdvertiserDetailDrawer({
       <div className="amz-drawer">
         <header className="amz-drawer-head">
           <div className="amz-drawer-title">
-            <span className="amz-drawer-eyebrow">{pageText(locale, 'Management area', 'אזור ניהול')}</span>
-            <h2 dir="ltr">{row.advertiser_id}</h2>
+            <span className="amz-drawer-eyebrow">
+              {bound
+                ? pageText(locale, 'Pricing rule', 'כלל תמחור')
+                : pageText(locale, 'Pricing rule, bound to no advertiser', 'כלל תמחור שאינו קשור לאף מפרסם')}
+            </span>
+            {/* A Hebrew trade name inside dir=ltr reads with its punctuation
+                flipped, so the name is auto and only the raw id is ltr. */}
+            <h2 dir="auto">{bound || row.advertiser_id}</h2>
+            {bound ? <span className="amz-drawer-rawid" dir="ltr">{row.advertiser_id}</span> : null}
           </div>
           <button type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
             <X size={18} />
@@ -300,8 +311,8 @@ function AdvertiserDetailDrawer({
           />
           <StatTile
             label={pageText(locale, 'Revenue', 'הכנסה')}
-            value={null}
-            provenance={revenuePendingTooltip(locale)}
+            value={row.revenue === null || row.revenue === undefined ? null : exactMoney(row.revenue, locale)}
+            provenance={revenueProvenance(row, locale)}
           />
           <StatTile
             label={pageText(locale, 'Profitability', 'רווחיות')}

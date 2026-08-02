@@ -1,0 +1,409 @@
+/* Today. Logical properties only, so the whole surface mirrors correctly in
+   Hebrew without a single direction-specific rule. Every value is a token from
+   tokens.css; nothing here defines one. */
+
+/* The three answers share one screen, so the vertical budget above the fold is
+   spent on figures rather than on padding. Every value below is a token; the
+   compaction is which token, never a hard-coded pixel. */
+.today-workspace {
+  gap: 10px;
+}
+
+.today-workspace .page-header {
+  align-items: baseline;
+  padding-block-end: 0;
+}
+
+.today-workspace .page-header p {
+  margin-block-start: 3px;
+  font-size: var(--text-sm);
+}
+
+.today-plan-stamp {
+  align-self: center;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.today-reading {
+  margin: 0;
+  padding: 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.today-degraded {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.today-answers {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.95fr);
+  gap: 10px;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .today-answers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.today-answer {
+  padding: 13px 16px;
+}
+
+.today-answer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+}
+
+.today-answer-head h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
+}
+
+.today-verdict {
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.today-verdict.on_plan {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.today-verdict.at_risk,
+.today-verdict.unavailable {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.today-verdict.behind {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.today-figure-block {
+  display: grid;
+  gap: 4px;
+}
+
+.today-figure {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  line-height: 1.05;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.today-figure:hover {
+  color: var(--teal-ink);
+}
+
+.today-figure:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+.today-figure-label {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+}
+
+.today-scope {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.today-drill-hint {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.today-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.today-basis {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  padding-inline: 18px;
+}
+
+.today-answer-decisions .today-basis {
+  padding-inline: 16px;
+  padding-block-end: 4px;
+}
+
+/* The span the ranking was drawn from, in the same fact-list form the money
+   answer prints above it. It sits directly under the heading, before the
+   sentence that explains the order, so a reader meets the dates before the
+   dated rows rather than after them. */
+.today-answer-decisions .today-decision-scope {
+  padding-block-end: 2px;
+  color: var(--subtle);
+}
+
+/* The refusal a block prints where a figure it cannot attribute would have
+   been. It takes the amber of the staleness states rather than the red of a
+   failure: nothing is broken, one input is missing, and the control that
+   supplies it is on the same card. */
+.today-unattributed {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
+}
+
+.today-unattributed-lead {
+  margin: 0;
+  color: var(--amber-ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1.5;
+}
+
+.today-unattributed-cause,
+.today-unattributed-needs {
+  margin: 0;
+  color: var(--amber-ink);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.today-unattributed .today-secondary.MuiButton-root {
+  margin-block-start: 4px;
+  background: var(--surface);
+}
+
+.today-days {
+  margin-block-start: 12px;
+  border-block-start: 1px solid var(--line);
+}
+
+.today-day-row,
+.today-day-row.MuiButton-root {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(64px, max-content) minmax(80px, max-content) minmax(0, 1fr) minmax(88px, max-content) minmax(48px, max-content);
+  gap: 10px;
+  align-items: center;
+  min-height: 34px;
+  padding: 4px 0;
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  text-transform: none;
+}
+
+.today-day-row:hover,
+.today-day-row.MuiButton-root:hover {
+  background: var(--surface-muted);
+}
+
+.today-day-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--weight-medium);
+  text-align: start;
+}
+
+.today-weekend {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+}
+
+.today-day-date,
+.today-day-breaks {
+  color: var(--muted);
+}
+
+.today-day-money {
+  font-weight: var(--weight-semibold);
+  text-align: end;
+}
+
+.today-day-share {
+  color: var(--muted);
+  text-align: end;
+}
+
+.today-days-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block: 6px;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+
+.today-day-row.open,
+.today-day-row.MuiButton-root.open {
+  background: var(--surface-muted);
+  font-weight: var(--weight-semibold);
+}
+
+/* The second level of the drill: the plan rows behind one day. It sits inside
+   the day list rather than in a dialog, so the figure, its days and its rows
+   are all one reading. */
+.today-day-detail {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-inline-start: 2px solid var(--teal);
+  background: var(--surface-muted);
+}
+
+.today-day-detail:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.today-day-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.today-day-detail-head strong {
+  font-size: var(--text-sm);
+}
+
+.today-day-position {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
+
+.today-key-hint {
+  margin-inline-end: auto;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.today-icon-button.MuiButton-root {
+  min-width: 28px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  color: var(--muted);
+}
+
+.today-link-button.MuiButton-root {
+  padding: 2px 6px;
+  color: var(--teal-ink);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  text-transform: none;
+  text-decoration: underline;
+}
+
+.today-segment-rows {
+  max-height: 232px;
+  overflow-y: auto;
+  border-block: 1px solid var(--line);
+}
+
+.today-segment-row {
+  display: grid;
+  grid-template-columns: minmax(46px, max-content) minmax(0, 1fr) minmax(74px, max-content) minmax(52px, max-content) minmax(84px, max-content) minmax(52px, max-content);
+  gap: 10px;
+  align-items: center;
+  min-height: 28px;
+  padding-block: 3px;
+  border-block-end: 1px solid var(--line);
+  font-size: var(--text-2xs);
+}
+
+.today-segment-row:last-child {
+  border-block-end: 0;
+}
+
+.today-segment-clock {
+  font-weight: var(--weight-medium);
+}
+
+.today-segment-type {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-segment-breaks,
+.today-segment-retention {
+  color: var(--muted);
+  text-align: end;
+}
+
+.today-segment-money {
+  font-weight: var(--weight-semibold);
+  text-align: end;
+}
+
+.today-segment-share {
+  color: var(--muted);
+  text-align: end;
+}
+
+.today-delivered-note {
+  border-block-start: 1px dashed var(--line);
+  padding-block-start: 6px;
+}

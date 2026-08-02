@@ -333,6 +333,18 @@ app.include_router(model_impact_router)
 from kairos_api.pacing_alerts_api import router as pacing_alerts_router  # noqa: E402
 app.include_router(pacing_alerts_router)
 
+from kairos_api.model_console_api import router as model_console_router  # noqa: E402
+app.include_router(model_console_router)
+
+from kairos_api.history_api import timeline_router as history_timeline_router  # noqa: E402
+app.include_router(history_timeline_router)
+
+from kairos_api.campaigns_api import router as clients_campaigns_router  # noqa: E402
+app.include_router(clients_campaigns_router)
+
+from kairos_api.break_api import router as plan_day_router  # noqa: E402
+app.include_router(plan_day_router)
+
 
 def _warm_owned_frontier() -> None:
     """Warm the balance-curve sweep for the operator's channel, when one is

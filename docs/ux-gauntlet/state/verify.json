@@ -1,0 +1,132 @@
+{
+  "task": "verify",
+  "role": "VERIFIER for the campaigns wave",
+  "status": "complete",
+  "completed_at": "2026-08-02",
+  "verdict": "NOT FIT TO PUBLISH",
+  "one_line": "The backend campaign entity is the most honest thing in this repository and the frontend renders none of it, so 51 seeded demo campaigns reach the operator under the words 51 campaigns were booked with no demo marking anywhere on screen.",
+  "own_stack": {
+    "why": "The live :8000 holds pre-change code and I was forbidden to restart it, so I stood up my own stack. I never touched 8000, 3000 or 8010.",
+    "api": "127.0.0.1:8077, uvicorn kairos_api.server:app, KAIROS_AUTH_DIR pointed at an empty scratch dir so there is no login wall",
+    "ui": "127.0.0.1:3077, vite dev from src, KAIROS_API_PROXY=http://127.0.0.1:8077",
+    "still_running": true
+  },
+  "suite": {
+    "command": "~/.venvs/meridian/bin/python -m pytest tests/ -q",
+    "result": "13 failed, 2728 passed, 7 skipped in 973.18s (16m13s)",
+    "attributable_to_this_wave": 6,
+    "wave_failures": [
+      "tests/test_p4_campaign_board_wiring.py::test_no_source_file_on_this_destination_is_over_the_cap  clients-workspace.css is 477 lines",
+      "tests/test_w0_2_shell_seams.py::test_no_file_this_piece_created_is_over_the_line_cap  same file, second guard",
+      "tests/test_w0_2_shell_seams.py::test_all_seventeen_navigation_entries_survive_the_split  15 != 17",
+      "tests/test_p8_history_frontend.py::test_the_filters_live_in_the_content_not_in_the_navigation  15 != 17",
+      "tests/test_p7_model_surface.py::test_the_frozen_shell_still_resolves_that_address_to_a_page  viewFromLocation no longer uses navItems.some",
+      "tests/test_p1_job_picker.py::test_every_named_destination_is_a_surface_the_product_actually_has  rules.rate_card points at 'Pricing', not a navigation entry"
+    ],
+    "not_this_wave": [
+      "test_journey_inspector_pricing, test_qa2_preview_commit_identity, test_qa_adoption_integrity (x2), test_refiner_net, test_decision_robustness, test_qa2_uploads",
+      "Cause: uncommitted working-tree drift in data/kairos_settings.json (revenue_weight 60 to 35, min_retention_floor 0.72 to 0.78), a new gold row in data/manual_overrides.csv and a regenerated output/weekly_break_schedule.csv (152 lines changed). The golden and regression suite is red on the working tree before any commit."
+    ],
+    "campaign_scope": "tests/test_campaign_entity.py + test_campaign_seed.py + test_p4_campaigns_api.py + test_p4_client_tree.py + test_p4_campaign_board_wiring.py: 76 passed, 1 failed (the css cap)",
+    "build": "npm run build clean, 0 errors, chunk-size warning only"
+  },
+  "what_is_genuinely_good": [
+    "Every one of the 51 seeded campaigns carries is_demo true, a demo_note naming the seed rule, and a bilingual demo block with label, meaning and how to replace it. All 79 asset rows and all 368 delivery rows carry is_demo true too.",
+    "Reconciliation reproduced independently: seeded delivery spend 699450.00 ILS equals the priced ledger gross 699450.00 ILS to the cent, and 175 seeded spots equals the 175 rows in data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv. aired 648438.00 plus scheduled 51012.00 equals 699450.00 exactly.",
+    "Tri-state is real in the payload: 306 of 368 delivery rows are air_state unknown with blank figure cells and a note that a day with no per-spot source is not zero. budget_progress is floor on 48 campaigns and unknown on 3.",
+    "campaigns_delivery._progress guards the confident-zero defect: no source returns None with a reason rather than 0 percent.",
+    "The channel boundary holds in the new entity. All 51 campaigns, 79 assets and 368 delivery rows carry רשת 13 read from settings. A POST naming a rival is stored as the operator channel, proven by tests/test_campaign_entity.py::test_the_channel_is_stamped_from_settings_and_never_from_the_request. No rival channel string is compiled into the shipped bundle.",
+    "Nav dedup verified live in a browser. Calendar and Pricing are gone from the rail. #Calendar rewrites to ?rules=calendar#Settings and lands with the לוח האירועים tab active. #Pricing rewrites to ?rules=rate_card#Settings and lands with כרטיס התעריפים active. Neither 404s.",
+    "The unnamed failure is gone. Forcing only /api/clients/money to reject produced: הקטעים הבאים לא נטענו: כסף. מה שחסר הוא כשל, לא תוצאה ריקה. plus a working retry button. The positional mapping to VIEW_LABELS is correct.",
+    "The client tree declares its own basis honestly: רשת 13, 2025-04-27, 119 תשדירים מתומחרים מתוך 175 בקובץ Wally_Prime_Reshet_Example_2025-04-27.csv. The client record separates קמפיינים שהוזמנו from קמפיינים שנצפו בשידור in words.",
+    "The new routes answer: /api/clients/campaigns/CMP_D001/detail 200, /assets 200, an unknown id 404."
+  ],
+  "defects": [
+    {
+      "id": "V1",
+      "severity": "wave-level failure",
+      "title": "51 demo campaigns render with no demo marking, under a header that claims they were booked",
+      "measured": "grep for is_demo or isDemo across tv-break-dashboard/src returns 0 files. The only הדגמה string in the shipped bundle is the unrelated history label synthetic: ['Demo seed','נתוני הדגמה']. Live: demo_he false, demo_en false. The board header reads ⁦51⁩ קמפיינים הוזמנו and every row's what-to-do reads דבר. הקמפיין מוזמן ועומד עד שתסיימו אותו. The same unmarked count propagates to the client tree header (⁦9⁩ סוכנויות, ⁦41⁩ לקוחות, ⁦51⁩ קמפיינים) and to each client record (קמפיינים שהוזמנו 4 for טבע).",
+      "where": "tv-break-dashboard/src/clients/CampaignBoard.jsx, CampaignDetail.jsx, ClientTree.jsx, ClientRecord.jsx",
+      "fix": "Render campaign.demo. The payload already carries label_he הדגמה, meaning_he and replace_he, plus board.demo_count and board.booked_count for the header."
+    },
+    {
+      "id": "V2",
+      "severity": "wave-level failure",
+      "title": "A seeded goal is shown as booked while the real computed delivery is hardcoded unknown",
+      "measured": "CMP_D001 expanded shows הוזמן 65 GRP, סופק לא ידוע. טבע's record shows 70, 40, 40 and 95 GRP all as הוזמן with סופק: לא ידוע. The payload holds the real delivery for CMP_D001: 2 spots aired, 8.7 rating points, 6600.00 ILS, rating_progress 13.38 percent floor, budget_progress 14.29 percent floor, with bilingual basis and floor reasons. The unknown cell is a constant.",
+      "where": "tv-break-dashboard/src/clients/CampaignFlights.jsx:166"
+    },
+    {
+      "id": "V3",
+      "severity": "competitor boundary breach",
+      "title": "The campaign rollup on the Campaigns screen aggregates rival-channel spots into operator figures",
+      "measured": "GET /api/campaigns groups all 50386 rows of the spots source with no channel filter. Channels present: קשת 12 23707, רשת 13 18669, כאן 11 4039, עכשיו 14 3971. Behind the 50 displayed rows sit 19495 spots of which 8795 (45.1 percent) are the operator's and 10700 (54.9 percent) are rival. 32 of the 50 rows span 2, 3 or 4 channels and the ערוצים column prints that count on screen.",
+      "where": "kairos_api/campaigns_read.py:45-84 _build_campaigns, rendered by tv-break-dashboard/src/clients/CampaignRollupPanel.jsx:63",
+      "note": "Pre-existing, moved verbatim in the wave-zero router split, but live on the destination this wave shipped and it is a rival figure on an operator surface."
+    },
+    {
+      "id": "V4",
+      "severity": "blocking",
+      "title": "Booked on 2026-08-02 is the seed run timestamp presented as a booking date",
+      "measured": "CampaignDetail renders נרשם ב 2026-08-02 for CMP_D001 with no demo qualifier. That is created_at, written when the seed ran today.",
+      "where": "tv-break-dashboard/src/clients/CampaignDetail.jsx:113-119"
+    },
+    {
+      "id": "V5",
+      "severity": "blocking",
+      "title": "The whole commitment and creative layer is unreachable from the UI",
+      "measured": "The board payload carries commitment (budget_ils 46200.0, rating_goal_points 65.0, audience, measurability, price_model), assets, assets_summary, delivery, demo_count and booked_count. On screen: has_budget_word false, has_rating_goal false, has_assets false. The two new routes /detail and /assets answer 200 but grep across tv-break-dashboard/src finds zero callers for either."
+    },
+    {
+      "id": "V6",
+      "severity": "blocking",
+      "title": "Three mutually contradictory campaign counts on one screen",
+      "measured": "Top of the Campaigns page: 51 קמפיינים הוזמנו. Middle: קמפיינים שנצפו בנתוני המקור, 50 קמפיינים, a different source and a different year (last airings 2024-11). Bottom: אין נתוני קמפיינים עדיין followed by an untranslated English string on a Hebrew-default surface, campaign_flights.csv has no campaign rows yet (header-only seed). This is the unreconciled data/campaigns.csv versus data/campaign_flights.csv split the builder flagged, now visible in one viewport."
+    },
+    {
+      "id": "V7",
+      "severity": "blocking, two of its own tests fail",
+      "title": "clients-workspace.css is 477 lines, over the 450 cap",
+      "measured": "AssertionError: clients-workspace.css is 477 lines. Caught by both test_p4_campaign_board_wiring.py and test_w0_2_shell_seams.py."
+    },
+    {
+      "id": "V8",
+      "severity": "blocking",
+      "title": "The nav dedup broke four frozen shell contracts and left a stale job door",
+      "measured": "15 != 17 in two tests. viewFromLocation no longer contains navItems.some(([label]) => label === hash), breaking test_p7_model_surface. DOOR_VIEWS['rules.rate_card'] is still 'Pricing' in tv-break-dashboard/src/today/JobPicker.jsx:22, so the yield_owner job's landing door names a rail entry that no longer exists. It still lands (the router redirects) but JobPicker.jsx:89 renders copy.nav['Pricing'], and shell/copy.js:122 still holds Pricing: 'תמחור' and :117 Calendar: 'לוח אירועים', so the operator is promised תמחור and arrives at כרטיס התעריפים inside הגדרות. The builder reported build is clean and blocked none, and did not run the suite."
+    },
+    {
+      "id": "V9",
+      "severity": "minor",
+      "title": "Two empty paragraphs where the delivery basis note used to be",
+      "measured": "board.delivery.reason_en and path_forward_en are now empty strings when a source exists, and CampaignBoard.jsx:118-119 renders them unconditionally. Live DOM: .clients-basis-note and .clients-basis-path both with textContent ''. The payload has floor_note_he, rating_basis_he and spend_basis_he that belong there instead."
+    },
+    {
+      "id": "V10",
+      "severity": "minor",
+      "title": "Rail capability reachable three times",
+      "measured": "קמפיינים, מפרסמים and סוכנויות all mount ClientsWorkspace with the same five-tab strip, differing only in the default tab. Verified live: #Advertisers lands on ?clients=advertisers with כללי תמחור active and the קמפיינים tab one click away. Same class of defect the wave just fixed for Calendar and Pricing. Also the rail word and the destination word disagree: מפרסמים opens כללי תמחור, סוכנויות opens כרטיסי סוכנות."
+    },
+    {
+      "id": "V11",
+      "severity": "minor",
+      "title": "Hebrew imperative number disagrees with sibling copy",
+      "measured": "The retry button reads נסה שוב, singular, while every sibling reads plural: הזמינו, הגדירו, קלטו, העלו. Should be נסו שוב."
+    },
+    {
+      "id": "V12",
+      "severity": "note, not a violation",
+      "title": "A rival broadcaster token appears in one asset row, verbatim from the operator's own traffic log",
+      "measured": "data/campaign_assets.csv line 39, version_name חסות מחליפה קשת רשת, house number HRP005600. The identical string is on lines 32 and 108 of data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv. It is real operator data and a creative version name, not a rival figure, but it will print once an assets panel exists."
+    }
+  ],
+  "the_shortest_path_to_publishable": [
+    "Render campaign.demo on the board row, the detail and the client record. The payload is already complete and bilingual, so this is display work only.",
+    "Change the board header from N campaigns booked to the demo and booked split using board.demo_count and board.booked_count.",
+    "Replace the hardcoded unknown at CampaignFlights.jsx:166 with campaign.delivery, carrying its floor state and basis sentence.",
+    "Scope kairos_api/campaigns_read.py::_build_campaigns to the operator channel, or drop the panel from this destination.",
+    "Split clients-workspace.css below 450, and update the four frozen shell contracts plus DOOR_VIEWS and shell/copy.js for the removed routes.",
+    "Decide the data/campaigns.csv versus data/campaign_flights.csv reconciliation, or the make-good panel keeps saying no campaign data while 51 sit above it."
+  ]
+}

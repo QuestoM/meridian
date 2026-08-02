@@ -1,0 +1,65 @@
+{
+ "version_id": "88244f66a09b",
+ "seq": 4,
+ "name": "Week of 1 November, critic P2 round 2",
+ "note": "Frozen during the blind critic stopwatch",
+ "created_at": "2026-08-01T15:48:41.319414+00:00",
+ "actor": "operator",
+ "source": "publish",
+ "plan_sha256": "d6f172f16dfee09ec10a950096f85d2b523925ae947ff3ee1ae7b9fde85d2bf6",
+ "plan_bytes": 1220276,
+ "computed_at": "2026-08-01T15:46:18.285354+00:00",
+ "input_fingerprints": {
+  "advertiser": "e555831b4e8aeedd3bd229fb451f1755ff0826f7dd649ce3c7ac32d2e7a16262",
+  "campaigns": "bc3ead0db32e5f46eadbcdee5346c1379269d3899e13a1063c34028380f38686",
+  "classifications": "absent",
+  "coefficients": "2026-07-29T00:12:13.100043+00:00",
+  "constraints": "14499222d736f911114e97d71276cbc68f047673ec31ae9bae799ec269f71bf0",
+  "data": "822c779e614c17c6c0485db4abb191c64b91372c43baf67488287397c90291b8",
+  "impact_model": "d6d77bb42b79fe3a527ea81ac1ed40f2482ae38c15029ef2b689fe9e0cde6434",
+  "inventory": "415b081bb3e8b5051b50788f59342568a55c35ebfca61bc18cb6d38b45c1ba0e",
+  "overrides": "b5286591424e88281e4c10db522fd91ba1984bfee6fc10600f2f789e3667fa05",
+  "settings": "06cfbdb01f7ea62d2b8d7f9a305ed73d089d58053d6059598500c57627728082"
+ },
+ "settings_basis": {
+  "revenue_weight": 35,
+  "min_retention_floor": 0.78,
+  "max_breaks_per_hour": 4,
+  "risk_lambda": 0.0,
+  "objective_mode": "blend",
+  "operator_channel": "רשת 13"
+ },
+ "summary": {
+  "owned": {
+   "rows": 2540,
+   "breaks": 2391,
+   "ad_seconds": 286920,
+   "revenue": 40900927.61,
+   "channels": 1,
+   "days": 30,
+   "date_from": "2024-11-01",
+   "date_to": "2024-11-30"
+  },
+  "all_channels": {
+   "rows": 8704,
+   "breaks": 9026,
+   "ad_seconds": 1083120,
+   "revenue": 221701567.09,
+   "channels": 4,
+   "days": 30,
+   "date_from": "2024-11-01",
+   "date_to": "2024-11-30"
+  },
+  "scope": {
+   "scope_channel": "רשת 13",
+   "scoped": true,
+   "rows_in": 8704,
+   "rows_out": 2540,
+   "channels_in": 4,
+   "competitor_rows_excluded": 6164,
+   "competitor_channels_excluded": 3,
+   "reason": null
+  }
+ },
+ "previous_version_id": "efcb17dede02"
+}

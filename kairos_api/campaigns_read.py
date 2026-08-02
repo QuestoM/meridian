@@ -1,8 +1,22 @@
-"""Clients: the historical campaign rollup, read from the spots source.
+"""Clients: the reads behind the client tree, the money board and the rollup.
 
-Moved verbatim from catalog_api.py as part of the wave-zero router split. It is a
-read of what aired, not a campaign entity: revenue is reported only when the
-loaded spots source actually carries it, and the payload says so with
+Three reads live here, and they answer three different questions.
+
+``GET /api/clients`` is the containment an account manager works in: agency,
+then the clients under it, then what each has booked, assembled by
+:mod:`kairos_api.campaigns_read_clients`.
+
+``GET /api/clients/money`` is the analyst's question: what each client delivered,
+gross and net of the agency rebate, with the campaigns and then the individual
+spots behind every figure, assembled by :mod:`kairos_api.campaigns_read_money`.
+Both of those read the same priced ledger, so an agency total on one is the sum
+of the client totals on the other.
+
+``GET /api/campaigns`` is the third and it is older than both. It is the
+historical rollup of what aired, moved verbatim from catalog_api.py in the
+wave-zero router split, and it stays because it answers a question the other two
+do not: which campaign strings the loaded spots source carries at all. Revenue is
+reported only when that source actually has it, and the payload says so with
 ``revenue_available`` rather than ranking on a fabricated zero.
 """
 
@@ -13,7 +27,7 @@ from functools import lru_cache
 from typing import Any
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from kairos_api.core import (
     DATA_DIR,
@@ -83,3 +97,29 @@ def campaigns() -> dict[str, Any]:
         DATA_DIR / "reference" / "Spots.xlsx",
         DATA_DIR / "Spots.csv",
     ]))
+
+
+@router.get("/api/clients", tags=["clients"])
+def clients(request: Request = None) -> dict[str, Any]:
+    """Every agency with its clients, their campaigns and their delivered money."""
+    from kairos_api.campaigns_api import CLIENTS_WALL
+    from kairos_api.campaigns_read_clients import client_tree
+
+    return CLIENTS_WALL.stamp(dict(client_tree()), request)
+
+
+@router.get("/api/clients/money", tags=["clients"])
+def clients_money(request: Request = None) -> dict[str, Any]:
+    """The priced day, grouped by client, campaign, agency, break and spot."""
+    from kairos_api.campaigns_api import CLIENTS_WALL
+    from kairos_api.campaigns_read_money import board
+
+    return CLIENTS_WALL.stamp(dict(board()), request)
+
+
+@router.get("/api/clients/money/advertiser/{advertiser:path}", tags=["clients"])
+def client_money(advertiser: str) -> dict[str, Any]:
+    """One client's figure and every row behind it, for a direct link to it."""
+    from kairos_api.campaigns_read_money import money_for_advertiser
+
+    return money_for_advertiser(advertiser)

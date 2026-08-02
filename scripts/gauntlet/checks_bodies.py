@@ -31,21 +31,45 @@ from materialise import isolated_env
 TIME_LIKE = ("_at", "timestamp", "elapsed", "duration", "_ms", "generated", "computed",
              "fingerprint", "uptime", "now", "modified", "mtime")
 
-# Routes with no upper bound when called without arguments. The alarm below cannot
-# stop them: SIGALRM is only delivered between bytecodes, and these spend their time
-# inside numpy, so the interpreter never gets a chance to raise. Measured in
-# 06-baseline.md: the preview runs the day optimizer twice, 16.55s scoped, 55.60s
-# unscoped, and unparameterised it ran past thirty minutes before being killed.
-# Excluded by name and reported as unproven, which is honest; pretending the check
-# covered them would not be.
-UNBOUNDED = ("/api/constraints/effect", "/api/overrides/effect")
+# Routes that need arguments before they will terminate, with exactly what is asked
+# of each one and why, so a reader can see the question rather than guess at it.
+#
+# Both preview routes run the day optimizer twice over whatever segments the query
+# selects. Unscoped that is every channel and every day, which 06-baseline.md
+# measured at 55.60s scoped to no channel and running past thirty minutes with no
+# arguments at all. Scoped to one channel-day it is bounded work, measured there at
+# 16.55s. The per-route alarm cannot rescue the unscoped call, because SIGALRM is
+# delivered between bytecodes and these spend their time inside numpy, so bounding
+# the question is the only honest way to ask it.
+#
+# The two values are not arbitrary. The channel is the operator's own, read from
+# data/kairos_settings.json where operator_channel is רשת 13, and the day is inside
+# the saved plan's window: Programmes.csv carries 30 days for that channel across
+# November 2024, and 2024-11-23 is one of them, the same day 06-baseline.md timed.
+# Both are inputs rather than outputs, so they are stable across trees.
+ROUTE_ARGS = {
+    "/api/constraints/effect": {
+        "params": {"channel": "רשת 13", "day": "2024-11-23"},
+        "why": "unbounded without a scope; one channel-day is the bounded form of the same question",
+    },
+    "/api/overrides/effect": {
+        "params": {"channel": "רשת 13", "day": "2024-11-23"},
+        "why": "unbounded without a scope; one channel-day is the bounded form of the same question",
+    },
+}
+
+# Routes that genuinely cannot be compared, with the reason. Empty today: the two
+# that used to sit here were given bounded arguments above rather than excluded.
+# Anything added here is a hole in the proof and reads as unproven, never as passing.
+UNCOMPARABLE: dict[str, str] = {}
 
 PROBE = r"""
 import hashlib, json, signal, sys
 sys.path.insert(0, sys.argv[1])
 DEADLINE = float(sys.argv[2])
 OUT_PATH = sys.argv[3]
-UNBOUNDED = set(sys.argv[4].split(",")) if len(sys.argv) > 4 and sys.argv[4] else set()
+ROUTE_ARGS = json.loads(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else {}
+UNCOMPARABLE = json.loads(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] else {}
 from fastapi.testclient import TestClient
 from kairos_api.server import app
 
@@ -85,19 +109,22 @@ def flush():
         json.dump(out, fh, default=str)
 
 for path in sorted(targets):
-    if path in UNBOUNDED:
+    if path in UNCOMPARABLE:
         out[path] = {"status": None, "timed_out": True,
-                     "error": "excluded: no upper bound without arguments"}
+                     "error": "not comparable: " + UNCOMPARABLE[path]}
         flush()
         continue
+    spec = ROUTE_ARGS.get(path) or {}
+    params = spec.get("params") or None
     signal.setitimer(signal.ITIMER_REAL, DEADLINE)
     try:
-        resp = client.get(path)
+        resp = client.get(path, params=params) if params else client.get(path)
         body = resp.content
         out[path] = {
             "status": resp.status_code,
             "sha256": hashlib.sha256(body).hexdigest(),
             "bytes": len(body),
+            "params": params,
             "json": resp.json() if resp.headers.get("content-type", "").startswith("application/json") else None,
         }
     except _Deadline:
@@ -117,7 +144,8 @@ def _dump(python: str, tree: Path, scratch: Path, timeout: int, deadline: float)
     probe = scratch / "probe_bodies.py"
     probe.write_text(PROBE, encoding="utf-8")
     partial = scratch / "partial.json"
-    args = [python, str(probe), str(tree), str(deadline), str(partial), ",".join(UNBOUNDED)]
+    args = [python, str(probe), str(tree), str(deadline), str(partial),
+            json.dumps(ROUTE_ARGS, ensure_ascii=False), json.dumps(UNCOMPARABLE, ensure_ascii=False)]
     try:
         proc = subprocess.run(args, cwd=str(tree), env=isolated_env(scratch),
                               capture_output=True, text=True, timeout=timeout)
@@ -168,7 +196,7 @@ def _looks_time_like(key_path: str) -> bool:
 
 def check_response_bodies(python: str, ref: Path, work: Path, scratch: Path, timeout: int,
                           deadline: float = 30.0) -> Result:
-    r = Result("bodies", "Response bodies of every argument-free GET")
+    r = Result("bodies", "Response bodies of every GET the harness can ask")
     started = time.time()
 
     ref_out, err = _dump(python, ref, scratch / "bodies-ref", timeout, deadline)
@@ -210,8 +238,16 @@ def check_response_bodies(python: str, ref: Path, work: Path, scratch: Path, tim
     measurements = {"compared": len(shared), "identical": len(identical),
                     "time_like_only": len(time_only), "differing": len(real),
                     "unproven": len(untimed)}
-    r.note("%d of %d argument-free GET routes returned byte-identical bodies"
-           % (len(identical), len(shared)))
+    r.note("%d of %d GET routes returned byte-identical bodies" % (len(identical), len(shared)))
+    for path, spec in sorted(ROUTE_ARGS.items()):
+        state = ("identical" if path in identical else
+                 "differs" if path in real else
+                 "time-like only" if path in time_only else
+                 "unproven" if path in untimed else "not reached")
+        r.note("asked with arguments: %s %s, because %s; result: %s"
+               % (path, spec["params"], spec["why"], state))
+    for path, why in sorted(UNCOMPARABLE.items()):
+        r.note("declared not comparable: %s, because %s" % (path, why))
 
     if real:
         return r.failed("%d route(s) return different bodies" % len(real), **measurements)

@@ -195,9 +195,22 @@ def _read_get_frontier(args: dict[str, Any], user: str | None = None) -> dict[st
 
 
 def _read_get_audience_stability(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
+    """The coefficient level-drift monitor, read through the model surface.
+
+    ``impact`` is that surface's own route function and it now takes the HTTP
+    request whose account its wall reads. A tool call has no HTTP request, so
+    identity goes in as unknown, which that wall's own contract documents as
+    permitted, and the per-account decision is taken once at this module's
+    chokepoint instead (``assistant_model_disclosure``), which is where Kai's
+    acting account is actually known. The arity is inspected rather than
+    assumed so the call reads the same before and after that parameter existed.
+    """
+    import inspect
+
     from kairos_api.catalog_api import impact
 
-    drift = impact().get("drift")
+    payload = impact(None) if inspect.signature(impact).parameters else impact()
+    drift = payload.get("drift")
     if not isinstance(drift, dict) or not drift:
         return {
             "status": "unavailable",
@@ -392,7 +405,13 @@ def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) 
     Failures come back as {"error": ...}, never raised. Every result dict carries
     a non-empty "source" so the model can name where each figure came from. ``user``
     is passed to every executor; only the per-user upload tools consult it.
+
+    This is also the single chokepoint for the model-disclosure wall: the three
+    tools that carry training content are walled here, once, so a channel
+    account cannot reach a gate verdict through any caller of this function.
     """
+    from kairos_api.assistant_model_disclosure import wall_read_tool
+
     executor = _READ_EXECUTORS.get(name)
     if executor is None:
         return {"error": f"unknown read tool {name!r}", "source": "unknown tool"}
@@ -403,6 +422,7 @@ def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) 
     except Exception as exc:  # noqa: BLE001 - surfaced honestly, without internals
         logger.exception("assistant read tool %s failed", name)
         result = {"error": f"{name} failed ({type(exc).__name__}); details are in the server log"}
+    result = wall_read_tool(name, result, user)
     if isinstance(result, dict):
         result.setdefault("source", SOURCE_BY_TOOL.get(name, name))
     return result

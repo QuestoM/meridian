@@ -12,6 +12,8 @@ import {
   pageText,
   programTypeLabel,
 } from '../shell/surface-helpers';
+import ChannelRefusal from './ChannelRefusal';
+import { scopeState, unattributed } from './today-scope';
 
 // YieldView: revenue and yield-per-second by daypart and programme, sourced from
 // GET /api/yield-per-second. Surfaces where each ad-second earns the most and
@@ -47,7 +49,7 @@ function YieldBars({ rows, locale, labelKey, labelFor }) {
   );
 }
 
-export default function YieldView({ locale, refreshKey = 0 }) {
+export default function YieldView({ locale, refreshKey = 0, onOpenSettings = null }) {
   const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
@@ -73,6 +75,11 @@ export default function YieldView({ locale, refreshKey = 0 }) {
 
   const { status, payload } = state;
   const available = status === 'ready' && payload && payload.available !== false;
+  // The rate, the ad seconds and both breakdowns are the whole market's until a
+  // channel is declared, and the payload says so. A per-daypart league table of
+  // four broadcasters' revenue is the same breach as the total it sums to, so
+  // the panel refuses as one.
+  const withheld = unattributed(scopeState(payload, available));
   const totals = payload?.totals || {};
   const byDaypart = normalizeRows(payload?.by_daypart);
   const byProgramme = normalizeRows(payload?.by_programme);
@@ -111,6 +118,16 @@ export default function YieldView({ locale, refreshKey = 0 }) {
             ? pageText(locale, 'Yield data is unavailable right now.', 'נתוני התשואה אינם זמינים כרגע.')
             : pageText(locale, 'No yield data is available yet.', 'אין נתוני תשואה זמינים עדיין.')}
         </div>
+      ) : withheld ? (
+        <ChannelRefusal
+          locale={locale}
+          lead={pageText(
+            locale,
+            'Yield per second cannot be reported as yours yet.',
+            'אי אפשר עדיין לדווח על התשואה לשנייה כשלכם.',
+          )}
+          onOpenSettings={onOpenSettings}
+        />
       ) : (
         <>
           <p className="yield-net-pointer" dir={he ? 'rtl' : 'ltr'}>

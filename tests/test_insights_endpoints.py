@@ -124,8 +124,34 @@ def test_scenario_compare_runs_two_real_optimizations() -> None:
     # Revenue-first (100) places at least as many breaks as retention-first (0).
     assert body["b"]["total_breaks"] >= body["a"]["total_breaks"]
     assert set(body["delta"]) >= {"revenue", "retention", "breaks", "revenue_net"}
-    # revenue_net is honestly null (objective is a convex blend, reported separately).
-    assert body["delta"]["revenue_net"] is None
+    # revenue_net used to be pinned to null because run_scenario's summary carries
+    # no such field and relabelling the convex-blend objective as a net would have
+    # been a lie. The subtraction is now genuinely computed, by the frozen read
+    # layer's own pricer on the per-break basis the committed plan's money uses, so
+    # what this pins is the arithmetic rather than the absence: either both legs
+    # priced and every money figure reconciles on one basis, or the pricer refused
+    # and every money figure is null with the reason named. Nothing is proxied.
+    assert "not revenue minus retention cost" in body["objective_note"]
+    if not body["money_available"]:
+        assert body["delta"]["revenue_net"] is None
+        assert body["money_reason"]
+        return
+    assert body["money_basis"]
+    for leg in (body["a"], body["b"]):
+        assert leg["money_available"] is True
+        assert leg["gross"] - leg["retention_cost"] == pytest.approx(leg["revenue_net"], abs=0.01)
+        # The blended score keeps its own name and never stands in for the net.
+        assert leg["objective"] != leg["revenue_net"]
+    assert body["delta"]["revenue_net"] == pytest.approx(
+        body["b"]["revenue_net"] - body["a"]["revenue_net"], abs=0.01
+    )
+    # A week total is its own days added up, so the rows a reader can check add
+    # to the figure the panel prints.
+    if body["scope"]["mode"] == "week":
+        for leg in ("a", "b"):
+            assert sum(row[leg]["revenue_net"] for row in body["by_day"]) == pytest.approx(
+                body[leg]["revenue_net"], abs=0.05
+            )
 
 
 def test_scenario_compare_validates_weight_bounds() -> None:

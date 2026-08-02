@@ -1,0 +1,27 @@
+{
+  "task": "CURRENT-STATE-CAMPAIGNS-CLIENTS",
+  "status": "complete",
+  "completed_at": "2026-08-02",
+  "goal": "Survey what exists today for campaigns and clients so builders extend rather than duplicate",
+  "deliverable": "docs/campaign-current-state.md",
+  "work_done": [
+    "Read ClientsWorkspace.jsx lines 120-142: all four Promise.allSettled slots identified",
+    "Read clients-api.js: confirmed all four call /api/clients, /api/clients/money, /api/clients/campaigns, /api/advertisers",
+    "Probed live server at :8000 for all four endpoints: all return 401 when no session cookie is present",
+    "Confirmed auth middleware in auth.py line 88-112 returns 401 for every /api/ path except /api/auth/login and /api/health when auth is active",
+    "Read advertiser_rules.csv: 45 rows, all with ADV_01..ADV_45 ids, name and display_name columns are empty for all rows",
+    "Read advertiser_names.csv: 41 Hebrew advertiser names, all source=observed",
+    "Confirmed the Advertisers surface reads /api/advertisers (the rules store), not /api/advertisers/identity (the names+rules join)",
+    "Confirmed _name_source() checks agency_advertisers.csv for observed names, not advertiser_names.csv directly",
+    "Read CampaignRollupPanel.jsx: the 'campaigns seen in source data' table calls GET /api/campaigns which is the legacy rollup",
+    "Read campaigns_read.py: _build_campaigns() reads from Spots.csv/xlsx and groups by Campaign column in that file",
+    "Read campaigns.csv: header-only file, zero data rows",
+    "Read campaigns_api_store.py: COLUMNS declared, store well-formed, zero rows currently"
+  ],
+  "findings": {
+    "failed_endpoint": "All four fail identically with 401 when the browser has no session cookie. The error message names none of them.",
+    "advertiser_numbering": "The Advertisers surface renders the rules store (ADV_01..ADV_45). Names come from displayNameOf() which falls back to prettifyRawId(). SEED_ID_PATTERN matches ADV_## and returns the raw id unchanged. So the surface shows 'ADV_01' through 'ADV_45'. The names file (advertiser_names.csv, 41 Hebrew names) is only read by the /api/advertisers/identity endpoint, not by /api/advertisers. The Advertisers tab calls /api/advertisers, not /api/advertisers/identity.",
+    "campaigns_store": "data/campaigns.csv has the header only. The store is fully wired: COLUMNS, CRUD, lock, backup, versioning. Zero campaigns booked.",
+    "rollup_table": "The 'campaigns seen in source data' table is the legacy _build_campaigns() rollup. It reads the Campaign column from data/Spots.csv (or reference/Spots.xlsx). It is a catalog-level diagnostic: which campaign strings the uploaded spots file actually carries. It is not a booked campaign list."
+  }
+}

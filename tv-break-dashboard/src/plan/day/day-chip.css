@@ -1,0 +1,147 @@
+/* The break chip on the day track: the object itself, the numbers it prints
+   inside, the badge that carries the numbers it cannot, and its length handle.
+   It sits beside its component rather than in day-board.css because the two of
+   them together crossed the 450-line law, and the chip is the seam that law
+   would pick anyway. Logical properties throughout; the track around it is held
+   left to right, because time is, so a clock is never mirrored. */
+
+.day-chip {
+  position: absolute;
+  inset-block-start: 54px;
+  height: 44px;
+  min-width: 8px;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  cursor: grab;
+  z-index: 2;
+  overflow: visible;
+}
+
+.day-chip:active {
+  cursor: grabbing;
+}
+
+/* The body holds only what the chip is wide enough to hold. The hidden overflow
+   below is the last line of defence and no longer the rule that decides what a
+   person reads: chipLabels in day-board-model.js tests the width the chip is
+   actually drawn at, and a number that would be cut is not rendered here at all.
+   Measured before that test existed, at the scale this board opens at: all 80
+   chips were 12 px wide, 4 px of it inside the padding and the border, and all
+   160 numbers on the track were clipped to a single character. */
+.day-chip-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding-inline: 3px;
+  font-size: var(--text-2xs);
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* The exact numbers, drawn beside the object rather than inside it, which is how
+   a drawing tool prints the dimensions of a rectangle too small to hold them.
+   It is above the chip rather than below it because the scroll container clips
+   its own block axis, and it is centred on the chip so it reads as that break's
+   numbers and not as a floating label. Never a pointer target: a badge that
+   swallowed a press would break the drag it is there to narrate. */
+.day-chip-readout {
+  position: absolute;
+  inset-block-end: calc(100% + 3px);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 1px var(--space-1);
+  border: 1px solid var(--surface);
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+  color: #ffffff;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.day-chip:hover > .day-chip-readout,
+.day-chip:focus-visible > .day-chip-readout,
+.day-chip.is-selected > .day-chip-readout {
+  display: inline-flex;
+}
+
+/* Two badges are on screen when the pointer is on a break other than the
+   selected one, and at the scale this board opens at two breaks can be 86 px
+   apart while a badge is 92 px wide. The hairline and the higher layer keep the
+   nearer one whole rather than letting the two read as one run of digits. */
+.day-chip:hover > .day-chip-readout {
+  z-index: 7;
+}
+
+.day-chip-readout-clock {
+  font-weight: var(--weight-medium);
+}
+
+.day-chip-readout-length {
+  opacity: 0.82;
+}
+
+.day-chip-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+
+.day-chip-length {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.82;
+}
+
+.day-chip.is-edited {
+  background: var(--amber);
+  border-color: var(--amber-ink);
+}
+
+.day-chip.is-saved {
+  background: var(--teal);
+  border-color: var(--teal-ink);
+}
+
+.day-chip.is-gold {
+  background: var(--amber-ink);
+  border-color: var(--amber-ink);
+}
+
+.day-chip.is-selected,
+.day-chip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  z-index: 4;
+}
+
+.day-chip-gold,
+.day-chip-lock {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+}
+
+/* The length handle sits inside the chip and never takes more than a third of
+   it. A two-minute break at the default scale is about twelve pixels wide, so a
+   fixed eight-pixel handle hanging off the edge swallowed the middle of the chip
+   and every drag on a short break became a resize. Measured before the clamp: a
+   pointer press on the centre of a 120 second chip changed its length from 120 s
+   to 1,020 s instead of moving it. */
+.day-chip-resize {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 8px;
+  max-width: 33%;
+  cursor: ew-resize;
+}
+

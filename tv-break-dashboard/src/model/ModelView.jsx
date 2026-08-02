@@ -1,3 +1,11 @@
+// Kept, unreferenced, and not deleted: the piece that owns the Data page has
+// already removed its model tab, so nothing in the application imports this
+// module today. Its coefficient, drift and pooling blocks are replaced by the
+// model console, which shows every one of them with the basis behind it. Its
+// parameter ledger is not replaced: guardrails, assumptions and the rate card
+// are run-side configuration whose home is the Rules workspace, and where they
+// land is that piece's decision rather than this one's. The file stays so that
+// decision can still be made, and this note says why it is here.
 import React from 'react';
 import { Tooltip } from '@mui/material';
 import {
@@ -10,6 +18,7 @@ import {
   formatRetentionDelta,
   pageText,
 } from '../shell/format';
+import './console-mount.js';
 import { fallbackSettings } from '../shell/fallbacks';
 import { impactSegmentLabel, impactSourceLabel } from '../shell/labels';
 import { normalizeRows } from '../shell/plan-model';
@@ -132,7 +141,7 @@ export function formatDriftPercent(value, locale) {
 }
 
 // Audience level stability: surfaces the weekly level-drift measurement the
-// coefficient rebuild stores in the artifact metadata and /api/impact echoes
+// coefficient training stores in the artifact metadata and /api/impact echoes
 // as `drift`. Renders the measured block or the honest absent reason; when the
 // backend sends no verdict, none is invented here.
 export function DriftMonitorCard({ drift, locale }) {
@@ -200,7 +209,7 @@ export function DriftMonitorCard({ drift, locale }) {
           </div>
         </div>
       ) : null}
-      <p className="drift-note">{pageText(locale, "The plan's coefficients assume a steady audience level. A drift above the threshold means the weekly level moves more than the measurement's own precision, so recompute the coefficients when new data lands.", 'מקדמי התוכנית מניחים רמת צפייה יציבה. סחיפה מעל הסף פירושה שהרמה השבועית זזה יותר מדיוק המדידה עצמה, ולכן מומלץ לחשב את המקדמים מחדש כשנקלטים נתונים חדשים.')}</p>
+      <p className="drift-note">{pageText(locale, "The plan's coefficients assume a steady audience level. A drift above the threshold means the weekly level moves more than the measurement's own precision, so the model needs training when new data lands.", 'מקדמי התוכנית מניחים רמת צפייה יציבה. סחיפה מעל הסף פירושה שהרמה השבועית זזה יותר מדיוק המדידה עצמה, ולכן המודל דורש אימון כשנקלטים נתונים חדשים.')}</p>
     </div>
   );
 }

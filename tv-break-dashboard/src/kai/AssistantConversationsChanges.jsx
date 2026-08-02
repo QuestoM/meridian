@@ -3,23 +3,33 @@ import { Button } from '@mui/material';
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { fetchConversationChanges, restoreConversation } from './AssistantConversationsApi';
+import { KINDS } from './AssistantProposalCard';
+import ProposalSummary from './AssistantProposalSummary';
 
 // The per-conversation applied-changes view: every proposal batch the active
 // conversation produced, with kind, summary, status, who resolved it and when,
 // a link into the restore page, and the conversation-level restore action. The
 // restore confirm states the honest limits from the design spec word for word:
-// recomputes cannot be un-run, a whole-file restore also reverts later manual
+// a plan run cannot be un-run, a whole-file restore also reverts later manual
 // edits to the same files, and the restore itself is undoable because a
 // pre-restore snapshot is taken first.
 
-const KIND_LABELS = {
-  settings_change: ['Settings change', 'שינוי הגדרות'],
-  constraint: ['New constraint', 'אילוץ חדש'],
-  override: ['Override', 'עקיפה'],
-  pricing_change: ['Pricing change', 'שינוי תמחור'],
-  advertiser_change: ['Advertiser change', 'שינוי מפרסם'],
-  recompute: ['Recompute', 'חישוב מחדש'],
-};
+// One vocabulary for proposal kinds, owned by the card that renders them, so a
+// kind can never be called two different things on two surfaces.
+function kindPair(kind) {
+  const entry = KINDS[kind];
+  return entry ? [entry.en, entry.he] : null;
+}
+
+// The terms behind an item's summary, which this endpoint sends beside the
+// items rather than inside them because the item key set is a frozen contract.
+// An item with no entry keeps its own terms if it has any, and otherwise none,
+// which is what the reading falls back on.
+function withTerms(item, batch) {
+  const table = batch && batch.item_terms && typeof batch.item_terms === 'object' ? batch.item_terms : null;
+  const terms = table ? table[String(item.id)] : null;
+  return terms ? { ...item, summary_terms: terms } : item;
+}
 
 const STATUS_LABELS = {
   pending: ['Pending', 'ממתין'],
@@ -121,7 +131,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
       {confirming ? (
         <div className="asst-confirm" role="alertdialog">
           <p dir="auto">{pageText(locale, 'The files this conversation changed will be returned to their state before its first applied change.', 'הקבצים שהשיחה שינתה יוחזרו למצבם שלפני השינוי הראשון שהוחל בה.')}</p>
-          <p dir="auto">{pageText(locale, 'Recomputes cannot be un-run: inputs are restored, then a recompute is offered.', 'חישובים מחדש אינם ניתנים לביטול: הנתונים משוחזרים, ואז מוצע חישוב מחדש.')}</p>
+          <p dir="auto">{pageText(locale, 'A plan run cannot be un-run: the inputs go back, then the plan is offered again.', 'הרצת תוכנית אינה ניתנת לביטול: הנתונים חוזרים, ואז מוצעת הרצה חדשה.')}</p>
           <p dir="auto">{pageText(locale, 'A whole-file restore also reverts manual edits made to the same file after the conversation.', 'שחזור קובץ שלם מבטל גם עריכות ידניות שנעשו באותו קובץ אחרי השיחה.')}</p>
           <p dir="auto">{pageText(locale, 'The restore itself is undoable from the restore page: a pre-restore snapshot is saved first.', 'השחזור עצמו ניתן לביטול מעמוד השחזור: נשמר תחילה צילום מצב שלפני השחזור.')}</p>
           <div className="asst-confirm-actions">
@@ -143,7 +153,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
           {restoreResult.preId ? (
             <p dir="auto">{pageText(locale, 'A pre-restore snapshot was saved, so this restore is undoable from the restore page.', 'נשמר צילום מצב שלפני השחזור, ולכן אפשר לבטל את השחזור הזה מעמוד השחזור.')}</p>
           ) : null}
-          <p dir="auto">{pageText(locale, 'Run a recompute now so the plan reflects the restored data.', 'הריצו עכשיו חישוב מחדש כדי שהתוכנית תשקף את הנתונים המשוחזרים.')}</p>
+          <p dir="auto">{pageText(locale, 'Run the plan now so it reflects the restored data.', 'הריצו עכשיו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')}</p>
           <button type="button" className="asst-ver-toggle" onClick={onShowRestore}>
             <ExternalLink size={12} />
             {pageText(locale, 'Restore page', 'עמוד השחזור')}
@@ -165,14 +175,15 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
               {batch.created_at ? <time dir="ltr">{timeLabel(batch.created_at, locale)}</time> : null}
             </div>
             {items.map((item, index) => {
-              const kindPair = KIND_LABELS[item.kind] || null;
+              const pair = kindPair(item.kind);
               return (
                 <div className="asst-chg-item" key={item.id != null ? String(item.id) : `row-${index}`}>
                   <div className="asst-chg-item-head">
-                    <span className="asst-kind">{kindPair ? pageText(locale, kindPair[0], kindPair[1]) : <code dir="ltr">{String(item.kind || '?')}</code>}</span>
+                    <span className="asst-kind">{pair ? pageText(locale, pair[0], pair[1]) : <code dir="ltr">{String(item.kind || '?')}</code>}</span>
                     <StatusChip locale={locale} status={String(item.status || '')} />
                   </div>
-                  {item.summary ? <p className="asst-chg-summary" dir="auto">{String(item.summary)}</p> : null}
+                  <ProposalSummary item={withTerms(item, batch)} locale={locale} className="asst-chg-summary" />
+
                   {item.resolved_by ? (
                     <p className="asst-chg-resolved" dir="auto">{pageText(locale, `Resolved by ${item.resolved_by}`, `מבצע: ${item.resolved_by}`)}{item.resolved_at ? ` · ${timeLabel(item.resolved_at, locale)}` : ''}</p>
                   ) : null}

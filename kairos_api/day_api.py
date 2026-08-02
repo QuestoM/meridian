@@ -82,10 +82,37 @@ def _schedule_segments_cached(signature: tuple[tuple[str, int, int], ...]) -> di
     return _build_schedule_segments(_load_break_schedule(), _load_settings())
 
 
+def _owned_programmes(programmes: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """The programme feed narrowed to the one channel the operator owns.
+
+    The competitor boundary, applied where section 8.3 of the specification
+    assigns it. Measured on the live instance before this filter existed:
+    ``GET /api/break-operations`` carried 12 programmes for each of four
+    channels, 48 in all, of which 36 were rivals'. The board builder takes the
+    first twelve programmes per channel, so narrowing the feed first returns
+    exactly the twelve rows the operator already saw and none of the others.
+
+    The note travels with the payload rather than being dropped, so a surface
+    that cannot scope says why instead of quietly serving the market as the
+    operator's own.
+    """
+    from kairos_api import channel_scope
+
+    column = (
+        channel_scope.EPG_CHANNEL_COLUMN
+        if channel_scope.EPG_CHANNEL_COLUMN in programmes.columns
+        else channel_scope.FRAME_CHANNEL_COLUMN
+    )
+    return channel_scope.scope_frame(programmes, column=column)
+
+
 @lru_cache(maxsize=16)
 def _break_operations_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
-    return plan_read.build_break_operations(_load_programmes(), _load_break_schedule())
+    programmes, scope_note = _owned_programmes(_load_programmes())
+    payload = plan_read.build_break_operations(programmes, _load_break_schedule())
+    payload["channel_scope"] = scope_note
+    return payload
 
 
 def _segment_overrides(segment_id: str) -> list[dict[str, Any]]:

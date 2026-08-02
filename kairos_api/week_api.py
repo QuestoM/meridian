@@ -1,24 +1,36 @@
 """Plan, week: the schedule canvas and the sellable supply beside it.
 
-The week reads, moved verbatim from dashboard_api.py (the canvas) and
-catalog_api.py (the inventory) as part of the wave-zero router split. Behaviour
-is unchanged, including the cache keys, which carry the settings file and the
-rate card because both payloads read them.
+The week reads, moved from dashboard_api.py (the canvas) and catalog_api.py (the
+inventory) as part of the wave-zero router split. The cache keys carry the
+settings file and the rate card because both payloads read them.
 
 The break board the canvas payload embeds under ``break_operations`` is served
 from the frozen plan-read layer, because the day board serves the same builder.
+
+**The competitor boundary applies here.** The operator owns exactly one channel,
+read from settings, and section 8.3 of the specification names this piece as the
+one that scopes ``/api/schedule``. Measured on the reference data with
+``operator_channel = רשת 13`` before the scope landed: the 200-row
+``break_schedule`` slice held 96 rows of קשת 12, 73 of כאן 11, 28 of עכשיו 14 and
+3 of the operator's own, and the ``rows`` canvas held 1,852 programmes of which
+1,328 were competitors'. Everything this route serves is now filtered through
+:mod:`kairos_api.channel_scope`, and the disclosure the scope returns travels
+with the payload under ``scope``, so a surface that cannot scope, because no
+channel is configured yet, says so instead of quietly serving the market total as
+the operator's.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from functools import lru_cache
 from typing import Any
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
-from kairos_api import plan_read
+from kairos_api import channel_scope, plan_read
 from kairos_api.core import (
     DATA_DIR,
     OUTPUT_DIR,
@@ -116,15 +128,130 @@ def _build_schedule_canvas(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
 @lru_cache(maxsize=16)
 def _schedule_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
-    programmes = _load_programmes()
-    break_schedule = _load_break_schedule()
+    # The competitor boundary, applied once at the top so every derived view in
+    # this payload is the operator's: the canvas, the embedded break board and
+    # the plan slice all read the scoped frames and none of them can re-widen.
+    # The EPG names its channel column Channel and the plan names it channel, so
+    # both are scoped on their own column against the one owned channel.
+    programmes, epg_note = channel_scope.scope_frame(
+        _load_programmes(), column=channel_scope.EPG_CHANNEL_COLUMN
+    )
+    break_schedule, plan_note = channel_scope.scope_frame(_load_break_schedule())
+    head = break_schedule.head(200)
+    board = plan_read.build_break_operations(programmes, break_schedule)
+    # Which broadcast dates the board this payload carries actually stands on.
+    # The builder takes the first twelve programmes of the channel, which in the
+    # reference data are all on one date, so the day zoom has always shown one
+    # day without ever saying which. It says so now, and a caller that wants a
+    # different day asks for it by date.
+    shown = _board_dates(board)
+    covered = _programme_dates(programmes)
     return {
         "rows": _build_schedule_canvas(programmes, break_schedule),
-        "break_operations": plan_read.build_break_operations(programmes, break_schedule),
-        "break_schedule": break_schedule.head(200).replace({pd.NA: None}).where(pd.notna(break_schedule.head(200)), None).to_dict("records"),
+        "break_operations": board,
+        "board": {
+            "requested": None,
+            "date": shown[0] if len(shown) == 1 else None,
+            "available": bool(board.get("programs")),
+            "reason_code": None if board.get("programs") else "no_programme_in_source",
+            "reason": None if board.get("programs") else "The programme source carries no programme on your channel.",
+            "programmes": len(board.get("programs", [])),
+            "breaks": len(board.get("breaks", [])),
+            "covers": _covers(covered),
+        },
+        "break_schedule": head.replace({pd.NA: None}).where(pd.notna(head), None).to_dict("records"),
         # break_schedule is a display slice (first 200 rows); this is the real
-        # size of the saved plan so the client can say "200 of N" honestly.
+        # size of the operator's saved plan so the client can say "200 of N"
+        # honestly, on the same scope the rows themselves are on.
         "break_schedule_total_rows": int(len(break_schedule)),
+        # The disclosure that travels with the scope: which channel was kept,
+        # how many rows each source carried in and out, and the reason when the
+        # boundary could not be applied at all.
+        "scope": {"plan": plan_note, "programmes": epg_note},
+    }
+
+
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _programme_dates(programmes: pd.DataFrame) -> list[str]:
+    """Every broadcast date the operator's own programme source carries."""
+    if programmes.empty:
+        return []
+    frame = plan_read.program_datetime_columns(programmes).dropna(subset=["start_dt"])
+    if frame.empty:
+        return []
+    return sorted(set(frame["start_dt"].dt.strftime("%Y-%m-%d")))
+
+
+def _on_date(programmes: pd.DataFrame, date: str) -> pd.DataFrame:
+    """The programme rows of one broadcast date, and only that date."""
+    if programmes.empty:
+        return programmes
+    frame = plan_read.program_datetime_columns(programmes)
+    mask = frame["start_dt"].dt.strftime("%Y-%m-%d").eq(date).fillna(False)
+    return programmes[mask.to_numpy()]
+
+
+def _board_dates(board: dict[str, Any]) -> list[str]:
+    return sorted({str(item.get("date") or "") for item in board.get("programs", [])} - {""})
+
+
+def _covers(dates: list[str]) -> dict[str, Any]:
+    return {
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "n_dates": len(dates),
+    }
+
+
+@lru_cache(maxsize=32)
+def _board_cached(signature: tuple[tuple[str, int, int], ...], date: str) -> dict[str, Any]:
+    """The embedded break board for one broadcast date.
+
+    The week canvas beside it is the same for every date, so it is cached once by
+    :func:`_schedule_cached` and this builds only the part that moves. The
+    programme frame is scoped to the operator's channel first and to the one date
+    second, so a day board can neither widen to the market nor borrow another
+    day's programmes when the date it was asked for has none.
+    """
+    del signature
+    programmes, _ = channel_scope.scope_frame(
+        _load_programmes(), column=channel_scope.EPG_CHANNEL_COLUMN
+    )
+    break_schedule, _ = channel_scope.scope_frame(_load_break_schedule())
+    covered = _programme_dates(programmes)
+    if date not in covered:
+        return {
+            "break_operations": {
+                "programs": [],
+                "breaks": [],
+                "summary": {"programs": 0, "breaks": 0, "ad_seconds": 0, "revenue": 0},
+            },
+            "board": {
+                "requested": date,
+                "date": None,
+                "available": False,
+                "reason_code": "date_not_in_programme_source",
+                "reason": f"The programme source carries no programme on your channel on {date}.",
+                "programmes": 0,
+                "breaks": 0,
+                "covers": _covers(covered),
+            },
+        }
+    board = plan_read.build_break_operations(_on_date(programmes, date), break_schedule)
+    return {
+        "break_operations": board,
+        "board": {
+            "requested": date,
+            "date": date,
+            "available": True,
+            "reason_code": None,
+            "reason": None,
+            "programmes": len(board.get("programs", [])),
+            "breaks": len(board.get("breaks", [])),
+            "covers": _covers(covered),
+        },
     }
 
 
@@ -220,23 +347,54 @@ def _inventory_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, 
 
 
 @router.get("/api/schedule", tags=["dashboard"])
-def schedule() -> dict[str, Any]:
+def schedule(
+    date: str | None = Query(
+        default=None,
+        description="One broadcast date, YYYY-MM-DD. Scopes the embedded break board to that day.",
+    ),
+) -> dict[str, Any]:
     # SETTINGS_PATH and the pricing YAML are part of the key because the break
     # board inside this payload reads the operator settings (retention floor,
     # pricing overrides) and the rate card; without them a settings or rate-card
     # edit kept serving the stale cached board.
-    return _schedule_cached(_signature([
+    signature = _signature([
         DATA_DIR / "reference" / "Programmes.xlsx",
         DATA_DIR / "Programmes.csv",
         OUTPUT_DIR / "weekly_break_schedule.csv",
         ROOT / "optimization_results.csv",
         SETTINGS_PATH,
         ROOT / "config" / "optimization_weights.yaml",
-    ]))
+    ])
+    payload = _schedule_cached(signature)
+    # No date asked for is the payload this route has always served, byte for
+    # byte, plus the disclosure of which day its board stands on.
+    wanted = str(date or "").strip()
+    if not wanted:
+        return payload
+    if not ISO_DATE.match(wanted):
+        return {
+            **payload,
+            "break_operations": {
+                "programs": [],
+                "breaks": [],
+                "summary": {"programs": 0, "breaks": 0, "ad_seconds": 0, "revenue": 0},
+            },
+            "board": {
+                "requested": wanted,
+                "date": None,
+                "available": False,
+                "reason_code": "unreadable_date",
+                "reason": "A broadcast date is written as YYYY-MM-DD.",
+                "programmes": 0,
+                "breaks": 0,
+                "covers": payload["board"]["covers"],
+            },
+        }
+    return {**payload, **_board_cached(signature, wanted)}
 
 
 @router.get("/api/inventory", tags=["catalog"])
-def inventory() -> dict[str, Any]:
+def inventory() -> dict[str, Any]:  # noqa: D401 - the docstring lives on the builder
     # _load_spots prefers the reference workbook, so the workbook belongs in the
     # cache key; keying on the legacy CSV alone kept serving a stale inventory
     # after a reference re-ingest. The settings file is in the key because the
@@ -246,3 +404,14 @@ def inventory() -> dict[str, Any]:
         DATA_DIR / "Spots.csv",
         SETTINGS_PATH,
     ]))
+
+
+# The plan-version and plan-progress routes ride this module's registration
+# rather than appending further stanzas to server.py: publishing and reading the
+# week against its target are both the week's own acts on the week's own
+# artifact, and one mount keeps the append-only region's OpenAPI diff readable.
+from kairos_api.week_api_progress import router as _progress_router  # noqa: E402
+from kairos_api.week_api_publish import router as _publish_router  # noqa: E402
+
+router.include_router(_publish_router)
+router.include_router(_progress_router)

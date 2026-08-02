@@ -26,7 +26,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
@@ -92,10 +92,15 @@ class OverrideUpdate(BaseModel):
     notes: str | None = None
 
 
-def _segment_clock(start_seconds: float) -> str:
+def segment_clock(start_seconds: float) -> str:
     """Format a segment start (seconds past midnight) as the HH:MM the weekly CSV
     stores. Matches kairos.export.schedule._clock so a stored anchor built from the
-    CSV start_time compares equal to a freshly built segment's clock."""
+    CSV start_time compares equal to a freshly built segment's clock.
+
+    Public because every route that stores an anchor has to build the middle field
+    with this exact formatter. A route that stored the date and the programme but
+    left the clock blank wrote an anchor the guard below reads as a mismatch, so
+    the override never bound and the act silently did nothing."""
     total_minutes = int(start_seconds // 60)
     return f"{(total_minutes // 60) % 24:02d}:{total_minutes % 60:02d}"
 
@@ -258,7 +263,7 @@ def _segment_anchors(segments: list) -> dict[str, tuple[str, str, str]]:
     return {
         segment.segment_id: (
             str(segment.day),
-            _segment_clock(segment.start_seconds),
+            segment_clock(segment.start_seconds),
             str(segment.program_type),
         )
         for segment in segments

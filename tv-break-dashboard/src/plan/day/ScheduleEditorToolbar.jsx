@@ -3,9 +3,9 @@ import { Button, MenuItem, Select } from '@mui/material';
 import { Send } from 'lucide-react';
 import { ZoomControl } from './schedule-track-view';
 
-// The editor toolbar: snap grid, pin scope, recompute and the shared zoom
+// The editor toolbar: snap grid, pin scope, the run control and the shared zoom
 // control. Pure presentation: every value and handler is passed in from the
-// editor, so the drag, pin and recompute flow is unchanged. Split out to keep
+// editor, so the drag, pin and run flow is unchanged. Split out to keep
 // the editor module lean.
 function ScheduleEditorToolbar({
   locale,
@@ -65,8 +65,8 @@ function ScheduleEditorToolbar({
       >
         <Send size={14} />
         {recomputeState === 'running'
-          ? label('Recomputing...', 'מחשב מחדש...')
-          : label('Recompute weekly schedule', 'חישוב מחדש של הלוח השבועי')}
+          ? label('Running the weekly plan', 'מריץ את הלוח השבועי')
+          : label('Run the weekly plan', 'הרצת הלוח השבועי')}
       </Button>
       <ZoomControl pxPerMin={pxPerMin} onZoom={onZoom} onStep={onZoomStep} locale={locale} />
     </div>

@@ -2,14 +2,14 @@
 
 Two real paths exist on a developer machine:
 
-1. **Claude Max / Claude Code OAuth** — the same subscription used by the
+1. **Claude Max / Claude Code OAuth**, the same subscription used by the
    local ``claude`` CLI (here: netanel@questo.media via ``claude-switch``).
    The live access token lives in the macOS Keychain item
    ``Claude Code-credentials`` (or ``~/.claude/.credentials.json`` on other
    platforms). Auth is ``Authorization: Bearer <accessToken>`` through the
-   Anthropic SDK's ``auth_token=`` parameter — NOT ``x-api-key``.
+   Anthropic SDK's ``auth_token=`` parameter, NOT ``x-api-key``.
 
-2. **Console API key** — ``ANTHROPIC_API_KEY`` / ``KAIROS_ASSISTANT_API_KEY``
+2. **Console API key**, ``ANTHROPIC_API_KEY`` / ``KAIROS_ASSISTANT_API_KEY``
    pay-as-you-go keys. Separate product surface from Max; no credits on the
    key is independent of Max quota.
 
@@ -93,7 +93,7 @@ def _active_switch_label() -> str | None:
 
 def _load_credentials_blob() -> dict[str, Any] | None:
     """Load the live Claude Code credentials blob (never logs content)."""
-    # 1) macOS Keychain — where Claude Code + claude-switch keep the active login.
+    # 1) macOS Keychain, where Claude Code and claude-switch keep the active login.
     for service in KEYCHAIN_SERVICES:
         try:
             result = subprocess.run(
@@ -203,7 +203,7 @@ def build_client(auth: AssistantAuth, *, timeout: float, max_retries: int = 1) -
     import anthropic
 
     if auth.mode == "oauth":
-        # Max / Claude Code OAuth: Bearer token. Do not pass api_key — an ambient
+        # Max / Claude Code OAuth: Bearer token. Do not pass api_key, because an ambient
         # ANTHROPIC_API_KEY must not override the subscription path.
         return anthropic.Anthropic(
             auth_token=auth.token,

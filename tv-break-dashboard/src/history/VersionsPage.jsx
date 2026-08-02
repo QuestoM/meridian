@@ -1,27 +1,15 @@
-import React, { useState } from 'react';
-import { History } from 'lucide-react';
-import { pageText } from '../shell/surface-helpers';
-import AssistantVersions from './AssistantVersions';
-import '../kai/assistant-console.css';
+import React from 'react';
+import HistoryPage from './HistoryPage';
 
-// Change restore as its own full-width page instead of a cramped tab inside the
-// assistant rail. It hosts the AssistantVersions timeline of restore points, with
-// room for the diffs and restore controls to breathe. A local tick reloads the list
-// after a save or restore.
+// The destination the shell routes to. It keeps this module name because the
+// shell's router and its navigation entry are frozen for this wave; the
+// surface behind it is History, one timeline over every record of what changed,
+// who changed it and how to put it back.
+//
+// What used to live here was a restore-point list alone. The list is still
+// here, inside the timeline, with its diff, its rename, its manual point and
+// its viewer write-lock, and it is now beside the changes, the runs and the
+// restores it was always missing.
 export default function VersionsPage({ locale, notify }) {
-  const [tick, setTick] = useState(0);
-  return (
-    <section className="page-workspace versions-workspace">
-      <div className="page-header">
-        <div>
-          <h1>{pageText(locale, 'Restore changes', 'שחזור שינויים')}</h1>
-          <p>{pageText(locale, 'See every change made to the operating state and roll back to any earlier point. A restore point is saved automatically before every change and every restore, so nothing is ever lost.', 'כאן אפשר לראות כל שינוי שנעשה במצב התפעול ולחזור לכל נקודה קודמת. נקודת שחזור נשמרת אוטומטית לפני כל שינוי ולפני כל שחזור, כך ששום דבר לא אובד.')}</p>
-        </div>
-        <History size={18} />
-      </div>
-      <section className="page-panel versions-panel">
-        <AssistantVersions locale={locale} notify={notify} reloadKey={tick} onChanged={() => setTick((value) => value + 1)} />
-      </section>
-    </section>
-  );
+  return <HistoryPage locale={locale} notify={notify} />;
 }

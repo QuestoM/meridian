@@ -1,0 +1,82 @@
+/* The campaign board's own rules: the row-level controls that make a booked
+   campaign amendable, and the two-line cell that puts a name above the id it is
+   stored under. Everything here uses the shared tokens; none is defined here. */
+
+/* Opening the client record beside the widest table on the destination must not
+   push the record off the screen. The workspace is a grid item whose automatic
+   minimum is its own content, so the row grew past the viewport instead of
+   shrinking the table: measured, the record drawer sat at x -410 with 420px of
+   it outside the window. These two lines make the row's width definite, which
+   is what lets the table give the drawer its 420px back. */
+.clients-workspace {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.clients-body {
+  min-width: 0;
+}
+
+.clients-campaigns .clients-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.clients-cell-name {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.clients-cell-name strong {
+  font-weight: var(--weight-medium);
+}
+
+.clients-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.clients-inline-form {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
+.clients-detail-terms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.clients-flight-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.clients-flight-board .clients-flight-table {
+  width: 100%;
+}
+
+.clients-add-flight {
+  width: 100%;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.clients-editing-row td {
+  background: var(--surface);
+}

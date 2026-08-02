@@ -17,6 +17,13 @@ export const DAY_NAMES = {
   5: ['Fri', 'שישי'], 6: ['Sat', 'שבת'], 7: ['Sun', 'ראשון'],
 };
 
+// The Israeli week, Sunday first, written as the ISO weekday keys the rate card
+// is stored under. The store is ISO and stays ISO, where 1 is Monday and 7 is
+// Sunday; a plain object iterates integer-like keys in ascending numeric order,
+// which is what read the operator's own week back to them Monday first. Only the
+// reading order changes here. The keys, the values and the saved payload do not.
+export const DAY_ORDER = ['7', '1', '2', '3', '4', '5', '6'];
+
 // Position-in-break keys are internal engine keys; these are the human labels.
 export const POSITION_NAMES = {
   1: ['First', 'ראשון'], 2: ['Second', 'שני'], 3: ['Third', 'שלישי'],
@@ -64,6 +71,19 @@ export function keyLabel(layerName, key, locale) {
     return pageText(locale, POSITION_NAMES[key][0], POSITION_NAMES[key][1]);
   }
   return String(key);
+}
+
+// One premium layer's keys and multipliers, in the order a person reads them.
+// Only the day layer has a reading order of its own; every other layer keeps the
+// order the server sent. A day key the order does not name is kept and appended
+// rather than dropped, so a rate card carrying something new still shows it.
+export function layerEntries(layer) {
+  const entries = Object.entries((layer && layer.values) || {});
+  if (!layer || layer.name !== 'day') return entries;
+  const named = new Map(entries.map(([key, value]) => [String(key), value]));
+  const ordered = DAY_ORDER.filter((key) => named.has(key)).map((key) => [key, named.get(key)]);
+  const rest = entries.filter(([key]) => !DAY_ORDER.includes(String(key)));
+  return [...ordered, ...rest];
 }
 
 // Normalizes one per-event entry from the pricing payload's events list. Only

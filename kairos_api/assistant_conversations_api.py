@@ -107,7 +107,18 @@ def _assistant_apply_versions() -> list[dict[str, Any]]:
 @router.get("/conversations/{conversation_id}/changes")
 def conversation_changes(conversation_id: str, request: Request) -> dict[str, Any]:
     """The changes this conversation drove: its batches with per-item status
-    and the assistant_apply version ids each batch recorded, newest first."""
+    and the assistant_apply version ids each batch recorded, newest first.
+
+    The per-item projection is a frozen key set: a shared test asserts it
+    exactly, and that test spans two other pieces' modules, so no key may be
+    added inside it. The terms the surface needs to say each summary in the
+    reader's own language therefore ride beside the items, keyed by item id,
+    where nothing is pinned. Only items that actually carry terms appear, and an
+    item written before the terms existed has them derived from its own stored
+    payload rather than left to fall back on the English record.
+    """
+    from kairos_api.assistant_summary_terms import terms_for_item
+
     username = assistant_actions._actor(request)
     _require_known(username, conversation_id)
     versions_by_batch: dict[str, list[str]] = {}
@@ -122,8 +133,13 @@ def conversation_changes(conversation_id: str, request: Request) -> dict[str, An
         "created_at": batch.get("created_at"),
         "status": batch.get("status"),
         "items": [{key: item.get(key)
-                   for key in ("id", "kind", "summary", "status", "resolved_by", "resolved_at")}
+                   for key in ("id", "kind", "summary", "status",
+                               "resolved_by", "resolved_at")}
                   for item in batch.get("items", [])],
+        "item_terms": {str(item.get("id")): terms
+                       for item, terms in ((item, terms_for_item(item))
+                                           for item in batch.get("items", []))
+                       if terms},
         "version_ids": versions_by_batch.get(str(batch.get("batch_id")), []),
     } for batch in _conversation_batches(username, conversation_id)]
     return {"batches": list(reversed(batches))}

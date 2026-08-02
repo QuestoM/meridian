@@ -1,0 +1,54 @@
+{
+  "task": "CAMPAIGN-ENTITY",
+  "status": "complete",
+  "started_at": "2026-08-02",
+  "completed_at": "2026-08-02",
+  "goal": "Own the campaign entity, its store and its demo seed: identity, commitment, flight, creative assets, delivery.",
+  "files_created": [
+    "kairos_api/campaigns_commitment.py",
+    "kairos_api/campaigns_api_words.py",
+    "kairos_api/campaigns_assets.py",
+    "kairos_api/campaigns_delivery.py",
+    "kairos_api/campaigns_api_detail.py",
+    "scripts/seed_campaigns.py",
+    "scripts/seed_campaigns_rows.py",
+    "tests/test_campaign_entity.py",
+    "tests/test_campaign_seed.py",
+    "data/campaign_assets.csv",
+    "data/campaign_delivery.csv"
+  ],
+  "files_changed": [
+    "kairos_api/campaigns_api_store.py (12 new columns, commitment + demo on every record, validators moved out)",
+    "kairos_api/campaigns_api.py (commitment fields on create and update, delivery attached, detail router mounted)",
+    "data/campaigns.csv (was header only, now 51 demo campaigns + 51 demo flights)",
+    "tests/test_p4_client_tree.py (one fixture: builds its own empty store instead of inheriting the now-seeded one)"
+  ],
+  "measured": {
+    "seed_output": "51 campaigns, 51 flights, 79 creative assets, 368 delivery rows (aired 44, scheduled 18, unknown 306)",
+    "reconciliation": "seeded counted spend 699450.00 ILS == priced ledger gross 699450.00 ILS to the cent; counted spots 175 == traffic file rows 175",
+    "as_of": "2025-04-27T22:59:00, the start of the last programme booked on the sourced day",
+    "flight": "2025-04-27 Sunday to 2025-05-03 Saturday, the Israeli broadcast week",
+    "idempotency": "three files byte-identical across two consecutive runs",
+    "channel": "רשת 13 from settings on every campaign, asset and delivery row; no rival name in any cell",
+    "tests": "tests/test_campaign_entity.py 15 passed, tests/test_campaign_seed.py 23 passed, tests/test_p4_campaigns_api.py 20 passed, tests/test_p4_client_tree.py 12 passed",
+    "full_suite": "2727 passed, 14 failed, 6 skipped in 17m12s. All 14 failures are outside this task: 11 are frontend shell/navigation/CSS work by other agents, 3 are golden-plan and override-preview drift caused by data/kairos_settings.json (revenue_weight 60 to 35, min_retention_floor 0.72 to 0.78) and a new row in data/manual_overrides.csv. Zero campaign tests fail.",
+    "line_counts": "every file created or changed is under 450: campaigns_api.py 450, seed_campaigns.py 377, campaigns_api_onboarding.py 371, campaigns_delivery.py 359, test_campaign_seed.py 359, campaigns_api_store.py 335, test_campaign_entity.py 335, campaigns_commitment.py 275, campaigns_assets.py 257, campaigns_api_words.py 249, seed_campaigns_rows.py 133, campaigns_api_detail.py 67"
+  },
+  "honesty_decisions": [
+    "Identity, creative and delivery are REAL (traffic log + the one priced ledger the money board reads). Only the commitment (flight window, budget, rating goal) is the seed's, and every row carries is_demo true plus the rule that made it.",
+    "A flight day with no per-spot source is an unknown row with blank figure cells, never a zero. Every counted figure is published as a floor with the reason.",
+    "Progress is None when there is no source at all: zero counted out of no source is not zero delivered. This defect was found by a test and fixed in campaigns_delivery._progress.",
+    "A campaign whose every spot was removed by a frequency rule has no observed spend, so its budget is blank rather than 0.",
+    "Rating points are the planned break rating on the all-viewers base. A goal named against any other audience reports progress unavailable with the reason, never against a substituted base.",
+    "The rating-goal audience vocabulary is the market list in docs/campaign-rate-card-research.md section 11. The owner's 'women 35 plus' example is not in that research, so women 25-54 is used instead."
+  ],
+  "not_mine_and_failing": [
+    "tests/test_p4_campaign_board_wiring.py::test_no_source_file_on_this_destination_is_over_the_cap fails on tv-break-dashboard/src/clients/clients-workspace.css (477 lines, untracked, another agent's file)",
+    "tests/test_journey_inspector_pricing.py::test_effect_preview_baseline_matches_committed_day fails because data/manual_overrides.csv gained a gold override and data/kairos_settings.json changed revenue_weight and min_retention_floor. Neither file was touched by this task."
+  ],
+  "notes_for_the_lead": [
+    "The server on :8000 holds the pre-change code in memory. It needs a restart before the new routes (/api/clients/campaigns/{id}/detail and /assets) and the new payload fields are served. I was forbidden to restart it.",
+    "There are now two campaign concepts on disk: data/campaigns.csv (the commercial booking, mine) and data/campaign_flights.csv (the optimizer pacing input, read by kairos.optimize.pacing.load_campaigns and by the uploads contract). They are unreconciled. Out of scope here, worth a decision.",
+    "The campaign board frontend renders board.delivery.reason and path_forward as the unavailable state. Both now clear to empty strings when a source exists, so the existing component degrades to two empty paragraphs rather than a false claim. The floor note, the as-of instant and the demo badge are on the payload and are not rendered by any surface yet."
+  ]
+}

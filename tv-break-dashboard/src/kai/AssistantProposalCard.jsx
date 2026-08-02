@@ -1,22 +1,43 @@
 import React, { useState } from 'react';
 import { Button } from '@mui/material';
-import { Layers, Lock, RefreshCcw, RotateCcw, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
-import { pageText, formatCurrency, formatNumber, finiteNumber } from '../shell/surface-helpers';
+import { Building2, CalendarClock, ExternalLink, Layers, Lock, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
+import { pageText } from '../shell/surface-helpers';
+import AssistantUndo from './AssistantUndo';
+import EffectView from './AssistantEffectView';
+import ProposalSummary from './AssistantProposalSummary';
+import { inApprovedWords } from './kai-vocabulary';
 
-// One proposal batch from the assistant, rendered for explicit operator
-// approval. The card never applies anything by itself: selection, an inline
-// confirm step that names the automatic restore point, and the apply and
-// reject calls all go through the parent, so the inline chat copy and the
-// pending tab stay in sync. Missing fields render as honest fallbacks.
+// One proposal batch from the assistant, rendered for explicit approval. The
+// card never applies anything by itself: selection, an inline confirm step that
+// names the automatic restore point, and the apply and reject calls all go
+// through the parent, so the inline chat copy and the pending tab stay in sync.
+// Missing fields render as honest fallbacks, and after an apply the restore
+// point it created is an undo control on this card rather than a note about a
+// page somewhere else.
 
-const KINDS = {
-  settings_change: { Icon: SlidersHorizontal, en: 'Settings change', he: 'שינוי הגדרות' },
-  constraint: { Icon: Lock, en: 'New constraint', he: 'אילוץ חדש' },
-  override: { Icon: Layers, en: 'Override', he: 'עקיפה' },
-  pricing_change: { Icon: Tag, en: 'Pricing change', he: 'שינוי תמחור' },
+// Keyed on the kind the server actually sends, which is assistant_tools.py's
+// KIND_BY_TOOL and nothing else. Keying on a kind the server never emits prints
+// the raw key beside a card that has a measured before and after, and then
+// denies that it has one, which is what this map did for every settings and
+// every rate-card proposal until it was measured.
+export const KINDS = {
+  settings: { Icon: SlidersHorizontal, en: 'Settings change', he: 'שינוי הגדרות' },
+  constraint: { Icon: Lock, en: 'New restriction', he: 'הגבלה חדשה' },
+  override: { Icon: Layers, en: 'Pin', he: 'נעיצה' },
+  pricing: { Icon: Tag, en: 'Rate-card change', he: 'שינוי תמחור' },
   advertiser_change: { Icon: Users, en: 'Advertiser change', he: 'שינוי מפרסם' },
-  recompute: { Icon: RefreshCcw, en: 'Recompute', he: 'חישוב מחדש' },
+  recompute: { Icon: PlayCircle, en: 'Run the plan', he: 'הרצת התוכנית' },
+  event_change: { Icon: CalendarClock, en: 'Calendar event change', he: 'שינוי אירוע ביומן' },
+  agency_change: { Icon: Building2, en: 'Agency change', he: 'שינוי סוכנות' },
+  agency_link_change: { Icon: Building2, en: 'Agency link change', he: 'שינוי שיוך סוכנות' },
+  agency_condition_change: { Icon: Building2, en: 'Agency condition change', he: 'שינוי תנאי סוכנות' },
 };
+
+// Which proposal kinds carry a measured before-and-after. Only a settings
+// change is simulated against the real optimizer today, so every other kind
+// says plainly that a money preview was not computed rather than leaving the
+// reader to assume one is missing by accident.
+const MEASURED_EFFECT_KINDS = new Set(['settings']);
 
 const STATUS_LABELS = {
   pending: ['Pending', 'ממתין'],
@@ -34,7 +55,33 @@ function shortValue(value) {
   return String(value);
 }
 
-// settings_change payloads become field rows. A {from,to} or {before,after}
+function appliedLabel(iso, locale) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// Four of the fields Kai may propose are the broadcast licence, not ordinary
+// settings. The server says so on the item, with the date the limits in force
+// took effect and whether this account may change them, and it is printed here
+// before the approval rather than discovered after it.
+function PermissionView({ permission, locale }) {
+  if (!permission) return null;
+  const fields = Array.isArray(permission.fields) ? permission.fields : [];
+  return (
+    <div className={permission.may_change ? 'asst-permission' : 'asst-permission blocked'} role="note">
+      <p dir="auto"><Scale size={12} />{pageText(locale, permission.basis_en || '', permission.basis_he || '')}</p>
+      {fields.length ? <div className="asst-permission-fields">{fields.map((field) => <code dir="ltr" key={field}>{field}</code>)}</div> : null}
+      {permission.effective_date ? (
+        <p dir="auto">{pageText(locale, `The limits in force took effect on ${permission.effective_date}.`, `המגבלות שבתוקף נכנסו לתוקף ב-${permission.effective_date}.`)}</p>
+      ) : null}
+      <p dir="auto">{pageText(locale, permission.record_en || '', permission.record_he || '')}</p>
+      {!permission.may_change && permission.reason ? <p dir="auto">{String(permission.reason)}</p> : null}
+    </div>
+  );
+}
+
+// A settings payload becomes field rows. A {from,to} or {before,after}
 // value renders as before to after; anything else shows the target value
 // alone, because inventing a "current" value we never fetched would be a lie.
 function settingsRows(payload) {
@@ -59,7 +106,7 @@ function settingsRows(payload) {
 
 function PayloadView({ item, locale }) {
   if (!item.payload) return null;
-  if (item.kind === 'settings_change') {
+  if (item.kind === 'settings') {
     const rows = settingsRows(item.payload);
     if (!rows.length) return null;
     const shown = rows.slice(0, 8);
@@ -69,7 +116,9 @@ function PayloadView({ item, locale }) {
           <div className="asst-field-row" key={row.field}>
             <span className="asst-field-name" dir="ltr">{row.field}</span>
             <span className="asst-field-value" dir="ltr">
-              {row.from !== null && row.from !== undefined ? `${shortValue(row.from)} → ${shortValue(row.to)}` : shortValue(row.to)}
+              {row.from !== null && row.from !== undefined
+                ? <><bdi dir="ltr">{shortValue(row.from)}</bdi>{' → '}<bdi dir="ltr">{shortValue(row.to)}</bdi></>
+                : <bdi dir="ltr">{shortValue(row.to)}</bdi>}
             </span>
           </div>
         ))}
@@ -137,67 +186,6 @@ function DiffView({ item, locale }) {
   );
 }
 
-// A settings_change item may carry a measured before/after effect on the owned
-// channel, so the operator sees what a change would do before approving it. The
-// three money lines use the same vocabulary as the rest of the product (gross
-// revenue, retention cost, net) plus the breaks change, each with a signed
-// delta. A missing figure is dropped rather than invented; an unavailable
-// effect shows a quiet reason instead.
-const EFFECT_METRICS = [
-  ['gross', 'Gross revenue', 'הכנסות ברוטו'],
-  ['retention_cost', 'Retention cost', 'עלות שימור'],
-  ['net', 'Net', 'נטו'],
-];
-
-function signedFigure(value, locale, money) {
-  const body = money ? formatCurrency(Math.abs(value), locale) : formatNumber(Math.abs(value), locale);
-  return `${value > 0 ? '+' : value < 0 ? '-' : ''}${body}`;
-}
-
-function metricCells(beforeVal, afterVal, deltaVal, locale, money) {
-  const fmt = (value) => (money ? formatCurrency(value, locale) : formatNumber(value, locale));
-  const before = finiteNumber(beforeVal);
-  const after = finiteNumber(afterVal);
-  let delta = finiteNumber(deltaVal);
-  if (delta === null && before !== null && after !== null) delta = after - before;
-  const flow = before !== null && after !== null ? `${fmt(before)} → ${fmt(after)}` : after !== null ? fmt(after) : before !== null ? fmt(before) : '';
-  return { shown: before !== null || after !== null || delta !== null, flow, delta: delta !== null ? signedFigure(delta, locale, money) : '' };
-}
-
-function EffectView({ effect, locale }) {
-  if (!effect || typeof effect !== 'object') return null;
-  const header = pageText(locale, 'What this change would do', 'מה השינוי הזה יעשה');
-  if (effect.status === 'unavailable') {
-    const reason = effect.reason ? String(effect.reason) : pageText(locale, 'A preview is not available for this change.', 'אין תצוגה מקדימה לשינוי הזה.');
-    return <div className="asst-effect"><span className="asst-effect-head">{header}</span><p className="asst-effect-note" dir="auto">{reason}</p></div>;
-  }
-  const before = effect.before && typeof effect.before === 'object' ? effect.before : {};
-  const after = effect.after && typeof effect.after === 'object' ? effect.after : {};
-  const delta = effect.delta && typeof effect.delta === 'object' ? effect.delta : {};
-  const rows = EFFECT_METRICS.map(([key, en, he]) => ({ key, label: pageText(locale, en, he), ...metricCells(before[key], after[key], delta[key], locale, true) })).filter((row) => row.shown);
-  const breaks = metricCells(before.breaks, after.breaks, delta.breaks, locale, false);
-  if (!rows.length && !breaks.shown) return null;
-  return (
-    <div className="asst-effect">
-      <span className="asst-effect-head">{header}</span>
-      {rows.map((row) => (
-        <div className={`asst-effect-row${row.key === 'net' ? ' net' : ''}`} key={row.key}>
-          <span className="asst-effect-label" dir="auto">{row.label}</span>
-          <span className="asst-effect-flow" dir="ltr">{row.flow || '-'}</span>
-          <span className="asst-effect-delta" dir="ltr">{row.delta}</span>
-        </div>
-      ))}
-      {breaks.shown ? (
-        <div className="asst-effect-row" key="breaks">
-          <span className="asst-effect-label" dir="auto">{pageText(locale, 'Breaks', 'ברייקים')}</span>
-          <span className="asst-effect-flow" dir="ltr">{breaks.flow || '-'}</span>
-          <span className="asst-effect-delta" dir="ltr">{breaks.delta}</span>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 // Bulk clarity: a batch that carries many changes, or that touches activation
 // or money levers, gets a quiet banner naming the scale before approval. The
 // change count is real (settings fields plus one per other item), and the
@@ -209,16 +197,16 @@ function bulkFacts(items) {
   let changeCount = 0;
   let sensitive = false;
   for (const item of pending) {
-    const rows = item.kind === 'settings_change' ? settingsRows(item.payload) : [];
+    const rows = item.kind === 'settings' ? settingsRows(item.payload) : [];
     changeCount += rows.length > 0 ? rows.length : 1;
-    if (item.kind === 'pricing_change') sensitive = true;
+    if (item.kind === 'pricing') sensitive = true;
     if (rows.some((row) => SENSITIVE_FIELD.test(String(row.field || '')))) sensitive = true;
     if (Array.isArray(item.diff) && item.diff.some((row) => row && SENSITIVE_FIELD.test(String(row.field || '')))) sensitive = true;
   }
   return { changeCount, sensitive };
 }
 
-export default function AssistantProposalCard({ batch, locale, busy, applyResult, onApply, onReject, onShowRestore }) {
+export default function AssistantProposalCard({ batch, locale, busy, applyResult, onApply, onReject, onShowRestore, notify, onUndone }) {
   const items = Array.isArray(batch.items) ? batch.items : [];
   const pendingIds = items.filter((item) => item.status === 'pending' && item.id).map((item) => item.id);
   const [checked, setChecked] = useState(() => new Set(pendingIds));
@@ -248,6 +236,9 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
   const appliedCount = results.filter((row) => row && row.status === 'applied').length;
   const failedCount = results.filter((row) => row && row.status === 'failed').length;
   const jobIds = results.map((row) => row && row.job_id).filter(Boolean);
+  // Every restore point this batch produced, read from the batch itself, so the
+  // undo is here on the next visit and not only in the tab that applied it.
+  const restorePoints = Array.isArray(batch.restorePoints) ? batch.restorePoints : [];
   const bulk = bulkFacts(items);
   const showBulkBanner = pendingIds.length > 0 && (bulk.changeCount > 3 || bulk.sensitive);
   const bulkText = bulk.changeCount > 3
@@ -292,15 +283,23 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
                 <span className="asst-kind"><KindIcon size={12} />{kind ? pageText(locale, kind.en, kind.he) : <code dir="ltr">{item.kind || '?'}</code>}</span>
                 <span className={`asst-status-chip ${statusClass}`}>{statusPair ? pageText(locale, statusPair[0], statusPair[1]) : <code dir="ltr">{item.status}</code>}</span>
               </div>
-              {item.summary ? <p className="asst-item-summary" dir="auto">{item.summary}</p> : null}
-              {item.reason ? <p className="asst-item-reason" dir="auto">{item.reason}</p> : null}
+              <ProposalSummary item={item} locale={locale} className="asst-item-summary" />
+              {item.reason ? <p className="asst-item-reason" dir="auto">{inApprovedWords(item.reason)}</p> : null}
               {!item.summary && !item.reason && !item.payload ? (
                 <p className="asst-item-reason">{pageText(locale, 'No details were provided for this action.', 'לא סופקו פרטים לפעולה הזו.')}</p>
               ) : null}
               {Array.isArray(item.diff) && item.diff.length ? <DiffView item={item} locale={locale} /> : <PayloadView item={item} locale={locale} />}
-              {item.kind === 'settings_change' && item.effect ? <EffectView effect={item.effect} locale={locale} /> : null}
+              {item.kind === 'settings' && item.effect ? <EffectView effect={item.effect} basis={item.effect_basis} locale={locale} /> : null}
+              {item.permission ? <PermissionView permission={item.permission} locale={locale} /> : null}
+              {item.status === 'pending' && !MEASURED_EFFECT_KINDS.has(item.kind) ? (
+                <p className="asst-effect-note" dir="auto">{pageText(locale, 'A measured before and after is computed for settings changes only. The fields above are exactly what this would write.', 'לפני ואחרי נמדדים מחושבים לשינויי הגדרות בלבד. השדות שלמעלה הם בדיוק מה שייכתב.')}</p>
+              ) : null}
               {item.status === 'failed' && item.error ? (
-                <p className="asst-item-error"><TriangleAlert size={12} /><span dir="auto">{item.error}</span></p>
+                <p className="asst-item-error">
+                  <TriangleAlert size={12} />
+                  <span dir="auto">{pageText(locale, 'The action failed.', 'הפעולה נכשלה.')}</span>
+                  <bdi dir="auto">{String(item.error)}</bdi>
+                </p>
               ) : null}
             </div>
           </div>
@@ -348,12 +347,25 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
           {jobIds.length ? (
             <span className="asst-result-job">{pageText(locale, 'Background job started', 'הופעל תהליך רקע')} <code dir="ltr">{jobIds.join(', ')}</code></span>
           ) : null}
-          {applyResult.restoreId ? (
-            <button type="button" className="asst-restore-chip" onClick={onShowRestore}>
-              <RotateCcw size={12} />
-              {pageText(locale, 'A restore point was created', 'נוצרה נקודת שחזור')}
-            </button>
-          ) : null}
+        </div>
+      ) : null}
+
+      {restorePoints.length ? (
+        <div className="asst-restore-block">
+          {restorePoints.map((point) => (
+            <div className="asst-restore-point" key={point.restoreId}>
+              <p className="asst-restore-line" dir="auto">
+                {pageText(locale, 'A restore point was created before this change.', 'נוצרה נקודת שחזור לפני השינוי הזה.')}
+                {point.appliedAt ? <time dir="ltr">{appliedLabel(point.appliedAt, locale)}</time> : null}
+                {point.appliedBy ? <span dir="auto">{pageText(locale, `Applied by ${point.appliedBy}`, `הוחל על ידי ${point.appliedBy}`)}</span> : null}
+              </p>
+              <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
+            </div>
+          ))}
+          <button type="button" className="asst-restore-chip" onClick={onShowRestore}>
+            <ExternalLink size={12} />
+            {pageText(locale, 'See it in the history', 'הצגה בהיסטוריה')}
+          </button>
         </div>
       ) : null}
     </div>

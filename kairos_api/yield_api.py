@@ -49,12 +49,34 @@ def _daypart_for_start(start_time: object) -> Optional[str]:
 
 
 # One honest sentence shipped with the retention-cost band, naming its source.
-_RETENTION_BAND_BASIS = (
-    "The retention-cost band re-prices the committed plan's per-break audience loss at "
-    "each segment's calibrated 95 percent coefficient interval bounds, the same interval "
-    "seam risk_lambda uses for worst-plausible pricing: ci_low (the more damaging bound) "
-    "yields retention_cost_high and ci_high yields retention_cost_low."
-)
+_RETENTION_BAND_BASIS = "The retention-cost band re-prices the committed plan's per-break audience loss at each segment's calibrated 95 percent coefficient interval bounds, the same interval seam risk_lambda uses for worst-plausible pricing: ci_low (the more damaging bound) yields retention_cost_high and ci_high yields retention_cost_low."
+
+# The worth of a second has its own arithmetic and therefore its own basis.
+#
+# This payload carries two money stories. `basis` at the top level is
+# frame_revenue_net's, and it states the retention-cost model that produces
+# revenue_net_ils and retention_cost_ils; those two figures own it. The headline
+# the rate card prints is neither of them: it is this division, and nothing in
+# the retention-cost formula computes it. Measured on the shipped surface before
+# this existed, the rate card printed 142.0920 under the retention-cost formula,
+# whose five named inputs produce 36,783,099.42 and never that rate. So the
+# figure carries the formula that made it, named in the same field names it sits
+# beside on the payload, and a reader can do the division themselves.
+_TOTALS_BASIS_FORMULA = "yield_per_second = revenue / ad_seconds"
+_TOTALS_BASIS_INPUTS = {
+    "revenue": "the saved plan's predicted_revenue in ILS, summed over the scoped rows that carry ad seconds; the figure printed as totals.revenue",
+    "ad_seconds": "the seconds of ad time those same rows carry, num_breaks * break_length per segment (the plan's total_break_time); the figure printed as totals.ad_seconds",
+}
+
+
+def _totals_basis() -> dict[str, Any]:
+    """The disclosure that belongs to totals.yield_per_second, a fresh copy each
+    call so no consumer can mutate the module's own constant."""
+    return {
+        "formula": _TOTALS_BASIS_FORMULA,
+        "inputs": dict(_TOTALS_BASIS_INPUTS),
+        "source": "modeled",
+    }
 
 
 def _optimistic_impact(point: float, ci_low: float, ci_high: float) -> float:
@@ -321,6 +343,10 @@ def _build_yield_per_second(schedule: pd.DataFrame, scope_channel: Optional[str]
             "yield_per_second": round(total_revenue / total_seconds, 4) if total_seconds > 0 else 0.0,
             "segment_count": int(frame["segment_id"].nunique()) if has_segment_id else None,
             "avg_retention": _weighted_retention(frame),
+            # Its own basis, not the net-money one above it. The two figures it
+            # names are the two beside it, so the division is checkable on the
+            # screen that prints it.
+            "basis": _totals_basis(),
         },
         "by_daypart": by_daypart,
         "by_programme": by_programme,

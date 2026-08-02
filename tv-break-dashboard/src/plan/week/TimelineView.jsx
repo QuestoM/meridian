@@ -132,7 +132,7 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
       {breaks.length === 0 && (
         <p className="data-basis-note">
           {programs.length === 0
-            ? pageText(locale, 'No timeline data yet. Run a recompute to build the weekly plan.', 'אין עדיין נתוני ציר זמן. הריצו חישוב מחדש כדי לבנות את התוכנית השבועית.')
+            ? pageText(locale, 'No timeline yet. Run the weekly plan to build one.', 'אין עדיין ציר זמן. הריצו את התוכנית השבועית כדי לבנות אותו.')
             : pageText(locale, 'No planned break data arrived for this week, so the timeline shows programme bands without break chips.', 'לא התקבלו נתוני ברייקים מתוכננים לשבוע הזה, ולכן ציר הזמן מציג רצועות תוכניות בלי סימוני ברייקים.')}
         </p>
       )}

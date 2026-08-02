@@ -1,0 +1,20 @@
+{
+  "task": "RATE-CARD-RESEARCH",
+  "status": "complete",
+  "started_at": "2026-08-02",
+  "goal": "Research Israeli commercial TV rate card and how it maps to the existing pricing engine",
+  "deliverable": "docs/campaign-rate-card-research.md",
+  "work_done": [
+    "Searched for Reshet 13 and Keshet 12 rate cards (no public rate card found; all are negotiated)",
+    "Found CPP ranges from a Globes article about Reshet 13 price increases (source: globes.co.il/news/article.aspx?did=1001268924)",
+    "Found flat spot price ranges from multiple Israeli media agency pages",
+    "Read IARB measurement methodology: 700-household Kantar Focal Meter panel, ~2,200 individuals, Instar tool",
+    "Read Second Authority regulations: 10 min ads/hour, 90s max spot, 10s max sponsorship, placement rules",
+    "Confirmed: Israel sells on CPP (cost per rating point), 30s spot is the base unit, 15s at ~60-75% of 30s rate",
+    "Confirmed standard dayparts: morning, off-prime, semi-prime, news, prime (20:00-23:00), super-prime, late night",
+    "Confirmed sponsorship format is 6-10 seconds (regulatory max 10s), appears before/after program and around breaks",
+    "Confirmed position premiums exist in the market (first/last commands premium)",
+    "Could not find: a published rate card with actual CPP numbers from official Reshet or Keshet source"
+  ],
+  "notes": "CPP numbers from Globes article are the most credible found; they match the order of magnitude of the existing engine's ILS 60/sec/TVR base. The existing engine base matches the Israeli market structure well. Key gap: CPP is measured per 30-second spot in Israeli practice, but the engine uses per-second. These are equivalent by multiplication."
+}

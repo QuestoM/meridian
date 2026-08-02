@@ -1,0 +1,422 @@
+/* Plan, the week: the panels, split from plan-week.css under the 450-line law.
+   The destination imports every sheet in one place and none overrides another:
+   each selector belongs to exactly one file, so the split is a move and not a
+   cascade. Uses the frozen tokens only; defines none of its own. */
+
+/* The worth of a second, above the supply it prices. */
+.plan-yield {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.plan-figure.is-headline {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.plan-figure.is-headline strong {
+  font-size: var(--text-3xl);
+  color: var(--teal-ink);
+}
+
+.plan-leg-grid,
+.plan-supply-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.plan-leg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.plan-leg-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-leg-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-leg-label span {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.plan-leg-label small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.plan-leg-focus {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.plan-leg-chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.plan-leg-chip.is-active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+  font-weight: var(--weight-medium);
+}
+
+.plan-scenario-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.plan-scenario-arrow {
+  color: var(--subtle);
+}
+
+.plan-scenario-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.plan-scenario-card.accent-a {
+  border-inline-start: 3px solid var(--blue);
+}
+
+.plan-scenario-card.accent-b {
+  border-inline-start: 3px solid var(--teal);
+}
+
+.plan-scenario-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-scenario-head strong {
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.plan-scenario-head span {
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-money-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.plan-money-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.plan-money-row strong {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.plan-money-row.cost strong {
+  color: var(--amber-ink);
+}
+
+.plan-money-row.net {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: var(--space-2);
+  margin-block-start: var(--space-1);
+}
+
+.plan-money-row.net strong {
+  font-size: var(--text-xl);
+  color: var(--teal-ink);
+}
+
+.plan-scope-line {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.plan-scenario-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.plan-scenario-stats div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-scenario-stats dt {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-scenario-stats dd {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.plan-compliance {
+  align-self: flex-start;
+  font-size: var(--text-sm);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.plan-compliance.ok {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.plan-compliance.warn {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.plan-delta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.plan-delta h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-delta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  color: var(--muted);
+  padding-block: 2px;
+}
+
+.plan-delta-row.is-headline {
+  font-size: var(--text-lg);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--line);
+  margin-block-end: var(--space-2);
+}
+
+.plan-delta-row strong.up {
+  color: var(--teal-ink);
+}
+
+.plan-delta-row strong.down {
+  color: var(--red);
+}
+
+/* The winning leg, and the five values that make it the objective. */
+.plan-scenario-adopt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--line);
+}
+
+.plan-scenario-levers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-scenario-levers li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.plan-scenario-levers strong {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-scenario-adopt-foot {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.plan-scenario-adopt-note {
+  margin-block-start: var(--space-3);
+}
+
+/* Old value beside new, for every lever a save would move. */
+.plan-change-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.plan-change-table th,
+.plan-change-table td {
+  padding: var(--space-1) var(--space-2);
+  text-align: start;
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-change-table thead th {
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.plan-change-table tbody th {
+  font-weight: var(--weight-regular);
+  color: var(--ink);
+}
+
+.plan-change-table td.was {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.plan-change-table td.next {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.plan-board-day {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.plan-board-day.is-empty {
+  border-color: var(--amber);
+}
+
+.plan-board-day-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.plan-board-day-name span {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-board-day-counts,
+.plan-board-day-reason {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.plan-board-day-reason {
+  color: var(--amber-ink);
+}
+
+.plan-board-day button {
+  margin-inline-start: auto;
+}
+
+.plan-board-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.plan-board-views {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.plan-board-count {
+  margin-inline-start: auto;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+}
+
+.plan-foot-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.plan-foot-sections {
+  color: var(--line-strong);
+}
+
+@media (max-width: 900px) {
+  .plan-scenario-grid,
+  .plan-publish-form {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-scenario-arrow {
+    display: none;
+  }
+}

@@ -10,8 +10,10 @@ import {
   formatPremium,
   premiumDelta,
   revenuePendingTooltip,
+  revenueProvenance,
   totalRules,
 } from './advertiser-stats-helpers';
+import { exactMoney } from './clients-money-helpers';
 
 // One stat with an Info affordance carrying provenance. Value renders dir=ltr so
 // numbers stay readable in the RTL Hebrew layout. A missing value shows "-".
@@ -105,8 +107,8 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
           <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`} dir="auto">
             {shownName}
             {unnamed && (
-              <Tooltip title={pageText(locale, 'Only a raw ID exists for this advertiser. Open the card and set a display name.', 'למפרסם זה קיים רק מזהה גולמי. פתחו את הכרטיס והזינו שם תצוגה.')} arrow placement="top">
-                <span className="amz-unnamed-chip">{pageText(locale, 'unnamed', 'ללא שם')}</span>
+              <Tooltip title={pageText(locale, 'This pricing row carries no advertiser name, so it prices nobody. A client gets its rule from its own record, under Clients.', 'שורת התמחור הזו אינה נושאת שם מפרסם, ולכן היא אינה מתמחרת אף אחד. לקוח מקבל את הכלל שלו מהכרטיס שלו, במסך הלקוחות.')} arrow placement="top">
+                <span className="amz-unnamed-chip">{pageText(locale, 'prices nobody', 'לא מתמחר אף אחד')}</span>
               </Tooltip>
             )}
           </span>
@@ -163,8 +165,8 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
         />
         <StatBlock
           label={pageText(locale, 'Revenue', 'הכנסה')}
-          value={null}
-          provenance={revenuePendingTooltip(locale)}
+          value={row.revenue === null || row.revenue === undefined ? null : exactMoney(row.revenue, locale)}
+          provenance={revenueProvenance(row, locale)}
         />
         <StatBlock
           label={pageText(locale, 'Profitability', 'רווחיות')}

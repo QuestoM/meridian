@@ -41,7 +41,9 @@ DESTINATION_TREES = (
 TOP_LEVEL_ALLOWED = {"index.jsx", "tokens.css", "vocabulary.js", "session.js"}
 
 # Over the 450-line law before wave zero and moved, not created, by W0-2. Each
-# is now inside its wave-1 owner's tree and is that owner's to split.
+# is now inside its wave-1 owner's tree and is that owner's to split, so this is
+# the inherited debt as an UPPER BOUND, not a snapshot: an owner who splits one
+# of these is doing the thing the law asks for and must not fail this test.
 KNOWN_OVERSIZE = {
     "shell/styles.css",
     "plan/day/ScheduleEditor.jsx",
@@ -142,13 +144,21 @@ def test_the_shell_no_longer_carries_the_page_components() -> None:
 
 
 def test_no_file_this_piece_created_is_over_the_line_cap() -> None:
-    """The 450-line law, with the three pre-existing breaches named, not hidden."""
+    """The 450-line law: no new breach, and the inherited ones only ever shrink.
+
+    The rule this pins is one-directional. A file over the cap that is not one
+    of the inherited breaches is a violation whoever wrote it must fix. A file
+    that leaves the inherited set has been split by its owner, which is the law
+    being obeyed, so it is not a failure to report.
+    """
     oversize = {
         path.relative_to(SRC).as_posix()
         for path in _sources(".js", ".jsx", ".css")
         if len(path.read_text(encoding="utf-8").splitlines()) > LINE_CAP
     }
-    assert oversize == KNOWN_OVERSIZE, f"line-cap set moved: {sorted(oversize)}"
+    assert oversize <= KNOWN_OVERSIZE, (
+        f"over the {LINE_CAP}-line cap and not an inherited breach: {sorted(oversize - KNOWN_OVERSIZE)}"
+    )
 
 
 def test_tokens_are_defined_in_tokens_css_and_nowhere_else() -> None:

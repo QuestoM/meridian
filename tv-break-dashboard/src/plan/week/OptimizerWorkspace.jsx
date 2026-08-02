@@ -1,181 +1,31 @@
 import React from 'react';
-import { Button, Checkbox, FormControlLabel } from '@mui/material';
-import { SlidersHorizontal } from 'lucide-react';
-import SummaryMetrics from '../../today/SummaryMetrics';
-import ComplianceLedger from '../../rules/ComplianceLedger';
-import {
-  CoefficientFreshnessChip,
-  OptimizationRunSummary,
-  RetentionCostPanel,
-} from './OptimizerRunPanels';
-import GridAxisControl from './GridAxisControl';
-import PlanningCanvas from './PlanningCanvas';
-import TimelineView from './TimelineView';
-import DaypartView from './DaypartView';
-import OptimizerInventoryView from './OptimizerInventoryView';
-import Inspector, { SelectionGuide } from './Inspector';
-import FrontierPanel from './FrontierPanel';
-import InventoryHeatmap from './InventoryHeatmap';
+import PlanWeek from './PlanWeek';
 
-export function OptimizerWorkspace({
-  overview,
-  schedule,
-  compliance,
-  loading,
-  activeViewMode,
-  gridAxis,
-  showPrograms,
-  showBreaks,
-  showMetrics,
-  selectedProgramKey,
-  selectedProgram,
-  activeRec,
-  approved,
-  rejected,
-  optimizationPlan,
-  parameters,
-  inspectorOpen,
-  onViewChange,
-  onGridAxisChange,
-  onTogglePrograms,
-  onToggleBreaks,
-  onToggleMetrics,
-  onSelectProgram,
-  onCloseInspector,
-  onApprove,
-  onReject,
-  onOpenInOverrides,
-  onApplySimilar,
-  onExport,
-  copy,
-  locale,
-}) {
-  const modeButtons = [
-    ['grid', copy.toolbar[0]],
-    ['timeline', copy.toolbar[1]],
-    ['daypart', copy.toolbar[2]],
-    ['inventory', copy.toolbar[3]],
-  ];
+// The Optimizer entrance to Plan, the week.
+//
+// Discovery measured Optimizer and Schedule as duplicates: the same four tiles,
+// the same compliance ledger with the same prop, the same frontier, and the same
+// canvas, daypart and timeline views over the same schedule rows. Section 3.5 of
+// the specification merges Optimizer into Plan, week, and section 3.3 makes zoom
+// a control in the content rather than a second destination.
+//
+// The navigation list and the shell router are frozen for this run, so the entry
+// stays and what it opens changes: this file is now the door, and the
+// destination behind all four doors is one component. A planner arriving here
+// lands on step one, the objective, because that is where their job starts.
 
+export function OptimizerWorkspace({ schedule, inventory, copy, locale, notify, planEvents, onGlobalRefresh }) {
   return (
-    <>
-      <SummaryMetrics overview={overview} copy={copy} locale={locale} />
-      <OptimizationRunSummary plan={optimizationPlan} locale={locale} />
-      <CoefficientFreshnessChip plan={optimizationPlan} parameters={parameters} locale={locale} />
-      <RetentionCostPanel plan={optimizationPlan} parameters={parameters} copy={copy} locale={locale} />
-
-      <div className="work-grid">
-        <section className="planner-surface" aria-label={copy.canvas}>
-          <div className="surface-toolbar">
-            <div className="toolbar-left">
-              {modeButtons.map(([mode, label]) => (
-                <Button
-                  key={mode}
-                  className={activeViewMode === mode ? 'segmented active' : 'segmented'}
-                  type="button"
-                  variant="outlined"
-                  aria-pressed={activeViewMode === mode}
-                  onClick={() => onViewChange(mode)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-            <div className="toolbar-right">
-              {activeViewMode === 'grid' && (
-                <GridAxisControl value={gridAxis} onChange={onGridAxisChange} locale={locale} />
-              )}
-              <FormControlLabel
-                className="check-control"
-                control={<Checkbox checked={showPrograms} onChange={(event) => onTogglePrograms(event.target.checked)} size="small" />}
-                label={copy.toolbar[4]}
-              />
-              <FormControlLabel
-                className="check-control"
-                control={<Checkbox checked={showBreaks} onChange={(event) => onToggleBreaks(event.target.checked)} size="small" />}
-                label={copy.toolbar[5]}
-              />
-              <Button
-                className={showMetrics ? 'secondary-button compact active' : 'secondary-button compact'}
-                type="button"
-                variant="outlined"
-                aria-pressed={showMetrics}
-                onClick={onToggleMetrics}
-              >
-                <SlidersHorizontal size={14} />
-                {copy.toolbar[6]}
-              </Button>
-            </div>
-          </div>
-
-          {activeViewMode === 'grid' && (
-            <PlanningCanvas
-              rows={schedule.rows || []}
-              copy={copy}
-              locale={locale}
-              axis={gridAxis}
-              showPrograms={showPrograms}
-              showBreaks={showBreaks}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-          {activeViewMode === 'timeline' && (
-            <TimelineView
-              timeline={schedule.break_operations}
-              rows={schedule.rows || []}
-              locale={locale}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-          {activeViewMode === 'daypart' && (
-            <DaypartView
-              rows={schedule.rows || []}
-              locale={locale}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-          {activeViewMode === 'inventory' && (
-            <OptimizerInventoryView
-              rows={schedule.rows || []}
-              locale={locale}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-        </section>
-
-        {inspectorOpen ? (
-          <Inspector
-            selectedProgram={selectedProgram}
-            recommendation={activeRec}
-            approved={approved.has(activeRec?.id)}
-            rejected={rejected.has(activeRec?.id)}
-            retentionFloor={overview.settings?.min_retention_floor}
-            onApprove={onApprove}
-            onReject={onReject}
-            onOpenInOverrides={onOpenInOverrides}
-            onApplySimilar={onApplySimilar}
-            onExport={onExport}
-            onClose={onCloseInspector}
-            copy={copy}
-            locale={locale}
-          />
-        ) : (
-          <SelectionGuide selectedProgram={selectedProgram} onOpen={() => onSelectProgram(selectedProgram)} copy={copy} locale={locale} />
-        )}
-      </div>
-
-      {showMetrics && (
-        <section className="analytics-strip" aria-label="Analytics and constraint ledger">
-          <FrontierPanel data={overview.frontier || []} copy={copy} locale={locale} loading={loading} operatorChannel={overview.settings?.operator_channel || ''} status={overview.frontier_status || ''} netPoint={overview.frontier_net_point || null} />
-          <InventoryHeatmap copy={copy} locale={locale} />
-          <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
-        </section>
-      )}
-    </>
+    <PlanWeek
+      entrance="Optimizer"
+      schedule={schedule}
+      inventory={inventory}
+      copy={copy}
+      locale={locale}
+      notify={notify}
+      planEvents={planEvents}
+      onGlobalRefresh={onGlobalRefresh}
+    />
   );
 }
 

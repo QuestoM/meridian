@@ -1,0 +1,158 @@
+{
+ "tr-20260802T011450-f92988": {
+  "run_id": "tr-20260802T011450-f92988",
+  "artifact": "retention",
+  "label_en": "Retention coefficients",
+  "label_he": "מקדמי שימור",
+  "state": "done",
+  "started_at": "2026-08-02T01:14:50.224246+00:00",
+  "actor": "critic",
+  "flags": {},
+  "command": "/Users/home/.venvs/meridian/bin/python scripts/compute_measured_coefficients.py --output models/releases/training_runs/tr-20260802T011450-f92988/tv_break_coefficients.json",
+  "output_path": "/Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T011450-f92988/tv_break_coefficients.json",
+  "writes_shipped_artifact": false,
+  "shipped_before": "mv-2026-07-29-35cc2e21",
+  "exit_code": 0,
+  "stdout_tail": "Wrote 36 measured coefficients to /Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T011450-f92988/tv_break_coefficients.json\n  total breaks measured: 2532\n  negative cells: 36 of 36\n  pooling: empirical_bayes, tau^2=0.00017295, learned pseudo-count=376.43365015077126\n  series gate: series RMSE (fold mean 0.26239) does not beat genre RMSE (fold mean 0.24200) by the required 2% margin (mean improvement -8.5% over 5 temporal folds, fold sd 3.4pp); series layer omitted\n  first-break gate: p=0.2034 not < 0.01; multiplier left at 1.0 (off)\n  counter-programming gate: counter-programming RMSE (fold mean 0.24214) does not beat the no-covariate RMSE (fold mean 0.24200) by the required 2% (mean improvement -0.1% over 5 temporal folds, fold sd 0.4pp); covariate left off\n  counter-programming INACTIVE (plain measured coefficients)\n  placebo correction: active by default: content-only baseline applied and each genre's measured no-break drift (pooled +0.01422 log over 6141 matched pseudo-breaks) subtracted from the raw effects before pooling\n  placebo correction ACTIVE: drift-corrected, content-only-baseline coefficients emitted (pooled corrected delta -0.04984)\n  detrend seasonality gate: month_minute RMSE (1.70793) does not beat the global RMSE (1.70793) by the required 2% (actual improvement 0.0%); mode stays global (baseline mode used: global)\n  event layer gate: off (no event on/off contrast in the measured window: all 2532 measured breaks lie inside an active calendar event, so an event retention effect cannot be separated from the baseline; the gate re-measures automatically once history with both conditions exists)\n  level drift: +0.0202 per week (se 0.0117) vs binding threshold 0.0188 over 5 weeks; binding=True\n  interval calibration: active by default: ci_low/ci_high are seeded parametric-bootstrap mixture quantiles (B=2000, measured width factor 1.15x at 95%); predictive_low/predictive_high added per cell for a single future break\n  series layer INACTIVE (omitted from JSON)\n  Other_first_long: -0.0617  (n=238, ci=[-0.087, -0.040])\n  News_last_standard: -0.0577  (n=58, ci=[-0.093, -0.035])\n  PrimeShow2_first_short: -0.0565  (n=14, ci=[-0.097, -0.032])",
+  "stderr_tail": "/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree\n  warnings.warn(",
+  "duration_seconds": 19.5,
+  "finished_at": "2026-08-02T01:15:09.748953+00:00",
+  "produced": {
+   "path": "models/releases/training_runs/tr-20260802T011450-f92988/tv_break_coefficients.json",
+   "bytes": 21014,
+   "sha256": "28284f75b14d7cf819ec29a67492aea1890e3000d382ae02f5bb1af9263baed2",
+   "computed_at": "2026-08-02T01:15:09.261467+00:00"
+  },
+  "would_change": {
+   "available": true,
+   "gate_deltas": [],
+   "coefficient_deltas": {
+    "cells_compared": 36,
+    "cells_only_in_shipped": [],
+    "cells_only_in_candidate": [],
+    "max_abs_delta": 0.0,
+    "max_abs_delta_cell": "News_first_long",
+    "mean_delta": 0.0,
+    "cells_moved": 0
+   },
+   "money_state": "not_measured",
+   "money_note_en": "Measuring the money needs the whole weekly plan computed twice, which this run does not do.",
+   "money_note_he": "מדידת הכסף דורשת חישוב של כל התוכנית השבועית פעמיים, וההרצה הזו אינה עושה זאת."
+  }
+ },
+ "tr-20260802T012233-708139": {
+  "run_id": "tr-20260802T012233-708139",
+  "artifact": "retention",
+  "label_en": "Retention coefficients",
+  "label_he": "מקדמי שימור",
+  "state": "done",
+  "started_at": "2026-08-02T01:22:33.350361+00:00",
+  "actor": "critic",
+  "flags": {},
+  "command": "/Users/home/.venvs/meridian/bin/python scripts/compute_measured_coefficients.py --output models/releases/training_runs/tr-20260802T012233-708139/tv_break_coefficients.json",
+  "output_path": "/Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T012233-708139/tv_break_coefficients.json",
+  "writes_shipped_artifact": false,
+  "shipped_before": "mv-2026-07-29-35cc2e21",
+  "exit_code": 0,
+  "stdout_tail": "Wrote 36 measured coefficients to /Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T012233-708139/tv_break_coefficients.json\n  total breaks measured: 2532\n  negative cells: 36 of 36\n  pooling: empirical_bayes, tau^2=0.00017295, learned pseudo-count=376.43365015077126\n  series gate: series RMSE (fold mean 0.26239) does not beat genre RMSE (fold mean 0.24200) by the required 2% margin (mean improvement -8.5% over 5 temporal folds, fold sd 3.4pp); series layer omitted\n  first-break gate: p=0.2034 not < 0.01; multiplier left at 1.0 (off)\n  counter-programming gate: counter-programming RMSE (fold mean 0.24214) does not beat the no-covariate RMSE (fold mean 0.24200) by the required 2% (mean improvement -0.1% over 5 temporal folds, fold sd 0.4pp); covariate left off\n  counter-programming INACTIVE (plain measured coefficients)\n  placebo correction: active by default: content-only baseline applied and each genre's measured no-break drift (pooled +0.01422 log over 6141 matched pseudo-breaks) subtracted from the raw effects before pooling\n  placebo correction ACTIVE: drift-corrected, content-only-baseline coefficients emitted (pooled corrected delta -0.04984)\n  detrend seasonality gate: month_minute RMSE (1.70793) does not beat the global RMSE (1.70793) by the required 2% (actual improvement 0.0%); mode stays global (baseline mode used: global)\n  event layer gate: off (no event on/off contrast in the measured window: all 2532 measured breaks lie inside an active calendar event, so an event retention effect cannot be separated from the baseline; the gate re-measures automatically once history with both conditions exists)\n  level drift: +0.0202 per week (se 0.0117) vs binding threshold 0.0188 over 5 weeks; binding=True\n  interval calibration: active by default: ci_low/ci_high are seeded parametric-bootstrap mixture quantiles (B=2000, measured width factor 1.15x at 95%); predictive_low/predictive_high added per cell for a single future break\n  series layer INACTIVE (omitted from JSON)\n  Other_first_long: -0.0617  (n=238, ci=[-0.087, -0.040])\n  News_last_standard: -0.0577  (n=58, ci=[-0.093, -0.035])\n  PrimeShow2_first_short: -0.0565  (n=14, ci=[-0.097, -0.032])",
+  "stderr_tail": "/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree\n  warnings.warn(",
+  "duration_seconds": 22.8,
+  "finished_at": "2026-08-02T01:22:56.134590+00:00",
+  "produced": {
+   "path": "models/releases/training_runs/tr-20260802T012233-708139/tv_break_coefficients.json",
+   "bytes": 21014,
+   "sha256": "869f41e13ad3b7f07119974ec39ab9561f2b416075569e78a2caf726a4c3a594",
+   "computed_at": "2026-08-02T01:22:55.447157+00:00"
+  },
+  "would_change": {
+   "available": true,
+   "gate_deltas": [],
+   "coefficient_deltas": {
+    "cells_compared": 36,
+    "cells_only_in_shipped": [],
+    "cells_only_in_candidate": [],
+    "max_abs_delta": 0.0,
+    "max_abs_delta_cell": "News_first_long",
+    "mean_delta": 0.0,
+    "cells_moved": 0
+   },
+   "money_state": "not_measured",
+   "money_note_en": "Measuring the money needs the whole weekly plan computed twice, which this run does not do.",
+   "money_note_he": "מדידת הכסף דורשת חישוב של כל התוכנית השבועית פעמיים, וההרצה הזו אינה עושה זאת."
+  }
+ },
+ "tr-20260802T012312-519268": {
+  "run_id": "tr-20260802T012312-519268",
+  "artifact": "retention",
+  "label_en": "Retention coefficients",
+  "label_he": "מקדמי שימור",
+  "state": "done",
+  "started_at": "2026-08-02T01:23:12.054205+00:00",
+  "actor": "critic",
+  "flags": {},
+  "command": "/Users/home/.venvs/meridian/bin/python scripts/compute_measured_coefficients.py --output models/releases/training_runs/tr-20260802T012312-519268/tv_break_coefficients.json",
+  "output_path": "/Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T012312-519268/tv_break_coefficients.json",
+  "writes_shipped_artifact": false,
+  "shipped_before": "mv-2026-07-29-35cc2e21",
+  "exit_code": 0,
+  "stdout_tail": "Wrote 36 measured coefficients to /Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T012312-519268/tv_break_coefficients.json\n  total breaks measured: 2532\n  negative cells: 36 of 36\n  pooling: empirical_bayes, tau^2=0.00017295, learned pseudo-count=376.43365015077126\n  series gate: series RMSE (fold mean 0.26239) does not beat genre RMSE (fold mean 0.24200) by the required 2% margin (mean improvement -8.5% over 5 temporal folds, fold sd 3.4pp); series layer omitted\n  first-break gate: p=0.2034 not < 0.01; multiplier left at 1.0 (off)\n  counter-programming gate: counter-programming RMSE (fold mean 0.24214) does not beat the no-covariate RMSE (fold mean 0.24200) by the required 2% (mean improvement -0.1% over 5 temporal folds, fold sd 0.4pp); covariate left off\n  counter-programming INACTIVE (plain measured coefficients)\n  placebo correction: active by default: content-only baseline applied and each genre's measured no-break drift (pooled +0.01422 log over 6141 matched pseudo-breaks) subtracted from the raw effects before pooling\n  placebo correction ACTIVE: drift-corrected, content-only-baseline coefficients emitted (pooled corrected delta -0.04984)\n  detrend seasonality gate: month_minute RMSE (1.70793) does not beat the global RMSE (1.70793) by the required 2% (actual improvement 0.0%); mode stays global (baseline mode used: global)\n  event layer gate: off (no event on/off contrast in the measured window: all 2532 measured breaks lie inside an active calendar event, so an event retention effect cannot be separated from the baseline; the gate re-measures automatically once history with both conditions exists)\n  level drift: +0.0202 per week (se 0.0117) vs binding threshold 0.0188 over 5 weeks; binding=True\n  interval calibration: active by default: ci_low/ci_high are seeded parametric-bootstrap mixture quantiles (B=2000, measured width factor 1.15x at 95%); predictive_low/predictive_high added per cell for a single future break\n  series layer INACTIVE (omitted from JSON)\n  Other_first_long: -0.0617  (n=238, ci=[-0.087, -0.040])\n  News_last_standard: -0.0577  (n=58, ci=[-0.093, -0.035])\n  PrimeShow2_first_short: -0.0565  (n=14, ci=[-0.097, -0.032])",
+  "stderr_tail": "/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree\n  warnings.warn(",
+  "duration_seconds": 20.6,
+  "finished_at": "2026-08-02T01:23:32.702252+00:00",
+  "produced": {
+   "path": "models/releases/training_runs/tr-20260802T012312-519268/tv_break_coefficients.json",
+   "bytes": 21014,
+   "sha256": "b5e08a3b15047a2e0abff707b72e6874ee773b84a6ab5b84e85035d3aa51a11a",
+   "computed_at": "2026-08-02T01:23:32.021506+00:00"
+  },
+  "would_change": {
+   "available": true,
+   "gate_deltas": [],
+   "coefficient_deltas": {
+    "cells_compared": 36,
+    "cells_only_in_shipped": [],
+    "cells_only_in_candidate": [],
+    "max_abs_delta": 0.0,
+    "max_abs_delta_cell": "News_first_long",
+    "mean_delta": 0.0,
+    "cells_moved": 0
+   },
+   "money_state": "not_measured",
+   "money_note_en": "Measuring the money needs the whole weekly plan computed twice, which this run does not do.",
+   "money_note_he": "מדידת הכסף דורשת חישוב של כל התוכנית השבועית פעמיים, וההרצה הזו אינה עושה זאת."
+  }
+ },
+ "tr-20260802T015712-a22e2e": {
+  "run_id": "tr-20260802T015712-a22e2e",
+  "artifact": "audience",
+  "label_en": "Audience model",
+  "label_he": "מודל הקהל",
+  "state": "done",
+  "started_at": "2026-08-02T01:57:12.595368+00:00",
+  "actor": "steward",
+  "flags": {},
+  "command": "/Users/home/.venvs/meridian/bin/python scripts/compute_audience_model.py --output models/releases/training_runs/tr-20260802T015712-a22e2e/audience_model.json",
+  "output_path": "/Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T015712-a22e2e/audience_model.json",
+  "writes_shipped_artifact": false,
+  "shipped_before": "mv-2026-07-29-35cc2e21",
+  "exit_code": 0,
+  "stdout_tail": "Wrote audience model to /Users/home/Code/questo/meridian/models/releases/training_runs/tr-20260802T015712-a22e2e/audience_model.json\n  computed_at: 2026-08-02T01:57:18.678110+00:00\n  observations: 3459 across 4 channels, 603 series\n  owned channel: רשת 13\n  activation default: False (operator settings flag decides)\n  gate weekday_slot: on (the weekday_slot factor beats the pooled base by 25.6 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated)\n  gate series: on (the series factor beats the pooled base by 16.1 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated)\n  gate calendar_school_and_chol_hamoed: off (no school-holiday or chol-hamoed days in the measured window; nothing to contrast against ordinary days)\n  gate calendar_hanukkah: off (no Hanukkah days in the measured window; nothing to contrast against ordinary days)\n  gate calendar_religious_blackout: off (the calendar_religious_blackout factor does not beat the pooled base by the required 2 percent held-out RMSE margin (measured 0.1 percent over 5 temporal folds); factor stays off)\n  gate season: off (fewer than two season cells with at least 10 observations (1 of 1 cells qualify); no contrast to measure)\n  gate operator_events: off (every one of the 3459 observations falls on operator-event days; no ordinary days to contrast against)\n  gate competitor_lineup: on (the competitor_lineup factor beats the pooled base by 2.2 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated)",
+  "stderr_tail": "/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree\n  warnings.warn(",
+  "duration_seconds": 9.5,
+  "finished_at": "2026-08-02T01:57:22.055655+00:00",
+  "produced": {
+   "path": "models/releases/training_runs/tr-20260802T015712-a22e2e/audience_model.json",
+   "bytes": 121514,
+   "sha256": "e035d906577d19478c23bfaa2e156b0307fd304550284114917cbdb81a8de253",
+   "computed_at": "2026-08-02T01:57:18.678110+00:00"
+  },
+  "would_change": {
+   "available": true,
+   "gate_deltas": [],
+   "coefficient_deltas": null,
+   "money_state": "not_applicable",
+   "money_note_en": "The audience model changes forward-dated ratings only while the activation switch is on.",
+   "money_note_he": "מודל הקהל משנה רייטינג לתאריכים עתידיים רק כשמתג ההפעלה דלוק."
+  }
+ }
+}

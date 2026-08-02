@@ -22,6 +22,7 @@ import logging
 from typing import Any
 
 from kairos_api import assistant_memory
+from kairos_api import assistant_protocol_text as protocol_text
 
 HISTORY_MAX_EXCHANGES = 6
 HISTORY_CHAR_BUDGET = 12000
@@ -32,7 +33,16 @@ logger = logging.getLogger(__name__)
 
 
 def _replay_answer(answer: str) -> str:
-    """The stored answer capped for replay, cut with an explicit marker."""
+    """The stored answer capped for replay, cut with an explicit marker.
+
+    Any tool-call protocol an older answer carries is cut first. A stored
+    answer is replayed as an assistant turn, so a leaked call in one would
+    teach the next turn to write its calls the same way, and the leak would
+    keep re-teaching itself for as long as the conversation lives. An answer
+    that was nothing but protocol becomes empty here and the caller drops the
+    exchange entirely.
+    """
+    answer = protocol_text.strip_tool_protocol(answer)
     if len(answer) <= ANSWER_REPLAY_CHARS:
         return answer
     return answer[:ANSWER_REPLAY_CHARS].rstrip() + " " + ANSWER_TRUNCATION_MARKER

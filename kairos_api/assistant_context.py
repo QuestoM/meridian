@@ -18,17 +18,25 @@ substituted.
 
 from __future__ import annotations
 
-import json
 import math
-import os
 import re
 from datetime import date as _date
 from typing import Any
 
-DEFAULT_CONTEXT_BUDGET = 60000
-BUDGET_ENV = "KAIROS_ASSISTANT_CONTEXT_BUDGET"
+# Re-exported so every caller and every test reaches the budget through this
+# module exactly as before the split. The definitions live in
+# kairos_api.assistant_context_budget.
+from kairos_api.assistant_context_budget import (  # noqa: F401
+    BUDGET_ENV,
+    DAY_DETAIL_PREFIX,
+    DEFAULT_CONTEXT_BUDGET,
+    _context_budget,
+    _serialized_size,
+    _trim_recommendations,
+    enforce_budget,
+)
+
 PER_DAY_SECTION = "per_day_plan"
-DAY_DETAIL_PREFIX = "day_detail"
 DAY_DETAIL_ROW_CAP = 90
 FULL_ROW_CAP = 30
 
@@ -374,67 +382,3 @@ def extend_with_day_grounding(context: dict[str, Any], sources: list[str], quest
             sources.append(name)
     except Exception:
         sources.append(f"{DAY_DETAIL_PREFIX} (absent)")
-
-
-def _context_budget() -> int:
-    raw = os.environ.get(BUDGET_ENV, "").strip()
-    if raw:
-        try:
-            value = int(raw)
-        except ValueError:
-            value = 0
-        if value > 0:
-            return value
-    return DEFAULT_CONTEXT_BUDGET
-
-
-def _serialized_size(context: dict[str, Any]) -> int:
-    return len(json.dumps(context, ensure_ascii=False, separators=(",", ":"), default=str))
-
-
-def enforce_budget(context: dict[str, Any]) -> None:
-    """Drop day-detail rows, lowest revenue first, until the context fits.
-
-    Rows are already ordered by revenue descending, so popping from the end
-    always removes the least valuable row. The section with the most remaining
-    rows gives one up first (ties resolve to the latest date), keeping
-    multi-day answers balanced and the whole procedure deterministic. Base
-    sections and the per-day table are never trimmed; matched full rows go last
-    because they are the data the question asked for most specifically. Any cut
-    anywhere, including the per-day row caps applied at build time, raises the
-    top-level ``day_detail_truncated`` flag the system prompt tells the model
-    to disclose.
-    """
-    day_keys = [key for key in context if key.startswith(f"{DAY_DETAIL_PREFIX} ")]
-    if day_keys:
-        budget = _context_budget()
-        # The disclosure flag itself costs bytes. Raise it before measuring
-        # whenever any section is already truncated (build-time row caps), and
-        # again on every trim, so the size the loop checks is the size that
-        # actually ships; otherwise adding the flag after the loop could push
-        # the final payload past the budget it just enforced.
-        if any(bool(context[key].get("truncated")) for key in day_keys):
-            context["day_detail_truncated"] = True
-        while _serialized_size(context) > budget:
-            # Floor of one row per section: an answer with zero data rows is
-            # worthless, so the top-revenue row always survives even when the
-            # base sections leave almost no budget for day detail.
-            pools = [
-                (len(context[key]["segments"]), key, "segments")
-                for key in day_keys
-                if len(context[key].get("segments") or []) > 1
-            ] or [
-                (len(context[key]["matched_full_rows"]), key, "matched_full_rows")
-                for key in day_keys
-                if len(context[key].get("matched_full_rows") or []) > 1
-            ]
-            if not pools:
-                break
-            _, key, field = max(pools)
-            section = context[key]
-            section[field].pop()
-            section["rows_omitted"] = int(section.get("rows_omitted", 0)) + 1
-            section["truncated"] = True
-            context["day_detail_truncated"] = True
-    if any(bool(context[key].get("truncated")) for key in day_keys):
-        context["day_detail_truncated"] = True

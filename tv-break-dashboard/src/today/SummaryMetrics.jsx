@@ -13,11 +13,35 @@ import {
 import { riskLabel } from '../shell/labels';
 import { Metric } from '../shell/primitives';
 import { PlanEventBadges } from '../rules/CalendarEventsModel';
+import ChannelRefusal from './ChannelRefusal';
+import { overviewScope, unattributed } from './today-scope';
 
-export function SummaryMetrics({ overview, copy, locale, planEvents = null }) {
+export function SummaryMetrics({ overview, copy, locale, planEvents = null, onOpenSettings = null }) {
   // A malformed-but-online response falls back to an empty summary so the
   // metrics show honest empty states, never the offline demo numbers.
   const summary = overview.summary || {};
+  // Whose four figures these are. The overview body summed the whole market
+  // whenever it could not scope, and it says so in the same breath, so the
+  // strip refuses rather than printing four rivals' aggregate under this
+  // operator's name. The basis note below goes with it: it is the sentence that
+  // would name the channel, and it silently drops that clause instead.
+  const scope = overviewScope(overview);
+  if (unattributed(scope)) {
+    return (
+      <>
+        <ChannelRefusal
+          locale={locale}
+          lead={pageText(
+            locale,
+            'These four figures cannot be reported as yours yet.',
+            'אי אפשר עדיין לדווח על ארבעת המספרים האלה כשלכם.',
+          )}
+          onOpenSettings={onOpenSettings}
+        />
+        <PlanEventBadges events={planEvents} locale={locale} />
+      </>
+    );
+  }
   // The headline speaks in the operator's working horizon: the planning-week
   // slice the API computes (summary.week). Whole-plan totals stay available as
   // the top-level summary keys and serve as the fallback for an older backend.

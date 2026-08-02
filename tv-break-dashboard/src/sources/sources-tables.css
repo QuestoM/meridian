@@ -1,0 +1,210 @@
+/* Sources, the tabular half: the rows behind a count, the file audit and the
+   report shelf. Split from sources.css under the file-size law. Every value
+   reads a token from src/tokens.css and this sheet defines none. */
+
+/* The rows behind a count. */
+.rows-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: var(--z-drawer);
+  width: min(760px, 92vw);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface);
+  border-inline-start: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+
+.rows-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rows-drawer-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: var(--text-lg);
+}
+
+.rows-drawer-head span {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.rows-drawer-counts {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.rows-drawer-counts dt {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.rows-drawer-counts dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.rows-drawer-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.rows-drawer-table {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.rows-drawer-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--text-xs);
+}
+
+.rows-drawer-table th,
+.rows-drawer-table td {
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rows-drawer-table th {
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-weight: var(--weight-medium);
+}
+
+/* The file audit. */
+.source-files-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.source-files-table th,
+.source-files-table td {
+  padding: var(--space-2) var(--space-4);
+  border-block-end: 1px solid var(--line);
+  text-align: start;
+  vertical-align: top;
+}
+
+.source-files-table th {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.source-files-table .numeric-head,
+.source-files-table .numeric-cell {
+  text-align: end;
+}
+
+.source-files-table tr.highlighted td {
+  background: var(--teal-soft);
+}
+
+.source-file-path {
+  display: block;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.source-file-note {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* The report shelf. */
+.downloads-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.downloads-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.downloads-file-list {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.downloads-file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Walking the set a record came from, without going back for it. */
+.rows-drawer-walk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.rows-drawer-position {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* The basis, printed on the report rather than hidden in a tooltip. */
+.report-basis {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.report-basis > div {
+  display: contents;
+}
+
+.report-basis dt {
+  color: var(--subtle);
+}
+
+.report-basis dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.report-card-unit {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}

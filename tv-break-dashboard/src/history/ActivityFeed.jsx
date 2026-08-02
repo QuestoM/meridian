@@ -8,7 +8,7 @@ import './activity-feed.css';
 // nothing scrolls away unseen. Entries can be dismissed and dismissed entries
 // can be restored, which is the "can I dismiss or bring back a notification"
 // capability the owner asked for. Entries are real events (a decision saved, a
-// recompute finished, a download): never fabricated, so the feed is an honest
+// plan run finished, a download): never fabricated, so the feed is an honest
 // record of what happened in this session.
 
 function timeLabel(ts, locale) {
@@ -96,6 +96,12 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
             ))}
           </>
         )}
+      </div>
+
+      <div className="af-foot">
+        <a className="af-foot-link" href="#Versions" onClick={onClose}>
+          {pageText(locale, 'Open the full history, including who changed what and how to put it back', 'לצפייה בהיסטוריה המלאה, כולל מי שינה מה ואיך להחזיר')}
+        </a>
       </div>
     </aside>
   );

@@ -145,11 +145,11 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                 <TextField
                   type="number"
                   size="small"
-                  inputProps={
-                    isSurchargeDiscount
+                  slotProps={{
+                    htmlInput: isSurchargeDiscount
                       ? { min: 0, max: 100, step: 5, dir: 'ltr', 'aria-label': pageText(locale, 'Surcharge discount percent', 'אחוז ההנחה על תוספת המחיר') }
-                      : { step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Coefficient value', 'ערך המקדם') }
-                  }
+                      : { step: 0.05, dir: 'ltr', 'aria-label': pageText(locale, 'Coefficient value', 'ערך המקדם') },
+                  }}
                   value={draft.value ?? 1}
                   onChange={(event) => update('value', event.target.value === '' ? '' : Number(event.target.value))}
                 />
@@ -178,7 +178,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
               <TextField
                 type="number"
                 size="small"
-                inputProps={{ step: 5, dir: 'ltr', 'aria-label': pageText(locale, 'Placement preference percent', 'אחוז העדפת שיבוץ') }}
+                slotProps={{ htmlInput: { step: 5, dir: 'ltr', 'aria-label': pageText(locale, 'Placement preference percent', 'אחוז העדפת שיבוץ') } }}
                 value={draft.value ?? 0}
                 onChange={(event) => update('value', event.target.value === '' ? '' : Number(event.target.value))}
               />
@@ -195,7 +195,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
           fullWidth
           value={draft.notes || ''}
           onChange={(event) => update('notes', event.target.value)}
-          inputProps={{ 'aria-label': pageText(locale, 'Rule notes', 'הערות לכלל') }}
+          slotProps={{ htmlInput: { 'aria-label': pageText(locale, 'Rule notes', 'הערות לכלל') } }}
         />
       </div>
     </>

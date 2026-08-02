@@ -1,0 +1,412 @@
+/* The day board's readout: the hour strip, the money figures with their scope,
+   the compliance verdict and the three actions. Split from day-board.css to keep
+   both sheets inside the 450-line law; it is imported by the same component tree
+   and defines no token of its own. */
+
+.day-hours {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 46px;
+  padding-inline: var(--space-2);
+}
+
+/* Each hour is a button, so the element carries a button's reset as well as the
+   bar's geometry. The hit area is the whole column and not only the coloured
+   fill, because a two-pixel bar on an empty hour would otherwise be unclickable. */
+.day-hour {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.day-hour:hover i {
+  filter: brightness(0.94);
+}
+
+.day-hour:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+.day-hour i {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  background: var(--teal-soft);
+  border-top: 2px solid var(--teal);
+}
+
+.day-hour.is-tight i {
+  background: var(--amber-soft);
+  border-top-color: var(--amber);
+}
+
+.day-hour.is-over i {
+  background: var(--red-soft);
+  border-top-color: var(--red);
+}
+
+.day-hour.is-active i {
+  background: var(--blue-soft);
+  border-top-color: var(--blue);
+}
+
+.day-hour b {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-readout {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.day-readout.has-violation {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+/* The commit row. It carries the verdict at the reading edge and the four acts
+   at the far one, and it is the panel's first child so that its distance from
+   the top of the screen is fixed by where the panel starts and not by how much
+   the panel holds. Measured at 1440 x 823 with one pending edit: as the last
+   child the four buttons sat at 917 px in an 823 px viewport and the verdict at
+   839 px, so both were under the fold after every edit. Logical properties, so
+   the reading edge is the right one in Hebrew. */
+.day-readout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.day-readout-head .day-readout-actions {
+  margin-inline-start: auto;
+}
+
+.day-readout-figures {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.day-figure {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-figure-label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.day-figure strong {
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.day-figure.is-moved strong {
+  color: var(--teal-ink);
+}
+
+.day-figure-scope {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.day-readout-note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+  max-width: 76ch;
+}
+
+.day-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.day-verdict.is-ok {
+  color: var(--teal-ink);
+}
+
+.day-verdict.is-bad {
+  color: var(--red);
+}
+
+/* The failed checks sit side by side rather than one per line, because they are
+   the one part of this panel that grows without a bound and everything under
+   them is pushed down by it. Measured at 1440 x 823 on רשת 13 / 2024-11-01, one
+   break lengthened until three checks failed: one per line put the save, undo
+   and discard row at 819 px in an 823 px viewport, so four pixels of it were on
+   screen. Side by side put it at 779 px, and the commit row above has since made
+   that distance fixed. Nothing is dropped or summarised: all three verdicts are
+   rendered in full, each with its own scope and its own observed against limit,
+   and they wrap back to a column on a narrow window. */
+.day-violations {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  font-size: var(--text-xs);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+}
+
+.day-violations li {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--red);
+  border-inline-start: 2px solid var(--red);
+  padding-inline-start: var(--space-2);
+}
+
+.day-readout-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* The horizontal padding is one step rather than two, and that is a measurement
+   too. The four acts and the verdict share one line, and in English they came to
+   726 px against 704 px of panel with the assistant dock open, so the row wrapped
+   and pushed the money tiles 26 px past the bottom of an 823 px window. Eight
+   pixels off each button is 32 px back, which keeps the line whole in both
+   languages at that width. */
+.day-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.day-action.is-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.day-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.day-readout-engine {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  margin: 0;
+}
+
+/* What saving would do, measured before the click. It carries the neutral surface
+   of a forecast rather than the colour of a verdict: nothing has been written, so
+   nothing here is good or bad news yet. The two paired figures reuse the
+   settlement's own pair layout, because they are the same before and after read
+   at two different moments. */
+
+.day-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+}
+
+.day-forecast h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.day-forecast .day-figure.is-gain strong {
+  color: var(--teal-ink);
+}
+
+.day-forecast .day-figure.is-loss strong {
+  color: var(--red);
+}
+
+/* Saved placements the plan no longer shows a break for. They carry the amber of
+   something that needs a decision rather than the red of something broken: the
+   day is valid, the record is real, and the only thing missing is a chip to hang
+   its inverse from. Logical properties throughout, so the rule mirrors in
+   Hebrew. */
+
+/* Every measurement in this block is about one thing: the control that takes the
+   money back has to be on screen without a scroll. Measured at 1440 x 823 with
+   the panel below the actions, its Remove control landed at 915 px. Moved to the
+   top of the readout, with the note on one line and the padding at one step, it
+   lands inside the viewport. */
+
+.day-stranded {
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.day-stranded h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+/* No measure limit here on purpose. At 76ch the note wrapped to two lines and
+   pushed the control 16 px further down for no gain in readability. */
+.day-stranded-why {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.day-stranded ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.day-stranded-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  border-inline-start: 2px solid var(--amber);
+  padding-inline-start: var(--space-2);
+}
+
+.day-stranded-row.is-absent {
+  border-inline-start-color: var(--line-strong);
+}
+
+.day-stranded-identity {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-stranded-identity strong {
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.day-stranded-identity span {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-stranded-row p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+/* The restriction sentence and the id it names share one line, so the row stays
+   one line tall and the control above the fold. */
+.day-stranded-rule span {
+  margin-inline-start: var(--space-1);
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-stranded .day-action.is-inverse {
+  margin-inline-start: auto;
+  border-color: var(--amber);
+}
+
+/* The settlement panel: what the last save or undo actually did to the plan. It
+   sits under the readout because it answers a different question, and it never
+   inherits the readout's violation colouring. */
+
+.day-settlement {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+}
+
+.day-settlement.is-diverged {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.day-settlement.is-agreed {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.day-settlement-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.day-settlement-close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.day-settlement-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-md);
+}
+
+.day-settlement .day-figure.is-gain strong {
+  color: var(--teal-ink);
+}
+
+.day-settlement .day-figure.is-loss strong {
+  color: var(--red);
+}

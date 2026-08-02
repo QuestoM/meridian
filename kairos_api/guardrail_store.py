@@ -15,10 +15,11 @@ document could not:
 - **A change record.** Every change appends who changed it, when it was
   recorded, which values moved, what they were before, and why. The log is
   append-only; nothing rewrites history.
-- **A distinct permission.** Changing a limit is an admin act, not an operator
-  act. The revenue slider stays where it is: an operator may move it. That is
-  section 4.5's rule applied literally, affiliation for the side of the line
-  and role for what may change on it.
+- **A distinct permission.** Changing a limit is company staff only, by the
+  owner's ruling of 2026-08-01, and an admin act on top of that. The revenue
+  slider stays where it is: an operator may still move it. Reading is not gated
+  at all, because the licence is the broadcaster's own and the person who
+  attests to it works for the broadcaster.
 
 The values here are today's shipped values, and a test pins them against the
 ``KairosSettings`` defaults so the two cannot silently diverge while both
@@ -67,12 +68,21 @@ BOUNDS: dict[str, tuple[type, float, float]] = {
 }
 
 GUARDRAIL_ADMIN_ONLY_DETAIL = "עריכת מגבלות הרגולציה שמורה למנהל המערכת"
+GUARDRAIL_COMPANY_ONLY_DETAIL = "שינוי מגבלות הרגולציה שמור לצוות החברה"
 
-# Role decides this one, not affiliation: the limits are the operator's own
-# licence, so a channel account reads them and an admin changes them.
+# Both gates, and the reason is that the owner ruled on this one. Changing a
+# licence number is company staff only until a real owner for it is named at the
+# broadcaster, so affiliation is the outer gate; role is still the inner one, so
+# a company account that may not write anything may not write this either.
+#
+# The READ is deliberately not gated. The compliance owner is a broadcaster's
+# person and the licence is the broadcaster's own, so they read every limit,
+# every change and the whole attestation; what they cannot do is move a number.
+# Nothing here calls ``guard`` or ``require_read``, so the read stays open by
+# construction and ``stamp`` reports the write answer before the click.
 GUARDRAIL_WALL = Wall(
-    detail=GUARDRAIL_ADMIN_ONLY_DETAIL,
-    company_only=False,
+    detail=GUARDRAIL_COMPANY_ONLY_DETAIL,
+    company_only=True,
     roles=ADMIN_ROLES,
     role_detail=GUARDRAIL_ADMIN_ONLY_DETAIL,
 )

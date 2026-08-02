@@ -49,21 +49,89 @@ export function normalizeAgencies(payload) {
   return [];
 }
 
-// Same tolerance for the linked-advertisers envelope: { links: [...] },
-// { advertisers: [...] } or a bare array of { advertiser, source } records.
+function linkName(entry) {
+  if (typeof entry === 'string') {
+    return entry.trim();
+  }
+  if (entry && typeof entry === 'object') {
+    return String(entry.advertiser ?? entry.advertiser_id ?? '').trim();
+  }
+  return '';
+}
+
+// GET /api/agencies/{id}/advertisers answers three name lists, not a links
+// array: observed (read from the daily spot file and from the stored links),
+// manual (linked by hand) and effective, which is what this agency actually
+// holds after the backend's manual-wins rule removes any name another agency
+// claims by hand. The list a person is owed is therefore the effective one, and
+// a name is manual only when the manual list carries it.
+//
+// Reading only { links } or { advertisers } was the measured defect: the real
+// payload has neither key, so every agency rendered as empty while its names
+// sat in the response. Both older envelopes and a bare array of
+// { advertiser, source } records still parse, so nothing that worked stops.
 export function normalizeLinks(payload) {
-  const raw = Array.isArray(payload)
-    ? payload
-    : (payload && (payload.links || payload.advertisers)) || [];
-  return (Array.isArray(raw) ? raw : []).map((entry) => {
-    if (typeof entry === 'string') {
-      return { advertiser: entry, source: 'observed' };
+  const envelope = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  const manualNames = new Set((Array.isArray(envelope.manual) ? envelope.manual : []).map(linkName).filter(Boolean));
+  let raw;
+  if (Array.isArray(envelope.effective)) {
+    raw = envelope.effective;
+  } else if (Array.isArray(envelope.observed) || manualNames.size > 0) {
+    raw = [...(envelope.observed || []), ...(envelope.manual || [])];
+  } else if (Array.isArray(payload)) {
+    raw = payload;
+  } else {
+    raw = envelope.links || envelope.advertisers || [];
+  }
+  const seen = new Set();
+  const rows = [];
+  (Array.isArray(raw) ? raw : []).forEach((entry) => {
+    const advertiser = linkName(entry);
+    if (!advertiser || seen.has(advertiser)) {
+      return;
     }
-    return {
-      advertiser: String(entry.advertiser ?? entry.advertiser_id ?? ''),
-      source: entry.source === 'manual' ? 'manual' : 'observed',
-    };
-  }).filter((entry) => entry.advertiser);
+    seen.add(advertiser);
+    const manual = manualNames.has(advertiser)
+      || (entry && typeof entry === 'object' && entry.source === 'manual');
+    rows.push({ advertiser, source: manual ? 'manual' : 'observed' });
+  });
+  return rows;
+}
+
+// The daily spot file the observed names were read from, so the section can
+// state its own basis. null when the payload names none, which is a real state:
+// no daily file is loaded.
+export function linksSourceFile(payload) {
+  const value = payload && typeof payload === 'object' ? payload.observed_source_file : null;
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
+// Hebrew and English both have a singular, and three of the nine agencies on
+// this data hold exactly one advertiser, so the word follows the number.
+export function linksWord(count, locale) {
+  if (count === 1) {
+    return pageText(locale, 'advertiser', 'מפרסם');
+  }
+  return pageText(locale, 'advertisers', 'מפרסמים');
+}
+
+// The basis under a list that has names: which file they were observed in. The
+// file name is a Latin run inside a Hebrew line, so it is isolated the way every
+// other embedded run on this destination is, or the sentence's own full stop
+// renders as part of the file name.
+export function linkBasisNote(sourceFile, locale) {
+  return pageText(locale, `Observed in the daily spot file ${sourceFile}.`, `נצפו בקובץ הספוטים היומי ⁦${sourceFile}⁩.`);
+}
+
+// The honest empty state. It names the file that was read and found nothing, or
+// says no file is loaded and where to load one, rather than implying that an
+// agency with advertisers has none.
+export function linkEmptyNote(sourceFile, locale) {
+  if (sourceFile) {
+    return pageText(locale, `No advertiser in the daily spot file ${sourceFile} books through this agency, and none is linked by hand.`, `אף מפרסם בקובץ הספוטים היומי ⁦${sourceFile}⁩ אינו מזמין דרך סוכנות זו, ואין קישור ידני.`);
+  }
+  return pageText(locale, 'No daily spot file is loaded, so observed links cannot be read. Load one on the Data page.', 'לא טעון קובץ ספוטים יומי, ולכן לא ניתן לקרוא קישורים נצפים. אפשר לטעון אותו בעמוד הנתונים.');
 }
 
 export function normalizeAgencyConditions(payload) {

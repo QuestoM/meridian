@@ -1,0 +1,429 @@
+/* The Clients record drawer, its detail panels and the onboarding form.
+   Split from clients-workspace.css to keep every source file under the line
+   cap. Reads the tokens, defines none. */
+
+.clients-record,
+.clients-onboard {
+  inline-size: 420px;
+  flex: 0 0 420px;
+  position: sticky;
+  inset-block-start: var(--space-4);
+  max-block-size: calc(100vh - 120px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.clients-record-head,
+.clients-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.clients-record-head h3,
+.clients-detail-head h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.clients-record-sub,
+.clients-detail-sub {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: var(--space-1) 0 0;
+}
+
+.clients-record-actions,
+.clients-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.clients-position {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.clients-position button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+}
+
+.clients-money-open {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  inline-size: 100%;
+  text-align: start;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.clients-money-open span {
+  display: flex;
+  flex-direction: column;
+}
+
+.clients-money-open small {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.clients-money-open strong {
+  font-size: var(--text-lg);
+}
+
+.clients-money-open em {
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--blue);
+  inline-size: 100%;
+}
+
+/* A client with no priced spot has no rows to open, so the same block stops
+   looking like a control and reads as the state it is. */
+.clients-money-open.empty {
+  cursor: default;
+}
+
+.clients-money-open.empty em {
+  color: var(--muted);
+}
+
+.clients-drill-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.clients-properties {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.clients-property {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  font-size: var(--text-base);
+}
+
+.clients-property dt {
+  color: var(--muted);
+}
+
+.clients-property dd {
+  margin: 0;
+  text-align: end;
+}
+
+.clients-campaign,
+.clients-detail {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.clients-campaign header {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.clients-campaign-id,
+.clients-flight-id,
+.clients-rule-id {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.clients-flights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.clients-flights li,
+.clients-dropped li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+}
+
+.clients-goal {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.clients-dropped ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.clients-dropped small {
+  color: var(--muted);
+}
+
+/* The reason a spot is not in the figures is the row's own sentence, so it takes
+   the full width under the ad it removed rather than trailing off the end of it. */
+.clients-dropped-why {
+  flex-basis: 100%;
+  color: var(--ink);
+}
+
+.clients-observed-list {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.clients-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  color: var(--muted);
+}
+
+.clients-empty strong {
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.clients-empty-path {
+  color: var(--teal-ink);
+}
+
+.clients-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.clients-form fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.clients-form legend {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  padding-inline: var(--space-1);
+}
+
+.clients-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.clients-field input,
+.clients-field select {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--text-base);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.clients-field small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+.clients-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+}
+
+.clients-radio-row,
+.clients-checkbox {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.clients-weekdays {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.clients-weekdays button {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-2);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.clients-weekdays button.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal-ink);
+}
+
+.clients-flight-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.clients-form-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.clients-result {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+}
+
+.clients-result li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.clients-result span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.clients-confirm {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.clients-confirm small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.clients-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  border: 0;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 0;
+}
+
+.clients-subrow td {
+  background: var(--surface-muted);
+}
+
+.clients-break-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.clients-campaign-strip h4,
+.clients-detail h4,
+.clients-dropped h4,
+.clients-record-campaigns h4,
+.clients-record-observed h4 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  font-weight: var(--weight-medium);
+}
+
+.clients-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.clients-terms dt {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.clients-terms dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-base);
+  color: var(--ink);
+}
+
+.clients-terms dd small {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}

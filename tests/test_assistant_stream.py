@@ -2,10 +2,12 @@
 
 The Claude call is mocked at the module seam (assistant._client_factory), with
 and without messages.stream support, so no key is ever needed. The contract
-under test is OURS: frame order (steps right after tool results, deltas as text
-is produced, exactly one terminal frame), the final frame carrying the EXACT
-body the non-streaming /ask returns for the same question, and audit plus
-thread-append happening exactly once per streamed ask. Runs against a mini
+under test is OURS: frame order (an accepted stage before any pipeline work,
+steps right after tool results, deltas as text is produced, exactly one terminal
+frame), the final frame carrying the EXACT body the non-streaming /ask returns
+for the same question, and audit plus thread-append happening exactly once per
+streamed ask. Heartbeat comments carry no event and no data and are dropped by
+the parser, exactly as a browser's EventSource drops them. Runs against a mini
 FastAPI app mounting only the assistant router; the live server is never
 touched.
 """
@@ -111,10 +113,23 @@ def parse_sse(text: str) -> list[tuple[str, Any]]:
     frames: list[tuple[str, Any]] = []
     for chunk in text.strip().split("\n\n"):
         lines = chunk.split("\n")
-        event = next(line[len("event: "):] for line in lines if line.startswith("event: "))
+        event = next((line[len("event: "):] for line in lines if line.startswith("event: ")), None)
+        if event is None:
+            continue  # a heartbeat comment, which is not a frame
         data = "".join(line[len("data: "):] for line in lines if line.startswith("data: "))
         frames.append((event, json.loads(data)))
     return frames
+
+
+def stages(frames: list[tuple[str, Any]]) -> list[str]:
+    return [payload["stage"] for event, payload in frames if event == "stage"]
+
+
+def without_clock(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """A step frame minus its elapsed clock, which is a real measurement and so
+    is never the same twice."""
+    return [{key: value for key, value in step.items() if key != "elapsed_seconds"}
+            for step in steps]
 
 
 def _normalized(body: dict[str, Any]) -> dict[str, Any]:
@@ -148,7 +163,8 @@ def test_stream_frames_step_delta_final_in_order(client: TestClient, monkeypatch
     # turn's delta: steps are emitted right after each tool result.
     assert kinds.index("step") > kinds.index("delta")
     steps = [data for event, data in frames if event == "step"]
-    assert steps == [{"tool": "get_settings", "ok": True, "source": "saved settings"}]
+    assert without_clock(steps) == [{"tool": "get_settings", "ok": True, "source": "saved settings"}]
+    assert all(step["elapsed_seconds"] >= 0 for step in steps)
     # Without messages.stream support each turn's answer arrives as ONE delta.
     deltas = [data["text"] for event, data in frames if event == "delta"]
     assert deltas == ["checking the settings", "the final grounded answer"]
@@ -228,7 +244,7 @@ def test_stream_proposal_batch_id_reaches_final_body_and_thread(client: TestClie
         client.post("/api/assistant/ask/stream", json={"question": "raise the weight"}).text
     )
     steps = [data for event, data in frames if event == "step"]
-    assert steps == [{"tool": "propose_settings_change", "ok": True, "source": None}]
+    assert without_clock(steps) == [{"tool": "propose_settings_change", "ok": True, "source": None}]
     final = frames[-1][1]
     batch_id = final["proposals"]["batch_id"]
     assert batch_id
@@ -261,8 +277,8 @@ def test_stream_without_key_final_frame_is_honest(client: TestClient, monkeypatc
     frames = parse_sse(
         client.post("/api/assistant/ask/stream", json={"question": "בלי מפתח"}).text
     )
-    assert [event for event, _ in frames] == ["final"]
-    final = frames[0][1]
+    assert [event for event, _ in frames] == ["stage", "final"]
+    final = frames[-1][1]
     assert final["available"] is False
     assert final["answer"] is None
     assert final["error"] == assistant.AUTH_MISSING_REASON

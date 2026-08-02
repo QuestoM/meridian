@@ -20,6 +20,7 @@ import uuid
 import logging
 from typing import Any
 
+from kairos_api.assistant_summary_terms import terms_for as _summary_terms
 from kairos_api.assistant_tool_schemas import (
     EXTRA_KIND_BY_TOOL,
     EXTRA_PROPOSE_TOOL_SCHEMAS,
@@ -265,8 +266,9 @@ PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     ),
     _propose(
         "propose_recompute",
-        "Propose recomputing the saved weekly schedule so approved changes take "
-        "effect. scope is the string 'full' or {\"days\": [\"YYYY-MM-DD\", ...]}.",
+        "Propose running the weekly plan so approved changes take effect. The tool "
+        "name keeps its address; the words for the person are run and הרצה, never "
+        "recompute. scope is the string 'full' or {\"days\": [\"YYYY-MM-DD\", ...]}.",
         "scope",
         "'full' or an object {\"days\": [\"YYYY-MM-DD\", ...]}.",
         typed=False,
@@ -328,16 +330,22 @@ from kairos_api.assistant_read_tools import (  # noqa: E402
 from kairos_api.assistant_propose_tools import (  # noqa: E402
     _PROPOSE_VALIDATORS,
     _advertiser_diff,
+    _attach_settings_context,
     _settings_diff,
 )
 
 
-def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
+def build_proposal_item(name: str, args: dict[str, Any],
+                        user: str | None = None) -> dict[str, Any]:
     """Validate one PROPOSE tool call and shape it as a proposal item.
 
     A valid call becomes a ``pending`` item; an invalid one becomes a
     ``rejected`` item whose ``error`` carries the honest reason. Never raises
     and never mutates state: the apply engine is the only writer.
+
+    ``user`` is the acting account, used only to answer permission questions
+    about the change before it is offered for approval. It is optional so every
+    existing caller reads unchanged.
     """
     kind = KIND_BY_TOOL.get(name)
     reason = str(args.get("reason", "") or "").strip()
@@ -369,6 +377,12 @@ def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
         return item
     item["payload"] = payload
     item["summary"] = summary
+    # The same sentence as machine-readable terms, so the Hebrew surface can say
+    # it in Hebrew instead of printing this English record verbatim. Additive:
+    # the apply engine and the audit trail read the summary, never the terms.
+    terms = _summary_terms(kind, payload, summary)
+    if terms is not None:
+        item["summary_terms"] = terms
     if name == "propose_agency_change":
         from kairos_api.assistant_propose_extra import agency_change_kind
 
@@ -376,10 +390,7 @@ def build_proposal_item(name: str, args: dict[str, Any]) -> dict[str, Any]:
     # Additive: a per-field diff (current saved value vs proposed) so the operator
     # sees exactly what each approval changes. The apply engine ignores it.
     if kind == "settings":
-        from kairos_api import assistant_simulate
-
-        item["effect"] = assistant_simulate.settings_effect(payload.get("changes"))
-        item["diff"] = _settings_diff(payload.get("changes"))
+        _attach_settings_context(item, payload, user)
     elif kind == "advertiser_change":
         item["diff"] = _advertiser_diff(payload)
     return item
@@ -418,7 +429,7 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
             trace.append({"tool": name, "ok": False})
             return {"type": "tool_result", "tool_use_id": block.id,
                     "content": json.dumps({"error": refusal}, ensure_ascii=False)}
-        item = build_proposal_item(name, args)
+        item = build_proposal_item(name, args, user)
         items.append(item)
         ok = item["status"] == "pending"
         payload = {"captured": ok, "item_id": item["id"], "status": item["status"],

@@ -58,7 +58,7 @@ def _run_recompute(
     _read_csv_cached.cache_clear()
     # An incremental merge returns the frame in CSV text space (str dtype) to
     # guarantee byte-identical writes, so aggregate through to_numeric.
-    return {
+    result = {
         "ok": True,
         "path": str(path),
         "rows": int(len(frame)),
@@ -70,6 +70,50 @@ def _run_recompute(
         "risk_lambda": saved.risk_lambda,
         "scope": [list(pair) for pair in only_days] if only_days else "full",
     }
+    # The plan the engine writes carries every channel, because the retention
+    # model is measured against the competitive lineup, so the totals above are
+    # the whole market's. A run summary an operator reads has to be the
+    # operator's, so the owned figures are computed here and named as such. The
+    # market totals keep their existing keys and their existing values, because
+    # they are what the export and the engine reports are counted on.
+    result["owned"] = _owned_totals(frame)
+    # When the plan was written is what "plan version, run at" reads, and it is
+    # the sidecar's own stamp rather than a second clock invented here.
+    result["computed_at"] = _plan_computed_at(path)
+    return result
+
+
+def _owned_totals(frame: pd.DataFrame) -> dict[str, Any]:
+    """The operator's own share of a freshly written plan, with its scope note."""
+    from kairos_api import channel_scope
+
+    owned, note = channel_scope.scope_frame(frame)
+    breaks = pd.to_numeric(owned.get("num_breaks", 0), errors="coerce").fillna(0)
+    revenue = pd.to_numeric(owned.get("predicted_revenue", 0), errors="coerce").fillna(0)
+    return {
+        "rows": int(len(owned)),
+        "total_breaks": int(breaks.sum()),
+        "total_revenue": round(float(revenue.sum()), 2),
+        "days": int(owned["date"].nunique()) if "date" in owned.columns and len(owned) else 0,
+        "scope": note,
+    }
+
+
+def _plan_computed_at(path: Any) -> Any:
+    """The freshness sidecar's own stamp for the plan just written, or None."""
+    from pathlib import Path
+
+    meta = Path(str(path))
+    meta = meta.with_name(meta.name + ".meta.json")
+    if not meta.exists():
+        return None
+    try:
+        import json
+
+        parsed = json.loads(meta.read_text(encoding="utf-8"))
+    except Exception:  # pragma: no cover - a missing stamp reads as unknown
+        return None
+    return parsed.get("computed_at") if isinstance(parsed, dict) else None
 
 
 @router.post("/api/recompute-schedule")
