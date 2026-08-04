@@ -91,7 +91,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   const [campaign, setCampaign] = useState({ name: '', starts_on: '', ends_on: '', rebate_percent: '' });
   const [discount, setDiscount] = useState({ percent: '', weekdays: ['6'], asAgencyRule: false });
   const [flights, setFlights] = useState([{ ...EMPTY_FLIGHT }]);
-  const [state, setState] = useState({ status: 'idle', error: '', result: null });
+  const [state, setState] = useState({ status: 'idle', error: '', opens: null, result: null });
   // A choice the operator already made outranks the read. The options land after
   // the panel is on screen, so applying the default on arrival overwrote it:
   // measured, "a new agency" chosen at t+0 reverted to the first agency on the
