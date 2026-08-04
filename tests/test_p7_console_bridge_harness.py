@@ -1,9 +1,22 @@
 """The plumbing behind the console's real-browser measurements.
 
 Extracted from ``test_p7_console_bridge_session.py`` when that file reached the
-450-line law, and nothing here changed on the way out: the same stand-in server,
-the same page, the same bundler and the same headless Chrome. It defines no test
-of its own. The scenario and every assertion stayed in the file that owns them.
+450-line law, and nothing changed on the way out: the same stand-in server, the
+same page, the same bundler and the same headless Chrome. It defines no test of
+its own. The scenario and every assertion stayed in the file that owns them.
+
+Two things were added later, both because a training run measurement needed
+something a static server cannot express, and both inert for the scenarios that
+do not ask for them:
+
+- **A route may answer a sequence.** Hand a list instead of one body and each
+  read takes the next, with the last one repeating for ever. A training run ends
+  on the server with no click behind it, so the only way to reproduce that here
+  is a route whose answer changes between two reads that nobody triggered.
+- **A write may be answered.** ``do_POST`` answers the paths a scenario hands in
+  ``writes`` and still refuses every other one, so a scenario that presses a
+  control the product would POST gets the product's own answer rather than a
+  404 the panel would have to interpret.
 
 The stand-in reproduces the two things the bridge depends on and nothing else:
 the application mounts into ``#root``, and the shell returns the sign-in card
@@ -27,6 +40,7 @@ serves.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -41,6 +55,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND = REPO_ROOT / "tv-break-dashboard"
 BRIDGE = FRONTEND / "src" / "model" / "console-bridge.jsx"
+SHELL_NAV = FRONTEND / "src" / "shell" / "nav.js"
 VITE = FRONTEND / "node_modules" / ".bin" / "vite"
 CHROME = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
@@ -103,11 +118,35 @@ class _Harness(ThreadingHTTPServer):
 
     daemon_threads = True
 
-    def __init__(self, address, directory: Path, payloads: "dict | None" = None):
+    def __init__(self, address, directory: Path, payloads: "dict | None" = None,
+                 writes: "dict | None" = None):
         self.mode = "out"
         self.result: "dict | None" = None
         self.payloads = {"/api/model/console": CONSOLE_PAYLOAD, **(payloads or {})}
+        self.writes = dict(writes or {})
+        self.reads: "dict[str, int]" = {}
+        self.lock = threading.Lock()
         super().__init__(address, partial(_HarnessHandler, directory=str(directory)))
+
+    def count(self, key: str) -> int:
+        """One more call on this key. Returns how many there were before it."""
+        with self.lock:
+            seen = self.reads.get(key, 0)
+            self.reads[key] = seen + 1
+        return seen
+
+    def next_body(self, prefix: str, body):
+        """One body, or the next of a sequence with the last one repeating.
+
+        Counted on the server, so a scenario has a count of what was really
+        asked for beside whatever the page reports about itself.
+        """
+        seen = self.count(prefix)
+        if not isinstance(body, list):
+            return body
+        if not body:
+            return {}
+        return body[min(seen, len(body) - 1)]
 
 
 class _HarnessHandler(SimpleHTTPRequestHandler):
@@ -132,7 +171,7 @@ class _HarnessHandler(SimpleHTTPRequestHandler):
             return
         for prefix, body in self.server.payloads.items():
             if self.path.startswith(prefix):
-                self._send(200, body)
+                self._send(200, self.server.next_body(prefix, body))
                 return
         if self.path.startswith("/testctl/session"):
             mode = self.path.split("as=")[-1]
@@ -147,6 +186,14 @@ class _HarnessHandler(SimpleHTTPRequestHandler):
             self.server.result = json.loads(self.rfile.read(length).decode("utf-8"))
             self._send(200, {"stored": True})
             return
+        for prefix, body in self.server.writes.items():
+            if self.path.startswith(prefix):
+                # Counted under its own key. The browser's resource timeline
+                # carries no method, so a scenario comparing its own count with
+                # the server's has to be able to add the writes back.
+                self.server.count(f"POST {prefix}")
+                self._send(200, body)
+                return
         self._send(404, {"detail": "no such path"})
 
 
@@ -187,9 +234,10 @@ def build_harness(work: Path, harness_js: str) -> Path:
     return dist
 
 
-def run_scenario(dist: Path, work: Path, payloads: "dict | None" = None) -> "dict":
+def run_scenario(dist: Path, work: Path, payloads: "dict | None" = None,
+                 writes: "dict | None" = None) -> "dict":
     """Serve the bundle, run one headless Chrome against it, return its report."""
-    server = _Harness(("127.0.0.1", _free_port()), dist, payloads)
+    server = _Harness(("127.0.0.1", _free_port()), dist, payloads, writes)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     url = f"http://127.0.0.1:{server.server_address[1]}/"
@@ -207,6 +255,11 @@ def run_scenario(dist: Path, work: Path, payloads: "dict | None" = None) -> "dic
         while time.time() < deadline and server.result is None:
             time.sleep(0.1)
         result = server.result
+        if isinstance(result, dict):
+            # What the server was actually asked for, counted by the server. A
+            # page reporting its own request count is a page marking its own
+            # homework, so both counts are taken and a scenario may compare them.
+            result["server_reads"] = dict(server.reads)
     finally:
         chrome.kill()
         chrome.wait(timeout=30)
@@ -215,3 +268,40 @@ def run_scenario(dist: Path, work: Path, payloads: "dict | None" = None) -> "dic
     if result is None:
         pytest.fail(f"the browser never reported a result within {SCENARIO_BUDGET_S}s")
     return result
+
+
+# The shell's own address resolver, driven rather than read.
+#
+# The console addresses a page in the frozen shell, so the console's control is
+# only a destination because that resolver says so. It is a function in a file
+# this piece may not write, and it reads `window.location.hash`, so the honest
+# way to depend on it is to bundle it with the product's own bundler and ask it,
+# in a browser, what each address resolves to. Reading the line that does the
+# resolving is what a previous round did, and wave one replaced that line with
+# an equivalent one, which turned a working behaviour into a red test.
+NAV_PROBE_JS = """
+import { viewFromLocation } from '%(nav)s';
+
+const HASHES = %(hashes)s;
+const resolved = {};
+
+HASHES.forEach((hash) => {
+  window.location.hash = hash;
+  resolved[hash] = viewFromLocation();
+});
+
+fetch('/testctl/result', {
+  method: 'POST',
+  body: JSON.stringify({ resolved, href: window.location.href }),
+});
+"""
+
+
+def resolve_shell_views(work: Path, hashes: "list[str]") -> "dict":
+    """What the frozen shell resolves each address to, measured in a browser."""
+    skip_unless_a_real_browser_is_available()
+    probe = NAV_PROBE_JS % {
+        "nav": os.path.relpath(SHELL_NAV, work.resolve() / "src"),
+        "hashes": json.dumps(hashes),
+    }
+    return run_scenario(build_harness(work, probe), work)

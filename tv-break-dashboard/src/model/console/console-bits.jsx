@@ -113,6 +113,30 @@ export function RecordDrill({ record, locale, open, onToggle, label }) {
   );
 }
 
+// The first date a block could end, with the name of the thing that ends it.
+//
+// A bare date is a fact nobody can act on. Measured on the shipped console: the
+// register printed 2024-12-26 alone on two rows while the payload it was reading
+// carried the name of the thing arriving on that date and the date it runs to,
+// so a screen that knew the block ends with חנוכה, on the eight days to
+// 2025-01-02, showed the reader neither. Both are rendered here, once, so the
+// gate table and the register cannot say different things about the same row.
+export function Earliest({ earliest, locale }) {
+  if (!earliest || !earliest.start) return null;
+  const span = !earliest.end || earliest.end === earliest.start
+    ? earliest.start
+    : `${earliest.start} .. ${earliest.end}`;
+  return (
+    <span className="mc-earliest">
+      <span className="mc-earliest-label">{t('coverage.earliest', locale)}</span>
+      {' '}
+      {earliest.name_he ? <span className="mc-earliest-name" dir="rtl">{earliest.name_he}</span> : null}
+      {' '}
+      <span className="mc-earliest-span" dir="ltr"><Numeric>{span}</Numeric></span>
+    </span>
+  );
+}
+
 export function Stat({ label, value, sub }) {
   return (
     <div className="mc-stat">

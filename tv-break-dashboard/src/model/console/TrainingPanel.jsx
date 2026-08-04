@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Numeric } from '../../shell/format';
-import { startTraining } from './console-api';
+import { readSection, startTraining } from './console-api';
 import { Absent, Panel, RecordDrill } from './console-bits';
 import { pick, t } from './console-words';
 
@@ -12,12 +12,41 @@ import { pick, t } from './console-words';
 // The five gate overrides are the provenance hole the console itself reports.
 // A run started here records exactly which were used, so for these runs a
 // forced gate and a self-activated one are told apart afterwards.
+//
+// **The panel follows the run it started.** Measured on the shipped tree: the
+// start read the route once, 41 ms after the write, got `running`, and never
+// asked again. The run finished 7.0 s later with exit code 0 and the screen
+// still read "training" three minutes on, with the trainer's own control still
+// disabled, so the steward could not start another run either. Leaving the
+// section and returning read the truth, which proved the store was right and
+// only the screen was wrong. A finish is an event on the server with no click
+// behind it, so the only honest way for this screen to learn about it is to
+// ask again while a run is open, and to stop asking the moment none is.
 
 const CHOICES = [
   { value: '', key: 'training.auto' },
   { value: 'force-on', key: 'training.force_on' },
   { value: 'force-off', key: 'training.force_off' },
 ];
+
+// How long the panel waits between two reads while a run is open. The route
+// answers warm in about 3 ms, so this costs the server nothing and bounds how
+// stale the screen can be at a run's end.
+const WATCH_MS = 1500;
+
+// Whether a run is open, read from the payload the route serves and never from
+// anything this panel remembers about its own click.
+//
+// The signal is the server's own flight register rather than the word on a run
+// record, and the difference matters in one case: a run whose process died with
+// the server leaves a record saying it is running that nothing will ever
+// finish. Following the record would leave this panel asking for ever about a
+// run nobody is performing. Following the register, the panel follows a run
+// exactly while a run is really being performed, and the register is only ever
+// cleared after the finished record has been written.
+function runIsOpen(payload) {
+  return Object.keys(payload.in_flight || {}).length > 0;
+}
 
 function Trainer({ trainer, locale, running, onStart }) {
   const [flags, setFlags] = useState({});
@@ -114,7 +143,41 @@ function RunRow({ run, locale }) {
 
 export default function TrainingPanel({ payload, locale, onRefresh }) {
   const [busy, setBusy] = useState(false);
-  const inFlight = payload.in_flight || {};
+  const [live, setLive] = useState(null);
+  const [lost, setLost] = useState(false);
+
+  // The console's own read is the authority. What the watch below reads only
+  // fills the gap between two of them, so a fresh payload from the console
+  // clears it rather than competing with it.
+  useEffect(() => { setLive(null); }, [payload]);
+
+  const shown = live || payload;
+  const watching = runIsOpen(shown);
+
+  // The watch: while a run is open the route is read again, and the moment none
+  // is open the reads stop. A read that does not answer stops the watch too and
+  // says so on the screen, because a screen that silently retries a dead route
+  // is the same lie in a slower form.
+  useEffect(() => {
+    if (!watching) return undefined;
+    let alive = true;
+    setLost(false);
+    const timer = setInterval(() => {
+      readSection('training').then((result) => {
+        if (!alive) return;
+        if (result.status === 'ok' && result.payload) {
+          setLive(result.payload);
+          return;
+        }
+        clearInterval(timer);
+        setLost(true);
+      });
+    }, WATCH_MS);
+    return () => { alive = false; clearInterval(timer); };
+  }, [watching]);
+
+  const inFlight = shown.in_flight || {};
+  const runs = shown.runs || [];
   async function start(artifact, flags) {
     setBusy(true);
     await startTraining(artifact, flags);
@@ -123,8 +186,8 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
   }
   return (
     <>
-      <Panel title={t('training.title', locale)} sub={pick(payload, 'safety', locale)}>
-        {(payload.trainers || []).map((trainer) => (
+      <Panel title={t('training.title', locale)} sub={pick(shown, 'safety', locale)}>
+        {(shown.trainers || []).map((trainer) => (
           <Trainer
             key={trainer.artifact}
             trainer={trainer}
@@ -134,12 +197,22 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
           />
         ))}
       </Panel>
-      <Panel title={t('training.log', locale)} sub={`${(payload.runs || []).length}`}>
-        {(payload.runs || []).length === 0 ? (
+      <Panel title={t('training.log', locale)} sub={`${runs.length}`}>
+        {lost ? (
+          <p className="mc-note mc-run-watch">
+            {t('training.watch_lost', locale)}{' '}
+            <button type="button" className="mc-link" onClick={onRefresh}>
+              {t('training.watch_again', locale)}
+            </button>
+          </p>
+        ) : watching ? (
+          <p className="mc-note mc-run-watch">{t('training.watching', locale)}</p>
+        ) : null}
+        {runs.length === 0 ? (
           <Absent title={t('training.no_runs', locale)} />
         ) : (
           <ul className="mc-run-list">
-            {payload.runs.map((run) => <RunRow run={run} locale={locale} key={run.run_id} />)}
+            {runs.map((run) => <RunRow run={run} locale={locale} key={run.run_id} />)}
           </ul>
         )}
       </Panel>

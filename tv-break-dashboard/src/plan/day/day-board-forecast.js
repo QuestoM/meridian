@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { movesFrom } from './day-board-model';
-import { saveEffect } from './day-board-actions';
+// Explicit extensions, so a test can execute this module in node rather than
+// assert a copy of it. See schedule-editor-pin.js for the defect that rule closed.
+import { movesFrom } from './day-board-model.js';
+import { saveEffect } from './day-board-actions.js';
 
 // The measured answer to what saving would do, held for exactly the edits it was
 // measured on.

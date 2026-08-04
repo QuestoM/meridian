@@ -11,6 +11,7 @@ What these tests are for, in one line each:
   first, which is this piece's Bar 3 row,
 - a version captured against a different store is refused rather than restored,
 - reading history and applying a restore are separately permissioned,
+- a restore is not a second door into a setting the front door locks,
 - a run delta is a subtraction of two recorded figures, never an invention,
 - and an unreadable guardrail store answers unknown, never unchanged.
 """
@@ -23,7 +24,7 @@ from pathlib import Path
 
 import pytest
 import kairos_api.version_store as vs
-from kairos_api import core, history_api_runs, history_api_timeline
+from kairos_api import core, history_api_files, history_api_runs, history_api_timeline
 
 from test_p8_history import (  # noqa: F401 - fixtures are used by name
     OWNED,
@@ -133,6 +134,178 @@ def test_reading_history_and_applying_a_restore_are_separately_permissioned(hist
 
     operator = _as(history_env, auth_env, "operator1", "operator")
     assert operator.get("/api/versions").json()["can_edit"] is True
+
+
+# --- the restore is not a second door -------------------------------------------
+#
+# The five version routes gated on role and never on affiliation, and one of the
+# nine logical files is the settings document a restore writes whole. Measured on
+# a live server before this gate: a channel-affiliated operator refused
+# PUT /api/rules/model-activation with 403 was answered 200 by the restore and
+# flipped that same switch, moved max_breaks_per_hour with no effective date and
+# no change record, and wrote a rival channel into operator_channel.
+
+def _settings_point(before: dict, after: dict) -> str:
+    """A restore point holding ``before``, with ``after`` live, so putting the
+    point back moves exactly the fields the two differ on."""
+    path = Path(core.SETTINGS_PATH)
+    path.write_text(json.dumps(before, ensure_ascii=False), encoding="utf-8")
+    version_id = vs.snapshot("manual_snapshot", "seed", ["settings"], force=True)
+    path.write_text(json.dumps(after, ensure_ascii=False), encoding="utf-8")
+    return str(version_id)
+
+
+def _live_settings() -> dict:
+    return json.loads(Path(core.SETTINGS_PATH).read_text(encoding="utf-8"))
+
+
+def test_a_channel_operator_is_refused_a_settings_restore_and_a_company_one_is_not(
+        history_env, auth_env) -> None:
+    """The exact hole, and the exact half of it that must stay open. Both accounts
+    hold the operator role, so affiliation is the only thing that differs."""
+    version_id = _settings_point(
+        {"operator_channel": OWNED, "audience_model_activation": True},
+        {"operator_channel": OWNED, "audience_model_activation": False},
+    )
+
+    channel = _as(history_env, auth_env, "chan1", "operator")
+    listing = channel.get("/api/versions").json()
+    assert listing["can_edit"] is True, "the role still decides whether anything may be restored"
+    settings_gate = listing["file_permissions"]["settings"]
+    assert settings_gate["can_edit"] is False
+    assert settings_gate["can_edit_reason"] == history_api_files.SETTINGS_RESTORE_DETAIL
+    assert "audience_model_activation" in settings_gate["guards"]
+    assert "max_breaks_per_hour" in settings_gate["guards"]
+    assert listing["file_permissions"]["constraints"]["can_edit"] is True
+    entry = next(item for item in listing["entries"] if item["version_id"] == version_id)
+    assert entry["withheld_files"] == ["settings"], "the refusal is legible before the click"
+
+    before = len(vs._all_manifests())
+    refused = channel.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]})
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == history_api_files.SETTINGS_RESTORE_DETAIL
+    assert _live_settings()["audience_model_activation"] is False, "nothing was written"
+    assert len(vs._all_manifests()) == before, "a refused restore records no safety point"
+
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    allowed = operator.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]})
+    assert allowed.status_code == 200, allowed.text
+    assert allowed.json()["restored"] == ["settings"]
+    assert _live_settings()["audience_model_activation"] is True
+    assert operator.get("/api/versions").json()["file_permissions"]["settings"]["can_edit"] is True
+
+
+def test_a_channel_operator_still_puts_back_the_files_that_are_its_own(history_env, auth_env) -> None:
+    """The gate is on the file, not on the surface, so the eight files a channel
+    account edits by the front door still come back through this one."""
+    version_id = vs.snapshot("manual_snapshot", "seed", list(vs._LOGICAL_ORDER), force=True)
+    Path(core.SETTINGS_PATH).write_text(json.dumps({"operator_channel": OWNED, "revenue_weight": 12}), encoding="utf-8")
+
+    channel = _as(history_env, auth_env, "chan1", "operator")
+    whole = channel.post(f"/api/versions/{version_id}/restore", json={})
+    assert whole.status_code == 403, "the default selection covers settings, so the whole point is refused"
+
+    part = channel.post(f"/api/versions/{version_id}/restore", json={"files": ["constraints", "overrides"]})
+    assert part.status_code == 200, part.text
+    assert part.json()["restored"] == ["constraints", "overrides"]
+    assert part.json()["safety_version_id"], "the safety point is still recorded first"
+    assert _live_settings()["revenue_weight"] == 12, "the withheld file was not written either way"
+
+
+def test_the_events_store_is_company_only_to_put_back_because_its_writes_are(
+        history_env, auth_env, monkeypatch, tmp_path) -> None:
+    """All three event write routes call require_company_editor today. A channel
+    account that cannot add one event may not put the whole calendar back."""
+    from kairos_api import events_api
+
+    events_path = tmp_path / "kairos_events.json"
+    events_path.write_text(json.dumps({"events": []}), encoding="utf-8")
+    monkeypatch.setattr(events_api, "EVENTS_PATH", events_path)
+    version_id = vs.snapshot("manual_snapshot", "seed", ["events"], force=True)
+
+    channel = _as(history_env, auth_env, "chan1", "operator")
+    permissions = channel.get("/api/versions").json()["file_permissions"]
+    assert permissions["events"]["can_edit"] is False
+    assert permissions["events"]["can_edit_reason"] == "עריכת אירועים שמורה לצוות החברה"
+    refused = channel.post(f"/api/versions/{version_id}/restore", json={"files": ["events"]})
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == permissions["events"]["can_edit_reason"]
+
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    assert operator.post(f"/api/versions/{version_id}/restore", json={"files": ["events"]}).status_code == 200
+
+
+def test_a_restore_that_moves_a_regulatory_limit_answers_to_the_licence_wall(
+        history_env, auth_env) -> None:
+    """The owner's ruling of 2026-08-01 put a company-only permission and a change
+    record on the licence. A restore carries neither, so it may not move one on an
+    account the guardrail store itself would refuse."""
+    version_id = _settings_point(
+        {"operator_channel": OWNED, "max_breaks_per_hour": 9},
+        {"operator_channel": OWNED, "max_breaks_per_hour": 4},
+    )
+
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    gate = operator.get(f"/api/versions/{version_id}/diff").json()["file_permissions"]["settings"]
+    assert gate["can_edit"] is False, "the diff says so before the click, the listing cannot"
+    assert gate["can_edit_reason"] == "עריכת מגבלות הרגולציה שמורה למנהל המערכת"
+    refused = operator.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]})
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == gate["can_edit_reason"]
+    assert _live_settings()["max_breaks_per_hour"] == 4
+
+    admin = _as(history_env, auth_env, "admin", "admin")
+    assert admin.get(f"/api/versions/{version_id}/diff").json()["file_permissions"]["settings"]["can_edit"] is True
+    assert admin.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]}).status_code == 200
+    assert _live_settings()["max_breaks_per_hour"] == 9
+
+
+def test_a_settings_restore_that_moves_no_guarded_field_is_the_ordinary_restore(
+        history_env, auth_env) -> None:
+    """The field rule is a rule about fields. A point that moves the revenue lever
+    and nothing else is still an operator's to put back."""
+    version_id = _settings_point(
+        {"operator_channel": OWNED, "revenue_weight": 65},
+        {"operator_channel": OWNED, "revenue_weight": 40},
+    )
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    assert operator.get(f"/api/versions/{version_id}/diff").json()["file_permissions"]["settings"]["can_edit"] is True
+    assert operator.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]}).status_code == 200
+    assert _live_settings()["revenue_weight"] == 65
+
+
+def test_a_restore_that_moves_the_declared_channel_answers_to_the_channel_wall(
+        history_env, auth_env) -> None:
+    """Moving this field does not leak a rival's data, it inverts the boundary, so
+    PUT /api/rules/operator-channel reserves it for an administrator and the
+    restore may not be the way around that."""
+    version_id = _settings_point({"operator_channel": OWNED}, {"operator_channel": ""})
+
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    gate = operator.get(f"/api/versions/{version_id}/diff").json()["file_permissions"]["settings"]
+    assert gate["can_edit"] is False
+    assert gate["can_edit_reason"] == "בחירת ערוץ המפעיל שמורה למנהל המערכת"
+    refused = operator.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]})
+    assert refused.status_code == 403
+    assert _live_settings()["operator_channel"] == ""
+
+    admin = _as(history_env, auth_env, "admin", "admin")
+    assert admin.post(f"/api/versions/{version_id}/restore", json={"files": ["settings"]}).status_code == 200
+    assert _live_settings()["operator_channel"] == OWNED
+
+
+def test_each_guarded_field_answers_to_the_wall_its_own_module_publishes() -> None:
+    """One rule, three enforcement points. The walls resolve at call time, so this
+    asserts the real ones are found and the fallback floor is never the live
+    answer. A renamed wall fails here rather than silently opening a door."""
+    from kairos_api import compliance_api_licence, guardrail_store, model_activation
+
+    resolved = dict(history_api_files._field_walls())
+    assert resolved[frozenset({"audience_model_activation"})] is model_activation.ACTIVATION_WALL
+    assert resolved[frozenset(guardrail_store.GUARDRAIL_KEYS)] is guardrail_store.GUARDRAIL_WALL
+    assert resolved[frozenset({"operator_channel"})] is compliance_api_licence.CHANNEL_WALL
+    assert set(history_api_files.FILE_WALLS) == {"settings", "events"}
+    assert history_api_files.LOGICAL_FILES == vs._LOGICAL_ORDER
 
 
 # --- the run, and its comparison ------------------------------------------------

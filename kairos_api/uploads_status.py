@@ -21,7 +21,7 @@ that the engine does not read names them, and when one of them arrived after
 the file the engine reads, the kind is ``shadowed``, because the operator's own
 most recent act is not what any number rests on.
 
-**The consequence of an upload, before it happens.** Five codes, derived from
+**The consequence of an upload, before it happens.** Seven codes, derived from
 the real read paths rather than from optimism: ``replaces_live_input`` (the
 engine reads this file, so a new one changes what the plan is computed from),
 ``changes_model_basis`` (the engine reads it AND the model version was measured
@@ -29,9 +29,16 @@ on it, so a new file makes that measurement stale), ``stored_not_read`` (the
 file is kept and validated and nothing reads it),
 ``replaces_only_a_later_day`` (the engine reads this kind out of a directory by
 the airing date in the filename, so whether an upload here replaces anything
-depends on the day its own name carries), and ``stored_without_replacing``,
+depends on the day its own name carries), ``stored_without_replacing``,
 which asks the third one about a named candidate rather than about a kind, so
-it can name the file that will be read instead.
+it can name the file that will be read instead, and
+``replaces_live_input_with_no_rows``, which is the first one asked about a
+candidate that carries no data rows: it wins the read path and replaces the
+live input with nothing, which is the one outcome the first sentence reads as
+good news over. The seventh is that same shape once more, one step less
+extreme: ``replaces_live_input_with_warnings`` is a candidate the engine will
+read that carries a warn-severity finding, and it names how many and the field
+they are about, because a file whose every row lost its clock is that same loss.
 
 **A remedy and a consequence on one card may not disagree**, which is what the
 fourth code exists for. Measured on the shipped card before it: a shadowed daily
@@ -73,14 +80,16 @@ read_cache.configure(SHAPE_NAMESPACE, capacity=16)
 # invents a seventh.
 STATES = ("in_use", "shadowed", "not_read", "empty", "invalid", "missing")
 
-# The five things an upload actually does. The first four are about a kind and
-# the fifth is about one named file, which is not the same question.
+# The seven things an upload actually does. The first four are about a kind and
+# the last three are about one named file, which is not the same question.
 CONSEQUENCES = (
     "replaces_live_input",
     "changes_model_basis",
     "stored_not_read",
     "replaces_only_a_later_day",
     "stored_without_replacing",
+    "replaces_live_input_with_no_rows",
+    "replaces_live_input_with_warnings",
 )
 
 # The most stored-but-unread files one input names. The daily directory grows by
@@ -149,7 +158,29 @@ _CONSEQUENCES: dict[str, dict[str, str]] = {
         "en": "This file will be stored and validated, and it will replace nothing. The engine will go on reading {live}, so the plan will not change.",
         "he": "הקובץ הזה יישמר וייבדק, והוא לא יחליף דבר. המנוע ימשיך לקרוא את {live}, ולכן התוכנית לא תשתנה.",
     },
+    # The one thing the five above cannot say, and the one an operator was left
+    # to find out after the click: this file wins the read path AND it carries
+    # no rows, so what it replaces the live input with is nothing.
+    "replaces_live_input_with_no_rows": {
+        "en": "This file will become the live input and it carries no data rows, so every figure computed from this input will be empty until a file with rows replaces it.",
+        "he": "הקובץ הזה יהפוך לקלט החי ואין בו אף שורת נתונים, ולכן כל נתון שמחושב מהקלט הזה יהיה ריק עד שיוחלף בקובץ שיש בו שורות.",
+    },
+    # The same shape as the one above and far more common. Measured on the
+    # shipped card: a daily file whose 20 of 20 rows carried a clock the loader
+    # cannot read was answered "this is the live input", in the teal tone, under
+    # the heading that says it passed every check. The count and the field are
+    # in the sentence, because a consequence that does not name what is wrong
+    # leaves the reader to go and find it.
+    "replaces_live_input_with_warnings": {
+        "en": "This file will become the live input and it carries {count} warning(s), about {fields}, so what those warnings say will be true of every figure computed from this input.",
+        "he": "הקובץ הזה יהפוך לקלט החי ויש בו אזהרות, {count} במספר, על {fields}, ולכן מה שנאמר בהן יהיה נכון לכל נתון שמחושב מהקלט הזה.",
+    },
 }
+
+# What a warning is about when it names no column at all. Every warning this
+# door can raise about a file the engine will read names one today, so this is
+# the honest fallback rather than a case, in the surface's own words for it.
+WHOLE_FILE = ("the whole file", "הקובץ כולו")
 
 # Why a file this product stored is not the one the engine reads. Only the
 # daily kind can hold more than one file, so both sentences name that resolver:
@@ -191,19 +222,22 @@ def file_shape(
     return list(columns), int(rows), list(warnings)
 
 
-def naming(table: dict[str, dict[str, str]], code: str, live_name: str) -> dict[str, str]:
-    """A bilingual pair that names a file inside its own sentence.
+def naming(table: dict[str, dict[str, str]], code: str, live_name: str = "", **fields: object) -> dict[str, str]:
+    """A bilingual pair that names a file, or a count and a field, in its sentence.
 
-    The Hebrew sentence carries the name inside a first-strong isolate, or a
+    The Hebrew sentence carries every named run inside an isolate, or a
     left-to-right name inside a right-to-left sentence drags that sentence's own
-    full stop to the wrong side of it. The English one is left plain.
+    full stop to the wrong side of it. The English one is left plain. A filename
+    is always left-to-right and is isolated as one; any other field resolves its
+    own direction from its first strong character. A field whose value is a
+    two-item tuple carries its own two languages, which is how a word this
+    module supplies itself stays in the language of the sentence around it.
     """
     words = table.get(code) or {"en": "", "he": ""}
-    return {
-        "code": code,
-        "en": words["en"].format(live=live_name),
-        "he": words["he"].format(live=f"⁦{live_name}⁩"),
-    }
+    both = {name: value if isinstance(value, tuple) else (value, value) for name, value in fields.items()}
+    plain = {"live": live_name, **{name: str(pair[0]) for name, pair in both.items()}}
+    isolated = {"live": f"⁦{live_name}⁩", **{name: f"⁨{pair[1]}⁩" for name, pair in both.items()}}
+    return {"code": code, "en": words["en"].format(**plain), "he": words["he"].format(**isolated)}
 
 
 def stored_reason(code: str, live_name: str) -> dict[str, str]:
@@ -256,7 +290,7 @@ def labelled(table: dict[str, dict[str, str]], code: str) -> dict[str, str]:
 
 
 def consequence_record(
-    in_use: bool, reads: str | None, models_dir: Path, root: Path, still_read: str | None = None
+    in_use: bool, reads: str | None, models_dir: Path, root: Path, still_read: str | None = None, rows: int | None = None, findings: list[dict[str, Any]] | None = None
 ) -> dict[str, str]:
     """What replacing this kind's file would do, in the operator's own terms.
 
@@ -264,7 +298,26 @@ def consequence_record(
     true but useless "nothing reads this" into the sentence that says what does.
     It is passed when the question is about one candidate file, which is the
     question whose answer a person is about to act on.
+
+    ``rows`` is that candidate's own data row count, and it is the one fact that
+    outranks every other answer here: a file the engine will read that carries
+    no rows replaces the live input with nothing, and "this is the live input,
+    uploading replaces what the plan is computed from" is a true sentence that
+    reads as good news over it. It stays None when the question is about a kind
+    rather than about a file, which is an honest unknown and not a zero.
+
+    ``findings`` are that candidate's own, and a warn-severity one is the same
+    lesson a row less extreme: the file loads, so nothing refuses it, and part
+    of it reaches the engine unusable anyway. It outranks the two unconditional
+    verdicts for the same reason the row count does, and it stays None when the
+    question is about a kind, whose next file has not been looked at yet.
     """
+    if in_use and rows is not None and rows <= 0:
+        return labelled(_CONSEQUENCES, "replaces_live_input_with_no_rows")
+    warned = [item for item in (findings or []) if str((item or {}).get("severity") or "") == "warning"]
+    if in_use and warned:
+        named = [column for column in dict.fromkeys(str((item or {}).get("column") or "").strip() for item in warned) if column]
+        return naming(_CONSEQUENCES, "replaces_live_input_with_warnings", count=len(warned), fields=", ".join(named) or WHOLE_FILE)
     measured_on = set(uploads_model.version(models_dir, root).get("measured_on") or [])
     code = consequence_for(in_use=bool(in_use), model_input=bool(reads and reads in measured_on))
     if code == "stored_not_read" and still_read:

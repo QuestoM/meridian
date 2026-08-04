@@ -274,6 +274,70 @@ def test_a_missing_file_says_so_rather_than_showing_an_empty_table(isolated: Tes
 
 
 # --- the refusal is legible before the click ----------------------------------
+def test_a_report_stored_before_the_door_sent_a_scope_prints_the_place_not_the_key(
+    isolated: TestClient,
+) -> None:
+    """The chip a stored refusal prints is rendered at the read, from its code.
+
+    Measured on the shipped card before this: ``output/upload_validation_reports
+    .json`` carries ``column: "channels"`` on the channel refusal, written before
+    the door emptied that key, and the card printed it as a bold Latin
+    ``channels`` chip on a Hebrew screen on first load with nothing clicked. The
+    flat line the assistant's own read tool parses read ``[error] channels:`` for
+    the same reason. ``channels`` is a column no dayparts export has and no file
+    this door accepts has, so it is the internal-name defect with the brackets
+    taken off, one level further back: the fix reached the live path and not the
+    replay path. A finding that IS about a column keeps that column, which the
+    second half asserts, because re-deriving the place must not cost a real name.
+    """
+    store = uploads.VALIDATION_REPORTS_PATH
+    store.parent.mkdir(parents=True, exist_ok=True)
+    store.write_text(
+        json.dumps(
+            {
+                "dayparts": {
+                    "dataset": "dayparts",
+                    "filename": "Dayparts.csv",
+                    "checked_at": "2026-08-02T01:31:05+00:00",
+                    "accepted": False,
+                    "is_valid": False,
+                    "rows_loaded": 0,
+                    "renders_at_read": True,
+                    "findings": [
+                        {
+                            "column": "channels",
+                            "code": "no_recognized_channel_columns",
+                            "severity": "error",
+                            "boundary": {"names": ["Channel_A", "Channel_B"], "withheld": 0},
+                        },
+                        {
+                            "column": "שעה",
+                            "code": "unreadable_times",
+                            "severity": "warning",
+                            "key": "unreadable_times",
+                            "fields": {"unreadable": 2, "rows": 175},
+                        },
+                    ],
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    entry = next(
+        item for item in isolated.get("/api/uploads/status").json()["inputs"] if item["kind"] == "dayparts"
+    )
+    findings = entry["last_validation"]["findings"]
+    assert (findings[0]["column"], findings[0]["scope"]) == ("", "header"), "the stored key was replayed as a column"
+    assert entry["last_validation"]["errors"][0].startswith("[error] header:"), "the flat line kept the key"
+    assert "channels" not in json.dumps(entry["last_validation"], ensure_ascii=False), (
+        "a name no file of this kind carries is still in the payload a card renders"
+    )
+    assert (findings[1]["column"], findings[1].get("scope")) == ("שעה", None), (
+        "a finding about a real column lost the column it is about"
+    )
+
+
 def test_the_status_says_whether_this_account_may_change_anything(client: TestClient) -> None:
     body = client.get("/api/uploads/status").json()
     assert isinstance(body["can_edit"], bool)

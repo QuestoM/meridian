@@ -8,13 +8,20 @@ import {
   programClassLabel,
   breakPositionLabel,
 } from './schedule-editor-format';
+import './schedule-editor.css';
 
 // One legible row in the editor readout. It restates a break the operator has
 // moved: the programme it sits inside (prominent), the exact clock second, the
-// human offset, the class, the programme window and the break length. Clock and
-// second values stay left to right inside the right to left card so a time is
-// never mirrored. Every field is passed in from the editor's real lane model;
-// this component computes no new values beyond formatting.
+// human offset, the class, the programme window, the break length and what a save
+// would bind. Clock and second values stay left to right inside the right to left
+// card so a time is never mirrored. Every field is passed in from the editor's
+// real lane model; this component computes no new values beyond formatting.
+//
+// The scope line is the sentence the day board prints beside its own selection,
+// and it replaced a scope selector that defaulted to the whole broadcast date.
+// Measured on 2024-11-01, that default bound 82 of 82 segments and one click of
+// it cost 789,576.18 ILS, 74.3 per cent of the day. There is one scope now, it is
+// the airing that was dragged, and the row says so before the button is pressed.
 function ScheduleEditorRow({
   item,
   startSec,
@@ -23,6 +30,7 @@ function ScheduleEditorRow({
   pinned,
   saving,
   locale,
+  scope,
   onSave,
 }) {
   const he = locale === 'he';
@@ -54,6 +62,7 @@ function ScheduleEditorRow({
         <span className="editor-row-length">
           {label('Length', 'אורך')} <span dir="ltr">{Math.round(durationSec)}s</span>
         </span>
+        {scope && <span className="editor-row-scope" dir="auto">{scope}</span>}
       </div>
       <Button
         type="button"

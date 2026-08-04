@@ -1,8 +1,8 @@
 import React from 'react';
 import { formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
 import { foldSize } from './history-fold';
+import { APPLIED, actLabel, outcomeOf, outcomeWord } from './history-refused';
 import {
-  ACTION_LABELS,
   FILE_LABELS,
   KIND_LABELS,
   SIGN_IN_LABELS,
@@ -20,14 +20,18 @@ import {
 // number the kind carries, how it was done, whether it can be put back, and the
 // single affordance hover reveals. Nothing is invented here: a fact the entry
 // does not carry is simply absent from the row.
+//
+// What happened is told by the outcome as well as by the act. Before this round
+// a refused write printed the sentence of one that succeeded and differed only
+// in a small red number, so four rows a minute apart read alike while two of
+// them had changed nothing at all.
 
 function factsFor(entry, locale) {
   const facts = entry.facts || {};
   if (entry.kind === 'change' || entry.kind === 'preview') {
-    const action = pair(ACTION_LABELS, facts.action, locale) || pair(ACTION_LABELS, 'other', locale);
     const status = Number(facts.status);
     return {
-      title: action,
+      title: actLabel(facts.action, outcomeOf(entry), locale),
       target: facts.path ? pathStem(facts.path) : '',
       figure: Number.isFinite(status) && status > 0 ? String(status) : '',
       figureTone: Number.isFinite(status) && status >= 400 ? 'warn' : 'quiet',
@@ -78,6 +82,11 @@ export default function HistoryRow({ entry, locale, selected, onSelect, index })
   const view = factsFor(entry, locale);
   const via = pair(VIA_LABELS, entry.via, locale);
   const folded = foldSize(entry);
+  // Only a recorded request has an outcome. A restore point and a run are read
+  // from acts that already happened, so asking would answer a question the
+  // entry was never about.
+  const outcome = entry.kind === 'change' || entry.kind === 'preview' ? outcomeOf(entry) : '';
+  const outcomeChip = outcome && outcome !== APPLIED ? outcomeWord(outcome, locale) : '';
   const blocked = entry.kind === 'restore_point' && facts.restorable === false;
   const runFigure = entry.kind === 'run' && facts.total_breaks !== undefined
     ? `${formatNumber(facts.total_breaks, locale)} ${pageText(locale, 'breaks', 'ברייקים')}`
@@ -94,6 +103,7 @@ export default function HistoryRow({ entry, locale, selected, onSelect, index })
       tabIndex={selected ? 0 : -1}
       data-index={index}
       data-kind={entry.kind}
+      data-outcome={outcome || undefined}
       onClick={() => onSelect(entry)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -110,6 +120,7 @@ export default function HistoryRow({ entry, locale, selected, onSelect, index })
       {folded > 1 ? <span className="hist-fold" dir="ltr">{`x${formatNumber(folded, locale)}`}</span> : null}
       {view.target ? <span className="hist-row-target" dir="auto">{view.target}</span> : null}
       <span className="hist-row-tail">
+        {outcomeChip ? <span className="hist-chip refused" dir="auto">{outcomeChip}</span> : null}
         {retention ? <span className="hist-chip quiet" dir="ltr">{retention}</span> : null}
         {runFigure ? <span className="hist-chip quiet" dir="auto">{runFigure}</span> : null}
         {view.figure ? <span className={`hist-figure ${view.figureTone}`} dir="ltr">{view.figure}</span> : null}

@@ -224,6 +224,47 @@ function breakWord(count, locale) {
   return count === 1 ? '1 break' : `${count} breaks`;
 }
 
+function nightWord(count, locale) {
+  if (locale === 'he') return count === 1 ? 'לילה אחד' : `${count} לילות`;
+  return count === 1 ? '1 night' : `${count} nights`;
+}
+
+// The head line above the night picker. It states both counts because they are
+// two different facts and the second one is the one a person can act on: a
+// restriction scoped to a date names a night, so two airings on one night are
+// one choice. Measured on the reference plan, 43 airings of one programme fall
+// on 19 nights, and a head line that said only 43 promised a precision the
+// picker below it could not offer.
+export function nightsHeadSentence(airings, nights, locale) {
+  const total = Number(airings) || 0;
+  const count = Number(nights) || 0;
+  if (locale === 'he') {
+    return `${airingWord(total, 'he')} ב-${nightWord(count, 'he')} בחלון התוכנית. בחרו לילה, או השאירו לכל השידורים.`;
+  }
+  return `${airingWord(total, 'en')} on ${nightWord(count, 'en')} in the plan window. Pick a night, or leave it for all of them.`;
+}
+
+// What one night chip says under its date. A night with more than one airing
+// says how many, because that is the fact a single length would hide; a night
+// with one says how long that programme runs, which is what the chip has always
+// said and what a window restriction is judged against.
+export function nightDetail(night, locale) {
+  const airings = Number(night?.airings) || 0;
+  if (airings > 1) return airingWord(airings, locale);
+  return lengthLabel(night?.duration_seconds, locale);
+}
+
+// The whole fact about a night, for a reader who cannot see the chip's layout.
+// The planned break count is stated only when the plan holds one, so an unknown
+// is silent rather than read out as nought.
+export function nightAriaLabel(night, locale) {
+  const parts = [dayLabel(night?.day, locale), nightDetail(night, locale)];
+  if (night?.planned_breaks !== null && night?.planned_breaks !== undefined) {
+    parts.push(breakWord(Number(night.planned_breaks), locale));
+  }
+  return parts.filter(Boolean).join(', ');
+}
+
 // How many store rows one restriction wrote, said rather than templated. A
 // restriction that binds a single airing is the ordinary case on this list, and
 // "1 כללים" is not Hebrew any more than "1 rules" is English. The verb moves
@@ -293,42 +334,16 @@ export function collateralSentence(locale, collateral, moneyText) {
   return `${head} ${moved}`;
 }
 
-// The four regulatory limits, named the way the person accountable for them
-// says them. The store keys are engine words and a compliance owner never has
-// to read one: the limit list, the change log and the attestation all read
-// through this table.
-const LIMIT_WORDS = {
-  max_ad_minutes_per_hour: ['Ad minutes per broadcast hour', 'דקות פרסום לשעת שידור'],
-  max_breaks_per_hour: ['Breaks per hour', 'ברייקים בשעה'],
-  min_break_spacing_minutes: ['Minimum spacing between breaks', 'מרווח מינימלי בין ברייקים'],
-  protected_program_max_ad_minutes_per_hour: ['Ad minutes per hour in protected content', 'דקות פרסום לשעה בתוכן מוגן'],
-};
-
-export function limitLabel(key, locale) {
-  const words = LIMIT_WORDS[key];
-  if (!words) return String(key || '');
-  return locale === 'he' ? words[1] : words[0];
-}
-
-// The compliance payload states each check's unit in English, because it is an
-// engine payload. A unit is a word a person reads, so it is read back in the
-// page's own language. An unknown unit is returned as it came rather than
-// guessed at, so a new check shows an untranslated unit and not a wrong one.
-const UNIT_WORDS = {
-  'minutes/hour': 'דקות לשעה',
-  'breaks/hour': 'ברייקים לשעה',
-  'minutes/day': 'דקות ליום',
-  'breaks/day': 'ברייקים ליום',
-  minutes: 'דקות',
-  breaks: 'ברייקים',
-  '%': '%',
-};
-
-export function unitLabel(unit, locale) {
-  const text = String(unit || '');
-  if (locale !== 'he') return text;
-  return UNIT_WORDS[text] || text;
-}
+// The engine keys read back as words a person says, in their own module
+// under the file-size law. Re-exported here so every importer of this file
+// keeps reaching them by the same name.
+export {
+  EFFECT_LIST,
+  effectLabel,
+  limitLabel,
+  refusalSentence,
+  unitLabel,
+} from './rules-words';
 
 // Deep-merge one rate-card patch onto a draft, the same shape the server
 // deep-merges onto the saved overrides, so what is priced is what is saved.

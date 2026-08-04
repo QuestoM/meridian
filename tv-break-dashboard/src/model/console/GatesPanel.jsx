@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Absent, Basis, Panel, RecordDrill, STATE_ORDER, Verdict } from './console-bits';
+import { Absent, Basis, Earliest, Panel, RecordDrill, STATE_ORDER, Verdict } from './console-bits';
 import { pick, t } from './console-words';
 
 // The gate table. One row per gate, its state, its basis on the same row, and
@@ -72,9 +72,9 @@ function GateRow({ gate, locale, blocked }) {
         <p className="mc-gate-unblock">
           <span className="mc-gate-unblock-label">{t('gates.unblock', locale)}</span>
           {pick(unblock, 'condition', locale)}
-          {unblock.earliest && unblock.earliest.start ? (
-            <span className="mc-gate-unblock-date" dir="ltr">{unblock.earliest.start}</span>
-          ) : null}
+          <span className="mc-gate-unblock-date">
+            <Earliest earliest={unblock.earliest} locale={locale} />
+          </span>
         </p>
       ) : null}
       <RecordDrill record={gate.basis && gate.basis.detail} locale={locale} open={open} onToggle={() => setOpen((v) => !v)} />

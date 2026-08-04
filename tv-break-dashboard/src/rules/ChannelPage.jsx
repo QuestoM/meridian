@@ -6,6 +6,7 @@ import { payloadCanEdit, WALLS } from '../session.js';
 import {
   fetchActivation,
   fetchOperatorChannel,
+  refusalSentence,
   setActivation,
   setOperatorChannel,
 } from './rules-lib';
@@ -135,7 +136,11 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
         {!channelGate.canEdit && (
           <p className="rules-locked">
             <Lock size={13} aria-hidden="true" />
-            <span dir="auto">{channel?.can_edit_reason || pageText(locale, 'Only an administrator changes the channel.', 'רק מנהל המערכת משנה את הערוץ.')}</span>
+            {/* The server's refusal is authored in Hebrew, and it used to reach
+                an English reader verbatim. The translation is keyed off the
+                wall's own words, so a wall this page does not know still
+                renders the server's sentence rather than a guess. */}
+            <span dir="auto">{refusalSentence(channel?.can_edit_reason, locale) || pageText(locale, 'Only an administrator changes the channel.', 'רק מנהל המערכת משנה את הערוץ.')}</span>
           </p>
         )}
         {channel && !channel.is_declared && (
@@ -207,7 +212,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
           ) : (
             <p className="rules-locked">
               <Lock size={13} aria-hidden="true" />
-              <span dir="auto">{activationGate.reason}</span>
+              <span dir="auto">{refusalSentence(activationGate.reason, locale)}</span>
             </p>
           )}
         </section>

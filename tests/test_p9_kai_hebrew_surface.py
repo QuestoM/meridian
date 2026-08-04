@@ -167,6 +167,20 @@ def test_the_surface_has_a_reading_for_every_summary_code() -> None:
         assert f"terms.code === '{code}'" in SUMMARY_VIEW, f"no reading for {code}"
 
 
+def test_no_reading_interpolates_a_value_that_can_be_the_other_script() -> None:
+    """The other half of saying it in the reader's language: a Hebrew name
+    interpolated into an English sentence is resolved into that sentence by the
+    bidirectional algorithm, and the reader gets the characters in an order
+    nobody wrote. Every value carries its own isolate: a bdi element beside the
+    sentence on a card, the isolate characters in a notice, where the sink takes
+    plain strings and no element can go. The rule, its allowlist of counts and
+    the browser measurement behind it are in test_p9_kai_bidi.py, next to this
+    file and run with it."""
+    from test_p9_kai_bidi import unisolated_interpolations
+
+    assert unisolated_interpolations() == []
+
+
 # The two readings a bilingual pair puts on one source line: t('English', 'עברית')
 # for a phrase, and { he: 'עברית', en: 'English' } for a vocabulary token.
 _PHRASE_PAIRS = re.compile(r"\bt\('([^']*)', '([^']*)'\)")

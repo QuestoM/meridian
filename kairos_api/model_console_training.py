@@ -206,14 +206,42 @@ def _run(record: dict[str, Any], command: list[str]) -> None:
         record["state"] = "failed"
         record["error"] = repr(exc)
     finally:
+        # A finished run is recorded and released, whatever the summary does.
+        #
+        # Measured with the store relocated outside the repository, which the
+        # environment knob exists to allow: summarising raised here, inside the
+        # ``finally``, so the finished record was never written and the artifact
+        # was never released. The console then read "training" for the life of
+        # the process, on a run that had exited 0, and no further run of that
+        # trainer could be started. The state a screen shows must not depend on
+        # where a store happens to sit, so the two acts that make the state true
+        # are the last two and neither is skippable.
         record["duration_seconds"] = round(time.monotonic() - started, 1)
         record["finished_at"] = _now()
         if record["state"] == "done":
-            record["produced"] = _produced(output)
-            record["would_change"] = _would_change(record["artifact"], output)
-        _save(record)
-        with _LOCK:
-            _RUNNING.pop(record["artifact"], None)
+            try:
+                record["produced"] = _produced(output)
+                record["would_change"] = _would_change(record["artifact"], output)
+            except Exception as exc:  # noqa: BLE001 - the run finished either way
+                logger.exception("training run %s could not be summarised", record["run_id"])
+                record["summary_error"] = repr(exc)
+        try:
+            _save(record)
+        finally:
+            with _LOCK:
+                _RUNNING.pop(record["artifact"], None)
+
+
+def _display_path(output: Path) -> str:
+    """The path as the product names it, and the honest absolute one otherwise.
+
+    The store is relocatable, so a run's output is not always under the
+    repository, and a path that cannot be made relative is still a real path.
+    """
+    try:
+        return output.relative_to(ROOT).as_posix()
+    except ValueError:
+        return output.as_posix()
 
 
 def _produced(output: Path) -> dict[str, Any]:
@@ -226,7 +254,7 @@ def _produced(output: Path) -> dict[str, Any]:
         payload = {}
     metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
     return {
-        "path": output.relative_to(ROOT).as_posix(),
+        "path": _display_path(output),
         "bytes": output.stat().st_size if output.is_file() else None,
         "sha256": hashlib.sha256(output.read_bytes()).hexdigest() if output.is_file() else None,
         "computed_at": metadata.get("computed_at") or payload.get("computed_at"),

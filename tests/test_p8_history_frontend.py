@@ -176,6 +176,23 @@ def test_the_safety_point_promise_is_still_on_the_restore_control() -> None:
     assert "restore point first" in restore
 
 
+def test_a_file_this_account_may_not_put_back_is_locked_with_the_servers_own_words() -> None:
+    """The refusal is read before the click, per file, and it is the endpoint's
+    string rather than one this tree wrote: a channel account is refused the
+    settings document and the calendar, and the other seven stay restorable.
+    The control waits for the diff, because that is the read that carries the
+    per-file answer and a control offered over permissions it has not read is
+    the 403-after-the-click this closed."""
+    restore = _read("HistoryRestore.jsx")
+    assert "result.data.file_permissions" in restore, "the per-file answer is read from the payload"
+    assert ".can_edit !== false" in restore
+    assert "can_edit_reason" in restore, "the reason is the server's own string, verbatim"
+    assert "diff.state === 'ready' ?" in restore, "the control waits for the per-file answer"
+    assert "selected.has(file) && permitted(file)" in restore, "a withheld file never reaches the request"
+    assert "disabled={busy || !permitted(file)}" in restore
+    assert "hist-file-why" in restore and "<Lock size={11} />" in restore
+
+
 # --- what the destination adds, and the reference mechanics -------------------
 
 def test_the_keyboard_is_taught_on_the_surface_that_answers_to_it() -> None:
@@ -195,11 +212,22 @@ def test_the_opened_record_keeps_its_place_in_the_set() -> None:
 
 
 def test_the_filters_live_in_the_content_not_in_the_navigation() -> None:
+    """The six kinds are tabs inside the page, not six rail entries.
+
+    The rail's own length is not this piece's to freeze: it stood at 17 when this
+    was written and at 15 today, because Calendar and Pricing were folded into
+    destinations by the pieces that own them, which is the whole point of the
+    rebuild. What this piece owes is that it adds no entry and removes none, so
+    the assertion is on its own single entry and on the fact that nothing in this
+    tree writes the rail at all.
+    """
     page = _read("HistoryPage.jsx")
     assert 'role="tablist"' in page
     nav = (SRC / "shell" / "nav.js").read_text(encoding="utf-8")
     entries = re.findall(r"\['([^']+)', \w+\],", nav)
-    assert len(entries) == 17, "this piece adds no navigation entry and removes none"
+    assert entries.count("Versions") == 1, f"the destination is in the rail exactly once: {entries}"
+    assert not any("nav.js" in path.read_text(encoding="utf-8") for path in HISTORY.glob("*.js*")), (
+        "and no file in this tree writes a navigation entry of its own")
 
 
 def test_a_row_is_never_a_dead_end() -> None:

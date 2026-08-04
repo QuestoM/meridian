@@ -21,10 +21,20 @@ A refusal also names the rows. A column and a count leave a steward searching a
 175-row file by hand, so every violation that is about cells carries the row
 numbers those cells are on, recomputed from the same frame the contract read.
 
+A file with a header and no data rows is the one refusal that has to be asked
+about every kind rather than about a loader, so the whole of that rule, and the
+two answers it has, is :mod:`kairos_api.uploads_empty`.
+
 A refusal never names a channel this operator does not own. It is a sentence
 rendered verbatim on an operator screen, so it goes through
 :mod:`kairos_api.uploads_channels` exactly like every other name this
 destination prints back.
+
+A refusal never names a column the operator's file does not have either. Every
+violation, this module's and the frozen contracts', is raised on the LOADED
+frame, whose names are renamed or computed, so :func:`finding_records` resolves
+each one against the candidate's own header row through
+:mod:`kairos_api.uploads_columns`, once, where the record is made.
 
 A refusal is also read in Hebrew, so every sentence this module writes itself is
 written in both languages: the words live in :mod:`kairos_api.uploads_messages`
@@ -46,7 +56,7 @@ from typing import Any, Callable
 import pandas as pd
 from fastapi.responses import JSONResponse
 
-from kairos_api import uploads_channels, uploads_messages, uploads_replay
+from kairos_api import uploads_columns, uploads_empty, uploads_messages, uploads_replay
 from kairos.data import contracts
 from kairos.data.loaders import (
     CHANNELS,
@@ -76,7 +86,8 @@ CONTRACT_VALIDATORS: dict[str, Callable[[pd.DataFrame], contracts.ValidationRepo
 # The datetime column each loader derives. A file whose rows ALL fail to parse a
 # date would silently yield zero engine segments; a file where only SOME fail is
 # the realistic morning case, and those rows reach the engine dateless. Both are
-# refused, with the rows named.
+# refused, with the rows named. Every name in these two is the LOADER's, so it
+# is the header row of the file in hand that gets named on screen, never these.
 LOADED_DATE_COLUMN = {"programmes": "start_dt", "spots": "air_dt", "daily": "date"}
 
 # The clock column of the daily file, and what the engine gets from it: the
@@ -101,13 +112,13 @@ ROW_LIST_CAP = 25
 ROW_ALIGNED_KINDS = frozenset({"programmes", "spots", "daily"})
 
 
-# The 400 itself is shaped where its words are, so a refusal cannot leave with
-# one language: ``reject`` takes a sentence, ``refuse`` takes a code.
+# The 400 itself is shaped where its words are, so a refusal cannot leave in one
+# language. ``reject`` takes a sentence and ``refuse`` takes a code.
 reject = uploads_messages.reject
 refuse = uploads_messages.refuse
 
 
-def add_finding(report: contracts.ValidationReport, authored: dict[tuple[str, str], dict[str, Any]], column: str, code: str, severity: str, key: str | None = None, boundary: dict[str, Any] | None = None, **fields: object) -> None:
+def add_finding(report: contracts.ValidationReport, authored: dict[tuple[str, str], dict[str, Any]], column: str, code: str, severity: str, key: str | None = None, boundary: dict[str, Any] | None = None, scope: str = "", **fields: object) -> None:
     """One violation this module raises itself, recorded in both languages.
 
     The report is the frozen contract's own object and it carries one detail, so
@@ -118,11 +129,15 @@ def add_finding(report: contracts.ValidationReport, authored: dict[tuple[str, st
     What the sentence was made of travels with it, because the stored report
     keeps the fields and not the sentence. ``boundary`` is the raw material of
     the one sentence whose fields depend on the operator channel, and it stands
-    in place of those fields rather than beside them.
-    """
+    in place of those fields rather than beside them. ``scope`` is what a finding
+    about no column is about, one of :data:`uploads_messages.SCOPES`, and it is
+    the code that replaced the internal token the column key used to carry.
+    ``column`` is the loaded frame's own name here, exactly as a frozen
+    contract's is, and :func:`finding_records` is where both are resolved to a
+    header the operator's file really carries."""
     english, translated = uploads_messages.say(key or code, **fields)
     report.add(column, code, english, severity)
-    authored[(str(column), str(code))] = {"key": key or code, "fields": dict(fields), "boundary": boundary, "message_he": translated}
+    authored[(str(column), str(code))] = {"key": key or code, "fields": dict(fields), "boundary": boundary, "scope": scope, "message_he": translated}
 
 
 def load_reports(path: Path) -> dict[str, Any]:
@@ -142,9 +157,8 @@ def store_report(path: Path, kind: str, report_payload: dict[str, Any]) -> None:
     """Record this kind's latest report as codes, never blocking an upload.
 
     What lands on disk is :func:`uploads_replay.to_store`'s form: each finding's
-    code, the copy table's key and the measured fields, and never the sentence
-    itself. A stored sentence freezes the operator channel configured when it was
-    written, and the account that reads it back may own a different one.
+    code, key and measured fields, and never the sentence, for that module's own
+    stated reason.
     """
     reports = load_reports(path)
     reports[kind] = uploads_replay.to_store(report_payload)
@@ -164,8 +178,7 @@ def unreadable_times(values: pd.Series) -> pd.Series:
     Mirrors the loader's own two-step parse (the fixed ``HH:MM:SS`` first, the
     general parser for the Excel-serial leftovers), so a row marked here is a row
     the engine really gets no clock from. An empty cell is not marked: it is
-    missing, not unreadable, and that is a different sentence.
-    """
+    missing, not unreadable, and that is a different sentence."""
     text_values = values.astype(str).str.strip()
     parsed = pd.to_datetime(text_values, format="%H:%M:%S", errors="coerce")
     leftover = parsed.isna() & text_values.str.contains(":", na=False)
@@ -180,8 +193,8 @@ def violation_mask(violation: contracts.Violation, frame: pd.DataFrame) -> pd.Se
     Same rule, same frame, so a listed row number is that violation's row rather
     than a guess. A violation about the header or about the frame as a whole (a
     missing column, a wrong dtype, an empty file) is about no row and returns
-    None, and so does a code with no cell-level rule to re-run.
-    """
+    None, and so does a code with no cell-level rule to re-run. The field is the
+    loaded frame's own name, which is what this frame is keyed by."""
     column = str(violation.field)
     code = str(violation.code)
     if code == "end_before_start" and {"start_dt", "end_dt"} <= set(frame.columns):
@@ -222,19 +235,28 @@ def row_source(kind: str, loaded: Any, raw_frame: pd.DataFrame) -> pd.DataFrame 
     return loaded
 
 
-def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | None = None, authored: dict[tuple[str, str], dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | None = None, authored: dict[tuple[str, str], dict[str, Any]] | None = None, headers: Any = (), kind: str = "") -> list[dict[str, Any]]:
     """Every violation as a record, so a surface renders rows, not sentences.
+
+    ``headers`` is the candidate's own header row, and this is the one place a
+    column name is resolved against it: every violation, this module's and the
+    frozen contracts', is raised on the LOADED frame, whose names are renamed or
+    computed and are not what the operator's export says at the top. ``kind``
+    decides the one case where an absent name is still the right word, which is
+    :func:`uploads_columns.place`'s own subject.
 
     ``message_he`` is present on every violation this module wrote itself and
     absent on the ones the frozen contracts wrote, whose English detail carries
-    counts and column names only that code can compute. A surface falls back to
-    ``message``, so the missing half is an English sentence rather than a blank.
-
-    A violation this module wrote also carries ``key`` and ``fields``, which are
-    the copy table's entry and the measured numbers the two sentences were
-    rendered from, and ``boundary`` when the sentence names a channel. They are
-    what the stored report keeps in place of the sentence, so a reader with a
-    different operator channel gets the reason rendered against their own.
+    counts only that code can compute. A surface falls back to ``message``, so
+    the missing half is an English sentence rather than a blank. One this module
+    wrote also carries ``key`` and ``fields``, the copy table's entry and the
+    measured numbers both sentences were rendered from, and ``boundary`` when the
+    sentence names a channel: they are what the stored report keeps in place of
+    the sentence, so a reader owning another channel gets it rendered against
+    theirs. ``scope`` says what a finding about NO column is about, and only
+    those carry one; ``effect`` says what a warning cost the engine, because a
+    field it did not get and a value it read one of two ways are not the same
+    news.
 
     ``rows`` carries at most :data:`ROW_LIST_CAP` row numbers, counting the data
     rows of the uploaded file from 1 with the header excluded, and ``rows_total``
@@ -250,6 +272,7 @@ def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | No
             "code": str(violation.code),
             "message": str(violation.detail),
             "severity": str(violation.severity),
+            **uploads_messages.effect_of(str(violation.code), str(violation.severity)),
         }
         source = (authored or {}).get((record["column"], record["code"])) or {}
         if source.get("message_he"):
@@ -257,14 +280,20 @@ def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | No
         if source:
             record["key"] = source["key"]
             record["fields"] = source["fields"]
-            if source.get("boundary") is not None:
-                record["boundary"] = source["boundary"]
+            record.update({name: source[name] for name in ("boundary", "scope") if source.get(name)})
         mask = violation_mask(violation, frame) if frame is not None else None
         if mask is not None:
             positions = mask.fillna(False).to_numpy(dtype=bool).nonzero()[0]
             if positions.size:
                 record["rows"] = [int(position) + 1 for position in positions[:ROW_LIST_CAP]]
                 record["rows_total"] = int(positions.size)
+        # The rows are found by the loaded name and the person reads the header,
+        # so the name is swapped for theirs once the rows are counted. A finding
+        # that names no column already carries what it IS about and is left alone.
+        if record["column"]:
+            record["column"], scope = uploads_columns.place(record["column"], headers, kind)
+            if scope:
+                record["scope"] = scope
         records.append(record)
     return records
 
@@ -274,9 +303,8 @@ def load_with_engine_loader(kind: str, raw: bytes) -> Any:
 
     The bytes are written verbatim to a temporary file so the exact production
     read path runs (encoding, date conventions, column melts and renames). The
-    temporary file is always removed. Returns the loader's own result: a
-    DataFrame for the four contract kinds, a list of Campaign for the flights.
-    """
+    temporary file is always removed. Returns the loader's own result: a frame
+    for the four contract kinds, a list of Campaign for the flights."""
     handle = tempfile.NamedTemporaryFile(prefix=f"kairos_upload_{kind}_", suffix=".csv", delete=False)
     try:
         handle.write(raw)
@@ -304,8 +332,7 @@ def campaign_flights_report(loaded: list[Any], raw_frame: pd.DataFrame, authored
     A header-only file is legitimate (pacing stays an exact identity no-op), but
     a file whose rows ALL fail the loader's requirements would silently leave
     pacing inactive while looking uploaded, so that is an error. Partially
-    skipped rows are surfaced as a warning with the real count.
-    """
+    skipped rows are a warning with the real count."""
     report = contracts.ValidationReport("campaign_flights")
     data_rows = int(len(raw_frame))
     loaded_count = int(len(loaded))
@@ -319,85 +346,51 @@ def campaign_flights_report(loaded: list[Any], raw_frame: pd.DataFrame, authored
     return report, loaded_count
 
 
-def dayparts_empty_finding(raw_frame: pd.DataFrame, report: contracts.ValidationReport, authored: dict[tuple[str, str], dict[str, Any]], owned: str | None = None) -> None:
-    """Explain, in headers, why a dayparts upload melts to zero audience rows.
-
-    The header gate only requires Dates+Timebands, but the loader melts ONLY the
-    known channel columns; a file with renamed channel columns validates green
-    yet yields nothing. Name the operator's own channel and the unrecognized
-    headers, so the export can be fixed instead of a silent empty model chased.
-
-    **Only the operator's own channel is named**, and that is the previous
-    round's correction. Measured before it, with the operator channel set to
-    ``רשת 13``: this message listed all four channels the loader knows, and the
-    card renders a finding's message verbatim in its red refusal panel, so a
-    plausibly re-exported dayparts file put three rival channel names on the
-    operator's own screen. The same sentence reaches the assistant, which reads
-    the stored validation report through ``get_upload_status``. The unrecognized
-    headers are still listed, minus any that carry a channel this account does
-    not own, and that count is stated instead.
-
-    **How many names the loader knows is now stated**, and that is this round's
-    correction. Withholding a name is not a licence to withhold the contract: a
-    person cannot fix a refused export if the product will not say what it
-    accepts, and this refusal only fires when the operator's own column was
-    renamed too, so the accepted shape is the actionable part. A count names
-    nobody, which is the same disclosure the withheld column names already take,
-    so the message answers "what would you accept" with the matching rule, the
-    size of the recognized set, and the one name this account may read.
-
-    **The sentence is not what is stored**, and that is this round's correction:
-    the headers this refusal may list and the count of the ones it may not go to
-    disk as :func:`uploads_replay.boundary`'s record, and both the wording and
-    the arithmetic are derived again on every read against the channel the
-    account reading it owns then.
-    """
-    if [c for c in CHANNELS if c in raw_frame.columns]:
-        add_finding(report, authored, "<frame>", "no_data_rows", "error")
-        return
-    owned = uploads_channels.owned_channel() if owned is None else str(owned or "").strip()
-    bound = uploads_replay.boundary(
-        [c for c in raw_frame.columns if str(c) not in CHANNELS and str(c) not in ("Dates", "Timebands")],
-        owned,
-    )
-    key = uploads_replay.channel_key(owned)
-    add_finding(report, authored, "channels", "no_recognized_channel_columns", "error", key, bound, **uploads_replay.channel_fields(bound, owned))
-
-
 def run_contract_validation(
     kind: str, raw: bytes, raw_frame: pd.DataFrame, filename: str
 ) -> tuple[dict[str, Any] | None, list[str], JSONResponse | None]:
     """Parse the upload with the real loader and validate the loaded frame.
 
     Returns ``(report_payload, warnings, rejection)``: the JSON-safe record for
-    the status endpoint (None when the kind has no loader-backed contract), the
+    the status endpoint (None when there is nothing to report), the
     operator-facing warning strings, and a ready 400 response when the file
     must not replace the live input (error-severity contract violations).
-    """
-    if kind not in CONTRACT_VALIDATORS and kind != "campaign_flights":
-        return None, [], None
 
+    **Every kind reaches the no-rows rule, including the two that have no engine
+    loader at all**, whose measured gap and whose two answers are
+    :mod:`kairos_api.uploads_empty`'s own subject. There is still no contract to
+    run for those two, so a clean file of theirs reports nothing and the payload
+    stays None exactly as it did; an empty one is looked at."""
     checked_at = datetime.now(timezone.utc).isoformat()
     authored: dict[tuple[str, str], dict[str, Any]] = {}
-    try:
-        loaded = load_with_engine_loader(kind, raw)
-    except Exception as exc:  # noqa: BLE001 - any loader failure is a client-input problem
-        logger.warning("Upload validation: the %s loader failed on %r: %s", kind, filename, exc)
-        payload = {
-            "dataset": kind,
-            "filename": filename,
-            "checked_at": checked_at,
-            "accepted": False,
-            "is_valid": False,
-            "errors": [GENERIC_PARSE_ERROR],
-            "warnings": [],
-            "findings": [uploads_messages.record("unreadable_file", "<file>", "error")],
-            "rows_loaded": 0,
-        }
-        return payload, [], refuse("unreadable_file")
+    loaded: Any = None
+    has_loader = kind in CONTRACT_VALIDATORS or kind == "campaign_flights"
+    if has_loader:
+        try:
+            loaded = load_with_engine_loader(kind, raw)
+        except Exception as exc:  # noqa: BLE001 - any loader failure is a client-input problem
+            logger.warning("Upload validation: the %s loader failed on %r: %s", kind, filename, exc)
+            payload = {
+                "dataset": kind,
+                "filename": filename,
+                "checked_at": checked_at,
+                "accepted": False,
+                "is_valid": False,
+                "errors": [GENERIC_PARSE_ERROR],
+                "warnings": [],
+                "findings": [uploads_messages.record("unreadable_file", "", "error", "file")],
+                "rows_loaded": 0,
+            }
+            return payload, [], refuse("unreadable_file")
 
     if kind == "campaign_flights":
         report, rows_loaded = campaign_flights_report(loaded, raw_frame, authored)
+    elif not has_loader:
+        # No engine loader reads this kind, so there is no contract to run and
+        # the only question a file of it can still be asked is whether it
+        # carries anything at all.
+        report = contracts.ValidationReport(kind)
+        rows_loaded = int(len(raw_frame))
     else:
         report = CONTRACT_VALIDATORS[kind](loaded)
         rows_loaded = int(len(loaded))
@@ -419,29 +412,39 @@ def run_contract_validation(
                 ambiguous = count_ambiguous_daily_dates(raw_dates)
                 if ambiguous:
                     add_finding(report, authored, "date", "ambiguous_day_month", "warning", ambiguous=ambiguous, rows=int(len(raw_dates)), pattern=DAILY_DATE_PATTERN)
-        if kind == "dayparts" and rows_loaded == 0:
-            dayparts_empty_finding(raw_frame, report, authored)
+    uploads_empty.add_when_empty(add_finding, kind, rows_loaded, raw_frame, report, authored)
+    if not has_loader and not report.violations:
+        # Nothing was validated and nothing is wrong, which is an honest None
+        # rather than an empty report claiming a check that never ran.
+        return None, [], None
 
     accepted = report.is_valid
+    # Every list here is built from the records and not from the violations, so
+    # the column an operator reads is the same word wherever it is printed: the
+    # chip, the flat line and the sentence a refusal quotes cannot disagree
+    # about which column of their file is wrong, and the one place that name is
+    # resolved is the record. The formatting is the stored report's own.
+    findings = finding_records(report, row_source(kind, loaded, raw_frame), authored, raw_frame.columns, kind)
+    flat_errors = [uploads_messages.flat_finding(f) for f in findings if f["severity"] == "error"]
+    warnings = [uploads_messages.flat_finding(f) for f in findings if f["severity"] == "warning"]
     payload = {
         "dataset": report.dataset,
         "filename": filename,
         "checked_at": checked_at,
         "accepted": accepted,
         "is_valid": report.is_valid,
-        "errors": [str(v) for v in report.errors],
-        "warnings": [str(v) for v in report.warnings],
-        "findings": finding_records(report, row_source(kind, loaded, raw_frame), authored),
+        "errors": list(flat_errors),
+        "warnings": list(warnings),
+        "findings": findings,
         "rows_loaded": rows_loaded,
     }
-    warnings = [str(v) for v in report.warnings]
     if not accepted:
         # The Hebrew half of the headline reads the same three reasons, taking
-        # each violation's Hebrew where this module wrote it and its English
+        # each finding's Hebrew where this module wrote it and its English
         # detail where the frozen contract did, which is the same fallback the
-        # findings take one line above.
-        first = report.errors[:3]
-        reasons = ("; ".join(str(v) for v in first), "; ".join((authored.get((str(v.field), str(v.code))) or {}).get("message_he") or str(v.detail) for v in first))
+        # surface takes.
+        first = [f for f in findings if f["severity"] == "error"][:3]
+        reasons = ("; ".join(flat_errors[:3]), "; ".join(f.get("message_he") or f["message"] for f in first))
         detail, detail_he = uploads_messages.say("contract_refusal", dataset=report.dataset, reasons=reasons)
-        return payload, warnings, reject(detail, [str(v) for v in report.errors], detail_he, payload["findings"])
+        return payload, warnings, reject(detail, list(flat_errors), detail_he, payload["findings"])
     return payload, warnings, None

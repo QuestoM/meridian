@@ -1,8 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import ConstraintBuilder from '../../rules/ConstraintBuilder';
-import ScheduleEditorRow from './ScheduleEditorRow';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
+import ScheduleEditorReadout from './ScheduleEditorReadout';
 import ScheduleEditorToolbar from './ScheduleEditorToolbar';
 import ScheduleInspector from './ScheduleInspector';
 import {
@@ -19,10 +18,13 @@ import {
 import {
   secondsToClock,
   humanOffset,
+  laneLabel,
   windowRange,
   programClassLabel,
 } from './schedule-editor-format';
-import { pinBody, postConstraint } from './schedule-editor-pin';
+import { pinTarget } from './schedule-editor-pin';
+import { pendingMoves, useEditorMoney } from './schedule-editor-money';
+import { scopeSentence } from './day-board-actions';
 
 // Local helpers kept self-contained so the editor can live in its own module
 // without exporting internals from TVBreakDashboard.jsx. They mirror the time
@@ -61,7 +63,6 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
 
   const [snapGrid, setSnapGrid] = useState(60);
   const [edits, setEdits] = useState({});
-  const [constraints, setConstraints] = useState([]);
   const [savingPin, setSavingPin] = useState(null);
   const trackRefs = useRef({});
 
@@ -111,7 +112,14 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         program_end_sec: programEndSec,
         date: breakItem.date || (program && program.date) || '',
       };
-      if (!grouped.has(laneKey)) grouped.set(laneKey, { lane: laneKey, program, items: [] });
+      if (!grouped.has(laneKey)) {
+        grouped.set(laneKey, {
+          lane: laneKey,
+          label: laneLabel(entry.channel, entry.date, laneKey, locale),
+          program,
+          items: [],
+        });
+      }
       grouped.get(laneKey).items.push(entry);
     });
     return Array.from(grouped.values());
@@ -251,51 +259,72 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       applyEdit(item, startSec, snapSeconds(durationSec - 30, 30, 30, Math.max(30, item.program_end_sec - startSec)));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      savePin(item, 'date');
+      savePin(item);
     }
   }
 
-  function constraintIdFor(item) {
-    return constraints.find((constraint) => constraint.break_id === item.id);
+  // The addressable break behind an editor row, or null when there is none.
+  //
+  // The editor's own row id is a display key built from the programme key, and
+  // the plan addresses a break as <segment_id>~<ordinal>. The anchors this page
+  // already loads for the programme inspector are what bridge the two, so a save
+  // resolves the segment first and refuses when it cannot.
+  function pinTargetFor(item, startSec, durationSec) {
+    const anchor = item.program
+      ? resolve(item.program.channel, item.program.date, item.program.start_time)
+      : null;
+    return anchor ? pinTarget(item, startSec, durationSec, anchor.segmentId) : null;
   }
 
-  async function savePin(item, scopeType) {
+  // What a save would bind, in words, on the row that carries the Save button.
+  // No count is passed: this surface draws twelve programmes of a day and the
+  // predicate binds every airing of a title inside an hour, so a count taken from
+  // what is on screen could under-report. The sentence states the rule instead.
+  function scopeFor(item, startSec, durationSec) {
+    const target = pinTargetFor(item, startSec, durationSec);
+    return target ? scopeSentence(target.programme, locale) : '';
+  }
+
+  // What this day is worth, what a save would do to it, and what one did. Driven
+  // from the day board's own seams so the two timelines cannot diverge: see
+  // schedule-editor-money.js for the 25,399.88 ILS this surface used to spend
+  // without printing a figure.
+  const pending = useMemo(
+    () => pendingMoves(lanes, edits, currentState, pinTargetFor),
+    [lanes, edits, resolve],
+  );
+  const money = useEditorMoney({ pending, locale, notify, onGlobalRefresh });
+
+  async function savePin(item) {
     const { startSec, durationSec } = currentState(item);
     const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
-    const body = pinBody(item, scopeType, startSec, durationSec);
+    const target = pinTargetFor(item, startSec, durationSec);
+    if (!target) {
+      notify(
+        'This break has no addressable segment in the saved plan, so a placement cannot be recorded for it and nothing was saved.',
+        'לברייק הזה אין מקטע מזוהה בתוכנית השמורה, ולכן לא ניתן לרשום לו נעיצה ודבר לא נשמר.',
+      );
+      return;
+    }
     setSavingPin(item.id);
     try {
-      const saved = await postConstraint(body);
-      const savedId = saved.constraint_id ?? saved.id;
-      setConstraints((current) => [
-        ...current.filter((constraint) => constraint.break_id !== item.id),
-        { ...body, id: savedId || `pin-${item.id}`, break_id: item.id },
-      ]);
+      await money.saveAndSettle(item.id, target);
       notify(
-        `Break pinned at ${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'en')} into ${item.program_title}.`,
-        `הברייק נעוץ ב-${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'he')} בתוך ${item.program_title}.`,
+        `Break pinned at ${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'en')} into ${item.program_title}. ${scopeSentence(target.programme, 'en')}.`,
+        `הברייק נעוץ ב-${secondsToClock(startSec)}, ${humanOffset(offsetSeconds, 'he')} בתוך ${item.program_title}. ${scopeSentence(target.programme, 'he')}.`,
       );
       // A saved pin is a fingerprinted constraint change, so the freshness
       // banner and overview must re-read their verdict.
       onGlobalRefresh?.();
     } catch (error) {
-      if (error.message === 'not-found') {
-        notify(
-          'The constraints API is not available yet. The pin was not saved.',
-          'ממשק האילוצים עדיין לא זמין. הנעיצה לא נשמרה.',
-        );
-      } else {
-        notify(
-          `Pin failed (${error.message}).`,
-          `הנעיצה נכשלה (${error.message}).`,
-        );
-      }
+      notify(
+        `The pin was not saved (${error.message}).`,
+        `הנעיצה לא נשמרה (${error.message}).`,
+      );
     } finally {
       setSavingPin(null);
     }
   }
-
-  const [scopeChoice, setScopeChoice] = useState('date');
 
   if (!breaks.length) {
     return (
@@ -318,8 +347,6 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         locale={locale}
         snapGrid={snapGrid}
         onSnapGrid={setSnapGrid}
-        scopeChoice={scopeChoice}
-        onScopeChoice={setScopeChoice}
         recomputeState={recomputeState}
         onRecompute={onRecompute}
         pxPerMin={pxPerMin}
@@ -331,7 +358,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         {({ width, minWidth, ticks }) => lanes.map((lane) => (
           <div className="timeline-row" key={lane.lane} style={{ minWidth }}>
             <div className="timeline-lane" dir={he ? 'rtl' : 'ltr'}>
-              <strong>{lane.lane}</strong>
+              <strong>{lane.label || lane.lane}</strong>
               <span>{lane.items.length} {editorPageText(locale, 'breaks', 'ברייקים')}</span>
             </div>
             <div
@@ -366,7 +393,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
                     durationSec={durationSec}
                     offsetSeconds={offsetSeconds}
                     edited={Boolean(edits[item.id])}
-                    pinned={Boolean(constraintIdFor(item))}
+                    pinned={money.isPinned(item.id)}
                     locale={locale}
                     positionStyle={positionStyle}
                     onMovePointerDown={handleMovePointerDown}
@@ -380,45 +407,18 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         ))}
       </ScheduleTrackSurface>
 
-      <div className="schedule-editor-readout" dir={he ? 'rtl' : 'ltr'}>
-        {Object.keys(edits).length === 0 ? (
-          <p>{editorPageText(locale, 'Drag a break to set its offset, then save it as a pin.', 'גררו ברייק כדי לקבוע את ההיסט שלו, ואז שמרו אותו כנעיצה.')}</p>
-        ) : (
-          <ul className="schedule-editor-edit-list">
-            {lanes.flatMap((lane) => lane.items.filter((item) => edits[item.id]).map((item) => {
-              const { startSec, durationSec } = currentState(item);
-              const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
-              const pinned = Boolean(constraintIdFor(item));
-              return (
-                <React.Fragment key={item.id}>
-                  <ScheduleEditorRow
-                    item={item}
-                    startSec={startSec}
-                    durationSec={durationSec}
-                    offsetSeconds={offsetSeconds}
-                    pinned={pinned}
-                    saving={savingPin === item.id}
-                    locale={locale}
-                    onSave={() => savePin(item, scopeChoice)}
-                  />
-                  <li className="schedule-editor-discard-row" style={{ listStyle: 'none', display: 'flex', justifyContent: 'flex-end', margin: '2px 0 10px' }}>
-                    <button
-                      type="button"
-                      onClick={() => discardEdit(item)}
-                      disabled={savingPin === item.id}
-                      aria-label={editorPageText(locale, `Discard the unsaved change to ${item.program_title}`, `ביטול השינוי שלא נשמר בתוכנית ${item.program_title}`)}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, fontSize: 12, padding: '2px 4px' }}
-                    >
-                      <X size={12} aria-hidden="true" />
-                      {editorPageText(locale, 'Discard change', 'ביטול השינוי')}
-                    </button>
-                  </li>
-                </React.Fragment>
-              );
-            }))}
-          </ul>
-        )}
-      </div>
+      <ScheduleEditorReadout
+        lanes={lanes}
+        edits={edits}
+        savingPin={savingPin}
+        locale={locale}
+        stateOf={currentState}
+        pinnedFor={(item) => money.isPinned(item.id)}
+        scopeFor={scopeFor}
+        onSave={savePin}
+        onDiscard={discardEdit}
+        money={money}
+      />
 
       {inspect && (
         <ScheduleInspector

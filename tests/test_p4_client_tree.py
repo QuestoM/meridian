@@ -16,9 +16,25 @@ from kairos_api.campaigns_read_clients import client_tree
 
 GROSS = 699450.0
 NET = 669978.0
-OBSERVED_ADVERTISERS = 41
-AGENCIES = 9
+# What the daily file prices: 41 advertisers, carried by 9 agencies. These are
+# properties of the observed data, so they hold however many rows the stores
+# grow. The census of the stores themselves is read from the stores, because
+# onboarding a client is what this destination is for and it adds rows: a
+# frozen 9 and 41 here turned this file red without a line of production code
+# changing, and a test that a correct use of the product breaks is measuring
+# the wrong thing.
+PRICED_ADVERTISERS = 41
+PRICED_AGENCIES = 9
 BOOKED_ONLY_CLIENT = "לקוח שהוזמן בבדיקה"
+
+
+def _rows(tree: dict) -> list[dict]:
+    """Every client row the payload carries, across the three groups it renders."""
+    return [
+        *[client for agency in tree["agencies"] for client in agency["clients"]],
+        *tree["unlinked"],
+        *tree["clients_booked_without_spots"],
+    ]
 
 
 @pytest.fixture()
@@ -60,29 +76,48 @@ def tree():
     return client_tree()
 
 
-def test_the_tree_is_the_nine_agencies_and_the_forty_one_clients(tree):
+def test_the_tree_is_every_agency_in_the_store_and_every_client_it_reaches(tree):
+    """The census is the store's own, and the priced part of it is the file's."""
+    from kairos_api.agencies import _load_frame
+
     assert tree["available"] is True
-    assert tree["counts"]["agencies"] == AGENCIES
-    assert tree["counts"]["clients"] == OBSERVED_ADVERTISERS
-    assert tree["counts"]["clients_with_money"] == OBSERVED_ADVERTISERS
-    assert sum(agency["client_count"] for agency in tree["agencies"]) + len(tree["unlinked"]) == OBSERVED_ADVERTISERS
+    assert tree["counts"]["agencies"] == len(_load_frame())
+    assert tree["counts"]["agencies"] >= PRICED_AGENCIES
+    assert tree["counts"]["clients_with_money"] == PRICED_ADVERTISERS
+    assert tree["counts"]["clients"] == len(_rows(tree))
+    priced = {row["advertiser"] for row in _rows(tree) if row["gross"] is not None}
+    assert len(priced) == PRICED_ADVERTISERS, "a priced advertiser stopped being a row"
 
 
 def test_an_agency_row_is_the_sum_of_its_client_rows(tree):
-    """The containment is a sum, not a second computation."""
+    """The containment is a sum, not a second computation.
+
+    An agency none of whose clients is priced has no total at all and says why,
+    which is the third state the reader must not see as a total of zero, so the
+    sum honours it here rather than coercing it to a figure.
+    """
     for agency in tree["agencies"]:
-        gross = round(sum(client["gross"] or 0.0 for client in agency["clients"]), 2)
-        net = round(sum(client["net"] or 0.0 for client in agency["clients"]), 2)
+        priced = [client for client in agency["clients"] if client["gross"] is not None]
+        if not priced:
+            assert agency["gross"] is None, agency["agency_id"]
+            assert agency["net"] is None, agency["agency_id"]
+            assert agency["money_reason_en"] and agency["money_reason_he"], agency["agency_id"]
+            continue
+        gross = round(sum(client["gross"] for client in priced), 2)
+        net = round(sum(client["net"] or 0.0 for client in priced), 2)
         assert gross == agency["gross"], agency["agency_id"]
         assert net == agency["net"], agency["agency_id"]
+        assert agency["clients_with_money"] == len(priced), agency["agency_id"]
 
 
 def test_the_whole_tree_sums_to_the_ledger(tree):
     """Every shekel in the totals is reachable from exactly one row."""
-    gross = round(sum(agency["gross"] for agency in tree["agencies"]), 2)
+    priced = [agency for agency in tree["agencies"] if agency["gross"] is not None]
+    assert len(priced) == PRICED_AGENCIES
+    gross = round(sum(agency["gross"] for agency in priced), 2)
     gross += round(sum(client["gross"] or 0.0 for client in tree["unlinked"]), 2)
     assert gross == tree["totals"]["gross"] == GROSS
-    net = round(sum(agency["net"] for agency in tree["agencies"]), 2)
+    net = round(sum(agency["net"] for agency in priced), 2)
     net += round(sum(client["net"] or 0.0 for client in tree["unlinked"]), 2)
     assert net == tree["totals"]["net"] == NET
 
@@ -112,14 +147,16 @@ def test_every_agency_keeps_its_commercial_terms_and_both_contacts(tree):
 
 def test_every_client_carries_its_identity_and_its_reason(tree):
     """A client is named, or it says why it is not, in both languages."""
-    clients = [client for agency in tree["agencies"] for client in agency["clients"]]
-    assert len(clients) == OBSERVED_ADVERTISERS
-    for client in clients:
+    rows = _rows(tree)
+    assert len(rows) == tree["counts"]["clients"]
+    assert len([row for row in rows if row["gross"] is not None]) == PRICED_ADVERTISERS
+    for client in rows:
         assert client["shown_name"]
-        assert client["link_source"] in {"observed", "manual"}
         assert "money_reason_en" in client and "money_reason_he" in client
         if client["gross"] is None:
             assert client["money_reason_he"]
+    for client in [row for agency in tree["agencies"] for row in agency["clients"]]:
+        assert client["link_source"] in {"observed", "manual"}
 
 
 def test_a_client_reachable_only_through_a_campaign_is_in_the_tree(tree_with_a_booked_client):
@@ -144,10 +181,13 @@ def test_the_header_count_covers_every_client_the_tree_renders(tree_with_a_booke
         + len(tree["unlinked"])
         + len(tree["clients_booked_without_spots"])
     )
-    assert rendered == OBSERVED_ADVERTISERS + 1
+    assert rendered == len(_rows(tree))
     assert tree["counts"]["clients"] == rendered
+    unpriced = [row for row in _rows(tree) if row["gross"] is None]
+    assert rendered == tree["counts"]["clients_with_money"] + len(unpriced)
+    assert BOOKED_ONLY_CLIENT in {row["advertiser"] for row in unpriced}
     assert tree["counts"]["campaigns"] == 1
-    assert tree["counts"]["clients_with_money"] == OBSERVED_ADVERTISERS
+    assert tree["counts"]["clients_with_money"] == PRICED_ADVERTISERS
 
 
 def test_a_booked_client_adds_no_money_to_the_totals(tree_with_a_booked_client):
@@ -237,7 +277,7 @@ def test_the_nine_shipped_agencies_keep_every_figure_they_had(tree_with_a_new_ag
     """The tri-state changes what an empty agency reports and nothing else."""
     tree = tree_with_a_new_agency
     priced = [agency for agency in tree["agencies"] if agency["gross"] is not None]
-    assert len(priced) == AGENCIES
+    assert len(priced) == PRICED_AGENCIES
     assert round(sum(agency["gross"] for agency in priced), 2) == GROSS
     assert round(sum(agency["net"] for agency in priced), 2) == NET
     assert tree["totals"]["gross"] == GROSS

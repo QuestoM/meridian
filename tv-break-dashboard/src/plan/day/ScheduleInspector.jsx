@@ -4,6 +4,7 @@ import { Download, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
 import { pageText } from '../../shell/surface-helpers';
 import { programTypeLabel } from '../../shell/surface-helpers';
 import { KINDS, kindLabel, runDayPlanJob, isNum } from './override-console-lib';
+import { weekdayName } from './day-board-model';
 import './schedule-inspector.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -34,6 +35,26 @@ export function confidenceLabel(value, locale) {
   if (key === 'medium') return pageText(locale, 'Medium', 'בינונית');
   if (key === 'low') return pageText(locale, 'Low', 'נמוכה');
   return value || '-';
+}
+
+// The programme's date, with the weekday named in the language being read.
+//
+// The payload's own ``day`` field is the wire's English abbreviation, so an
+// otherwise Hebrew record read 2024-11-01 (Fri). The ISO date is the honest
+// source for a weekday, and the date itself stays left to right so it is never
+// mirrored.
+function dateLine(identity, locale) {
+  const date = identity.date || '';
+  if (!date) return '-';
+  const named = weekdayName(date, locale);
+  if (!named) return date;
+  return (
+    <>
+      <span dir="ltr">{date}</span>
+      {' '}
+      <span dir="auto">({named})</span>
+    </>
+  );
 }
 
 function Row({ label, value }) {
@@ -232,7 +253,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
           <section className="si-section">
             <h4>{pageText(locale, 'Identity', 'זיהוי')}</h4>
             <Row label={pageText(locale, 'Channel', 'ערוץ')} value={id.channel || '-'} />
-            <Row label={pageText(locale, 'Date', 'תאריך')} value={`${id.date || '-'} ${id.day ? `(${id.day})` : ''}`} />
+            <Row label={pageText(locale, 'Date', 'תאריך')} value={dateLine(id, locale)} />
             <Row label={pageText(locale, 'Start', 'התחלה')} value={id.start_clock || '-'} />
             <Row label={pageText(locale, 'Class', 'מחלקה')} value={programTypeLabel(id.program_type, locale) || '-'} />
           </section>

@@ -1,16 +1,56 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { exactMoney, localized } from './clients-money-helpers';
+import { exactMoney, ledgerCampaignKeys, localized } from './clients-money-helpers';
 
 // The rows behind one figure. Two levels below the group row: its campaigns,
 // and the individual spots that make each of them up, with the break each spot
 // sat in as a live chip that re-groups the same ledger by that break.
 //
+// Every name in here is the address of the rows behind it, including the name at
+// the head. The head was the last exception: it printed the client, the agency,
+// the campaign or the break as a bare heading, while the agency it named opened
+// from two other cells on this same destination and the campaign it named is a
+// booked record with its terms and its flights. The head is a control now in
+// each of the three groupings whose object this destination holds, and it stays
+// a label in the fourth, because a break belongs to the plan surfaces.
+//
 // The dropped rows travel with it on purpose. The shipped frequency rule removes
 // a third of the day, and money that is not there for a stated reason is not the
 // same thing as money that is zero, so the rule that removed each spot is
 // printed on the row it removed.
+
+// What the head of this drill opens, and the words for the control that opens
+// it. Two guards, and both are the same one the campaign rows below already use.
+// The caller has to have supplied the opener, and the name has to resolve to a
+// record: the client record is keyed by the very name the ledger carries, so
+// that name is its own address, while an agency record and a booked campaign are
+// keyed by an id the ledger does not hold, so those two open only once the index
+// the workspace built has resolved them.
+function headOpener(field, title, openers) {
+  if (field === 'advertiser' && openers.onOpenClient) {
+    return {
+      open: () => openers.onOpenClient(title),
+      en: 'Open the client record',
+      he: 'פתחו את כרטיס הלקוח',
+    };
+  }
+  if (field === 'agency' && openers.onOpenAgency && (openers.agencyIds || {})[title]) {
+    return {
+      open: () => openers.onOpenAgency(openers.agencyIds[title]),
+      en: 'Open the agency record',
+      he: 'פתחו את כרטיס הסוכנות',
+    };
+  }
+  if (field === 'campaign' && openers.onOpenCampaignRecord && (openers.campaignIds || {})[title]) {
+    return {
+      open: () => openers.onOpenCampaignRecord(openers.campaignIds[title]),
+      en: 'Open the booked campaign',
+      he: 'פתחו את הקמפיין שהוזמן',
+    };
+  }
+  return null;
+}
 
 function SpotRows({ spots, locale, onOpenBreak }) {
   return (
@@ -91,7 +131,8 @@ export default function MoneyDetail({
   position,
   onStep,
   onOpenBreak,
-  onOpenClient,
+  onOpenCampaign,
+  openers = {},
 }) {
   const keys = new Set(row.spot_keys || []);
   const spots = money.spots.filter((spot) => keys.has(spot.spot_key));
@@ -99,12 +140,24 @@ export default function MoneyDetail({
   const dropped = money.dropped.filter((entry) => droppedKeys.has(entry.spot_key));
   const campaigns = row.campaigns || [];
   const title = String(row[field] || pageText(locale, 'Unnamed', 'ללא שם'));
+  const head = headOpener(field, title, openers);
+  // Which of these campaign names the board really holds a row for. The campaign
+  // rows under a client are the same rows the campaign ranking groups, so on the
+  // shipped ledger this is all of them, and a name the ranking does not hold
+  // stays a label rather than becoming a control that opens nothing.
+  const openable = onOpenCampaign ? ledgerCampaignKeys(money) : [];
 
   return (
     <article className="clients-detail">
       <header className="clients-detail-head">
         <div>
-          <h3>{title}</h3>
+          <h3>
+            {head ? (
+              <button type="button" className="clients-link" onClick={head.open}>
+                {title}
+              </button>
+            ) : title}
+          </h3>
           <p className="clients-detail-sub">
             <span className="numeric" dir="ltr">{exactMoney(row.gross, locale)}</span>
             <small>{pageText(locale, 'gross', 'ברוטו')}</small>
@@ -128,9 +181,9 @@ export default function MoneyDetail({
               </button>
             </span>
           ) : null}
-          {field === 'advertiser' && onOpenClient ? (
-            <button type="button" className="clients-secondary" onClick={() => onOpenClient(title)}>
-              {pageText(locale, 'Open the client record', 'פתחו את כרטיס הלקוח')}
+          {head ? (
+            <button type="button" className="clients-secondary" onClick={head.open}>
+              {pageText(locale, head.en, head.he)}
             </button>
           ) : null}
         </div>
@@ -152,7 +205,17 @@ export default function MoneyDetail({
             <tbody>
               {campaigns.map((campaign) => (
                 <tr key={campaign.campaign}>
-                  <td>{campaign.campaign}</td>
+                  <td>
+                    {openable.includes(String(campaign.campaign)) ? (
+                      <button
+                        type="button"
+                        className="clients-link"
+                        onClick={() => onOpenCampaign(String(campaign.campaign))}
+                      >
+                        {campaign.campaign}
+                      </button>
+                    ) : campaign.campaign}
+                  </td>
                   <td className="numeric" dir="ltr">{exactMoney(campaign.gross, locale)}</td>
                   <td className="numeric" dir="ltr">{exactMoney(campaign.net, locale)}</td>
                   <td className="numeric" dir="ltr">{campaign.spots}</td>

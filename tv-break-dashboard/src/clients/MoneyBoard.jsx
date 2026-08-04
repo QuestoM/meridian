@@ -94,7 +94,19 @@ function Tile({ label, value, sub, icon: Icon, tone }) {
   );
 }
 
-export default function MoneyBoard({ money, locale, drill = NO_DRILL, onDrill = () => {}, onOpenClient }) {
+// The records the head of a drill can open, supplied by the workspace because
+// the two indexes it needs are built from the client tree and the campaign
+// board, which are that surface's reads and not this one's. An absent opener is
+// an honest state and not a fault: the head stays a label wherever the object
+// behind it cannot be reached.
+export default function MoneyBoard({
+  money,
+  locale,
+  drill = NO_DRILL,
+  onDrill = () => {},
+  onOpenClient,
+  openers = {},
+}) {
   const group = drill.group || NO_DRILL.group;
   const openKey = drill.key || '';
   const he = locale === 'he';
@@ -219,7 +231,8 @@ export default function MoneyBoard({ money, locale, drill = NO_DRILL, onDrill = 
             position={positionOf(ranked, definition.field, openKey)}
             onStep={(delta) => onDrill({ group, key: stepKey(ranked, definition.field, openKey, delta) })}
             onOpenBreak={(breakId) => onDrill({ group: 'breaks', key: breakId })}
-            onOpenClient={onOpenClient}
+            onOpenCampaign={(name) => onDrill({ group: 'campaigns', key: name })}
+            openers={{ ...openers, onOpenClient }}
           />
         </div>
       ) : null}

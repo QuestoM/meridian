@@ -150,6 +150,8 @@ def prospect(
     relative: Callable[[Path], str],
     models_dir: Path,
     root: Path,
+    rows: int | None = None,
+    findings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """What THIS candidate file would do, answered before anything is written.
 
@@ -159,6 +161,11 @@ def prospect(
     IS the live input, so a door that answered for the kind told the steward the
     opposite of what committing would do. The candidate is ranked here as the
     resolver ranks it, and every field returned is about that one file.
+
+    ``rows`` is that file's own data row count, and ``findings`` are the door's
+    own findings about it, because what a candidate the engine will read
+    replaces the live input WITH is part of what it does, and a file that loads
+    with a warning on it replaces the live input with that warning.
     """
     live = would_be_live(prospective, stored) if kind == "daily" else prospective
     will_be_read, reason = verdict(live)
@@ -179,6 +186,8 @@ def prospect(
             models_dir,
             root,
             still_read=None if will_be_read else reads_after,
+            rows=rows,
+            findings=findings,
         ),
     }
 

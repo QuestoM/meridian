@@ -34,6 +34,16 @@
   font-weight: var(--weight-medium);
 }
 
+/* The agency cell is one control, so a press anywhere in it opens the agency
+   record. It keeps the stacked shape the same cell has as a label: the name
+   above the id it is stored under, both starting at the reading edge. */
+.clients-campaigns .clients-cell-open {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-align: start;
+}
+
 .clients-row-actions {
   display: inline-flex;
   align-items: center;

@@ -2,20 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { Activity, RefreshCcw } from 'lucide-react';
 import { API_BASE } from '../shell/api';
-import { ACTION_LABELS, SIGN_IN_LABELS, pair } from './history-labels';
+import { SIGN_IN_LABELS, pair } from './history-labels';
+import { actLabel, outcomeOf } from './history-refused';
 
 // Compact humanized label for an activity entry. The classification is the
 // server's: GET /api/activity-log carries the same action code History reads,
 // so one vocabulary names an act in both places and no surface has to match on
 // an HTTP path. An entry with no known action falls back to a method and path
 // code chip, exactly as this panel has always done.
+//
+// It also carries the outcome, and that closes here the same defect History had:
+// the status was in the payload and this panel printed the word for the act
+// beside it, so a refused write read as one that happened. This log holds its
+// fields at the top level rather than under facts, which outcomeOf accepts.
 export function activityActionLabel(entry, he) {
   const locale = he ? 'he' : 'en';
   const event = entry.event || '';
   if (event && event !== 'request') return pair(SIGN_IN_LABELS, event, locale) || null;
   const action = entry.action || '';
   if (!action || action === 'other') return null;
-  return pair(ACTION_LABELS, action, locale) || null;
+  return actLabel(action, outcomeOf(entry), locale) || null;
 }
 
 export function activityTimeLabel(ts, he) {

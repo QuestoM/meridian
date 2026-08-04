@@ -42,6 +42,7 @@ from fastapi.testclient import TestClient
 from kairos_api import model_console_artifacts as artifacts
 from kairos_api import model_console_candidates as candidates_module
 from kairos_api import model_version_store as store
+from test_p7_console_bridge_harness import resolve_shell_views
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "kairos_api"
@@ -54,13 +55,16 @@ OWNED_BACKEND = ["model_version_store.py", "model_impact_api.py", "model_audienc
                  "audience_api.py"]
 CONSOLE_DIR = FRONTEND / "src" / "model" / "console"
 BRIDGE = FRONTEND / "src" / "model" / "console-bridge.jsx"
-SHELL_NAV = FRONTEND / "src" / "shell" / "nav.js"
 SHELL_ROOT_VIEW = FRONTEND / "src" / "shell" / "TVBreakDashboard.jsx"
 
 # The word the header uses for the state it mirrors, and the address the bridge
 # sends the reader to when they press it.
 ACTIVATION_NOTE_KEY = "header.control_on_rules"
 RULES_HASH = "Settings"
+
+# An address the shell ships no page for, which is what makes the resolution of
+# the one above an answer rather than an echo.
+UNKNOWN_HASH = "#NoPageIsFiledUnderThisName"
 
 # The header the shell reads for itself. Every other GET on the surface has to
 # be reachable by a person, which is what the guards below measure.
@@ -351,29 +355,44 @@ def test_the_bridge_hands_the_console_both_ways_out_and_a_real_address() -> None
     )
 
 
-def test_the_frozen_shell_still_resolves_that_address_to_a_page() -> None:
-    """The premise the control rests on, read from the two frozen files that hold it.
+def test_the_frozen_shell_still_resolves_that_address_to_a_page(tmp_path) -> None:
+    """The premise the control rests on, driven rather than read.
 
-    A hash is only a destination because the shell turns it into one. Both
-    halves live in files this piece may not write, so both are pinned here: the
-    route table still carries the name, and the shell still re-reads the hash
-    when it changes. Without this the control could keep pointing at a word that
-    stopped being a page, and nothing would say so.
+    A hash is only a destination because the shell turns it into one, and the
+    resolver that turns it lives in a file this piece may not write. Round three
+    pinned the line of source that did the resolving, wave one replaced that
+    line with an equivalent one, and a test went red while the behaviour it
+    guards kept working. So the resolver is now run: the frozen module is
+    bundled by the product's own bundler and asked, in a browser, what the
+    console's address for Rules resolves to.
+
+    The unknown address is asked with it, because a resolver that echoed
+    whatever it was handed would satisfy the first assertion and prove nothing.
+
+    The shell's re-read on a hash change is the one half that cannot be driven
+    here: it lives inside the whole workspace component. It is asserted as the
+    two facts it is, the listener and the re-read, rather than as the formatting
+    of the lines that carry them, which is the mistake this test is correcting.
     """
-    nav = SHELL_NAV.read_text(encoding="utf-8")
-    labels = set(re.findall(r"\['([^']+)',", nav))
-    assert RULES_HASH in labels, (
-        f"the shell's route table no longer carries {RULES_HASH}: {sorted(labels)}"
+    views = resolve_shell_views(tmp_path, [f"#{RULES_HASH}", UNKNOWN_HASH, ""])
+    assert "failed" not in views, views.get("failed")
+    resolved = views["resolved"]
+    assert resolved[f"#{RULES_HASH}"] == RULES_HASH, (
+        f"the shell resolves the console's address for Rules to {resolved[f'#{RULES_HASH}']}"
     )
-    assert "navItems.some(([label]) => label === hash)" in nav, (
-        "the shell no longer derives its view from the hash against that table"
+    assert resolved[UNKNOWN_HASH] != UNKNOWN_HASH.lstrip("#"), (
+        "the resolver returns any address it is handed, so the assertion above proves nothing"
+    )
+    assert resolved[UNKNOWN_HASH] == resolved[""], (
+        f"an address the shell does not know resolves to {resolved[UNKNOWN_HASH]}"
+        f" and no address at all resolves to {resolved['']}"
     )
     shell = SHELL_ROOT_VIEW.read_text(encoding="utf-8")
-    assert "window.addEventListener('hashchange', handleHashChange)" in shell, (
+    assert re.search(r"addEventListener\(\s*'hashchange'", shell), (
         "the shell no longer listens for the hash change the control makes"
     )
-    assert "const next = viewFromLocation();" in shell, (
-        "the shell no longer re-reads the address on that change"
+    assert re.search(r"=\s*viewFromLocation\(\)", shell), (
+        "the shell no longer re-reads the address into a view"
     )
 
 

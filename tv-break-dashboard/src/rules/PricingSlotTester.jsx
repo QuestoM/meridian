@@ -1,9 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
-import { DAY_NAMES, layerLabel, sourceLabel } from './pricing-layers-lib';
+import { DAY_NAMES, DAY_ORDER, layerLabel, sourceLabel } from './pricing-layers-lib';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
+
+// The weekday control reads the Israeli week, Sunday first, from the same order
+// the rate card above it reads. The values stay ISO weekday keys, where 1 is
+// Monday and 7 is Sunday, so the tester posts exactly what it posted before and
+// the first entry is the day the operator's own week starts on.
+const WEEKDAY_OPTIONS = DAY_ORDER.map(Number);
+const FIRST_WEEKDAY = WEEKDAY_OPTIONS[0];
 
 // The price-any-slot tester panel of the Pricing page. It re-prices on every
 // input change and on every saved rate-card change, and renders the full
@@ -11,7 +18,7 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 // backend applies it. Wired-off layers render struck through, never multiplied.
 function PricingSlotTester({ state, locale, notify, currency }) {
   const [slot, setSlot] = useState({
-    pricing_class: 'News', weekday_iso: 1, day: '', show: '', position: '', break_size: '', ad_type: '', advertiser_base: '', advertiser: '', campaign: '',
+    pricing_class: 'News', weekday_iso: FIRST_WEEKDAY, day: '', show: '', position: '', break_size: '', ad_type: '', advertiser_base: '', advertiser: '', campaign: '',
   });
   const [breakdown, setBreakdown] = useState(null);
   const [testerError, setTesterError] = useState(null);
@@ -38,7 +45,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
   const runTester = useCallback(async () => {
     const body = {
       pricing_class: slot.pricing_class || 'Other',
-      weekday_iso: Number(slot.weekday_iso) || 1,
+      weekday_iso: Number(slot.weekday_iso) || FIRST_WEEKDAY,
     };
     if (slot.day) body.day = slot.day;
     if (slot.show) body.show = slot.show;
@@ -96,7 +103,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         <label>
           {pageText(locale, 'Weekday', 'יום')}
           <select value={slot.weekday_iso} onChange={(e) => setSlot({ ...slot, weekday_iso: e.target.value })}>
-            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+            {WEEKDAY_OPTIONS.map((d) => (
               <option key={d} value={d}>{pageText(locale, DAY_NAMES[d][0], DAY_NAMES[d][1])}</option>
             ))}
           </select>

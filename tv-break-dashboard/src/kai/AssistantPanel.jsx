@@ -13,6 +13,9 @@ import AssistantUpload from './AssistantUpload';
 import { AssistantExchange, ModelText, RichText } from './AssistantThread';
 import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
 import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
+import { unrecordedProposalClaim } from './kai-claimed-action';
+import { applyStage, noteStageLimits } from './kai-live-turn';
+import { isolate } from './kai-bidi';
 import './assistant-console.css';
 
 // The assistant console, named Kai: a chat column grounded in the saved data
@@ -117,7 +120,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       }
       setConfirmClear(false);
     } catch (error) {
-      if (notify) notify(`Clearing the conversation failed (${error.message}).`, `מחיקת השיחה נכשלה (${error.message}).`);
+      if (notify) notify(`Clearing the conversation failed (${isolate(error.message)}).`, `מחיקת השיחה נכשלה (${isolate(error.message)}).`);
     } finally {
       setClearing(false);
     }
@@ -145,6 +148,8 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       question: trimmed,
       answer: body.answer ? String(body.answer) : null,
       error: body.error ? String(body.error) : !body.answer && !batch ? pageText(locale, 'The server returned no answer.', 'השרת לא החזיר תשובה.') : null,
+      // Said a proposal is pending when this payload recorded none.
+      unrecordedClaim: unrecordedProposalClaim(body, batch),
       disclosure: typeof body.context_disclosure === 'string' ? body.context_disclosure : '',
       sources: asArray(body.grounding && body.grounding.sources),
       toolTrace: asArray(body.tool_trace),
@@ -195,14 +200,8 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
           pageContext,
           signal: controller.signal,
           onStage: (stage) => {
-            if (stage && stage.stage === 'deadline') measured.stoppedAtDeadline = true;
-            if (stage && stage.stage === 'ceiling') measured.stoppedAtCeiling = true;
-            setLive((prev) => (prev ? {
-              ...prev,
-              stage,
-              facts: stage && stage.facts && typeof stage.facts === 'object' ? stage.facts : prev.facts,
-              deadlineSeconds: stage && Number.isFinite(stage.deadline_seconds) ? stage.deadline_seconds : prev.deadlineSeconds,
-            } : prev));
+            noteStageLimits(stage, measured);
+            setLive((prev) => applyStage(prev, stage));
           },
           onStep: (step) => setLive((prev) => (prev ? { ...prev, steps: [...prev.steps, step] } : prev)),
           onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
@@ -276,11 +275,18 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   // the grounding sent with each ask is transparent on screen.
   const page = pageState && pageState.page && pageState.page.label ? pageState.page : null;
   const entityLabel = pageState && pageState.entity && pageState.entity.label ? pageState.entity.label : '';
-  const locationText = page
-    ? (entityLabel
-      ? pageText(locale, `You are on the ${page.label} page, ${entityLabel}`, `אתם בעמוד ${page.label}, ${entityLabel}`)
-      : pageText(locale, `You are on the ${page.label} page`, `אתם בעמוד ${page.label}`))
-    : null;
+  // The page name follows the header language, but the open record's name is
+  // data and is Hebrew in this market, so the English chip mixes scripts. Each
+  // name carries its own isolate rather than being interpolated into the
+  // sentence, or the record name takes the comma and welds to the page name.
+  const locationText = page ? (
+    <>
+      {pageText(locale, 'You are on the ', 'אתם בעמוד ')}
+      <bdi dir="auto">{page.label}</bdi>
+      {pageText(locale, ' page', '')}
+      {entityLabel ? <>{', '}<bdi dir="auto">{entityLabel}</bdi></> : null}
+    </>
+  ) : null;
 
   // Conversation statistics from data already on screen: exchange count from
   // the loaded entries, the start date of the first entry, and applied changes
@@ -326,7 +332,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
           {!threadLoading && thread.length > 0 ? (
             <p className="asst-stats">
               <span>{thread.length === 1 ? pageText(locale, 'one question in this conversation', 'שאלה אחת בשיחה') : pageText(locale, `${thread.length} questions in this conversation`, `${thread.length} שאלות בשיחה`)}</span>
-              {startedAt ? <span>{pageText(locale, `started ${startedAt}`, `התחילה ב-${startedAt}`)}</span> : null}
+              {startedAt ? <span dir="auto">{pageText(locale, 'started ', 'התחילה ב-')}<bdi dir="ltr">{startedAt}</bdi></span> : null}
               {appliedCount > 0 ? <span>{appliedCount === 1 ? pageText(locale, 'one change applied', 'הוחל שינוי אחד') : pageText(locale, `${appliedCount} changes applied`, `הוחלו ${appliedCount} שינויים`)}</span> : null}
             </p>
           ) : null}
@@ -378,7 +384,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             ) : null}
 
             {thread.map((entry) => (
-              <AssistantExchange key={entry.id} entry={entry} locale={locale} proposalCard={entry.batchId && batchMap[entry.batchId] ? renderProposalCard(batchMap[entry.batchId]) : null} />
+              <AssistantExchange key={entry.id} entry={entry} locale={locale} proposalCard={entry.batchId && batchMap[entry.batchId] ? renderProposalCard(batchMap[entry.batchId]) : null} onAskAgain={() => pickSuggestion(entry.question)} />
             ))}
 
             {live ? (

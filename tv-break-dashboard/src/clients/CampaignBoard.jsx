@@ -20,7 +20,10 @@ import './clients-campaigns.css';
 // Every row is a way in rather than a readout. The campaign name opens its
 // terms and its flights and both can be changed there, the client name opens
 // the client, and the agency reads as its name with its id underneath, because
-// AGY_10 is a database key and not something a person calls anybody.
+// AGY_10 is a database key and not something a person calls anybody. The agency
+// cell is a control too: the name it prints is a record with terms, contacts and
+// linked clients, and the client record opens exactly that record from the line
+// that names the same agency.
 
 export default function CampaignBoard({
   board,
@@ -28,11 +31,15 @@ export default function CampaignBoard({
   notify,
   gate,
   agencies = {},
+  openCampaignId = '',
+  onOpened = () => {},
   onOnboard,
   onOpenClient = () => {},
+  onOpenAgency,
   onReload,
 }) {
   const [openId, setOpenId] = useState('');
+  const [focusId, setFocusId] = useState('');
   const [pendingEnd, setPendingEnd] = useState('');
   const [booking, setBooking] = useState(false);
   const [options, setOptions] = useState(null);
@@ -62,11 +69,29 @@ export default function CampaignBoard({
     return () => { alive = false; };
   }, [canEdit, locale]);
 
+  // A caller that already resolved a campaign opens it here, which is how the
+  // head of a money figure becomes the booking behind it. The board is cut to
+  // that one row as well, the way the agency grid is cut to the one card, and
+  // the request is cleared so closing the row does not reopen it.
+  useEffect(() => {
+    if (!openCampaignId) {
+      return;
+    }
+    setOpenId(openCampaignId);
+    setFocusId(openCampaignId);
+    onOpened();
+  }, [openCampaignId, onOpened]);
+
   if (!board) {
     return <div className="clients-loading">{pageText(locale, 'Loading campaigns', 'טוען קמפיינים')}</div>;
   }
 
   const campaigns = board.campaigns || [];
+  // The one campaign a caller asked for, and only while the board really holds
+  // it. A filter that empties the table would answer a figure with a blank
+  // screen, so an id the board does not carry leaves the whole list on show.
+  const focus = campaigns.some((campaign) => campaign.campaign_id === focusId) ? focusId : '';
+  const visible = focus ? campaigns.filter((campaign) => campaign.campaign_id === focus) : campaigns;
   const statuses = board.status_vocabulary || [];
   const demoCount = board.demo_count ?? campaigns.filter((campaign) => campaign.is_demo).length;
   const bookedCount = board.booked_count ?? (campaigns.length - demoCount);
@@ -89,11 +114,28 @@ export default function CampaignBoard({
     }
   }
 
+  // The agency behind the campaign. It opens the agency record when this board
+  // was given an opener and the id really resolves to an agency on file, because
+  // that is the same condition the record panel needs to find the card. An id
+  // with nothing behind it stays a stated state rather than becoming a control
+  // that would land the reader on an empty search.
   function agencyCell(campaign) {
     if (!campaign.agency_id) {
       return <span className="clients-unset">{pageText(locale, 'none', 'אין')}</span>;
     }
     const name = agencies[campaign.agency_id];
+    if (name && onOpenAgency) {
+      return (
+        <button
+          type="button"
+          className="clients-link clients-cell-name clients-cell-open"
+          onClick={() => onOpenAgency(campaign.agency_id)}
+        >
+          <strong>{name}</strong>
+          <small className="clients-campaign-id">{campaign.agency_id}</small>
+        </button>
+      );
+    }
     return (
       <span className="clients-cell-name">
         {name
@@ -122,6 +164,19 @@ export default function CampaignBoard({
           <p className="clients-refusal">{gate.reason}</p>
         )}
       </div>
+
+      {focus ? (
+        <p className="clients-basis-note">
+          {pageText(
+            locale,
+            `Showing the one campaign that was asked for, of ${campaigns.length} on this board.`,
+            `מוצג הקמפיין שהתבקש בלבד, מתוך ⁦${campaigns.length}⁩ שעל הלוח.`,
+          )}
+          <button type="button" className="clients-inline-action" onClick={() => setFocusId('')}>
+            {pageText(locale, 'Show every campaign', 'הציגו את כל הקמפיינים')}
+          </button>
+        </p>
+      ) : null}
 
       <p className="clients-basis-note">{localized(board.delivery, 'reason', locale)}</p>
       <p className="clients-basis-path">{localized(board.delivery, 'path_forward', locale)}</p>
@@ -182,7 +237,7 @@ export default function CampaignBoard({
             </tr>
           </thead>
           <tbody>
-            {campaigns.map((campaign) => {
+            {visible.map((campaign) => {
               const open = openId === campaign.campaign_id;
               const toggle = () => setOpenId(open ? '' : campaign.campaign_id);
               return (

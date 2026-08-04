@@ -4,7 +4,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import RestrictionComposer from './RestrictionComposer';
 import ConstraintBuilder from './ConstraintBuilder';
-import { deleteRestriction, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
+import { deleteRestriction, effectLabel, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
 
 // A restriction reads as one line. The store's own words are on the record, one
 // click away, but nobody has to read them to know what a rule does: the sentence
@@ -25,6 +25,11 @@ function RestrictionRow({ record, locale, onDelete }) {
             <span>{pageText(locale, `Asked by ${record.author}`, `נדרש על ידי ${record.author}`)}</span>
           )}
           {record.reason && <span dir="auto">{record.reason}</span>}
+          {record.starts_on && (
+            <span>
+              {pageText(locale, `Starts applying on ${record.starts_on}`, `יתחיל לחול ב-${record.starts_on}`)}
+            </span>
+          )}
           {record.expires_on && (
             <span>
               {expired
@@ -130,9 +135,12 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
               {unauthoredSentence(unauthored.length, locale)}
             </p>
             <ul>
+              {/* The store's key for what a row does is an engine word, and it
+                  used to render raw here while the builder below translated the
+                  same value. One table, read by both. */}
               {unauthored.slice(0, 6).map((row) => (
                 <li key={row.constraint_id} dir="auto">
-                  <code>{row.effect}</code>
+                  <span className="rules-unauthored-effect">{effectLabel(row.effect, locale)}</span>
                   <span>{row.notes || row.scope_value || pageText(locale, 'no description', 'ללא תיאור')}</span>
                 </li>
               ))}

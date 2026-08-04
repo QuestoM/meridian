@@ -160,7 +160,8 @@ function Rail({ section, onPick, locale }) {
   );
 }
 
-function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide, setDecideFor, refreshKey }) {
+function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide, setDecideFor,
+  refreshKey, onOpenEvents }) {
   if (state.status === 'loading') {
     return <div className="mc-loading">{t('state.loading', locale)}</div>;
   }
@@ -172,7 +173,9 @@ function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide,
   }
   const payload = state.payload || {};
   if (section === 'gates') return <GatesPanel payload={payload} blocked={blocked} locale={locale} />;
-  if (section === 'coverage') return <CoveragePanel payload={payload} locale={locale} />;
+  if (section === 'coverage') {
+    return <CoveragePanel payload={payload} locale={locale} onOpenEvents={onOpenEvents} />;
+  }
   if (section === 'drift') return <DriftPanel payload={payload} locale={locale} />;
   if (section === 'candidates') {
     return (
@@ -198,7 +201,7 @@ function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide,
   );
 }
 
-export default function ModelConsole({ locale = 'he', onBack, onOpenRules }) {
+export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpenEvents }) {
   const [section, setSection] = useState('gates');
   const [refreshKey, setRefreshKey] = useState(0);
   const [recording, setRecording] = useState(false);
@@ -300,6 +303,7 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules }) {
             onDecide={decide}
             setDecideFor={setDecideFor}
             refreshKey={refreshKey}
+            onOpenEvents={onOpenEvents}
           />
         </main>
       </div>

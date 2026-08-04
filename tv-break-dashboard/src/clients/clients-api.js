@@ -21,14 +21,20 @@ async function readJson(path) {
 // still sends a plain string is carried through unchanged and reads the same in
 // both, which is honest: it is one sentence and this layer will not invent a
 // translation for it.
+//
+// A refusal that names an existing object also sends that object's address as
+// `opens`, because a sentence that says "open that one instead" and leaves the
+// reader to find it has named a place and given no way to it. The address is
+// carried here rather than parsed out of the sentence.
 function refusalPair(payload, response) {
   const detail = payload ? payload.detail : null;
   if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
     const en = String(detail.message_en || detail.message || '');
-    return { en, he: String(detail.message_he || en) };
+    const opens = detail.opens && detail.opens.kind && detail.opens.id ? detail.opens : null;
+    return { en, he: String(detail.message_he || en), opens };
   }
   const text = detail ? String(detail) : `${response.status} ${response.statusText}`;
-  return { en: text, he: text };
+  return { en: text, he: text, opens: null };
 }
 
 async function sendJson(path, method, body) {
@@ -43,6 +49,7 @@ async function sendJson(path, method, body) {
     const error = new Error(pair.en);
     error.messageEn = pair.en;
     error.messageHe = pair.he;
+    error.opens = pair.opens;
     error.status = response.status;
     throw error;
   }

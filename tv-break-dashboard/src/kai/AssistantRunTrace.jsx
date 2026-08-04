@@ -16,6 +16,10 @@ const STAGE_LABELS = {
   reading: ['Opening your conversation', 'פותח את השיחה שלכם'],
   grounded: ['Reading the saved data', 'קורא את הנתונים השמורים'],
   thinking: ['Working on the answer', 'עובד על התשובה'],
+  // The server caught the draft answer claiming a proposal that nothing
+  // recorded, and is spending one more turn on it. Named as the check it is, so
+  // the extra seconds read as work rather than as a stall.
+  verifying: ['Checking that the change was really recorded', 'בודק שהשינוי אכן נרשם'],
 };
 
 const STEP_LABELS = {
@@ -111,8 +115,12 @@ const SCOPE_REASON = {
 export function sourceLabel(source, locale) {
   const text = String(source || '');
   if (SOURCE_HE[text]) return pageText(locale, text, SOURCE_HE[text]);
+  // The file's own name is data, so it can be either script and can end in a
+  // neutral. It carries its own isolate instead of being interpolated into the
+  // Hebrew reading, where "report (1).csv" would otherwise flip its brackets.
   if (text.startsWith(UPLOADED_FILE_PREFIX)) {
-    return pageText(locale, text, `קובץ שהעליתם: ${text.slice(UPLOADED_FILE_PREFIX.length)}`);
+    if (locale !== 'he') return text;
+    return <>{'קובץ שהעליתם: '}<bdi dir="auto">{text.slice(UPLOADED_FILE_PREFIX.length)}</bdi></>;
   }
   return text;
 }
@@ -213,6 +221,14 @@ export default function AssistantRunTrace({ locale, live, elapsed, onStop }) {
         ) : null}
       </div>
       {live.facts ? <GroundedOn facts={live.facts} locale={locale} /> : null}
+      {/* Why this run is taking an extra turn. It stays up for the rest of the
+          run rather than flashing past, because the seconds it costs are the
+          operator's and they are owed the reason for them. */}
+      {live.verifying ? (
+        <p className="asst-run-long" dir="auto">
+          {pageText(locale, 'The first draft said a proposal was recorded when nothing was, so it is being written again.', 'הטיוטה הראשונה אמרה שנרשמה הצעה בזמן שלא נרשמה דבר, ולכן היא נכתבת מחדש.')}
+        </p>
+      ) : null}
       {elapsed > LONG_RUN_SECONDS ? (
         <p className="asst-run-long" dir="auto">
           {deadline

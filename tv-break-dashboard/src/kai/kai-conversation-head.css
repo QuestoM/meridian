@@ -1,0 +1,15 @@
+/* The conversation head, which was cutting its own display strings.
+   The shared panel-head from styles.css is a fixed 50px row, which is right for
+   a one-line title. This head carries three lines: the title, what the
+   conversation does, and who is acting. Measured in a browser, they stack to
+   58px inside that 50px box, so שיחה was cut 9px above the border and מבצע
+   6px below it, at 1280, 1500, 1920 and 2560 wide, at the minimum and the
+   default dock width, in both readings, and on the full page as well as in the
+   dock. Here 50px becomes a floor instead of a ceiling: nothing moves where the
+   title already fits on one line, and nothing is cut where it does not. Two
+   class selectors beat the shared one regardless of load order.
+   It lives beside assistant-console.css rather than in it, because that file is
+   at the 450-line cap: split, never compress. AssistantDock.jsx imports it, and
+   the shell imports the dock at module scope on every screen, so the rule is
+   present on the full page too. */
+.asst-chat > .panel-head { height: auto; min-height: 50px; padding-block: var(--space-2); }

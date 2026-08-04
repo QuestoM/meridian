@@ -236,23 +236,35 @@ def rendered(tmp_path_factory, payloads, shipped) -> dict:
 
 
 def test_the_endpoint_really_answers_forty_one_links_under_those_keys(payloads):
-    """The state under test exists, or everything below would pass vacuously."""
+    """The state under test exists, or everything below would pass vacuously.
+
+    The regression row counts the links the daily file evidences, so the count
+    is taken over ``observed``. A link an operator adds by hand is a real link
+    and rides in ``effective``, and counting those here would make onboarding a
+    client, which this destination exists to do, read as a broken assertion.
+    """
     assert set(payloads["AGY_01"]) == {"observed", "manual", "effective", "observed_source_file"}
     assert payloads["AGY_01"]["effective"] == AGY_01
-    assert sum(len(payload["effective"]) for payload in payloads.values()) == OBSERVED_LINKS
+    assert sum(len(payload["observed"]) for payload in payloads.values()) == OBSERVED_LINKS
+    for agency_id, payload in payloads.items():
+        invented = set(payload["effective"]) - set(payload["observed"]) - set(payload["manual"])
+        assert not invented, f"{agency_id} answers a link that is neither observed nor manual"
     assert "links" not in payloads["AGY_01"] and "advertisers" not in payloads["AGY_01"]
 
 
 def test_every_link_the_endpoint_answers_is_a_row_on_screen(payloads, rendered):
     """The regression row: the 41 observed advertiser links still render."""
     total = 0
+    observed_on_screen = 0
     for agency_id, payload in payloads.items():
         names = rendered[agency_id]["names"]
         assert names == payload["effective"], f"{agency_id} renders a different set than it answers"
         for name in payload["effective"]:
             assert _as_text(name) in rendered[agency_id]["html"], f"{name} is not on screen under {agency_id}"
+        observed_on_screen += len([name for name in names if name in set(payload["observed"])])
         total += len(names)
-    assert total == OBSERVED_LINKS
+    assert observed_on_screen == OBSERVED_LINKS
+    assert total == sum(len(payload["effective"]) for payload in payloads.values())
 
 
 def test_the_six_names_the_critic_measured_are_on_the_first_agency(rendered):

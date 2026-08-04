@@ -315,6 +315,14 @@
   gap: var(--space-2);
 }
 
+/* What the row does, in the same words the builder below uses. It used to
+   render the store's own key in a code face. */
+
+.rules-unauthored-effect {
+  flex: none;
+  font-weight: var(--weight-medium);
+}
+
 .rules-disclosure {
   border: none;
   background: transparent;

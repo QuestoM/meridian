@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
-import { Download, Rows3 } from 'lucide-react';
+import { Download, Rows3, TriangleAlert } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from '../shell/format';
 import { normalizeRows } from '../shell/plan-model';
 import {
@@ -40,6 +40,28 @@ function Basis({ basis, locale }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+// What is inside the file this button hands over, printed beside the row count
+// it qualifies. The server measures the split and writes the sentence, in both
+// languages and as counts with no channel named, so the card and the rows
+// behind the count cannot disagree.
+//
+// Measured before this line existed: the weekly plan card offered 8,704 rows
+// and the preview knew that 2,540 of them were the operator's and 6,164 were
+// not, which meant the screen was scoped and the file was not, and the only
+// place that said so was a panel the person who clicks download never opens.
+function DownloadScope({ scope, locale }) {
+  if (!scope) return null;
+  const words = serverText(scope, locale);
+  if (!words) return null;
+  const mixed = Number(scope.rows_other) > 0;
+  return (
+    <p className="report-card-scope" data-state={scope.state} data-mixed={mixed ? 'yes' : 'no'} dir="auto">
+      {mixed ? <TriangleAlert size={13} aria-hidden="true" /> : null}
+      <span>{words}</span>
+    </p>
   );
 }
 
@@ -153,6 +175,7 @@ export function DownloadsView({ reports, files, overview, locale, notify }) {
                   </span>
                 </Tooltip>
               </div>
+              <DownloadScope scope={report.download_scope} locale={locale} />
               {report.unit ? <p className="report-card-unit">{serverText(report.unit, locale)}</p> : null}
               <Basis basis={report.basis} locale={locale} />
               <Tooltip title={downloadable ? '' : text('reportEmpty', locale)} arrow placement="bottom">

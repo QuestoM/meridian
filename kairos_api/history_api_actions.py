@@ -6,7 +6,7 @@ place the product decides what a mutating request actually did, and both
 History and the settings activity log read this same decision rather than each
 matching on paths of their own.
 
-Three questions are answered here and nothing else is.
+Four questions are answered here and nothing else is.
 
 **What act was it.** The recorder stores the concrete path, so the map matches
 on a prefix and an optional suffix rather than on a route template.
@@ -15,6 +15,10 @@ on a prefix and an optional suffix rather than on a route template.
 and write nothing, and calling those changes would be wrong about the one thing
 History exists to answer.
 
+**Did it land.** The recorder has stored the answer's status code since the log
+existed and nothing read it, so a write the server refused was printed with the
+same sentence as one it carried out.
+
 **Where did its output land.** That is the training test of specification
 section 4.1 as a data field: ``models`` means training, and training is
 company-only.
@@ -22,7 +26,7 @@ company-only.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 
 # The closed vocabulary of what can appear on the timeline. A surface renders a
@@ -180,5 +184,62 @@ def kind_for(action: str) -> str:
     Everything else the recorder holds is a ``change``, including a refused one:
     a write that was attempted and answered 403 is exactly what somebody reading
     this surface needs to see.
+
+    The kind says what was attempted. Whether it landed is :func:`outcome_for`,
+    and that is the half no count may skip: a refused attempt belongs on the
+    list and belongs in no figure that attests.
     """
     return "preview" if action in PREVIEW_ACTIONS else "change"
+
+
+# Whether the write actually happened, from the status code the recorder has
+# stored on every line since this log existed.
+#
+# **This is the half nothing read.** The act was derived from the method and the
+# path alone, so a refused write carried the sentence of an accomplished one:
+# measured by a blind critic on 2026-08-02, 680 of the 2,264 change entries on
+# the record (30.0 percent) answered 400 or more, four consecutive rows read
+# "the regulatory limit was saved" at the same minute with two of them refused,
+# and the compliance strip counted every one of them as a change. Re-measured on
+# this repository's own recorder at 00:33 on 2026-08-04: 3,263 recorded
+# requests, 811 of them refused (24.9 percent), 528 of those 403, and not one
+# line without a status.
+#
+# Tri-state, because "the server refused it" and "nobody recorded what happened"
+# are different pieces of news and only one of them can be attested to.
+OUTCOMES = ("applied", "refused", "unknown")
+APPLIED, REFUSED, OUTCOME_UNKNOWN = OUTCOMES
+
+# The line between an answer that could have written and one that cannot have.
+# A 4xx is the server declining before it wrote: 401 and 403 are the wall, 404
+# and 405 mean the route does not exist, 409 and 422 mean the request could not
+# be carried out. Not one of them wrote a byte.
+REFUSED_FROM = 400
+
+# And the line past which the product stops claiming anything. A 5xx is the
+# server failing rather than declining, and a failure can land after a write has
+# begun, so calling it a refusal would be the same certainty this module exists
+# to remove, pointed the other way. In the same 3,263 recorded requests there is
+# not one 5xx and not one line without a status, so this names a state the store
+# does not hold today rather than guessing at it the day it appears.
+SERVER_ERROR_FROM = 500
+
+
+def outcome_for(status: Any) -> str:
+    """What one recorded request did: ``applied``, ``refused`` or ``unknown``.
+
+    A status the recorder never wrote, one outside the HTTP range, and a server
+    failure are all unknown rather than either of the answers a reader could act
+    on. The store holds no line of any of the three today, which is exactly why
+    the state is carried: the day one appears it must not read as a change that
+    happened, and it must not read as a refusal either.
+    """
+    try:
+        code = int(status)
+    except (TypeError, ValueError):
+        return OUTCOME_UNKNOWN
+    if code >= SERVER_ERROR_FROM:
+        return OUTCOME_UNKNOWN
+    if code >= REFUSED_FROM:
+        return REFUSED
+    return APPLIED if code >= 100 else OUTCOME_UNKNOWN

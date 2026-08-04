@@ -2,7 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Focus, Maximize, Pin, PinOff, Star } from 'lucide-react';
 import { pageText } from '../../shell/format';
 import { ZoomControl } from './schedule-track-view';
-import { MIN_DURATION_SECONDS, SNAP_CHOICES, clockOf, inversePlacement, parseClock } from './day-board-model';
+import {
+  MIN_DURATION_SECONDS,
+  SNAP_CHOICES,
+  airingsBound,
+  clockOf,
+  inversePlacement,
+  parseClock,
+} from './day-board-model';
 import { scopeSentence } from './day-board-actions';
 
 // The board's controls, and the selected break's exact numbers.
@@ -176,7 +183,7 @@ function DayBoardToolbar({
             {label('Open this break', 'פתיחת הברייק')}
           </button>
           {programme && (
-            <span className="day-selection-scope" dir="auto">{scopeSentence(programme, locale)}</span>
+            <span className="day-selection-scope" dir="auto">{scopeSentence(programme, locale, airingsBound(board.programmes, programme))}</span>
           )}
           {savedPin && (
             <div className="day-selection-pin">

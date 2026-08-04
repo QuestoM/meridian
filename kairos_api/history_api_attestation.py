@@ -16,6 +16,16 @@ folded into the reassuring case.
 answer and saved nothing; a run read the saved state rather than editing it. So
 the verdict counts changes, restores and restore points, names the three it
 counted, and still reports every other count beside them.
+
+**And a refused write is not a change either.** This is the third of the same
+rule and it was the one nothing enforced. The recorder stores the status the
+server answered with, so an attempt the wall refused is on the record as a
+change entry, and every one of them was being summed into the attested figure:
+measured on 2026-08-02, ``since?day=2026-08-02`` answered ``changed: 2652``
+while 743 of the 2,451 change entries in that window had answered 400 or more,
+so 28.0 percent of the figure a compliance owner attests to had changed nothing.
+The refusals are now their own named figure beside the count, because what was
+attempted is worth reading and is not what happened.
 """
 
 from __future__ import annotations
@@ -73,12 +83,21 @@ def since_body(assembled: dict[str, Any], day: str) -> dict[str, Any]:
     """What changed since a calendar day, over an already assembled timeline."""
     entries = history_api_timeline.since_day(assembled["entries"], day)
     tally = history_api_timeline.counts(entries)
-    changed = sum(tally[kind] for kind in ATTESTED_KINDS)
+    outcomes = history_api_timeline.outcome_counts(entries)
+    # Everything of an attested kind was attempted; what the server refused, and
+    # what it never recorded an answer for, changed nothing and is reported as
+    # itself. Restores and restore points carry no outcome because they are read
+    # from acts that already happened: a manifest exists only if it was written.
+    attempted = sum(tally[kind] for kind in ATTESTED_KINDS)
+    changed = attempted - outcomes["refused"] - outcomes["unknown"]
     return {
         "day": day,
         "counts": tally,
         "matched": len(entries),
         "changed": changed,
+        "attempted": attempted,
+        "refused": outcomes["refused"],
+        "outcomes": outcomes,
         "attested_kinds": list(ATTESTED_KINDS),
         # A count since a day is only evidence for the days the record covers.
         # Measured before this rode along: the strip attested over a seven-week
@@ -88,5 +107,8 @@ def since_body(assembled: dict[str, Any], day: str) -> dict[str, Any]:
         "examined": assembled["sources"],
         "scope": assembled["scope"],
         "guardrails": guardrail_attestation(date.fromisoformat(day)),
-        "verdict": "changed" if changed else "unchanged",
+        # Unchanged is a claim, so it is only made over acts whose answer was
+        # recorded. A window holding nothing but attempts nobody recorded the
+        # result of is the same kind of news as an unreadable guardrail store.
+        "verdict": "changed" if changed else ("unknown" if outcomes["unknown"] else "unchanged"),
     }

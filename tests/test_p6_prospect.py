@@ -27,6 +27,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import kairos_api.uploads as uploads
+import kairos_api.uploads_empty as uploads_empty
+import kairos_api.uploads_inputs as uploads_inputs
 from kairos.data.loaders import DAILY_COLUMN_MAP
 
 
@@ -181,6 +183,89 @@ def test_a_file_with_no_date_in_its_name_is_ranked_as_the_day_it_would_land(isol
     same = _check_daily(isolated, "Wally_2025-04-27.csv", "4/27/2025")
     assert same["will_be_read"] is True, "overwriting the live file leaves it live"
     assert same["replaces"] == same["saves_to"] == str(uploads.DAILY_DIR / "Wally_2025-04-27.csv")
+
+
+def _rows_bytes(kind: str, rows: list[dict[str, str]]) -> bytes:
+    """A file of this kind with its real header and the rows given."""
+    columns = list(uploads_inputs.REQUIRED_COLUMNS[kind])
+    frame = pd.DataFrame(rows or [], columns=columns)
+    return frame.to_csv(index=False).encode("utf-8")
+
+
+FLIGHT = {
+    "campaign_id": "CMP_1",
+    "flight_start": "2026-08-01",
+    "flight_end": "2026-08-31",
+    "target_impressions": "1000",
+}
+
+# The three kinds whose upload the engine really reads in this fixture, with a
+# file that has rows and the state each is in once it lands.
+LIVE_KINDS = (
+    ("daily", "Wally_2026-08-09.csv", None),
+    ("campaign_flights", "campaign_flights.csv", FLIGHT),
+    ("advertiser_rules", "advertiser_rules.csv", {"advertiser_id": "ADV_01", "default_premium": "1.0"}),
+)
+
+
+def _live_bytes(kind: str, row: dict[str, str] | None) -> bytes:
+    return _daily_bytes(rows=3) if row is None else _rows_bytes(kind, [row])
+
+
+def test_the_door_names_an_empty_file_before_the_click_and_not_after_it(isolated: TestClient) -> None:
+    """The most expensive form of the measured lie, on the three kinds that read.
+
+    Measured before this: a CSV with the real header and zero data rows was
+    accepted with ``findings: []``, ``rows: 0``, ``will_be_read: true`` and the
+    consequence ``replaces_live_input``, so the card printed a green tick and
+    "this is the live input" over a commit button. Committing it emptied the
+    live input: ``in_use`` with rows before, ``state: empty`` after, and the only
+    sentence that named the outcome was the remedy on the card afterwards.
+
+    Each kind is driven end to end here: a file with rows is committed so there
+    is something real to lose, the empty one is put to the door, and the door's
+    answer is graded against what committing the empty one then really does.
+    """
+    for kind, filename, row in LIVE_KINDS:
+        assert isolated.post(
+            f"/api/uploads/{kind}", files={"file": (filename, _live_bytes(kind, row), "text/csv")}
+        ).status_code == 200, f"{kind} could not be given a file with rows to lose"
+        before = _entry(isolated, kind)
+        assert before["rows"] > 0 and before["state"] == "in_use", f"{kind} is not live in this fixture"
+
+        empty = _rows_bytes(kind, [])
+        predicted = isolated.post(
+            f"/api/uploads/{kind}/check", files={"file": (filename, empty, "text/csv")}
+        ).json()
+        assert predicted["rows"] == 0
+        assert predicted["will_be_read"] is True, f"{kind} is the live input and the door says otherwise"
+        finding = next(f for f in predicted["findings"] if f["code"] == "no_data_rows")
+        assert finding["message_he"], f"{kind} named the outcome in English on a Hebrew card"
+        # Which of the two branches below this kind takes is not a matter of
+        # taste, so it is pinned rather than discovered by whichever one passes.
+        assert predicted["accepted"] is (uploads_empty.SEVERITY[kind] == "warning"), f"{kind} took the wrong branch"
+
+        committed = isolated.post(f"/api/uploads/{kind}", files={"file": (filename, empty, "text/csv")})
+        if not predicted["accepted"]:
+            # The door refused it, so the commit refuses it with the same code
+            # and the file that had rows is still the file the engine reads.
+            assert committed.status_code == 400, f"{kind} was refused at the door and taken at the commit"
+            assert any("no_data_rows" in line for line in committed.json()["errors"])
+            assert _entry(isolated, kind)["rows"] == before["rows"], f"{kind} lost its rows to a refused file"
+            continue
+        assert committed.status_code == 200, committed.text
+        body = committed.json()
+        assert body["consequence"] == predicted["consequence"], "the toast contradicts the door"
+        assert body["consequence"]["code"] == "replaces_live_input_with_no_rows"
+        after = _entry(isolated, kind)
+        # The state the door predicted, in the product's own six words: the one
+        # its own vocabulary calls "no figure can be computed from this input".
+        assert (after["rows"], after["state"]) == (0, "empty"), f"{kind} did not end where the door said"
+        assert after["remedy"]["code"] == "empty"
+
+
+def _entry(client: TestClient, kind: str) -> dict:
+    return next(item for item in client.get("/api/uploads/status").json()["inputs"] if item["kind"] == kind)
 
 
 def test_the_door_names_the_workbook_that_shadows_a_channel_source(isolated: TestClient) -> None:

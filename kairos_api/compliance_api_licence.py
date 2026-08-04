@@ -33,9 +33,9 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from kairos_api import guardrail_store, model_activation, plan_read_compliance
+from kairos_api import guardrail_store, model_activation
 from kairos_api.affiliation_wall import ADMIN_ROLES, Wall
-from kairos_api.core import _load_break_schedule, _load_settings
+from kairos_api.core import _load_settings
 
 logger = logging.getLogger(__name__)
 
@@ -224,10 +224,14 @@ def attestation(request: Request = None, since: str = "") -> dict[str, Any]:
 
     The verdict comes from the same builder ``GET /api/compliance`` uses, so
     there is one set of seven checks in the product and not two that could
-    disagree. ``since`` is the day of the last attestation; without it the whole
-    change log is returned and the payload says that is what happened.
+    disagree, and it is the scoped one: what a compliance owner signs is a
+    verdict on the channel this operator owns, and it carries the scope note
+    that says so. ``since`` is the day of the last attestation; without it the
+    whole change log is returned and the payload says that is what happened.
     """
-    verdict = plan_read_compliance.build_compliance(_load_break_schedule(), _load_settings())
+    from kairos_api.compliance_api import compliance as scoped_compliance
+
+    verdict = scoped_compliance()
     record = guardrail_store.load_record()
     today = date.today()
     since_day: Optional[date] = None

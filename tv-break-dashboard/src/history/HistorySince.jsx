@@ -5,6 +5,7 @@ import { RunsRemedyLink } from './HistoryRunsSource';
 import { fetchSince } from './history-api';
 import { todayIso } from './history-labels';
 import { attestationStartLine } from './history-reach';
+import { refusedSinceLine } from './history-refused';
 import { RUNS_WITHHELD, runsCountLine, runsCounted, runsSourceState } from './history-runs';
 
 // "Has anything changed since?" with the evidence attached.
@@ -64,7 +65,12 @@ export default function HistorySince({ locale, landing, onShow }) {
 
   const guardrails = (body && body.guardrails) || {};
   const counts = (body && body.counts) || {};
-  const changeCount = (counts.change || 0) + (counts.restore || 0) + (counts.restore_point || 0);
+  // The endpoint's own figure, and it counts only what landed. Summing the tabs
+  // here is what made this sentence wrong by a quarter: measured on 2026-08-02
+  // it read 2,652 changes over a window in which 743 of the 2,451 change entries
+  // had been refused, so 28.0 percent of an attested figure changed nothing.
+  const changeCount = Number((body && body.changed) || 0);
+  const refusedCount = Number((body && body.refused) || 0);
   // The runs are counted only when the product may attribute them. Withheld, the
   // tally is zero because no run entry was assembled, not because none ran, and
   // printing that zero here would put a false attestation in the one sentence a
@@ -94,18 +100,25 @@ export default function HistorySince({ locale, landing, onShow }) {
         <>
           <span className="hist-since-line" dir="auto">
             {changeCount && counted
-              ? pageText(locale, `${changeCount} changes and points recorded, and ${counts.run || 0} runs.`, `נרשמו ${changeCount} שינויים ונקודות, ו-${counts.run || 0} הרצות.`)
+              ? pageText(locale, `${changeCount} changes and points were applied, and ${counts.run || 0} runs were recorded.`, `בוצעו ${changeCount} שינויים ונקודות, ונרשמו ${counts.run || 0} הרצות.`)
               : null}
             {changeCount && !counted
-              ? pageText(locale, `${changeCount} changes and points recorded.`, `נרשמו ${changeCount} שינויים ונקודות.`)
+              ? pageText(locale, `${changeCount} changes and points were applied.`, `בוצעו ${changeCount} שינויים ונקודות.`)
               : null}
-            {!changeCount && counted
-              ? pageText(locale, 'Nothing has been recorded since that day.', 'לא נרשם דבר מאז אותו יום.')
-              : null}
-            {!changeCount && !counted
-              ? pageText(locale, 'No change and no restore point has been recorded since that day.', 'לא נרשמו שינויים ולא נקודות שחזור מאז אותו יום.')
+            {/* One sentence for the empty case, where the four were two. Whether the
+                runs can be counted decides whether their figure may be printed, which
+                is the branch above; it decides nothing here, because a run reads the
+                saved state and a refused attempt wrote nothing, so neither changes
+                whether anything changed. */}
+            {!changeCount
+              ? pageText(locale, 'Nothing has changed since that day.', 'שום דבר לא השתנה מאז אותו יום.')
               : null}
           </span>
+          {/* What was attempted and did not happen, beside what did. A refusal is
+              news of its own on this strip and it is never inside the count. */}
+          {refusedCount ? (
+            <span className="hist-since-line warn" dir="auto">{pageText(locale, ...refusedSinceLine(refusedCount))}</span>
+          ) : null}
           {/* And the day that count is only as old as. A count of changes since a
               day is evidence for the days the record covers and for no others. */}
           {startLine ? (
@@ -115,7 +128,7 @@ export default function HistorySince({ locale, landing, onShow }) {
               to this day and drops every filter, so the tabs under it add up to the
               figure in this sentence and a reader can walk from the attestation to
               the record that backs it. */}
-          {changeCount && onShow ? (
+          {(changeCount || refusedCount) && onShow ? (
             <button type="button" className="hist-link" onClick={() => onShow(day)}>
               {pageText(locale, 'Show these in the list', 'הצגה ברשימה')}
             </button>

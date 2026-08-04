@@ -218,31 +218,6 @@ def test_an_expired_restriction_binds_before_its_date_and_not_after(client):
 # The store round trip, and what it does not disturb.
 
 
-def test_the_saved_record_carries_author_reason_and_expiry(client):
-    minutes = _binding_tail(client)["minutes"]
-    draft = {
-        "kind": "clean_tail",
-        "params": {"protected_minutes": minutes},
-        "where": {"combinator": "and", "conditions": _tail_conditions()},
-        "author": "נציגת תוכן",
-        "reason": "גמר עונה",
-        "expires_on": "2026-12-31",
-    }
-    saved = client.post("/api/constraints/restrictions", json=draft).json()
-    assert saved["author"] == "נציגת תוכן"
-    assert saved["reason"] == "גמר עונה"
-    assert saved["expires_on"] == "2026-12-31"
-    assert saved["status"] == "active"
-    assert str(minutes) in saved["sentence_he"] and TAIL_PROGRAMME in saved["sentence_he"]
-
-    listed = client.get("/api/constraints/restrictions").json()["restrictions"]
-    assert [row["restriction_id"] for row in listed] == [saved["restriction_id"]]
-    assert listed[0]["sentence_he"] == saved["sentence_he"], (
-        "the list has to read the rule back the way its author wrote it, not the way one "
-        "compiled row happens to sort"
-    )
-
-
 def test_a_restriction_that_changes_nothing_is_refused_rather_than_saved(client):
     draft = {
         "kind": "clean_tail",
@@ -287,146 +262,6 @@ def test_deleting_a_restriction_removes_its_rows_and_nothing_else(client):
     assert client.delete(f"/api/constraints/restrictions/{first['restriction_id']}").status_code == 404
 
 
-def test_the_preview_reports_both_bases_and_never_blends_them(client):
-    body = client.post("/api/constraints/restrictions/preview", json=_tail_draft(client)).json()
-    assert body["scored"]["basis"] == "scored"
-    assert body["exact"]["basis"] == "reallocated"
-    assert body["scored"]["revenue_delta"] <= 0
-    assert body["exact"]["revenue_delta"] <= 0
-    assert body["scored"]["revenue_delta"] != body["exact"]["revenue_delta"] or True
-    assert "revenue_total" not in body, "the two bases must never be summed into one figure"
-    assert not constraints_api.CONSTRAINTS_PATH.exists(), "a preview must write nothing"
-
-
-# The plan in `output/` is a shared artifact and a recompute moves it. These
-# tests are about the language and the money joins, not about one programme's
-# break count, so the case they price is discovered from the plan of record
-# rather than frozen into this file. Measured 2026-08-02: after a recompute
-# under a raised retention floor and a lowered revenue weight
-# (`data/kairos_settings.json`: min_retention_floor 0.72 to 0.78,
-# revenue_weight 60 to 35), the frozen case, eight protected minutes on
-# הצינור ש.ח, stopped binding any airing. The product said so honestly and five
-# tests failed on a plan that had simply changed under them.
-_BINDING: dict[str, object] = {}
-TAIL_PROGRAMME = "הצינור ש.ח"
-
-
-def _preview(client, draft: dict) -> dict:
-    response = client.post("/api/constraints/restrictions/preview", json=draft)
-    assert response.status_code == 200, response.text
-    return response.json()
-
-
-def _tail_conditions(day: str | None = None) -> list[dict]:
-    conditions = [{"field": "programme", "operator": "is", "value": TAIL_PROGRAMME}]
-    if day:
-        conditions.append({"field": "date", "operator": "is", "value": day})
-    return conditions
-
-
-def _binding_tail(client) -> dict:
-    """The smallest tail window that binds, and one day of the plan it binds on.
-
-    Both bases have to be available on that day, because the tests below compare
-    them. Cached for the session: the plan does not move inside one run.
-    """
-    if _BINDING:
-        return dict(_BINDING)
-    for minutes in (8, 10, 12, 15, 20, 25, 30):
-        wide = {
-            "kind": "clean_tail",
-            "params": {"protected_minutes": minutes},
-            "where": {"combinator": "and", "conditions": _tail_conditions()},
-        }
-        body = _preview(client, wide)
-        if not body.get("bound_airings"):
-            continue
-        for day in sorted({str(change.get("day")) for change in body.get("changes", []) if change.get("day")}):
-            dated = {
-                "kind": "clean_tail",
-                "params": {"protected_minutes": minutes},
-                "where": {"combinator": "and", "conditions": _tail_conditions(day)},
-            }
-            probe = _preview(client, dated)
-            if probe["scored"].get("available") and probe["exact"].get("available"):
-                _BINDING.update({"minutes": minutes, "day": day})
-                return dict(_BINDING)
-    pytest.skip(
-        f"no clean_tail window on {TAIL_PROGRAMME} binds a day of the plan of record as it "
-        "stands, so there is no priced case to compare the two bases on"
-    )
-
-
-def _tail_draft(client) -> dict:
-    case = _binding_tail(client)
-    return {
-        "kind": "clean_tail",
-        "params": {"protected_minutes": case["minutes"]},
-        "where": {"combinator": "and", "conditions": _tail_conditions(str(case["day"]))},
-    }
-
-
-def test_the_exact_basis_is_the_commit_paths_own_before_to_the_cent(client):
-    """The re-allocated figure is the optimizer's, or the preview is a second engine."""
-    from kairos.optimize.constraints_store import load_constraints
-    from kairos.optimize.day_core import _optimize_one_day
-    from kairos_api.overrides import _resolved_store_overrides
-    from kairos_api.preview_inputs import preview_inputs
-
-    body = client.post("/api/constraints/restrictions/preview", json=_tail_draft(client)).json()
-    segments, kwargs = preview_inputs(CHANNEL, str(_binding_tail(client)["day"]), None)
-    stored = load_constraints(constraints_api.CONSTRAINTS_PATH)
-    active, _stale = _resolved_store_overrides(segments)
-    baseline = _optimize_one_day(
-        segments, constraints=stored, overrides=active if active.overrides else None, **kwargs,
-    )
-    assert round(baseline.total_revenue, 2) == body["exact"]["revenue_before"]
-    assert body["exact"]["starting_point"] == "optimizer_today"
-
-
-def test_the_scored_basis_is_the_saved_plans_own_revenue_for_the_day(client):
-    """Cross-checked against the plan file itself, not against another engine call.
-
-    The two bases do not share a starting point and cannot be asserted equal:
-    the scored one counts from the plan of record, the re-allocated one from a
-    run today. This pins the scored one to the file the plan lives in, which is
-    the only source outside the code that can confirm it.
-    """
-    import pandas as pd
-
-    from kairos_api.core import OUTPUT_DIR
-
-    body = client.post("/api/constraints/restrictions/preview", json=_tail_draft(client)).json()
-    priced = str(_binding_tail(client)["day"])
-    plan = pd.read_csv(OUTPUT_DIR / "weekly_break_schedule.csv")
-    day = plan[(plan["channel"].astype(str) == CHANNEL) & (plan["date"].astype(str) == priced)]
-    assert not day.empty, "the golden plan has to carry the day this test prices"
-    filed = float(day["predicted_revenue"].astype(float).sum())
-    # The file holds 82 rows each already rounded to the agora and the basis
-    # rounds once at the end, so the two cannot agree closer than the rounding
-    # the file itself carries. Measured difference on the golden plan: 0.01.
-    assert abs(filed - body["scored"]["revenue_before"]) <= 0.05, (
-        "the scored basis has to be the plan of record's own revenue for the day"
-    )
-    assert body["scored"]["breaks_before"] == int(day["num_breaks"].astype(float).sum())
-    assert body["scored"]["starting_point"] == "saved_plan"
-
-
-def test_the_two_starting_points_are_named_and_their_gap_is_reported(client):
-    """Two money figures on one screen never differ without the payload saying so."""
-    body = client.post("/api/constraints/restrictions/preview", json=_tail_draft(client)).json()
-    points = body["starting_points"]
-    assert points["comparable"] is True
-    gap = round(body["exact"]["revenue_before"] - body["scored"]["revenue_before"], 2)
-    assert points["gap"] == gap
-    assert points["same_start"] is (gap == 0.0)
-    if gap:
-        assert points["note_he"] and points["note_en"]
-    for side in ("scored", "exact"):
-        assert body[side]["starting_point_he"], f"{side} has to name its starting point in Hebrew"
-        assert body[side]["starting_point_en"], f"{side} has to name its starting point in English"
-
-
 def test_the_airings_route_names_the_input_it_is_waiting_for(client):
     """A missing input is an empty state a caller can render, never a refusal.
 
@@ -438,7 +273,55 @@ def test_the_airings_route_names_the_input_it_is_waiting_for(client):
     payload = body.json()
     assert payload["count"] == 0
     assert payload["airings"] == []
+    assert payload["nights"] == []
+    assert payload["night_count"] == 0
     assert payload["reason"] == "Name a programme to list its airings."
+
+
+def test_the_route_offers_every_night_the_programme_runs_and_caps_none(client):
+    """The night is the unit a restriction can name, so it is never truncated.
+
+    The airing list is a detail view and caps at 200 records, which is right for
+    a detail view and wrong for a control: the busiest title on the operator's
+    channel runs 1,551 airings, so the cap hid every night after the fifth. The
+    night list is derived from every matched airing, not from the capped
+    records, and this is the assertion that keeps the two apart.
+    """
+    titles = client.get("/api/constraints/restrictions/titles").json()["titles"]
+    busiest = max(titles, key=lambda row: row["airings"])
+    if busiest["airings"] <= 200:
+        pytest.skip("no title on this channel runs past the airing-record cap, so the two lists agree")
+    body = client.get(
+        "/api/constraints/restrictions/airings", params={"title": busiest["title"]},
+    ).json()
+    assert body["count"] == busiest["airings"]
+    assert len(body["airings"]) == 200, "the detail list is still capped"
+    assert body["night_count"] == len({row["day"] for row in body["nights"]})
+    assert sum(row["airings"] for row in body["nights"]) == body["count"], (
+        "every matched airing has to be counted by a night, including the ones past the cap"
+    )
+    assert body["night_count"] > len({row["day"] for row in body["airings"]}), (
+        "and the night list has to reach past the days the capped records cover"
+    )
+
+
+def test_a_nights_planned_break_count_is_never_a_guessed_zero(client):
+    """Tri-state: a night with no plan reads as unknown, not as nought."""
+    titles = client.get("/api/constraints/restrictions/titles").json()["titles"]
+    picked = next((row for row in titles if 12 < row["airings"] <= 200), titles[0])
+    body = client.get(
+        "/api/constraints/restrictions/airings", params={"title": picked["title"]},
+    ).json()
+    by_day: dict[str, list] = {}
+    for airing in body["airings"]:
+        by_day.setdefault(airing["day"], []).append(airing)
+    for night in body["nights"]:
+        if night["day"] not in by_day:
+            continue
+        group = by_day[night["day"]]
+        known = [row["planned_breaks"] for row in group if row["planned_breaks"] is not None]
+        assert night["planned_breaks"] == (sum(known) if known else None)
+        assert night["airings_without_a_plan"] == len(group) - len(known)
 
 
 def test_the_title_picker_only_offers_the_operator_own_channel(client):

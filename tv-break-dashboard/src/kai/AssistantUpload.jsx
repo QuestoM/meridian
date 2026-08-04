@@ -3,6 +3,7 @@ import { Tooltip } from '@mui/material';
 import { FileSpreadsheet, Paperclip, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { requestJson } from './assistant-stream';
+import { isolate } from './kai-bidi';
 
 // Agreement upload for the composer: a paperclip attaches an .xlsx/.xls/.csv
 // agreement, which the server parses in memory and keeps only as a summary keyed
@@ -61,11 +62,11 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
       const body = await requestJson('/api/assistant/upload', { method: 'POST', body: form });
       const filename = String(body.filename || file.name);
       setLast({ id: uploadId(body), filename });
-      notify(`Uploaded ${filename}.`, `הקובץ ${filename} הועלה.`);
+      notify(`Uploaded ${isolate(filename)}.`, `הקובץ ${isolate(filename)} הועלה.`);
       onSuggest(pageText(locale, SUGGEST[0], SUGGEST[1]));
       if (listOpen) loadList();
     } catch (err) {
-      notify(`The upload failed (${err.message}).`, `העלאת הקובץ נכשלה (${err.message}).`);
+      notify(`The upload failed (${isolate(err.message)}).`, `העלאת הקובץ נכשלה (${isolate(err.message)}).`);
     } finally {
       setUploading(false);
     }
@@ -87,7 +88,7 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
       setLast((prev) => (prev && prev.id === id ? null : prev));
       notify('The file was removed.', 'הקובץ הוסר.');
     } catch (err) {
-      notify(`Removing the file failed (${err.message}).`, `הסרת הקובץ נכשלה (${err.message}).`);
+      notify(`Removing the file failed (${isolate(err.message)}).`, `הסרת הקובץ נכשלה (${isolate(err.message)}).`);
     }
   }, [notify]);
 
@@ -127,7 +128,7 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
             <button type="button" onClick={() => setListOpen(false)} aria-label={pageText(locale, 'Close', 'סגירה')}><X size={13} /></button>
           </div>
           {list.state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Loading files', 'טוען קבצים')}</div> : null}
-          {list.state === 'error' ? <div className="asst-error-note">{pageText(locale, `Files could not be loaded (${list.error}).`, `לא ניתן לטעון את הקבצים (${list.error}).`)}</div> : null}
+          {list.state === 'error' ? <div className="asst-error-note">{pageText(locale, 'Files could not be loaded (', 'לא ניתן לטעון את הקבצים (')}<bdi dir="auto">{list.error}</bdi>{').'}</div> : null}
           {list.state === 'ready' && list.items.length === 0 ? <div className="asst-empty">{pageText(locale, 'No uploaded files. Attach an agreement to check it against the advertisers.', 'אין קבצים שהועלו. צרפו הסכם כדי לבדוק אותו מול המפרסמים.')}</div> : null}
           {list.state === 'ready' ? list.items.map((item, index) => {
             const id = uploadId(item);

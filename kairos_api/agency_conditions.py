@@ -16,7 +16,8 @@ project line limit). Two stores live here:
 
 Same store discipline as every sibling: module lock, timestamped backup, temp
 file plus ``os.replace``, snapshot-before-write into the version timeline
-(safe no-ops until the version store registers the new logical names).
+(safe no-ops until the version store registers the new logical names). A manual
+link also names its advertiser in the name space that sits beside these two.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from kairos.optimize.advertiser_rules import (
     _normalize_mode, normalize_scope,
 )
 from kairos.optimize.positions import normalize_position_scope
+from kairos_api.agency_conditions_identity import register_advertiser_name
 from kairos_api.condition_validation import (
     validate_effective_mode_value, validate_mode_value, validate_weekday_scope,
 )
@@ -324,7 +326,8 @@ def create_link(agency_id: str, payload: LinkCreate, request: Request = None) ->
         frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
         _snapshot(request, "agency_links")
         _write_csv(LINKS_PATH, frame, LINK_COLUMNS, "agency_advertisers")
-    return {"linked": advertiser, "agency_id": agency_id, "source": "manual"}
+    identity = register_advertiser_name(advertiser, store_path=LINKS_PATH)
+    return {"linked": advertiser, "agency_id": agency_id, "source": "manual", "identity": identity}
 
 
 @router.delete("/{agency_id}/advertisers/{advertiser}")

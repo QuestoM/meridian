@@ -116,5 +116,11 @@ export function settlementOf({ act, basis, before, after, beforeBreaks, afterBre
 export function inverseOf(settlement) {
   if (!settlement || settlement.act !== 'save') return null;
   const realised = settlement.realised && settlement.realised.revenue;
-  return Number.isFinite(realised) ? -realised : null;
+  if (!Number.isFinite(realised)) return null;
+  // Negated zero is negative zero, and the currency formatter prints it as
+  // -0 ILS. Measured on screen: a save that cost nothing offered an undo whose
+  // prediction read minus zero, which reads as a loss of an amount too small to
+  // show rather than as the nothing it is.
+  const inverse = -realised;
+  return inverse === 0 ? 0 : inverse;
 }

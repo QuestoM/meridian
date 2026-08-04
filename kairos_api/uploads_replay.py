@@ -31,6 +31,14 @@ same case, and the two on disk today are exactly it.
 
 The sweep runs over every string a read returns, authored or quoted, so a fifth
 way of carrying a name into one of these payloads is withheld and not printed.
+
+**The chip beside the sentence is rendered at the read for the same reason the
+sentence is.** A refusal about no column carries the place it IS about, and the
+door has not always sent one: the report on disk today carries the internal key
+``channels`` where a column name goes, so the dayparts card printed it as a bold
+Latin chip on a Hebrew screen before anything was clicked. A stored key that the
+door no longer writes is derived again from the finding's own code, which closes
+every report already on disk and not only the ones written after it.
 """
 
 from __future__ import annotations
@@ -40,7 +48,7 @@ from typing import Any
 from kairos.data.loaders import CHANNELS
 from kairos_api import uploads_channels, uploads_messages
 
-__all__ = ["boundary", "channel_fields", "channel_key", "rendered", "to_store"]
+__all__ = ["boundary", "channel_fields", "channel_key", "place", "rendered", "to_store"]
 
 # The facts of a report that are the file's own and carry no sentence at all.
 FACTS = ("dataset", "filename", "checked_at", "accepted", "is_valid", "rows_loaded")
@@ -48,6 +56,34 @@ FACTS = ("dataset", "filename", "checked_at", "accepted", "is_valid", "rows_load
 # The row numbers a finding names travel with it unrendered: they are positions
 # in the operator's own file, and no boundary applies to a number.
 ROWS = ("rows", "rows_total")
+
+# What a finding carries that is not a sentence and is not a number. ``scope``
+# is what a finding about no column is about, and it survives the round trip
+# because a stored report renders the same chip a live one does.
+KEPT = ("column", "scope", "code", "severity")
+
+# Where a refusal this destination raises is about, decided by its own code.
+# Every code here is about no column at all: the file, its header row, or the
+# table the loader parsed it into.
+#
+# **The place is rendered at the read, exactly as the sentence is.** Measured on
+# the shipped card before this: the stored report on disk carries
+# ``column: "channels"`` on the channel refusal, written before the door emptied
+# that key, and ``channels`` is a column no dayparts export has. The read
+# replayed it verbatim, so the dayparts card printed a bold Latin ``channels``
+# chip on a Hebrew screen on first load with nothing clicked, and the flat line
+# the assistant's read tool parses read ``[error] channels:``. Deriving the
+# place from the code closes it for every report already on disk rather than
+# only for the ones written next.
+PLACE: dict[str, str] = {
+    "unreadable_file": "file",
+    "empty_file": "file",
+    "too_large": "file",
+    "missing_columns": "header",
+    "no_recognized_channel_columns": "header",
+    "no_recognized_channel_columns_unset": "header",
+    "no_data_rows": "frame",
+}
 
 # The marker that says this record holds codes rather than sentences. A report
 # without it was written before this format and is quoted and swept instead.
@@ -97,6 +133,22 @@ def channel_fields(bound: dict[str, Any], owned: str) -> dict[str, Any]:
     return {"count": len(CHANNELS), "owned": owned, "found": found, "clause": clause}
 
 
+def place(finding: Any) -> tuple[str, str]:
+    """The column and the scope one finding prints, with its own code deciding.
+
+    A code in :data:`PLACE` is about no column, so the answer is that scope and
+    an empty column whatever an older store put in the key. Any other code keeps
+    exactly what was stored, which is what leaves a real column name, and the
+    frozen contracts' own violations, precisely as they were.
+    """
+    if not isinstance(finding, dict):
+        return "", ""
+    scope = PLACE.get(str(finding.get("code") or ""))
+    if scope:
+        return "", scope
+    return str(finding.get("column") or ""), str(finding.get("scope") or "")
+
+
 def to_store(payload: Any) -> Any:
     """The report as it goes to disk: codes, keys and measured fields.
 
@@ -132,7 +184,7 @@ def _to_store_finding(finding: Any) -> dict[str, Any]:
     """One finding, with its sentence replaced by what the sentence was made of."""
     if not isinstance(finding, dict):
         return {}
-    record = {key: finding.get(key) for key in ("column", "code", "severity") if key in finding}
+    record = {key: finding.get(key) for key in KEPT if key in finding}
     for key in ROWS:
         if key in finding:
             record[key] = finding[key]
@@ -154,10 +206,20 @@ def _to_store_finding(finding: Any) -> dict[str, Any]:
 
 
 def _rendered_finding(finding: Any, owned: str) -> dict[str, Any]:
-    """One finding as the two sentences a surface prints, both inside the boundary."""
+    """One finding as the two sentences a surface prints, both inside the boundary.
+
+    The chip beside those sentences is rendered here too, from the code, which
+    is what keeps a report stored under an older door printing the word this
+    door prints now instead of a key no file of that kind carries.
+    """
     if not isinstance(finding, dict):
         return {}
-    record = {key: finding.get(key) for key in ("column", "code", "severity") if key in finding}
+    record = {key: finding.get(key) for key in KEPT if key in finding}
+    record["column"], scope = place(finding)
+    if scope:
+        record["scope"] = scope
+    else:
+        record.pop("scope", None)
     if finding.get("boundary") is not None:
         english, hebrew = uploads_messages.say(channel_key(owned), **channel_fields(finding["boundary"], owned))
     elif finding.get("key"):
@@ -216,16 +278,13 @@ def _swept(lines: Any, owned: str) -> list[str]:
     ]
 
 
-def _line(finding: dict[str, Any]) -> str:
-    """One finding as the flat string every existing reader of this report parses."""
-    return f"[{finding.get('severity')}] {finding.get('column')}: {finding.get('code')} - {finding.get('message')}"
-
-
 def _flat(findings: list[dict[str, Any]], severity: str, owned: str) -> list[str]:
     """The findings of one severity, flattened, and swept once more.
 
-    The sweep runs on the assembled line and not only on the sentence inside it,
-    because a line also carries the column a violation is about, and a column of
-    a channel export is a channel name.
+    The line itself is :func:`uploads_messages.flat_finding`, which the live
+    payload is built with too, so the line a stored report prints and the line a
+    live one prints are the same line. The sweep runs on the assembled line and
+    not only on the sentence inside it, because a line also carries the column a
+    violation is about, and a column of a channel export is a channel name.
     """
-    return _swept([_line(finding) for finding in findings if finding.get("severity") == severity], owned)
+    return _swept([uploads_messages.flat_finding(finding) for finding in findings if finding.get("severity") == severity], owned)

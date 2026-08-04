@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
@@ -15,6 +15,42 @@ import { localized, refusalText, vocabularyLabel } from './clients-money-helpers
 // that already holds it. The result panel says which of the three happened.
 
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
+
+// The word for the object a refusal names. Two of the refusals this flow can
+// raise name a record that already exists and tell the reader to open it, and
+// both of them arrived as a sentence with no way to the thing they named. A kind
+// this surface cannot open has no word here and grows no control, so a refusal
+// never carries a button that goes nowhere.
+function openWord(kind, locale) {
+  if (kind === 'campaign') {
+    return pageText(locale, 'Open that campaign', 'פתחו את הקמפיין הזה');
+  }
+  if (kind === 'agency') {
+    return pageText(locale, 'Open that agency record', 'פתחו את כרטיס הסוכנות');
+  }
+  return '';
+}
+
+// One refusal, with the way to the object it names when the endpoint sent one.
+// It is its own component because a refusal is the one state of this flow that
+// cannot be reached by rendering the form, and a state that cannot be rendered
+// cannot be measured.
+export function RefusalNotice({ error, opens, locale, onOpen }) {
+  if (!error) {
+    return null;
+  }
+  const word = opens && onOpen ? openWord(opens.kind, locale) : '';
+  return (
+    <p className="clients-error" role="alert">
+      <span>{error}</span>
+      {word ? (
+        <button type="button" className="clients-retry" onClick={() => onOpen(opens)}>
+          {word}
+        </button>
+      ) : null}
+    </p>
+  );
+}
 
 function Field({ label, value, onChange, type = 'text', ltr = false, list, required = false, hint }) {
   return (
@@ -33,7 +69,7 @@ function Field({ label, value, onChange, type = 'text', ltr = false, list, requi
   );
 }
 
-export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) {
+export default function OnboardClientFlow({ locale, prefill, onClose, onDone, onOpenRefused }) {
   const he = locale === 'he';
   const [options, setOptions] = useState(null);
   const [agencyMode, setAgencyMode] = useState('existing');
@@ -56,6 +92,14 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
   const [discount, setDiscount] = useState({ percent: '', weekdays: ['6'], asAgencyRule: false });
   const [flights, setFlights] = useState([{ ...EMPTY_FLIGHT }]);
   const [state, setState] = useState({ status: 'idle', error: '', result: null });
+  // A choice the operator already made outranks the read. The options land after
+  // the panel is on screen, so applying the default on arrival overwrote it:
+  // measured, "a new agency" chosen at t+0 reverted to the first agency on the
+  // list when the read landed, and a submit after that revert booked the
+  // campaign under an agency nobody picked, with that agency's rebate. The two
+  // halves are tracked apart, because the agency id sitting behind a hidden
+  // select is not a choice anybody made and must still get its default.
+  const chosen = useRef({ mode: false, agency: false });
 
   useEffect(() => {
     let active = true;
@@ -66,8 +110,12 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
         const wanted = prefill && prefill.agencyId
           ? payload.agencies.find((entry) => entry.agency_id === prefill.agencyId)
           : null;
-        setAgencyId(wanted ? wanted.agency_id : (payload.agencies.length ? payload.agencies[0].agency_id : ''));
-        setAgencyMode(payload.agencies.length ? 'existing' : 'new');
+        if (!chosen.current.agency) {
+          setAgencyId(wanted ? wanted.agency_id : (payload.agencies.length ? payload.agencies[0].agency_id : ''));
+        }
+        if (!chosen.current.mode) {
+          setAgencyMode(payload.agencies.length ? 'existing' : 'new');
+        }
       })
       .catch(() => {
         if (!active) return;
@@ -75,6 +123,23 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
       });
     return () => { active = false; };
   }, [locale, prefill]);
+
+  // Every write to the agency block goes through one of these three, so making
+  // the choice is what records it and there is no flag to remember to set.
+  function chooseAgencyMode(mode) {
+    chosen.current.mode = true;
+    setAgencyMode(mode);
+  }
+
+  function chooseAgency(id) {
+    chosen.current.agency = true;
+    setAgencyId(id);
+  }
+
+  function editAgency(patch) {
+    chosen.current.mode = true;
+    setAgency((current) => ({ ...current, ...patch }));
+  }
 
   const weekdays = useMemo(() => (options && options.weekdays) || [], [options]);
   const goalKinds = useMemo(() => (options && options.goal_kinds) || ['spots'], [options]);
@@ -156,6 +221,13 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
           </li>
           <li>
             <Check size={13} aria-hidden="true" />
+            <strong>{pageText(locale, 'Client record', 'כרטיס הלקוח')}</strong>
+            <span>{(result.advertiser.identity || {}).outcome === 'registered'
+              ? pageText(locale, 'named as a client of this operator, so a rule can be written against its name', 'נרשם כלקוח של המפעיל, ולכן אפשר לכתוב כלל על שמו')
+              : pageText(locale, 'already a named client, so nothing was written', 'כבר לקוח בשם, ולכן לא נכתב דבר')}</span>
+          </li>
+          <li>
+            <Check size={13} aria-hidden="true" />
             <strong>{result.campaign.campaign_id}</strong>
             <span>{pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ⁦${result.flights.length}⁩ טיסות שידור`)}</span>
           </li>
@@ -195,18 +267,18 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
           <legend>{pageText(locale, 'Agency', 'סוכנות')}</legend>
           <div className="clients-radio-row">
             <label>
-              <input type="radio" checked={agencyMode === 'existing'} onChange={() => setAgencyMode('existing')} />
+              <input type="radio" checked={agencyMode === 'existing'} onChange={() => chooseAgencyMode('existing')} />
               {pageText(locale, 'An agency we already work with', 'סוכנות שאנחנו כבר עובדים איתה')}
             </label>
             <label>
-              <input type="radio" checked={agencyMode === 'new'} onChange={() => setAgencyMode('new')} />
+              <input type="radio" checked={agencyMode === 'new'} onChange={() => chooseAgencyMode('new')} />
               {pageText(locale, 'A new agency', 'סוכנות חדשה')}
             </label>
           </div>
           {agencyMode === 'existing' ? (
             <label className="clients-field">
               <span>{pageText(locale, 'Agency', 'סוכנות')}</span>
-              <select value={agencyId} onChange={(event) => setAgencyId(event.target.value)}>
+              <select value={agencyId} onChange={(event) => chooseAgency(event.target.value)}>
                 {(options ? options.agencies : []).map((entry) => (
                   <option key={entry.agency_id} value={entry.agency_id}>
                     {`${entry.name} (${entry.agency_id}), ${entry.rebate_percent}%`}
@@ -217,23 +289,23 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone }) 
           ) : (
             <>
             <div className="clients-field-grid">
-              <Field label={pageText(locale, 'Agency name', 'שם הסוכנות')} value={agency.name} onChange={(value) => setAgency({ ...agency, name: value })} required hint={pageText(locale, 'exactly as the daily file spells it', 'בדיוק כפי שהקובץ היומי מאיית')} />
+              <Field label={pageText(locale, 'Agency name', 'שם הסוכנות')} value={agency.name} onChange={(value) => editAgency({ name: value })} required hint={pageText(locale, 'exactly as the daily file spells it', 'בדיוק כפי שהקובץ היומי מאיית')} />
               <label className="clients-field">
                 <span>{pageText(locale, 'Agency type', 'סוג הסוכנות')}</span>
-                <select value={agency.agency_type} onChange={(event) => setAgency({ ...agency, agency_type: event.target.value })}>
+                <select value={agency.agency_type} onChange={(event) => editAgency({ agency_type: event.target.value })}>
                   <option value="">{pageText(locale, 'Not stated', 'לא צוין')}</option>
                   {(options ? options.agency_types : []).map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </label>
-              <Field label={pageText(locale, 'Rebate percent', 'אחוז רבייט')} value={agency.rebate_percent} onChange={(value) => setAgency({ ...agency, rebate_percent: value })} type="number" ltr />
-              <Field label={pageText(locale, 'Commission percent', 'אחוז עמלה')} value={agency.commission_percent} onChange={(value) => setAgency({ ...agency, commission_percent: value })} type="number" ltr />
-              <Field label={pageText(locale, 'Payment terms in days', 'תנאי תשלום בימים')} value={agency.payment_terms_days} onChange={(value) => setAgency({ ...agency, payment_terms_days: value })} type="number" ltr />
-              <Field label={pageText(locale, 'Credit limit in shekels', 'מסגרת אשראי בשקלים')} value={agency.credit_limit_ils} onChange={(value) => setAgency({ ...agency, credit_limit_ils: value })} type="number" ltr />
-              <Field label={pageText(locale, 'Contact name', 'שם איש קשר')} value={agency.contact_name} onChange={(value) => setAgency({ ...agency, contact_name: value })} />
-              <Field label={pageText(locale, 'Contact role', 'תפקיד איש הקשר')} value={agency.contact_role} onChange={(value) => setAgency({ ...agency, contact_role: value })} />
-              <Field label={pageText(locale, 'Contact phone', 'טלפון איש קשר')} value={agency.contact_phone} onChange={(value) => setAgency({ ...agency, contact_phone: value })} ltr />
-              <Field label={pageText(locale, 'Contact email', 'דוא״ל איש קשר')} value={agency.contact_email} onChange={(value) => setAgency({ ...agency, contact_email: value })} ltr />
-              <Field label={pageText(locale, 'VAT id', 'ח״פ / עוסק')} value={agency.vat_id} onChange={(value) => setAgency({ ...agency, vat_id: value })} ltr />
+              <Field label={pageText(locale, 'Rebate percent', 'אחוז רבייט')} value={agency.rebate_percent} onChange={(value) => editAgency({ rebate_percent: value })} type="number" ltr />
+              <Field label={pageText(locale, 'Commission percent', 'אחוז עמלה')} value={agency.commission_percent} onChange={(value) => editAgency({ commission_percent: value })} type="number" ltr />
+              <Field label={pageText(locale, 'Payment terms in days', 'תנאי תשלום בימים')} value={agency.payment_terms_days} onChange={(value) => editAgency({ payment_terms_days: value })} type="number" ltr />
+              <Field label={pageText(locale, 'Credit limit in shekels', 'מסגרת אשראי בשקלים')} value={agency.credit_limit_ils} onChange={(value) => editAgency({ credit_limit_ils: value })} type="number" ltr />
+              <Field label={pageText(locale, 'Contact name', 'שם איש קשר')} value={agency.contact_name} onChange={(value) => editAgency({ contact_name: value })} />
+              <Field label={pageText(locale, 'Contact role', 'תפקיד איש הקשר')} value={agency.contact_role} onChange={(value) => editAgency({ contact_role: value })} />
+              <Field label={pageText(locale, 'Contact phone', 'טלפון איש קשר')} value={agency.contact_phone} onChange={(value) => editAgency({ contact_phone: value })} ltr />
+              <Field label={pageText(locale, 'Contact email', 'דוא״ל איש קשר')} value={agency.contact_email} onChange={(value) => editAgency({ contact_email: value })} ltr />
+              <Field label={pageText(locale, 'VAT id', 'ח״פ / עוסק')} value={agency.vat_id} onChange={(value) => editAgency({ vat_id: value })} ltr />
             </div>
             <p className="clients-basis-note">
               {pageText(

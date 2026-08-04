@@ -1,6 +1,6 @@
 import React from 'react';
 import { Numeric } from '../../shell/format';
-import { Absent, Figure, Panel, Stat } from './console-bits';
+import { Absent, Earliest, Figure, Panel, Stat } from './console-bits';
 import { pick, t } from './console-words';
 
 // How much contrast the data carries, and the register of what is blocked on
@@ -8,6 +8,29 @@ import { pick, t } from './console-words';
 // product today: per blocked factor, the condition that would end the block and
 // the first date on which it could, computed from the checked-in calendar and
 // the operator's own event store rather than estimated.
+//
+// The register is also the one screen on this surface that used to end in prose.
+// Measured on the shipped console: every other section carried between one and
+// twenty-one controls and this one carried none, while the payload behind it
+// already named the thing that ends each block, the date range it runs over, and
+// the store two of the five rows are waiting on. Section 3.6 makes each of those
+// a control or a stated tri-state, which is what the three parts below do.
+
+// Which store a blocked row's source names, and therefore who can end the block.
+//
+// The source is a real address, so it is classified rather than printed. The
+// operator's own event store is a page in this product and gets the control that
+// opens it; a file checked in with the product cannot be supplied by anybody, so
+// the honest answer is that only time ends that block and the screen says so. A
+// source this table does not know reads unknown rather than guessing, and a test
+// asserts the live register carries no unknown, so a new source is a red test
+// rather than a silent shrug on screen.
+const SUPPLY = {
+  'data/calendar_events.csv': 'store',
+  'kairos/config/israel_calendar.csv': 'time',
+  'kairos/data/israel_calendar.py season bands': 'time',
+  'the training window itself': 'time',
+};
 
 function Window({ window: block, locale }) {
   if (!block || !block.available) {
@@ -49,10 +72,28 @@ function RetentionContrast({ block, locale }) {
           value={<Numeric>{`${block.per_cell_min} / ${block.per_cell_median} / ${block.per_cell_max}`}</Numeric>}
           sub={`${block.cells_under_ten} ${locale === 'en' ? 'cells under ten' : 'תאים מתחת לעשר'}`}
         />
+        {/*
+          The two variances the ratio above is made of, at the precision the
+          rest of the surface prints. They shipped raw: seventeen significant
+          digits of float, on the one line of this panel that did not go through
+          the console's own number bit, beside a ratio that was rounded.
+        */}
         <Stat
           label={t('coverage.ratio', locale)}
           value={<Figure value={block.contrast_ratio} unit="ratio" digits={6} />}
-          sub={<span dir="ltr"><Numeric>{`tau^2 ${block.between_cell_variance_tau2} / ${block.pooled_within_variance}`}</Numeric></span>}
+          sub={(
+            <span className="mc-variances">
+              <span dir="ltr"><Numeric>tau^2</Numeric></span>
+              {' '}
+              <Figure value={block.between_cell_variance_tau2} unit="ratio" digits={6} />
+              {' '}
+              <span dir="ltr">/</span>
+              {' '}
+              <Figure value={block.pooled_within_variance} unit="ratio" digits={6} />
+              {' '}
+              <span>{t('coverage.between_within', locale)}</span>
+            </span>
+          )}
         />
       </div>
       <p className="mc-note">{pick(block, 'note', locale)}</p>
@@ -90,7 +131,69 @@ function AudienceContrast({ block, locale }) {
   );
 }
 
-function BlockedRegister({ rows, locale }) {
+// What was counted to reach the verdict on this row, in words.
+//
+// The register shipped these as the raw keys the payload carries them under, so
+// the screen read "days_in_window: 30 event_free_days_in_window: 0". A key with
+// an underscore in it is the inside of the program on the outside of it. A key
+// this file has no word for keeps its raw name rather than being dropped,
+// because a raw key is a defect somebody fixes and a missing count is one
+// nobody can see.
+function Counted({ evidence, locale }) {
+  const rows = Object.entries(evidence || {})
+    .filter(([, value]) => value !== null && value !== undefined);
+  if (rows.length === 0) return null;
+  return (
+    <p className="mc-blocked-evidence">
+      <span className="mc-blocked-label">{t('coverage.counted', locale)}</span>
+      {' '}
+      {/*
+        The word first and the figure after it. Hebrew agrees in number, so a
+        count rendered figure-first reads "1 עונות" whenever the count is one,
+        which the register does carry. Read as a label and its value, both
+        languages agree at every count.
+      */}
+      {rows.map(([key, value], index) => (
+        <React.Fragment key={key}>
+          {index ? ' ' : null}
+          <span className="mc-blocked-count">
+            {t(`coverage.evidence.${key}`, locale) || <code dir="ltr">{key}</code>}
+            {' '}
+            <Numeric>{Number.isFinite(Number(value)) ? Number(value).toLocaleString('en-US') : String(value)}</Numeric>
+          </span>
+        </React.Fragment>
+      ))}
+    </p>
+  );
+}
+
+// The source, as the thing it is: an address somebody can open, or a file that
+// arrives with the product, which nobody supplies and only more history ends.
+// The path stays on screen either way, because it is what a steward checks the
+// console against. What changes is whether it is the control that opens it.
+function Supply({ row, locale, onOpenEvents }) {
+  const supply = SUPPLY[row.source] || 'unknown';
+  const openable = supply === 'store' && Boolean(onOpenEvents);
+  return (
+    <p className={`mc-blocked-source mc-supply-${supply}`}>
+      <span className="mc-blocked-label">{t('coverage.supply', locale)}</span>
+      {' '}
+      {openable ? (
+        <button type="button" className="mc-link mc-blocked-open" onClick={onOpenEvents}>
+          {t('coverage.supply_store_open', locale)}
+          {' '}
+          <code dir="ltr">{row.source}</code>
+        </button>
+      ) : (
+        <code dir="ltr">{row.source}</code>
+      )}
+      {' '}
+      <span className="mc-blocked-supply">{t(`coverage.supply_${supply}`, locale)}</span>
+    </p>
+  );
+}
+
+function BlockedRegister({ rows, locale, onOpenEvents }) {
   if (!rows || rows.length === 0) {
     return (
       <Panel title={t('coverage.blocked', locale)}>
@@ -109,7 +212,7 @@ function BlockedRegister({ rows, locale }) {
               <strong>{locale === 'en' ? row.label_en : row.label_he}</strong>
               {row.earliest_state === 'dated' ? (
                 <span className="mc-blocked-date">
-                  {t('coverage.earliest', locale)} <span dir="ltr"><Numeric>{row.earliest.start}</Numeric></span>
+                  <Earliest earliest={row.earliest} locale={locale} />
                 </span>
               ) : (
                 <span className="mc-blocked-date mc-unknown">{t('coverage.earliest_unknown', locale)}</span>
@@ -119,17 +222,8 @@ function BlockedRegister({ rows, locale }) {
               <span className="mc-blocked-label">{t('coverage.condition', locale)}</span>
               {pick(row, 'condition', locale)}
             </p>
-            {Object.keys(row.evidence || {}).length ? (
-              <p className="mc-blocked-evidence" dir="ltr">
-                {Object.entries(row.evidence)
-                  .filter(([, value]) => value !== null && value !== undefined)
-                  .map(([key, value]) => `${key}: ${value}`)
-                  .join('   ')}
-              </p>
-            ) : null}
-            <p className="mc-blocked-source">
-              {t('coverage.from', locale)} <code dir="ltr">{row.source}</code>
-            </p>
+            <Counted evidence={row.evidence} locale={locale} />
+            <Supply row={row} locale={locale} onOpenEvents={onOpenEvents} />
           </li>
         ))}
       </ul>
@@ -137,13 +231,13 @@ function BlockedRegister({ rows, locale }) {
   );
 }
 
-export default function CoveragePanel({ payload, locale }) {
+export default function CoveragePanel({ payload, locale, onOpenEvents }) {
   return (
     <>
       <Window window={payload.window} locale={locale} />
       <RetentionContrast block={payload.retention} locale={locale} />
       <AudienceContrast block={payload.audience} locale={locale} />
-      <BlockedRegister rows={payload.blocked} locale={locale} />
+      <BlockedRegister rows={payload.blocked} locale={locale} onOpenEvents={onOpenEvents} />
     </>
   );
 }

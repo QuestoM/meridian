@@ -39,10 +39,12 @@ from kairos_api import channel_scope, version_store
 from kairos_api.history_api_actions import (  # noqa: F401 - the classifier's public surface
     ARTIFACT_ROOTS,
     KINDS,
+    OUTCOMES,
     PREVIEW_ACTIONS,
     action_for,
     artifact_root,
     kind_for,
+    outcome_for,
 )
 
 # The sign-in events the recorder writes beside the requests. They are the only
@@ -223,6 +225,10 @@ def activity_entries(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
                 "method": record.get("method"),
                 "path": path,
                 "status": record.get("status"),
+                # What that status means, decided once here rather than by every
+                # surface that reads a number. Without it each reader has to know
+                # that a 403 on a save is not a save, and none of them did.
+                "outcome": outcome_for(record.get("status")),
                 "duration_ms": record.get("duration_ms"),
                 "role": record.get("role") or "",
             },
@@ -305,6 +311,25 @@ def counts(entries: Iterable[dict[str, Any]]) -> dict[str, int]:
         kind = str(entry.get("kind"))
         if kind in tally:
             tally[kind] += 1
+    return tally
+
+
+def outcome_counts(entries: Iterable[dict[str, Any]]) -> dict[str, int]:
+    """How many of the recorded changes landed, and how many were refused.
+
+    Taken over the ``change`` kind alone, which is exactly the set the Change
+    filter shows and the set the attestation counts. A refused write stays on
+    the timeline because somebody attempted it and that is worth reading; this
+    tally is what keeps the figure beside the filter from being read as a count
+    of things that changed.
+    """
+    tally = {outcome: 0 for outcome in OUTCOMES}
+    for entry in entries:
+        if entry.get("kind") != "change":
+            continue
+        outcome = str((entry.get("facts") or {}).get("outcome") or "")
+        if outcome in tally:
+            tally[outcome] += 1
     return tally
 
 

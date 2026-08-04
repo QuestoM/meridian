@@ -138,7 +138,12 @@ def test_the_card_prints_the_basis_above_the_first_figure() -> None:
 
 def test_the_basis_line_is_hebrew_and_says_representative_day_not_week() -> None:
     source = (KAI / "AssistantEffectView.jsx").read_text(encoding="utf-8")
-    assert "הסימולציה רצה על יום-ערוץ מייצג אחד (${channel}, ${day}), לא על הסך השבועי." in source
+    # The sentence is composed, not interpolated: the channel and the day each
+    # carry their own isolate, or the English reading welds the date into the
+    # name. Measured in a browser and asserted in tests/test_p9_kai_bidi.py.
+    assert "lead: 'הסימולציה רצה על יום-ערוץ מייצג אחד ('," in source
+    assert "tail: '), לא על הסך השבועי.'," in source
+    assert "${channel}" not in source and "${day}" not in source
     # And an item stored before the basis existed says which part is missing and
     # how to get it, instead of printing a channel and a date nobody recorded.
     assert "if (!channel || !day)" in source

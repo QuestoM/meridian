@@ -286,3 +286,42 @@ def airing_records(airings: Sequence[Airing], limit: int = 200) -> list[dict[str
             "planned_breaks": airing.planned_breaks,
         })
     return out
+
+
+def night_records(airings: Sequence[Airing]) -> list[dict[str, Any]]:
+    """One record per broadcast night, which is the unit a restriction can name.
+
+    The composer's night chip compiles to ``date is <day>``, so two airings on
+    one night are one choice and not two, and a list of airings offers a person
+    fewer nights than it appears to. Measured on the reference plan for
+    ``משחקי השף עונה 7 ש.ח``: 43 airings on 19 distinct nights, and the first
+    twelve airings cover only 6 of them.
+
+    Never truncated, deliberately, and it is the reason this exists beside
+    :func:`airing_records` rather than inside it. That one caps at 200 records
+    because an airing list is a detail view; a night list is the control a
+    person clicks, so the count a surface prints beside it has to be the count
+    it can actually offer. The cap is a broadcast month either way: the busiest
+    title on the reference channel is 1,551 airings on 5 nights, and the widest
+    is 98 airings on 29.
+
+    ``planned_breaks`` is the night's own total and is null rather than nought
+    when no airing on it carries a plan, with the unplanned airings counted
+    beside it, so an unknown never reads as a zero.
+    """
+    buckets: dict[str, list[Airing]] = {}
+    for airing in airings:
+        buckets.setdefault(str(airing.day), []).append(airing)
+    out: list[dict[str, Any]] = []
+    for day in sorted(buckets):
+        group = buckets[day]
+        known = [item.planned_breaks for item in group if item.planned_breaks is not None]
+        out.append({
+            "day": day,
+            "airings": len(group),
+            "planned_breaks": sum(known) if known else None,
+            "airings_without_a_plan": len(group) - len(known),
+            "first_start_seconds": min(item.start_seconds for item in group),
+            "duration_seconds": sum(item.duration_seconds for item in group),
+        })
+    return out

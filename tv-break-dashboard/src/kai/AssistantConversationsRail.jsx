@@ -97,7 +97,11 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
                 )}
                 {deletingId === id ? (
                   <div className="asst-conv-confirm" role="alertdialog">
-                    <p dir="auto">{count === 1 ? pageText(locale, `Delete the conversation "${title}" and the one question saved in it?`, `למחוק את השיחה "${title}" ואת השאלה האחת השמורה בה?`) : pageText(locale, `Delete the conversation "${title}" and the ${count} questions saved in it?`, `למחוק את השיחה "${title}" ואת ${count} השאלות השמורות בה?`)}</p>
+                    <p dir="auto">
+                      {pageText(locale, 'Delete the conversation ', 'למחוק את השיחה ')}
+                      <bdi dir="auto">{`"${title}"`}</bdi>
+                      {count === 1 ? pageText(locale, ' and the one question saved in it?', ' ואת השאלה האחת השמורה בה?') : pageText(locale, ` and the ${count} questions saved in it?`, ` ואת ${count} השאלות השמורות בה?`)}
+                    </p>
                     <p dir="auto">{pageText(locale, 'Applied changes and restore points are kept.', 'שינויים שהוחלו ונקודות שחזור נשמרים.')}</p>
                     <div className="asst-confirm-actions">
                       <Button variant="contained" size="small" color="error" disabled={busy} onClick={async () => { setDeletingId(null); await conv.remove(id); }}>

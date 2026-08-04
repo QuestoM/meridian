@@ -23,7 +23,9 @@ import {
   NO_DRILL,
   RECORD_PARAM,
   VIEW_PARAM,
+  agencyIdsByName,
   agencyIndex,
+  campaignIdsByName,
   flattenClients,
   initialView,
   ledgerCampaignKeys,
@@ -34,6 +36,7 @@ import {
   writeParams,
 } from './clients-money-helpers';
 import './clients-workspace.css';
+import './clients-tree.css';
 import './clients-record.css';
 import './clients-rule-card.css';
 
@@ -85,6 +88,9 @@ export default function ClientsWorkspace({
   // The same device for the agency records tab, so the agency named on a client
   // record opens as that record rather than as a grid to search again.
   const [openAgencyId, setOpenAgencyId] = useState('');
+  // And for the campaign board, so a figure headed by a campaign name opens the
+  // booking that carries it instead of naming it.
+  const [openCampaignId, setOpenCampaignId] = useState('');
   // An array of section names that failed to load, or an empty array when all
   // loaded. Null while the initial fetch is still in flight.
   const [failed, setFailed] = useState(null);
@@ -155,6 +161,12 @@ export default function ClientsWorkspace({
   // The campaign board stores an agency id and the tree holds the name for it,
   // so the name is resolved once here rather than printed as a key on a row.
   const agencies = useMemo(() => agencyIndex(tree), [tree]);
+  // The two indexes the money board's head needs, because the ledger knows an
+  // agency and a campaign by the name in the daily file while both records are
+  // keyed by an id. They are built here, once, from the reads this surface
+  // already holds, and a name that resolves to nothing simply is not in them.
+  const agencyIds = useMemo(() => agencyIdsByName(tree), [tree]);
+  const campaignIds = useMemo(() => campaignIdsByName(board), [board]);
   // Which campaign names the ledger holds a row for, so a record only offers to
   // open the ones that really open something.
   const ledgerCampaigns = useMemo(() => ledgerCampaignKeys(money), [money]);
@@ -199,6 +211,28 @@ export default function ClientsWorkspace({
   function openAgencyRecord(agencyId) {
     setOpenAgencyId(agencyId);
     setActive('agencies');
+  }
+
+  // The booked campaign behind a name, opened on the board that holds its terms
+  // and its flights. The board is told which row to open the same way the two
+  // record panels are, so the reader lands on one campaign rather than on the
+  // whole list to search again.
+  function openCampaignRecord(campaignId) {
+    setOpenCampaignId(campaignId);
+    setActive('campaigns');
+  }
+
+  // A refusal that names an object hands over that object's address, so the
+  // control beside the sentence goes to the thing the sentence names. The flow
+  // closes first, because what it names is behind it.
+  function openRefused(target) {
+    setOnboarding(null);
+    if (target.kind === 'agency') {
+      openAgencyRecord(target.id);
+    }
+    if (target.kind === 'campaign') {
+      openCampaignRecord(target.id);
+    }
   }
 
   async function refreshRules() {
@@ -326,6 +360,12 @@ export default function ClientsWorkspace({
               drill={drill}
               onDrill={setDrill}
               onOpenClient={setOpenClient}
+              openers={{
+                agencyIds,
+                campaignIds,
+                onOpenAgency: openAgencyRecord,
+                onOpenCampaignRecord: openCampaignRecord,
+              }}
             />
           ) : null}
           {active === 'campaigns' ? (
@@ -336,8 +376,11 @@ export default function ClientsWorkspace({
                 notify={notify}
                 gate={gate}
                 agencies={agencies}
+                openCampaignId={openCampaignId}
+                onOpened={() => setOpenCampaignId('')}
                 onOnboard={() => setOnboarding({})}
                 onOpenClient={setOpenClient}
+                onOpenAgency={openAgencyRecord}
                 onReload={reload}
               />
               <CampaignRollupPanel campaigns={campaigns} locale={locale} refreshKey={refreshKey} />
@@ -396,6 +439,7 @@ export default function ClientsWorkspace({
           <OnboardClientFlow
             locale={locale}
             prefill={onboarding}
+            onOpenRefused={openRefused}
             onClose={() => setOnboarding(null)}
             onDone={(advertiser) => {
               setOnboarding(null);

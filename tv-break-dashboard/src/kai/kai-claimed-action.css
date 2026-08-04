@@ -1,0 +1,15 @@
+/* The notice printed under an answer that says a proposal is pending when the
+   payload recorded none. It lives beside kai-claimed-action.js rather than in
+   assistant-console.css, which is at the 450-line cap: split, never compress.
+   Tokens only, all of them already defined in tokens.css. */
+.asst-unrecorded { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); max-width: 94%; margin: 0; font-size: var(--text-sm); color: var(--amber-ink); background: var(--amber-soft); border: 1px solid var(--amber); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+.asst-unrecorded button { border: 1px solid var(--amber); border-radius: var(--radius-pill); background: var(--surface); color: var(--amber-ink); font-size: var(--text-xs); padding: var(--space-1) var(--space-3); cursor: pointer; }
+.asst-unrecorded button:hover { color: var(--ink); border-color: var(--ink); }
+
+/* What the model wrote, kept below the honest sentence rather than printed as
+   the answer. The rule is logical, not left or right, so the quote bar sits on
+   the reading edge in Hebrew and in English without a second rule. */
+.asst-retracted { max-width: 94%; margin: 0; padding: var(--space-2) var(--space-3); border-inline-start: 2px solid var(--line-strong); background: var(--surface-muted); border-radius: var(--radius-sm); color: var(--muted); font-size: var(--text-sm); }
+.asst-retracted-label { display: block; margin-bottom: var(--space-1); font-size: var(--text-xs); color: var(--subtle); }
+.asst-retracted .asst-para { margin: 0 0 var(--space-1); }
+.asst-struck { text-decoration: line-through; text-decoration-color: var(--red); color: var(--subtle); }

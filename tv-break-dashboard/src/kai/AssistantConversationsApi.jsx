@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE } from '../shell/surface-helpers';
+import { isolate } from './kai-bidi';
 
 // Transport and shared state for the assistant conversations feature: the
 // conversation index CRUD, the per-conversation changes and restore calls, a
@@ -168,7 +169,7 @@ export function useConversations(notify) {
       }
       await refreshList();
     } catch (error) {
-      if (notify) notify(`Creating a conversation failed (${error.message}).`, `יצירת שיחה נכשלה (${error.message}).`);
+      if (notify) notify(`Creating a conversation failed (${isolate(error.message)}).`, `יצירת שיחה נכשלה (${isolate(error.message)}).`);
     } finally {
       setBusy(false);
     }
@@ -181,7 +182,7 @@ export function useConversations(notify) {
       await apiRequest(`/api/assistant/conversations/${encodeURIComponent(id)}`, jsonOptions('PATCH', { title }));
       await refreshList();
     } catch (error) {
-      if (notify) notify(`Renaming the conversation failed (${error.message}).`, `שינוי שם השיחה נכשל (${error.message}).`);
+      if (notify) notify(`Renaming the conversation failed (${isolate(error.message)}).`, `שינוי שם השיחה נכשל (${isolate(error.message)}).`);
     } finally {
       setBusy(false);
     }
@@ -192,15 +193,15 @@ export function useConversations(notify) {
     setBusy(true);
     try {
       const body = await apiRequest(`/api/assistant/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      const removed = Number(body && body.entries_removed) || 0;
-      if (notify) notify(removed === 1 ? 'The conversation was deleted along with its one saved question.' : `The conversation was deleted along with its ${removed} saved questions.`, removed === 1 ? 'השיחה נמחקה יחד עם השאלה האחת שנשמרה בה.' : `השיחה נמחקה יחד עם ${removed} השאלות שנשמרו בה.`);
+      const removedCount = Number(body && body.entries_removed) || 0;
+      if (notify) notify(removedCount === 1 ? 'The conversation was deleted along with its one saved question.' : `The conversation was deleted along with its ${removedCount} saved questions.`, removedCount === 1 ? 'השיחה נמחקה יחד עם השאלה האחת שנשמרה בה.' : `השיחה נמחקה יחד עם ${removedCount} השאלות שנשמרו בה.`);
       const rows = await refreshList();
       if (activeId === id) {
         setActiveId(rows && rows.length ? String(rows[0].id) : null);
         setLoadNonce((nonce) => nonce + 1);
       }
     } catch (error) {
-      if (notify) notify(`Deleting the conversation failed (${error.message}).`, `מחיקת השיחה נכשלה (${error.message}).`);
+      if (notify) notify(`Deleting the conversation failed (${isolate(error.message)}).`, `מחיקת השיחה נכשלה (${isolate(error.message)}).`);
     } finally {
       setBusy(false);
     }

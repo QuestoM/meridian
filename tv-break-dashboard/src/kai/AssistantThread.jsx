@@ -2,6 +2,8 @@ import React from 'react';
 import { pageText } from '../shell/surface-helpers';
 import { sourceLabel, stepLabel } from './AssistantRunTrace';
 import { inApprovedWords } from './kai-vocabulary';
+import { claimSegments } from './kai-claimed-action';
+import './kai-claimed-action.css';
 
 // Companion pieces for the assistant chat column: the single-exchange renderer
 // and the paragraph-level text renderer. Both have honest empty and error
@@ -38,6 +40,31 @@ export function ModelText({ text, className }) {
   return <RichText className={className} text={inApprovedWords(text)} />;
 }
 
+// The model's own words when the payload contradicts them. Nothing is deleted:
+// the sentences that claim a proposal nobody can approve are struck through and
+// the rest stays readable, because an answer that lied in one line usually
+// carries real figures in the next and the operator still needs those.
+function RetractedText({ text, locale }) {
+  return (
+    <blockquote className="asst-retracted">
+      <span className="asst-retracted-label" dir="auto">
+        {pageText(locale, 'What Kai wrote, with the unbacked part struck out', 'מה שקאי כתב, כשהחלק שאינו נתמך מסומן במחיקה')}
+      </span>
+      {inApprovedWords(text).split('\n').map((line, index) => (
+        line.trim() ? (
+          <p className="asst-para" dir="auto" key={index}>
+            {claimSegments(line).map((segment, part) => (
+              segment.claim
+                ? <del className="asst-struck" key={part}>{segment.text}</del>
+                : <span key={part}>{segment.text}</span>
+            ))}
+          </p>
+        ) : <div className="asst-para-gap" key={index} aria-hidden="true" />
+      ))}
+    </blockquote>
+  );
+}
+
 function timeLabel(iso, locale) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
@@ -46,13 +73,28 @@ function timeLabel(iso, locale) {
 
 // One question-and-answer exchange in the live thread, including the quiet
 // grounding disclosure, the run trace with per-tool sources, and the time.
-export function AssistantExchange({ entry, locale, proposalCard }) {
+export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
   const sources = Array.isArray(entry.sources) ? entry.sources : [];
   const toolTrace = Array.isArray(entry.toolTrace) ? entry.toolTrace : [];
   return (
     <article className="asst-exchange">
       <RichText className="asst-q" text={entry.question} />
-      {entry.answer ? <ModelText className="asst-a" text={entry.answer} /> : null}
+      {/* The answer said a proposal is waiting for approval and the payload
+          recorded none (kai-claimed-action.js). The honest sentence REPLACES the
+          claim as the answer rather than following it: a critic measured the
+          operator reading a confident paragraph with the correction under it and
+          having to trust the smaller of two contradictory statements. What the
+          model wrote is kept below, quoted and struck, so nothing is hidden. */}
+      {entry.answer && !entry.unrecordedClaim ? <ModelText className="asst-a" text={entry.answer} /> : null}
+      {entry.unrecordedClaim ? (
+        <p className="asst-unrecorded">
+          <span dir="auto">{pageText(locale, 'No proposal was recorded for this answer, so there is nothing here to approve.', 'לא נרשמה הצעה לתשובה הזו, ולכן אין כאן מה לאשר.')}</span>
+          {onAskAgain ? (
+            <button type="button" onClick={onAskAgain}>{pageText(locale, 'Ask again', 'שאלו שוב')}</button>
+          ) : <span dir="auto">{pageText(locale, 'Ask again to have the change recorded.', 'אפשר לשאול שוב כדי שהשינוי יירשם.')}</span>}
+        </p>
+      ) : null}
+      {entry.answer && entry.unrecordedClaim ? <RetractedText text={entry.answer} locale={locale} /> : null}
       {entry.answerWithheld ? (
         <p className="asst-truncated" dir="auto">{pageText(locale, 'This question came back as a tool call rather than as an answer, so there is nothing to read here. Ask it again.', 'השאלה הזו חזרה כקריאה לכלי ולא כתשובה, ולכן אין כאן מה לקרוא. אפשר לשאול אותה שוב.')}</p>
       ) : null}

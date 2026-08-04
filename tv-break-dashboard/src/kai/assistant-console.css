@@ -212,6 +212,7 @@
    both sides were optimized on. It sits under the header and above the first
    figure, so it is read before the number it qualifies. */
 .asst-effect-basis { margin: 0 0 2px; font-size: var(--text-2xs); color: var(--muted); line-height: 1.5; }
+.asst-effect-basis bdi { white-space: nowrap; } /* measured in a 420 px dock: the line broke inside the channel name, printing רשת and 13 on different lines */
 /* An item stored before the basis was carried says so in this product's own
    honest-unavailable language, the single inline-start amber edge, and never in
    fainter grey. Measured: --subtle on this surface is 4.61:1 against the card
@@ -337,7 +338,8 @@
 .asst-pdiff-head { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ink); }
 .asst-pdiff-new { display: inline-flex; align-items: center; padding: 2px var(--space-2); border-radius: var(--radius-pill); border: 1px solid var(--teal); background: var(--teal-soft); color: var(--teal-ink); font-size: var(--text-2xs); font-weight: var(--weight-semibold); }
 .asst-pdiff-grid { display: flex; flex-direction: column; gap: 2px; }
-.asst-pdiff-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); font-size: var(--text-xs); }
+/* Field names are long and values short: 1.1fr measured 98 px in a 420 px dock and broke a 108 px name mid-word; 1.5fr is 118 px. See kai-field-name.jsx. */
+.asst-pdiff-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); font-size: var(--text-xs); }
 .asst-pdiff-row.head { color: var(--subtle); font-size: var(--text-2xs); font-weight: var(--weight-semibold); }
 .asst-pdiff-field { unicode-bidi: isolate; color: var(--muted); overflow-wrap: anywhere; }
 .asst-pdiff-before, .asst-pdiff-after { unicode-bidi: isolate; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

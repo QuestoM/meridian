@@ -13,6 +13,7 @@ import {
 } from './sources-copy';
 import { checkFile, uploadFile } from './sources-api';
 import { fieldLabel } from './sources-fields';
+import { acceptedVerdict, findingMessage, visibleFindings } from './sources-findings';
 import SourceChecks from './SourceChecks';
 
 function formatSize(bytes, locale) {
@@ -63,28 +64,24 @@ function FindingRows({ finding, locale }) {
   );
 }
 
-// The reason, in the language the rest of the card is in. The server writes
-// every sentence it authors itself in both, and sends the contract's own
-// English detail alone for the violations the frozen contracts raised, whose
-// counts and column names only that code can compute. So Hebrew falls back to
-// the English sentence rather than to a blank line, and never the other way.
-function findingMessage(finding, locale) {
-  if (locale === 'he') return finding.message_he || finding.message;
-  return finding.message;
-}
-
-function Findings({ findings, locale }) {
-  if (!Array.isArray(findings) || findings.length === 0) return null;
+// The rows of a refusal. What each one prints, and whether it prints at all, is
+// decided in sources-findings.js: the chip is a column name or the word for
+// what the finding is about, never the internal token that used to reach the
+// screen, and a finding that only restates the sentence printed above it does
+// not print it a second time. `printed` is that sentence.
+function Findings({ findings, locale, printed }) {
+  const lines = visibleFindings(findings, locale, printed);
+  if (lines.length === 0) return null;
   return (
     <ul className="source-findings">
-      {findings.map((finding, index) => (
-        <li key={`${finding.code}-${index}`} className={finding.severity === 'error' ? 'finding bad' : 'finding warn'}>
-          <span className="finding-column" dir="ltr">{finding.column}</span>
+      {lines.map(({ finding, chip, message }, index) => (
+        <li key={`${finding.code}-${index}`} className={`${finding.severity === 'error' ? 'finding bad' : 'finding warn'}${chip ? '' : ' no-chip'}`}>
+          {chip ? <span className="finding-column" dir={chip.dir}>{chip.text}</span> : null}
           <span className="finding-detail">
             {/* The server's own words, quoted verbatim. dir auto so a sentence
                 that stayed English renders as one left-to-right run inside a
                 Hebrew card instead of being reordered around its punctuation. */}
-            <span className="finding-message" dir="auto">{findingMessage(finding, locale)}</span>
+            {message ? <span className="finding-message" dir="auto">{message}</span> : null}
             <FindingRows finding={finding} locale={locale} />
           </span>
         </li>
@@ -232,11 +229,21 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
 
   const refused = check && (!check.ok || !check.accepted);
   const accepted = check && check.ok && check.accepted;
+  // The refusal's own sentence, resolved once. It is printed as the reason and
+  // then handed to the findings, which is how they know not to print it again:
+  // a refusal made of one finding carries that finding's sentence here too, and
+  // the two adjacent copies of it were what a reader saw.
+  const refusalDetail = check && check.detail ? findingMessage({ message: check.detail, message_he: check.detail_he }, locale) : '';
   // A file that passes every check and that the engine will not read is not
   // good news, and a green tick over it is how a steward commits a file whose
-  // airing date cannot win and walks away believing the plan moved. The server
-  // answers for this candidate rather than for its kind, so the tone follows it.
-  const changesNothing = Boolean(accepted && check.will_be_read === false);
+  // airing date cannot win and walks away believing the plan moved. The same is
+  // true of a file the engine WILL read that carries no rows, and of one whose
+  // rows carry something the engine cannot read: all three were printed teal
+  // under "the file passed every check" over an enabled commit button, and the
+  // third one emptied nothing and lost every daypart instead. The whole rule is
+  // in sources-findings.js, run there by a test exactly as the card runs it.
+  const verdict = accepted ? acceptedVerdict(check) : null;
+  const warned = Boolean(verdict && verdict.tone === 'warn');
 
   return (
     <article className={`source-card tone-${tone}`} data-kind={input.kind} data-state={state}>
@@ -277,19 +284,25 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
       {/* What to do, and what an upload here does, are two answers, and each
           one says which question it is answering. Measured before the labels:
           the two sentences sat adjacent and unlabelled on a shadowed card and
-          read as one paragraph that contradicted itself. */}
-      <p className={`source-remedy ${tone}`}>
-        <span className="source-line-label">{text('remedyField', locale)}</span>
-        <span>{serverText(input.remedy, locale)}</span>
-      </p>
-      {/* What an upload of this KIND would do, which stands down the moment a
-          real file is on the table: the verdict below answers for that file,
-          and two consequences on one card is one of them being read. */}
+          read as one paragraph that contradicted itself.
+
+          Both are about this KIND as it stands, and both stand down the moment
+          a real file is on the table: the verdict below answers for that file.
+          Measured before the pair moved together: the remedy printed "nothing
+          to do" directly over an amber verdict saying the file in hand carries
+          two warnings, which is the same defect the consequence had already
+          been taken out of. */}
       {check ? null : (
-        <p className="source-consequence">
-          <span className="source-line-label">{text('consequenceField', locale)}</span>
-          <span>{serverText(input.consequence, locale)}</span>
-        </p>
+        <>
+          <p className={`source-remedy ${tone}`}>
+            <span className="source-line-label">{text('remedyField', locale)}</span>
+            <span>{serverText(input.remedy, locale)}</span>
+          </p>
+          <p className="source-consequence">
+            <span className="source-line-label">{text('consequenceField', locale)}</span>
+            <span>{serverText(input.consequence, locale)}</span>
+          </p>
+        </>
       )}
       <SourceChecks checks={input.checks} locale={locale} />
 
@@ -312,17 +325,17 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
           <FileWarning size={14} />
           <div>
             <strong>{text('refused', locale)}</strong>
-            {check.detail ? <p className="source-verdict-detail" dir="auto">{findingMessage({ message: check.detail, message_he: check.detail_he }, locale)}</p> : null}
-            <Findings findings={check.findings && check.findings.length ? check.findings : (check.errors || []).map((message) => ({ column: '', code: 'error', message, severity: 'error' }))} locale={locale} />
+            {refusalDetail ? <p className="source-verdict-detail" dir="auto">{refusalDetail}</p> : null}
+            <Findings findings={check.findings && check.findings.length ? check.findings : (check.errors || []).map((message) => ({ column: '', code: 'error', message, severity: 'error' }))} locale={locale} printed={refusalDetail} />
           </div>
         </div>
       ) : null}
 
       {accepted ? (
-        <div className={`source-verdict ${changesNothing ? 'warn' : 'ok'}`} role="status">
-          {changesNothing ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+        <div className={`source-verdict ${verdict.tone}`} role="status">
+          {warned ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
           <div>
-            <strong>{text(changesNothing ? 'acceptedNotRead' : 'accepted', locale)}</strong>
+            <strong>{text(verdict.heading, locale)}</strong>
             <p className="source-verdict-detail">
               <Numeric>{formatNumber(check.rows, locale)}</Numeric> {text('rows', locale)}
             </p>

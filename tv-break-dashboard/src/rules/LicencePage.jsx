@@ -1,11 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
-import { CalendarClock, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CalendarClock, ExternalLink, ShieldCheck, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
 import { payloadCanEdit, WALLS } from '../session.js';
 import LicenceLimits from './LicenceLimits';
-import { fetchAttestation, limitLabel, pairLabel, recordGuardrailChange, unitLabel, valuePair } from './rules-lib';
+import {
+  fetchAttestation,
+  limitLabel,
+  pairLabel,
+  recordGuardrailChange,
+  refusalSentence,
+  unitLabel,
+  valuePair,
+} from './rules-lib';
 
 // The compliance owner's whole job on one screen: the seven checks with what was
 // observed against what is allowed, the licence those limits came from with its
@@ -79,6 +87,7 @@ export default function LicencePage({ locale, session, notify }) {
   const compliance = state.compliance || {};
   const licence = state.licence || {};
   const checks = compliance.checks || [];
+  const scope = compliance.scope || null;
   const gate = payloadCanEdit(state, session, WALLS.guardrails);
   const scheduled = state.scheduled_changes || [];
   const changes = state.changes_since || [];
@@ -97,12 +106,35 @@ export default function LicencePage({ locale, session, notify }) {
               )}
             </p>
           </div>
-          <span className={`rules-verdict ${compliance.status === 'compliant' ? 'ok' : 'risk'}`}>
+          <span className={`rules-verdict ${compliance.status === 'compliant' ? 'ok' : compliance.status === 'unknown' ? 'unknown' : 'risk'}`}>
             {compliance.status === 'compliant'
               ? pageText(locale, 'Compliant', 'תקין')
-              : pageText(locale, 'Needs review', 'דורש בדיקה')}
+              : compliance.status === 'unknown'
+                ? pageText(locale, 'Not judged', 'לא נשפט')
+                : pageText(locale, 'Needs review', 'דורש בדיקה')}
           </span>
         </div>
+        {/* Every figure below is a figure about a population, so the population
+            is on the card. The plan of record carries the whole market because
+            the retention model is measured against it; what a compliance owner
+            signs is the operator's own channel and nobody else's. */}
+        {scope && scope.scoped && (
+          <p className="rules-scope-line" dir="auto">
+            <Tv size={13} aria-hidden="true" />
+            <span>
+              {pageText(
+                locale,
+                `Every figure here is ${scope.scope_channel}, the channel this operator owns: ${compliance.graded_breaks} breaks judged, ${scope.competitor_rows_excluded} on ${scope.competitor_channels_excluded} other channels left out.`,
+                `כל נתון כאן הוא של ${scope.scope_channel}, הערוץ שבבעלות המפעיל: ${compliance.graded_breaks} ברייקים נשפטו, ${scope.competitor_rows_excluded} בערוצים אחרים (${scope.competitor_channels_excluded}) לא נכללו.`,
+              )}
+            </span>
+          </p>
+        )}
+        {scope && !scope.scoped && (
+          <p className="rules-inline-error" role="status" dir="auto">
+            {locale === 'he' ? scope.reason_he : scope.reason_en}
+          </p>
+        )}
         <ul className="rules-check-list">
           {checks.map((check) => <CheckRow key={check.id} check={check} locale={locale} />)}
         </ul>
@@ -213,7 +245,7 @@ export default function LicencePage({ locale, session, notify }) {
         values={licence.values || {}}
         effectiveDate={licence.effective_date}
         canEdit={gate.canEdit}
-        reason={gate.reason}
+        reason={refusalSentence(gate.reason, locale)}
         onChange={change}
       />
     </div>

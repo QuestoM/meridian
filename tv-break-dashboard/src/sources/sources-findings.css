@@ -8,6 +8,13 @@
   justify-items: start;
 }
 
+/* A finding with nothing true to put in the chip gives its whole line to the
+   reason, rather than leaving the first grid column standing empty and the
+   sentence indented past a chip that is not there. */
+.source-findings .finding.no-chip {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .finding-rows {
   display: flex;
   flex-wrap: wrap;

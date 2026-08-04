@@ -282,6 +282,57 @@ export function agencyIndex(tree) {
   return index;
 }
 
+// The same index read the other way, agency name to agency id. The priced
+// ledger groups by the name the daily file carries and every agency record is
+// keyed by its id, so a figure headed by an agency name can only open the record
+// it names once that name has been resolved. Measured on the shipped ledger: all
+// nine agency names on it resolve. A name two agencies share resolves to
+// neither, because a control that opens one of two records is a guess.
+export function agencyIdsByName(tree) {
+  const seen = {};
+  const index = {};
+  ((tree && tree.agencies) || []).forEach((agency) => {
+    [agency.name, agency.display_name].forEach((value) => {
+      const name = String(value || '').trim();
+      if (!name || !agency.agency_id) {
+        return;
+      }
+      seen[name] = seen[name] === undefined || seen[name] === agency.agency_id ? agency.agency_id : '';
+      index[name] = seen[name];
+    });
+  });
+  Object.keys(index).forEach((name) => {
+    if (!index[name]) {
+      delete index[name];
+    }
+  });
+  return index;
+}
+
+// Campaign name to the booked campaign that carries it, from the campaign
+// board's own rows. The ledger knows a campaign by the name in the daily file
+// and the booked record is keyed by its id, which is the same gap the agency
+// index closes. A name two bookings share resolves to neither, for the same
+// reason.
+export function campaignIdsByName(board) {
+  const counts = {};
+  const index = {};
+  ((board && board.campaigns) || []).forEach((row) => {
+    const name = String(row.name || '').trim();
+    if (!name || !row.campaign_id) {
+      return;
+    }
+    counts[name] = (counts[name] || 0) + 1;
+    index[name] = row.campaign_id;
+  });
+  Object.keys(counts).forEach((name) => {
+    if (counts[name] > 1) {
+      delete index[name];
+    }
+  });
+  return index;
+}
+
 // Which of a draft's fields actually differ from the record on file. An update
 // that carries only what changed cannot disturb a field nobody touched, and it
 // keeps the endpoint's duplicate refusal off a name that was not edited.

@@ -25,6 +25,13 @@ condition with the weekday scope, which the daily pricing path really evaluates,
 and the response states plainly that an agency rule covers every campaign bought
 through that agency. When it is not asked, the term stays on the campaign as the
 agreed record and the response says it prices nothing.
+
+**One refusal, nothing written.** Measured before this was here: an end date of
+``29/08/2026`` was refused with the ISO sentence and the stores had still moved
+by one agency, one link and one name row, because the campaign is the third
+write. An agency can only be suspended, never deleted, so one mistyped
+character left a record the product cannot remove. Every validator the flow
+would reach now runs first, before the first row is written anywhere.
 """
 
 from __future__ import annotations
@@ -60,6 +67,12 @@ LINK_MEANING_HE = (
     "השיוך הופך את המפרסם הזה לשל הסוכנות בנתיב התמחור היומי. המפרסם מקבל כרטיס זהות בשם משלו "
     "בפעם הראשונה שהוא מופיע בקובץ יומי."
 )
+# Said identically by the check and by the write, so which one raised it cannot
+# change the sentence a person reads.
+NEEDS_AGENCY_NAME = "An agency needs a name, because the name is what a daily file carries"
+NEEDS_AGENCY_NAME_HE = "לסוכנות צריך שם, מפני שהשם הוא מה שקובץ יומי נושא"
+NEEDS_CLIENT = "A campaign needs a client, because a campaign belongs to one"
+NEEDS_CLIENT_HE = "לקמפיין צריך לקוח, מפני שקמפיין שייך ללקוח"
 
 
 class AgencyInput(BaseModel):
@@ -151,11 +164,7 @@ def _create_agency(payload: AgencyInput, request: Any) -> dict[str, Any]:
     from kairos_api.agencies import AgencyCreate, create_agency
 
     if not payload.name.strip():
-        raise refuse(
-            400,
-            "An agency needs a name, because the name is what a daily file carries",
-            "לסוכנות צריך שם, מפני שהשם הוא מה שקובץ יומי נושא",
-        )
+        raise refuse(400, NEEDS_AGENCY_NAME, NEEDS_AGENCY_NAME_HE)
     record = create_agency(
         AgencyCreate(
             agency_id=payload.agency_id.strip() or next_agency_id(),
@@ -180,23 +189,36 @@ def _create_agency(payload: AgencyInput, request: Any) -> dict[str, Any]:
 
 
 def _link_advertiser(agency_id: str, advertiser: str, request: Any) -> dict[str, Any]:
-    """Link the client to the agency, or report that it already was."""
-    from kairos_api.agency_conditions import LinkCreate, create_link, links_for
+    """Link the client to the agency, name it, or report that it already was.
+
+    The name is the half that used to be missing. Linking wrote a row saying
+    which agency this client buys through and nothing anywhere said who the
+    client was, so a client created here resolved to no record: its own screen
+    read "source unknown" for ever and no pricing rule could be bound to it by
+    name. The link store and the name space are now written together, and the
+    already-linked path names the client too, so a client linked before this
+    existed becomes a named record the next time an order is booked for it.
+    """
+    from kairos_api.agency_conditions import LINKS_PATH, LinkCreate, create_link, links_for
+    from kairos_api.agency_conditions_identity import register_advertiser_name
 
     name = advertiser.strip()
     if not name:
-        raise refuse(
-            400,
-            "A campaign needs a client, because a campaign belongs to one",
-            "לקמפיין צריך לקוח, מפני שקמפיין שייך ללקוח",
-        )
+        raise refuse(400, NEEDS_CLIENT, NEEDS_CLIENT_HE)
     links = links_for(agency_id)
     if name in links["effective"]:
-        source = "manual" if name in links["manual"] else "observed"
-        return {"advertiser": name, "outcome": "already_linked", "source": source,
+        manual = name in links["manual"]
+        # Only a manual link is named here. An observed link came from a daily
+        # file, so if the name space has not caught up with that file yet the
+        # honest source is observed and the migration is what supplies it;
+        # writing "manual" over it would misstate where the name came from.
+        identity = register_advertiser_name(name, store_path=LINKS_PATH) if manual else {}
+        return {"advertiser": name, "outcome": "already_linked",
+                "source": "manual" if manual else "observed", "identity": identity,
                 "meaning_en": LINK_MEANING, "meaning_he": LINK_MEANING_HE}
-    create_link(agency_id, LinkCreate(advertiser=name), request)
+    created = create_link(agency_id, LinkCreate(advertiser=name), request)
     return {"advertiser": name, "outcome": "linked", "source": "manual",
+            "identity": created.get("identity", {}),
             "meaning_en": LINK_MEANING, "meaning_he": LINK_MEANING_HE}
 
 
@@ -228,10 +250,100 @@ def _apply_agency_discount(agency_id: str, campaign_id: str, percent: float,
     }
 
 
+def _campaign_create(payload: OnboardRequest, agency_id: str) -> Any:
+    """The campaign step of the order, as the campaign endpoint's own model.
+
+    Built once and used twice, by the check and by the write, so what the check
+    validates is what the write stores.
+    """
+    from kairos_api.campaigns_api import CampaignCreate
+
+    return CampaignCreate(
+        name=payload.campaign_name,
+        advertiser=payload.advertiser,
+        agency_id=agency_id,
+        campaign_id=payload.campaign_id,
+        starts_on=payload.campaign_starts_on,
+        ends_on=payload.campaign_ends_on,
+        rebate_percent=payload.rebate_percent,
+        surcharge_discount_percent=payload.surcharge_discount_percent,
+        surcharge_weekdays=payload.surcharge_weekdays,
+        notes=payload.notes,
+        brand=payload.brand,
+        category=payload.category,
+        budget_ils=payload.budget_ils,
+        bonus_ils=payload.bonus_ils,
+        rating_goal_points=payload.rating_goal_points,
+        rating_goal_audience=payload.rating_goal_audience,
+        price_model=payload.price_model,
+        priority=payload.priority,
+        pacing_mode=payload.pacing_mode,
+    )
+
+
+def _flight_create(flight: FlightInput) -> Any:
+    """One flight as the flight endpoint's own model, field for field."""
+    from kairos_api.campaigns_api import FlightCreate
+
+    return FlightCreate(**flight.model_dump())
+
+
+def precheck(payload: OnboardRequest) -> None:
+    """Raise whatever this order would be refused for, before anything is written.
+
+    The refusals come in the order the writes would have produced them, so an
+    order refused for one reason before is refused for that same reason now.
+    """
+    from kairos_api import campaigns_api_store as store
+    from kairos_api.agency_conditions import LINK_COLUMNS, LINKS_PATH, _load_csv
+    from kairos_api.campaigns_api import _campaign_row, _refuse_duplicate
+    from kairos_api.condition_validation import validate_mode_value
+
+    name = payload.campaign_name.strip()
+    advertiser = payload.advertiser.strip()
+    if not name:
+        raise refuse(400, "A campaign needs a name", "לקמפיין צריך שם")
+    if not advertiser:
+        raise refuse(400, NEEDS_CLIENT, NEEDS_CLIENT_HE)
+    existing = _existing_agency(payload.agency)
+    if existing is None and not payload.agency.name.strip():
+        raise refuse(400, NEEDS_AGENCY_NAME, NEEDS_AGENCY_NAME_HE)
+    # One manual link per client is the link store's own rule, and it refuses
+    # after the agency has been created, which is the second partial write.
+    links = _load_csv(LINKS_PATH, LINK_COLUMNS)
+    held = links[(links["source"] == "manual") & (links["advertiser"].astype(str) == advertiser)]
+    holder = "" if held.empty else str(held.iloc[0]["agency_id"])
+    if holder and holder != existing:
+        raise refuse(
+            409,
+            f"'{advertiser}' already has a manual link to agency '{holder}'. Remove it before booking through another.",
+            f"ל⁦{advertiser}⁩ כבר יש שיוך ידני לסוכנות ⁦{holder}⁩. הסירו אותו לפני הזמנה דרך סוכנות אחרת.",
+        )
+    frame = store.load_frame()
+    campaign_id = payload.campaign_id.strip()
+    booked = frame[frame["record_type"].astype(str) == store.CAMPAIGN]
+    if campaign_id and (booked["campaign_id"].astype(str) == campaign_id).any():
+        raise refuse(409, f"Campaign '{campaign_id}' already exists", f"הקמפיין ⁦{campaign_id}⁩ כבר קיים")
+    _refuse_duplicate(frame, name, advertiser, campaign_id)
+    # The dates, the window, the percents, the weekday scope and the commitment
+    # half, by the function that builds the row. The agency is left out of it
+    # because this check runs before the agency exists.
+    _campaign_row(_campaign_create(payload, ""), campaign_id, "")
+    for flight in payload.flights:
+        starts = store.validate_date(flight.starts_on, "starts_on")
+        ends = store.validate_date(flight.ends_on, "ends_on")
+        store.validate_choice(flight.goal_kind, store.GOAL_KINDS, "goal_kind")
+        store.validate_goal(flight.goal_value)
+        store.validate_window(starts, ends)
+    if payload.apply_surcharge_as_agency_rule and payload.surcharge_discount_percent:
+        validate_mode_value(PREMIUM_DISCOUNT, float(payload.surcharge_discount_percent))
+
+
 def onboard_client(payload: OnboardRequest, request: Any) -> dict[str, Any]:
     """Agency, client, campaign, flights and terms, created and linked in one pass."""
-    from kairos_api.campaigns_api import CampaignCreate, FlightCreate, create_campaign_row, create_flight_row
+    from kairos_api.campaigns_api import create_campaign_row, create_flight_row
 
+    precheck(payload)
     existing = _existing_agency(payload.agency)
     if existing is not None:
         agency = {
@@ -245,44 +357,10 @@ def onboard_client(payload: OnboardRequest, request: Any) -> dict[str, Any]:
 
     link = _link_advertiser(agency["agency_id"], payload.advertiser, request)
 
-    campaign = create_campaign_row(
-        CampaignCreate(
-            name=payload.campaign_name,
-            advertiser=payload.advertiser,
-            agency_id=agency["agency_id"],
-            campaign_id=payload.campaign_id,
-            starts_on=payload.campaign_starts_on,
-            ends_on=payload.campaign_ends_on,
-            rebate_percent=payload.rebate_percent,
-            surcharge_discount_percent=payload.surcharge_discount_percent,
-            surcharge_weekdays=payload.surcharge_weekdays,
-            notes=payload.notes,
-            brand=payload.brand,
-            category=payload.category,
-            budget_ils=payload.budget_ils,
-            bonus_ils=payload.bonus_ils,
-            rating_goal_points=payload.rating_goal_points,
-            rating_goal_audience=payload.rating_goal_audience,
-            price_model=payload.price_model,
-            priority=payload.priority,
-            pacing_mode=payload.pacing_mode,
-        ),
-        request,
-    )
+    campaign = create_campaign_row(_campaign_create(payload, agency["agency_id"]), request)
 
     flights = [
-        create_flight_row(
-            campaign["campaign_id"],
-            FlightCreate(
-                starts_on=flight.starts_on,
-                ends_on=flight.ends_on,
-                goal_kind=flight.goal_kind,
-                goal_value=flight.goal_value,
-                name=flight.name,
-                notes=flight.notes,
-            ),
-            request,
-        )
+        create_flight_row(campaign["campaign_id"], _flight_create(flight), request)
         for flight in payload.flights
     ]
 

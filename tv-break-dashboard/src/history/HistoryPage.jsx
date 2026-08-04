@@ -11,6 +11,7 @@ import HistoryTimeline from './HistoryTimeline';
 import { fetchTimeline, saveRestorePoint } from './history-api';
 import { changesSourceLine, emptyWindow } from './history-reach';
 import { foldPreviews, foldSize, matchesSearch } from './history-fold';
+import { refusedTabLine } from './history-refused';
 import { runsCountLine, runsCounted, runsSourceState } from './history-runs';
 import {
   DEFAULT_LIMIT,
@@ -50,17 +51,15 @@ export default function HistoryPage({ locale, notify }) {
   const [state, setState] = useState('loading');
   const [body, setBody] = useState(null);
   const [error, setError] = useState('');
-  // An address for a restore point opens on the restore points, for the reason
-  // history-address gives: measured cold on this instance, a shared link to the
-  // real point version:1337540bd866 landed on "older than the 500 entries
-  // loaded" because the unfiltered page had moved on, and the same link opens
-  // the point when the list is the points.
+  // An address for a restore point opens on the restore points, for the reason history-address gives: measured
+  // cold on this instance, a shared link to the real point version:1337540bd866 landed on "older than the 500
+  // entries loaded" because the unfiltered page had moved on, and the same link opens the point when the list
+  // is the points.
   const [kind, setKind] = useState(() => addressQuery(readAddress()).kind);
   const [actor, setActor] = useState('');
   const [needle, setNeedle] = useState('');
-  // How far back this page reaches. Two inclusive broadcast days move the window
-  // by date, and the cursor steps it by exactly one page, which is the only step
-  // that still advances when a single day holds more entries than a page.
+  // How far back this page reaches. Two inclusive broadcast days move the window by date, and the cursor steps
+  // it by exactly one page, which is the only step that still advances when a day holds more than a page.
   const [fromDay, setFromDay] = useState('');
   const [untilDay, setUntilDay] = useState('');
   const [before, setBefore] = useState('');
@@ -231,21 +230,21 @@ export default function HistoryPage({ locale, notify }) {
 
   const counts = (body && body.counts) || {};
   const total = (body && body.total) || 0;
-  // The tabs count inside the day window, so a tab never prints a figure over a
-  // set the reader is not looking at.
+  // The tabs count inside the day window, so a tab never prints a figure over a set the reader is not looking at.
   const windowTotal = body && body.window_total !== undefined ? body.window_total : total;
+  // How many of the changes in that window the server refused. The Change tab counts attempts, because an
+  // attempt is what a person comes here to find, and this stops that figure reading as a count of changes.
+  const refused = Number((((body && body.outcomes) || {}).refused) || 0);
   const windowed = Boolean(fromDay || untilDay);
   const shown = entries.length;
   const covered = entries.reduce((sum, entry) => sum + foldSize(entry), 0);
-  // A link that points at an entry outside the loaded range says so and offers
-  // the two things that would find it, rather than quietly opening the newest
-  // row and letting the reader believe it is the one they were sent.
+  // A link that points at an entry outside the loaded range says so and offers the two things that would find
+  // it, rather than quietly opening the newest row and letting the reader believe it is the one they were sent.
   const wanted = requested.current;
   const settled = Boolean(loaded) && loaded.limit === limit && loaded.kind === kind
     && loaded.actor === actor && loaded.untilDay === untilDay && loaded.before === before;
   const addressMissed = state === 'ready' && settled && wanted && !entries.some((entry) => entry.id === wanted);
-  // Which of the four true things to say when the asked-for entry is not here,
-  // and whether any control on this surface can fix it.
+  // Which of the four true things to say when the asked-for entry is not here, and whether a control can fix it.
   const pagedOut = ((body && body.matched) || 0) > limit;
   const missed = missedReason({ wanted, kind, actor, needle, pagedOut });
   // A change, a restore and an account event are addressed by their own stamp,
@@ -310,6 +309,9 @@ export default function HistoryPage({ locale, notify }) {
               ) : (
                 <span className="hist-tab-count" dir="ltr">{counts[name] || 0}</span>
               )}
+              {name === 'change' && refused ? (
+                <span className="hist-tab-refused" dir="ltr" title={pageText(locale, ...refusedTabLine(refused))}>{refused}</span>
+              ) : null}
             </button>
           ))}
         </div>

@@ -208,3 +208,31 @@
   color: var(--muted);
   font-size: var(--text-sm);
 }
+
+/* What is inside the file, beside the count of rows in it. It reads as a
+   caution only when the file really carries rows this operator does not own;
+   when it carries only theirs, the same line is the quiet confirmation of that
+   and has no reason to shout. The padding and the icon gap are logical, so the
+   line reads from the correct edge in both directions. */
+.report-card-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.report-card-scope[data-mixed='yes'] {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.report-card-scope svg {
+  flex: none;
+  margin-block-start: 2px;
+}

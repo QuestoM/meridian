@@ -11,6 +11,10 @@ the Israeli week Monday first and put Sunday last, in both languages, while the
 same workspace already got it right twice over in the predicate builder and the
 calendar. The store is ISO and stays ISO; only the reading order moves.
 
+The same page carries a second weekday control, the price-slot tester's, and it
+held a literal week of its own. The case below fixes that reader in place here;
+what the control actually renders is measured in ``test_p5_tester_week.py``.
+
 The second is that one restriction wrote "1 כללים" and "1 rules", on a list where
 a restriction binding a single airing is the ordinary case.
 
@@ -41,6 +45,7 @@ APP = ROOT / "tv-break-dashboard"
 RULES = APP / "src" / "rules"
 LIB = RULES / "pricing-layers-lib.js"
 MANAGER = RULES / "PricingManager.jsx"
+TESTER = RULES / "PricingSlotTester.jsx"
 
 # The Israeli week, Sunday first, as the reader sees it. ISO keys, because that
 # is what the store holds and what a save has to send back.
@@ -287,6 +292,15 @@ def test_the_rate_card_renders_through_the_ordered_reader(shipped):
     assert "saveMultiplier(layer.name, key, event.target.value)" in source, (
         "the save still sends the ISO key the entry carries"
     )
+
+
+def test_the_price_tester_reads_the_week_through_the_ordered_reader_too():
+    """The other weekday control on the same page, so it cannot drift off again."""
+    source = TESTER.read_text(encoding="utf-8")
+    assert "[1, 2, 3, 4, 5, 6, 7]" not in source, "the literal week is what put Sunday last"
+    assert "const WEEKDAY_OPTIONS = DAY_ORDER.map(Number);" in source
+    assert "DAY_ORDER" in source.split("from './pricing-layers-lib'")[0], "it has to be imported"
+    assert "weekday_iso: FIRST_WEEKDAY," in source, "and it opens on the first day of that week"
 
 
 def test_one_rule_is_written_as_one_rule_in_both_languages(shipped):

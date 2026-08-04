@@ -3,10 +3,10 @@
 // The rate card's boxes are bound through three functions in `rules-lib.js`:
 // `mergeOverrides` stages an edit, `dropOverride` takes one back out, and
 // `draftValueAt` decides what a box shows. Node cannot import that module
-// directly because its specifiers are extensionless and one of them reaches the
-// shell, so this copies the two real modules into a temporary tree, adds the
-// extensions, stubs the one shell import, and runs the sequence a person
-// performs on the surface. It tests the shipped source, not a restatement of it.
+// directly because its specifiers are extensionless and two of them reach
+// outside the surface, so this copies the real modules into a temporary tree,
+// adds the extensions, stubs the two imports from outside, and runs the sequence
+// a person performs. It tests the shipped source, not a restatement of it.
 //
 // Usage: node test_p5_draft_probe.mjs   (prints JSON on stdout)
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,7 +21,11 @@ const root = mkdtempSync(join(tmpdir(), 'p5-draft-'));
 mkdirSync(join(root, 'rules'));
 mkdirSync(join(root, 'shell'));
 writeFileSync(join(root, 'shell', 'api.js'), "export const API_BASE = '';\n");
-for (const name of ['rules-lib.js', 'rules-bidi.js']) {
+// The words module reads the frozen wall details. Only the shape is needed here,
+// and the refusal sentences have their own coverage, so this is the smallest
+// stub that lets the module load.
+writeFileSync(join(root, 'session.js'), 'export const WALLS = new Proxy({}, { get: () => ({ detail: "" }) });\n');
+for (const name of ['rules-lib.js', 'rules-bidi.js', 'rules-words.js']) {
   const source = readFileSync(join(RULES, name), 'utf8')
     .replace(/from '(\.[^']*?)'/g, (whole, target) => (target.endsWith('.js') ? whole : `from '${target}.js'`));
   writeFileSync(join(root, 'rules', name), source);

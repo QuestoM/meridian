@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postJson, requestJson } from './assistant-stream';
+import { unrecordedProposalClaim } from './kai-claimed-action';
+import { isolate } from './kai-bidi';
 
 // State hooks for the assistant console, split out of AssistantPanel.jsx so
 // the panel stays a readable render component. useAssistantBatches owns the
@@ -139,14 +141,15 @@ export function useAssistantBatches(notify) {
           : batch.restorePoints;
         return { ...prev, [batchId]: { ...batch, restorePoints, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
       });
-      const applied = results.filter((row) => row && row.status === 'applied').length;
-      const failed = results.filter((row) => row && row.status === 'failed').length;
-      if (failed) notify(`Applied ${applied} of ${itemIds.length} actions, ${failed} failed. Details are on the action card.`, `הוחלו ${applied} מתוך ${itemIds.length} פעולות, ${failed === 1 ? 'אחת נכשלה' : `${failed} נכשלו`}. הפרטים מופיעים בכרטיס הפעולות.`);
-      else if (applied === 1) notify('Applied one action and created a restore point.', 'הוחלה פעולה אחת ונוצרה נקודת שחזור.');
-      else notify(`Applied ${applied} actions and created a restore point.`, `הוחלו ${applied} פעולות ונוצרה נקודת שחזור.`);
+      const appliedCount = results.filter((row) => row && row.status === 'applied').length;
+      const failedCount = results.filter((row) => row && row.status === 'failed').length;
+      if (failedCount === 1) notify(`Applied ${appliedCount} of ${itemIds.length} actions, one failed. Details are on the action card.`, `הוחלו ${appliedCount} מתוך ${itemIds.length} פעולות, אחת נכשלה. הפרטים מופיעים בכרטיס הפעולות.`);
+      else if (failedCount) notify(`Applied ${appliedCount} of ${itemIds.length} actions, ${failedCount} failed. Details are on the action card.`, `הוחלו ${appliedCount} מתוך ${itemIds.length} פעולות, ${failedCount} נכשלו. הפרטים מופיעים בכרטיס הפעולות.`);
+      else if (appliedCount === 1) notify('Applied one action and created a restore point.', 'הוחלה פעולה אחת ונוצרה נקודת שחזור.');
+      else notify(`Applied ${appliedCount} actions and created a restore point.`, `הוחלו ${appliedCount} פעולות ונוצרה נקודת שחזור.`);
       refreshRail();
     } catch (error) {
-      notify(`Applying the actions failed (${error.message}).`, `החלת הפעולות נכשלה (${error.message}).`);
+      notify(`Applying the actions failed (${isolate(error.message)}).`, `החלת הפעולות נכשלה (${isolate(error.message)}).`);
     } finally {
       setApplyBusyId(null);
     }
@@ -165,7 +168,7 @@ export function useAssistantBatches(notify) {
       notify('The selected actions were rejected.', 'הפעולות שנבחרו נדחו.');
       refreshRail();
     } catch (error) {
-      notify(`Rejecting the actions failed (${error.message}).`, `דחיית הפעולות נכשלה (${error.message}).`);
+      notify(`Rejecting the actions failed (${isolate(error.message)}).`, `דחיית הפעולות נכשלה (${isolate(error.message)}).`);
     } finally {
       setApplyBusyId(null);
     }
@@ -207,22 +210,31 @@ export function useAssistantThread(conv) {
       .then((body) => {
         if (!active) return;
         const entries = Array.isArray(body.entries) ? body.entries : [];
-        const rows = entries.map((entry, index) => ({
-          id: `saved-${index}`,
-          at: entry && entry.at ? entry.at : null,
-          question: entry && entry.question ? String(entry.question) : '',
-          answer: entry && entry.answer ? storedAnswer(String(entry.answer)) : null,
-          // A stored line that was nothing but a call leaves the exchange with
-          // no answer at all, which the view says in words rather than showing
-          // a question with silence under it.
-          answerWithheld: Boolean(entry && entry.answer && !storedAnswer(String(entry.answer))),
-          error: null,
-          disclosure: '',
-          sources: [],
-          toolTrace: [],
-          truncated: false,
-          batchId: entry && entry.batch_id ? String(entry.batch_id) : null,
-        }));
+        const rows = entries.map((entry, index) => {
+          const shown = entry && entry.answer ? storedAnswer(String(entry.answer)) : null;
+          const batchId = entry && entry.batch_id ? String(entry.batch_id) : null;
+          return {
+            id: `saved-${index}`,
+            at: entry && entry.at ? entry.at : null,
+            question: entry && entry.question ? String(entry.question) : '',
+            answer: shown,
+            // A stored line that was nothing but a call leaves the exchange with
+            // no answer at all, which the view says in words rather than showing
+            // a question with silence under it.
+            answerWithheld: Boolean(entry && entry.answer && !shown),
+            // The saved half of the same rule. A batch id is stored on the entry
+            // exactly when the ask created a batch (assistant.py:318-322), so an
+            // entry without one recorded nothing, and a stored answer saying a
+            // proposal is pending would otherwise print alone on every reload.
+            unrecordedClaim: unrecordedProposalClaim({ answer: shown }, batchId),
+            error: null,
+            disclosure: '',
+            sources: [],
+            toolTrace: [],
+            truncated: false,
+            batchId,
+          };
+        });
         idRef.current = rows.length;
         setThread(rows);
         if (typeof body.user === 'string' && body.user) setActingUser(body.user);

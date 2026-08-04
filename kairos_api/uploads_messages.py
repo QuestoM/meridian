@@ -37,10 +37,39 @@ from fastapi.responses import JSONResponse
 ISOLATE_START = "⁨"
 ISOLATE_END = "⁩"
 
+# What a finding is ABOUT when it is about no single column. A refusal at the
+# door is often about the whole file, about its header row, or about the table
+# the loader parsed it into, and the record still owes a ``column`` key, so this
+# module used to put an internal token in that key: ``<file>``, ``<header>`` or
+# ``<frame>``. Measured on the shipped card: the surface prints that key as the
+# chip beside the reason, so a daily export missing one column rendered a bold
+# Latin ``<header>`` on a Hebrew screen, above the sentence naming the column
+# that was actually missing. A code travels on ``scope`` instead and the surface
+# resolves it to a word in the language it is being read in, or to nothing; the
+# ``column`` key stays and is empty, because there is no column to name.
+SCOPES = ("file", "header", "frame")
+
+# What a warn-severity finding actually cost the engine. Two warnings on one
+# card are not the same news: a field the engine did not get leaves part of the
+# file unusable, and a value it could read two ways is fully read, on one of the
+# two readings, so every figure from the file rests on that reading. The surface
+# heads the two differently and neither of them is a clean pass. A code absent
+# from this table is a loss, which is the safe default and is what every warning
+# the frozen contracts raise gets.
+FIELD_LOST = "field_lost"
+VALUE_INTERPRETED = "value_interpreted"
+EFFECTS: dict[str, str] = {
+    "unreadable_times": FIELD_LOST,
+    "skipped_campaign_rows": FIELD_LOST,
+    "no_data_rows": FIELD_LOST,
+    "ambiguous_day_month": VALUE_INTERPRETED,
+}
+
 # One entry per sentence this destination raises itself, keyed by the finding's
-# own code. Two keys are one code in two situations, and the caller passes the
-# situation it means; the last four entries are fragments built into another
-# sentence, which is how a list of headers stays in one language.
+# own code. Several keys are one code in two situations, and the caller passes
+# the situation it means; the entries that are not a whole sentence are
+# fragments built into one, which is how a list of headers, or the word for what
+# a row of one kind is, stays in the language the sentence around it is read in.
 MESSAGES: dict[str, dict[str, str]] = {
     "unreadable_file": {
         "en": "The uploaded file could not be read as a CSV table. Check that it is a UTF-8 CSV export with a single header row and try again.",
@@ -89,6 +118,45 @@ MESSAGES: dict[str, dict[str, str]] = {
     "no_data_rows": {
         "en": "the file yields zero audience rows: the recognized channel columns are present but carry no data rows",
         "he": "הקובץ מניב אפס שורות רייטינג: עמודות הערוץ המוכרות קיימות, אך אין מתחתיהן אף שורת נתונים",
+    },
+    # The same code for every other kind, said twice, because a file with no
+    # rows is not the same news everywhere. The first is a refusal: there is no
+    # world in which an operator meant to publish an empty lineup or an empty
+    # rate card. The second is accepted and names the outcome, because a
+    # broadcast day with nothing booked on it is a state that really occurs.
+    "no_data_rows_refused": {
+        "en": "the file carries its header and no data rows at all, so the engine reads zero {rows_are} from it and no figure anywhere can be computed from this input",
+        "he": "בקובץ יש שורת כותרת ואין בו אף שורת נתונים, ולכן המנוע קורא ממנו אפס {rows_are} ואי אפשר לחשב ממנו שום נתון בשום מסך",
+    },
+    "no_data_rows_accepted": {
+        "en": "the file carries its header and no data rows at all, so the engine reads zero {rows_are} from it and every figure that comes from this input will be empty",
+        "he": "בקובץ יש שורת כותרת ואין בו אף שורת נתונים, ולכן המנוע קורא ממנו אפס {rows_are} וכל נתון שמגיע מהקלט הזה יהיה ריק",
+    },
+    # What one row of each kind is, as a fragment built into the two sentences
+    # above, which is how a list of words stays in the language it is read in.
+    "rows_of_programmes": {
+        "en": "programmes",
+        "he": "תוכניות",
+    },
+    "rows_of_spots": {
+        "en": "historical spots",
+        "he": "תשדירים היסטוריים",
+    },
+    "rows_of_advertiser_rules": {
+        "en": "advertiser rules",
+        "he": "כללי מפרסמים",
+    },
+    "rows_of_rate_card": {
+        "en": "rate card rows",
+        "he": "שורות של כרטיס התעריפים",
+    },
+    "rows_of_daily": {
+        "en": "spots",
+        "he": "תשדירים",
+    },
+    "rows_of_campaign_flights": {
+        "en": "campaigns",
+        "he": "קמפיינים",
     },
     "no_recognized_channel_columns": {
         "en": "the file yields zero audience rows because no column here is named for a channel; the loader matches a column header to a channel name exactly and knows {count} such names, one for each channel the audience export carries, of which the only one this account may be shown is your own channel {owned}, so re-export this file with the headers the audience export writes rather than renamed ones; the unrecognized columns found were {found}{clause}",
@@ -140,20 +208,57 @@ def say(code: str, **fields: object) -> tuple[str, str]:
     return english, hebrew
 
 
-def record(code: str, column: str, severity: str, **fields: object) -> dict[str, Any]:
+def effect_of(code: str, severity: str) -> dict[str, str]:
+    """The ``effect`` key of one finding, or nothing at all when it has none.
+
+    An error is refused at the door and no part of that file reaches the engine,
+    so only a warning, which rides along with the file, has an effect to state.
+    """
+    return {"effect": EFFECTS.get(code, FIELD_LOST)} if severity == "warning" else {}
+
+
+def record(code: str, column: str, severity: str, scope: str = "", **fields: object) -> dict[str, Any]:
     """One finding this destination authors itself, as the record a surface renders.
 
     ``key`` and ``fields`` ride along, which is what a stored report keeps in
     place of the two sentences: rendered once and kept, a sentence carrying the
     operator's channel is that channel frozen at the moment it was written.
+
+    ``scope`` is one of :data:`SCOPES` and is present only on a finding that is
+    about no column, which is where the internal token used to go.
     """
     english, hebrew = say(code, **fields)
     entry: dict[str, Any] = {"column": column, "code": code, "message": english, "severity": severity}
+    if scope:
+        entry["scope"] = scope
     if hebrew:
         entry["message_he"] = hebrew
     entry["key"] = code
     entry["fields"] = dict(fields)
     return entry
+
+
+def flat(severity: Any, where: Any, code: Any, message: Any) -> str:
+    """One finding as the flat line every existing reader of a report parses.
+
+    A finding about no column states what it IS about in that slot, which is its
+    scope, rather than leaving the slot empty. Measured before this: the English
+    half of a commit refusal quotes these lines, so a dayparts file with no data
+    rows was refused with ``[error] : no_data_rows - the file yields zero...``.
+    """
+    return f"[{severity}] {where or ''}: {code} - {message}"
+
+
+def flat_finding(finding: Any) -> str:
+    """One finding record as that same line, every slot taken from the record.
+
+    The record is where a column name is resolved to a header the operator's own
+    file carries and where a finding about no column carries its scope, so a
+    line built from anything else would name the column by another word than the
+    chip beside it. One rule for the live payload and the stored report both.
+    """
+    entry = finding if isinstance(finding, dict) else {}
+    return flat(entry.get("severity"), entry.get("column") or entry.get("scope"), entry.get("code"), entry.get("message"))
 
 
 def reject(message: str, errors: list[str] | None = None, message_he: str = "", findings: list[dict[str, Any]] | None = None) -> JSONResponse:
@@ -171,7 +276,12 @@ def reject(message: str, errors: list[str] | None = None, message_he: str = "", 
     return JSONResponse(status_code=400, content=content)
 
 
-def refuse(code: str, errors: list[str] | None = None, column: str = "<file>", **fields: object) -> JSONResponse:
-    """The 400 for a refusal this destination writes itself, in both languages."""
+def refuse(code: str, errors: list[str] | None = None, column: str = "", scope: str = "file", **fields: object) -> JSONResponse:
+    """The 400 for a refusal this destination writes itself, in both languages.
+
+    Every refusal raised before a loader runs is about the file itself, so the
+    scope defaults to ``file`` and the column to nothing. A caller that means
+    the header row says so.
+    """
     english, hebrew = say(code, **fields)
-    return reject(english, errors, hebrew, [record(code, column, "error", **fields)])
+    return reject(english, errors, hebrew, [record(code, column, "error", scope, **fields)])

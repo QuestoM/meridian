@@ -19,6 +19,16 @@ than to a tooltip: what one row is, the period the rows cover, the scope they
 are summed over, and the file they are built from with the moment that source
 last changed. A fact that cannot be computed is left out rather than filled
 with a placeholder.
+
+**And the weekly plan declares what is inside the file it hands over.** That
+download is the one report built from a file carrying every channel the
+optimizer schedules, and Bar 3 freezes its row count at the whole file. Measured
+on the shipped plan with the operator channel configured: 8,704 rows, of which
+2,540 are the operator's own and 6,164 are on 3 other channels. The screen was
+scoped and the file was not, and the only place that said so was a preview the
+person who clicks download never opens. The split now travels on the report
+itself, as counts and never as names, so nobody takes that file away without
+being told what is in it.
 """
 
 from __future__ import annotations
@@ -28,6 +38,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from kairos_api import channel_scope
 
 REPORT_IDS = ("weekly-plan", "compliance", "revenue", "daily-spots", "data-quality")
 
@@ -90,6 +102,90 @@ SCOPES: dict[str, dict[str, str]] = {
         "he": "לא מוגבל לערוץ: לא מוגדר ערוץ מפעיל, אז הגדירו אותו במסך ההגדרות לפני שקוראים את זה כשלכם",
     },
 }
+
+
+# What is inside the file this card hands over, in both languages. A count of
+# other channels is the unnamed aggregate the boundary allows; a name is not,
+# and none of these sentences carries one. The two that cannot be computed name
+# the missing input and the screen that supplies it instead of printing a zero.
+#
+# The rows are said as "yours" and "not yours" rather than as two channel
+# groups, because the second figure is every row the boundary would drop and a
+# plan row with no channel in it is one of those. The count of other channels
+# beside them counts named channels only, so both halves are true of a file
+# nobody has looked at yet and not only of the one measured today.
+DOWNLOAD_SCOPE: dict[str, dict[str, str]] = {
+    "real": {
+        "en": "This download carries the whole plan file: {owned} rows are on your own channel and {other} rows are not. The file names {channels} other channel(s).",
+        "he": "ההורדה הזו נושאת את כל קובץ התוכנית: {owned} שורות בערוץ שלכם ו־{other} שורות שאינן שלכם, ובקובץ מופיעים ערוצים נוספים, {channels} במספר.",
+    },
+    "owned_only": {
+        "en": "Every one of the {owned} rows in this download is on your own channel.",
+        "he": "כל {owned} השורות בהורדה הזו הן בערוץ שלכם.",
+    },
+    "unknown": {
+        "en": "No operator channel is set, so there is no way to say which of the {total} rows in this download are yours. Set the operator channel on the settings screen.",
+        "he": "לא מוגדר ערוץ מפעיל, ולכן אין דרך לומר אילו מ־{total} השורות בהורדה הזו הן שלכם. הגדירו את ערוץ המפעיל במסך ההגדרות.",
+    },
+    "unavailable": {
+        "en": "The plan file carries no channel column, so the split of this download between your own channel and the others cannot be read.",
+        "he": "בקובץ התוכנית אין עמודת ערוץ, ולכן לא ניתן לקרוא את הפילוח של ההורדה הזו בין הערוץ שלכם לבין האחרים.",
+    },
+}
+
+# The three states a count can be in, and the wording each one is said with.
+SCOPE_STATE = {"real": "real", "owned_only": "real", "unknown": "unknown", "unavailable": "unavailable"}
+
+# First-strong isolate, around a figure inside a right-to-left sentence, the way
+# every other bilingual sentence in this destination wraps a left-to-right run.
+ISOLATE_START = "⁨"
+ISOLATE_END = "⁩"
+
+
+def _figures(figures: dict[str, int]) -> tuple[dict[str, str], dict[str, str]]:
+    """One set of counts, written for each language: plain, and isolated."""
+    plain = {name: f"{int(value):,}" for name, value in figures.items()}
+    return plain, {name: f"{ISOLATE_START}{text}{ISOLATE_END}" for name, text in plain.items()}
+
+
+def _scope_record(code: str, figures: dict[str, int]) -> dict[str, Any]:
+    plain, isolated = _figures(figures)
+    words = DOWNLOAD_SCOPE[code]
+    return {
+        "state": SCOPE_STATE[code],
+        "rows_total": int(figures["total"]),
+        "en": words["en"].format(**plain),
+        "he": words["he"].format(**isolated),
+    }
+
+
+def download_scope(schedule: pd.DataFrame, channel: str) -> dict[str, Any] | None:
+    """What the weekly plan download really carries, as counts and never names.
+
+    The same boundary call the preview of this report already makes, so the
+    figure on the card and the figure behind the row count are one measurement
+    rather than two. ``None`` when there is no file to hand over at all, because
+    a card with nothing to download has nothing to disclose.
+
+    A count that cannot be computed is stated as such: with no operator channel
+    configured nothing here knows which rows are the operator's, so the record
+    says that and names the screen that fixes it, and the two row figures are
+    absent rather than zero.
+    """
+    total = 0 if schedule is None else int(len(schedule))
+    if not total:
+        return None
+    _, note = channel_scope.scope_frame(schedule, column="channel", channel=channel)
+    if not note.get("scoped"):
+        unset = note.get("reason") == channel_scope.NO_OPERATOR_CHANNEL_REASON
+        return _scope_record("unknown" if unset else "unavailable", {"total": total})
+    owned = int(note.get("rows_out") or 0)
+    other = int(note.get("competitor_rows_excluded") or 0)
+    channels = int(note.get("competitor_channels_excluded") or 0)
+    figures = {"total": total, "owned": owned, "other": other, "channels": channels}
+    record = _scope_record("real" if other else "owned_only", figures)
+    record.update({"rows_owned": owned, "rows_other": other, "channels_other": channels})
+    return record
 
 
 def _fact(code: str, value: Any, value_he: Any = None) -> dict[str, str] | None:
@@ -191,6 +287,7 @@ def build(
 ) -> list[dict[str, Any]]:
     """The five reports, each with the exact number of rows its download carries."""
     plan_rows = int(len(schedule)) if schedule is not None else 0
+    plan_scope = download_scope(schedule, channel)
     period = _period(summary.get("date_from"), summary.get("date_to"))
     plan_updated = _modified(plan_path)
     checks = list(compliance.get("checks") or [])
@@ -204,6 +301,9 @@ def build(
             "rows": plan_rows,
             "owner": "Traffic",
             "unit": {"code": "weekly-plan", **UNITS["weekly-plan"]},
+            # The one report whose file carries more than the operator's own
+            # channel, so the one report that says so where the click is.
+            **({"download_scope": plan_scope} if plan_scope else {}),
             "basis": _basis(
                 _fact("period", period),
                 _scope("whole_plan"),

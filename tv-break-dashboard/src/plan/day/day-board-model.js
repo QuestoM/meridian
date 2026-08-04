@@ -267,6 +267,21 @@ export function firstBreakInHour(breaks, programmes, liveOf, hour) {
   return inside.length ? inside[0].item.break_id : null;
 }
 
+// How many airings a saved placement will actually bind, counted on the day.
+//
+// The frozen predicate contract names a date, a programme and an hour, so it
+// binds every airing of that title starting in that hour, not only the one that
+// was dragged. Measured on רשת 13 / 2024-11-01: 37 of the 82 segments are named
+// uniquely and the rest share their (title, hour) with 1 to 3 others. The board
+// is served the whole day, so it counts rather than assuming.
+export function airingsBound(programmes, programme) {
+  if (!programme) return 0;
+  const hour = Math.floor(Number(programme.start_seconds) / 3600) % 24;
+  const rows = Array.isArray(programmes) ? programmes : Array.from(programmes || []);
+  return rows.filter((row) => row && row.title === programme.title
+    && Math.floor(Number(row.start_seconds) / 3600) % 24 === hour).length;
+}
+
 // Programmes indexed by segment id, so a break resolves its own window once.
 export function programmeIndex(programmes) {
   const index = new Map();
@@ -276,6 +291,19 @@ export function programmeIndex(programmes) {
 
 // The Israeli week, presented Sunday first while the data stays ISO-keyed.
 export const WEEKDAY_ORDER = [0, 1, 2, 3, 4, 5, 6];
+
+// One set of day names for this tree, indexed by the ISO date's own weekday, so
+// no surface here has to carry a second copy or fall back to an engine word. The
+// plan payload names a day in English (Fri), which is the wire and not a label:
+// a Hebrew surface that printed it read רשת 13 / Fri.
+export const WEEKDAY_NAMES_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+export const WEEKDAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function weekdayName(isoDate, locale) {
+  const index = weekdayIndex(isoDate);
+  if (index < 0) return '';
+  return (locale === 'he' ? WEEKDAY_NAMES_HE : WEEKDAY_NAMES_EN)[index];
+}
 
 export function weekdayIndex(isoDate) {
   const parsed = new Date(`${isoDate}T00:00:00`);

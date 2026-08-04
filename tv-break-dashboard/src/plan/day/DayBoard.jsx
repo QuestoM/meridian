@@ -5,7 +5,7 @@ import { timeWindow, spanStyle } from './schedule-track';
 import { createDragHandlers } from './day-board-drag';
 import DayBoardChip from './DayBoardChip';
 import DayBoardReadout, { HourStrip } from './DayBoardReadout';
-import DayBoardSettlement from './DayBoardSettlement';
+import DayBoardSettlement, { failureText } from './DayBoardSettlement';
 import DayBoardToolbar from './DayBoardToolbar';
 import { inverseOf, settlementOf } from './day-board-settlement';
 import {
@@ -56,6 +56,9 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   // What the last save or undo actually did, held apart from the score so the
   // re-read that follows a write cannot re-base it away.
   const [settlement, setSettlement] = useState(null);
+  // The gold act's own record. The second plan is free to leave out the very
+  // break the act named, so the inverse is held by id and not read off a chip.
+  const [lastGold, setLastGold] = useState(null);
   const [snapGrid, setSnapGrid] = useState(DEFAULT_SNAP);
   const [snapMark, setSnapMark] = useState(null);
   const trackRef = useRef(null);
@@ -111,6 +114,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     resetHistory();
     setScore(null);
     setSettlement(null);
+    setLastGold(null);
     load(day);
   }, [day, load, resetHistory]);
 
@@ -180,17 +184,12 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     return true;
   }
 
-  // The four acts that write live in day-board-writes.js. Each wrapper below
-  // hands that module the state it cannot see and nothing else.
+  // Every act that writes lives in day-board-writes.js. Each wrapper below hands
+  // that module the state it cannot see and nothing else, and every one of them
+  // settles, this one included: see that file for what a gold change costs.
   function toggleGold(item) {
     const live = liveOf(item);
-    return writes.applyGold({
-      item,
-      live,
-      notify,
-      reload: () => load(board.day),
-      onGlobalRefresh,
-    });
+    return writes.applyGold({ item, live, notify, settleAfter, rememberGold: setLastGold });
   }
 
   function handleKeyDown(event, item) {
@@ -234,7 +233,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
       if (onGlobalRefresh) onGlobalRefresh();
       return true;
     } catch (error) {
-      notify(`${act === 'undo' ? 'Undo' : 'Save'} failed (${error.message}).`, `${act === 'undo' ? 'הביטול' : 'השמירה'} נכשל (${error.message}).`);
+      notify(...failureText(act, error.message));
       return false;
     } finally {
       setSaving(false);
@@ -275,7 +274,13 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     return writes.undoSave({ lastSave, predicted: inverseOf(settlement), settleAfter, forgetAction, notify });
   }
 
+  // The inverse of the gold act, offered on the same panel that printed its cost.
+  function undoLastGold() {
+    return writes.undoGold({ lastGold, settleAfter, forgetGold: () => setLastGold(null), notify });
+  }
+
   const editCount = Object.keys(edits).length;
+  const goldSettled = Boolean(settlement) && settlement.act === 'gold';
   const view = boardView(score, board);
   const selectedItem = breaks.find((item) => item.break_id === selected) || null;
   const activeHour = selectedItem
@@ -433,8 +438,8 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
       <DayBoardSettlement
         settlement={settlement}
         locale={locale}
-        canUndo={Boolean(lastSave) && !saving}
-        onUndo={undoLastSave}
+        canUndo={(goldSettled ? Boolean(lastGold) : Boolean(lastSave)) && !saving}
+        onUndo={goldSettled ? undoLastGold : undoLastSave}
         onDismiss={() => setSettlement(null)}
       />
     </div>

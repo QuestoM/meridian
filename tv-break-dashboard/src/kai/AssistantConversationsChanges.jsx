@@ -5,6 +5,7 @@ import { pageText } from '../shell/surface-helpers';
 import { fetchConversationChanges, restoreConversation } from './AssistantConversationsApi';
 import { KINDS } from './AssistantProposalCard';
 import ProposalSummary from './AssistantProposalSummary';
+import { isolate } from './kai-bidi';
 
 // The per-conversation applied-changes view: every proposal batch the active
 // conversation produced, with kind, summary, status, who resolved it and when,
@@ -101,7 +102,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
       if (notify) notify('The conversation changes were restored and a pre-restore snapshot was saved.', 'השינויים של השיחה שוחזרו ונשמר צילום מצב שלפני השחזור.');
     } catch (err) {
       if (err && err.status === 409) setRestoreResult({ none: true });
-      else if (notify) notify(`The conversation restore failed (${err.message}).`, `שחזור השיחה נכשל (${err.message}).`);
+      else if (notify) notify(`The conversation restore failed (${isolate(err.message)}).`, `שחזור השיחה נכשל (${isolate(err.message)}).`);
     } finally {
       setRestoring(false);
     }
@@ -109,7 +110,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
 
   if (!conversationId) return <div className="asst-empty">{pageText(locale, 'No active conversation yet.', 'אין עדיין שיחה פעילה.')}</div>;
   if (state === 'loading') return <div className="asst-loading">{pageText(locale, 'Loading the conversation changes', 'טוען את שינויי השיחה')}</div>;
-  if (state === 'error') return <div className="asst-error-note">{pageText(locale, `The conversation changes could not be loaded (${error}).`, `לא ניתן לטעון את שינויי השיחה (${error}).`)}</div>;
+  if (state === 'error') return <div className="asst-error-note">{pageText(locale, 'The conversation changes could not be loaded (', 'לא ניתן לטעון את שינויי השיחה (')}<bdi dir="auto">{error}</bdi>{').'}</div>;
   if (!batches.length) return <div className="asst-empty">{pageText(locale, 'The assistant has not proposed changes in this conversation yet.', 'העוזר עוד לא הציע שינויים בשיחה הזו.')}</div>;
 
   return (
@@ -171,7 +172,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
             </div>
             <div className="asst-chg-meta">
               {batch.status ? <StatusChip locale={locale} status={String(batch.status)} /> : null}
-              {batch.created_by ? <span dir="auto">{pageText(locale, `Asked by ${batch.created_by}`, `נשאל על ידי ${batch.created_by}`)}</span> : null}
+              {batch.created_by ? <span dir="auto">{pageText(locale, 'Asked by ', 'נשאל על ידי ')}<bdi dir="auto">{batch.created_by}</bdi></span> : null}
               {batch.created_at ? <time dir="ltr">{timeLabel(batch.created_at, locale)}</time> : null}
             </div>
             {items.map((item, index) => {
@@ -185,7 +186,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
                   <ProposalSummary item={withTerms(item, batch)} locale={locale} className="asst-chg-summary" />
 
                   {item.resolved_by ? (
-                    <p className="asst-chg-resolved" dir="auto">{pageText(locale, `Resolved by ${item.resolved_by}`, `מבצע: ${item.resolved_by}`)}{item.resolved_at ? ` · ${timeLabel(item.resolved_at, locale)}` : ''}</p>
+                    <p className="asst-chg-resolved" dir="auto">{pageText(locale, 'Resolved by ', 'מבצע: ')}<bdi dir="auto">{item.resolved_by}</bdi>{item.resolved_at ? <>{' · '}<bdi dir="ltr">{timeLabel(item.resolved_at, locale)}</bdi></> : null}</p>
                   ) : null}
                 </div>
               );

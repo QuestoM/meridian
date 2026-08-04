@@ -111,16 +111,28 @@ def save(record: dict[str, Any]) -> dict[str, Any]:
 
     One break carries at most one saved placement, because a second save of the
     same break is the same decision restated, not a second decision.
+
+    The row it replaced is returned under ``replaced`` when there was one. It has
+    to be, because the replacement drops the only reference to the earlier
+    restriction: the record names the constraint that carries it, and a second save
+    writes a second constraint. Without this the first restriction stays in force
+    with nothing on any surface pointing at it, which is the class of defect this
+    piece exists to close. The caller deletes it through the store that owns
+    restrictions, because a constraint write does not belong in this module.
     """
     row = {column: str(record.get(column, "") or "") for column in COLUMNS}
     row["saved_at"] = row["saved_at"] or datetime.now(timezone.utc).isoformat()
+    replaced: Optional[dict[str, Any]] = None
     with _STORE_LOCK:
         frame = _load_frame()
         if not frame.empty:
-            frame = frame[frame["break_id"].astype(str) != row["break_id"]].reset_index(drop=True)
+            mask = frame["break_id"].astype(str) == row["break_id"]
+            if mask.any():
+                replaced = _record(frame[mask].iloc[0])
+            frame = frame[~mask].reset_index(drop=True)
         frame = pd.concat([frame, pd.DataFrame([row])], ignore_index=True)
         _write_frame(frame)
-    return row
+    return {**row, "replaced": replaced}
 
 
 def forget(break_id: str) -> Optional[dict[str, Any]]:

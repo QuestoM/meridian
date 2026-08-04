@@ -61,8 +61,7 @@ REFERENCE_DIR = DATA_DIR / "reference"
 BACKUP_DIR = DATA_DIR / "_backups"
 MODELS_DIR = ROOT / "models"
 # Last per-kind validation report, persisted so /status can surface it across
-# restarts. Lives under output/ with the other derived artifacts, never under
-# the operator's input data.
+# restarts. Under output/ with the other derived artifacts, never under data/.
 VALIDATION_REPORTS_PATH = ROOT / "output" / "upload_validation_reports.json"
 
 # Upload size cap. The largest legitimate channel export we have measured is the
@@ -219,12 +218,12 @@ def _in_use(kind: str, saved_path: Path | None = None, live: Path | None = None)
     )
 
 
-def _prospect(kind: str, filename: str | None) -> dict[str, Any]:
+def _prospect(kind: str, filename: str | None, rows: int | None = None, findings: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """The door's answer about ONE candidate file, from the real read paths.
 
     Every path is resolved here and the reasoning is
-    :func:`uploads_reads.prospect`, so relocating the writable locations in a
-    test relocates this answer with them.
+    :func:`uploads_reads.prospect`. The candidate's own row count and the door's
+    own findings about it each decide one of the seven consequences on their own.
     """
     prospective = _destination(kind, filename)
     return uploads_reads.prospect(
@@ -236,6 +235,7 @@ def _prospect(kind: str, filename: str | None) -> dict[str, Any]:
         relative=_relative,
         models_dir=MODELS_DIR,
         root=ROOT,
+        rows=rows, findings=findings,
     )
 
 
@@ -301,7 +301,7 @@ def _read_upload(raw: bytes, kind: str) -> tuple[pd.DataFrame | None, Any]:
     missing = uploads_inputs.missing_columns(kind, [str(column) for column in frame.columns])
     if missing:
         named = [f"Missing required column: {column}" for column in missing]
-        return None, uploads_validate.refuse("missing_columns", named, "<header>", kind=kind, columns=", ".join(missing))
+        return None, uploads_validate.refuse("missing_columns", named, scope="header", kind=kind, columns=", ".join(missing))
     return frame, None
 
 
@@ -369,7 +369,7 @@ async def check_file(kind: str, request: Request, file: UploadFile = File(...)) 
         "warnings": list(warnings),
         "errors": list((report_payload or {}).get("errors") or []),
         "findings": list((report_payload or {}).get("findings") or []),
-        **_prospect(kind, file.filename),
+        **_prospect(kind, file.filename, int(len(frame)), (report_payload or {}).get("findings")),
     }
     return UPLOAD_WALL.stamp(body, request)
 
@@ -444,7 +444,7 @@ async def upload_file(kind: str, request: Request, file: UploadFile = File(...))
         "validation": report_payload,
         "findings": list((report_payload or {}).get("findings") or []),
         # About THIS file and never about its kind, which is what the door answered.
-        "consequence": uploads_status.consequence_record(in_use, _engine_reads(kind), MODELS_DIR, ROOT, still_read=None if in_use else _engine_reads(kind)),
+        "consequence": uploads_status.consequence_record(in_use, _engine_reads(kind), MODELS_DIR, ROOT, still_read=None if in_use else _engine_reads(kind), rows=int(len(frame)), findings=(report_payload or {}).get("findings")),
         "model": uploads_model.version(MODELS_DIR, ROOT),
         "warnings": warnings,
     }

@@ -1,6 +1,12 @@
 import React from 'react';
 import { pageText } from '../../shell/format';
-import { isWeekend, weekdayIndex, weeksOf } from './day-board-model';
+import {
+  WEEKDAY_NAMES_EN,
+  WEEKDAY_NAMES_HE,
+  isWeekend,
+  weekdayIndex,
+  weeksOf,
+} from './day-board-model';
 
 // The Israeli week, presented Sunday first while the data stays ISO-keyed.
 //
@@ -8,8 +14,8 @@ import { isWeekend, weekdayIndex, weeksOf } from './day-board-model';
 // operator has no plan for. Friday and Saturday are the weekend and are marked
 // as such; nothing else about them is different, because the plan treats them as
 // ordinary broadcast days and pretending otherwise would be a fabrication.
-const DAY_NAMES_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_NAMES_HE = WEEKDAY_NAMES_HE;
+const DAY_NAMES_EN = WEEKDAY_NAMES_EN;
 const DAY_SHORT_HE = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 const DAY_SHORT_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 

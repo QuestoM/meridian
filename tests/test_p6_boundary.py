@@ -25,8 +25,22 @@ verdict depends on whether anybody has uploaded a file. It no longer can be:
 the last three tests here plant a stored report and read it back under another
 channel, so the store is never the reason this file passes.
 
-The sweep is the test. Every route this piece owns is asked for its payload and
-every one is required to name no channel but the configured one, so a fifth
+**And a fourth, which this file was certifying without ever asking for it.**
+The sweep below reads ``response.json()``, and the two routes on this piece's
+row that carry more channel names than any payload in the product do not answer
+JSON: ``GET /api/export/schedule.csv`` streams the saved plan file whole.
+Measured with the shipped settings, that file is 8,704 data rows of which 6,164
+are on three channels this operator does not own, each row naming its channel
+twice and carrying that channel's own predicted revenue. It is one click from
+the report card. A test named for a boundary that skips the routes most likely
+to breach it is worse than no test, so those two routes are swept in
+``tests/test_p6_downloads.py``, which is a second file because this one reached
+the 450-line law and a law is not dodged by writing shorter reasons. A test
+there requires the two sweeps together to be every GET route on this piece's
+row, so a route under neither of them is red on the day it is added.
+
+The sweep is the test. Every route this piece owns is asked for what it answers
+and every one is required to name no channel but the configured one, so a fifth
 place to leak fails here rather than on a screen. The operator channel is
 pinned to a channel the shipped settings do NOT name, because a filter that
 happens to hide three particular names would pass a test that pinned the same
@@ -155,7 +169,13 @@ def _named(payload, owned: str) -> list[str]:
 def test_no_route_of_this_destination_names_a_channel_the_operator_does_not_own(
     client: TestClient, owned: str
 ) -> None:
-    """The sweep, over every route on this piece's own row."""
+    """The sweep, over every route on this piece's row that answers JSON.
+
+    The two that answer a streamed file are swept in ``tests/test_p6_downloads.py``,
+    which also asserts that the two lists together are every GET route on this
+    row, so the split between them is a difference in how a body is read and
+    never a hole.
+    """
     paths = ["/api/uploads/status", "/api/files", "/api/reports"]
     paths += [f"/api/uploads/{kind}/preview?limit=100" for kind in KINDS]
     paths += [f"/api/reports/{report}/preview" for report in REPORTS]

@@ -4,23 +4,36 @@ import { clearGold, markGold, saveBreakPlacement, undoBreakPlacement } from './d
 // Every act on the day board that changes a store, and the exact inverse of each.
 //
 // Split out of DayBoard.jsx under the 450-line law, and the seam is the right one
-// anyway: below this line are the four acts that write, above it is the geometry
-// that does not. Each one takes what it needs by name and returns nothing but the
+// anyway: below this line are the acts that write, above it is the geometry that
+// does not. Each one takes what it needs by name and returns nothing but the
 // promise, so the component keeps the state and this module keeps the sequence.
 //
-// Three of the four settle through the caller's ``settleAfter``, which holds the
-// totals the day had, re-reads the day, and prints the difference beside the
-// prediction that was on screen. The gold act does not settle, because it changes
-// which breaks are premium rather than where they sit, and the day it re-reads is
-// the whole answer.
+// All of them settle through the caller's ``settleAfter``, which holds the totals
+// the day had, re-reads the day, and prints the difference beside the prediction
+// that was on screen. The gold act was the exception, on the reasoning that it
+// changes which breaks are premium rather than where they sit, so the day it
+// re-reads is the whole answer. Measured on רשת 13 / 2024-11-01, that reasoning
+// does not survive: the re-read day is the whole answer only to a person who
+// memorised the number it replaced.
 
 // Mark the selected break's programme gold, or take the mark off again.
 //
 // The count comes back measured on the plan as it now stands, so it is what the
 // engine did and not what the act asked for. Measured before the route read it
 // back: it answered four while the plan carried none.
-export async function applyGold({ item, live, notify, reload, onGlobalRefresh }) {
-  try {
+//
+// It settles like every other act here, and the reason is a measurement. On
+// רשת 13 / 2024-11-01 one press of G on 001~1 moved the day from 1,062,669.88 to
+// 1,028,205.58, which is 34,464.30 ILS and 3.24 per cent of the day, and took it
+// from 80 breaks to 79. On screen afterwards there was no settlement panel at
+// all, the readout had re-based itself on the fresh plan and printed a change of
+// zero, and the only trace of the money was a toast counting gold breaks.
+//
+// It settles against no prediction. There is no cheap preview of a gold change
+// the way there is of a move, and a prediction of zero would be an invented
+// figure, so the panel prints the realised change alone and says why.
+export async function applyGold({ item, live, notify, settleAfter, rememberGold }) {
+  await settleAfter('gold', null, async () => {
     if (live.isGold) {
       await clearGold(item.break_id);
     } else {
@@ -37,11 +50,35 @@ export async function applyGold({ item, live, notify, reload, onGlobalRefresh })
         );
       }
     }
-    await reload();
-    if (onGlobalRefresh) onGlobalRefresh();
-  } catch (error) {
-    notify(`Gold change failed (${error.message}).`, `שינוי הזהב נכשל (${error.message}).`);
-  }
+    // What the act did and which break it did it to, so the panel that prints
+    // the cost can also offer the way back.
+    rememberGold({ breakId: item.break_id, wasGold: Boolean(live.isGold) });
+  });
+}
+
+// The inverse of the gold act, taken on the break the act named.
+//
+// It is addressed by that id rather than by a chip, because a gold mark makes the
+// engine plan the day again with the mark in force and the second plan is free to
+// give the programme fewer breaks. Measured on רשת 13 / 2024-11-01: marking 001~4
+// gold takes that programme from four breaks to three and the day from 80 to 79,
+// and the id that stops existing is the one the act named, so there is no chip
+// left to press. The route parses the programme out of the break id and never
+// looks that id up in the plan, so the inverse holds anyway.
+//
+// And it is exact. Measured on the same day, both directions: mark then clear
+// returns the day to 1,062,669.88 and to 80 breaks, to the cent and to the break.
+export async function undoGold({ lastGold, settleAfter, forgetGold, notify }) {
+  if (!lastGold) return;
+  await settleAfter('undo', null, async () => {
+    if (lastGold.wasGold) {
+      await markGold(lastGold.breakId);
+    } else {
+      await clearGold(lastGold.breakId);
+    }
+    forgetGold();
+    notify('The gold change came back off the plan.', 'שינוי הזהב הוסר מהתוכנית.');
+  });
 }
 
 // Save every break the operator moved, one restriction each, scoped to its own

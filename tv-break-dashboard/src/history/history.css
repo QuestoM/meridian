@@ -139,6 +139,18 @@
   font-weight: var(--weight-medium);
 }
 
+/* How many of the changes in the window were refused, on the control that
+   counts them, so the tally beside it is never read as a count of what
+   happened. It carries its own sentence on hover. */
+.hist-tab-refused {
+  color: var(--red);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  padding-inline-start: var(--space-1);
+}
+
+.hist-tab.on .hist-tab-refused { color: var(--red-soft); }
+
 .hist-controls {
   display: flex;
   align-items: center;
@@ -381,6 +393,22 @@
 .hist-chip.quiet { background: var(--surface-muted); color: var(--muted); }
 .hist-chip.via { background: var(--teal-soft); color: var(--teal-ink); }
 .hist-chip.warn { background: var(--amber-soft); color: var(--amber-ink); }
+.hist-chip.refused { background: var(--red-soft); color: var(--red); }
+
+/* An act the server refused. The row keeps its place, because an attempt is
+   exactly what somebody reading this destination came for, and it loses the
+   weight of one that happened. The word on the chip is the signal and this is
+   the second one, because colour alone says nothing to a reader who cannot
+   see it. */
+.hist-row[data-outcome="refused"] .hist-row-title {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.hist-row[data-outcome="unknown"] .hist-row-title {
+  color: var(--muted);
+}
 
 .hist-figure {
   font-variant-numeric: tabular-nums;

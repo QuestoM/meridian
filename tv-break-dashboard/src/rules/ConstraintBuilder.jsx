@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Button, FormControl, MenuItem, Select, TextField } from '@mui/material';
 import { Save, Send, Trash2 } from 'lucide-react';
 import { GroupNode, defaultGroup, serializeNode } from './constraint-predicate';
+// The effect words are shared with the restriction list above this panel, so the
+// two surfaces cannot say different things about the same stored value.
+import { EFFECT_LIST, effectLabel } from './rules-lib';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -20,24 +23,6 @@ function normalizeRows(value) {
 function mmssToSeconds(value) {
   const [minutes, seconds] = String(value || '00:00').split(':').map((part) => Number(part));
   return (Number.isFinite(minutes) ? minutes : 0) * 60 + (Number.isFinite(seconds) ? seconds : 0);
-}
-
-const EFFECT_LIST = [
-  { value: 'FIX_OFFSET', label_en: 'Fix offset', label_he: 'היסט קבוע' },
-  { value: 'OFFSET_WINDOW', label_en: 'Offset window', label_he: 'חלון היסט' },
-  { value: 'PIN_COUNT', label_en: 'Pin count', label_he: 'מספר ברייקים קבוע' },
-  { value: 'DURATION_RANGE', label_en: 'Duration range', label_he: 'טווח אורך' },
-  { value: 'GOLD', label_en: 'Gold break', label_he: 'ברייק זהב' },
-  { value: 'FORBID', label_en: 'Forbid', label_he: 'איסור' },
-];
-
-// Map a stored effect (lowercase from the backend, uppercase locally) to a
-// human label case-insensitively, so server-loaded and locally-created rows read alike.
-function effectLabel(effect, locale) {
-  const key = String(effect || '').trim().toUpperCase();
-  const match = EFFECT_LIST.find((ef) => ef.value === key);
-  if (match) return t(locale, match.label_en, match.label_he);
-  return key.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
 }
 
 function buildBody(draft, where) {

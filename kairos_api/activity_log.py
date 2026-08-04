@@ -373,16 +373,22 @@ def get_activity_log(request: Request, limit: int = 100, user: str | None = None
 
 
 def _with_action(entry: dict[str, Any]) -> dict[str, Any]:
-    """The stored entry plus the action code the surface renders a word for, and
-    whether that act saved anything.
+    """The stored entry plus the action code the surface renders a word for,
+    whether that act saved anything, and whether it landed.
 
-    Both are derived on the read and never stored, so the file schema is exactly
-    the nine metadata fields it has always been. They exist so no surface has to
-    match on an HTTP path to name what happened: the classification lives in one
-    place and both History and the settings log read the same one.
+    All three are derived on the read and never stored, so the file schema is
+    exactly the nine metadata fields it has always been. They exist so no
+    surface has to match on an HTTP path to name what happened: the
+    classification lives in one place and both History and the settings log read
+    the same one.
+
+    ``outcome`` is the newest of the three and it closes a measured defect this
+    panel shared with History: the status code was on every line and nothing
+    read it, so a refused write rendered under the word for the act it attempted.
     """
     read = dict(entry)
     action = history_api_actions.action_for(entry.get("method"), entry.get("path"))
     read["action"] = action
     read["saved"] = history_api_actions.kind_for(action) != "preview"
+    read["outcome"] = history_api_actions.outcome_for(entry.get("status"))
     return read

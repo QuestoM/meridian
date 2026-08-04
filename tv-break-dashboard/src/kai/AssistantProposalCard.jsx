@@ -5,6 +5,7 @@ import { pageText } from '../shell/surface-helpers';
 import AssistantUndo from './AssistantUndo';
 import EffectView from './AssistantEffectView';
 import ProposalSummary from './AssistantProposalSummary';
+import FieldName from './kai-field-name';
 import { inApprovedWords } from './kai-vocabulary';
 
 // One proposal batch from the assistant, rendered for explicit approval. The
@@ -73,7 +74,7 @@ function PermissionView({ permission, locale }) {
       <p dir="auto"><Scale size={12} />{pageText(locale, permission.basis_en || '', permission.basis_he || '')}</p>
       {fields.length ? <div className="asst-permission-fields">{fields.map((field) => <code dir="ltr" key={field}>{field}</code>)}</div> : null}
       {permission.effective_date ? (
-        <p dir="auto">{pageText(locale, `The limits in force took effect on ${permission.effective_date}.`, `המגבלות שבתוקף נכנסו לתוקף ב-${permission.effective_date}.`)}</p>
+        <p dir="auto">{pageText(locale, 'The limits in force took effect on ', 'המגבלות שבתוקף נכנסו לתוקף ב-')}<bdi dir="ltr">{permission.effective_date}</bdi>{'.'}</p>
       ) : null}
       <p dir="auto">{pageText(locale, permission.record_en || '', permission.record_he || '')}</p>
       {!permission.may_change && permission.reason ? <p dir="auto">{String(permission.reason)}</p> : null}
@@ -176,7 +177,7 @@ function DiffView({ item, locale }) {
         </div>
         {rows.map((row, index) => (
           <div className="asst-pdiff-row" key={index}>
-            <span className="asst-pdiff-field" dir="ltr">{String(row.field ?? '')}</span>
+            <span className="asst-pdiff-field" dir="ltr"><FieldName name={row.field} /></span>
             <span className="asst-pdiff-before" dir="ltr">{row.before === null || row.before === undefined ? '-' : shortValue(row.before)}</span>
             <span className="asst-pdiff-after" dir="ltr">{shortValue(row.after)}</span>
           </div>
@@ -357,7 +358,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               <p className="asst-restore-line" dir="auto">
                 {pageText(locale, 'A restore point was created before this change.', 'נוצרה נקודת שחזור לפני השינוי הזה.')}
                 {point.appliedAt ? <time dir="ltr">{appliedLabel(point.appliedAt, locale)}</time> : null}
-                {point.appliedBy ? <span dir="auto">{pageText(locale, `Applied by ${point.appliedBy}`, `הוחל על ידי ${point.appliedBy}`)}</span> : null}
+                {point.appliedBy ? <span dir="auto">{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<bdi dir="auto">{point.appliedBy}</bdi></span> : null}
               </p>
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
             </div>

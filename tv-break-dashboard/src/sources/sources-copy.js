@@ -70,6 +70,16 @@ export const CADENCE_NOTES = {
   config: { en: 'Not channel data: advertiser terms, the rate card, and campaign flights with delivery goals.', he: 'לא נתוני ערוץ: תנאי מפרסמים, מחירון וקמפיינים עם יעדי אספקה.' },
 };
 
+// What a finding is about when it is about no single column: the whole file,
+// its header row, or the table the loader parsed it into. The server sends a
+// code and never a word, because the word is read in two languages, and a
+// finding that IS about a column sends the column's own name and no code.
+export const SCOPE_LABELS = {
+  file: { en: 'The whole file', he: 'הקובץ כולו' },
+  header: { en: 'The header row', he: 'שורת הכותרת' },
+  frame: { en: 'The table', he: 'הטבלה' },
+};
+
 export const ROLE_LABELS = {
   input: { en: 'Input', he: 'קלט' },
   plan: { en: 'Plan', he: 'תוכנית' },
@@ -110,6 +120,9 @@ export const TEXT = {
   uploading: { en: 'Uploading', he: 'מעלה' },
   accepted: { en: 'The file passed every check', he: 'הקובץ עבר את כל הבדיקות' },
   acceptedNotRead: { en: 'The file passed every check, and nothing will read it', he: 'הקובץ עבר את כל הבדיקות, ושום דבר לא יקרא אותו' },
+  acceptedNoRows: { en: 'The file passed every check, and it carries no rows', he: 'הקובץ עבר את כל הבדיקות, ואין בו אף שורה' },
+  acceptedWarned: { en: 'The file was not refused, and a check on it came back with a warning', he: 'הקובץ לא נדחה, ובדיקה שנעשתה עליו החזירה אזהרה' },
+  acceptedRead: { en: 'The file was not refused, and it carries a value that can be read two ways', he: 'הקובץ לא נדחה, ויש בו ערך שאפשר לקרוא בשתי צורות' },
   savesTo: { en: 'Will be stored as', he: 'יישמר בשם' },
   refused: { en: 'The file was refused and nothing was replaced', he: 'הקובץ נדחה ושום דבר לא הוחלף' },
   commit: { en: 'Upload this file', he: 'העלו את הקובץ הזה' },

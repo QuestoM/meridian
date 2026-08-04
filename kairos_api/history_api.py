@@ -27,7 +27,11 @@ control is withheld, and the refusal is legible before the click.
 
 **A payload says whether the reader may act on it.** ``can_edit`` and its
 reason ride the read, so a viewer sees the timeline and the diffs with the
-restore control rendered as state rather than failing after a click.
+restore control rendered as state rather than failing after a click. The same
+answer rides it per logical file: measured before that gate, a channel operator
+refused ``PUT /api/rules/model-activation`` restored the settings file here with
+a 200 and flipped that switch, moved a regulatory limit and wrote a rival
+channel. :mod:`kairos_api.history_api_files` states that rule once.
 
 **A timeline entry carries no prose and no rival.** Every word is chosen by the
 surface from the two-language vocabulary, and runs are scoped to the operator's
@@ -40,7 +44,7 @@ import json
 import logging
 import re
 from datetime import date, datetime, timezone
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -49,12 +53,13 @@ from kairos_api import (
     activity_log,
     channel_scope,
     history_api_attestation,
+    history_api_files,
     history_api_reach,
     history_api_runs,
     history_api_timeline,
     version_store,
 )
-from kairos_api.affiliation_wall import READ_ONLY_ROLE_DETAIL, Wall, is_company
+from kairos_api.affiliation_wall import is_company
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +73,10 @@ timeline_router = APIRouter(prefix="/api/history", tags=["history"])
 
 # Reading history and applying a restore are separately permissioned, which is
 # the rule Figma's version history already follows: viewing is available to
-# viewers, restoring needs edit access. Affiliation does not gate this surface,
-# because the operator's own history is the operator's own side of the line.
-HISTORY_WALL = Wall(detail=READ_ONLY_ROLE_DETAIL, company_only=False)
+# viewers, restoring needs edit access. Affiliation gates two of the nine files
+# a restore writes rather than the surface itself, so the timeline and the diffs
+# stay readable and the write answers to the wall the file's own routes use.
+HISTORY_WALL = history_api_files.RESTORE_WALL
 
 # Version ids are uuid4().hex[:12]; accept 8-32 lowercase hex so nothing else
 # (a traversal path, a stray label) ever reaches the manifest reader.
@@ -143,26 +149,11 @@ _SCOPE_NOTE = ("Versions snapshot the operation-state files the operator edits: 
                "so it is always undoable.")
 
 
-def _public_entry(manifest: dict[str, Any],
-                  live: Optional[dict[str, str]] = None) -> dict[str, Any]:
-    """One version as a surface reads it.
-
-    ``restorable`` and ``restore_block`` are the tri-state a restore control
-    needs before it renders: restorable, blocked with a named reason, or, when
-    the manifest names no known logical file, nothing to put back.
-    """
+def _public_entry(manifest: dict[str, Any], live: Optional[dict[str, str]] = None,
+                  withheld: Iterable[str] = ()) -> dict[str, Any]:
+    """One version as a surface reads it, with what this reader may put back."""
     block = history_api_timeline.restore_block(manifest, live)
-    return {
-        "version_id": manifest.get("version_id"),
-        "created_at": manifest.get("created_at"),
-        "actor": manifest.get("actor"),
-        "source": manifest.get("source"),
-        "label": manifest.get("label"),
-        "batch_id": manifest.get("batch_id"),
-        "files": [f.get("logical") for f in manifest.get("files", [])],
-        "restorable": block is None,
-        "restore_block": block,
-    }
+    return history_api_files.public_entry(manifest, block, withheld)
 
 
 @router.get("", tags=["versions"])
@@ -171,11 +162,13 @@ def list_versions(request: Request, limit: int = 50) -> dict[str, Any]:
     _require_session(request)
     limit = max(1, min(int(limit), version_store.MAX_VERSIONS))
     live = history_api_timeline.live_paths()
-    entries = [_public_entry(m, live) for m in version_store._all_manifests()[:limit]]
+    blocked = history_api_files.withheld(request)
+    entries = [_public_entry(m, live, blocked) for m in version_store._all_manifests()[:limit]]
     body = {
         "entries": entries,
         "note": _SCOPE_NOTE,
         "restorable_count": sum(1 for entry in entries if entry["restorable"]),
+        "file_permissions": history_api_files.permissions(request),
     }
     return HISTORY_WALL.stamp(body, request)
 
@@ -188,9 +181,12 @@ def version_diff(version_id: str, request: Request) -> dict[str, Any]:
     manifest = version_store._read_manifest(version_id)
     diff = {entry["logical"]: version_store._diff_logical(version_id, entry["logical"])
             for entry in manifest.get("files", []) if entry.get("logical") in version_store._LOGICAL_ORDER}
+    # The exact per-file answer: this route knows which fields would move.
+    settings_changed = (diff.get("settings") or {}).get("changed")
     body = {"version_id": version_id, "created_at": manifest.get("created_at"),
             "source": manifest.get("source"), "diff": diff,
-            "entry": _public_entry(manifest)}
+            "file_permissions": history_api_files.permissions(request, settings_changed),
+            "entry": _public_entry(manifest, None, history_api_files.withheld(request))}
     return HISTORY_WALL.stamp(body, request)
 
 
@@ -220,6 +216,10 @@ def restore_version(version_id: str, request: Request,
     if not selected:
         raise HTTPException(status_code=400,
                             detail=f"no restorable files selected; this version covers {covered}")
+    # Before the safety point, so a refused restore leaves no version, no audit
+    # line and nothing put back. A restore writes files, and two of the nine
+    # answer to a wall of their own on the way back exactly as on the way in.
+    history_api_files.require_restore(version_id, selected, request)
     safety = version_store.snapshot(source="pre_restore", actor=actor, files=selected, force=True)
     restored = [version_store._restore_logical(version_id, logical) for logical in selected]
     version_store._audit("restore", actor, version_id=version_id, restored=restored, safety_version_id=safety)
@@ -238,7 +238,8 @@ def create_snapshot(request: Request, body: LabelRequest | None = None) -> dict[
     version_id = version_store.snapshot(source="manual_snapshot", actor=actor,
                                         files=list(version_store._LOGICAL_ORDER), label=label, force=True)
     version_store._audit("snapshot", actor, version_id=version_id, label=label)
-    return _public_entry(version_store._read_manifest(str(version_id)))
+    return _public_entry(version_store._read_manifest(str(version_id)), None,
+                         history_api_files.withheld(request))
 
 
 @router.patch("/{version_id}", tags=["versions"])
@@ -251,7 +252,7 @@ def rename_version(version_id: str, body: LabelRequest, request: Request) -> dic
     version_store._atomic_write(version_store._manifest_path(version_id),
                                 json.dumps(manifest, ensure_ascii=False, indent=1).encode("utf-8"))
     version_store._audit("rename", actor, version_id=version_id, label=body.label)
-    return _public_entry(manifest)
+    return _public_entry(manifest, None, history_api_files.withheld(request))
 
 
 # ---------------------------------------------------------------------------
@@ -259,8 +260,7 @@ def rename_version(version_id: str, body: LabelRequest, request: Request) -> dic
 # ---------------------------------------------------------------------------
 
 # The three states the run log can be in, so a surface can tell them apart. An
-# unreadable log and a log the product may not serve are different pieces of
-# news and neither of them is "no runs".
+# unreadable log and a log the product may not serve are different news, and neither of them is "no runs".
 RUNS_AVAILABLE = "available"
 RUNS_UNREADABLE = "unreadable"
 RUNS_WITHHELD = "withheld_no_operator_channel"
@@ -362,9 +362,10 @@ def history_timeline(request: Request, limit: int = 120, kind: str | None = None
         entries = history_api_timeline.since_day(entries, _require_day(since, "since"))
     if until:
         entries = history_api_timeline.until_day(entries, _require_day(until, "until"))
-    # Inside the day window, because a tab that says 2,027 over a list of 17 is
-    # counting a set the reader is not looking at.
+    # Inside the day window: a tab that says 2,027 over a list of 17 counts a set the reader is not looking at.
+    # Beside it, how many of those changes the server refused, so no figure here reads as a count of what happened.
     tally = history_api_timeline.counts(entries)
+    outcomes = history_api_timeline.outcome_counts(entries)
     window_total = len(entries)
     if kind:
         if kind not in history_api_timeline.KINDS:
@@ -373,8 +374,7 @@ def history_timeline(request: Request, limit: int = 120, kind: str | None = None
     if actor:
         wanted = str(actor).strip()
         entries = [entry for entry in entries if entry["actor"] == wanted]
-    # matched is the whole result set for this query and does not move as the
-    # reader pages, because it is the denominator the footer prints.
+    # matched is the whole result set here and never moves as the reader pages: it is the footer's denominator.
     matched = len(entries)
     if before:
         if not _CURSOR_RE.fullmatch(str(before)):
@@ -398,6 +398,7 @@ def history_timeline(request: Request, limit: int = 120, kind: str | None = None
         "window_total": window_total,
         "record_starts": assembled["record_starts"],
         "counts": tally,
+        "outcomes": outcomes,
         "today": today,
         "attestation": history_api_attestation.since_body(assembled, today),
         "kinds": list(history_api_timeline.KINDS),

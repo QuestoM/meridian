@@ -223,10 +223,18 @@
   color: var(--muted);
 }
 
+/* Every night the programme runs, none hidden. Deduplicating by night bounds
+   the list at a broadcast month, so the whole set wraps into a few rows; the
+   cap here is on height, not on choices, and it scrolls rather than pushing the
+   cost panel below the fold. */
+
 .rules-airing-chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
+  max-block-size: 11rem;
+  overflow-y: auto;
+  padding-block-end: var(--space-1);
 }
 
 .rules-airing-chip {

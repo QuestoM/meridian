@@ -38,6 +38,16 @@ const NODE_ID = 'kairos-model-console-root';
 // page, and a test pins that resolution so the name cannot rot into a word.
 const RULES_HASH = 'Settings';
 
+// The operator destination that carries the event store the coverage register
+// waits on. Two of the five blocked factors are blocked on
+// `data/calendar_events.csv`, which is the store behind `/api/events`, which is
+// what the calendar section of Rules reads and writes. This is the address the
+// frozen shell publishes for that section: `nav.js` keeps `Calendar` as a known
+// label and the frozen router turns it into the Rules workspace with the
+// calendar section already open, which is one click rather than two. A test
+// drives the frozen resolver and asserts it still knows this name.
+const EVENTS_HASH = 'Calendar';
+
 // The element the application mounts into, from the frozen `index.html` and
 // `src/index.jsx`. It is where the sign-in transition happens, and watching it
 // is how this bridge learns that the session changed under it.
@@ -277,9 +287,28 @@ function ConsoleBridge() {
     window.location.hash = RULES_HASH;
   }, []);
 
+  // The third way out, and the one the coverage register promises.
+  //
+  // A blocked factor names the file it is waiting on. Two of the five name the
+  // operator's own event store, which is a page in this product, so the name is
+  // the control that opens it rather than a path printed for somebody to go
+  // find. It leaves the same way the other two do.
+  const toEvents = useCallback(() => {
+    closeConsole();
+    setOpen(false);
+    window.location.hash = EVENTS_HASH;
+  }, []);
+
   if (company !== true) return null;
   if (open) {
-    return <ModelConsole locale={locale} onBack={back} onOpenRules={toRules} />;
+    return (
+      <ModelConsole
+        locale={locale}
+        onBack={back}
+        onOpenRules={toRules}
+        onOpenEvents={toEvents}
+      />
+    );
   }
   return (
     <button type="button" className="mc-switcher" onClick={openConsole}>

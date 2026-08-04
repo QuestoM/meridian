@@ -58,8 +58,11 @@ export const KIND_LABELS = {
   preview: ['Preview', 'תצוגה מקדימה'],
 };
 
+// What a kind means, on the control that filters by it. The change hint names
+// both halves because the tab counts attempts: a write that the wall refused is
+// a change entry and it changed nothing, and the row says which it was.
 export const KIND_HINTS = {
-  change: ['Something was saved', 'משהו נשמר'],
+  change: ['Something was saved, or the attempt was refused', 'משהו נשמר, או שהניסיון נדחה'],
   run: ['The plan was run', 'התוכנית הורצה'],
   restore_point: ['A point you can go back to', 'נקודה שאפשר לחזור אליה'],
   restore: ['Something was put back', 'משהו הוחזר'],

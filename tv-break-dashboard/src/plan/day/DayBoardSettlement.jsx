@@ -3,8 +3,8 @@ import { ArrowRight, Undo2, X } from 'lucide-react';
 import { formatNumber, pageText } from '../../shell/format';
 import { exactCurrency } from './day-board-model';
 
-// What the last save or undo actually did to the plan, kept on screen after the
-// board has re-read the day.
+// What the last act actually did to the plan, kept on screen after the board has
+// re-read the day. A save, a gold change, or the undo of either.
 //
 // This panel exists because of a measured hole. The readout beside it prices the
 // arrangement on screen against the plan's own basis, and after a save the board
@@ -27,11 +27,7 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
   return (
     <div className={`day-settlement is-${verdict}`}>
       <div className="day-settlement-head">
-        <strong>
-          {act === 'undo'
-            ? label('What the undo restored', 'מה הביטול החזיר')
-            : label('What the save changed on the plan', 'מה השמירה שינתה בתוכנית')}
-        </strong>
+        <strong>{headingOf(act, label)}</strong>
         <button type="button" className="day-settlement-close" onClick={onDismiss}>
           <X size={13} aria-hidden="true" />
           {label('Dismiss', 'סגירה')}
@@ -72,15 +68,37 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
       <p className="day-readout-note" dir="auto">{verdictSentence(settlement, locale, total)}</p>
 
       <div className="day-readout-actions">
-        {act === 'save' && (
+        {act !== 'undo' && (
           <button type="button" className="day-action" onClick={onUndo} disabled={!canUndo}>
             <Undo2 size={13} aria-hidden="true" />
-            {label('Undo this save', 'ביטול השמירה הזו')}
+            {act === 'gold'
+              ? label('Undo this gold change', 'ביטול שינוי הזהב')
+              : label('Undo this save', 'ביטול השמירה הזו')}
           </button>
         )}
       </div>
     </div>
   );
+}
+
+// The act, named in the operator's own language.
+//
+// Three acts print into this one panel and each of them means something else, so
+// the heading says which one it is. Measured before the gold act settled at all:
+// its cost was on no surface, and the change tile beside this panel had re-based
+// itself to zero.
+export function headingOf(act, label) {
+  if (act === 'gold') return label('What the gold change did to the plan', 'מה שינוי הזהב עשה לתוכנית');
+  if (act === 'undo') return label('What the undo restored', 'מה הביטול החזיר');
+  return label('What the save changed on the plan', 'מה השמירה שינתה בתוכנית');
+}
+
+// The same naming when an act fails, so the message says which act failed rather
+// than reporting a save that was never attempted.
+export function failureText(act, message) {
+  if (act === 'gold') return [`The gold change failed (${message}).`, `שינוי הזהב נכשל (${message}).`];
+  if (act === 'undo') return [`Undo failed (${message}).`, `הביטול נכשל (${message}).`];
+  return [`Save failed (${message}).`, `השמירה נכשלה (${message}).`];
 }
 
 // Money that fell is not money that rose. The readout's own is-moved colour reads

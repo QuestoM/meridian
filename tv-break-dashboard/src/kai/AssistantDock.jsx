@@ -4,6 +4,7 @@ import { pageText } from '../shell/surface-helpers';
 import AssistantPanel from './AssistantPanel';
 import './kai-shortcuts';
 import './assistant-console.css';
+import './kai-conversation-head.css';
 
 // The docked assistant column: a real layout sibling of the workspace inside
 // the shell flex row, never an overlay, so opening it shrinks the content
@@ -15,7 +16,10 @@ import './assistant-console.css';
 // The kai-shortcuts import is deliberate and load-bearing rather than
 // decorative: the shell imports this file at module scope, so importing the
 // shortcut module here is what makes Cmd J work from a screen where the dock is
-// closed and no component of Kai's is mounted.
+// closed and no component of Kai's is mounted. The conversation-head stylesheet
+// rides the same fact: it corrects a head that both this dock and the full page
+// render, and importing it here puts it on every screen without adding a line to
+// two files that are already at the size cap.
 
 const WIDTH_KEY = 'kairos.assistant.dockWidth';
 const MIN_WIDTH = 320;

@@ -1,18 +1,22 @@
 import React from 'react';
-import { Button, MenuItem, Select } from '@mui/material';
+import { Button } from '@mui/material';
 import { Send } from 'lucide-react';
 import { ZoomControl } from './schedule-track-view';
 
-// The editor toolbar: snap grid, pin scope, the run control and the shared zoom
-// control. Pure presentation: every value and handler is passed in from the
-// editor, so the drag, pin and run flow is unchanged. Split out to keep
-// the editor module lean.
+// The editor toolbar: snap grid, the run control and the shared zoom control.
+// Pure presentation: every value and handler is passed in from the editor, so the
+// drag, pin and run flow is unchanged. Split out to keep the editor module lean.
+//
+// The pin-scope selector was here and is gone. Its default was the whole
+// broadcast date, which the restriction resolver matches against every segment on
+// that date: measured on 2024-11-01 it bound 82 of 82, and one click of it cost
+// 789,576.18 ILS, 74.3 per cent of the day. A saved move names the airing it was
+// dragged on now, so there is nothing to choose, and what it binds is printed on
+// the row that carries the Save button.
 function ScheduleEditorToolbar({
   locale,
   snapGrid,
   onSnapGrid,
-  scopeChoice,
-  onScopeChoice,
   recomputeState,
   onRecompute,
   pxPerMin,
@@ -43,18 +47,6 @@ function ScheduleEditorToolbar({
         >
           60s
         </Button>
-      </div>
-      <div className="schedule-editor-scope">
-        <span>{label('Pin scope', 'היקף הנעיצה')}</span>
-        <Select
-          size="small"
-          value={scopeChoice}
-          onChange={(event) => onScopeChoice(event.target.value)}
-          aria-label={label('Pin scope', 'היקף הנעיצה')}
-        >
-          <MenuItem value="date">{label('This date', 'תאריך זה')}</MenuItem>
-          <MenuItem value="programme">{label('Every airing of this programme', 'כל שידור של התוכנית')}</MenuItem>
-        </Select>
       </div>
       <Button
         type="button"

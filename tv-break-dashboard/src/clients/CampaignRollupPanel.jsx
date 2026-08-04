@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatCurrency, formatMinutes, formatNumber, pageText } from '../shell/format';
+import { fallbackCampaigns } from '../shell/fallbacks';
 import { normalizeRows } from '../shell/plan-model';
 import { DataTable } from '../shell/primitives';
 import { loadRollup } from './clients-api';
@@ -15,25 +16,50 @@ import MakeGoodAlerts from './MakeGoodAlerts';
 
 export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
   const [fetched, setFetched] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  // The shell hands this panel its own placeholder object while the shared read
+  // is in flight, and hands the same object back when that read fails. Identity
+  // is the honest test for it: this exact object is not a payload, it is the
+  // absence of one, and it holds an empty campaign list that nobody counted. So
+  // the placeholder is not treated as data, and the panel reads for itself
+  // until a real one arrives.
+  const supplied = campaigns && campaigns !== fallbackCampaigns ? campaigns : null;
 
   useEffect(() => {
-    if (campaigns) {
+    if (supplied) {
       return undefined;
     }
     let active = true;
+    setFetched(null);
+    setFailed(false);
     loadRollup()
       .then((payload) => {
         if (active) setFetched(payload);
       })
       .catch(() => {
-        if (active) setFetched({ campaigns: [], revenue_available: false });
+        if (active) setFailed(true);
       });
     return () => { active = false; };
-  }, [campaigns, refreshKey]);
+  }, [supplied, refreshKey]);
 
-  const payload = campaigns || fetched || { campaigns: [] };
-  const rows = normalizeRows(payload.campaigns);
-  const revenueAvailable = payload.revenue_available !== false;
+  // Three states, never two. A read in flight is not an empty result: collapsing
+  // it into one printed "0 campaigns" over "no campaign rows were found" for the
+  // whole of the read, which is a count nobody measured. So the count is a word
+  // until a payload lands, and a failed read says it failed.
+  const payload = supplied || fetched;
+  const rows = payload ? normalizeRows(payload.campaigns) : [];
+  const revenueAvailable = !payload || payload.revenue_available !== false;
+  const countLabel = payload
+    ? `${rows.length} ${pageText(locale, 'campaigns', 'קמפיינים')}`
+    : (failed
+      ? pageText(locale, 'not loaded', 'לא נטען')
+      : pageText(locale, 'loading', 'בטעינה'));
+  const emptyLabel = payload
+    ? pageText(locale, 'No campaign rows were found.', 'לא נמצאו שורות קמפיינים.')
+    : (failed
+      ? pageText(locale, 'The campaign rollup could not be read, so no count is shown rather than a zero.', 'לא ניתן היה לקרוא את ריכוז הקמפיינים, ולכן לא מוצג מספר במקום אפס.')
+      : pageText(locale, 'Loading campaigns seen in the source data', 'טוען קמפיינים שנצפו בנתוני המקור'));
 
   return (
     <>
@@ -49,11 +75,11 @@ export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Campaigns seen in the source data', 'קמפיינים שנצפו בנתוני המקור')}</h2>
-          <span>{rows.length} {pageText(locale, 'campaigns', 'קמפיינים')}</span>
+          <span>{countLabel}</span>
         </div>
         <DataTable
           locale={locale}
-          emptyLabel={pageText(locale, 'No campaign rows were found.', 'לא נמצאו שורות קמפיינים.')}
+          emptyLabel={emptyLabel}
           rows={rows}
           columns={[
             { key: 'Campaign', label: pageText(locale, 'Campaign', 'קמפיין') },

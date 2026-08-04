@@ -64,6 +64,18 @@ function EffectRow({ label, cells, net }) {
   );
 }
 
+const BASIS_EN = {
+  lead: 'The simulation runs one representative channel-day (',
+  mid: ', ',
+  tail: '), not the weekly total.',
+};
+
+const BASIS_HE = {
+  lead: 'הסימולציה רצה על יום-ערוץ מייצג אחד (',
+  mid: ', ',
+  tail: '), לא על הסך השבועי.',
+};
+
 // The basis of the money above it, printed on the surface where the operator
 // presses Apply rather than only in the answer text. The simulation optimizes
 // one representative day of the owned channel on both sides, so a reader who is
@@ -80,9 +92,21 @@ function EffectBasis({ basis, locale }) {
       </p>
     );
   }
+  // The same rule as the figures above, applied to the two values inside the
+  // sentence rather than to the sentence. The channel is a Hebrew name and the
+  // day is a date, so on the English reading they are two foreign runs with a
+  // comma between them; interpolated into one string the comma and the digits
+  // resolve into the name and the sentence reaches the reader as
+  // "(ת שר2024-11-11 ,13)". Each value carries its own isolate, so neither can
+  // take the other's characters. Measured in a browser, both readings.
+  const said = locale === 'he' ? BASIS_HE : BASIS_EN;
   return (
     <p className="asst-effect-basis" dir="auto">
-      {pageText(locale, `The simulation runs one representative channel-day (${channel}, ${day}), not the weekly total.`, `הסימולציה רצה על יום-ערוץ מייצג אחד (${channel}, ${day}), לא על הסך השבועי.`)}
+      {said.lead}
+      <bdi dir="auto">{channel}</bdi>
+      {said.mid}
+      <bdi dir="ltr">{day}</bdi>
+      {said.tail}
     </p>
   );
 }

@@ -60,7 +60,7 @@ export default function AssistantConversationsSidebar({ locale, conv, notify, di
         ) : proposalsState === 'loading' ? (
           <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
         ) : proposalsState === 'error' ? (
-          <div className="asst-error-note">{pageText(locale, `Pending actions could not be loaded (${proposalsError}).`, `לא ניתן לטעון את הפעולות הממתינות (${proposalsError}).`)}</div>
+          <div className="asst-error-note">{pageText(locale, 'Pending actions could not be loaded (', 'לא ניתן לטעון את הפעולות הממתינות (')}<bdi dir="auto">{proposalsError}</bdi>{').'}</div>
         ) : visibleBatches.length === 0 ? (
           <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
         ) : (

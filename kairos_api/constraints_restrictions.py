@@ -183,6 +183,12 @@ def restriction_titles(q: str = "") -> dict[str, Any]:
 def restriction_airings(title: str = "") -> dict[str, Any]:
     """Every airing of one programme, so a restriction can name a single night.
 
+    Two lists, because they answer two different questions. ``airings`` is the
+    detail, capped, and every record carries its own segment. ``nights`` is the
+    choice: one record per broadcast night, never capped, because a restriction
+    scoped to a date names a night and not an airing, and a surface that offers
+    fewer nights than it counts cannot say what its author came to say.
+
     With no title this is not an error, it is an empty list with the input it
     is waiting for named in the payload. A missing input is a state the caller
     can render, and a refusal is not.
@@ -192,11 +198,14 @@ def restriction_airings(title: str = "") -> dict[str, Any]:
     if wanted:
         where = {"combinator": "and", "conditions": [{"field": "programme", "operator": "is", "value": wanted}]}
         matched = airings_lib.matching(where)
+    nights = airings_lib.night_records(matched) if wanted else []
     return {
         "title": wanted,
         "channel": airings_lib.operator_channel(),
         "count": len(matched),
         "airings": airings_lib.airing_records(matched) if wanted else [],
+        "nights": nights,
+        "night_count": len(nights),
         "reason": "" if wanted else "Name a programme to list its airings.",
     }
 

@@ -191,6 +191,22 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
     () => filterClients((tree && tree.clients_booked_without_spots) || [], query),
     [tree, query],
   );
+  // Every hook this component owns is called above the loading return below,
+  // including this one, and each reads the tree defensively because the first
+  // render happens before the read resolves. A hook placed after that return
+  // runs on the render that has the tree and not on the render that does not,
+  // and React refuses to reconcile a component whose hook count grew between
+  // two renders: it unmounts the whole application, not this panel. The demo
+  // tally is derived from the payload rather than fetched, so it costs nothing
+  // to compute it early and return zero while the tree is still null.
+  const { demo: demoCampaignCount } = useMemo(
+    () => demoTally(
+      tree && tree.agencies,
+      tree && tree.unlinked,
+      tree && tree.clients_booked_without_spots,
+    ),
+    [tree],
+  );
 
   if (!tree) {
     return <div className="clients-loading">{pageText(locale, 'Loading clients', 'טוען לקוחות')}</div>;
@@ -209,10 +225,6 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
     campaignCount,
     pageText(locale, 'campaign', 'קמפיין'),
     pageText(locale, 'campaigns', 'קמפיינים'),
-  );
-  const { demo: demoCampaignCount } = useMemo(
-    () => demoTally(tree.agencies, tree.unlinked, tree.clients_booked_without_spots),
-    [tree],
   );
   const countsLine = demoCampaignCount > 0
     ? pageText(

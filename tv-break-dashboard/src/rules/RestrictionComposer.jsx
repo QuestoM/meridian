@@ -3,15 +3,14 @@ import { Button } from '@mui/material';
 import { Check, Loader2, Search } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
+import AiringNights from './AiringNights';
 import RestrictionEffect from './RestrictionEffect';
 import {
   KINDS,
   buildWhere,
-  dayLabel,
   fetchAirings,
   fetchTitles,
   kindMeta,
-  lengthLabel,
   minutes,
   previewRestriction,
   saveRestriction,
@@ -40,6 +39,11 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   const [suggestions, setSuggestions] = useState([]);
   const [airings, setAirings] = useState(null);
   const [day, setDay] = useState('');
+  // Both ends of the life of a rule. The store and the engine have always
+  // carried a start date, and the composer only offered the end, so a rule that
+  // should begin later could not be written and the person writing it had to
+  // remember to come back on the day. The server validates the pair.
+  const [startsOn, setStartsOn] = useState('');
   const [expiresOn, setExpiresOn] = useState('');
   const [author, setAuthor] = useState('');
   const [reason, setReason] = useState('');
@@ -61,10 +65,11 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
     kind,
     params,
     where: buildWhere({ title, day }),
+    starts_on: startsOn,
     expires_on: expiresOn,
     author,
     reason,
-  }), [kind, params, title, day, expiresOn, author, reason]);
+  }), [kind, params, title, day, startsOn, expiresOn, author, reason]);
 
   const sayable = Boolean(title);
 
@@ -218,35 +223,13 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
       )}
 
       {title && airings && (
-        <div className="rules-airings">
-          <span className="rules-airings-head">
-            {pageText(
-              locale,
-              `${airings.count} airings in the plan window. Pick one night, or leave it for all of them.`,
-              `${airings.count} שידורים בחלון התוכנית. בחרו לילה אחד, או השאירו לכולם.`,
-            )}
-          </span>
-          <div className="rules-airing-chips">
-            <button
-              type="button"
-              className={`rules-airing-chip${day ? '' : ' active'}`}
-              onClick={() => setDay('')}
-            >
-              {pageText(locale, 'Every airing', 'כל השידורים')}
-            </button>
-            {(airings.airings || []).slice(0, 12).map((airing) => (
-              <button
-                key={airing.segment_id}
-                type="button"
-                className={`rules-airing-chip${day === airing.day ? ' active' : ''}`}
-                onClick={() => setDay(airing.day)}
-              >
-                <span>{dayLabel(airing.day, locale)}</span>
-                <small dir="ltr">{lengthLabel(airing.duration_seconds, locale)}</small>
-              </button>
-            ))}
-          </div>
-        </div>
+        <AiringNights
+          locale={locale}
+          airings={airings.count}
+          nights={airings.nights}
+          day={day}
+          onPick={setDay}
+        />
       )}
 
       <div className="rules-attribution">
@@ -257,6 +240,10 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         <label>
           <span>{pageText(locale, 'Why', 'סיבה')}</span>
           <input type="text" value={reason} onChange={(event) => setReason(event.target.value)} dir="auto" />
+        </label>
+        <label>
+          <span>{pageText(locale, 'Starts applying on', 'מתחיל לחול בתאריך')}</span>
+          <DateField value={startsOn} onChange={setStartsOn} />
         </label>
         <label>
           <span>{pageText(locale, 'Stops applying on', 'מפסיק לחול בתאריך')}</span>

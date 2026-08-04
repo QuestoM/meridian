@@ -14,7 +14,10 @@ nothing here can touch a repository input.
 
 from __future__ import annotations
 
+import json
 import re
+import shutil
+import subprocess
 from io import BytesIO
 from pathlib import Path
 
@@ -35,27 +38,26 @@ LIVE_DAILY = ROOT / "data" / "daily_input" / "Wally_Prime_Reshet_Example_2025-04
 HEBREW = re.compile(r"[֐-׿]")
 FIELD = re.compile(r"\{(\w+)\}")
 
+# An internal placeholder standing where a column name goes. Nothing wrapped in
+# angle brackets is a column in any file this door accepts, so a chip that
+# matches this is a token that reached the screen.
+TOKEN = re.compile(r"^<.*>$")
+
+# The shipped module the card renders its findings by, run as itself rather than
+# reimplemented here, so this file measures what an operator sees.
+NODE = shutil.which("node")
+MODULE_URL = (ROOT / "tv-break-dashboard" / "src" / "sources" / "sources-findings.js").as_uri()
+
 # Every code this door raises ITSELF, as opposed to the ones the frozen data
 # contracts raise, which keep their own English detail because the counts and
 # column names inside those sentences are theirs to compute. A finding carrying
 # one of these codes and no Hebrew is an English sentence on a Hebrew screen,
 # which is the one sentence this destination exists to write.
-OWN_CODES = frozenset(
-    {
-        "no_parseable_dates",
-        "unparseable_dates",
-        "unreadable_times",
-        "ambiguous_day_month",
-        "no_loadable_campaigns",
-        "skipped_campaign_rows",
-        "no_recognized_channel_columns",
-        "no_data_rows",
-        "unreadable_file",
-        "missing_columns",
-        "empty_file",
-        "too_large",
-    }
-)
+OWN_CODES = frozenset({
+    "no_parseable_dates", "unparseable_dates", "unreadable_times", "ambiguous_day_month",
+    "no_loadable_campaigns", "skipped_campaign_rows", "no_recognized_channel_columns",
+    "no_data_rows", "unreadable_file", "missing_columns", "empty_file", "too_large",
+})
 
 # The three cells, on the three data rows of the real morning file, and what is
 # wrong with each: a day that does not exist, a duration below zero, a clock
@@ -306,3 +308,141 @@ def test_every_sentence_this_destination_writes_itself_has_both_languages() -> N
         assert HEBREW.search(words["he"]), f"{code} has a Hebrew slot with no Hebrew in it"
         extra = set(FIELD.findall(words["he"])) - set(FIELD.findall(words["en"]))
         assert not extra, f"{code} has Hebrew placeholders nothing fills: {sorted(extra)}"
+
+
+def _every_refusal(client: TestClient) -> dict[str, dict]:
+    """Every shape of refusal this door can answer with, driven through the app.
+
+    Three are raised before a loader runs and answer 400 with a headline and one
+    finding, which is the shape the repeated sentence lived in; the rest are the
+    loader's and the frozen contracts', answered 200 with ``accepted`` false, and
+    the commit route is here because it answers those as a 400 with a headline.
+    """
+    dayparts_no_rows = pd.DataFrame(columns=["Dates", "Timebands", "רשת 13"]).to_csv(index=False).encode("utf-8")
+    renamed = pd.DataFrame({"Dates": ["01/05/2025"], "Timebands": ["20:00"], "Channel_A": ["1.0"]})
+    frame = pd.read_csv(BytesIO(_daily_bytes()), dtype=str, keep_default_na=False)
+    posts = {
+        "missing_columns": ("daily/check", "Wally_x.csv", frame.drop(columns=["מפרסם"]).to_csv(index=False).encode("utf-8")),
+        "empty_file": ("daily/check", "empty.csv", b""),
+        "unreadable_file": ("daily/check", "broken.csv", b"\xff\xfe\x00not a csv"),
+        "no_data_rows": ("dayparts/check", "Dayparts.csv", dayparts_no_rows),
+        "no_recognized_channel_columns": ("dayparts/check", "Dayparts.csv", renamed.to_csv(index=False).encode("utf-8")),
+        "contract_check": ("daily/check", "Wally_x.csv", _daily_bytes(duration="0")),
+        "contract_commit": ("daily", "Wally_2025-04-27.csv", _daily_bytes(duration="0")),
+    }
+    bodies = {}
+    for name, (path, filename, payload) in posts.items():
+        bodies[name] = client.post(f"/api/uploads/{path}", files={"file": (filename, payload, "text/csv")}).json()
+    return bodies
+
+
+def test_no_refusal_puts_an_internal_token_where_a_column_name_goes(isolated: TestClient) -> None:
+    """The measured defect: a bold Latin ``<header>`` chip on a Hebrew card.
+
+    A finding owes a ``column`` key and a refusal is often about no column, so
+    the door filled that key with ``<file>``, ``<header>`` or ``<frame>`` and the
+    card printed it verbatim. Every finding now carries a real column name or a
+    declared ``scope`` code the surface resolves to a word, and never both.
+
+    A name no file carries is the same defect unbracketed, and so is the empty
+    slot emptying that key leaves in the flat line the English refusal quotes.
+    Measured on the shipped surface: the channel refusal chipped ``channels``, a
+    column no dayparts export has, and the no-rows one read ``[error] :``.
+    """
+    bodies = _every_refusal(isolated)
+    for name, body in bodies.items():
+        findings = body.get("findings") or []
+        assert findings, f"{name} refused with no finding at all"
+        for finding in findings:
+            column = str(finding.get("column") or "")
+            assert not TOKEN.match(column), f"{name} put the internal token {column} where a column name goes"
+            scope = str(finding.get("scope") or "")
+            assert column or scope, f"{name} named neither a column nor what it is about"
+            assert not (column and scope), f"{name} named a column and a scope, and the surface prints one chip"
+            assert not scope or scope in uploads_messages.SCOPES, f"{name} raised the undeclared scope {scope}"
+        for line in list(body.get("errors") or []) + ([body["detail"]] if body.get("detail") else []):
+            assert "] :" not in line, f"{name} quotes a line whose column slot is empty: {line[:70]}"
+    channels = bodies["no_recognized_channel_columns"]["findings"][0]
+    assert (channels["column"], channels["scope"]) == ("", "header"), "the channel refusal is about the header row"
+
+
+def _as_the_card_renders(body: dict, locale: str) -> dict:
+    """What the shipped card prints for this refusal, from the shipped module.
+
+    ``sources-findings.js`` is the module ``SourceCard.jsx`` imports and it holds
+    the whole rule, so running it here over a real response body measures the
+    rendered outcome rather than a second implementation of it.
+    """
+    if NODE is None:
+        pytest.skip("node is not on this machine, so the shipped rendering module cannot be run")
+    script = (
+        f"import {{ findingMessage, visibleFindings }} from {json.dumps(MODULE_URL)};\n"
+        "let raw = ''; for await (const chunk of process.stdin) raw += chunk;\n"
+        "const { body, locale } = JSON.parse(raw);\n"
+        "const detail = body.detail ? findingMessage({ message: body.detail, message_he: body.detail_he }, locale) : '';\n"
+        "const lines = visibleFindings(body.findings || [], locale, detail)\n"
+        "  .map((line) => ({ chip: line.chip ? line.chip.text : '', message: line.message }));\n"
+        "process.stdout.write(JSON.stringify({ detail, lines }));\n"
+    )
+    result = subprocess.run(
+        [NODE, "--input-type=module", "--eval", script],
+        input=json.dumps({"body": body, "locale": locale}),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
+
+
+def test_the_card_prints_no_bracketed_chip_and_no_sentence_twice(isolated: TestClient) -> None:
+    """The two defects a critic measured on the headline screen of this destination.
+
+    Measured before this: a daily file missing the ``מפרסם`` column printed the
+    headline, then the reason, then a bold Latin ``<header>`` chip, then that
+    identical reason again. The same shape was reachable on ``empty_file`` and
+    ``unreadable_file`` with a ``<file>`` chip, and on ``no_data_rows`` with ``<frame>``.
+    """
+    refusals = _every_refusal(isolated)
+    for locale in ("he", "en"):
+        for name, body in refusals.items():
+            panel = _as_the_card_renders(body, locale)
+            printed = [panel["detail"]] if panel["detail"] else []
+            for line in panel["lines"]:
+                assert not TOKEN.match(line["chip"]), f"{name} rendered the chip {line['chip']} in {locale}"
+                if line["message"]:
+                    printed.append(line["message"])
+            assert len(printed) == len(set(printed)), f"{name} printed the same sentence twice in {locale}"
+            assert printed, f"{name} printed no reason at all in {locale}"
+
+
+def test_the_missing_column_refusal_reads_as_one_reason_and_not_two(isolated: TestClient) -> None:
+    """The exact screen that was measured, rendered end to end in Hebrew.
+
+    Three things were on it and one was true: the reason, a token, and the
+    reason again. What prints now is the reason, once, naming the column.
+    """
+    without = pd.read_csv(BytesIO(_daily_bytes()), dtype=str, keep_default_na=False).drop(columns=["מפרסם"])
+    body = isolated.post(
+        "/api/uploads/daily/check",
+        files={"file": ("Wally_x.csv", without.to_csv(index=False).encode("utf-8"), "text/csv")},
+    ).json()
+    panel = _as_the_card_renders(body, "he")
+    assert "מפרסם" in panel["detail"], "the reason no longer names the column that is missing"
+    assert HEBREW.search(panel["detail"]), "the reason arrived in English on a Hebrew card"
+    assert panel["lines"] == [], "the reason is printed a second time under itself"
+
+
+def test_a_finding_about_no_column_still_says_what_it_is_about(isolated: TestClient) -> None:
+    """Dropping a repeated sentence must not drop the chip that names the place.
+
+    A dayparts export whose channel columns carry no data rows is refused with a
+    finding about the table and about no column, with nothing printed above it,
+    so it prints its own sentence and the word for what it is about.
+    """
+    empty = pd.DataFrame(columns=["Dates", "Timebands", "רשת 13"]).to_csv(index=False).encode("utf-8")
+    body = isolated.post(
+        "/api/uploads/dayparts/check", files={"file": ("Dayparts.csv", empty, "text/csv")}
+    ).json()
+    assert body["accepted"] is False, "a dayparts file with no data rows yields no audience figure"
+    assert [line["chip"] for line in _as_the_card_renders(body, "he")["lines"]] == ["הטבלה"]
+    assert [line["chip"] for line in _as_the_card_renders(body, "en")["lines"]] == ["The table"]

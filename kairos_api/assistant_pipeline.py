@@ -7,12 +7,14 @@ the same objects they reached before.
 
 What lives here is the part of an ask that is the same for both routes: the
 tool loop (READ tools execute and their results go back to the model, PROPOSE
-tools are captured and never executed), the streaming and non-streaming model
-call, and the body shape both /ask and /ask/stream return. The credential seam,
-the rate limit, the context composer and the routes stay in kairos_api.assistant
-because tests replace them there by name.
+tools are captured and never executed) and the body shape both /ask and
+/ask/stream return. The credential seam, the rate limit, the context composer
+and the routes stay in kairos_api.assistant because tests replace them there by
+name. One model call, its content blocks and its SDK errors moved to
+kairos_api.assistant_model_call for the same file-size reason and are re-exported
+here unchanged.
 
-Three properties this file is responsible for, all of them measured failures
+Four properties this file is responsible for, all of them measured failures
 before they existed. **Every ask carries a deadline**, checked between turns,
 because the browser once sat on "preparing an answer" for 499 s with no reply,
 no error and no way out. **Every stage of the run is announced as it happens**,
@@ -22,7 +24,11 @@ turn, and the stop when a limit ends the search. **No answer is ever protocol
 text**: a search that ends at the turn ceiling, or a turn that writes a tool
 call into the text channel, gets one final tool-free call for a plain answer,
 and when even that returns nothing the reply names the limit it stopped on
-instead of printing a call nobody can read.
+instead of printing a call nobody can read. **No answer claims an approval that
+does not exist**: an answer saying a proposal is recorded, on a turn whose tool
+record carries no successful propose call, buys one more turn in which the model
+is told the claim is unbacked and must either record the change or write the
+answer again without it (kairos_api.assistant_claimed_action).
 """
 
 from __future__ import annotations
@@ -34,8 +40,10 @@ from typing import Any, Callable
 
 from kairos_api import (
     assistant_actions,
+    assistant_claimed_action as claimed_action,
     assistant_conversations,
     assistant_history,
+    assistant_model_call,
     assistant_protocol_text as protocol_text,
     assistant_sections,
     assistant_tools,
@@ -74,94 +82,31 @@ FINAL_TURN_INSTRUCTION = (
 )
 
 
-def describe_error(exc: Exception) -> str:
-    """Honest, operator-readable description of a failed Claude call."""
-    generic = f"Assistant call failed ({type(exc).__name__}): {str(exc)[:200]}"
-    try:
-        import anthropic
-    except Exception:
-        return generic
-    if isinstance(exc, anthropic.AuthenticationError):
-        return "The configured API key was rejected by Anthropic."
-    if isinstance(exc, anthropic.RateLimitError):
-        return "Anthropic rate limit reached. Try again in a minute."
-    if isinstance(exc, anthropic.APITimeoutError):
-        from kairos_api import assistant
-
-        return f"The model did not answer within {int(assistant.ASK_TIMEOUT_SECONDS)} seconds."
-    if isinstance(exc, anthropic.APIConnectionError):
-        return "Could not reach the Anthropic API. Check network access."
-    if isinstance(exc, (anthropic.BadRequestError, anthropic.PermissionDeniedError)):
-        message = str(getattr(exc, "message", None) or exc).lower()
-        if "credit" in message or "billing" in message:
-            return "The Anthropic account has no credit. Top up at console.anthropic.com (Plans and Billing). אין קרדיט בחשבון Anthropic; יש לטעון יתרה ולנסות שוב."
-    if isinstance(exc, anthropic.APIStatusError):
-        return f"Anthropic API error {exc.status_code}: {str(getattr(exc, 'message', exc))[:200]}"
-    return generic
-
-
-def extract_answer(response: Any) -> str:
-    parts = [
-        getattr(block, "text", "")
-        for block in getattr(response, "content", []) or []
-        if getattr(block, "type", "") == "text"
-    ]
-    return "".join(parts).strip()
-
-
-def echo_block(block: Any) -> dict[str, Any] | None:
-    """One assistant content block as a plain dict, or None to drop it.
-
-    Preserves text, tool_use, and (unchanged, in order) thinking blocks: with
-    adaptive thinking on, the API requires the thinking that preceded a tool_use
-    to be echoed in the assistant turn sent back with the tool results.
-    """
-    kind = getattr(block, "type", "")
-    if kind == "text":
-        return {"type": "text", "text": getattr(block, "text", "")}
-    if kind == "thinking":
-        return {"type": "thinking", "thinking": getattr(block, "thinking", ""),
-                "signature": getattr(block, "signature", "")}
-    if kind == "redacted_thinking":
-        return {"type": "redacted_thinking", "data": getattr(block, "data", "")}
-    if kind == "tool_use":
-        return {"type": "tool_use", "id": block.id, "name": block.name,
-                "input": dict(block.input or {})}
-    return None
-
-
-def call_model(client: Any, kwargs: dict[str, Any],
-               on_text: Callable[[str], None] | None) -> Any:
-    """One model call. A non-streaming caller (on_text None) gets
-    client.messages.create untouched, byte-identical to before. A streaming
-    caller gets real text deltas through client.messages.stream when the client
-    supports it; otherwise the turn's answer is emitted as a single delta, so
-    mocked clients stay simple while production streaming stays real."""
-    stream_fn = getattr(getattr(client, "messages", None), "stream", None)
-    if on_text is not None and callable(stream_fn):
-        with stream_fn(**kwargs) as stream:
-            for text in stream.text_stream:
-                if text:
-                    on_text(text)
-            return stream.get_final_message()
-    response = client.messages.create(**kwargs)
-    if on_text is not None:
-        text = extract_answer(response)
-        if text:
-            on_text(text)
-    return response
+# One model call, its content blocks and its errors live beside this module.
+# Re-exported here under their original names: kairos_api.assistant binds these
+# four as _describe_error, _extract_answer, _echo_block and _call_model, and
+# tests monkeypatch them through that binding.
+describe_error = assistant_model_call.describe_error
+extract_answer = assistant_model_call.extract_answer
+echo_block = assistant_model_call.echo_block
+call_model = assistant_model_call.call_model
 
 
 def plain_answer(client: Any, messages: list[dict[str, Any]],
                  auth_mode: str | None, job: str | None,
-                 on_text: Callable[[str], None] | None) -> str:
+                 on_text: Callable[[str], None] | None,
+                 instruction: str | None = None) -> str:
     """One last model call, with no tools on it, for a plain answer.
 
-    Same conversation, same system contract, plus FINAL_TURN_INSTRUCTION as its
+    Same conversation, same system contract, plus a closing instruction as its
     own block: everything the search gathered is already in ``messages``, so
     this turns it into the sentence a person reads. No tools are sent, so the
     model cannot answer with another call, and whatever it does return is cut
     of protocol text before it is handed back.
+
+    ``instruction`` defaults to FINAL_TURN_INSTRUCTION, which ends a search that
+    recorded nothing. The claim-correction path passes its own, because after a
+    propose call has landed the default's closing sentence would be false.
     """
     from kairos_api import assistant
 
@@ -169,7 +114,7 @@ def plain_answer(client: Any, messages: list[dict[str, Any]],
         "model": assistant._model_name(),
         "max_tokens": LOOP_MAX_TOKENS,
         "system": [*assistant._system_blocks(auth_mode=auth_mode, job=job),
-                   {"type": "text", "text": FINAL_TURN_INSTRUCTION}],
+                   {"type": "text", "text": instruction or FINAL_TURN_INSTRUCTION}],
         "messages": messages,
     }
     gate = protocol_text.LiveTextGate(on_text) if on_text is not None else None
@@ -285,6 +230,21 @@ def run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
         outcome.update({"turns": turns, "ceiling": ceiling, "protocol_text": leaked,
                         "recovered": bool(answer) and (leaked or ceiling),
                         "recovery_error": recovery_error})
+    # The answer says a change is waiting for approval and this turn's tool
+    # record shows none. Measured at 2 of 9 action asks in one critic session,
+    # and the false sentence was the primary answer both times. One more turn,
+    # with the model told the claim is unbacked, is the recovery that was done
+    # by hand and worked first time; the surface's own guard still stands behind
+    # it for the case where even this turn will not put the sentence right.
+    if response is not None and not stopped and claimed_action.unbacked_claim(answer, trace, items):
+        answer, fragment = claimed_action.correct(
+            client, messages, list(getattr(response, "content", []) or []), answer,
+            trace=trace, items=items, can_propose=can_propose and actions_on, user=user,
+            auth_mode=auth_mode, job=job, on_text=on_text, on_step=on_step,
+            on_stage=on_stage, deadline=deadline,
+        )
+        if outcome is not None:
+            outcome.update(fragment)
     return answer, stopped
 
 

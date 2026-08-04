@@ -113,6 +113,15 @@
   gap: var(--space-1);
 }
 
+/* What the act did, and the code the server answered with. The word carries the
+   meaning and the code is the evidence for it, so they are two things on one
+   line rather than one number a reader has to know how to read. */
+.hist-result {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
 .hist-basis {
   margin: 0;
   color: var(--subtle);
@@ -300,6 +309,18 @@
   color: var(--muted);
 }
 
+/* A file this account may not put back keeps its place in the list, with the
+   refusal beside it, so the point reads as partly theirs rather than as broken. */
+.hist-file-opt.blocked {
+  color: var(--amber-ink);
+}
+
+.hist-file-why {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .hist-rename {
   display: inline-flex;
   align-items: center;
@@ -311,6 +332,14 @@
   margin: 0;
   color: var(--subtle);
   font-size: var(--text-xs);
+}
+
+/* The note that says this act did not happen. It reads at the weight of the
+   sentence it contradicts, because a refusal explained in the palest text on
+   the pane is a refusal nobody reads. */
+.hist-note.warn {
+  color: var(--red);
+  font-size: var(--text-sm);
 }
 
 .hist-empty {

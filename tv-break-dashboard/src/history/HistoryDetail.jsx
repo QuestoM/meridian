@@ -3,9 +3,9 @@ import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
 import HistoryRestore from './HistoryRestore';
 import { fetchRun } from './history-api';
+import { APPLIED, actLabel, doorLabel, outcomeNote, outcomeOf, outcomeWord } from './history-refused';
 import {
   ACTION_DOORS,
-  ACTION_LABELS,
   FILE_LABELS,
   KIND_LABELS,
   RUN_FIELDS,
@@ -164,15 +164,19 @@ function RunDetail({ entry, locale }) {
 
 function ChangeDetail({ entry, locale }) {
   const facts = entry.facts || {};
-  const door = ACTION_DOORS[facts.action];
   const status = Number(facts.status);
   const members = Array.isArray(entry.members) ? entry.members : [entry];
   const preview = entry.kind === 'preview';
+  // What the act did decides both the sentence and the door. A refused request
+  // opens none: "open the surface this changed" over a 403 is the same claim the
+  // row above it used to make, one line lower and with a link on it.
+  const outcome = outcomeOf(entry);
+  const door = doorLabel(outcome, preview, locale) ? ACTION_DOORS[facts.action] : '';
   return (
     <div className="hist-kv">
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'What', 'מה')}</span>
-        <span dir="auto">{pair(ACTION_LABELS, facts.action, locale) || pair(ACTION_LABELS, 'other', locale)}</span>
+        <span dir="auto">{actLabel(facts.action, outcome, locale)}</span>
       </div>
       {members.length > 1 ? (
         <div className="hist-detail-line">
@@ -186,13 +190,19 @@ function ChangeDetail({ entry, locale }) {
       </div>
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'Result', 'תוצאה')}</span>
-        <span dir="ltr">{Number.isFinite(status) ? status : pageText(locale, 'Not recorded', 'לא נרשם')}</span>
+        <span className="hist-result" dir="auto">
+          {outcome === APPLIED ? pageText(locale, 'Applied', 'הוחלה') : outcomeWord(outcome, locale)}
+          {Number.isFinite(status) ? <code dir="ltr">{status}</code> : null}
+        </span>
       </div>
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'Took', 'ארך')}</span>
         <span dir="ltr">{facts.duration_ms === null || facts.duration_ms === undefined ? pageText(locale, 'Not recorded', 'לא נרשם') : `${formatNumber(facts.duration_ms, locale)} ms`}</span>
       </div>
-      {preview ? (
+      {outcome !== APPLIED ? (
+        <p className="hist-note warn" dir="auto">{outcomeNote(outcome, locale)}</p>
+      ) : null}
+      {preview && outcome === APPLIED ? (
         <p className="hist-note" dir="auto">{pageText(locale, 'Nothing was saved. This act computed an answer from the saved state and left it exactly as it was, so there is nothing here to put back.', 'לא נשמר דבר. הפעולה חישבה תשובה מהמצב השמור והשאירה אותו בדיוק כפי שהיה, ולכן אין כאן מה להחזיר.')}</p>
       ) : null}
       <p className="hist-note" dir="auto">{pageText(locale, 'The recorder stores metadata only: no request body, no query string and no credential has ever entered this record.', 'הרישום שומר נתוני-על בלבד: גוף הבקשה, מחרוזת השאילתה ופרטי הזדהות מעולם לא נכנסו לרשומה הזו.')}</p>
@@ -209,11 +219,7 @@ function ChangeDetail({ entry, locale }) {
         </div>
       ) : null}
       {door ? (
-        <a className="hist-door" href={`#${encodeURIComponent(door)}`}>
-          {preview
-            ? pageText(locale, 'Open the surface this was computed for', 'פתחו את המסך שעבורו זה חושב')
-            : pageText(locale, 'Open the surface this changed', 'פתחו את המסך שהשתנה')}
-        </a>
+        <a className="hist-door" href={`#${encodeURIComponent(door)}`}>{doorLabel(outcome, preview, locale)}</a>
       ) : null}
     </div>
   );

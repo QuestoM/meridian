@@ -58,20 +58,36 @@ export * as helpers from '{helpers}';
 """
 
 RENDER = """
-import { createRequire, registerHooks } from 'node:module';
+import { createRequire, isBuiltin, registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 
 const [entry, outDir, moneyFile, treeFile, clientName, outFile, boardSource] = process.argv.slice(2);
 const require_ = createRequire('APP_PACKAGE');
-const MAP = {};
-for (const bare of ['react', 'react/jsx-runtime', 'react-dom/server', 'lucide-react', 'rolldown']) {
-  MAP[bare] = pathToFileURL(require_.resolve(bare)).href;
+// Every package the bundle leaves external resolves from the application's own
+// install, because the bundle is written to a temporary directory that has no
+// node_modules of its own. A fixed list of five names stood here, and it broke
+// the day a component on this destination imported a sixth: the render died on
+// a missing package rather than on anything this file measures.
+const MAP = new Map();
+function fromApp(specifier) {
+  if (!MAP.has(specifier)) {
+    try {
+      const found = require_.resolve(specifier);
+      MAP.set(specifier, found.startsWith('/') ? pathToFileURL(found).href : '');
+    } catch {
+      MAP.set(specifier, '');
+    }
+  }
+  return MAP.get(specifier);
 }
 registerHooks({
   resolve(specifier, context, nextResolve) {
-    if (MAP[specifier]) {
-      return { url: MAP[specifier], shortCircuit: true };
+    if (!isBuiltin(specifier) && !/^[./]|^node:|^file:/.test(specifier)) {
+      const found = fromApp(specifier);
+      if (found) {
+        return { url: found, shortCircuit: true };
+      }
     }
     return nextResolve(specifier, context);
   },
@@ -80,7 +96,11 @@ registerHooks({
 const { build } = await import('rolldown');
 await build({
   input: entry,
-  external: ['react', 'react-dom', 'react/jsx-runtime', 'lucide-react'],
+  // Every package stays external and resolves from the application's install
+  // through the hook above, so the bundle holds this destination's own source
+  // and nothing else, and one module instance serves both the bundle and the
+  // renderer below.
+  external: (id) => !/^[./]/.test(id),
   output: { dir: outDir, format: 'esm', entryFileNames: 'surface.mjs' },
   resolve: { extensions: ['.js', '.jsx'] },
   logLevel: 'silent',
@@ -93,7 +113,16 @@ await build({
 });
 
 const React = (await import('react')).default;
-const { renderToStaticMarkup } = await import('react-dom/server');
+const { renderToStaticMarkup: markup } = await import('react-dom/server');
+// The design system renders through Emotion, which needs a cache to write into.
+// Without one the first styled component on the surface throws and the render
+// reports nothing, which reads as a defect on the surface rather than a missing
+// provider in the harness.
+const { CacheProvider } = await import('@emotion/react');
+const cacheModule = await import('@emotion/cache');
+const createCache = cacheModule.default.default || cacheModule.default;
+const cache = createCache({ key: 'kairos-test' });
+const renderToStaticMarkup = (element) => markup(React.createElement(CacheProvider, { value: cache }, element));
 const surface = await import(pathToFileURL(`${outDir}/surface.mjs`).href);
 const money = JSON.parse(fs.readFileSync(moneyFile, 'utf8'));
 const tree = JSON.parse(fs.readFileSync(treeFile, 'utf8'));

@@ -3,6 +3,8 @@ import { Button } from '@mui/material';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { postJson, requestJson } from './assistant-stream';
+import FieldName from './kai-field-name';
+import { isolate } from './kai-bidi';
 
 // Undo, as an object you can open and read before you use it.
 //
@@ -66,7 +68,7 @@ function FieldRows({ rows, locale }) {
       </div>
       {rows.map((row, index) => (
         <div className="asst-undo-row" key={`${row.field}-${index}`}>
-          <span className="asst-undo-field" dir="ltr">{String(row.field ?? '')}</span>
+          <span className="asst-undo-field" dir="ltr"><FieldName name={row.field} /></span>
           <span className="asst-undo-now" dir="ltr">{shortValue(row.current)}</span>
           <span className="asst-undo-after" dir="ltr">{shortValue(row.restored)}</span>
         </div>
@@ -161,7 +163,7 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
     } catch (err) {
       setError(err && err.message ? err.message : 'unknown');
       setState('error');
-      if (notify) notify(`The undo failed (${err.message}).`, `הביטול נכשל (${err.message}).`);
+      if (notify) notify(`The undo failed (${isolate(err.message)}).`, `הביטול נכשל (${isolate(err.message)}).`);
     }
   }
 
@@ -201,7 +203,7 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
       </div>
       {state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Reading the restore point', 'קורא את נקודת השחזור')}</div> : null}
       {state === 'restoring' ? <div className="asst-loading">{pageText(locale, 'Putting the previous state back', 'מחזיר את המצב הקודם')}</div> : null}
-      {state === 'error' ? <div className="asst-error-note" dir="auto">{pageText(locale, `The restore point could not be read (${error}).`, `לא ניתן לקרוא את נקודת השחזור (${error}).`)}</div> : null}
+      {state === 'error' ? <div className="asst-error-note" dir="auto">{pageText(locale, 'The restore point could not be read (', 'לא ניתן לקרוא את נקודת השחזור (')}<bdi dir="auto">{error}</bdi>{').'}</div> : null}
       {preview && state !== 'loading' ? (
         <>
           {files.map((file, index) => <FilePreview key={`${file.file}-${index}`} file={file} locale={locale} />)}

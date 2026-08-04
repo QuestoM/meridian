@@ -4,6 +4,19 @@
 // count the editor already computed (programme start plus the dragged offset);
 // nothing is invented.
 
+import { weekdayName } from './day-board-model';
+
+// The lane's own label: the channel and the weekday of the ISO date the payload
+// carries. The wire's ``lane`` field is built server-side as "<channel> / %a", so
+// a Hebrew surface that printed it read רשת 13 / Fri. The date is the honest
+// source for a weekday, so the label is derived from it and the raw lane is kept
+// only when there is no date to derive from.
+export function laneLabel(channel, isoDate, fallback, locale) {
+  const named = weekdayName(isoDate, locale);
+  if (!channel || !named) return fallback || '';
+  return `${channel} / ${named}`;
+}
+
 // A break start rendered as a full HH:MM:SS clock. The wire data carries
 // minute-resolution start times, so an untouched break reads HH:MM:00 (its true
 // second), while a dragged break reads the exact snapped second (for example

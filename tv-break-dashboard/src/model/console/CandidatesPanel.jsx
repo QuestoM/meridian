@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Numeric } from '../../shell/format';
 import CandidateVerdict, { useCandidateDecision } from './CandidateVerdict';
-import { measureCandidate } from './console-api';
+import { measureCandidate, readSection } from './console-api';
 import { Absent, Figure, Money, Panel, RecordDrill } from './console-bits';
 import { pick, t } from './console-words';
 
@@ -16,6 +16,32 @@ import { pick, t } from './console-words';
 // and move no cell while the held-out figures under those flags have moved a
 // long way. Without it the screen reads "nothing decides differently", which is
 // a different and wrong piece of news.
+//
+// **The shelf follows the measurements it is showing.** Measured on the shipped
+// tree: the shelf was opened with two measurements in flight, the page read the
+// route once at open and never again, and 60 s after the store had recorded a
+// measured figure the screen still carried two blocks reading "the plan is being
+// computed twice". Leaving the section and returning read the truth, which
+// proved the store was right and only the screen was wrong. A measurement ends
+// on the server with no press behind it, so the only honest way for this screen
+// to learn about it is to ask again while one is open, and to stop asking the
+// moment none is. This is the money story's own screen, so a false state here
+// is a false state about shekels.
+
+// How long the shelf waits between two reads while a measurement is open. The
+// route answers warm in about 6 ms, measured on this tree, so this costs the
+// server nothing and bounds how stale the screen can be at a measurement's end.
+const WATCH_MS = 1500;
+
+// Whether a measurement is open, read from the payload the route serves and
+// never from anything this panel remembers about its own press. The signal is
+// the server's own flight register, which is what the route prints as a card's
+// money state, so a measurement started from another window is followed exactly
+// like one started here, and a measurement whose thread died with the server is
+// not followed for ever.
+function measurementIsOpen(payload) {
+  return (payload.candidates || []).some((row) => (row.money || {}).state === 'measuring');
+}
 
 // Which artifact a value came from, in words, on the value itself. It replaces
 // a connector between two bare values: a reader who lands on the second value
@@ -309,7 +335,40 @@ function CandidateCard({ candidate, index, total, locale, onMeasure, onDecide, b
 
 export default function CandidatesPanel({ payload, locale, onRefresh, onDecide, refreshKey }) {
   const [busy, setBusy] = useState(false);
-  const candidates = payload.candidates || [];
+  const [live, setLive] = useState(null);
+  const [lost, setLost] = useState(false);
+
+  // The console's own read is the authority. What the watch below reads only
+  // fills the gap between two of them, so a fresh payload from the console
+  // clears it rather than competing with it.
+  useEffect(() => { setLive(null); }, [payload]);
+
+  const shown = live || payload;
+  const watching = measurementIsOpen(shown);
+
+  // The watch: while a measurement is open the route is read again, and the
+  // moment none is open the reads stop. A read that does not answer stops the
+  // watch too and says so on the screen, because a screen that silently retries
+  // a dead route is the same lie in a slower form.
+  useEffect(() => {
+    if (!watching) return undefined;
+    let alive = true;
+    setLost(false);
+    const timer = setInterval(() => {
+      readSection('candidates').then((result) => {
+        if (!alive) return;
+        if (result.status === 'ok' && result.payload) {
+          setLive(result.payload);
+          return;
+        }
+        clearInterval(timer);
+        setLost(true);
+      });
+    }, WATCH_MS);
+    return () => { alive = false; clearInterval(timer); };
+  }, [watching]);
+
+  const candidates = shown.candidates || [];
   async function measure(id) {
     setBusy(true);
     await measureCandidate(id);
@@ -319,12 +378,22 @@ export default function CandidatesPanel({ payload, locale, onRefresh, onDecide, 
   return (
     <Panel
       title={t('candidates.title', locale)}
-      sub={<span dir="ltr">{payload.directory}</span>}
+      sub={<span dir="ltr">{shown.directory}</span>}
     >
+      {lost ? (
+        <p className="mc-note mc-candidate-watch">
+          {t('candidates.watch_lost', locale)}{' '}
+          <button type="button" className="mc-link" onClick={onRefresh}>
+            {t('candidates.watch_again', locale)}
+          </button>
+        </p>
+      ) : watching ? (
+        <p className="mc-note mc-candidate-watch">{t('candidates.watching', locale)}</p>
+      ) : null}
       {candidates.length === 0 ? (
         <Absent
           title={locale === 'en' ? 'No candidate artifacts on the shelf.' : 'אין קבצי מועמדים על המדף.'}
-          reason={pick(payload, 'measurement_cost', locale)}
+          reason={pick(shown, 'measurement_cost', locale)}
         />
       ) : (
         <ul className="mc-candidate-list">

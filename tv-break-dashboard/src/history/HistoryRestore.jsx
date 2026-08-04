@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
-import { Check, Pencil, RotateCcw, X } from 'lucide-react';
+import { Check, Lock, Pencil, RotateCcw, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import HistoryDiff from './HistoryDiff';
 import { fetchVersionDiff, renameVersion, restoreVersion } from './history-api';
@@ -14,12 +14,21 @@ import { FILE_LABELS, RESTORE_BLOCKS, SOURCE_LABELS, pair, stampLabel } from './
 // Reading and applying are separately permissioned. canEdit comes from the
 // endpoint's own can_edit, so the refusal a person reads before the click is
 // the string the server would send after it.
+//
+// That answer is per file as well as per surface, and the diff carries it. A
+// restore writes whole files, and two of the nine are company-only to write by
+// the front door: the settings document holds the audience model switch, the
+// four regulatory limits and the channel declaration, and the calendar refuses
+// a channel account on all three of its own write routes. So the control is
+// held until the diff lands rather than offered over permissions it has not
+// read, a file this account may not put back is shown with the exact refusal
+// the server would send, and the rest of the point stays restorable.
 
 export default function HistoryRestore({ entry, locale, canEdit, canEditReason, notify, onChanged }) {
   const facts = entry.facts || {};
   const versionId = String(facts.version_id || '');
   const files = Array.isArray(facts.files) ? facts.files.filter(Boolean) : [];
-  const [diff, setDiff] = useState({ state: 'loading', data: null, error: '' });
+  const [diff, setDiff] = useState({ state: 'loading', data: null, files: {}, error: '' });
   const [selected, setSelected] = useState(() => new Set(files));
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -27,20 +36,23 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
 
   useEffect(() => {
     let active = true;
-    setDiff({ state: 'loading', data: null, error: '' });
+    setDiff({ state: 'loading', data: null, files: {}, error: '' });
     setSelected(new Set(files));
     setLabel(facts.label || '');
     setEditing(false);
     fetchVersionDiff(versionId).then((result) => {
       if (!active) return;
-      if (result.ok) setDiff({ state: 'ready', data: result.data.diff || {}, error: '' });
-      else setDiff({ state: 'error', data: null, error: result.error });
+      if (result.ok) setDiff({ state: 'ready', data: result.data.diff || {}, files: result.data.file_permissions || {}, error: '' });
+      else setDiff({ state: 'error', data: null, files: {}, error: result.error });
     });
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [versionId]);
 
-  const chosen = files.filter((file) => selected.has(file));
+  const permitted = (file) => ((diff.files || {})[file] || {}).can_edit !== false;
+  const refusal = (file) => String((((diff.files || {})[file]) || {}).can_edit_reason || '');
+  const chosen = files.filter((file) => selected.has(file) && permitted(file));
+  const withheld = files.filter((file) => !permitted(file));
 
   const applyRestore = useCallback(async () => {
     setBusy(true);
@@ -121,16 +133,16 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
         <p className="hist-block" role="note" dir="auto">{canEditReason}</p>
       ) : null}
 
-      {facts.restorable !== false && canEdit ? (
+      {facts.restorable !== false && canEdit && diff.state === 'ready' ? (
         <div className="hist-restore-act">
           <span className="hist-detail-key">{pageText(locale, 'Put back', 'להחזיר')}</span>
           <div className="hist-restore-files">
             {files.map((file) => (
-              <label key={file} className="hist-file-opt">
+              <label key={file} className={permitted(file) ? 'hist-file-opt' : 'hist-file-opt blocked'}>
                 <input
                   type="checkbox"
-                  checked={selected.has(file)}
-                  disabled={busy}
+                  checked={selected.has(file) && permitted(file)}
+                  disabled={busy || !permitted(file)}
                   onChange={() => setSelected((current) => {
                     const next = new Set(current);
                     if (next.has(file)) next.delete(file);
@@ -139,9 +151,15 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
                   })}
                 />
                 {pair(FILE_LABELS, file, locale) || file}
+                {permitted(file) ? null : (
+                  <span className="hist-file-why" dir="auto"><Lock size={11} />{refusal(file)}</span>
+                )}
               </label>
             ))}
           </div>
+          {withheld.length ? (
+            <p className="hist-note" dir="auto">{pageText(locale, `${withheld.length} of these files are not this account's to put back, so they stay exactly as they are and the rest still come back.`, `${withheld.length} מהקבצים האלה אינם של החשבון הזה להחזרה, ולכן הם יישארו בדיוק כפי שהם והשאר יוחזרו.`)}</p>
+          ) : null}
           <p className="hist-note" dir="auto">{pageText(locale, 'The current state is saved as a restore point first, so this restore can itself be undone.', 'המצב הנוכחי נשמר קודם כנקודת שחזור, כך שאפשר לבטל גם את השחזור הזה.')}</p>
           <Button variant="contained" size="small" startIcon={<RotateCcw size={13} />} disabled={busy || !chosen.length} onClick={applyRestore}>
             {busy ? pageText(locale, 'Putting back', 'מחזיר') : pageText(locale, 'Put back', 'החזרה')}

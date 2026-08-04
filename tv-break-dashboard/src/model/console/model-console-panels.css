@@ -207,7 +207,27 @@
 .mc-blocked-date { font-size: var(--text-sm); color: var(--teal-ink); }
 .mc-blocked-date.mc-unknown { color: var(--subtle); }
 .mc-blocked-condition { margin: var(--space-2) 0 0; font-size: var(--text-sm); }
-.mc-blocked-evidence, .mc-blocked-source { margin: var(--space-1) 0 0; font-size: var(--text-2xs); color: var(--subtle); }
+.mc-blocked-evidence, .mc-blocked-source {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.mc-earliest { display: inline-flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; }
+.mc-earliest-label { color: var(--subtle); font-size: var(--text-2xs); }
+.mc-earliest-name { font-weight: var(--weight-semibold); }
+.mc-earliest-span { font-variant-numeric: tabular-nums; }
+
+.mc-blocked-count { white-space: nowrap; }
+.mc-blocked-count .numeric { font-weight: var(--weight-semibold); color: var(--ink); }
+.mc-blocked-open { display: inline-flex; gap: var(--space-2); align-items: baseline; text-align: start; }
+.mc-blocked-open code { font-size: var(--text-2xs); }
+.mc-blocked-supply { color: var(--muted); }
+.mc-variances { display: inline-flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; }
 
 .mc-week-strip { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4); flex-wrap: wrap; }
 .mc-week-caption { font-size: var(--text-2xs); color: var(--subtle); align-self: center; }
@@ -291,6 +311,15 @@
 .mc-flags-label { font-size: var(--text-2xs); color: var(--subtle); }
 .mc-flag { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); }
 .mc-flag select { font: inherit; font-size: var(--text-xs); padding: 1px var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); }
+
+/* The line that says the panel is following an open run, and the line that says
+   it stopped. Both sit above the run list, so they carry the list's own inline
+   padding rather than starting at the panel edge. */
+.mc-run-watch { margin: 0; padding: var(--space-3) var(--space-4) 0; }
+
+/* The same two lines on the candidate shelf, where what is being followed is a
+   money measurement rather than a training run. */
+.mc-candidate-watch { margin: 0; padding: var(--space-3) var(--space-4) 0; }
 
 .mc-run { border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); }
 .mc-run-head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
