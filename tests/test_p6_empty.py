@@ -47,6 +47,7 @@ from fastapi.testclient import TestClient
 import kairos_api.uploads as uploads
 import kairos_api.uploads_empty as uploads_empty
 import kairos_api.uploads_inputs as uploads_inputs
+import kairos_api.uploads_remedy as uploads_remedy
 import kairos_api.uploads_status as uploads_status
 from kairos.data.loaders import DAILY_COLUMN_MAP
 
@@ -197,6 +198,12 @@ def test_no_line_this_refusal_quotes_leaves_the_place_slot_empty(isolated: TestC
 
 # --- the second shape: rows the engine reads and cannot fully read -------------
 
+# How many warnings ride on a file, in the words each language counts them with.
+# Spelled out rather than read off the table under test, which would assert only
+# that a function agrees with itself.
+ONE_WARNING = {"en": "1 warning", "he": "אזהרה אחת"}
+TWO_WARNINGS = {"en": "2 warnings", "he": "2 אזהרות"}
+
 
 def daily_bytes(*, clock: str = "18:01:00", date_value: str = "4/27/2025", rows: int = 20) -> bytes:
     """A daily export with real rows, and whatever clock or date is under test.
@@ -257,6 +264,30 @@ def as_the_card_renders(body: dict, locale: str) -> dict:
     return json.loads(result.stdout)
 
 
+def as_the_chip_renders(entry: dict) -> str:
+    """The tone the shipped card gives this input's state chip.
+
+    Same contract as the function above: ``sources-findings.js`` is run as
+    itself over a real status entry, so what comes back is the tone the chip
+    really carries and not a restatement of the rule.
+    """
+    if NODE is None:
+        pytest.skip("node is not on this machine, so the shipped rendering modules cannot be run")
+    script = (
+        f"import {{ stateTone }} from {json.dumps(FINDINGS_URL)};\n"
+        "let raw = ''; for await (const chunk of process.stdin) raw += chunk;\n"
+        "process.stdout.write(stateTone(JSON.parse(raw)));\n"
+    )
+    result = subprocess.run(
+        [NODE, "--input-type=module", "--eval", script],
+        input=json.dumps(entry),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout
+
+
 def test_the_door_names_a_warning_on_the_file_the_engine_will_read(isolated: TestClient) -> None:
     """The measured screen: 20 of 20 rows carrying a clock the loader cannot read.
 
@@ -282,7 +313,11 @@ def test_the_door_names_a_warning_on_the_file_the_engine_will_read(isolated: Tes
         # operator's file has a column it does not have, in both languages.
         assert "שעה" in sentence, f"the field the warning is about is unnamed in {locale}"
         assert "spot_time" not in sentence, f"a name no daily export carries is in the {locale} sentence"
-        assert "1" in sentence, f"how many warnings ride on this file is unstated in {locale}"
+        # Counted the way each language counts one of a thing. The sentence read
+        # "1 warning(s)" before, which is a developer's shorthand on a card an
+        # operator reads, and the Hebrew read "warnings, 1 in number".
+        assert ONE_WARNING[locale] in sentence, f"how many warnings ride on this file is unstated in {locale}"
+        assert "(s)" not in sentence, f"the {locale} sentence counts in a developer's shorthand"
     assert HEBREW.search(body["consequence"]["he"]), "the outcome is named in English only"
 
 
@@ -326,7 +361,7 @@ def test_no_candidate_carrying_a_warning_renders_the_plain_pass(isolated: TestCl
     both = warned["both at once"][0]["consequence"]
     assert both["code"] == "replaces_live_input_with_warnings"
     for locale in ("en", "he"):
-        assert "2" in both[locale], f"two warnings were counted as something else in {locale}"
+        assert TWO_WARNINGS[locale] in both[locale], f"two warnings were counted as something else in {locale}"
         # Named as the operator's own export names them, and never as the loader
         # renamed them: a file whose header row says otherwise cannot be fixed.
         for column in ("שעה", "תאריך"):
@@ -357,3 +392,47 @@ def test_what_the_door_says_about_a_warned_file_is_what_the_commit_says(isolated
     # What the door predicted really happened: the file is the live input now,
     # and the warning it carried is what every figure from it now rests on.
     assert (entry["state"], entry["rows"]) == ("in_use", 20), "the file the door described is not the live input"
+
+
+def test_the_card_over_a_committed_warned_file_is_not_nothing_to_do(isolated: TestClient) -> None:
+    """The screen after the click, which is where this outcome ends up living.
+
+    The door now names the warning before the commit. The card the operator
+    lands on afterwards is the same question one screen later: the engine really
+    does read that file and it really does carry rows, so ``in_use`` is the
+    right word for it, and "nothing to do" is the wrong sentence over a live
+    input from which no spot has a clock. The state is unchanged and the remedy
+    and the chip are not, and both are read here off the shipped modules.
+    """
+    clean = isolated.post(
+        "/api/uploads/daily", files={"file": ("Wally_2026-08-08.csv", daily_bytes(), "text/csv")}
+    )
+    assert clean.status_code == 200, clean.text
+    before = next(
+        item for item in isolated.get("/api/uploads/status").json()["inputs"] if item["kind"] == "daily"
+    )
+    # The control, and the reason this cannot be satisfied by turning every live
+    # card amber: a clean file that the engine reads still reads as one.
+    assert (before["state"], before["remedy"]["code"]) == ("in_use", "in_use")
+    assert as_the_chip_renders(before) == "ok", "a clean live input lost its clean chip"
+
+    warned = isolated.post(
+        "/api/uploads/daily",
+        files={"file": ("Wally_2026-08-09.csv", daily_bytes(clock="99:99:99"), "text/csv")},
+    )
+    assert warned.status_code == 200, warned.text
+    entry = next(
+        item for item in isolated.get("/api/uploads/status").json()["inputs"] if item["kind"] == "daily"
+    )
+    assert entry["state"] == "in_use", "the engine does read this file, and the state says so"
+    assert entry["remedy"]["code"] == "in_use_with_warnings", "the card still says there is nothing to do"
+    for locale in ("en", "he"):
+        sentence = entry["remedy"][locale]
+        assert ONE_WARNING[locale] in sentence, f"how many warnings the live file carries is unstated in {locale}"
+        assert "שעה" in sentence, f"the field the warning is about is unnamed in {locale}"
+        assert sentence != uploads_remedy.REMEDIES["in_use"][locale], f"the {locale} remedy is the plain one"
+    assert HEBREW.search(entry["remedy"]["he"]), "the remedy reaches a Hebrew screen in English"
+    assert as_the_chip_renders(entry) == "warn", "the chip over an unreadable live input is still teal"
+    # A reader that renders the warnings and nothing else sees it too, which is
+    # the rule this payload already follows for the shadowed and the empty state.
+    assert any(ONE_WARNING["en"] in line for line in entry["warnings"]), "the warning list says nothing about it"

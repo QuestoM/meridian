@@ -117,11 +117,57 @@ def test_no_rival_channel_reaches_the_payload_the_browser_holds(verdict, rivals)
         assert name not in body, f"{name} is not this operator's channel and may not reach its screen"
 
 
-def test_every_violation_names_the_operators_own_channel(verdict, channel):
-    violations = verdict["violations"]
-    assert violations, "the plan as it stands breaches at least one limit, or this proves nothing"
-    for violation in violations:
+def test_the_violations_served_are_the_frozen_verdict_over_the_owned_breaks(verdict, geometry, channel):
+    """Whatever the plan breaches today, the list served is one channel's."""
+    from kairos_api.core import _load_settings
+    from kairos_api.plan_read_guardrails import guardrail_compliance_from_breaks
+
+    own = [item for item in geometry if str(item.channel).strip() == channel]
+    expected = guardrail_compliance_from_breaks(own, _load_settings())["violations"]
+    assert verdict["violations"] == expected
+    for violation in verdict["violations"]:
         assert str(violation["scope"]).startswith(channel), violation["scope"]
+
+
+def test_under_a_limit_that_bites_the_market_names_rivals_and_the_operators_own_does_not(
+    geometry, channel, rivals,
+):
+    """The defect reproduced from the data rather than from today's limits.
+
+    The plan on disk breaches nothing as it stands: every channel's worst break
+    retains 85.1 percent against a floor of 82, so both populations return an
+    empty violation list and an assertion about their contents would prove
+    nothing. When it did breach, 200 violations reached the operator's browser
+    and 136 of them named a rival.
+
+    So the floor is raised here, in memory, to the point where both populations
+    breach, and the same raised floor grades each of them. Nothing on disk moves
+    and no figure from this probe reaches a screen. What it measures is whose
+    breaks each population is able to name.
+    """
+    import heapq
+
+    from kairos_api.core import _load_settings
+    from kairos_api.plan_read_guardrails import guardrail_compliance_from_breaks
+
+    own_items = [item for item in geometry if str(item.channel).strip() == channel]
+    rival_items = [item for item in geometry if str(item.channel).strip() != channel]
+    depth = 25
+    floor = max(
+        heapq.nsmallest(depth, [item.retention for item in own_items])[-1],
+        heapq.nsmallest(depth, [item.retention for item in rival_items])[-1],
+    )
+    probe = _load_settings().model_copy(update={"min_retention_floor": min(floor + 1e-9, 1.0)})
+
+    market = guardrail_compliance_from_breaks(list(geometry), probe)["violations"]
+    own = guardrail_compliance_from_breaks(own_items, probe)["violations"]
+    assert market and own, "the raised floor has to make both populations breach, or this proves nothing"
+
+    named = sorted({name for row in market for name in rivals if str(row["scope"]).startswith(name)})
+    assert named, "grading the market names rivals in the payload, which is what the scoped route stops"
+    assert all(str(row["scope"]).startswith(channel) for row in own), (
+        "the same limit over the operator's own breaks can only name the operator's own channel"
+    )
 
 
 def test_the_attestation_signs_the_same_scoped_verdict(client, verdict):
@@ -160,15 +206,54 @@ def test_with_no_channel_declared_nothing_is_judged_and_the_route_is_named(clien
     assert body["profile"] and body["effective_date"] and body["source_url"]
 
 
-def test_the_unscoped_builder_still_grades_the_market_which_is_what_this_closes(geometry, rivals):
-    """The measurement that made this a finding, kept as the proof it was real."""
-    from kairos_api import plan_read_compliance
-    from kairos_api.core import _load_break_schedule, _load_settings
+# Each figure is an extreme over its population, so grading a superset can only
+# move it one way. A maximum cannot fall when breaks are added and a minimum
+# cannot rise, which is what makes the direction below a real invariant rather
+# than a restatement of today's numbers.
+MARKET_SIDE = {
+    "hourly_ad_load": "at_least",
+    "break_density": "at_least",
+    "retention_floor": "at_most",
+    "protected_programs": "at_least",
+    "break_spacing": "at_most",
+    "daily_ad_load": "at_least",
+    "gold_breaks": "at_least",
+}
 
-    unscoped = plan_read_compliance.build_compliance(_load_break_schedule(), _load_settings())
-    body = json.dumps(unscoped, ensure_ascii=False)
-    named = [name for name in rivals if name in body]
-    assert named, (
-        "the frozen builder grades the whole market, so its payload names rivals; if this ever "
-        "stops being true the scoping above has become a no-op and should be re-measured"
+
+def test_the_market_verdict_is_a_different_population_and_the_route_serves_the_smaller_one(
+    verdict, geometry, channel,
+):
+    """The finding was the population, so the population is what this pins.
+
+    Measured on the plan as it stands: the market grades 8,449 breaks over four
+    channels and the route grades 2,344 over one, and two of the seven figures
+    move with the population, protected programme ad load 8.0 against 4.0 and
+    minimum break spacing 7.0 against 7.01. The direction of every figure is
+    asserted rather than its value, because a maximum over a superset cannot be
+    smaller and a minimum cannot be larger, so a scoping that silently became a
+    no-op would put a market figure on the operator's card and fail here. What
+    is asserted exactly is the other end: every figure served equals the frozen
+    verdict over the operator's own breaks, which is true whatever the plan says.
+    """
+    from kairos_api.core import _load_settings
+    from kairos_api.plan_read_guardrails import guardrail_compliance_from_breaks
+
+    settings = _load_settings()
+    market = guardrail_compliance_from_breaks(list(geometry), settings)
+    own = guardrail_compliance_from_breaks(
+        [item for item in geometry if str(item.channel).strip() == channel], settings,
     )
+    assert len(geometry) > verdict["graded_breaks"], "the plan carries more than this operator's channel"
+
+    served = {check["id"]: check["observed"] for check in verdict["checks"]}
+    whole = {check["id"]: check["observed"] for check in market["checks"]}
+    assert set(served) == set(whole) == set(MARKET_SIDE)
+    assert served == {check["id"]: check["observed"] for check in own["checks"]}, (
+        "every figure on the card is the verdict over the operator's own breaks and nobody else's"
+    )
+    for check_id, side in MARKET_SIDE.items():
+        if side == "at_least":
+            assert whole[check_id] >= served[check_id], check_id
+        else:
+            assert whole[check_id] <= served[check_id], check_id

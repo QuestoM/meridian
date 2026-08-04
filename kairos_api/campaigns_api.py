@@ -186,7 +186,11 @@ def _weekday_scope(value: Any) -> str:
 
 
 def _refuse_duplicate(frame: Any, name: str, advertiser: str, campaign_id: str) -> None:
-    """One advertiser cannot hold two campaigns of the same name."""
+    """One advertiser cannot hold two campaigns of the same name.
+
+    The sentence says to open the one that already holds the name, so it carries
+    that campaign's id as the address of the record it names.
+    """
     for _, row in frame[frame["record_type"].astype(str) == store.CAMPAIGN].iterrows():
         held = str(row.get("campaign_id", ""))
         if held == campaign_id:
@@ -198,6 +202,7 @@ def _refuse_duplicate(frame: Any, name: str, advertiser: str, campaign_id: str) 
                 409,
                 f"'{advertiser}' already has a campaign named '{name}', as {held}. Open that one instead of booking a second.",
                 f"ל⁦{advertiser}⁩ כבר יש קמפיין בשם ⁦{name}⁩, שמספרו ⁦{held}⁩. פתחו אותו במקום להזמין קמפיין שני.",
+                opens={"kind": "campaign", "id": held},
             )
 
 
@@ -254,6 +259,7 @@ def create_campaign_row(payload: CampaignCreate, request: "Request | None") -> d
                 409,
                 f"Campaign '{campaign_id}' already exists",
                 f"הקמפיין ⁦{campaign_id}⁩ כבר קיים",
+                opens={"kind": "campaign", "id": campaign_id},
             )
         _refuse_duplicate(frame, payload.name.strip(), payload.advertiser.strip(), campaign_id)
         frame = store.append(frame, _campaign_row(payload, campaign_id, _actor(request)))

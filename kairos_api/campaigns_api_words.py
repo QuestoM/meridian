@@ -93,7 +93,12 @@ def field_words(field: str) -> tuple[str, str]:
     return FIELD_WORDS.get(str(field), (str(field), str(field)))
 
 
-def refuse(status_code: int, message_en: str, message_he: str) -> HTTPException:
+def refuse(
+    status_code: int,
+    message_en: str,
+    message_he: str,
+    opens: dict[str, str] | None = None,
+) -> HTTPException:
     """One refusal, carried in both languages the way every read sentence is.
 
     The reads on this destination already cross the wire as ``*_en`` and
@@ -101,11 +106,19 @@ def refuse(status_code: int, message_en: str, message_he: str) -> HTTPException:
     Hebrew flow as an English sentence, which is a refusal the person it is
     addressed to cannot act on. ``detail`` is the pair, so the surface picks the
     reader's language instead of printing the one the code was written in.
+
+    ``opens`` is the address of the record the sentence names, as
+    ``{"kind": "campaign" | "agency", "id": "..."}``. Two refusals here tell the
+    reader to open a record that already exists and neither said where it was, so
+    the sentence named a place and gave no way to it. The address travels with
+    the refusal rather than being parsed back out of the prose, and it is absent
+    from ``detail`` entirely when the refusal names no record, so a surface can
+    never grow a control that opens nothing.
     """
-    return HTTPException(
-        status_code=status_code,
-        detail={"message_en": message_en, "message_he": message_he},
-    )
+    detail: dict[str, Any] = {"message_en": message_en, "message_he": message_he}
+    if opens and opens.get("kind") and opens.get("id"):
+        detail["opens"] = {"kind": str(opens["kind"]), "id": str(opens["id"])}
+    return HTTPException(status_code=status_code, detail=detail)
 
 
 def choice_words(allowed: tuple[str, ...], locale: str) -> str:

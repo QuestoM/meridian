@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { UserPlus } from 'lucide-react';
-import { pageText } from '../shell/format';
 import { WALLS, fetchSession, payloadCanEdit } from '../session';
 import { AdvertiserRecordsPanel } from './AdvertiserRecordsPanel';
 import { AgencyRecordsPanel } from './AgencyRecordsPanel';
@@ -8,6 +6,7 @@ import CampaignBoard from './CampaignBoard';
 import CampaignRollupPanel from './CampaignRollupPanel';
 import ClientRecord from './ClientRecord';
 import ClientTree from './ClientTree';
+import { ClientsHeader, ClientsLoadFailure, ClientsViewStrip, VIEW_LABELS } from './ClientsChrome';
 import MoneyBoard from './MoneyBoard';
 import OnboardClientFlow from './OnboardClientFlow';
 import {
@@ -53,14 +52,6 @@ import './clients-rule-card.css';
 // A navigation entry names the view it opens on, and it wins over the view the
 // control last stored, or pressing an entry would leave the previous panel on
 // screen while the chrome moved. Only an address someone supplied outranks it.
-
-const VIEW_LABELS = [
-  { key: 'clients', en: 'Clients', he: 'לקוחות' },
-  { key: 'money', en: 'Money', he: 'כסף' },
-  { key: 'campaigns', en: 'Campaigns', he: 'קמפיינים' },
-  { key: 'advertisers', en: 'Pricing rules', he: 'כללי תמחור' },
-  { key: 'agencies', en: 'Agency records', he: 'כרטיסי סוכנות' },
-];
 
 export default function ClientsWorkspace({
   view = 'clients',
@@ -291,56 +282,9 @@ export default function ClientsWorkspace({
 
   return (
     <section className="page-workspace clients-workspace" dir={he ? 'rtl' : 'ltr'}>
-      <div className="page-header">
-        <div>
-          <h1>{pageText(locale, 'Clients', 'לקוחות')}</h1>
-          <p>
-            {pageText(
-              locale,
-              'Agencies, the clients that buy through them, the campaigns booked under each client, and what every one of them delivered.',
-              'סוכנויות, הלקוחות שקונים דרכן, הקמפיינים שהוזמנו תחת כל לקוח, ומה כל אחד מהם סיפק.',
-            )}
-          </p>
-        </div>
-        {gate.canEdit ? (
-          <button type="button" className="clients-primary" onClick={() => setOnboarding({})}>
-            <UserPlus size={14} aria-hidden="true" />
-            {pageText(locale, 'Onboard a client', 'קליטת לקוח')}
-          </button>
-        ) : (
-          <p className="clients-refusal">{gate.reason}</p>
-        )}
-      </div>
-
-      <nav className="clients-views" role="tablist" aria-label={pageText(locale, 'Clients views', 'תצוגות לקוחות')}>
-        {VIEW_LABELS.map((entry) => (
-          <button
-            key={entry.key}
-            type="button"
-            role="tab"
-            aria-selected={entry.key === active}
-            className={entry.key === active ? 'active' : ''}
-            onClick={() => setActive(entry.key)}
-          >
-            {pageText(locale, entry.en, entry.he)}
-          </button>
-        ))}
-      </nav>
-
-      {failed && failed.length > 0 ? (
-        <div className="clients-error" role="alert">
-          <p>
-            {pageText(
-              locale,
-              `These sections failed to load: ${failed.map((s) => s.en).join(', ')}. What is missing is a failure, not an empty result.`,
-              `הקטעים הבאים לא נטענו: ${failed.map((s) => s.he).join(', ')}. מה שחסר הוא כשל, לא תוצאה ריקה.`,
-            )}
-          </p>
-          <button type="button" className="clients-retry" onClick={reload}>
-            {pageText(locale, 'Try again', 'נסה שוב')}
-          </button>
-        </div>
-      ) : null}
+      <ClientsHeader locale={locale} gate={gate} onOnboard={() => setOnboarding({})} />
+      <ClientsViewStrip locale={locale} active={active} onSelect={setActive} />
+      <ClientsLoadFailure locale={locale} failed={failed} onRetry={reload} />
 
       <div className="clients-body">
         <div className="clients-main">

@@ -341,8 +341,10 @@ export {
   EFFECT_LIST,
   effectLabel,
   limitLabel,
+  nothingToSaveSentence,
   refusalSentence,
   unitLabel,
+  widerScopeSentence,
 } from './rules-words';
 
 // Deep-merge one rate-card patch onto a draft, the same shape the server

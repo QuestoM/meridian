@@ -98,7 +98,7 @@ def payload() -> dict:
     return body
 
 
-def _render(tmp_path: Path, body: dict, source: str) -> dict:
+def _render(tmp_path: Path, body: dict, source: str, dead_end: dict | None = None) -> dict:
     node = _node()
     work = tmp_path / "surface"
     work.mkdir(parents=True, exist_ok=True)
@@ -107,13 +107,12 @@ def _render(tmp_path: Path, body: dict, source: str) -> dict:
     airings_file = work / "airings.json"
     airings_file.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
     out = work / "out.json"
-    result = subprocess.run(
-        [node, str(PROBE), str(work / "bundle"), str(out), str(under_test), str(airings_file)],
-        capture_output=True,
-        text=True,
-        check=False,
-        cwd=str(work),
-    )
+    command = [node, str(PROBE), str(work / "bundle"), str(out), str(under_test), str(airings_file)]
+    if dead_end is not None:
+        dead_end_file = work / "dead-end.json"
+        dead_end_file.write_text(json.dumps(dead_end, ensure_ascii=False), encoding="utf-8")
+        command.append(str(dead_end_file))
+    result = subprocess.run(command, capture_output=True, text=True, check=False, cwd=str(work))
     assert result.returncode == 0, result.stderr[-2000:]
     return json.loads(out.read_text(encoding="utf-8"))
 
@@ -137,10 +136,52 @@ def _nights(rendered: dict, locale: str) -> list[dict]:
 
 
 @pytest.fixture(scope="module")
-def shipped(tmp_path_factory, payload) -> dict:
+def dead_end(payload) -> dict:
+    """A night the plan already keeps clean, and the same rule over the whole run.
+
+    Derived rather than fixed. A window rule compiles one store row per airing
+    that breaches it, so a night the plan already keeps clean compiles nothing
+    and the save has nothing to write. Which nights those are is a fact about
+    the plan of the day, so the composer's own draft is priced night by night
+    until one of them lands in that state.
+    """
+    from kairos_api.constraints import router
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    def price(day: str) -> dict:
+        conditions = [{"field": "programme", "operator": "is", "value": PROGRAMME}]
+        if day:
+            conditions.append({"field": "date", "operator": "is", "value": day})
+        response = client.post(
+            "/api/constraints/restrictions/preview",
+            json={
+                "kind": "clean_tail",
+                "params": {"protected_minutes": 8},
+                "where": {"combinator": "and", "conditions": conditions},
+            },
+        )
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    wider = price("")
+    if not wider["compiled_rows"]:
+        pytest.skip("no airing of this programme breaches an eight minute tail as the plan stands")
+    for night in payload["nights"]:
+        priced = price(night["day"])
+        if not priced["compiled_rows"]:
+            return {"night": night["day"], "wider": wider, "night_preview": priced}
+    pytest.skip("every night of this programme breaches this rule as the plan stands")
+    return {}
+
+
+@pytest.fixture(scope="module")
+def shipped(tmp_path_factory, payload, dead_end) -> dict:
     source = NIGHTS.read_text(encoding="utf-8")
     assert WHOLE_LIST in source, "the render under test is not in the shipped component any more"
-    return _render(tmp_path_factory.mktemp("shipped"), payload, source)
+    return _render(tmp_path_factory.mktemp("shipped"), payload, source, dead_end=dead_end)
 
 
 def test_the_payload_this_renders_is_the_case_that_could_not_be_said(payload):
@@ -267,6 +308,43 @@ def test_the_composer_hands_the_whole_night_list_over(shipped):
     assert ".slice(0, 12)" not in source, "the cap is gone from the composer"
     for locale in ("he", "en"):
         assert "rules-composer" in shipped["composer"][locale], "and the composer still renders"
+
+
+def test_a_night_the_plan_keeps_clean_says_so_and_offers_the_rule_that_does_bind(shipped, dead_end):
+    """Naming a night is only half the story if naming it shuts the save.
+
+    A window rule derives one store row per airing that breaches it, so a night
+    the plan already keeps clean compiles nothing and there is nothing to store.
+    Measured on the plan as it stands: 7 of the 19 nights of this programme
+    breach an eight minute tail, so the other 12 end on a shut button. The note
+    states what that night does, states what the whole run does, and offers the
+    rule that can be written, all from the preview route's own figures.
+    """
+    night = dead_end["night"]
+    assert dead_end["night_preview"]["compiled_rows"] == 0, "the night under test has to be the dead end"
+    breaching = dead_end["wider"]["compiled_rows"]
+    matched = dead_end["wider"]["matched_airings"]
+    assert 0 < breaching < matched, "and the whole run has to breach it, or there is no way out to offer"
+    for locale in ("he", "en"):
+        html = shipped["widen"][locale]
+        words = TEXT.sub(" ", html)
+        assert night in words, f"the note has to name the night that was chosen, {night}"
+        assert str(breaching) in words and str(matched) in words, words
+        assert "rules-widen-action" in html, "and it has to offer the wider rule as an act"
+    assert "שום דבר בחלון התוכנית" not in shipped["widen"]["he"], (
+        "with a night named, the note is about that night and not about the window"
+    )
+
+
+def test_the_composer_routes_its_empty_state_through_that_note(shipped):
+    """The note cannot help anybody if the composer still prints the old line."""
+    source = COMPOSER.read_text(encoding="utf-8")
+    assert "<WiderScopeNote" in source
+    assert "Nothing in the plan window breaks this rule" not in source, (
+        "the whole-window sentence moved into the note, which says it only when no night is named"
+    )
+    for locale in ("he", "en"):
+        assert shipped["widen"][locale], "and the note renders in both languages"
 
 
 def test_with_the_cap_back_the_same_picker_hides_the_last_night(tmp_path, payload):

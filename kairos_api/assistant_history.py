@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from kairos_api import assistant_claimed_action as claimed
 from kairos_api import assistant_memory
 from kairos_api import assistant_protocol_text as protocol_text
 
@@ -28,11 +29,25 @@ HISTORY_MAX_EXCHANGES = 6
 HISTORY_CHAR_BUDGET = 12000
 ANSWER_REPLAY_CHARS = 2000
 ANSWER_TRUNCATION_MARKER = "[earlier answer shortened]"
+# What replaces a sentence that told the person a change was waiting for their
+# approval on a turn that recorded none. It states the fact rather than deleting
+# it silently, and it is English like every other replay marker because it is
+# addressed to the model and not to a person.
+#
+# It is worded to carry neither word the rule keys on, which a first draft did
+# not and a test caught: a marker that trips the very rule it serves would be
+# read as a fresh claim by the recovery turn and struck on screen by the
+# surface. Nothing else about it is subtle, so the constraint is stated here
+# rather than left for the next person to rediscover.
+CLAIM_REMOVAL_MARKER = (
+    "[a sentence was cut from this earlier answer: it told the person a change was waiting for "
+    "their approval, and that turn had recorded nothing]"
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _replay_answer(answer: str) -> str:
+def _replay_answer(answer: str, backed: bool | None = None) -> str:
     """The stored answer capped for replay, cut with an explicit marker.
 
     Any tool-call protocol an older answer carries is cut first. A stored
@@ -41,8 +56,25 @@ def _replay_answer(answer: str) -> str:
     keep re-teaching itself for as long as the conversation lives. An answer
     that was nothing but protocol becomes empty here and the caller drops the
     exchange entirely.
+
+    A false claim re-teaches itself exactly the same way, and this one was
+    measured. In this repository's own stored thread ``697dabafa588`` seven of
+    the first eight answers open with ``רשמתי שתי הצעות שממתינות לאישורך``, and
+    two of them (entries 2 and 6) carry ``batch_id`` null: nothing was recorded
+    on those turns. A blind critic then measured the same sentence coming back
+    on 1 of 3 asks inside that conversation against 0 of 4 in fresh ones, which
+    is what a model does with six examples of its own voice saying it. So an
+    answer replayed with no batch behind it and a claim inside it loses the
+    claiming SENTENCES only: the figures, the reasoning and the offer that
+    shared the paragraph with it are the operator's context and stay.
+
+    ``backed`` is a tri-state read of the stored entry, never a guess. True is a
+    batch id, False is an explicit null, and None is a stored shape that carries
+    no such field at all, which is left exactly as it was written.
     """
     answer = protocol_text.strip_tool_protocol(answer)
+    if backed is False and claimed.claims_recorded_proposal(answer):
+        answer = f"{claimed.without_claims(answer)} {CLAIM_REMOVAL_MARKER}".strip()
     if len(answer) <= ANSWER_REPLAY_CHARS:
         return answer
     return answer[:ANSWER_REPLAY_CHARS].rstrip() + " " + ANSWER_TRUNCATION_MARKER
@@ -65,7 +97,11 @@ def _window(entries: list[dict[str, Any]]) -> list[tuple[str, str]]:
         if not isinstance(question, str) or not isinstance(answer, str):
             continue
         question = question.strip()
-        answer = _replay_answer(answer.strip())
+        # The stored proof, tri-state: a batch id means that turn really did
+        # record a proposal, an explicit null means it did not, and an entry
+        # written by a shape that never carried the field means unknown.
+        backed = bool(entry.get("batch_id")) if "batch_id" in entry else None
+        answer = _replay_answer(answer.strip(), backed)
         if not question or not answer:
             continue
         cost = len(question) + len(answer)

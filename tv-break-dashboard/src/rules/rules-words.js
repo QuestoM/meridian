@@ -55,6 +55,29 @@ export function refusalSentence(reason, locale) {
   return REFUSALS_EN.get(text) || text;
 }
 
+// A rule the plan does not breach compiles to no row, so there is nothing to
+// store and the save stays shut. Said plainly, and said about the night that was
+// chosen rather than about the whole window, because the two are different facts
+// and only one of them is true when a single night is named.
+export function nothingToSaveSentence(locale, night) {
+  if (!night) {
+    if (locale === 'he') return 'שום דבר בחלון התוכנית אינו מפר את הכלל הזה, ולכן אין מה לשמור בשלב זה.';
+    return 'Nothing in the plan window breaks this rule, so there is nothing to save yet.';
+  }
+  if (locale === 'he') return `אף שידור ביום ${night} אינו מפר את הכלל הזה במצב התוכנית הנוכחי, ולכן אין מה לשמור.`;
+  return `No airing on ${night} breaks this rule as the plan stands, so there is nothing to save.`;
+}
+
+// And the way out of that, when there is one. The same sentence priced again
+// with the night dropped says whether the run as a whole breaches it, so the
+// dead end becomes the one rule that can be saved instead of a shut button.
+export function widerScopeSentence(locale, breaching, matched) {
+  const rules = Number(breaching) || 0;
+  const all = Number(matched) || 0;
+  if (locale === 'he') return `על פני כל הריצה, ${rules} מתוך ${all} שידורי התוכנית כן מפרים אותו.`;
+  return `Across the whole run, ${rules} of the programme's ${all} airings do break it.`;
+}
+
 // The four regulatory limits, named the way the person accountable for them
 // says them. The store keys are engine words and a compliance owner never has
 // to read one: the limit list, the change log and the attestation all read

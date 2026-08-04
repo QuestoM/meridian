@@ -29,7 +29,7 @@
 // The verdict over an accepted file is here for the same reason: it is a rule
 // and not a layout, so a test runs it exactly as the card does.
 
-import { SCOPE_LABELS, label } from './sources-copy.js';
+import { SCOPE_LABELS, STATE_TONE, label } from './sources-copy.js';
 
 // The tokens a finding can still arrive with in place of a column: from a
 // report stored before the door sent a scope, and from the frozen data
@@ -118,6 +118,18 @@ export function acceptedVerdict(check) {
   const { lost, interpreted } = warningEffects(check && check.findings);
   const heading = lost ? 'acceptedWarned' : (interpreted && 'acceptedRead') || WARNED_HEADINGS[code] || '';
   return heading ? { heading, tone: 'warn' } : { heading: 'accepted', tone: 'ok' };
+}
+
+// The tone the state chip carries. The state itself is the server's word and it
+// stays the server's word: a live file the engine reads that carries rows IS in
+// use. What the chip may not do is read as a clean pass when the server's own
+// remedy for that card says the last check of that same file came back with a
+// warning. This is the third place the same rule lands, after the door's verdict
+// and the card's remedy, and it is the one an eye reaches first.
+export function stateTone(input) {
+  const remedy = String(((input && input.remedy) || {}).code || '');
+  if (remedy === 'in_use_with_warnings') return 'warn';
+  return STATE_TONE[String((input && input.state) || 'missing')] || 'muted';
 }
 
 // The findings worth a line, each with the chip it prints and the sentence it

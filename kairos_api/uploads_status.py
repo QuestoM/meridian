@@ -50,6 +50,16 @@ the airing date that decides between them. The pair is now derived together, and
 :mod:`tests.test_p6_state` sweeps every card for a pair that carries both
 claims.
 
+**And a remedy may not disagree with the file's own last check.** ``in_use`` is
+the right word for a live file the engine reads that carries rows, and "nothing
+to do" is the wrong sentence over one whose last check came back with a warning.
+Measured: committing the daily log whose 20 of 20 rows carried an unreadable
+clock left exactly that card. The state is unchanged, because the engine does
+read that file; the remedy names the count and the field instead.
+
+Every sentence any of this is said in lives in :mod:`kairos_api.uploads_remedy`,
+split there at the 450-line law and by subject: derivation here, words there.
+
 **The model version and its tri-state freshness** is
 :mod:`kairos_api.uploads_model`, read here for one fact only: whether the file
 this kind is read from is one the version was measured on.
@@ -66,7 +76,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from kairos_api import read_cache, uploads_channels, uploads_checks, uploads_model, uploads_replay
+from kairos_api import (
+    read_cache,
+    uploads_channels,
+    uploads_checks,
+    uploads_model,
+    uploads_remedy,
+    uploads_replay,
+)
 
 # The per-file shape, keyed on file signatures, so a changed file is a changed
 # fingerprint and a stale answer cannot be served.
@@ -97,110 +114,11 @@ CONSEQUENCES = (
 # it; a cap that hides a number is how a card starts lying by omission.
 STORED_LIST_CAP = 6
 
-_REMEDIES: dict[str, dict[str, str]] = {
-    "in_use": {
-        "en": "Nothing to do. Upload a new file when the next one lands, then run the plan.",
-        "he": "אין מה לעשות. העלו קובץ חדש כשיגיע הבא, ואז הריצו את התוכנית.",
-    },
-    "shadowed": {
-        "en": "Remove the file the engine reads first, or keep uploading here and the plan will not change.",
-        "he": "הסירו את הקובץ שהמנוע קורא קודם, או המשיכו להעלות כאן והתוכנית לא תשתנה.",
-    },
-    # The same state, and not the same news. The one above is a kind another
-    # file is read INSTEAD of, where nothing this operator uploads is ever read
-    # until that file goes; this one is a kind whose own file is read and whose
-    # last upload lost the resolver, where the next upload is read or not read
-    # depending on the day its name carries. One sentence for both is how the
-    # remedy came to say "the plan will not change" over an input where it can.
-    "shadowed_by_a_later_day": {
-        "en": "The file that arrived last is not the one the engine reads. Upload the day you meant to change, or remove {live} and the engine reads the newest day left on disk.",
-        "he": "הקובץ שהגיע אחרון אינו הקובץ שהמנוע קורא. העלו את היום שהתכוונתם לשנות, או הסירו את {live} והמנוע יקרא את היום החדש ביותר שנותר על הדיסק.",
-    },
-    "not_read": {
-        "en": "Change this input where the engine reads it instead. Uploading here stores the file and changes no number.",
-        "he": "שנו את הקלט הזה במקום שבו המנוע קורא אותו. העלאה כאן שומרת את הקובץ ולא משנה אף מספר.",
-    },
-    "empty": {
-        "en": "Upload a file that carries rows. The engine reads this file and it has none, so no figure can be computed from this input yet.",
-        "he": "העלו קובץ שיש בו שורות. המנוע קורא את הקובץ הזה ואין בו אף שורה, ולכן עדיין לא ניתן לחשב ממנו שום נתון.",
-    },
-    "invalid": {
-        "en": "Fix the named columns in the export and upload it again. Nothing was replaced.",
-        "he": "תקנו את העמודות שצוינו בייצוא והעלו שוב. שום דבר לא הוחלף.",
-    },
-    "missing": {
-        "en": "No file has been uploaded for this input yet.",
-        "he": "עדיין לא הועלה קובץ עבור הקלט הזה.",
-    },
-}
-
-_CONSEQUENCES: dict[str, dict[str, str]] = {
-    "replaces_live_input": {
-        "en": "This is the live input. Uploading replaces what the plan is computed from.",
-        "he": "זהו הקלט החי. העלאה מחליפה את מה שהתוכנית מחושבת ממנו.",
-    },
-    "changes_model_basis": {
-        "en": "This is the live input and the model version was measured on it, so a new file makes that measurement out of date.",
-        "he": "זהו הקלט החי וגרסת המודל נמדדה עליו, ולכן קובץ חדש הופך את המדידה הזו ללא עדכנית.",
-    },
-    "stored_not_read": {
-        "en": "Stored and validated. Nothing reads this file, so uploading changes no number.",
-        "he": "נשמר ונבדק. שום דבר לא קורא את הקובץ הזה, ולכן העלאה לא משנה אף מספר.",
-    },
-    # The conditional one, and the condition is named rather than left for the
-    # operator to infer from a filename. Neither "it replaces the live input"
-    # nor "it changes no number" is true of this kind on its own.
-    "replaces_only_a_later_day": {
-        "en": "The engine reads the daily file whose name carries the newest airing date, currently {live}. An upload here becomes that file only when its own name carries a later day, and is stored and read by nothing when it does not.",
-        "he": "המנוע קורא את קובץ היום ששמו נושא את תאריך השידור החדש ביותר, כרגע {live}. העלאה כאן הופכת לקובץ הזה רק אם שמה נושא יום מאוחר יותר, ואם לא, היא נשמרת ואינה נקראת.",
-    },
-    "stored_without_replacing": {
-        "en": "This file will be stored and validated, and it will replace nothing. The engine will go on reading {live}, so the plan will not change.",
-        "he": "הקובץ הזה יישמר וייבדק, והוא לא יחליף דבר. המנוע ימשיך לקרוא את {live}, ולכן התוכנית לא תשתנה.",
-    },
-    # The one thing the five above cannot say, and the one an operator was left
-    # to find out after the click: this file wins the read path AND it carries
-    # no rows, so what it replaces the live input with is nothing.
-    "replaces_live_input_with_no_rows": {
-        "en": "This file will become the live input and it carries no data rows, so every figure computed from this input will be empty until a file with rows replaces it.",
-        "he": "הקובץ הזה יהפוך לקלט החי ואין בו אף שורת נתונים, ולכן כל נתון שמחושב מהקלט הזה יהיה ריק עד שיוחלף בקובץ שיש בו שורות.",
-    },
-    # The same shape as the one above and far more common. Measured on the
-    # shipped card: a daily file whose 20 of 20 rows carried a clock the loader
-    # cannot read was answered "this is the live input", in the teal tone, under
-    # the heading that says it passed every check. The count and the field are
-    # in the sentence, because a consequence that does not name what is wrong
-    # leaves the reader to go and find it.
-    "replaces_live_input_with_warnings": {
-        "en": "This file will become the live input and it carries {count} warning(s), about {fields}, so what those warnings say will be true of every figure computed from this input.",
-        "he": "הקובץ הזה יהפוך לקלט החי ויש בו אזהרות, {count} במספר, על {fields}, ולכן מה שנאמר בהן יהיה נכון לכל נתון שמחושב מהקלט הזה.",
-    },
-}
-
-# What a warning is about when it names no column at all. Every warning this
-# door can raise about a file the engine will read names one today, so this is
-# the honest fallback rather than a case, in the surface's own words for it.
-WHOLE_FILE = ("the whole file", "הקובץ כולו")
-
-# Why a file this product stored is not the one the engine reads. Only the
-# daily kind can hold more than one file, so both sentences name that resolver:
-# every other kind lands on exactly one path and a second file of it cannot
-# exist. The second code is the dangerous one, and it is the one an operator
-# hits: the file they sent last is not the file any number rests on.
-_STORED_REASONS: dict[str, dict[str, str]] = {
-    "another_day_is_read": {
-        "en": "Stored here and not read. The engine reads the newest daily file by the airing date in its name, currently {live}.",
-        "he": "נשמר כאן ואינו נקרא. המנוע קורא את קובץ היום החדש ביותר לפי תאריך השידור שבשמו, כרגע {live}.",
-    },
-    "arrived_after_the_file_that_is_read": {
-        "en": "Uploaded after the file the engine reads, and not read. The engine picks the newest daily file by the airing date in its name, currently {live}, which names a later day than this one.",
-        "he": "הועלה אחרי הקובץ שהמנוע קורא, ואינו נקרא. המנוע בוחר את קובץ היום החדש ביותר לפי תאריך השידור שבשמו, כרגע {live}, שנושא יום מאוחר יותר מזה.",
-    },
-}
-
-# The warning a file the engine reads with no data rows in it carries, for the
-# readers that render warnings and nothing else.
-NO_ROWS_WARNING = "The engine reads this file and it carries no data rows, so no figure can be computed from this input."
+# Every sentence the eight remedies, the seven consequences and the two stored
+# reasons are said in lives in :mod:`kairos_api.uploads_remedy`, which this
+# module reads and never re-authors. The 450-line law forced that split and the
+# subject wanted it: what state an input is in is derived here, and the words it
+# is read in are there.
 
 
 def file_shape(
@@ -242,7 +160,7 @@ def naming(table: dict[str, dict[str, str]], code: str, live_name: str = "", **f
 
 def stored_reason(code: str, live_name: str) -> dict[str, str]:
     """Why one stored file is not the one the engine reads, in both languages."""
-    return naming(_STORED_REASONS, code, live_name)
+    return naming(uploads_remedy.STORED_REASONS, code, live_name)
 
 
 def state_for(
@@ -313,23 +231,43 @@ def consequence_record(
     question is about a kind, whose next file has not been looked at yet.
     """
     if in_use and rows is not None and rows <= 0:
-        return labelled(_CONSEQUENCES, "replaces_live_input_with_no_rows")
-    warned = [item for item in (findings or []) if str((item or {}).get("severity") or "") == "warning"]
-    if in_use and warned:
-        named = [column for column in dict.fromkeys(str((item or {}).get("column") or "").strip() for item in warned) if column]
-        return naming(_CONSEQUENCES, "replaces_live_input_with_warnings", count=len(warned), fields=", ".join(named) or WHOLE_FILE)
+        return labelled(uploads_remedy.CONSEQUENCES, "replaces_live_input_with_no_rows")
+    count, fields = uploads_remedy.warned_summary(findings)
+    if in_use and count:
+        return naming(
+            uploads_remedy.CONSEQUENCES,
+            "replaces_live_input_with_warnings",
+            warnings=uploads_remedy.warning_count(count),
+            fields=fields,
+        )
     measured_on = set(uploads_model.version(models_dir, root).get("measured_on") or [])
     code = consequence_for(in_use=bool(in_use), model_input=bool(reads and reads in measured_on))
     if code == "stored_not_read" and still_read:
-        return naming(_CONSEQUENCES, "stored_without_replacing", still_read)
-    return labelled(_CONSEQUENCES, code)
+        return naming(uploads_remedy.CONSEQUENCES, "stored_without_replacing", still_read)
+    return labelled(uploads_remedy.CONSEQUENCES, code)
+
+
+def checked_the_live_file(report: Any, live: Path | None, kind: str, destination: Callable[..., Path]) -> bool:
+    """Whether the last check of this kind was of the file the engine reads now.
+
+    The report carries the name the operator's own file arrived under, and the
+    destination resolver decides what that name lands as: the daily kind
+    normalises the prefix its own glob requires, and every other kind ignores
+    the name and writes one path. So the question is answered by running that
+    same resolver rather than by comparing two strings and hoping. A report from
+    a refused upload is about no file on disk at all and answers no.
+    """
+    name = str((report or {}).get("filename") or "").strip()
+    if live is None or not name or not (report or {}).get("accepted"):
+        return False
+    return destination(kind, name).name == live.name
 
 
 def build(
     *,
     inputs: list[dict[str, str]],
     live_path: Callable[[str], Path | None],
-    destination: Callable[[str], Path],
+    destination: Callable[..., Path],
     in_use: Callable[..., tuple[bool, str]],
     engine_reads: Callable[[str], str | None],
     relative: Callable[[Path], str],
@@ -422,7 +360,7 @@ def build(
         entry["state"] = state
         warnings = list(entry["warnings"])
         if state == "empty":
-            warnings.insert(0, NO_ROWS_WARNING)
+            warnings.insert(0, uploads_remedy.NO_ROWS_WARNING)
         if arrived_after:
             # The one an operator hits. Said in the warnings too, so the readers
             # that render nothing else still stop short of a bare green badge.
@@ -438,11 +376,28 @@ def build(
             in_use=bool(kind_in_use), model_input=bool(entry["model_input"]), outranked=outranked
         )
         if outranked:
-            entry["remedy"] = naming(_REMEDIES, "shadowed_by_a_later_day", str(entry["filename"]))
-            entry["consequence"] = naming(_CONSEQUENCES, code, str(entry["filename"]))
+            entry["remedy"] = naming(uploads_remedy.REMEDIES, "shadowed_by_a_later_day", str(entry["filename"]))
+            entry["consequence"] = naming(uploads_remedy.CONSEQUENCES, code, str(entry["filename"]))
         else:
-            entry["remedy"] = labelled(_REMEDIES, state)
-            entry["consequence"] = labelled(_CONSEQUENCES, code)
+            entry["remedy"] = labelled(uploads_remedy.REMEDIES, state)
+            entry["consequence"] = labelled(uploads_remedy.CONSEQUENCES, code)
+        # The state above is true and it is not the whole news. A live file the
+        # engine reads that carries rows is ``in_use``, and the last check of
+        # that same file can have come back with a warning that every figure
+        # from this input now carries. Measured before this: a daily log whose
+        # 20 of 20 rows lost their clock was committed and the card it landed on
+        # printed the teal chip and "nothing to do", with the warning four lines
+        # below it. Said in the warnings too, so a reader that renders those and
+        # nothing else still stops short of a bare green badge.
+        warned, warned_fields = uploads_remedy.warned_summary((entry["last_validation"] or {}).get("findings"))
+        if state == "in_use" and warned and checked_the_live_file(entry["last_validation"], path, kind, destination):
+            entry["remedy"] = naming(
+                uploads_remedy.REMEDIES,
+                "in_use_with_warnings",
+                warnings=uploads_remedy.warning_count(warned),
+                fields=warned_fields,
+            )
+            entry["warnings"] = [str(entry["remedy"]["en"]), *entry["warnings"]]
         entries.append(entry)
     summary = {state: sum(1 for entry in entries if entry["state"] == state) for state in STATES}
     return {"inputs": entries, "model": model, "summary": {**summary, "total": len(entries)}}

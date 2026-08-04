@@ -41,6 +41,7 @@ from kairos_api import (
     assistant_pipeline,
     assistant_prompt,
     assistant_sections,
+    assistant_warm,
 )
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
@@ -285,16 +286,25 @@ def assistant_status() -> dict[str, Any]:
 
 
 @router.post("/context/warm")
-def assistant_warm_context() -> dict[str, Any]:
+def assistant_warm_context(http_request: Request) -> dict[str, Any]:
     """Build the grounding context now, so the next ask does not pay for it.
 
     Measured in a fresh process: the base sections cost 11.13 s cold and 0.034 s
     warm. The dock calls this when it opens, which is the moment the person
     starts typing, so the wait lands where nobody is watching a cursor.
+
+    The model's cached prefix is the other half of the same idea and is written
+    the same way, on its own thread so this route stays as fast as it was.
+    Measured on the first ask of a session: 9.032 s to the first token with the
+    prefix cold, 1.804 s with it written (kairos_api.assistant_warm). The tool
+    set and the system blocks it writes are this account's own, or it would
+    write a prefix the next ask does not send.
     """
     started = time.monotonic()
     outcome = assistant_sections.warm()
     outcome["elapsed_seconds"] = round(time.monotonic() - started, 3)
+    outcome["model_prefix"] = assistant_warm.warm_prefix(
+        job=_caller_job(http_request), can_propose=_can_propose(http_request))
     return outcome
 
 

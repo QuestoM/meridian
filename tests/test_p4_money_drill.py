@@ -305,10 +305,21 @@ def test_without_the_guard_the_booked_client_lands_on_a_board_that_cannot_hold_i
 
 
 def test_the_board_takes_the_open_row_as_a_prop_and_keeps_no_key_of_its_own():
-    """The cause of the defect, held shut in the shipped component."""
+    """The cause of the defect, held shut in the shipped component.
+
+    The invariant is that both names arrive as props with their defaults, not
+    that they sit on one line. The parameter list is read out of the signature
+    and each name is looked for inside it, because the earlier one-line form of
+    this assertion failed the moment a third prop pushed the list onto several
+    lines while every property it exists to protect still held.
+    """
     source = BOARD.read_text(encoding="utf-8")
     assert "useState" not in source, "a key the board owns is a key no caller can set"
-    assert "drill = NO_DRILL, onDrill" in source
+    head = source.split("export default function MoneyBoard({", 1)
+    assert len(head) == 2, "the board's signature is not where this test looks for it"
+    params = head[1].split("}) {", 1)[0]
+    assert "drill = NO_DRILL" in params, "the open row must arrive as a prop with the no-drill default"
+    assert "onDrill" in params, "and the board must report a drill rather than keep it"
     assert "const openKey = drill.key || '';" in source
     assert "onDrill({ group, key: String(row[definition.field]) })" in source
 

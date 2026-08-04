@@ -210,6 +210,27 @@
   color: var(--muted);
 }
 
+/* The dead end and the way out of it, beside the save button that cannot open:
+   what the chosen night does not breach, what the whole run does, and the rule
+   that can be written instead. */
+
+.rules-widen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.rules-widen-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--text-sm);
+  color: var(--teal-ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .rules-inline-error {
   font-size: var(--text-sm);
   color: var(--red);

@@ -94,11 +94,45 @@ def sentence_claims(sentence: str) -> bool:
     return bool(found) and not _negated_before(sentence, found.start())
 
 
+def claim_segments(text: Any) -> list[tuple[str, bool]]:
+    """The text cut into sentences, each with its own verdict, together covering
+    the original exactly: joining the pieces back gives the string that came in.
+
+    The mirror of ``claimSegments`` in the browser module, and it exists here for
+    the same reason it exists there: one false sentence in an answer does not
+    make the figures around it false, so a caller can act on the sentence rather
+    than on the paragraph. The probe is the decimal-normalised copy and its
+    replacement is exactly as long as what it replaces, so an index found on the
+    probe is the same index in the original.
+    """
+    value = "" if text is None else str(text)
+    probe = DECIMAL_POINT.sub(r"\1 \2", value)
+    segments: list[tuple[str, bool]] = []
+    start = 0
+    for match in SENTENCE.finditer(probe):
+        end = match.end()
+        segments.append((value[start:end], sentence_claims(probe[start:match.start()])))
+        start = end
+    if start < len(value):
+        segments.append((value[start:], sentence_claims(probe[start:])))
+    return segments
+
+
 def claims_recorded_proposal(text: Any) -> bool:
     """True when the text asserts, somewhere in it, that a proposal is recorded,
     registered, submitted or waiting for approval."""
     value = DECIMAL_POINT.sub(r"\1 \2", "" if text is None else str(text))
     return any(sentence_claims(part) for part in SENTENCE.split(value))
+
+
+def without_claims(text: Any) -> str:
+    """The text with every sentence that claims a recorded proposal removed.
+
+    Nothing else is touched, so the figures, the reasoning and the offer that
+    shared the paragraph with the claim all survive. Used where the claim must
+    not be repeated back to the model as its own words.
+    """
+    return "".join(part for part, claim in claim_segments(text) if not claim).strip()
 
 
 def recorded_proposal(trace: list[dict[str, Any]] | None,

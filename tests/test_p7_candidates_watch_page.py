@@ -10,6 +10,12 @@ press one candidate's measurement control, wait with zero presses until the
 screen either learns the measurement ended or runs out of time, then wait again
 to prove the reads stop. Every count it reports is taken from the browser itself,
 so the scenario can compare it against the server's own count of the same calls.
+
+The press is a flag rather than a fixed step, because the defect was measured on
+the entry that has no press in it: a steward opening the shelf while a
+measurement somebody else started is already running. With the flag off the
+script opens the shelf and touches nothing, and the phases mean the same thing,
+so both entries are measured by one page and read by one set of selectors.
 """
 
 from __future__ import annotations
@@ -39,6 +45,7 @@ const RAIL = %(rail)d;
 const OPEN = %(open)d;
 const FINISH = %(finish)d;
 const SETTLE = %(settle)d;
+const PRESS = %(press)d;
 
 // Every press this scenario makes, counted. The claim under test is that the
 // screen moves with no press between the start and the end, so the presses are
@@ -145,11 +152,13 @@ async function run() {
   if (!opened) throw new Error('the candidates section never rendered a candidate');
   result.phases.opened = snapshot();
 
-  const node = subjectNode();
-  if (!node) throw new Error('the candidate this measurement starts is not on screen');
-  const control = node.querySelector('.mc-candidate-grid .mc-button');
-  if (!control) throw new Error('the candidate offers no measurement control to press');
-  press(control);
+  if (PRESS) {
+    const node = subjectNode();
+    if (!node) throw new Error('the candidate this measurement starts is not on screen');
+    const control = node.querySelector('.mc-candidate-grid .mc-button');
+    if (!control) throw new Error('the candidate offers no measurement control to press');
+    press(control);
+  }
 
   const appeared = await waitFor(anyMeasuring, OPEN);
   result.phases.started = { ...snapshot(), appeared: Boolean(appeared) };
@@ -186,7 +195,7 @@ run().then((result) => {
 """
 
 
-def page_script(bridge: str) -> str:
+def page_script(bridge: str, press: bool = True) -> str:
     """The script, with the bridge import path and the budgets already in it."""
     return HARNESS_JS % {
         "bridge": bridge,
@@ -196,4 +205,5 @@ def page_script(bridge: str) -> str:
         "open": OPEN_BUDGET_MS,
         "finish": FINISH_BUDGET_MS,
         "settle": SETTLE_MS,
+        "press": 1 if press else 0,
     }

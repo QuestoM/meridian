@@ -35,17 +35,18 @@ card renders the same honest "no verdict recorded" line it would render anyway.
 The shell around the console is the same stand-in the other three browser
 measurements use, for the same reason and with the same premise asserted
 separately from source.
+
+Two companion modules carry what would put this file over the 450-line law and
+neither holds a test: ``test_p7_candidates_watch_page.py`` is the page the
+browser runs, and ``test_p7_candidates_watch_read.py`` is what this file reads
+out of the product and off the screen.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
-import re
 import time
-from decimal import ROUND_HALF_UP, Decimal
-from pathlib import Path
 
 import pytest
 
@@ -56,6 +57,19 @@ from test_p7_candidates_watch_page import (
     SUBJECT,
     page_script,
 )
+from test_p7_candidates_watch_read import (
+    SHIPPED_COEFFICIENTS,
+    SHIPPED_MEASUREMENTS,
+    SUBJECT_ARTIFACT,
+    card as _card,
+    digits as _digits,
+    js_number as _js_number,
+    row as _row,
+    sha256 as _sha256,
+    shekels as _shekels,
+    thread_failures as _thread_failures,
+    word as _word,
+)
 from test_p7_console_bridge_harness import (
     BRIDGE,
     build_harness,
@@ -63,67 +77,9 @@ from test_p7_console_bridge_harness import (
     skip_unless_a_real_browser_is_available,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
-WORDS = ROOT / "tv-break-dashboard" / "src" / "model" / "console" / "console-words.js"
-
-# The store the product ships, read to seed the temporary one and hashed to
-# prove the measurement never wrote it.
-SHIPPED_MEASUREMENTS = ROOT / "models" / "releases" / "candidate_measurements.json"
-SHIPPED_COEFFICIENTS = ROOT / "models" / "tv_break_coefficients.json"
-
-# The candidate artifact the measurement reads and must not touch.
-SUBJECT_ARTIFACT = ROOT / "models" / "candidates" / f"tv_break_coefficients_{SUBJECT}.json"
-
 # How long a real measurement gets before this test gives up on it. Measured:
 # 179.0 s on this tree, 85.4 to 87.2 s on the quiet one.
 MEASUREMENT_BUDGET_S = 600
-
-
-def _word(key: str, locale: str = "he") -> str:
-    """The product's own word for a key, read from the module that defines it."""
-    pattern = rf"'{re.escape(key)}':\s*\{{[^}}]*\b{locale}: '([^']+)'"
-    found = re.search(pattern, WORDS.read_text(encoding="utf-8"))
-    assert found, f"the console defines no {locale} word for {key}"
-    return found.group(1)
-
-
-def _row(payload: "dict", identifier: str = SUBJECT) -> "dict":
-    """The subject's row out of a shelf payload."""
-    for row in payload.get("candidates") or []:
-        if row.get("id") == identifier:
-            return row
-    raise AssertionError(f"the shelf payload carries no candidate called {identifier}")
-
-
-def _card(phase: "dict", identifier: str = SUBJECT) -> "dict":
-    """The subject's card out of a browser phase."""
-    for card in phase["cards"]:
-        if card["id"] == identifier:
-            return card
-    raise AssertionError(f"the screen carries no card for {identifier}: {phase['cards']}")
-
-
-def _digits(value: str) -> str:
-    return "".join(character for character in value if character.isdigit())
-
-
-def _js_number(value: float) -> str:
-    """A number spelled the way a template literal spells it, so 87.0 reads 87."""
-    return str(int(value)) if float(value).is_integer() else str(value)
-
-
-def _shekels(value: float) -> str:
-    """The digits the browser prints for a shekel figure, rounded as it rounds.
-
-    ``toLocaleString`` with no fraction digits rounds half away from zero, which
-    is what ``ROUND_HALF_UP`` means here, so the two agree on every half.
-    """
-    rounded = Decimal(str(value)).quantize(Decimal(1), rounding=ROUND_HALF_UP)
-    return _digits(str(rounded))
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "absent"
 
 
 @pytest.fixture(scope="module")
@@ -137,7 +93,7 @@ def bodies(tmp_path_factory) -> "dict":
     (store_dir / "candidate_measurements.json").write_text(
         json.dumps(seeded, ensure_ascii=False), encoding="utf-8")
 
-    with pytest.MonkeyPatch.context() as patch:
+    with pytest.MonkeyPatch.context() as patch, _thread_failures() as failures:
         patch.setenv("KAIROS_MODEL_RELEASES_DIR", str(store_dir))
         untouched_before = {path: _sha256(path) for path in
                             (SHIPPED_MEASUREMENTS, SHIPPED_COEFFICIENTS, SUBJECT_ARTIFACT)}
@@ -158,6 +114,7 @@ def bodies(tmp_path_factory) -> "dict":
             "started": started,
             "detail": console.candidate_detail(SUBJECT),
             "seeded": seeded,
+            "failures": list(failures),
             "untouched_before": untouched_before,
             "untouched_after": {path: _sha256(path) for path in untouched_before},
         }
@@ -182,6 +139,26 @@ def scenario(tmp_path_factory, bodies) -> "dict":
                         {DETAIL_PREFIX: bodies["started"]})
 
 
+@pytest.fixture(scope="module")
+def unpressed(tmp_path_factory, bodies) -> "dict":
+    """The same shelf, opened on a measurement this browser never started.
+
+    This is the entry the defect was measured on. A measurement can be started
+    from another window, or from the route, or by a steward who then leaves and
+    comes back, so the shelf is often opened onto one already in flight with no
+    press behind it at all. The same page runs with its press turned off and the
+    same real bodies behind it, so the only thing that differs is the entry.
+    """
+    skip_unless_a_real_browser_is_available()
+    if (_row(bodies["finished"]).get("money") or {}).get("state") == "measuring":
+        pytest.fail(f"the measurement never ended within {MEASUREMENT_BUDGET_S}s")
+    work = tmp_path_factory.mktemp("p7-candidates-open")
+    dist = build_harness(work, page_script(
+        os.path.relpath(BRIDGE, work.resolve() / "src"), press=False))
+    sequence = [bodies["measuring"], bodies["measuring"], bodies["finished"]]
+    return run_scenario(dist, work, {DETAIL_PREFIX: bodies["detail"], LIST_ROUTE: sequence})
+
+
 # ---------------------------------------------------------------------------
 # The measurement the browser was handed, before anything about the screen
 # ---------------------------------------------------------------------------
@@ -202,7 +179,10 @@ def test_the_measurement_the_browser_was_handed_really_ran_and_really_ended(bodi
     ), "the measuring block quotes durations that are not the store's own"
 
     money = _row(bodies["finished"])["money"]
-    assert money["state"] in {"measured", "stale"}, f"the measurement ended in {money['state']}"
+    assert money["state"] in {"measured", "stale"}, (
+        f"the measurement ended in {money['state']} and the thread that ran it"
+        f" reported: {bodies['failures'] or 'nothing at all'}"
+    )
     assert money["duration_seconds"] > 0, "the record carries no duration, so nothing was run"
     delta = (money.get("operator_channel_delta") or {}).get("revenue_delta")
     assert isinstance(delta, (int, float)), f"the measurement produced no shekel figure: {delta}"
@@ -324,6 +304,49 @@ def test_the_shelf_stops_reading_the_route_once_no_measurement_is_open(scenario)
     )
     assert settled["clicks"] == finished["clicks"]
     assert settled["cards"] == finished["cards"], "the screen moved after the measurement had ended"
+
+
+def test_a_shelf_opened_onto_a_measurement_it_never_started_says_it_is_following_it(
+        unpressed) -> None:
+    """The entry with no press in it, which is the one the defect was found on."""
+    assert "failed" not in unpressed, unpressed.get("failed")
+    opened = unpressed["phases"]["opened"]
+    measuring = [card["id"] for card in opened["cards"] if card["measuring"]]
+    assert measuring == [SUBJECT], f"{measuring} read as measuring at open"
+    assert opened["watch"] == _word("candidates.watching"), (
+        f"the shelf does not say it is following the measurement: {opened['watch']}"
+    )
+
+
+def test_that_shelf_learns_the_measurement_ended_without_being_touched_at_all(
+        unpressed, bodies) -> None:
+    """Nothing on this screen was ever pressed, and it still tells the truth.
+
+    The only presses in the whole run open the console and the section. From
+    there the browser is left alone, so the money that appears is money the
+    shelf went and asked for.
+    """
+    opened = unpressed["phases"]["opened"]
+    finished = unpressed["phases"]["finished"]
+    settled = unpressed["phases"]["settled"]
+    assert finished["reached"] is True, (
+        f"the screen still read measuring after {finished['waitedMs']} ms with nothing pressed"
+    )
+    assert finished["clicks"] == opened["clicks"], (
+        f"{finished['clicks'] - opened['clicks']} presses happened while the shelf was watched"
+    )
+    money = _row(bodies["finished"])["money"]
+    card = _card(finished)
+    assert card["measuring"] is False
+    assert _digits(card["owned"]) == _shekels(money["operator_channel_delta"]["revenue_delta"]), (
+        f"the screen reads {card['owned']} for a measured"
+        f" {money['operator_channel_delta']['revenue_delta']}"
+    )
+    assert finished["watch"] == "", f"the shelf still says it is following: {finished['watch']}"
+    assert settled["reads"] == finished["reads"], (
+        f"the shelf read the route {settled['reads'] - finished['reads']} more times"
+        f" in {settled['afterMs']} ms with no measurement open"
+    )
 
 
 def test_the_watch_moved_only_the_card_whose_measurement_ended(scenario) -> None:

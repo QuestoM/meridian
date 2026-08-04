@@ -14,7 +14,7 @@
 // surface's own directory so its bare imports resolve through the application's
 // node_modules; nothing is ever written into the source tree.
 //
-// Usage: node test_p5_composer_probe.mjs <bundle dir> <out.json> <nights source> <airings.json>
+// Usage: node test_p5_composer_probe.mjs <bundle dir> <out.json> <nights source> <airings.json> [dead-end.json]
 import { createRequire, registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs';
@@ -25,7 +25,7 @@ const RULES = `${APP}/src/rules`;
 const NIGHTS = `${RULES}/AiringNights.jsx`;
 const ENTRY_ID = `${RULES}/airing-nights-probe-entry.jsx`;
 
-const [outDir, outFile, nightsSource, airingsFile] = process.argv.slice(2);
+const [outDir, outFile, nightsSource, airingsFile, deadEndFile] = process.argv.slice(2);
 const require_ = createRequire(`${APP}/package.json`);
 const MAP = {};
 for (const bare of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', 'react-dom/server', 'rolldown']) {
@@ -43,6 +43,7 @@ registerHooks({
 const ENTRY_SOURCE = `
 export { default as AiringNights } from '${NIGHTS}';
 export { default as RestrictionComposer } from '${RULES}/RestrictionComposer';
+export { default as WiderScopeNote } from '${RULES}/WiderScopeNote';
 export { CacheProvider } from '@emotion/react';
 export { default as createCache } from '@emotion/cache';
 `;
@@ -107,6 +108,23 @@ const picked = chosen ? wrap(React.createElement(surface.AiringNights, {
   onPick: () => {},
 })) : '';
 
+// The state a night picker makes reachable and a shut save button cannot leave:
+// the chosen night compiles no row, so the note says so and offers the rule the
+// whole run does breach. Rendered from the two real previews, when they are
+// supplied.
+const widen = {};
+if (deadEndFile) {
+  const deadEnd = JSON.parse(fs.readFileSync(deadEndFile, 'utf8'));
+  for (const locale of ['he', 'en']) {
+    widen[locale] = wrap(React.createElement(surface.WiderScopeNote, {
+      locale,
+      night: deadEnd.night,
+      wider: deadEnd.wider,
+      onWiden: () => {},
+    }));
+  }
+}
+
 fs.writeFileSync(outFile, JSON.stringify({
-  nights, composer, picked, picked_day: chosen ? chosen.day : '',
+  nights, composer, picked, widen, picked_day: chosen ? chosen.day : '',
 }), 'utf8');

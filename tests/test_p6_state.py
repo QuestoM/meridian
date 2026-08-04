@@ -35,6 +35,7 @@ from fastapi.testclient import TestClient
 
 import kairos_api.downloads_api as downloads_api
 import kairos_api.uploads as uploads
+import kairos_api.uploads_remedy as uploads_remedy
 import kairos_api.uploads_status as uploads_status
 from kairos.data.loaders import DAILY_COLUMN_MAP
 
@@ -187,7 +188,7 @@ def test_a_live_file_the_engine_reads_with_no_rows_is_not_nothing_to_do(isolated
     assert entry["state"] == "empty", "a file the engine reads with no rows in it is not in use"
     assert entry["remedy"]["code"] == "empty"
     assert entry["remedy"]["he"] and entry["remedy"]["en"]
-    assert uploads_status.NO_ROWS_WARNING in entry["warnings"]
+    assert uploads_remedy.NO_ROWS_WARNING in entry["warnings"]
     assert entry["consequence"]["code"] == "replaces_live_input", "uploading here is the way to supply it"
 
 
@@ -262,8 +263,8 @@ def test_no_card_renders_a_remedy_and_a_consequence_that_disagree(isolated: Test
         # A marker set that matches nothing would make the sweep vacuous, so
         # both are checked against the two sentences they were read from: the
         # remedy and the consequence that were on one card together.
-        shadowed = uploads_status.labelled(uploads_status._REMEDIES, "shadowed")
-        live = uploads_status.labelled(uploads_status._CONSEQUENCES, "replaces_live_input")
+        shadowed = uploads_status.labelled(uploads_remedy.REMEDIES, "shadowed")
+        live = uploads_status.labelled(uploads_remedy.CONSEQUENCES, "replaces_live_input")
         assert _claims(shadowed, CHANGES_NOTHING, locale), "the no-change marker matches nothing"
         assert _claims(live, CHANGES_THE_PLAN, locale), "the plan-change marker matches nothing"
         assert any(_claims(entry["consequence"], CHANGES_THE_PLAN, locale) for entry in inputs)

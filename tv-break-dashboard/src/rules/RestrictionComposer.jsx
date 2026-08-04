@@ -5,6 +5,7 @@ import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
 import AiringNights from './AiringNights';
 import RestrictionEffect from './RestrictionEffect';
+import WiderScopeNote from './WiderScopeNote';
 import {
   KINDS,
   buildWhere,
@@ -48,6 +49,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   const [author, setAuthor] = useState('');
   const [reason, setReason] = useState('');
   const [preview, setPreview] = useState(null);
+  const [wider, setWider] = useState(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -134,6 +136,23 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   const rows = Number(preview?.compiled_rows || 0);
   const canSave = rows > 0 && !previewing && !saving;
   const bindsNothing = Boolean(preview) && rows > 0 && Number(preview.bound_airings || 0) === 0;
+  // A window rule the chosen night does not breach compiles to nothing, so the
+  // save has nothing to write. Rather than leave the button shut with no way
+  // on, the same sentence is priced again with the night dropped, and the note
+  // below offers the wider rule when the run as a whole does breach it. Only
+  // this dead-end state fetches, so the ordinary path costs nothing extra.
+  const deadEnd = Boolean(preview) && rows === 0 && Boolean(day) && preview.per_airing === true;
+  useEffect(() => {
+    if (!deadEnd) {
+      setWider(null);
+      return undefined;
+    }
+    let alive = true;
+    previewRestriction({ ...draft, where: buildWhere({ title }) })
+      .then((body) => { if (alive) setWider(body); })
+      .catch(() => { if (alive) setWider(null); });
+    return () => { alive = false; };
+  }, [deadEnd, draft, title]);
 
   return (
     <section className="rules-card rules-composer">
@@ -271,13 +290,12 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
           {pageText(locale, 'Save the restriction', 'שמירת ההגבלה')}
         </Button>
         {preview && rows === 0 && (
-          <span className="rules-inline-note">
-            {pageText(
-              locale,
-              'Nothing in the plan window breaks this rule, so there is nothing to save yet.',
-              'שום דבר בחלון התוכנית אינו מפר את הכלל הזה, ולכן אין מה לשמור בשלב זה.',
-            )}
-          </span>
+          <WiderScopeNote
+            locale={locale}
+            night={day}
+            wider={wider}
+            onWiden={() => setDay('')}
+          />
         )}
         {bindsNothing && (
           <span className="rules-inline-note">

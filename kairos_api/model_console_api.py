@@ -71,6 +71,26 @@ def _actor(request: Optional[Request]) -> str:
     return str(session["username"]) if session else ""
 
 
+def _in_flight() -> dict[str, dict[str, Any]]:
+    """The register, taken BEFORE the store is read and never after it.
+
+    The order is the whole point. A measurement ends by writing its record and
+    then clearing its own entry, so a reader that takes the store first and the
+    register second can be overtaken between the two and answer with the record
+    that was there before the write and with nothing in flight. That answer is a
+    superseded figure with nothing on it to say a newer one exists, and it is
+    the answer that makes the screen stop watching. Taken in this order the same
+    race answers measuring once more, which costs one further read a second and
+    a half later and can never publish a superseded figure as a settled one.
+
+    Measured on the running instance on 2026-08-04: a real measurement ended at
+    15:22:24.511, the shelf carried its money 0.21 s later with no press behind
+    it, and the record on the screen at that moment was the one from 15:09:32.
+    """
+    with _RUNNING_LOCK:
+        return {key: dict(value) for key, value in _RUNNING.items()}
+
+
 @router.get("/console")
 @MODEL_WALL.guard()
 def console() -> dict[str, Any]:
@@ -142,14 +162,14 @@ def drift() -> dict[str, Any]:
 @MODEL_WALL.guard()
 def candidate_list() -> dict[str, Any]:
     """Every candidate on the shelf, with its gate deltas and its money state."""
+    running = _in_flight()
     metadata = artifacts.retention_metadata()
     measurements = store.measurements()
     rows = [candidates.summary_row(path, metadata, measurements.get(candidates.candidate_id(path)))
             for path in candidates.candidate_paths()]
     for row in rows:
-        with _RUNNING_LOCK:
-            if row["id"] in _RUNNING:
-                row["money"] = {"state": "measuring", **_RUNNING[row["id"]]}
+        if row["id"] in running:
+            row["money"] = {"state": "measuring", **running[row["id"]]}
     return {
         "model_version": payloads.current_version(),
         "candidates": rows,
@@ -166,12 +186,12 @@ def candidate_detail(candidate_id: str) -> dict[str, Any]:
     path = candidates.candidate_path(candidate_id)
     if path is None:
         raise HTTPException(status_code=404, detail=f"no candidate artifact called {candidate_id}")
+    running = _in_flight()
     version = payloads.current_version()
     row = candidates.summary_row(path, artifacts.retention_metadata(),
                                  store.measurement(candidate_id))
-    with _RUNNING_LOCK:
-        if candidate_id in _RUNNING:
-            row["money"] = {"state": "measuring", **_RUNNING[candidate_id]}
+    if candidate_id in running:
+        row["money"] = {"state": "measuring", **running[candidate_id]}
     return {
         "model_version": version,
         "candidate": row,

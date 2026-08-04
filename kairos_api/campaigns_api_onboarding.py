@@ -318,12 +318,18 @@ def precheck(payload: OnboardRequest) -> None:
             409,
             f"'{advertiser}' already has a manual link to agency '{holder}'. Remove it before booking through another.",
             f"ל⁦{advertiser}⁩ כבר יש שיוך ידני לסוכנות ⁦{holder}⁩. הסירו אותו לפני הזמנה דרך סוכנות אחרת.",
+            opens={"kind": "agency", "id": holder},
         )
     frame = store.load_frame()
     campaign_id = payload.campaign_id.strip()
     booked = frame[frame["record_type"].astype(str) == store.CAMPAIGN]
     if campaign_id and (booked["campaign_id"].astype(str) == campaign_id).any():
-        raise refuse(409, f"Campaign '{campaign_id}' already exists", f"הקמפיין ⁦{campaign_id}⁩ כבר קיים")
+        raise refuse(
+            409,
+            f"Campaign '{campaign_id}' already exists",
+            f"הקמפיין ⁦{campaign_id}⁩ כבר קיים",
+            opens={"kind": "campaign", "id": campaign_id},
+        )
     _refuse_duplicate(frame, name, advertiser, campaign_id)
     # The dates, the window, the percents, the weekday scope and the commitment
     # half, by the function that builds the row. The agency is left out of it

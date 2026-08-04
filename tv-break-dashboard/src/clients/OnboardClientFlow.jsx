@@ -119,7 +119,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
       })
       .catch(() => {
         if (!active) return;
-        setState({ status: 'idle', error: pageText(locale, 'The form could not load its choices.', 'הטופס לא הצליח לטעון את האפשרויות.'), result: null });
+        setState({ status: 'idle', error: pageText(locale, 'The form could not load its choices.', 'הטופס לא הצליח לטעון את האפשרויות.'), opens: null, result: null });
       });
     return () => { active = false; };
   }, [locale, prefill]);
@@ -156,7 +156,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
 
   async function submit(event) {
     event.preventDefault();
-    setState({ status: 'saving', error: '', result: null });
+    setState({ status: 'saving', error: '', opens: null, result: null });
     const payload = {
       agency: agencyMode === 'existing'
         ? { agency_id: agencyId }
@@ -188,9 +188,12 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
     };
     try {
       const result = await onboardClient(payload);
-      setState({ status: 'done', error: '', result });
+      setState({ status: 'done', error: '', opens: null, result });
     } catch (error) {
-      setState({ status: 'idle', error: refusalText(error, locale), result: null });
+      // The record the refusal names, as the endpoint addressed it. Two of these
+      // refusals tell the reader to open something that already exists, so the
+      // address travels with the sentence and the notice grows the way to it.
+      setState({ status: 'idle', error: refusalText(error, locale), opens: error.opens || null, result: null });
     }
   }
 
@@ -408,7 +411,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           </p>
         </fieldset>
 
-        {state.error ? <p className="clients-error" role="alert">{state.error}</p> : null}
+        <RefusalNotice error={state.error} opens={state.opens} locale={locale} onOpen={onOpenRefused} />
         <div className="clients-form-actions">
           <button type="submit" className="clients-primary" disabled={state.status === 'saving'}>
             {state.status === 'saving'

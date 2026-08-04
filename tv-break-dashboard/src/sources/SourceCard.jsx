@@ -6,14 +6,13 @@ import {
   CADENCE_LABELS,
   CADENCE_NOTES,
   STATE_LABELS,
-  STATE_TONE,
   label,
   serverText,
   text,
 } from './sources-copy';
 import { checkFile, uploadFile } from './sources-api';
 import { fieldLabel } from './sources-fields';
-import { acceptedVerdict, findingMessage, visibleFindings } from './sources-findings';
+import { acceptedVerdict, findingMessage, stateTone, visibleFindings } from './sources-findings';
 import SourceChecks from './SourceChecks';
 
 function formatSize(bytes, locale) {
@@ -186,7 +185,10 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
 
   const name = locale === 'he' ? input.label_he || input.label_en : input.label_en;
   const state = String(input.state || 'missing');
-  const tone = STATE_TONE[state] || 'muted';
+  // The state's own tone, unless the server's remedy says this live file's own
+  // last check came back with a warning. The rule is in sources-findings.js, run
+  // there by a test exactly as the card runs it.
+  const tone = stateTone(input);
   const lastValidation = input.last_validation || null;
 
   async function handleChosen(event) {
