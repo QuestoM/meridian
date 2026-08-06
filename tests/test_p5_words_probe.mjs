@@ -33,4 +33,8 @@ const refusals = {};
 for (const [name, detail] of Object.entries(walls.refusals)) {
   refusals[name] = { he: words.refusalSentence(detail, 'he'), en: words.refusalSentence(detail, 'en') };
 }
-process.stdout.write(JSON.stringify({ effects, refusals }));
+const scheduled = {};
+for (const count of [1, 2]) {
+  scheduled[count] = { he: words.scheduledChangesSentence('he', count), en: words.scheduledChangesSentence('en', count) };
+}
+process.stdout.write(JSON.stringify({ effects, refusals, scheduled }));

@@ -11,6 +11,11 @@ import { pageText } from '../shell/surface-helpers';
 // The send control becomes a stop control while an answer is in flight, in the
 // same place, because the measured failure this console replaced was a browser
 // with no reply and nothing to press.
+//
+// onActivity fires when a question starts being written, on focus and on each
+// keystroke. It is the one thing this file knows that nothing else can know:
+// the panel cannot see a cursor land in the box. The panel throttles it
+// (kai-keep-warm.js), so calling it per keystroke is what it is for.
 
 export const SUGGESTIONS = [
   ['What is the weekly net and why', 'מה הנטו השבועי ולמה'],
@@ -40,14 +45,16 @@ export function AssistantEmptyThread({ locale, showSuggestions, onPick }) {
   );
 }
 
-export function AssistantComposer({ locale, composerRef, question, onQuestionChange, onKeyDown, unavailable, asking, onSend, onStop }) {
+export function AssistantComposer({ locale, composerRef, question, onQuestionChange, onKeyDown, unavailable, asking, onSend, onStop, onActivity }) {
+  const activity = onActivity || (() => {});
   return (
     <>
       <div className="asst-composer">
         <textarea
           ref={composerRef}
           value={question}
-          onChange={(event) => onQuestionChange(event.target.value)}
+          onFocus={() => activity()}
+          onChange={(event) => { activity(); onQuestionChange(event.target.value); }}
           onKeyDown={onKeyDown}
           rows={1}
           maxLength={2000}

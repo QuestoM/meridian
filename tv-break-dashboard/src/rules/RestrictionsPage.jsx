@@ -137,8 +137,13 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
             <ul>
               {/* The store's key for what a row does is an engine word, and it
                   used to render raw here while the builder below translated the
-                  same value. One table, read by both. */}
-              {unauthored.slice(0, 6).map((row) => (
+                  same value. One table, read by both.
+
+                  Every row, not the first six. The sentence above states how
+                  many rows bind the plan with no author, and a panel whose whole
+                  reason to exist is that an unreadable rule should not bind the
+                  plan cannot then hide some of them behind its own count. */}
+              {unauthored.map((row) => (
                 <li key={row.constraint_id} dir="auto">
                   <span className="rules-unauthored-effect">{effectLabel(row.effect, locale)}</span>
                   <span>{row.notes || row.scope_value || pageText(locale, 'no description', 'ללא תיאור')}</span>

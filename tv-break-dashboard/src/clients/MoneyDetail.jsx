@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { exactMoney, ledgerCampaignKeys, localized } from './clients-money-helpers';
+import { exactMoney, ledgerBreakKeys, ledgerCampaignKeys, localized } from './clients-money-helpers';
 
 // The rows behind one figure. Two levels below the group row: its campaigns,
 // and the individual spots that make each of them up, with the break each spot
@@ -19,6 +19,13 @@ import { exactMoney, ledgerCampaignKeys, localized } from './clients-money-helpe
 // a third of the day, and money that is not there for a stated reason is not the
 // same thing as money that is zero, so the rule that removed each spot is
 // printed on the row it removed.
+//
+// Those rows were the last place on this drill where an object named itself and
+// opened nothing. A removed spot states the break it would have sat in, and that
+// same id is a chip in the table above it, so it is a chip here too wherever the
+// ledger holds a row for the break. A break that holds nothing but removed spots
+// has no row to open, and its id stays a label rather than becoming a control
+// that would land the reader on an empty state.
 
 // What the head of this drill opens, and the words for the control that opens
 // it. Two guards, and both are the same one the campaign rows below already use.
@@ -91,7 +98,7 @@ function SpotRows({ spots, locale, onOpenBreak }) {
   );
 }
 
-function DroppedRows({ dropped, locale }) {
+function DroppedRows({ dropped, locale, onOpenBreak, openableBreaks }) {
   if (!dropped.length) {
     return null;
   }
@@ -108,7 +115,11 @@ function DroppedRows({ dropped, locale }) {
       <ul>
         {dropped.map((row) => (
           <li key={row.spot_key}>
-            <span className="numeric" dir="ltr">{row.break_id}</span>
+            {openableBreaks.includes(String(row.break_id)) ? (
+              <button type="button" className="clients-chip" onClick={() => onOpenBreak(row.break_id)}>
+                <span className="numeric" dir="ltr">{row.break_id}</span>
+              </button>
+            ) : <span className="numeric" dir="ltr">{row.break_id}</span>}
             <strong>{row.ad || row.campaign}</strong>
             {row.rule_id ? (
               <span className="clients-rule-id">
@@ -146,6 +157,11 @@ export default function MoneyDetail({
   // shipped ledger this is all of them, and a name the ranking does not hold
   // stays a label rather than becoming a control that opens nothing.
   const openable = onOpenCampaign ? ledgerCampaignKeys(money) : [];
+  // And which breaks, for the rows a rule removed. The same break id is a chip
+  // in the table above and was printed as bare text here, so the break behind a
+  // removed spot was the one object on this drill that named itself and opened
+  // nothing.
+  const openableBreaks = onOpenBreak ? ledgerBreakKeys(money) : [];
 
   return (
     <article className="clients-detail">
@@ -235,7 +251,12 @@ export default function MoneyDetail({
 
       <h4>{pageText(locale, 'Every spot behind this figure', 'כל תשדיר שמאחורי הסכום')}</h4>
       <SpotRows spots={spots} locale={locale} onOpenBreak={onOpenBreak} />
-      <DroppedRows dropped={dropped} locale={locale} />
+      <DroppedRows
+        dropped={dropped}
+        locale={locale}
+        onOpenBreak={onOpenBreak}
+        openableBreaks={openableBreaks}
+      />
     </article>
   );
 }

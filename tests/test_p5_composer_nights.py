@@ -22,6 +22,11 @@ So this file bundles the shipped picker with the bundler the product builds
 with, renders it against the real payload, and counts the nights a person can
 actually click. The last test puts the cap back into the source and asserts the
 truncation returns, so a pass here can never be vacuous.
+
+The composer's other list answers to the same rule and is measured here with it.
+The programme type-ahead shows eight rows and the operator's channel carries 106
+titles, so it says how many more matched and names the act that reaches them,
+which for a type-ahead is the typing rather than a second control.
 """
 
 from __future__ import annotations
@@ -98,7 +103,13 @@ def payload() -> dict:
     return body
 
 
-def _render(tmp_path: Path, body: dict, source: str, dead_end: dict | None = None) -> dict:
+def _render(
+    tmp_path: Path,
+    body: dict,
+    source: str,
+    dead_end: dict | None = None,
+    matches: dict | None = None,
+) -> dict:
     node = _node()
     work = tmp_path / "surface"
     work.mkdir(parents=True, exist_ok=True)
@@ -112,6 +123,14 @@ def _render(tmp_path: Path, body: dict, source: str, dead_end: dict | None = Non
         dead_end_file = work / "dead-end.json"
         dead_end_file.write_text(json.dumps(dead_end, ensure_ascii=False), encoding="utf-8")
         command.append(str(dead_end_file))
+    elif matches is not None:
+        # The probe reads its two optional payloads by position, so the one that
+        # is not supplied is held open rather than closed up.
+        command.append("")
+    if matches is not None:
+        titles_file = work / "titles.json"
+        titles_file.write_text(json.dumps(matches, ensure_ascii=False), encoding="utf-8")
+        command.append(str(titles_file))
     result = subprocess.run(command, capture_output=True, text=True, check=False, cwd=str(work))
     assert result.returncode == 0, result.stderr[-2000:]
     return json.loads(out.read_text(encoding="utf-8"))
@@ -178,10 +197,24 @@ def dead_end(payload) -> dict:
 
 
 @pytest.fixture(scope="module")
-def shipped(tmp_path_factory, payload, dead_end) -> dict:
+def matches() -> dict:
+    """The titles payload the type-ahead is served for a query that matches many."""
+    from kairos_api.constraints import router
+
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).get("/api/constraints/restrictions/titles", params={"q": ""})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.fixture(scope="module")
+def shipped(tmp_path_factory, payload, dead_end, matches) -> dict:
     source = NIGHTS.read_text(encoding="utf-8")
     assert WHOLE_LIST in source, "the render under test is not in the shipped component any more"
-    return _render(tmp_path_factory.mktemp("shipped"), payload, source, dead_end=dead_end)
+    return _render(
+        tmp_path_factory.mktemp("shipped"), payload, source, dead_end=dead_end, matches=matches,
+    )
 
 
 def test_the_payload_this_renders_is_the_case_that_could_not_be_said(payload):
@@ -345,6 +378,38 @@ def test_the_composer_routes_its_empty_state_through_that_note(shipped):
     )
     for locale in ("he", "en"):
         assert shipped["widen"][locale], "and the note renders in both languages"
+
+
+def test_the_programme_list_says_how_many_more_matched_and_how_to_reach_them(shipped, matches):
+    """The night picker's rule, on the other list this composer shows.
+
+    Measured on the reference EPG: an empty query matches 106 programme titles
+    on the operator's channel, the route serves 40 of them and the type-ahead
+    shows 8, so 98 sat behind a list with nothing on screen to say they existed.
+    """
+    shown = min(len(matches["titles"]), 8)
+    hidden = matches["match_count"] - shown
+    if hidden <= 0:
+        pytest.skip("this channel carries no more programmes than the picker shows")
+    rows = re.findall(r'<li class="rules-suggestions-more"[^>]*>(.*?)</li>', shipped["matches"]["en"], re.S)
+    assert len(rows) == 1, "the count of what is not shown belongs on the list, once"
+    assert f"{hidden} more programmes match" in TEXT.sub(" ", rows[0])
+    assert "Keep typing" in TEXT.sub(" ", rows[0]), "and it has to name the act that reaches them"
+    hebrew = re.findall(r'<li class="rules-suggestions-more"[^>]*>(.*?)</li>', shipped["matches"]["he"], re.S)
+    assert f"עוד {hidden} תוכניות תואמות" in TEXT.sub(" ", hebrew[0])
+    buttons = re.findall(r'<button[^>]*>.*?</button>', shipped["matches"]["en"], re.S)
+    assert len(buttons) == shown, "and the rows themselves are still the ones the route served"
+
+
+def test_a_query_that_matches_what_it_shows_says_nothing_extra(tmp_path, payload, matches):
+    """The line is a fact about a remainder, so with no remainder there is none."""
+    narrow = {"match_count": 3, "titles": matches["titles"][:3], "channel": matches["channel"]}
+    if len(narrow["titles"]) < 3:
+        pytest.skip("this channel carries fewer than three programmes")
+    rendered = _render(tmp_path, payload, NIGHTS.read_text(encoding="utf-8"), matches=narrow)
+    for locale in ("he", "en"):
+        assert "rules-suggestions-more" not in rendered["matches"][locale]
+        assert len(re.findall(r"<button", rendered["matches"][locale])) == 3
 
 
 def test_with_the_cap_back_the_same_picker_hides_the_last_night(tmp_path, payload):

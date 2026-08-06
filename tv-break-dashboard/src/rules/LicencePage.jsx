@@ -11,6 +11,7 @@ import {
   pairLabel,
   recordGuardrailChange,
   refusalSentence,
+  scheduledChangesSentence,
   unitLabel,
   valuePair,
 } from './rules-lib';
@@ -231,11 +232,7 @@ export default function LicencePage({ locale, session, notify }) {
         )}
         {scheduled.length > 0 && (
           <p className="rules-scheduled" role="status">
-            {pageText(
-              locale,
-              `${scheduled.length} change is recorded for a future date and is not in force yet.`,
-              `${scheduled.length} שינוי תועד לתאריך עתידי ואינו בתוקף עדיין.`,
-            )}
+            {scheduledChangesSentence(locale, scheduled.length)}
           </p>
         )}
       </section>

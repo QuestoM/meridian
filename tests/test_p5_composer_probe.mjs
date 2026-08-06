@@ -14,7 +14,7 @@
 // surface's own directory so its bare imports resolve through the application's
 // node_modules; nothing is ever written into the source tree.
 //
-// Usage: node test_p5_composer_probe.mjs <bundle dir> <out.json> <nights source> <airings.json> [dead-end.json]
+// Usage: node test_p5_composer_probe.mjs <bundle dir> <out.json> <nights source> <airings.json> [dead-end.json] [titles.json]
 import { createRequire, registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs';
@@ -25,7 +25,7 @@ const RULES = `${APP}/src/rules`;
 const NIGHTS = `${RULES}/AiringNights.jsx`;
 const ENTRY_ID = `${RULES}/airing-nights-probe-entry.jsx`;
 
-const [outDir, outFile, nightsSource, airingsFile, deadEndFile] = process.argv.slice(2);
+const [outDir, outFile, nightsSource, airingsFile, deadEndFile, titlesFile] = process.argv.slice(2);
 const require_ = createRequire(`${APP}/package.json`);
 const MAP = {};
 for (const bare of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', 'react-dom/server', 'rolldown']) {
@@ -44,6 +44,7 @@ const ENTRY_SOURCE = `
 export { default as AiringNights } from '${NIGHTS}';
 export { default as RestrictionComposer } from '${RULES}/RestrictionComposer';
 export { default as WiderScopeNote } from '${RULES}/WiderScopeNote';
+export { default as ProgrammeMatches } from '${RULES}/ProgrammeMatches';
 export { CacheProvider } from '@emotion/react';
 export { default as createCache } from '@emotion/cache';
 `;
@@ -125,6 +126,19 @@ if (deadEndFile) {
   }
 }
 
+// The other list this composer shows, measured the same way: the type-ahead
+// serves fewer programmes than it matched, so what it says about the rest is
+// rendered rather than described.
+const matches = {};
+if (titlesFile) {
+  const body = JSON.parse(fs.readFileSync(titlesFile, 'utf8'));
+  for (const locale of ['he', 'en']) {
+    matches[locale] = wrap(React.createElement(surface.ProgrammeMatches, {
+      locale, titles: body.titles, matchCount: body.match_count, onPick: () => {},
+    }));
+  }
+}
+
 fs.writeFileSync(outFile, JSON.stringify({
-  nights, composer, picked, widen, picked_day: chosen ? chosen.day : '',
+  nights, composer, picked, widen, matches, picked_day: chosen ? chosen.day : '',
 }), 'utf8');

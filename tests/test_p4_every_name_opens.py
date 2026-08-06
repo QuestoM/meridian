@@ -103,6 +103,7 @@ registerHooks({
 const React = (await import('react')).default;
 const { renderToStaticMarkup } = await import('react-dom/server');
 const MoneyBoard = (await import(pathToFileURL(built.get('MoneyBoard')).href)).default;
+const MoneyDetail = (await import(pathToFileURL(built.get('MoneyDetail')).href)).default;
 const CampaignBoard = (await import(pathToFileURL(built.get('CampaignBoard')).href)).default;
 const helpers = await import(pathToFileURL(built.get('clients-money-helpers')).href);
 const payload = JSON.parse(fs.readFileSync(PAYLOAD, 'utf8'));
@@ -115,6 +116,20 @@ function cell(html, value) {
   const row = html.slice(html.lastIndexOf('<tr', at), html.indexOf('</tr>', at));
   const found = row.split('</td>').map((part) => `${part}</td>`).find((part) => part.includes(value));
   return found === undefined ? null : found;
+}
+
+// The one removed-spot row that holds this value. The same break id is printed
+// in the table of priced spots above, so the search starts inside the removed
+// block or it would measure the control that already worked.
+function droppedItem(html, value) {
+  const block = html.indexOf('clients-dropped');
+  if (block < 0) return null;
+  const rest = html.slice(block);
+  const at = rest.indexOf(value);
+  if (at < 0) return null;
+  const start = rest.lastIndexOf('<li', at);
+  const end = rest.indexOf('</li>', at);
+  return start < 0 || end < 0 ? null : rest.slice(start, end + 5);
 }
 
 const opened = { group: 'advertisers', key: payload.advertiser };
@@ -139,6 +154,29 @@ const board = (props) => renderToStaticMarkup(React.createElement(CampaignBoard,
 
 const wired = board({ onOpenAgency: () => {} });
 const unwired = board({});
+
+// The drill of a client whose day really had spots removed by a rule, and the
+// same drill with the ledger holding no row for the break one of them names,
+// which is the state a break made only of removed spots is in.
+const removedRow = payload.money.advertisers.find((row) => row.advertiser === payload.dropped_advertiser);
+const removed = renderToStaticMarkup(React.createElement(MoneyBoard, {
+  money: payload.money,
+  locale: 'he',
+  drill: { group: 'advertisers', key: payload.dropped_advertiser },
+  onDrill: () => {},
+  onOpenClient: () => {},
+}));
+const thinned = renderToStaticMarkup(React.createElement(MoneyDetail, {
+  money: { ...payload.money, breaks: payload.money.breaks.filter((row) => String(row.break_id) !== payload.dropped_break) },
+  row: removedRow,
+  field: 'advertiser',
+  locale: 'he',
+  position: null,
+  onStep: () => {},
+  onOpenBreak: () => {},
+  onOpenCampaign: () => {},
+}));
+
 process.stdout.write(JSON.stringify({
   drill_open: money.includes('clients-detail'),
   campaign_cell: cell(money, payload.campaign),
@@ -147,6 +185,8 @@ process.stdout.write(JSON.stringify({
   agency_name_cell: cell(wired, payload.agency_name),
   client_cell: cell(wired, payload.client),
   agency_cell_unwired: cell(unwired, payload.agency_id),
+  dropped_item: droppedItem(removed, payload.dropped_break),
+  dropped_item_unranked: droppedItem(thinned, payload.dropped_break),
 }));
 """
 
@@ -187,6 +227,20 @@ def payload(tmp_path_factory) -> dict:
     tree = client_tree()
     names = {agency["agency_id"]: agency["name"] for agency in tree["agencies"]}
     advertiser = money["advertisers"][0]
+    ranked_breaks = {str(row["break_id"]) for row in money["breaks"]}
+    removed = None
+    for row in money["advertisers"]:
+        keys = set(row.get("dropped_keys") or [])
+        hit = next(
+            (entry for entry in money["dropped"]
+             if entry["spot_key"] in keys and str(entry["break_id"]) in ranked_breaks),
+            None,
+        )
+        if hit:
+            removed = (row["advertiser"], str(hit["break_id"]))
+            break
+    if removed is None:
+        pytest.skip("no client on this ledger had a spot removed by a rule, so there is no row to measure")
     return {
         "money": money,
         "tree": tree,
@@ -197,6 +251,8 @@ def payload(tmp_path_factory) -> dict:
         "agency_id": with_agency["agency_id"],
         "agency_name": names.get(with_agency["agency_id"], ""),
         "client": with_agency["advertiser"],
+        "dropped_advertiser": removed[0],
+        "dropped_break": removed[1],
     }
 
 
@@ -256,6 +312,32 @@ def test_an_agency_cell_with_no_opener_stays_a_label(rendered):
     cell = rendered["agency_cell_unwired"]
     assert cell, "the cell must still render its name and its id"
     assert "<button" not in cell
+
+
+def test_a_removed_spot_opens_the_break_it_would_have_sat_in(rendered, payload):
+    """The third cell of the same class, found by sweeping rather than by report.
+
+    A rule removed the spot, the row states which break it names, and that break
+    is a chip in the table of priced spots directly above it. Measured in the
+    browser before this: three removed rows on one client, zero controls.
+    """
+    item = rendered["dropped_item"]
+    assert item, f"no removed row holds break {payload['dropped_break']}"
+    assert "<button" in item, f"the break behind a removed spot opens nothing: {item}"
+    assert payload["dropped_break"] in item
+
+
+def test_a_break_the_ledger_does_not_rank_stays_a_label(rendered, payload):
+    """Proof the assertion above is not vacuous, and the rule it encodes.
+
+    A break holding nothing but removed spots has no row on the break grouping,
+    so there is nothing behind its id. Rendering the same drill against a ledger
+    without that row must therefore print the id and no control.
+    """
+    item = rendered["dropped_item_unranked"]
+    assert item, "the removed row must still state the break it names"
+    assert payload["dropped_break"] in item
+    assert "<button" not in item
 
 
 def test_the_workspace_supplies_both_openers(payload):

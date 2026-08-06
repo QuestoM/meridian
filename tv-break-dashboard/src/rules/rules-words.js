@@ -55,6 +55,36 @@ export function refusalSentence(reason, locale) {
   return REFUSALS_EN.get(text) || text;
 }
 
+// How many programmes matched beyond the ones on screen, and the act that
+// reaches them. The same rule the night picker answers to: a list that shows
+// fewer things than matched has to say so and has to name the way to the rest,
+// which for a type-ahead is the typing itself. Measured on the reference EPG,
+// an empty query matches 106 programmes on the operator's channel.
+export function moreProgrammesSentence(locale, hidden) {
+  const rest = Number(hidden) || 0;
+  if (locale === 'he') {
+    if (rest === 1) return 'עוד תוכנית אחת תואמת. המשיכו להקליד כדי להגיע אליה.';
+    return `עוד ${rest} תוכניות תואמות. המשיכו להקליד כדי לצמצם את הרשימה.`;
+  }
+  if (rest === 1) return '1 more programme matches. Keep typing to reach it.';
+  return `${rest} more programmes match. Keep typing to narrow the list.`;
+}
+
+// How many recorded licence changes have not yet reached their effective date.
+// A compliance owner reads this beside the change log, so it has to hold up
+// under the same scrutiny: a scheduled change is the normal case right after a
+// revision is filed, not the rare one, so the sentence is written out for both
+// counts rather than templated with a count that does not agree with its verb.
+export function scheduledChangesSentence(locale, count) {
+  const total = Number(count) || 0;
+  if (locale === 'he') {
+    if (total === 1) return 'שינוי אחד תועד לתאריך עתידי ואינו בתוקף עדיין.';
+    return `${total} שינויים תועדו לתאריך עתידי ואינם בתוקף עדיין.`;
+  }
+  if (total === 1) return '1 change is recorded for a future date and is not in force yet.';
+  return `${total} changes are recorded for a future date and are not in force yet.`;
+}
+
 // A rule the plan does not breach compiles to no row, so there is nothing to
 // store and the save stays shut. Said plainly, and said about the night that was
 // chosen rather than about the whole window, because the two are different facts

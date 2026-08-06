@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@mui/material';
 import { Trash2 } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
-import { postJson, requestJson, streamAsk, warmContext } from './assistant-stream';
+import { postJson, requestJson, streamAsk } from './assistant-stream';
+import { keepPrefixWarm } from './kai-keep-warm';
 import { useConversations } from './AssistantConversationsApi';
 import { asArray, normalizeBatch, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
 import { buildPageContext, useAssistantPage } from '../shell/assistant-page-context';
@@ -74,11 +75,13 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
         setStatusState('error');
       });
     refreshRail();
-    // Build the grounding context while the person is still typing. Measured on
-    // the server: 11.13 s cold, 0.034 s warm, so this is the difference between
-    // paying for it before the first token and not paying for it at all.
+    // The grounding context and the model's cached prefix, both built while the
+    // person is still typing: 11.13 s cold against 0.034 s warm for the context,
+    // and half a second of first token for the prefix, measured as a pair in
+    // kai-keep-warm.js. The composer asks again as a question is written,
+    // because a dock that was opened and left open goes cold.
     const controller = new AbortController();
-    warmContext(controller.signal);
+    keepPrefixWarm(controller.signal);
     return () => {
       active = false;
       controller.abort();
@@ -421,6 +424,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             asking={asking}
             onSend={ask}
             onStop={stopAsk}
+            onActivity={keepPrefixWarm}
           />
         </section>
 

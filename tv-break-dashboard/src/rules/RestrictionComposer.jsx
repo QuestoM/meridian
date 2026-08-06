@@ -4,6 +4,7 @@ import { Check, Loader2, Search } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
 import AiringNights from './AiringNights';
+import ProgrammeMatches from './ProgrammeMatches';
 import RestrictionEffect from './RestrictionEffect';
 import WiderScopeNote from './WiderScopeNote';
 import {
@@ -38,6 +39,9 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   const [query, setQuery] = useState('');
   const [title, setTitle] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  // How many programmes the query actually matched, which is larger than the
+  // list the route serves, so the picker can say what it is not showing.
+  const [matchCount, setMatchCount] = useState(0);
   const [airings, setAirings] = useState(null);
   const [day, setDay] = useState('');
   // Both ends of the life of a rule. The store and the engine have always
@@ -58,8 +62,12 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   useEffect(() => {
     let active = true;
     fetchTitles(query)
-      .then((body) => { if (active) setSuggestions(body.titles || []); })
-      .catch(() => { if (active) setSuggestions([]); });
+      .then((body) => {
+        if (!active) return;
+        setSuggestions(body.titles || []);
+        setMatchCount(Number(body.match_count) || 0);
+      })
+      .catch(() => { if (active) { setSuggestions([]); setMatchCount(0); } });
     return () => { active = false; };
   }, [query]);
 
@@ -223,22 +231,12 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
       </p>
 
       {!title && query.length > 0 && suggestions.length > 0 && (
-        <ul className="rules-suggestions">
-          {suggestions.slice(0, 8).map((row) => (
-            <li key={row.title}>
-              <button type="button" onClick={() => pickTitle(row.title)}>
-                <span dir="auto">{row.title}</span>
-                <small>
-                  {pageText(
-                    locale,
-                    `${row.airings} airings, ${row.planned_breaks} breaks planned`,
-                    `${row.airings} שידורים, ${row.planned_breaks} ברייקים בתוכנית`,
-                  )}
-                </small>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ProgrammeMatches
+          locale={locale}
+          titles={suggestions}
+          matchCount={matchCount}
+          onPick={pickTitle}
+        />
       )}
 
       {title && airings && (

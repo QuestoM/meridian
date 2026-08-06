@@ -143,3 +143,18 @@ def test_a_wall_the_table_does_not_know_falls_back_to_the_servers_words(read):
     """Honest rather than guessed: a new wall prints what the server said."""
     answer = read["refusals"]["unknown_wall"]
     assert answer["en"] == answer["he"] == "כלל שאיש עוד לא כתב לו תרגום"
+
+
+def test_the_scheduled_changes_count_agrees_with_its_own_verb(read):
+    """The licence page's own count, not templated with a verb that ignores it.
+
+    Measured: the sentence used to read "2 change is recorded" whenever more
+    than one licence revision was filed ahead of its effective date, which is
+    the normal state right after a revision, not the rare one.
+    """
+    one = read["scheduled"]["1"]
+    assert one["en"] == "1 change is recorded for a future date and is not in force yet."
+    assert one["he"] == "שינוי אחד תועד לתאריך עתידי ואינו בתוקף עדיין."
+    two = read["scheduled"]["2"]
+    assert two["en"] == "2 changes are recorded for a future date and are not in force yet."
+    assert two["he"] == "2 שינויים תועדו לתאריך עתידי ואינם בתוקף עדיין."

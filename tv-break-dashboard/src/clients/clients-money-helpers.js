@@ -146,6 +146,18 @@ export function ledgerCampaignKeys(money) {
   return (money.campaigns || []).map((row) => String(row.campaign));
 }
 
+// The same question for a break. A removed spot names the break it would have
+// sat in, and that break is a row on the board's own break grouping wherever any
+// priced spot landed in it. A break that holds nothing but removed spots has no
+// row, so its id stays a label there and a control is never offered for a row
+// that cannot be opened.
+export function ledgerBreakKeys(money) {
+  if (!money || !money.available) {
+    return [];
+  }
+  return (money.breaks || []).map((row) => String(row.break_id));
+}
+
 // The one sentence that travels with every total on this destination: which
 // file, which day, which channel, and how many of the file's rows were priced.
 export function basisLine(basis, locale) {

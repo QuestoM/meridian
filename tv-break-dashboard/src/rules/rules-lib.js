@@ -341,8 +341,10 @@ export {
   EFFECT_LIST,
   effectLabel,
   limitLabel,
+  moreProgrammesSentence,
   nothingToSaveSentence,
   refusalSentence,
+  scheduledChangesSentence,
   unitLabel,
   widerScopeSentence,
 } from './rules-words';

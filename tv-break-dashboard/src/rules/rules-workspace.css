@@ -212,6 +212,15 @@
   white-space: nowrap;
 }
 
+/* What the type-ahead is not showing, and the act that reaches the rest. */
+
+.rules-suggestions-more {
+  padding: var(--space-2) var(--space-3);
+  border-block-start: 1px solid var(--line);
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
 .rules-airings {
   margin-block-end: var(--space-3);
 }
