@@ -104,6 +104,25 @@ export function fetchGuardrails() {
   return readJson('/api/rules/guardrails');
 }
 
+export function fetchCompliance() {
+  return readJson('/api/compliance');
+}
+
+// What the Today ledger card draws, given its own fetch and the prop its
+// parent passed. Pure and framework-free so a mutant here shows up in a plain
+// node run rather than only in a browser: own data wins whenever it has
+// answered; the prop is a fallback used only once the own fetch has failed;
+// and a fallback that carries no scope key is a market-wide figure, never
+// printed as the operator's own.
+export function complianceViewState(own, ownFailed, fallback) {
+  const data = own || (ownFailed ? fallback : null);
+  if (!data) return { kind: 'loading' };
+  const scope = data.scope || null;
+  if (!scope) return { kind: 'basis_missing' };
+  if (!scope.scoped) return { kind: 'no_channel', reasonEn: scope.reason_en, reasonHe: scope.reason_he };
+  return { kind: 'scoped', data, scope };
+}
+
 export function fetchAttestation(since) {
   const suffix = since ? `?since=${encodeURIComponent(since)}` : '';
   return readJson(`/api/rules/attestation${suffix}`);

@@ -87,6 +87,26 @@
   color: var(--muted);
 }
 
+/* The Today ledger card carries the same scope sentence, sized for a landing
+   tile rather than a full section, plus the honest note it shows in place of
+   a verdict when its own scoped route has not answered and the fallback it
+   was handed names no population. */
+
+.ledger-scope-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.ledger-basis-missing {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--red);
+}
+
 .rules-provenance {
   display: flex;
   flex-wrap: wrap;

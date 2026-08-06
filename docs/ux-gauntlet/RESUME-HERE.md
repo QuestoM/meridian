@@ -45,7 +45,42 @@ round four when the limits started biting.
    bundle, and publish through `update_state.py --embed`.
 
 6. **Then wave two**, which is written, syntax-checked and never run:
-   `meridian-wave-2.js`. It already carries the two fixes the audit found.
+   `meridian-wave-2.js`. It carries the two fixes the audit found, plus a
+   reshaped round described below.
+
+## How wave two's round differs, and why
+
+Wave one's round was: builder recons blind, critic sweeps blind, builder fixes
+the one named gap, critic sweeps blind again. Two things about that were
+measured on the close wave and both were expensive.
+
+- **Three of seven builder rounds produced no code.** P3 and P9 touched zero
+  files, P8 touched only its own state file. Each spent a full context, about
+  270k tokens on this product, rediscovering that the work was already on disk,
+  then handed to a critic that named a gap the builder had never been told
+  about.
+- **Each sweep found several things and the loop kept one.** P8's critic
+  recorded three more findings in a field called `not_the_gap_but_worth_the_next_round`
+  that nothing ever read. The sweep was already paid for by the time it noticed
+  them; throwing them away buys a second sweep to find a different one.
+
+So the round is now: builder builds, critic sweeps and returns a **ranked queue**
+of every finding with `kind` mechanical or structural, closes the mechanical ones
+**itself** inside its own ownership row, and a **scoped judge** reads that diff
+and only that diff. The next builder closes every structural item in the queue,
+not just the largest.
+
+Three rules hold this together and none of them is optional:
+
+- **The critic measures everything before it edits anything.** An artifact it
+  has touched is no longer the artifact the builder shipped.
+- **No agent clears its own edit.** The scoped judge is a different agent, and
+  it cannot pass the piece. Only a full blind sweep passes a piece.
+- **The scoped judge runs on sonnet**, which departs from "every verifier on
+  opus". That is defensible only because it is not the last word: the next full
+  sweep is told to re-check every finding a scoped judge cleared, because a
+  judge that sees one diff cannot see what that diff cost elsewhere. Wave one's
+  seven regressions were exactly that failure at piece scale.
 
 ## What is known broken on main right now
 

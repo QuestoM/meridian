@@ -1,15 +1,95 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { complianceDisclaimer, complianceUnitLabel } from '../shell/labels';
+import { complianceViewState, fetchCompliance } from './rules-lib';
+import './rules-panels.css';
+
+// Today's landing card and the licence page one click away read the same
+// verdict about the same population, so this card fetches its own scoped
+// route (GET /api/compliance, the route the licence page also reads) rather
+// than trusting whatever compliance payload its parent handed it. The prop
+// is a fallback only, used while the card's own fetch has not yet answered
+// or has failed. A fallback payload that carries no scope key is a
+// market-wide figure, not the operator's, so its numbers are never printed
+// as the operator's own; the card states plainly that the basis is not
+// stated instead of printing a number nobody can place.
+
+function BasisNote({ copy, locale, children }) {
+  return (
+    <div className="analytics-panel ledger-panel">
+      <div className="panel-head">
+        <h2>{copy.compliance}</h2>
+      </div>
+      <p className="ledger-basis-missing" role="status" dir="auto">{children}</p>
+    </div>
+  );
+}
 
 export function ComplianceLedger({ compliance, copy, locale }) {
-  const checks = compliance?.checks || [];
+  const [own, setOwn] = useState(null);
+  const [ownFailed, setOwnFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCompliance()
+      .then((body) => {
+        if (cancelled) return;
+        setOwn(body);
+        setOwnFailed(false);
+      })
+      .catch(() => { if (!cancelled) setOwnFailed(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const view = complianceViewState(own, ownFailed, compliance);
+
+  if (view.kind === 'loading') {
+    return (
+      <BasisNote copy={copy} locale={locale}>
+        {pageText(locale, 'Reading the compliance verdict.', 'קורא את חוות דעת התאימות.')}
+      </BasisNote>
+    );
+  }
+
+  if (view.kind === 'basis_missing') {
+    return (
+      <BasisNote copy={copy} locale={locale}>
+        {pageText(
+          locale,
+          "The basis for this verdict is not stated, so no figure is shown as the operator's own. Open the licence page for the scoped verdict.",
+          'הבסיס לחוות הדעת הזו אינו ידוע, ולכן לא מוצג נתון כשל המפעיל. פתחו את עמוד הרישיון לחוות הדעת המוגדרת.',
+        )}
+      </BasisNote>
+    );
+  }
+
+  if (view.kind === 'no_channel') {
+    return (
+      <BasisNote copy={copy} locale={locale}>
+        {locale === 'he' ? view.reasonHe : view.reasonEn}
+      </BasisNote>
+    );
+  }
+
+  const { data, scope } = view;
+  const checks = data.checks || [];
   return (
     <div className="analytics-panel ledger-panel">
       <div className="panel-head">
         <h2>{copy.compliance}</h2>
         <span>{checks.length} {copy.activeRules}</span>
       </div>
+      <p className="ledger-scope-line" dir="auto">
+        <Tv size={12} aria-hidden="true" />
+        <span>
+          {pageText(
+            locale,
+            `${scope.scope_channel}, this operator's own channel: ${scope.rows_out} breaks judged, ${scope.competitor_rows_excluded} on other channels left out.`,
+            `${scope.scope_channel}, הערוץ שבבעלות המפעיל: ${scope.rows_out} ברייקים נשפטו, ${scope.competitor_rows_excluded} בערוצים אחרים לא נכללו.`,
+          )}
+        </span>
+      </p>
       <div className="ledger-list">
         {checks.map((check) => {
           const formatValue = (value) => Number(value).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
@@ -36,7 +116,7 @@ export function ComplianceLedger({ compliance, copy, locale }) {
             </div>
           );
         })}
-        <p className="ledger-note">{complianceDisclaimer(compliance?.disclaimer, locale)}</p>
+        <p className="ledger-note">{complianceDisclaimer(data.disclaimer, locale)}</p>
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 import React from 'react';
 import { AlertTriangle, Calculator, CheckCircle2 } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
-import { SaveForecast, violationLabel } from './DayBoardReadout';
-import { exactCurrency } from './day-board-model';
+import { CommittedPlanNote, SaveForecast, violationLabel } from './DayBoardReadout';
+import { committedGap, exactCurrency } from './day-board-model';
 import './day-readout.css';
 
 // What this day is worth, what the pending edits would do to it, and the check
@@ -52,11 +52,12 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
     );
   }
 
-  const { basis, current, delta, changed_inputs: changed, compliance } = score;
+  const { basis, saved, current, delta, changed_inputs: changed, compliance } = score;
   const moneyMoved = Math.abs(delta.revenue) > 0.005;
   const onlyPlacement = changed.placement && !changed.duration && !changed.gold;
   const scopeText = `${basis.channel} / ${basis.day}`;
   const violations = compliance.violations || [];
+  const gap = committedGap(basis, saved);
 
   return (
     <div className={`day-readout${violations.length ? ' has-violation' : ''}`}>
@@ -104,11 +105,13 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
           <small className="day-figure-scope" dir="ltr">{formatNumber(current.ad_seconds, locale)}s</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
-          <span className="day-figure-label">{pageText(locale, 'Change from the saved plan', 'שינוי מול התוכנית השמורה')}</span>
+          <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
           <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope">{label('same basis', 'אותו בסיס')}</small>
+          <small className="day-figure-scope">{gap.state === 'diverged' ? label('this live plan, see below', 'התוכנית החיה הזו, ראו למטה') : label('same basis', 'אותו בסיס')}</small>
         </div>
       </div>
+
+      <CommittedPlanNote gap={gap} locale={locale} />
 
       {editCount > 0 && onlyPlacement && !moneyMoved && (
         <p className="day-readout-note" dir="auto">

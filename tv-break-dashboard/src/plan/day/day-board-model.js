@@ -216,6 +216,25 @@ export function boardView(score, board) {
   };
 }
 
+// Whether the board's own live figures agree with the weekly plan saved to disk.
+//
+// The board is a LIVE re-optimization of this channel-day against whatever
+// settings, constraints, config and models are current, never a read of a file,
+// and ``basis.committed`` is that other, genuinely different basis: the figures
+// the weekly plan actually saved to output/weekly_break_schedule.csv, the
+// artifact the week board, the overview and every export read. Config or a
+// model can move between a save and the moment this board is opened, so the two
+// are never assumed to agree; this is the one place that checks and says so.
+export function committedGap(basis, saved) {
+  const committed = basis && basis.committed;
+  if (!committed || !saved) return { state: 'unavailable', committed: null };
+  const revenueGap = Math.round((Number(saved.revenue) - Number(committed.revenue)) * 100) / 100;
+  const breaksGap = Number(saved.breaks) - Number(committed.breaks);
+  const percent = committed.revenue ? Math.round((revenueGap / committed.revenue) * 1000) / 10 : null;
+  const matches = Math.abs(revenueGap) < 0.005 && breaksGap === 0;
+  return { state: matches ? 'matches' : 'diverged', committed, revenueGap, breaksGap, percent };
+}
+
 // Whether this break can be put back where the plan had it, and what the inverse
 // would have to delete.
 //

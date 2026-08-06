@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, ArrowRight, Calculator, CheckCircle2, PinOff, Undo2 } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
-import { clockOf, exactCurrency } from './day-board-model';
+import { clockOf, committedGap, exactCurrency } from './day-board-model';
 
 // What the move cost, told honestly.
 //
@@ -42,11 +42,12 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
       </div>
     );
   }
-  const { basis, current, delta, changed_inputs: changed, compliance } = score;
+  const { basis, saved, current, delta, changed_inputs: changed, compliance } = score;
   const moneyMoved = Math.abs(delta.revenue) > 0.005;
   const onlyPlacement = changed.placement && !changed.duration && !changed.gold;
   const scopeText = `${basis.channel} / ${basis.day}`;
   const violations = compliance.violations || [];
+  const gap = committedGap(basis, saved);
 
   return (
     <div className={`day-readout${violations.length ? ' has-violation' : ''}`}>
@@ -106,11 +107,13 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
           <small className="day-figure-scope" dir="ltr">{formatNumber(current.ad_seconds, locale)}s</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
-          <span className="day-figure-label">{pageText(locale, 'Change from the saved plan', 'שינוי מול התוכנית השמורה')}</span>
+          <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
           <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope">{label('same basis', 'אותו בסיס')}</small>
+          <small className="day-figure-scope">{gap.state === 'diverged' ? label('this live plan, see below', 'התוכנית החיה הזו, ראו למטה') : label('same basis', 'אותו בסיס')}</small>
         </div>
       </div>
+
+      <CommittedPlanNote gap={gap} locale={locale} />
 
       {editCount > 0 && onlyPlacement && !moneyMoved && (
         <p className="day-readout-note">
@@ -146,6 +149,39 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
         </p>
       )}
     </div>
+  );
+}
+
+// Whether this live plan agrees with the weekly plan actually saved to disk.
+//
+// A blind critic measured this gap directly: the day board served this
+// channel-day at 76 breaks and 992,668.69 ILS while the committed weekly plan
+// on disk, the same artifact the week board and every export read, held 80
+// breaks and 1,067,845.56 ILS, 7.0 per cent apart, and this surface disclosed
+// none of it: the tile beside it read a bare "same basis". This is the
+// disclosure that replaces the silence, in all three states a comparison can
+// honestly land in: no committed row to compare against, the two in agreement,
+// or the two apart, with both figures and the gap printed rather than implied.
+export function CommittedPlanNote({ gap, locale }) {
+  const label = (en, he) => (locale === 'he' ? he : en);
+  if (gap.state === 'unavailable') {
+    return (
+      <p className="day-committed-note is-unknown" dir="auto">
+        {label('No committed weekly plan is on file for this channel-day, so there is nothing to check this live plan against.', 'אין תוכנית שבועית שמורה ליום הערוץ הזה, ואין מול מה לבדוק את התוכנית החיה הזו.')}
+      </p>
+    );
+  }
+  if (gap.state === 'matches') {
+    return (
+      <p className="day-committed-note is-matched" dir="auto">
+        {label(`This live plan matches the weekly plan saved to disk: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks.`, `התוכנית החיה הזו תואמת את התוכנית השבועית השמורה בדיסק: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים.`)}
+      </p>
+    );
+  }
+  return (
+    <p className="day-committed-note is-diverged" dir="auto">
+      {label(`This board re-planned this day live. It now differs from the weekly plan saved to disk (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks) by ${exactCurrency(gap.revenueGap, locale)}, ${gap.percent}%, and ${gap.breaksGap} breaks.`, `הלוח הזה תכנן את היום הזה מחדש בזמן אמת. הוא שונה כעת מהתוכנית השבועית השמורה בדיסק (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים) ב-${exactCurrency(gap.revenueGap, locale)}, ${gap.percent}%, ו-${gap.breaksGap} ברייקים.`)}
+    </p>
   );
 }
 

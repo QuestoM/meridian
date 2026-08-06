@@ -50,6 +50,7 @@ export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
   const payload = supplied || fetched;
   const rows = payload ? normalizeRows(payload.campaigns) : [];
   const revenueAvailable = !payload || payload.revenue_available !== false;
+  const scope = payload ? payload.scope : null;
   const countLabel = payload
     ? `${rows.length} ${pageText(locale, 'campaigns', 'קמפיינים')}`
     : (failed
@@ -61,8 +62,27 @@ export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
       ? pageText(locale, 'The campaign rollup could not be read, so no count is shown rather than a zero.', 'לא ניתן היה לקרוא את ריכוז הקמפיינים, ולכן לא מוצג מספר במקום אפס.')
       : pageText(locale, 'Loading campaigns seen in the source data', 'טוען קמפיינים שנצפו בנתוני המקור'));
 
+  // The scope line, printed the way the money board prints its basis: which
+  // channel this rollup was held to, and how many other-channel rows that
+  // scope left out, so a reader never mistakes a ranking here for one summed
+  // across the whole market.
+  const scopeLabel = scope && scope.scope_channel
+    ? pageText(
+      locale,
+      `Scoped to ${scope.scope_channel}. ${scope.competitor_rows_excluded} rows on other channels were excluded.`,
+      `בהיקף ${scope.scope_channel}. ${scope.competitor_rows_excluded} שורות מערוצים אחרים הוצאו.`,
+    )
+    : pageText(
+      locale,
+      'No operator channel is set, so this rollup could not be scoped and may include other channels.',
+      'לא הוגדר ערוץ מפעיל, ולכן ריכוז זה לא ניתן היה להעמיד בהיקף וייתכן שהוא כולל ערוצים אחרים.',
+    );
+
   return (
     <>
+      {scope && (
+        <p className="data-basis-note">{scopeLabel}</p>
+      )}
       {!revenueAvailable && (
         <p className="data-basis-note">
           {pageText(
@@ -86,7 +106,6 @@ export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
             { key: 'advertiser_id', label: pageText(locale, 'Advertiser', 'מפרסם') },
             { key: 'spots', label: pageText(locale, 'Spots', 'ספוטים'), render: (row) => formatNumber(row.spots, locale) },
             { key: 'seconds', label: pageText(locale, 'Minutes', 'דקות'), render: (row) => formatMinutes(row.seconds, locale) },
-            { key: 'channels', label: pageText(locale, 'Channels', 'ערוצים'), render: (row) => formatNumber(row.channels, locale) },
             { key: 'revenue', label: pageText(locale, 'Revenue', 'הכנסה'), render: (row) => formatCurrency(row.revenue, locale) },
             { key: 'last_airing', label: pageText(locale, 'Last airing', 'שידור אחרון') },
           ]}

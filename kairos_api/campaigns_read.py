@@ -17,7 +17,12 @@ historical rollup of what aired, moved verbatim from catalog_api.py in the
 wave-zero router split, and it stays because it answers a question the other two
 do not: which campaign strings the loaded spots source carries at all. Revenue is
 reported only when that source actually has it, and the payload says so with
-``revenue_available`` rather than ranking on a fabricated zero.
+``revenue_available`` rather than ranking on a fabricated zero. It sits on the
+same screen as the operator-scoped money board, so it holds to the same
+competitor boundary: the source spots frame carries every channel on disk, and
+the rollup is scoped to ``settings.operator_channel`` (see
+:mod:`kairos_api.channel_scope`) before it groups, with the scope carried in
+the payload's own ``scope`` block exactly as the money board carries ``basis``.
 """
 
 from __future__ import annotations
@@ -29,6 +34,7 @@ from typing import Any
 import pandas as pd
 from fastapi import APIRouter, Request
 
+from kairos_api import channel_scope
 from kairos_api.core import (
     DATA_DIR,
     _load_spots,
@@ -44,7 +50,8 @@ router = APIRouter()
 
 def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
     if spots.empty:
-        return {"campaigns": []}
+        _, scope = channel_scope.scope_frame(spots, column="Channel")
+        return {"campaigns": [], "scope": scope}
 
     frame = spots.copy()
     # Revenue is reported only when the spots source actually carries it (the
@@ -65,13 +72,20 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
     # for the max, then format back to the DD/MM/YYYY display contract. Unparseable
     # dates coerce to NaT and render as an honest empty value, never a fabricated date.
     frame["_date"] = pd.to_datetime(_series(frame, "Date", ""), format="%d/%m/%Y", errors="coerce")
+    # This rollup sits on the same screen as the operator-scoped money board, so it
+    # must hold to the same competitor boundary: the spots frame carries every
+    # channel Spots.csv has (measured, four of them), and an unscoped groupby put
+    # rival-channel spots, minutes and last-airing dates on an operator surface.
+    # Scoped to settings.operator_channel exactly as /api/clients/money is, with the
+    # channels-per-campaign count dropped from the payload: once the frame is one
+    # channel that count is always one and cannot mean anything.
+    frame, scope = channel_scope.scope_frame(frame, column="Channel")
     grouped = (
         frame.groupby(["Campaign", "advertiser_id"], dropna=False)
         .agg(
             spots=("Campaign", "count"),
             seconds=("Duration", "sum"),
             revenue=("revenue_ils", "sum"),
-            channels=("Channel", "nunique"),
             last_airing=("_date", "max"),
         )
         .reset_index()
@@ -81,7 +95,7 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
     grouped["last_airing"] = grouped["last_airing"].dt.strftime("%d/%m/%Y").where(grouped["last_airing"].notna(), None)
     if not has_revenue:
         grouped["revenue"] = None
-    return {"campaigns": _records(grouped), "revenue_available": has_revenue}
+    return {"campaigns": _records(grouped), "revenue_available": has_revenue, "scope": scope}
 
 
 @lru_cache(maxsize=16)

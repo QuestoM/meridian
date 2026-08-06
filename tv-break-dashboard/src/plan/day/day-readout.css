@@ -138,6 +138,30 @@
   max-width: 76ch;
 }
 
+.day-committed-note {
+  font-size: var(--text-sm);
+  margin: 0;
+  max-width: 76ch;
+  padding: var(--space-1) var(--space-2);
+  border-inline-start: 2px solid var(--line);
+}
+
+.day-committed-note.is-unknown {
+  color: var(--subtle);
+  border-inline-start-color: var(--line);
+}
+
+.day-committed-note.is-matched {
+  color: var(--teal-ink);
+  border-inline-start-color: var(--teal-ink);
+}
+
+.day-committed-note.is-diverged {
+  color: var(--amber-ink);
+  border-inline-start-color: var(--amber);
+  background: var(--amber-soft);
+}
+
 .day-verdict {
   display: inline-flex;
   align-items: center;
