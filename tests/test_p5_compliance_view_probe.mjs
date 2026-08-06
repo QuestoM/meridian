@@ -5,27 +5,49 @@
 // "no channel declared" note, or an honest "basis not stated" note in place of
 // a market-wide figure mislabelled as the operator's own. Node cannot import
 // rules-lib.js directly because it reaches `import.meta.env` through
-// shell/api.js, which only Vite resolves, so this copies the real file into a
-// temporary tree and supplies a plain stub for that one import. It tests the
-// shipped source, not a restatement of it.
+// shell/api.js, which only Vite rewrites, so this bundles the real module with
+// the bundler the product builds with, which resolves every relative import
+// straight off disk, and only rewrites the one accessor Node lacks. It tests
+// the shipped source, not a restatement of it.
 //
 // Usage: node test_p5_compliance_view_probe.mjs   (prints JSON on stdout)
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire, registerHooks } from 'node:module';
+import fs from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RULES = join(HERE, '..', 'tv-break-dashboard', 'src', 'rules');
+const ROOT = join(HERE, '..');
+const APP = join(ROOT, 'tv-break-dashboard');
+const RULES_LIB = join(APP, 'src', 'rules', 'rules-lib.js');
+const outDir = mkdtempSync(join(tmpdir(), 'p5-compliance-view-'));
 
-const root = mkdtempSync(join(tmpdir(), 'p5-compliance-view-'));
-mkdirSync(join(root, 'rules'));
-mkdirSync(join(root, 'shell'));
-writeFileSync(join(root, 'shell', 'api.js'), "export const API_BASE = '';\n");
-writeFileSync(join(root, 'rules', 'rules-lib.js'), readFileSync(join(RULES, 'rules-lib.js'), 'utf8'));
+const require_ = createRequire(join(APP, 'package.json'));
+const MAP = { rolldown: pathToFileURL(require_.resolve('rolldown')).href };
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (MAP[specifier]) return { url: MAP[specifier], shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
 
-const lib = await import(pathToFileURL(join(root, 'rules', 'rules-lib.js')).href);
-const { complianceViewState } = lib;
+const { build } = await import('rolldown');
+await build({
+  input: RULES_LIB,
+  output: { dir: outDir, format: 'esm', entryFileNames: 'lib.mjs' },
+  resolve: { extensions: ['.js', '.jsx'] },
+  platform: 'node',
+  logLevel: 'silent',
+});
+
+// node has no Vite import.meta.env. Only that accessor is rewritten, only in
+// the emitted bundle, and never in the shipped source.
+const built = join(outDir, 'lib.mjs');
+fs.writeFileSync(built, fs.readFileSync(built, 'utf8').replaceAll('import.meta.env', '({})'), 'utf8');
+
+const { complianceViewState } = await import(pathToFileURL(built).href);
 
 const SCOPED_OWN = {
   scope: { scoped: true, scope_channel: 'ערוץ 13', rows_out: 736, competitor_rows_excluded: 8290 },
