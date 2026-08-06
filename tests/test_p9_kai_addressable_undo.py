@@ -65,7 +65,8 @@ def test_the_restore_point_is_stored_on_the_batch_and_survives_a_reread(action_s
     applied = client.post(f"/api/assistant/proposals/{batch['batch_id']}/apply",
                           json={"item_ids": [batch["items"][0]["id"]]})
     assert applied.status_code == 200
-    restore_id = applied.json()["restore_id"]
+    body = applied.json()
+    restore_id = body["restore_id"]
     assert restore_id
 
     # A fresh read of the store, which is what a reloaded browser gets.
@@ -75,6 +76,19 @@ def test_the_restore_point_is_stored_on_the_batch_and_survives_a_reread(action_s
     assert points[0]["applied_by"] == "auth-disabled"
     assert points[0]["item_ids"] == [batch["items"][0]["id"]]
     assert points[0]["applied_at"]
+
+    # The History page addresses a row by its unified-timeline version id, not
+    # by the restore id /api/assistant/restore applies against: the two are
+    # different ids on the same apply, and a "see it in the history" control
+    # that carries the wrong one lands on nothing. Both the apply response and
+    # the stored restore point carry the version id the timeline actually used.
+    assert body["version_id"]
+    assert points[0]["version_id"] == body["version_id"]
+    from kairos_api import version_store
+
+    timeline_entry = next(m for m in version_store._all_manifests()
+                          if m.get("source") == "assistant_apply" and m.get("batch_id") == batch["batch_id"])
+    assert timeline_entry["version_id"] == body["version_id"]
 
 
 def test_two_applies_on_one_batch_keep_two_restore_points_in_order(action_store) -> None:
@@ -89,7 +103,13 @@ def test_two_applies_on_one_batch_keep_two_restore_points_in_order(action_store)
                          json={"item_ids": [batch["items"][1]["id"]]}).json()["restore_id"]
 
     stored = {row["batch_id"]: row for row in client.get("/api/assistant/proposals").json()["batches"]}
-    assert [point["restore_id"] for point in stored[batch["batch_id"]]["restore_points"]] == [first, second]
+    points = stored[batch["batch_id"]]["restore_points"]
+    assert [point["restore_id"] for point in points] == [first, second]
+    # Two applies of the same settings file produce two distinct timeline
+    # versions, each addressable in its own right.
+    version_ids = [point["version_id"] for point in points]
+    assert len(set(version_ids)) == 2
+    assert all(version_ids)
 
 
 def test_an_apply_that_touches_no_state_file_records_no_restore_point(action_store) -> None:

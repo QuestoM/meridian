@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postJson, requestJson } from './assistant-stream';
 import { unrecordedProposalClaim } from './kai-claimed-action';
 import { isolate } from './kai-bidi';
+import { writeAddress } from '../history/history-labels.js';
+import { pointAddress } from '../history/history-address.js';
 
 // State hooks for the assistant console, split out of AssistantPanel.jsx so
 // the panel stays a readable render component. useAssistantBatches owns the
@@ -67,8 +69,23 @@ export function normalizeBatch(raw) {
       restoreId: String(point.restore_id),
       appliedAt: point.applied_at ? String(point.applied_at) : null,
       appliedBy: point.applied_by ? String(point.applied_by) : '',
+      // The restore id and the History page's id are two different things: the
+      // restore id is what /api/assistant/restore applies against, the version
+      // id is the row the History page can open and select. Both ride on the
+      // point so the "see it in the history" control has something to address.
+      versionId: point.version_id ? String(point.version_id) : null,
     }));
   return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items, restorePoints };
+}
+
+// Opens the History page addressed at one row rather than at its own newest
+// row: the version id, when there is one, is written as ?entry=version:<id>
+// before the hash changes, so the page the hash lands on reads it on mount.
+// Without a version id (a restore point older than the timeline column, or a
+// caller with none to give) this falls back to the plain jump it always did.
+export function showRestoreVersion(versionId) {
+  if (versionId) writeAddress(pointAddress(versionId));
+  window.location.hash = 'Versions';
 }
 
 export function useAssistantBatches(notify) {
@@ -135,9 +152,11 @@ export function useAssistantBatches(notify) {
         if (!batch) return prev;
         const byId = new Map(results.filter((row) => row && row.id != null).map((row) => [String(row.id), row]));
         // The restore point lands on the batch immediately, so the undo control
-        // is the same object before and after a reload rather than two.
+        // is the same object before and after a reload rather than two. The
+        // version id rides beside it from the same response, so "see it in the
+        // history" addresses the right row before the next refresh even lands.
         const restorePoints = restoreId
-          ? [...(batch.restorePoints || []), { restoreId: String(restoreId), appliedAt: new Date().toISOString(), appliedBy: '' }]
+          ? [...(batch.restorePoints || []), { restoreId: String(restoreId), appliedAt: new Date().toISOString(), appliedBy: '', versionId: body.version_id ? String(body.version_id) : null }]
           : batch.restorePoints;
         return { ...prev, [batchId]: { ...batch, restorePoints, items: batch.items.map((item) => (item.id && byId.has(item.id) ? { ...item, status: String(byId.get(item.id).status || item.status), error: byId.get(item.id).error ? String(byId.get(item.id).error) : item.error } : item)) } };
       });

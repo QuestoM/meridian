@@ -305,3 +305,98 @@ def test_the_surface_still_hands_that_sentence_the_whole_source() -> None:
     reach = _read("history-reach.js")
     assert "export function changesSourceLine(changes) {" in reach
     assert "const mine = Number(source.in_scope || 0);" in reach
+
+
+# --- the third figure this defect class reaches: the reader's own scope ----------
+
+def test_the_since_endpoint_answers_a_different_scope_for_admin_and_operator(
+        history_env, auth_env) -> None:
+    """The gap a blind critic measured, reproduced against a real store: one
+    admin write, then the same store read twice in the same second, once as the
+    admin who made it and once as an operator who did not. The endpoint already
+    tells the two readings apart; what is pinned here is that it still does, on a
+    store this test builds rather than one the critic happened to catch mid-write.
+
+    A 404 to a route that does not exist is a refusal, not a change, so it
+    cannot stand for the admin's write here: ``changed`` is ``attempted`` less
+    ``refused``, and a refused attempt is worth zero by definition. What the
+    admin does instead is the same successful restore
+    ``test_a_refused_write_stays_a_change_because_somebody_tried_it`` in the
+    sibling file refuses for a viewer: a real 200, attributed to the admin, and
+    scoped to that account the same way every ``change`` and ``restore`` entry
+    already is."""
+    admin = _as(history_env, auth_env, "admin", "admin")
+    version_id = vs.snapshot("manual_snapshot", "seed", ["settings"], force=True)
+    assert admin.post(f"/api/versions/{version_id}/restore", json={}).status_code == 200
+
+    # The two reads share one TestClient, so the operator's cookie is set, read
+    # and then replaced with the admin's again, the same order the merge test
+    # above this one already uses for the same reason.
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    operator_since = operator.get("/api/history/since").json()
+
+    admin = _as(history_env, auth_env, "admin", "admin")
+    admin_since = admin.get("/api/history/since").json()
+
+    assert admin_since["scope"] == "all"
+    assert admin_since["changed"] >= 1 and admin_since["verdict"] == "changed"
+    assert operator_since["scope"] == "self"
+    assert operator_since["changed"] == 0 and operator_since["verdict"] == "unchanged", (
+        "the same store, the same second, two different attestations: the strip that reads "
+        "changeCount alone and never body.scope cannot tell them apart")
+
+
+# The exact figures the critic measured on 2026-08-07: an admin read scope all,
+# changed 77, over a store on which a plain operator read scope self, changed 0,
+# in the same second. Hardcoded rather than piped from a live call, because what
+# is under test is the module the strip calls, not the timing of a subprocess.
+SINCE_SCOPE_PROBE = """
+import { sinceCountLine, sinceEmptyLine } from './tv-break-dashboard/src/history/history-since.js';
+console.log(JSON.stringify({
+  adminChanged: sinceCountLine(77, 45, 'all'),
+  adminEmpty: sinceEmptyLine('all'),
+  operatorEmpty: sinceEmptyLine('self'),
+  operatorChanged: sinceCountLine(3, null, 'self'),
+}));
+"""
+
+
+def test_the_strip_cannot_print_the_same_unqualified_sentence_for_both_scopes() -> None:
+    """The fix, executed rather than read. HistorySince.jsx line 113 used to pick
+    the empty sentence from changeCount alone and never read body.scope, so a
+    self-scoped zero and an all-scoped zero printed the identical unqualified
+    Hebrew sentence 'shum davar lo hishtana meaz oto yom'. Pinned here: the
+    self-scoped sentences name the set they cover in both languages, the
+    all-scoped ones read exactly as they always did, and the two empty sentences
+    are never the same string."""
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not on this machine, so the module cannot be executed here")
+    result = subprocess.run([node, "--input-type=module", "-e", SINCE_SCOPE_PROBE],
+                            cwd=ROOT, capture_output=True, text=True, timeout=120)
+    assert result.returncode == 0, result.stderr[-500:]
+    measured = json.loads(result.stdout.strip().splitlines()[-1])
+
+    admin_empty, operator_empty = measured["adminEmpty"], measured["operatorEmpty"]
+    admin_changed, operator_changed = measured["adminChanged"], measured["operatorChanged"]
+
+    # The defect itself: a scoped zero can no longer read as the same claim as an
+    # unscoped one, in either language.
+    assert admin_empty[0] != operator_empty[0] and admin_empty[1] != operator_empty[1]
+
+    # The unqualified sentence is untouched for the scope it was always true for.
+    assert admin_empty == ["Nothing has changed since that day.", "שום דבר לא השתנה מאז אותו יום."]
+    assert admin_changed[0] == "77 changes and points were applied, and 45 runs were recorded."
+
+    # The self-scoped sentences name the set and the account it excludes, in both
+    # languages, so a compliance owner reading only the strip is told what a plain
+    # operator's zero does and does not cover.
+    for line in (operator_empty[0], operator_changed[0]):
+        assert "your own" in line, f"the self-scoped line names its own set: {line}"
+    assert "other accounts are not shown" in operator_empty[0]
+    for line in (operator_empty[1], operator_changed[1]):
+        assert "שלכם" in line, f"the self-scoped line names its own set: {line}"
+    assert "חשבונות אחרים אינם מוצגים" in operator_empty[1]
+
+    # Every figure in the qualified sentence is still the payload's own.
+    assert "3" in operator_changed[0] and "77" in admin_changed[0]

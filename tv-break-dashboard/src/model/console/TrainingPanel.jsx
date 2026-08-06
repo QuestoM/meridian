@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Numeric } from '../../shell/format';
 import { readSection, startTraining } from './console-api';
 import { Absent, Panel, RecordDrill } from './console-bits';
-import { pick, t } from './console-words';
+import { canEditReason, pick, t } from './console-words';
 
 // Training, started from the console and only ever into the console's own
 // store. The safety sentence is on the screen and not only in the code: a run
@@ -48,7 +48,7 @@ function runIsOpen(payload) {
   return Object.keys(payload.in_flight || {}).length > 0;
 }
 
-function Trainer({ trainer, locale, running, onStart }) {
+function Trainer({ trainer, locale, running, locked, onStart }) {
   const [flags, setFlags] = useState({});
   const busy = Boolean(running);
   return (
@@ -62,7 +62,7 @@ function Trainer({ trainer, locale, running, onStart }) {
           type="button"
           className="mc-button mc-primary"
           onClick={() => onStart(trainer.artifact, flags)}
-          disabled={busy}
+          disabled={busy || locked}
         >
           {busy ? t('training.running', locale) : t('training.start', locale)}
         </button>
@@ -178,6 +178,11 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
 
   const inFlight = shown.in_flight || {};
   const runs = shown.runs || [];
+  // Who may press the buttons below, read from the same wall that would
+  // refuse the write. ``can_edit`` absent (a payload built without the route,
+  // as the watch's synthetic bodies are) locks nothing, since the surface has
+  // made no claim either way.
+  const locked = shown.can_edit === false;
   async function start(artifact, flags) {
     setBusy(true);
     await startTraining(artifact, flags);
@@ -187,12 +192,18 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
   return (
     <>
       <Panel title={t('training.title', locale)} sub={pick(shown, 'safety', locale)}>
+        {locked ? (
+          <p className="mc-note mc-trainer-locked" dir="auto">
+            {canEditReason(shown.can_edit_reason, locale)}
+          </p>
+        ) : null}
         {(shown.trainers || []).map((trainer) => (
           <Trainer
             key={trainer.artifact}
             trainer={trainer}
             locale={locale}
             running={busy || inFlight[trainer.artifact]}
+            locked={locked}
             onStart={start}
           />
         ))}

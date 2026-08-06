@@ -127,6 +127,21 @@
 .mc-count.mc-no_contrast { border-color: #e2b46a; }
 .mc-count.mc-not_measured { border-color: #8b9aa6; }
 
+.mc-header-counts-note {
+  flex-basis: 100%;
+  font-size: var(--text-2xs);
+  color: #9db6b1;
+  margin: 0;
+}
+
+.mc-header-permission {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-2xs);
+  color: #b9cbc7;
+}
+
 .mc-header-activation {
   display: flex;
   align-items: center;

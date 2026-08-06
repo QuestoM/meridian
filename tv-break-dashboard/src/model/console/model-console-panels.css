@@ -126,7 +126,7 @@
   line-height: 1.45;
 }
 
-.mc-gate-unblock {
+.mc-gate-unblock, .mc-trainer-locked {
   margin: var(--space-2) 0 0;
   font-size: var(--text-sm);
   background: var(--amber-soft);

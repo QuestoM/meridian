@@ -155,7 +155,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
             <p dir="auto">{pageText(locale, 'A pre-restore snapshot was saved, so this restore is undoable from the restore page.', 'נשמר צילום מצב שלפני השחזור, ולכן אפשר לבטל את השחזור הזה מעמוד השחזור.')}</p>
           ) : null}
           <p dir="auto">{pageText(locale, 'Run the plan now so it reflects the restored data.', 'הריצו עכשיו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')}</p>
-          <button type="button" className="asst-ver-toggle" onClick={onShowRestore}>
+          <button type="button" className="asst-ver-toggle" onClick={() => onShowRestore(restoreResult.preId)}>
             <ExternalLink size={12} />
             {pageText(locale, 'Restore page', 'עמוד השחזור')}
           </button>
@@ -192,7 +192,10 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
               );
             })}
             {Array.isArray(batch.version_ids) && batch.version_ids.length ? (
-              <button type="button" className="asst-ver-toggle" onClick={onShowRestore}>
+              // version_ids arrives newest first (the server's own manifest
+              // order), so the first entry is the version this batch's most
+              // recent apply produced.
+              <button type="button" className="asst-ver-toggle" onClick={() => onShowRestore(batch.version_ids[0])}>
                 <ExternalLink size={12} />
                 {pageText(locale, 'Version diff on the restore page', 'הצגת הגרסה בעמוד השחזור')}
               </button>

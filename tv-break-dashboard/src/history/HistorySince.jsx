@@ -6,6 +6,7 @@ import { fetchSince } from './history-api';
 import { todayIso } from './history-labels';
 import { attestationStartLine } from './history-reach';
 import { refusedSinceLine } from './history-refused';
+import { sinceCountLine, sinceEmptyLine } from './history-since';
 import { RUNS_WITHHELD, runsCountLine, runsCounted, runsSourceState } from './history-runs';
 
 // "Has anything changed since?" with the evidence attached.
@@ -71,6 +72,12 @@ export default function HistorySince({ locale, landing, onShow }) {
   // had been refused, so 28.0 percent of an attested figure changed nothing.
   const changeCount = Number((body && body.changed) || 0);
   const refusedCount = Number((body && body.refused) || 0);
+  // The set this figure was taken over. "all" is every account's record; "self"
+  // is this account's own changes plus every restore point, because only the
+  // activity half of the count is filtered per account. Both sentences below
+  // read this rather than assuming "all", because a self-scoped zero is a claim
+  // about this account's own view and never a claim that nothing happened.
+  const scope = String((body && body.scope) || '');
   // The runs are counted only when the product may attribute them. Withheld, the
   // tally is zero because no run entry was assembled, not because none ran, and
   // printing that zero here would put a false attestation in the one sentence a
@@ -100,18 +107,20 @@ export default function HistorySince({ locale, landing, onShow }) {
         <>
           <span className="hist-since-line" dir="auto">
             {changeCount && counted
-              ? pageText(locale, `${changeCount} changes and points were applied, and ${counts.run || 0} runs were recorded.`, `בוצעו ${changeCount} שינויים ונקודות, ונרשמו ${counts.run || 0} הרצות.`)
+              ? pageText(locale, ...sinceCountLine(changeCount, counts.run || 0, scope))
               : null}
             {changeCount && !counted
-              ? pageText(locale, `${changeCount} changes and points were applied.`, `בוצעו ${changeCount} שינויים ונקודות.`)
+              ? pageText(locale, ...sinceCountLine(changeCount, null, scope))
               : null}
             {/* One sentence for the empty case, where the four were two. Whether the
                 runs can be counted decides whether their figure may be printed, which
                 is the branch above; it decides nothing here, because a run reads the
                 saved state and a refused attempt wrote nothing, so neither changes
-                whether anything changed. */}
+                whether anything changed. Scope decides something here that it does
+                not decide above: a self-scoped zero names the set it covers, because
+                it is a claim about this account's own view and not about the record. */}
             {!changeCount
-              ? pageText(locale, 'Nothing has changed since that day.', 'שום דבר לא השתנה מאז אותו יום.')
+              ? pageText(locale, ...sinceEmptyLine(scope))
               : null}
           </span>
           {/* What was attempted and did not happen, beside what did. A refusal is

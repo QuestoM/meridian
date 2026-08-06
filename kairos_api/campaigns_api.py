@@ -30,14 +30,19 @@ it does price, as an agency condition, and says exactly what that covers.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 
 from kairos_api import campaigns_api_store as store
 from kairos_api import campaigns_commitment as commitment
 from kairos_api.affiliation_wall import Wall
+from kairos_api.campaigns_api_models import (  # noqa: F401 - re-exported for every caller
+    CampaignCreate,
+    CampaignUpdate,
+    FlightCreate,
+    FlightUpdate,
+)
 from kairos_api.condition_validation import validate_weekday_scope
 
 router = APIRouter(prefix="/api/clients", tags=["clients"])
@@ -60,82 +65,6 @@ TERMS_NOT_PRICED_HE = (
     "תוכנית ויום בשבוע, ואין בו היקף לקמפיין, ולכן התנאי הזה אינו מתמחר דבר עד שייכתב כתנאי סוכנות "
     "או תנאי מפרסם."
 )
-
-class CampaignCreate(BaseModel):
-    """A new campaign. ``advertiser`` is the client the campaign is for.
-
-    The commitment half is optional on every field, because an insertion order
-    that names a budget and no rating goal is a real order and the store must be
-    able to hold it without inventing the half it was not told.
-    """
-
-    name: str
-    advertiser: str
-    agency_id: str = ""
-    campaign_id: str = ""
-    starts_on: str = ""
-    ends_on: str = ""
-    rebate_percent: Optional[float] = None
-    surcharge_discount_percent: Optional[float] = None
-    surcharge_weekdays: str = ""
-    notes: str = ""
-    brand: str = ""
-    category: str = ""
-    budget_ils: Optional[float] = None
-    bonus_ils: Optional[float] = None
-    rating_goal_points: Optional[float] = None
-    rating_goal_audience: str = ""
-    price_model: str = ""
-    priority: str = ""
-    pacing_mode: str = ""
-
-
-class CampaignUpdate(BaseModel):
-    """Editable fields for a campaign. All optional for PATCH-style PUT."""
-
-    name: Optional[str] = None
-    advertiser: Optional[str] = None
-    agency_id: Optional[str] = None
-    status: Optional[str] = None
-    starts_on: Optional[str] = None
-    ends_on: Optional[str] = None
-    rebate_percent: Optional[float] = None
-    surcharge_discount_percent: Optional[float] = None
-    surcharge_weekdays: Optional[str] = None
-    notes: Optional[str] = None
-    brand: Optional[str] = None
-    category: Optional[str] = None
-    budget_ils: Optional[float] = None
-    bonus_ils: Optional[float] = None
-    rating_goal_points: Optional[float] = None
-    rating_goal_audience: Optional[str] = None
-    price_model: Optional[str] = None
-    priority: Optional[str] = None
-    pacing_mode: Optional[str] = None
-
-
-class FlightCreate(BaseModel):
-    """A flight: a window of the campaign with its own booked goal."""
-
-    starts_on: str
-    ends_on: str
-    goal_kind: str
-    goal_value: float
-    name: str = ""
-    flight_id: str = ""
-    notes: str = ""
-
-
-class FlightUpdate(BaseModel):
-    """Editable fields for a flight. All optional for PATCH-style PUT."""
-
-    starts_on: Optional[str] = None
-    ends_on: Optional[str] = None
-    goal_kind: Optional[str] = None
-    goal_value: Optional[float] = None
-    name: Optional[str] = None
-    notes: Optional[str] = None
-
 
 def _actor(request: "Request | None") -> str:
     """Who made the change, when the session says so and blank when it does not."""

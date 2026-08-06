@@ -9,7 +9,7 @@ import TrainingPanel from './TrainingPanel';
 import VersionsPanel from './VersionsPanel';
 import { SECTIONS, SECTION_ROUTE, readConsole, readSection, recordVersion } from './console-api';
 import { Absent } from './console-bits';
-import { pick, t } from './console-words';
+import { canEditReason, pick, t } from './console-words';
 import './model-console.css';
 import './model-console-panels.css';
 
@@ -103,6 +103,19 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
             ))}
           </div>
           {/*
+            These counts do not move between trainings, and a count that never
+            moves reads as a stuck system unless the screen says when it was
+            last decided. Measured on the shipped console: the header carried a
+            version date but nothing tied it to the counts beside it, so a
+            reader had no way to know the 3/5/5/0 below was current rather than
+            frozen. This line ties them together in words, from the same
+            ``version.name`` the header already computes.
+          */}
+          <p className="mc-header-counts-note">
+            {t('header.gates_measured_at', locale)}{' '}
+            <span dir="ltr"><Numeric>{version.name}</Numeric></span>
+          </p>
+          {/*
             The activation mirror, and the way to the switch it names.
 
             The console shows whether runs are consuming the audience model and
@@ -130,6 +143,22 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
               <small>{t('header.control_on_rules', locale)}</small>
             )}
           </div>
+          {/*
+            Who may run a rebuild, read from the same wall that would refuse the
+            training POST, not asserted. ``can_edit`` absent means the payload
+            predates this stamp and the line renders nothing rather than a
+            guess; that only happens against a synthetic body in a test.
+          */}
+          {payload.can_edit === undefined ? null : (
+            <div className="mc-header-permission">
+              <span className="mc-header-label">{t('header.who_may_train', locale)}</span>
+              <span dir="auto">
+                {payload.can_edit
+                  ? t('header.can_edit_yes', locale)
+                  : canEditReason(payload.can_edit_reason, locale)}
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <Absent

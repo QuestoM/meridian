@@ -155,7 +155,16 @@ def totals(plan: break_store.DayPlan, evaluation: Any, items: list[Any]) -> dict
 
 
 def basis(plan: break_store.DayPlan) -> dict[str, Any]:
-    """What every figure on this board was computed on, printed with the figure."""
+    """What every figure on this board was computed on, printed with the figure.
+
+    The board is a LIVE re-optimization of this channel-day, never a file read,
+    so ``committed`` carries the different basis a person on the week board or
+    an export holds: the figures the weekly plan actually saved to
+    ``output/weekly_break_schedule.csv``. ``None`` when that file carries no row
+    for this channel-day. The two are not asserted to agree; the caller compares
+    them and says so, because config and models can move between a save and the
+    moment this board is opened.
+    """
     return {
         "channel": plan.channel,
         "day": plan.day,
@@ -163,7 +172,8 @@ def basis(plan: break_store.DayPlan) -> dict[str, Any]:
         "revenue_weight": plan.revenue_weight,
         "risk_lambda": float(plan.engine_kwargs["risk_lambda"]),
         "objective_mode": str(plan.engine_kwargs.get("objective_mode", "blend")),
-        "source": "weekly plan optimizer, this channel-day",
+        "source": "this channel-day, re-planned live against current settings and models",
+        "committed": break_store.committed_totals(plan.channel, plan.day),
         "currency": "ILS",
     }
 

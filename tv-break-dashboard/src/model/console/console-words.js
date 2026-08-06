@@ -37,6 +37,12 @@ const WORDS = {
   'header.activation_off': { en: 'Off', he: 'כבוי' },
   'header.activation_no_artifact': { en: 'On, nothing trained', he: 'דלוק, אין מודל מאומן' },
   'header.control_on_rules': { en: 'The switch lives on Rules', he: 'המתג נמצא בכללים' },
+  'header.gates_measured_at': { en: 'Gate verdicts measured on', he: 'הכרעות השערים נמדדו בתאריך' },
+  'header.who_may_train': { en: 'Who may run a rebuild', he: 'מי רשאי להריץ אימון מחדש' },
+  'header.can_edit_yes': {
+    en: 'This account may start a run and record a decision.',
+    he: 'לחשבון הזה יש הרשאה להריץ אימון ולתעד הכרעה.',
+  },
 
   'gates.of': { en: 'of', he: 'מתוך' },
   'gates.filter': { en: 'Filter gates', he: 'סינון שערים' },
@@ -217,6 +223,22 @@ const WORDS = {
   'state.retry': { en: 'Try again', he: 'לנסות שוב' },
   'state.shortcuts': { en: 'Shortcuts', he: 'קיצורים' },
 };
+
+// The server's own words for why an account may not act here, carried through
+// rather than re-invented, so the sentence a person reads before the click and
+// the one a 403 would carry cannot drift. English is a mirror of the one
+// detail the wall can actually send a company account that already passed the
+// affiliation gate: a viewer's role refusal. An unrecognised string still
+// renders, in its own words, rather than nothing.
+const CAN_EDIT_REASONS_EN = new Map([
+  ['לחשבון צפייה אין הרשאת עריכה', 'A viewing account has no edit permission.'],
+]);
+
+export function canEditReason(reason, locale) {
+  const text = String(reason || '').trim();
+  if (!text || locale === 'he') return text;
+  return CAN_EDIT_REASONS_EN.get(text) || text;
+}
 
 export function t(key, locale = 'he') {
   const entry = WORDS[key];

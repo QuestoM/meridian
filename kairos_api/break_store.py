@@ -163,6 +163,46 @@ def plan_days() -> list[str]:
     return days
 
 
+def committed_totals(channel: str, day: str) -> Optional[dict[str, Any]]:
+    """This channel-day's own figures as the weekly plan actually saved them.
+
+    A day plan above is a LIVE re-optimization against whatever settings,
+    constraints, config and models are current, not a read of a file. The weekly
+    plan committed to ``output/weekly_break_schedule.csv``, the artifact the week
+    board, the overview and every export read, is a genuinely different basis: it
+    was written once, and it moves only when something re-runs the optimizer and
+    saves the result, never when the day board is merely opened. Whenever config
+    or a model changes underneath a saved plan without a new save, the two part
+    company, and a board that only ever shows its own live figure has no way to
+    say so.
+
+    Returns ``None`` when the schedule carries no row for this channel-day, which
+    a caller must render as an honest unavailable state rather than assuming
+    agreement it never checked.
+    """
+    import pandas as pd
+
+    from kairos_api.core import _load_break_schedule
+
+    schedule = _load_break_schedule()
+    if schedule.empty or "channel" not in schedule.columns or "date" not in schedule.columns:
+        return None
+    mine = schedule[
+        (schedule["channel"].astype(str).str.strip() == str(channel).strip())
+        & (schedule["date"].astype(str).str.strip() == str(day).strip())
+    ]
+    if mine.empty:
+        return None
+    revenue = pd.to_numeric(mine.get("predicted_revenue", 0), errors="coerce").fillna(0).sum()
+    breaks = pd.to_numeric(mine.get("num_breaks", 0), errors="coerce").fillna(0).sum()
+    return {
+        "revenue": round(float(revenue), 2),
+        "breaks": int(round(float(breaks))),
+        "segments": int(len(mine)),
+        "source": "output/weekly_break_schedule.csv, the saved weekly plan",
+    }
+
+
 def _build_day(channel: str, day: str) -> DayPlan:
     from kairos.optimize.day_core import _optimize_one_day
     from kairos.optimize.evaluate import evaluation_basis

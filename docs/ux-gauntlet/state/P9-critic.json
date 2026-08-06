@@ -1,11 +1,29 @@
 {
   "piece": "P9",
-  "round": 6,
+  "critic_round": 1,
   "passed": false,
   "gap": "The number Kai prints on the applied card does not open the row that explains it. Measured live on port 8087: a Hebrew direct instruction produced batch bedaf54e955e, I approved the settings item, and the card printed restore point d3f88eb7 beside two controls. The inline undo is genuinely good and passes: it opens in 122 ms and shows kairos_settings.json, one change, revenue_weight now 36, after undo 35, then undoes in 122 ms and the file returns byte-identical (sha256 d6f61de4...). The second control, hazaga be-historia, is a dead end. AssistantPanel.jsx passes onShowRestore={() => { window.location.hash = 'Versions'; }} at lines 312 and 443, so it sets the hash and nothing else. I clicked it and landed on a 5,877-entry log across 47 accounts with the restore id neither selected nor anywhere on the page (checked twice, /d3f88eb7/ and /0bca1b53/ both absent from main.innerText); the page then selected its own newest row, a P5 constraint save by another builder. P8 already published the fix and wrote the reason in its own file: history-labels.js:370-381 says in words that Kai hands back a restore point and its see-it-in-the-history control has to land on that point rather than on the top of a list of six thousand rows, and exports ADDRESS_PARAM = 'entry' with writeAddress for exactly that. The row exists and is addressable: version:456f2c32f4cd, kind restore_point, source assistant_apply, batch_id bedaf54e955e, at 21:37:11. The one thing that makes it more than a one-liner is that the same restore point carries two ids and P9 holds the wrong one: the card and /api/assistant/restore use restore_id d3f88eb7615a, while the History address is version:456f2c32f4cd, and GET /api/assistant/proposals returns restore_points entries with restore_id, applied_at, applied_by and item_ids only, no version id. Fix in one pass: carry the version id on the restore point the batch already returns (assistant_actions.py writes both), then have onShowRestore set ?entry=version:<version_id> before the hash, and assert it in tests/test_p9_*. Two smaller things, recorded but not the gap. First token measured in the browser at 2,081 ms against the 2,000 ms in job-stories.md, one sample, inside the 1.6 to 4.5 s band kai-keep-warm.js documents. And useAssistantEntity is called by four surfaces only (AdvertiserDetailDrawer, AgencyDetailDrawer, CalendarEventsList, CalendarMonthGrid), so Kai knows which object is open for an advertiser, an agency and a calendar event, and not for a break, a day, a programme, a campaign or a restriction; that is a handover, not P9's to fix, since the hook lives in the frozen shell and the surfaces belong to P3, P4 and P5.",
-  "history": [
-    "round 6: read spec.md sections 3-8 (7 Kai, 8.2 ownership, 8.5 bar 3), job-stories.md JS-10, 06-baseline.md, media-domain doc. Found round five's fix already on disk uncommitted (kai-keep-warm.js, assistant_prompt.py rule 30, AssistantComposer/AssistantPanel wiring, test_p9_kai_first_token.py) but never reported because the agent was killed by a session limit or network fault before it could write state. Ran tests/test_p9_kai_first_token.py (12 passed) and the full tests/test_p9*.py suite (159 passed, 1 skipped). Started own server on 8067, ran npm run build (clean), and live-smoke-tested the streaming ask endpoint and the direct-instruction-records-the-change rule end to end via curl, confirming the propose-only contract holds with real numbers and the settings file unchanged after. Checked file line caps, forbidden characters and forbidden vocabulary across every owned path; none found. Killed the 8067 server. No code changes were needed this round; the piece was already closed by the interrupted round five and this round is the verification and report that round could not deliver.",
-    "critic round 1: measured JS-10 myself end to end on my own server (port 8087, built bundle, auth disabled). Cmd+J opens the dock focused from any screen, zero clicks. First token 2,081 ms. Full grounded Hebrew answer with a concrete diff card at 27.8 s, two proposals recorded in the same turn, propose-only held. Apply: two clicks, 160 ms, revenue_weight 35 -> 36 on disk. Restore point addressable, previewed before use, undone in two clicks, file byte-identical after. Question to applied change well inside the 45 s target against a baseline that never answered in the browser at all. Regression green: 385 assistant and p9 tests pass, 1 skipped; 52 p9-named tests pass; 31 read, 8 propose, 0 write tools; a Hebrew probe naming two rival channels was refused with no rival figure. Laws clean except one: no em-dash, no emoji, no exclamation mark, no file over 450, ownership clean in git status and in da90e972. The breach is the dead end above."
-  ],
-  "files_touched": []
+  "stopwatch": {
+    "open_kai": {
+      "clicks": 0,
+      "how": "Cmd+J, dock opens with the cursor in the box",
+      "baseline": "3 clicks, and the answer never arrived"
+    },
+    "first_token_ms": 2081,
+    "first_token_target_ms": 2000,
+    "answer_with_diff_s": 27.8,
+    "answer_target_s": 45,
+    "apply_clicks": 2,
+    "apply_ms": 160,
+    "restore_open_ms": 122,
+    "undo_clicks": 2,
+    "undo_ms": 122,
+    "settings_sha_before_after": "d6f61de43e1c13e82dcd55aeec5b50c87f8e6fa06088374073aff55579828a66 both"
+  },
+  "ab": "Linear Agent, the named reference in 07-references.md section 7, was not reachable: no Linear tool is exposed in this session and the only signed-in Linear tab in the shared browser belongs to another builder mid-task. I did not run it and did not invent it. Leaned on the stopwatch.",
+  "regression": "385 assistant/p9 tests pass, 1 skipped. 52 p9-named tests pass. 31 read, 8 propose, 0 write tools. Competitor boundary held on a live adversarial Hebrew probe. No propose tool or applier writes under models/.",
+  "evidence": [
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p9-c1-01-diff-preview-he.png",
+    "/Users/home/Code/questo/meridian/.playwright-mcp/p9-c1-02-restore-preview.png"
+  ]
 }

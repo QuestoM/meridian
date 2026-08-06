@@ -5,7 +5,7 @@ import { pageText } from '../shell/surface-helpers';
 import { postJson, requestJson, streamAsk } from './assistant-stream';
 import { keepPrefixWarm } from './kai-keep-warm';
 import { useConversations } from './AssistantConversationsApi';
-import { asArray, normalizeBatch, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
+import { asArray, normalizeBatch, showRestoreVersion, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
 import { buildPageContext, useAssistantPage } from '../shell/assistant-page-context';
 import AssistantConversationsSidebar from './AssistantConversationsSidebar';
 import AssistantProposalCard from './AssistantProposalCard';
@@ -309,7 +309,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   }, [thread, batchMap]);
 
   function renderProposalCard(batch) {
-    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={() => { window.location.hash = 'Versions'; }} notify={notify} onUndone={refreshRail} />;
+    return <AssistantProposalCard key={batch.batch_id} batch={batch} locale={locale} busy={applyBusyId === batch.batch_id} applyResult={applyResults[batch.batch_id] || null} onApply={(ids) => applyItems(batch.batch_id, ids)} onReject={(ids) => rejectItems(batch.batch_id, ids)} onShowRestore={showRestoreVersion} notify={notify} onUndone={refreshRail} />;
   }
 
   // The action plane's own honest state, from the endpoint that owns it. It
@@ -440,7 +440,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
           renderProposalCard={renderProposalCard}
           refreshing={refreshing}
           onRefresh={refreshRail}
-          onShowRestore={() => { window.location.hash = 'Versions'; }}
+          onShowRestore={showRestoreVersion}
         />
       </div>
     </section>

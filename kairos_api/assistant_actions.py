@@ -329,7 +329,7 @@ class ItemIdsRequest(BaseModel):
 
 
 def _record_restore_point(batch: dict[str, Any], restore_id: str | None, user: str,
-                          item_ids: list[str]) -> None:
+                          item_ids: list[str], version_id: str | None = None) -> None:
     """Keep the restore point ON the batch, not only in the apply response.
 
     Undo was reachable for exactly as long as the browser tab that applied the
@@ -340,12 +340,17 @@ def _record_restore_point(batch: dict[str, Any], restore_id: str | None, user: s
     produced, oldest first, each naming who applied what and when. A batch whose
     approved items touch no state file (a plan run) produces no snapshot and
     records nothing, which is why the id can be None here.
+
+    The point also carries the unified version timeline's id for the same
+    apply, when one was recorded: this is the id a "see it in the history"
+    control has to address, since the History page is keyed on that timeline
+    and the restore id it applies against is not an entry there.
     """
     if not restore_id:
         return
     points = batch.setdefault("restore_points", [])
     points.append({"restore_id": restore_id, "applied_at": _now_iso(),
-                   "applied_by": user, "item_ids": list(item_ids)})
+                   "applied_by": user, "item_ids": list(item_ids), "version_id": version_id})
 
 
 def _act_apply(item: dict[str, Any]) -> None:
@@ -399,9 +404,10 @@ def _resolve_items(
             kinds = {str(by_id[item_id].get("kind")) for item_id in approved}
             extra["restore_id"] = _snapshot(_state_files_for(kinds), batch_id, approved)
             extra["pruned_restore_points"] = _prune_restore_points() or None
-            _record_restore_point(batch, extra["restore_id"], user, approved)
             from kairos_api import version_store  # unified version timeline
-            version_store.snapshot_assistant_apply(kinds, batch, user)
+
+            extra["version_id"] = version_store.snapshot_assistant_apply(kinds, batch, user)
+            _record_restore_point(batch, extra["restore_id"], user, approved, extra["version_id"])
         results: list[dict[str, Any]] = []
         for item_id in requested:
             item = by_id.get(item_id)

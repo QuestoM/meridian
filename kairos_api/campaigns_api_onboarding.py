@@ -38,10 +38,13 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel
-
 from kairos.optimize.advertiser_rules import PREMIUM
 from kairos.optimize._rule_helpers import PREMIUM_DISCOUNT
+from kairos_api.campaigns_api_onboarding_models import (  # noqa: F401 - re-exported for every caller
+    AgencyInput,
+    FlightInput,
+    OnboardRequest,
+)
 from kairos_api.campaigns_api_store import refuse
 
 AGENCY_RULE_COVERS = (
@@ -73,61 +76,6 @@ NEEDS_AGENCY_NAME = "An agency needs a name, because the name is what a daily fi
 NEEDS_AGENCY_NAME_HE = "לסוכנות צריך שם, מפני שהשם הוא מה שקובץ יומי נושא"
 NEEDS_CLIENT = "A campaign needs a client, because a campaign belongs to one"
 NEEDS_CLIENT_HE = "לקמפיין צריך לקוח, מפני שקמפיין שייך ללקוח"
-
-
-class AgencyInput(BaseModel):
-    """The agency step: an existing id, or the fields to create one."""
-
-    agency_id: str = ""
-    name: str = ""
-    agency_type: str = ""
-    contact_name: str = ""
-    contact_role: str = ""
-    contact_phone: str = ""
-    contact_email: str = ""
-    vat_id: str = ""
-    payment_terms_days: int = 60
-    rebate_percent: float = 0.0
-    commission_percent: float = 0.0
-    credit_limit_ils: float = 0.0
-    notes: str = ""
-
-
-class FlightInput(BaseModel):
-    starts_on: str
-    ends_on: str
-    goal_kind: str
-    goal_value: float
-    name: str = ""
-    notes: str = ""
-
-
-class OnboardRequest(BaseModel):
-    """One signed insertion order, as the account manager holds it."""
-
-    agency: AgencyInput
-    advertiser: str
-    campaign_name: str
-    campaign_starts_on: str
-    campaign_ends_on: str
-    flights: list[FlightInput] = []
-    campaign_id: str = ""
-    rebate_percent: Optional[float] = None
-    surcharge_discount_percent: Optional[float] = None
-    surcharge_weekdays: str = ""
-    apply_surcharge_as_agency_rule: bool = False
-    notes: str = ""
-    # The commitment half, all optional: an insertion order that names a budget
-    # and no rating goal is a real order, and the flow must hold it as it is.
-    brand: str = ""
-    category: str = ""
-    budget_ils: Optional[float] = None
-    bonus_ils: Optional[float] = None
-    rating_goal_points: Optional[float] = None
-    rating_goal_audience: str = ""
-    price_model: str = ""
-    priority: str = ""
-    pacing_mode: str = ""
 
 
 def _agencies_frame():

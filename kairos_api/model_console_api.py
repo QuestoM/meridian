@@ -93,15 +93,20 @@ def _in_flight() -> dict[str, dict[str, Any]]:
 
 @router.get("/console")
 @MODEL_WALL.guard()
-def console() -> dict[str, Any]:
-    """The console header: the version in force, the gate counts, what is open."""
+def console(request: Request) -> dict[str, Any]:
+    """The console header: the version in force, the gate counts, what is open.
+
+    Stamped with ``can_edit``, so the header answers "who may run a rebuild"
+    before anyone reaches the training panel: the same wall that would refuse
+    ``POST /api/model/training`` writes its verdict here first.
+    """
     version = payloads.current_version()
     ledger = gates.ledger()
     decision = (store.latest_decision(str(version.get("id") or ""))
                 if version.get("available") else None)
     window = coverage.training_window()
     measurements = store.measurements()
-    return {
+    result = {
         "model_version": version,
         "gate_counts": ledger["counts"],
         "gate_states": ledger["states"],
@@ -119,6 +124,7 @@ def console() -> dict[str, Any]:
         "latest_decision": decision,
         "decisions_recorded": len(store.decisions()),
     }
+    return MODEL_WALL.stamp(result, request)
 
 
 @router.get("/gates")
@@ -297,11 +303,17 @@ def record_version() -> dict[str, Any]:
 
 @router.get("/training")
 @MODEL_WALL.guard()
-def training() -> dict[str, Any]:
-    """What can be trained, what is training, and every run this console started."""
+def training(request: Request) -> dict[str, Any]:
+    """What can be trained, what is training, and every run this console started.
+
+    Stamped with ``can_edit``: the Train button reads its own permission
+    before the click rather than after the 403, the same contract
+    ``Wall.stamp`` already gives the pricing and rules surfaces.
+    """
     from kairos_api import model_console_training
 
-    return {"model_version": payloads.current_version(), **model_console_training.payload()}
+    result = {"model_version": payloads.current_version(), **model_console_training.payload()}
+    return MODEL_WALL.stamp(result, request)
 
 
 class TrainingRequest(BaseModel):

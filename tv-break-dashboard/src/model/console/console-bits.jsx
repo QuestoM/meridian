@@ -82,6 +82,13 @@ export function Basis({ basis, locale }) {
       </span>,
     );
   }
+  if (basis.measured_at) {
+    parts.push(
+      <span key="measured_at">
+        {t('candidates.measured_at', locale)} <Numeric>{String(basis.measured_at).slice(0, 19)}</Numeric>
+      </span>,
+    );
+  }
   return (
     <div className="mc-basis">
       <span className="mc-basis-label">{t('gates.basis', locale)}</span>

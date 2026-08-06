@@ -1,0 +1,46 @@
+{
+  "piece": "P4",
+  "critic_round": 1,
+  "passed": false,
+  "gap": "BAR 4 FAIL, competitor boundary, on P4's own files. The campaign rollup that P4 keeps inside the Clients destination (kairos_api/campaigns_read.py::_build_campaigns, rendered by tv-break-dashboard/src/clients/CampaignRollupPanel.jsx) groups the whole spots frame with no operator-channel filter, while the money board two panels above it on the same screen is correctly scoped to settings.operator_channel. Measured on the live API at http://127.0.0.1:8082/api/campaigns: 32 of the 50 rendered rows carry channels > 1, and the column is rendered to the operator as a count under the header 'ערוצים' (screenshot: 2024-11 מחסני חשמל Black Friday 24 shows 709 spots over 2 channels, 2024-11 עולם הקולנוע shows 443 over 3). data/Spots.csv holds 50,386 rows on four channels, of which 31,717 are not רשת 13 (כאן 11, קשת 12, עכשיו 14); restricted to the 50 campaigns this panel ranks, 10,700 of 19,495 rows, 54.9 percent, aired on a channel the operator does not own, so the rendered 'ספוטים', 'דקות', 'ערוצים' and 'שידור אחרון' are rival-channel figures on an operator surface. The repository already states the doctrine that forbids this at kairos_api/core.py:460-476, in the summary function's own docstring, and campaigns_read.py never applies it. Fix in one pass: filter the frame to settings.operator_channel before the groupby, print the scope on the panel the way the money board prints its basis line, and drop or restate the channels column, which cannot mean anything once the frame is one channel. Three smaller findings behind it, none of them the blocker. (1) A surcharge discount percent saves with an empty weekday scope: measured, deselecting every weekday chip and submitting stored surcharge_discount_percent 12.0 with surcharge_weekdays empty on CMP_006, a term that scopes nothing and was accepted silently. (2) The rollup's 'מפרסם' column is blank on 50 of 50 rows with no stated reason, next to a revenue column whose dash does carry its reason. (3) The rollup is the only dead end in a destination where everything else opens: its campaign names open nothing, while the money board's names open campaigns and spots. Everything else measured green, see P4-critic.json.",
+  "bars": {
+    "bar1_stopwatch": {
+      "harness": "own server on 127.0.0.1:8082, uvicorn kairos_api.server:app from a /tmp mirror of the tree so no browser write touched a tracked store, serving tv-break-dashboard/dist built 2026-08-07 00:35 with no newer src file; isolated headless chromium via a scratch playwright install, viewport 1440x950",
+      "JS-5": {
+        "target": "120 s, 0 duplicates, 1 flow, unaided",
+        "measured": "4 clicks and 19 typed fields in one modal that never leaves the screen; 815 ms machine time from opening the flow to the confirmation, submit round trip 103 ms, client record open 1,515 ms; cold paint of the Clients destination 434 to 845 ms against a 6,610 to 8,260 ms baseline for the old Campaigns page",
+        "correctness": "AGY_15 created, one link row, one name row source manual, CMP_007 with surcharge_weekdays 6 and one flight CMP_007_F1 grp 180; zero duplicate entities",
+        "verdict": "pass, and the story was cannot start at baseline"
+      },
+      "JS-9": {
+        "target": "30 s, 0 exports, the amount opens its rows at more than one level, unaided",
+        "measured": "1 click and 471 ms to the answer, which is the question rendered as a sentence over the leader; 2 clicks and 586 ms to client, its campaigns, every spot behind the figure, and the rule dropped spots with their reason; 0 exports",
+        "verdict": "pass"
+      }
+    },
+    "bar2_ab": {
+      "references_reached": "docs.stripe.com 200 and support.google.com 200 fetched live this round; dashboard.stripe.com 303 to a login and Google Ads itself behind a login, so the live products were not observable and I leaned on the documented mechanics plus the stopwatch",
+      "google_ads_hierarchy": "reference is account > campaign > ad group > ad with no invented layer, and a closed seven value status column with a What to do remedy in the same row. P4 ships agency > client > campaign > flight with the same containment repeated in the tree, the board and the record, and a two value status vocabulary carrying what_to_do_en and what_to_do_he plus live remedy controls in the same row, which is the reference device with a control where the reference has a help link. P4 wins",
+      "stripe_drill": "reference is click an amount in the period summary, get the customers behind it with each share, click a customer, get their transactions, two levels from a figure, with range, timezone, currency and account scope declared on the report. P4 opens client, campaigns and every spot from one click on the headline amount, three levels with the third already on screen, plus an n of 41 position counter and step controls, and declares channel, day, source file, priced spots of rows in file and a named route to widen the period. P4 wins on levels and on the honest period statement; Stripe wins on two small things, that in the ranked table only the name cell is clickable and not the amount, and that no timezone is declared beside the day"
+    },
+    "bar3_regression": {
+      "agency_record": "payment_terms_days, rebate_percent, commission_percent, credit_limit_ils, vat_id and both contacts present in GET /api/agencies and editable in the agency card, primary and secondary contact blocks both rendered",
+      "deactivate_beats_delete": "POST /api/agencies/{id}/deactivate exists, no DELETE route for an agency exists on the live openapi, and the card control reads השהיית הסוכנות",
+      "links": "47 links total, 6 manual, 41 observed, and the observed set renders on the agency card as נצפה בנתונים",
+      "money": "gross 699,450, rebates 29,472, net 669,978, 119 priced spots, exact",
+      "honest_empty_states": "campaign revenue still a dash carrying its reason, advertiser revenue absent with its reason on the client record, make good panel still names campaign_flights.csv, all preserved",
+      "verdict": "nothing measured is worse"
+    },
+    "bar4_laws": {
+      "competitor_boundary": "FAIL, see gap",
+      "fabricated_numbers": "none found; created campaigns are marked manual and seed rows carry a הדגמה chip and a demo_note stating the seed rule",
+      "training_reachable": "none; no operator control on this destination writes under models/",
+      "em_dashes_emoji_exclamations": "zero in every P4 owned source file; the only em dashes on screen are inside advertiser campaign names carried verbatim from data/Spots.csv",
+      "file_size": "largest P4 file is kairos_api/agency_conditions.py at 449 lines, every other backend and frontend file below it",
+      "vocabulary": "no משתמש anywhere in P4 files; weekday chips render יום ראשון first through שבת, Sunday first, and the stored token for Saturday is ISO 6",
+      "tests": "tests/test_p4_*.py 181 passed 1 skipped"
+    }
+  },
+  "ownership_check": "git status and git diff --stat show the P4 working diff touching only kairos_api/campaigns_api.py, kairos_api/campaigns_api_onboarding.py and the new kairos_api/campaigns_api_onboarding_models.py, all inside the section 8.2 row or its helper naming rule. No write outside the row",
+  "evidence": "screenshots and console logs under /private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/shots"
+}

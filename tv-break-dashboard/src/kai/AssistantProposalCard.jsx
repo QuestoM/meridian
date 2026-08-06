@@ -363,7 +363,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
             </div>
           ))}
-          <button type="button" className="asst-restore-chip" onClick={onShowRestore}>
+          <button type="button" className="asst-restore-chip" onClick={() => onShowRestore(restorePoints[restorePoints.length - 1].versionId)}>
             <ExternalLink size={12} />
             {pageText(locale, 'See it in the history', 'הצגה בהיסטוריה')}
           </button>
