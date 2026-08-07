@@ -37,10 +37,12 @@ import { SCOPE_LABELS, STATE_TONE, label } from './sources-copy.js';
 const TOKEN_SCOPE = { '<file>': 'file', '<header>': 'header', '<frame>': 'frame' };
 
 // The reason, in the language the rest of the card is in. The server writes
-// every sentence it authors itself in both, and sends the contract's own
-// English detail alone for the violations the frozen contracts raised, whose
-// counts and column names only that code can compute. So Hebrew falls back to
-// the English sentence rather than to a blank line, and never the other way.
+// every sentence it authors itself in both, and now writes a Hebrew sentence
+// for the violations the frozen contracts raised too, from a count measured
+// off the same rows rather than one parsed out of their frozen English, which
+// stays unchanged in the other language. Hebrew falls back to the English
+// sentence only for the rare finding this could not put a real count behind,
+// never the other way.
 export function findingMessage(finding, locale) {
   if (!finding) return '';
   if (locale === 'he') return String(finding.message_he || finding.message || '');

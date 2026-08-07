@@ -16,6 +16,24 @@ import { localized, refusalText, vocabularyLabel } from './clients-money-helpers
 
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
 
+// An empty scope reads as ANY (agency rule) or nothing (campaign term).
+const NO_WEEKDAY_AGENCY = [
+  'No weekday is selected. Submitting like this is refused: an agency condition with no weekday scope covers every day.',
+  'לא נבחר יום בשבוע. שליחה כך תסורב: תנאי סוכנות ללא היקף ימים חל על כל יום.',
+];
+const NO_WEEKDAY_TERM = [
+  'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
+  'לא נבחר יום בשבוע. שליחה כך תסורב: אחוז ההנחה יהיה ללא יום שהוא חל עליו.',
+];
+
+function weekdayCoverage(selected, options, locale, asAgencyRule) {
+  if (!selected.length) {
+    return pageText(locale, ...(asAgencyRule ? NO_WEEKDAY_AGENCY : NO_WEEKDAY_TERM));
+  }
+  const names = options.filter((day) => selected.includes(day.key)).map((day) => (locale === 'he' ? day.he : day.en));
+  return pageText(locale, `Covers ${names.join(', ')}.`, `חל על ${names.join(', ')}.`);
+}
+
 // The word for the object a refusal names. Two of the refusals this flow can
 // raise name a record that already exists and tell the reader to open it, and
 // both of them arrived as a sentence with no way to the thing they named. A kind
@@ -365,6 +383,9 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
               </button>
             ))}
           </div>
+          <p className="clients-basis-note" role="status">
+            {weekdayCoverage(discount.weekdays, weekdays, locale, discount.asAgencyRule)}
+          </p>
           <label className="clients-checkbox">
             <input type="checkbox" checked={discount.asAgencyRule} onChange={(event) => setDiscount({ ...discount, asAgencyRule: event.target.checked })} />
             {pageText(locale, 'Apply it as an agency rule so it prices spots', 'החילו ככלל סוכנות כדי שיתמחר תשדירים')}

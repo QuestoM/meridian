@@ -15,34 +15,52 @@
 //
 // So both sentences here are chosen by the endpoint's own `scope`, "all" or
 // "self", the same string `activity_log.visibility_scope` already produces and
-// the footer already reads under the same key. Restore points and runs carry no
-// per-account scope, so a self-scoped count still mixes this account's own
-// changes with every restore point on record, which is exactly what
-// `changesSourceLine` and the footer already say in their own words; the count
-// sentence says it again, inline, because the footer's saying it 859 pixels
-// away is the defect this file closes.
-export const SCOPE_SELF = 'self';
+// the footer already reads under the same key.
+//
+// **And what a self-scoped sentence names is read from the payload, never
+// written here.** Three rounds in a row wrote the covered set into this file by
+// hand and each one was wrong about a different kind: first only the restore
+// points, then all three attested kinds but the exclusion clause still naming
+// changes alone, which a live store falsified by 3,222 entries because the
+// account filter narrows previews and sign-ins exactly as it narrows changes.
+// The words now come from `history-scope.js`, which assembles them from
+// `attested_kinds` and `scope_kinds`, so a sentence can only ever name the set
+// its own payload proves. The page footer builds its own sentence from the same
+// module over the kinds the page renders, which is a different set: one phrase
+// cannot be true in two scopes, and that was the round-15 defect.
+import { SCOPE_SELF, coveredPhrase, withheldLine } from './history-scope.js';
+
+export { SCOPE_SELF };
 
 function count(value, locale) {
   return Number(value || 0).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB');
 }
 
+// What this reader's own attestation covers, in both languages, over the kinds
+// the endpoint says it attested. Never called for an admin: an unscoped count
+// covers the record and needs no qualification.
+function covered(body) {
+  const payload = body || {};
+  return coveredPhrase(payload.attested_kinds, payload.scope_kinds);
+}
+
 // The non-empty case. `runCount` is `null` while the runs may not be counted,
 // which is the caller's own decision and never made here.
-export function sinceCountLine(changeCount, runCount, scope) {
+export function sinceCountLine(changeCount, runCount, scope, body) {
   const changed = [count(changeCount, 'en'), count(changeCount, 'he')];
   const withRuns = runCount !== null && runCount !== undefined;
   const runs = withRuns ? [count(runCount, 'en'), count(runCount, 'he')] : null;
   if (scope === SCOPE_SELF) {
+    const set = covered(body);
     if (withRuns) {
       return [
-        `${changed[0]} changes and points were applied (your own changes and every restore point), and ${runs[0]} runs were recorded.`,
-        `בוצעו ${changed[1]} שינויים ונקודות (השינויים שלכם וכל נקודות השחזור), ונרשמו ${runs[1]} הרצות.`,
+        `${changed[0]} changes and points were applied (${set[0]}), and ${runs[0]} runs were recorded.`,
+        `בוצעו ${changed[1]} שינויים ונקודות (${set[1]}), ונרשמו ${runs[1]} הרצות.`,
       ];
     }
     return [
-      `${changed[0]} changes and points were applied (your own changes and every restore point).`,
-      `בוצעו ${changed[1]} שינויים ונקודות (השינויים שלכם וכל נקודות השחזור).`,
+      `${changed[0]} changes and points were applied (${set[0]}).`,
+      `בוצעו ${changed[1]} שינויים ונקודות (${set[1]}).`,
     ];
   }
   if (withRuns) {
@@ -58,17 +76,19 @@ export function sinceCountLine(changeCount, runCount, scope) {
 }
 
 // The empty case. A self-scoped zero is never printed as an unqualified claim
-// that nothing changed: it names the set it covers and says in the same
-// sentence that another account's changes are not part of it.
-export function sinceEmptyLine(scope) {
-  if (scope === SCOPE_SELF) {
-    return [
-      'Nothing has changed since that day, among your own changes and the restore points on record. Changes by other accounts are not shown here.',
-      'שום דבר לא השתנה מאז אותו יום, מבין השינויים שלכם ונקודות השחזור שברישום. שינויים של חשבונות אחרים אינם מוצגים כאן.',
-    ];
+// that nothing changed: it names the set it covers, and then names what was
+// actually kept out of that set and how much of it, both taken over the same
+// window this sentence is printed over.
+export function sinceEmptyLine(scope, body) {
+  if (scope !== SCOPE_SELF) {
+    return ['Nothing has changed since that day.', 'שום דבר לא השתנה מאז אותו יום.'];
   }
-  return [
-    'Nothing has changed since that day.',
-    'שום דבר לא השתנה מאז אותו יום.',
+  const set = covered(body);
+  const withheld = withheldLine((body || {}).scope_kinds);
+  const opening = [
+    `Nothing has changed since that day, among ${set[0]}.`,
+    `שום דבר לא השתנה מאז אותו יום, מבין ${set[1]}.`,
   ];
+  if (!withheld) return opening;
+  return [`${opening[0]} ${withheld[0]}`, `${opening[1]} ${withheld[1]}`];
 }

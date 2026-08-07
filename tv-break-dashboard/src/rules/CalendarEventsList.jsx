@@ -106,7 +106,7 @@ export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
         </select>
       </label>
       <label className="cal-editor-field">
-        <Tooltip title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the Pricing page.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בעמוד התמחור.')} arrow placement="bottom">
+        <Tooltip title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the rate card.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בכרטיס התעריפים.')} arrow placement="bottom">
           <span className="cal-label-hint">{pageText(locale, 'Price multiplier', 'מכפיל תמחור')}</span>
         </Tooltip>
         <input type="number" min="0.1" max="5" step="0.05" dir="ltr" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
@@ -163,7 +163,7 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
           <div className="cal-event-facts">
             <span>{pageText(locale, `intensity ${event.intensity}/5`, `עוצמה ${event.intensity}/5`)}</span>
             {Number.isFinite(Number(event.price_multiplier)) && Number(event.price_multiplier) !== 1 && (
-              <span className="cal-chip" title={pageText(locale, 'Affects the forecast only while the events layer is activated on the Pricing page', 'משפיע על התחזית רק כאשר שכבת האירועים מופעלת בעמוד התמחור')}>
+              <span className="cal-chip" title={pageText(locale, 'Affects the forecast only while the events layer is activated on the rate card', 'משפיע על התחזית רק כאשר שכבת האירועים מופעלת בכרטיס התעריפים')}>
                 {pageText(locale, `price multiplier x${Number(event.price_multiplier)}`, `מכפיל תמחור x${Number(event.price_multiplier)}`)}
               </span>
             )}

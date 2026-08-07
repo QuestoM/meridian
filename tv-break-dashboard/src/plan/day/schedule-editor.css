@@ -2,13 +2,29 @@
  *
  * The editor's layout lives in the frozen shell stylesheet, which this piece
  * reads and never writes, so a rule this piece adds lives here beside the
- * component that uses it. One rule so far: the scope a save binds, printed on the
+ * component that uses it. Two so far: the scope a save binds, printed on the
  * row that carries the Save button, where a scope selector defaulting to the
- * whole broadcast date used to be.
+ * whole broadcast date used to be; and the coverage sentence above the timeline,
+ * naming what it draws against what the day and the plan actually hold.
  */
 
 .editor-row-scope {
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.35;
+}
+
+.schedule-editor-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-2);
+}
+
+.schedule-editor-scope a {
+  color: var(--accent-ink, var(--teal-ink));
+  white-space: nowrap;
 }

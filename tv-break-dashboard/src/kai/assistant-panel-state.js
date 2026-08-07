@@ -83,8 +83,39 @@ export function normalizeBatch(raw) {
 // before the hash changes, so the page the hash lands on reads it on mount.
 // Without a version id (a restore point older than the timeline column, or a
 // caller with none to give) this falls back to the plain jump it always did.
+//
+// A hash assignment to the value it already holds fires no hashchange event.
+// The dock's own control lands on this page (that is where an apply just
+// happened), so the second and every later click leaves the hash unmoved,
+// the shell never remounts the destination, and HistoryPage, which reads the
+// address only in its mount-time initialisers, never sees the address just
+// written above: the url names one entry while the screen keeps showing
+// whichever row it already had selected. When that is the state, the hash is
+// bounced off a value the router does not recognise first, one tick apart so
+// the shell's own listener actually processes the transition away before the
+// transition back, so the assignment back to 'Versions' is a real transition
+// its listener remounts the destination for.
+//
+// The bounce cannot be two plain `window.location.hash = ...` assignments: a
+// hash assignment is a navigation, and every navigation it performs pushes a
+// browser-history entry, even when it lands back on the same view. Measured:
+// four chip clicks made while already on the History page pushed eight
+// entries between them, and one Back press from the correctly addressed
+// History page then landed on Overview at the just-abandoned address, a url
+// that names a History entry on a page that cannot open it. `location.replace`
+// performs the same navigation, and fires the same hashchange, without adding
+// a history entry, so the bounce is written with it instead. The base has to
+// be passed explicitly: a bare `location.replace('#')` drops the ?entry
+// search this function just wrote.
 export function showRestoreVersion(versionId) {
   if (versionId) writeAddress(pointAddress(versionId));
+  const onVersions = decodeURIComponent(window.location.hash.replace(/^#/, '')) === 'Versions';
+  if (versionId && onVersions) {
+    const base = window.location.pathname + window.location.search;
+    window.location.replace(`${base}#`);
+    window.setTimeout(() => { window.location.replace(`${base}#Versions`); }, 0);
+    return;
+  }
   window.location.hash = 'Versions';
 }
 

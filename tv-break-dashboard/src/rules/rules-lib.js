@@ -358,15 +358,30 @@ export function collateralSentence(locale, collateral, moneyText) {
 // keeps reaching them by the same name.
 export {
   EFFECT_LIST,
+  calendarPricingBannerSentence,
+  complianceScopeSentence,
   effectLabel,
   limitLabel,
   moreProgrammesSentence,
   nothingToSaveSentence,
+  rateCardTabLinkLabel,
   refusalSentence,
   scheduledChangesSentence,
   unitLabel,
   widerScopeSentence,
 } from './rules-words';
+
+// The section a mounted Rules workspace should follow a later `?rules=`
+// change to. A change the workspace's own tab clicks did not cause (a legacy
+// route elsewhere in the shell rewriting the query, or the browser's own
+// back and forward buttons) never remounts the workspace, so a caller has to
+// compare the query on every render rather than only in useState's
+// initializer. queryValue already comes pre-validated (empty when the query
+// is missing or names no section this workspace has), so an empty value
+// changes nothing and any other value is followed.
+export function nextRulesSection(current, queryValue) {
+  return queryValue || current;
+}
 
 // Deep-merge one rate-card patch onto a draft, the same shape the server
 // deep-merges onto the saved overrides, so what is priced is what is saved.

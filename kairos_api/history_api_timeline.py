@@ -333,6 +333,53 @@ def outcome_counts(entries: Iterable[dict[str, Any]]) -> dict[str, int]:
     return tally
 
 
+# Which kinds a per-account scope rule can narrow, which reach every reader whole, and
+# which answer to the competitor boundary instead. ``activity_entries`` above is the only
+# builder whose records are filtered to the caller's own account (``history_api._assemble``
+# narrows the recorder's lines and nothing else) and it emits exactly these three kinds; the
+# version store and its restore audit carry no per-account scope at all; runs are neither,
+# being scoped to the operator's own channel, which ``run_scope`` discloses in its own words.
+#
+# **This is published because a sentence hardcoded it and was wrong by thousands of
+# entries.** Measured on a real store on 2026-08-07, an admin against a self-scoped
+# operator in the same second: the operator was withheld 2,533 changes, 636 previews and
+# 2,586 sign-ins, and not one restore, restore point or run, while the strip told them
+# that only changes were withheld. A surface may not guess which of the three lists a
+# kind is on, so the rule is stated beside the builders it is a property of and what it
+# actually removed is counted on every read.
+ACCOUNT_SCOPED_KINDS = ("change", "preview", "sign_in")
+CHANNEL_SCOPED_KINDS = ("run",)
+SHARED_KINDS = tuple(kind for kind in KINDS
+                     if kind not in ACCOUNT_SCOPED_KINDS + CHANNEL_SCOPED_KINDS)
+
+
+def scope_kinds(records: Iterable[dict[str, Any]], self_user: Optional[str],
+                company: bool, scope: str, day: Optional[str] = None) -> dict[str, Any]:
+    """How this reader's own account scope narrows the record, and what it removed.
+
+    ``account`` and ``shared`` are the rule and hold whether or not the store has an entry
+    of that kind today. ``withheld`` is the measurement: which kinds this read actually
+    dropped for this caller and how many of each, so a sentence built from it names a set
+    the same payload proves rather than a set somebody typed. The removed half goes through
+    the same training filter as the kept half, so a company-only entry is never counted into
+    what a channel account is told it is missing. ``day`` narrows the measurement to the
+    window it will be printed over.
+    """
+    rule = str(scope or "all")
+    if rule != "self":
+        # Everything whole except the runs, which answer to the competitor boundary
+        # for every reader, admin included, and are disclosed by ``run_scope``.
+        return {"rule": rule, "account": [],
+                "shared": [kind for kind in KINDS if kind not in CHANNEL_SCOPED_KINDS],
+                "withheld": {}, "withheld_total": 0}
+    others = [record for record in records if record.get("user") != self_user]
+    dropped = visible(activity_entries(others), company)
+    tally = {kind: total for kind, total
+             in counts(since_day(dropped, day) if day else dropped).items() if total}
+    return {"rule": rule, "account": list(ACCOUNT_SCOPED_KINDS), "shared": list(SHARED_KINDS),
+            "withheld": tally, "withheld_total": sum(tally.values())}
+
+
 # A broadcast day is an Israeli day. Every record in this product stamps UTC, so
 # the day an entry is filed under is its timestamp read in this zone, and the
 # surface reads it in the same one. Without this a change made at half past one

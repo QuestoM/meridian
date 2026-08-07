@@ -2,40 +2,36 @@
 
 Two routers live here and they answer two halves of one question.
 
-``/api/versions`` is the operation-state version store's HTTP layer, moved
-verbatim from ``version_store.py`` in the wave-zero router split. Its behaviour
-is unchanged: the same role gates (a signed-in session to read, an operator or
-admin role to snapshot, restore or rename), the same nine logical files, and
-the same pre-restore safety point, so a restore is always itself undoable.
+``/api/versions`` is the operation-state version store's HTTP layer, moved verbatim from
+``version_store.py`` in the wave-zero router split. Its behaviour is unchanged: the same
+role gates (a signed-in session to read, an operator or admin role to snapshot, restore or
+rename), the same nine logical files, and the same pre-restore safety point, so a restore is
+always itself undoable.
 
-``/api/history`` is new. It merges the four records the product already keeps
-and never showed together: the version timeline, the request recorder, the
-version store's own restore audit, and ``output/run_log.jsonl``, which has held
-every run's provenance since the engine was built without a single endpoint
-reading it.
+``/api/history`` is new. It merges the four records the product already keeps and never
+showed together: the version timeline, the request recorder, the version store's own restore
+audit, and ``output/run_log.jsonl``, which has held every run's provenance since the engine
+was built without a single endpoint reading it.
 
-Three things this layer adds and the reason each one is honest rather than
-cosmetic.
+Three things this layer adds and the reason each one is honest rather than cosmetic.
 
-**A restore point says whether it can be restored.** A manifest records the
-absolute path each file was captured from, and a restore copies those bytes
-onto whatever the same logical name resolves to now. Measured on this
-deployment: 196 of the 200 manifests were captured by pytest against temporary
-paths, and every one of them offers a restore today, which would write foreign
-bytes into the operator's live settings. They are now marked unrestorable, the
+**A restore point says whether it can be restored.** A manifest records the absolute path
+each file was captured from, and a restore copies those bytes onto whatever the same logical
+name resolves to now. Measured on this deployment: 196 of the 200 manifests were captured by
+pytest against temporary paths, and every one of them offers a restore today, which would
+write foreign bytes into the operator's live settings. They are now marked unrestorable, the
 control is withheld, and the refusal is legible before the click.
 
-**A payload says whether the reader may act on it.** ``can_edit`` and its
-reason ride the read, so a viewer sees the timeline and the diffs with the
-restore control rendered as state rather than failing after a click. The same
-answer rides it per logical file: measured before that gate, a channel operator
-refused ``PUT /api/rules/model-activation`` restored the settings file here with
-a 200 and flipped that switch, moved a regulatory limit and wrote a rival
-channel. :mod:`kairos_api.history_api_files` states that rule once.
+**A payload says whether the reader may act on it.** ``can_edit`` and its reason ride the
+read, so a viewer sees the timeline and the diffs with the restore control rendered as state
+rather than failing after a click. The same answer rides it per logical file: measured
+before that gate, a channel operator refused ``PUT /api/rules/model-activation`` restored
+the settings file here with a 200 and flipped that switch, moved a regulatory limit and
+wrote a rival channel. :mod:`kairos_api.history_api_files` states that rule once.
 
-**A timeline entry carries no prose and no rival.** Every word is chosen by the
-surface from the two-language vocabulary, and runs are scoped to the operator's
-own channel before serialisation.
+**A timeline entry carries no prose and no rival.** Every word is chosen by the surface from
+the two-language vocabulary, and runs are scoped to the operator's own channel before
+serialisation.
 """
 
 from __future__ import annotations
@@ -65,17 +61,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/versions")
 
-# The second router carries every new path and is mounted by its own stanza in
-# the append-only region of server.py. The versions router above is already
-# mounted through the version_store stanza, so mounting this module once more
-# would define all five version paths twice.
+# The second router carries every new path and is mounted by its own stanza in the
+# append-only region of server.py. The versions router above is already mounted through
+# the version_store stanza, so mounting this module once more would define all five
+# version paths twice.
 timeline_router = APIRouter(prefix="/api/history", tags=["history"])
 
-# Reading history and applying a restore are separately permissioned, which is
-# the rule Figma's version history already follows: viewing is available to
-# viewers, restoring needs edit access. Affiliation gates two of the nine files
-# a restore writes rather than the surface itself, so the timeline and the diffs
-# stay readable and the write answers to the wall the file's own routes use.
+# Reading history and applying a restore are separately permissioned, which is the rule
+# Figma's version history already follows: viewing is available to viewers, restoring
+# needs edit access. Affiliation gates two of the nine files a restore writes rather than
+# the surface itself, so the timeline and the diffs stay readable and the write answers
+# to the wall the file's own routes use.
 HISTORY_WALL = history_api_files.RESTORE_WALL
 
 # Version ids are uuid4().hex[:12]; accept 8-32 lowercase hex so nothing else
@@ -96,12 +92,12 @@ MAX_TIMELINE_ENTRIES = 500
 def _require_day(value: str, name: str) -> str:
     """400 on anything that is not a day the calendar has.
 
-    A shape regex is not a calendar, and a day is compared downstream as a string
-    against a broadcast day, so an impossible one is answered rather than refused.
-    Measured before this guard: ``until=2026-13-99`` answered 200 over the whole
-    record, ``until=2026-02-31`` answered 200 over nothing, ``until=2026-07-32``
-    served 74 entries, and ``since?day=2026-13-99`` answered 500 from a parse
-    three modules later. Every day on these routes comes through here.
+    A shape regex is not a calendar, and a day is compared downstream as a string against
+    a broadcast day, so an impossible one is answered rather than refused. Measured before
+    this guard: ``until=2026-13-99`` answered 200 over the whole record,
+    ``until=2026-02-31`` answered 200 over nothing, ``until=2026-07-32`` served 74 entries,
+    and ``since?day=2026-13-99`` answered 500 from a parse three modules later. Every day
+    on these routes comes through here.
     """
     text = str(value or "")
     if not _DAY_RE.fullmatch(text):
@@ -142,11 +138,10 @@ def _require_writer(request: Request) -> str:
     return _require_session(request, writer=True)
 
 
-_SCOPE_NOTE = ("Versions snapshot the operation-state files the operator edits: settings "
-               "(with pricing overrides), placement constraints, manual overrides, "
-               "advertiser rules, scoped advertiser conditions and calendar events. "
-               "History is append-only; a restore first records the current state, "
-               "so it is always undoable.")
+_SCOPE_NOTE = ("Versions snapshot the operation-state files the operator edits: settings (with "
+               "pricing overrides), placement constraints, manual overrides, advertiser rules, "
+               "scoped advertiser conditions and calendar events. History is append-only; a "
+               "restore first records the current state, so it is always undoable.")
 
 
 def _public_entry(manifest: dict[str, Any], live: Optional[dict[str, str]] = None,
@@ -216,9 +211,9 @@ def restore_version(version_id: str, request: Request,
     if not selected:
         raise HTTPException(status_code=400,
                             detail=f"no restorable files selected; this version covers {covered}")
-    # Before the safety point, so a refused restore leaves no version, no audit
-    # line and nothing put back. A restore writes files, and two of the nine
-    # answer to a wall of their own on the way back exactly as on the way in.
+    # Before the safety point, so a refused restore leaves no version, no audit line and
+    # nothing put back. A restore writes files, and two of the nine answer to a wall of
+    # their own on the way back exactly as on the way in.
     history_api_files.require_restore(version_id, selected, request)
     safety = version_store.snapshot(source="pre_restore", actor=actor, files=selected, force=True)
     restored = [version_store._restore_logical(version_id, logical) for logical in selected]
@@ -255,9 +250,7 @@ def rename_version(version_id: str, body: LabelRequest, request: Request) -> dic
     return _public_entry(manifest, None, history_api_files.withheld(request))
 
 
-# ---------------------------------------------------------------------------
-# The timeline: four records, one order, one filter
-# ---------------------------------------------------------------------------
+# --- the timeline: four records, one order, one filter -----------------------
 
 # The three states the run log can be in, so a surface can tell them apart. An
 # unreadable log and a log the product may not serve are different news, and neither of them is "no runs".
@@ -269,15 +262,14 @@ RUNS_WITHHELD = "withheld_no_operator_channel"
 def _run_records() -> tuple[list[dict[str, Any]], dict[str, Any], str]:
     """The operator's own runs, oldest first, with the scope disclosure.
 
-    **Withheld is not a defensive nicety, it closes a measured breach.** The run
-    log holds every channel's runs and the boundary is the filter to
-    ``settings.operator_channel``. With that setting empty the scope helper passes
-    every record through and says so, which is right for a helper and wrong here:
-    measured the moment another surface blanked the field, a ``kind=run`` read
-    returned 217, 124 and 76 rows belonging to three channels the operator does
-    not own, with their names and their revenue on them. A product that cannot
-    tell which runs are its own may not guess and may not serve all four, so it
-    withholds them and names the missing input and where to supply it.
+    **Withheld is not a defensive nicety, it closes a measured breach.** The run log holds
+    every channel's runs and the boundary is the filter to ``settings.operator_channel``.
+    With that setting empty the scope helper passes every record through and says so, which
+    is right for a helper and wrong here: measured the moment another surface blanked the
+    field, a ``kind=run`` read returned 217, 124 and 76 rows belonging to three channels the
+    operator does not own, with their names and their revenue on them. A product that cannot
+    tell which runs are its own may not guess and may not serve all four, so it withholds
+    them and names the missing input and where to supply it.
     """
     from kairos.observability.run_log import DEFAULT_RUN_LOG_PATH, read_run_log
 
@@ -300,27 +292,26 @@ def _run_records() -> tuple[list[dict[str, Any]], dict[str, Any], str]:
 def _assemble(request: Request) -> dict[str, Any]:
     """Every source, merged, ordered and filtered for this caller.
 
-    Two filters apply and they answer two different questions. The activity
-    scope is the rule the settings activity log already enforces: an admin sees
-    every account's changes and sign-ins, anybody else sees only their own, and
-    History may not widen that by merging. The affiliation filter is the
-    training test: an entry whose output lands under ``models/`` is company-only.
-    Restore points and runs are the operator's shared operating record and carry
-    no per-account scope, which is what ``/api/versions`` already does today.
+    Two filters apply and they answer two different questions. The activity scope is the
+    rule the settings activity log already enforces: an admin reads every account's changes,
+    previews and sign-ins, anybody else reads only their own, and History may not widen that
+    by merging. Which kinds it narrows is published as
+    ``history_api_timeline.ACCOUNT_SCOPED_KINDS`` rather than restated in prose, because it
+    was restated in prose and was wrong by thousands of entries. The affiliation filter is
+    the training test: an entry whose output lands under ``models/`` is company-only. Restore
+    points and runs carry no per-account scope, as ``/api/versions`` already does today.
     """
     scope, self_user = activity_log.visibility_scope(request)
     manifests = version_store._all_manifests()
-    activity = activity_log._read_entries()
-    if scope == "self":
-        activity = [record for record in activity if record.get("user") == self_user]
+    company = is_company(request)
+    records = activity_log._read_entries()
+    activity = [record for record in records if record.get("user") == self_user] if scope == "self" else records
     runs, run_note, runs_state = _run_records()
-    entries = (
-        history_api_timeline.version_entries(manifests)
-        + history_api_timeline.restore_entries()
-        + history_api_timeline.activity_entries(activity)
-        + history_api_timeline.run_entries(runs)
-    )
-    visible = history_api_timeline.order(history_api_timeline.visible(entries, is_company(request)))
+    entries = (history_api_timeline.version_entries(manifests)
+               + history_api_timeline.restore_entries()
+               + history_api_timeline.activity_entries(activity)
+               + history_api_timeline.run_entries(runs))
+    visible = history_api_timeline.order(history_api_timeline.visible(entries, company))
     # Two of these four records are pruned and one is scoped, so a dropped day, a
     # quiet day and a day outside this reader's slice are three different answers.
     sources, starts = history_api_reach.assemble(
@@ -332,7 +323,17 @@ def _assemble(request: Request) -> dict[str, Any]:
         "scope": scope,
         "sources": sources,
         "record_starts": starts,
+        # The unscoped half, so a sentence about an exclusion is built from what the filter
+        # actually removed and never from a word somebody typed.
+        "account": (records, self_user, company),
     }
+
+
+def _attested(assembled: dict[str, Any], day: str) -> dict[str, Any]:
+    """The attestation, carrying this reader's own scope evidence over its own window."""
+    body = history_api_attestation.since_body(assembled, day)
+    body["scope_kinds"] = history_api_timeline.scope_kinds(*assembled["account"], assembled["scope"], day)
+    return body
 
 
 @timeline_router.get("")
@@ -341,18 +342,18 @@ def history_timeline(request: Request, limit: int = 120, kind: str | None = None
                      until: str | None = None, before: str | None = None) -> dict[str, Any]:
     """The merged timeline, newest first, and how far back this page reaches.
 
-    ``kind`` narrows to one of the six kinds, ``actor`` to one account, ``since``
-    to an ISO calendar day and ``until`` to the day the list ends on. The counts
-    are taken inside the day window and before the kind and the actor, so a
-    filter control prints a real count of what clicking it would reveal.
+    ``kind`` narrows to one of the six kinds, ``actor`` to one account, ``since`` to an ISO
+    calendar day and ``until`` to the day the list ends on. The counts are taken inside the
+    day window and before the kind and the actor, so a filter control prints a real count of
+    what clicking it would reveal.
 
-    **A page is a window, and the window used to be nailed to the newest end.**
-    A page carries at most ``MAX_TIMELINE_ENTRIES``, cut from the newest of
-    whatever matched, so the record before it was unreachable and the payload did
-    not say so: measured, ``kind=change`` matched 2,027 entries and served 500
-    spanning one afternoon. ``until`` moves the window by calendar day, ``before``
-    steps it by exactly one page, and ``newer``, ``served`` and ``older`` say
-    where the window sits so the surface can print a true sentence.
+    **A page is a window, and the window used to be nailed to the newest end.** A page
+    carries at most ``MAX_TIMELINE_ENTRIES``, cut from the newest of whatever matched, so
+    the record before it was unreachable and the payload did not say so: measured,
+    ``kind=change`` matched 2,027 entries and served 500 spanning one afternoon. ``until``
+    moves the window by calendar day, ``before`` steps it by exactly one page, and
+    ``newer``, ``served`` and ``older`` say where the window sits so the surface can print a
+    true sentence.
     """
     _require_session(request)
     assembled = _assemble(request)
@@ -400,7 +401,7 @@ def history_timeline(request: Request, limit: int = 120, kind: str | None = None
         "counts": tally,
         "outcomes": outcomes,
         "today": today,
-        "attestation": history_api_attestation.since_body(assembled, today),
+        "attestation": _attested(assembled, today),
         "kinds": list(history_api_timeline.KINDS),
         "actors": sorted({entry["actor"] for entry in assembled["entries"] if entry["actor"]}),
         "scope": assembled["scope"],
@@ -437,14 +438,13 @@ def history_run(run_id: str, request: Request) -> dict[str, Any]:
 def history_since(request: Request, day: str | None = None) -> dict[str, Any]:
     """What changed since a calendar day, and the evidence when nothing did.
 
-    This is the attestation half of the compliance job: the counts per kind
-    since the day, and the regulatory guardrail store's own change record, which
-    is the only place a limit's movement is recorded with a date and an actor.
-
-    The landing answer for today rides the timeline read, so opening History
-    costs one request and this route serves the other days. No day means that
-    same today, named on the answer; a supplied day is still held to the calendar.
+    This is the attestation half of the compliance job: the counts per kind since the
+    day, and the regulatory guardrail store's own change record, which is the only place
+    a limit's movement is recorded with a date and an actor. The landing answer for today
+    rides the timeline read, so opening History costs one request and this route serves
+    the other days. No day means that same today, named on the answer; a supplied day is
+    still held to the calendar.
     """
     _require_session(request)
     day = day or history_api_timeline.broadcast_day(datetime.now(timezone.utc).isoformat())
-    return history_api_attestation.since_body(_assemble(request), _require_day(day, "day"))
+    return _attested(_assemble(request), _require_day(day, "day"))

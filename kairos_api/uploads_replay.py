@@ -48,7 +48,7 @@ from typing import Any
 from kairos.data.loaders import CHANNELS
 from kairos_api import uploads_channels, uploads_messages
 
-__all__ = ["boundary", "channel_fields", "channel_key", "place", "rendered", "to_store"]
+__all__ = ["at_the_door", "boundary", "channel_fields", "channel_key", "place", "rendered", "to_store"]
 
 # The facts of a report that are the file's own and carry no sentence at all.
 FACTS = ("dataset", "filename", "checked_at", "accepted", "is_valid", "rows_loaded")
@@ -90,11 +90,21 @@ PLACE: dict[str, str] = {
 FORMAT_KEY = "renders_at_read"
 
 # What a reader is told in place of a sentence that names a channel this account
-# may not read. It names what is missing and the one act that supplies it, which
-# is the door this destination is built around.
-WITHHELD = {
-    "en": "This reason was recorded while another operator channel was configured and it names a channel this account may not read, so it is withheld. Check the file again to read the reason under this account.",
-    "he": "הסיבה הזו נרשמה כשהיה מוגדר ערוץ מפעיל אחר, והיא נושאת שם של ערוץ שאסור להציג לחשבון הזה, ולכן היא אינה מוצגת. בדקו את הקובץ שוב כדי לקרוא את הסיבה תחת החשבון הזה.",
+# may not read. Split in two because the two callers below know two different
+# things and neither may claim the other's. A stored report cannot tell whether
+# the withheld sentence was recorded under a different channel or is a rival
+# name inside the file's own content, which its wording used to claim without
+# ever checking; a live check knows for certain it is the second, because
+# nothing has been written yet, and its own remedy may not be "check the file
+# again", which is the read that produced this sentence in the first place.
+WITHHELD_STORED = {
+    "en": "This stored reason names a channel this account may not read, so it is withheld. Upload the file again to read a reason checked under this account.",
+    "he": "הסיבה השמורה הזו נושאת שם של ערוץ שאסור להציג לחשבון הזה, ולכן היא אינה מוצגת. העלו את הקובץ שוב כדי לקרוא סיבה שנבדקה תחת החשבון הזה.",
+}
+
+WITHHELD_LIVE = {
+    "en": "This reason names a channel this account may not read, found in the file just checked, so it is withheld.",
+    "he": "הסיבה הזו נושאת שם של ערוץ שאסור להציג לחשבון הזה, שנמצא בקובץ שנבדק זה עתה, ולכן היא אינה מוצגת.",
 }
 
 
@@ -263,17 +273,23 @@ def _names_a_rival(text: Any, owned: str) -> bool:
     return any(rival in body for rival in uploads_channels.rivals(owned))
 
 
-def _inside_the_boundary(english: str, hebrew: str, owned: str) -> tuple[str, str]:
-    """The pair as it may be printed: the sentence, or the notice replacing it."""
+def _inside_the_boundary(english: str, hebrew: str, owned: str, notice: dict[str, str] = WITHHELD_STORED) -> tuple[str, str]:
+    """The pair as it may be printed: the sentence, or the notice replacing it.
+
+    ``notice`` is which of the two withheld sentences this call may honestly
+    print, decided by the caller because only the caller knows which cause it
+    measured: :func:`rendered` reading a stored report passes the default,
+    :func:`at_the_door` sweeping a live one passes :data:`WITHHELD_LIVE`.
+    """
     if _names_a_rival(english, owned) or _names_a_rival(hebrew, owned):
-        return WITHHELD["en"], WITHHELD["he"]
+        return notice["en"], notice["he"]
     return english, hebrew
 
 
-def _swept(lines: Any, owned: str) -> list[str]:
-    """A stored flat list with every line that names a rival channel replaced."""
+def _swept(lines: Any, owned: str, notice: dict[str, str] = WITHHELD_STORED) -> list[str]:
+    """A flat list with every line that names a rival channel replaced."""
     return [
-        WITHHELD["en"] if _names_a_rival(line, owned) else str(line)
+        notice["en"] if _names_a_rival(line, owned) else str(line)
         for line in (lines or [])
     ]
 
@@ -288,3 +304,39 @@ def _flat(findings: list[dict[str, Any]], severity: str, owned: str) -> list[str
     violation is about, and a column of a channel export is a channel name.
     """
     return _swept([uploads_messages.flat_finding(finding) for finding in findings if finding.get("severity") == severity], owned)
+
+
+def at_the_door(findings: list[dict[str, Any]], owned: str) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    """A live payload's own findings, swept before they ever reach a screen or disk.
+
+    The measured gap this closes: ``message`` and ``message_he`` used to leave
+    :func:`kairos_api.uploads_validate.run_contract_validation` unswept, so a
+    frozen contract's own detail naming a rival channel reached the door's
+    response and, from there, whatever :func:`kairos_api.uploads_validate.store_report`
+    went on to persist, while a stored report already read back through
+    :func:`rendered` had been swept for years. One finding, shown two ways.
+
+    This runs the same two functions :func:`rendered` uses, once, here, so a
+    finding cannot leave this door carrying a name it could not leave the store
+    carrying either: what is swept here is what gets persisted, so there is only
+    one boundary pass to keep honest instead of two that can drift apart. The
+    flat ``errors`` and ``warnings`` a caller wants beside the findings are
+    rebuilt from the swept copies rather than swept a second time on their own
+    text, so the sentence a finding carries and the line built from it can
+    never disagree.
+    """
+    swept_findings: list[dict[str, Any]] = []
+    for finding in findings:
+        record = dict(finding)
+        english, hebrew = _inside_the_boundary(
+            str(record.get("message") or ""), str(record.get("message_he") or ""), owned, WITHHELD_LIVE
+        )
+        record["message"] = english
+        if hebrew:
+            record["message_he"] = hebrew
+        else:
+            record.pop("message_he", None)
+        swept_findings.append(record)
+    errors = [uploads_messages.flat_finding(f) for f in swept_findings if f.get("severity") == "error"]
+    warnings = [uploads_messages.flat_finding(f) for f in swept_findings if f.get("severity") == "warning"]
+    return swept_findings, errors, warnings

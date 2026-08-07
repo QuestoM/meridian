@@ -72,6 +72,14 @@ export async function loadRollup() {
   return readJson('/api/campaigns');
 }
 
+// The rows behind one rollup row, so a campaign name opens something instead
+// of a dead end. `advertiser` may be an empty string, which is the honest
+// value for a campaign whose source rows carry no advertiser column at all.
+export async function loadRollupDetail(campaign, advertiser) {
+  const params = new URLSearchParams({ campaign, advertiser: advertiser || '' });
+  return readJson(`/api/campaigns/detail?${params.toString()}`);
+}
+
 // The pricing store, read whole. A client's own rule is the row whose name cell
 // carries the client's name, which is a join this destination performs itself
 // because the rules read is keyed on the row and the client read is keyed on the

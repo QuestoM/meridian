@@ -7,6 +7,7 @@ import { ModelContextPanel, OverlapPanel, eventTypeChipClass, eventTypeLabel, fo
 import CalendarEventsList from './CalendarEventsList';
 import CalendarHolidays from './CalendarHolidays';
 import CalendarMonthGrid from './CalendarMonthGrid';
+import CalendarPricingBanner from './CalendarPricingBanner';
 import { eventRange, isoDay, localIsoDate, readStoredCalendarView, storeCalendarView, upcomingEvents } from './calendar-events-lib';
 import './calendar-events.css';
 
@@ -34,7 +35,7 @@ function eventBody(event, patch = {}) {
   };
 }
 
-function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActiveView }) {
+function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRateCard }) {
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('loading');
   const [busy, setBusy] = useState(false);
@@ -319,21 +320,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, setActive
         </div>
       )}
 
-      <div className="cal-banner">
-        <Info size={16} aria-hidden="true" />
-        <p>
-          {eventsPricing === null
-            ? pageText(locale, 'Each event also carries a price multiplier hook for the events layer on the Pricing page. This server does not report that layer, so its activation state is unknown here.', 'לכל אירוע קיים גם מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השרת הזה אינו מדווח על השכבה, ולכן מצב ההפעלה שלה אינו ידוע כאן.')
-            : eventsPricing
-              ? pageText(locale, 'Each event carries a price multiplier wired to the events layer on the Pricing page. The layer is currently activated, so multipliers other than 1.0 change expected revenue in the forecast on event days.', 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השכבה מופעלת כעת, ולכן מכפילים שונים מ-1.0 משנים את ההכנסה הצפויה בתחזית בימי אירועים.')
-              : pageText(locale, 'Each event carries a price multiplier wired to the events layer on the Pricing page. The layer is currently off, so no multiplier changes any forecast number until it is activated there.', 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בעמוד התמחור. השכבה כבויה כעת, ולכן אף מכפיל אינו משנה מספר בתחזית עד הפעלתה שם.')}
-          {typeof setActiveView === 'function' && (
-            <button type="button" className="cal-banner-link" onClick={() => setActiveView('Pricing')}>
-              {pageText(locale, 'Open the Pricing page', 'לפתיחת עמוד התמחור')}
-            </button>
-          )}
-        </p>
-      </div>
+      <CalendarPricingBanner locale={locale} eventsPricing={eventsPricing} onOpenRateCard={onOpenRateCard} />
 
       <ModelContextPanel context={data?.model_context} locale={locale} />
       <OverlapPanel events={events} locale={locale} />

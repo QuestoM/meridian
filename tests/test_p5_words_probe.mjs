@@ -22,6 +22,7 @@ const root = mkdtempSync(join(tmpdir(), 'p5-words-'));
 mkdirSync(join(root, 'rules'));
 writeFileSync(join(root, 'session.js'), `export const WALLS = ${JSON.stringify(walls.walls)};\n`);
 writeFileSync(join(root, 'rules', 'rules-words.js'), readFileSync(join(RULES, 'rules-words.js'), 'utf8'));
+writeFileSync(join(root, 'rules', 'rules-bidi.js'), readFileSync(join(RULES, 'rules-bidi.js'), 'utf8'));
 
 const words = await import(pathToFileURL(join(root, 'rules', 'rules-words.js')).href);
 

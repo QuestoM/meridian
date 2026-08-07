@@ -259,7 +259,8 @@ console.log(JSON.stringify({
   chips: [outcomeWord('refused', 'he'), outcomeWord('unknown', 'he'), outcomeWord('applied', 'he')],
   notes: [outcomeNote('refused', 'he'), outcomeNote('unknown', 'en'), outcomeNote('applied', 'en')],
   tab: [refusedTabLine(680), refusedTabLine(1)],
-  since: [refusedSinceLine(743), refusedSinceLine(1)],
+  since: [refusedSinceLine(743, 'all'), refusedSinceLine(1, 'all')],
+  sinceSelf: [refusedSinceLine(160, 'self'), refusedSinceLine(1, 'self'), refusedSinceLine(2, 'self')],
 }));
 """
 
@@ -344,6 +345,41 @@ def test_the_two_sentences_that_carry_a_refusal_count_carry_only_that_figure() -
         assert hebrew[0].isalpha() and not hebrew[0].isascii()
 
 
+def test_the_since_refusal_sentence_names_its_own_scope_and_never_the_stores() -> None:
+    """The defect a blind critic measured on 2026-08-07: the same store, the same
+    minutes, read 'נדחו 160 ניסיונות שלא שינו דבר' as an admin and 'נדחו 2 ניסיונות
+    שלא שינו דבר' as a self-scoped reader, with no scope word on either, even
+    though `refusedSinceLine`'s figure is drawn from `outcome_counts`, which is
+    taken over the `change` kind alone and is already filtered to the caller's
+    own account before it reaches this function whenever `scope` is 'self'
+    (`history_api._assemble` narrows `activity` to `self_user` ahead of the
+    merge). `sinceCountLine` and `sinceEmptyLine` already carry this argument;
+    this is the third sentence on the strip that did not, one line lower and
+    otherwise untouched."""
+    measured = _run_module()
+    self_many, self_one, self_two = measured["sinceSelf"]
+    since_many, _since_one = measured["since"]
+
+    # Every figure is still the payload's own, in both languages.
+    assert "160" in self_many[0] and "160" in self_many[1]
+
+    # A self-scoped figure can never read as the identical, unqualified claim an
+    # all-scoped figure makes: the two sentences differ, plural and singular, in
+    # both languages, even when the count would otherwise line up as identical
+    # wording (743 vs any self-scoped many-count is already a different number,
+    # so the singular case is the one that would have collided silently).
+    assert self_one != ["One attempt was refused and changed nothing.", "ניסיון אחד נדחה ולא שינה דבר."]
+    assert self_many[0] != since_many[0] and self_many[1] != since_many[1]
+
+    # The self-scoped sentence names the set it covers, in both languages.
+    for pair_ in (self_many, self_one, self_two):
+        assert "your own" in pair_[0], f"the self-scoped refusal line names its own set: {pair_[0]}"
+        assert "שלכם" in pair_[1], f"the self-scoped refusal line names its own set: {pair_[1]}"
+
+    # The all-scope sentence is untouched: identical to what it always was.
+    assert since_many == ["743 attempts were refused and changed nothing.", "נדחו 743 ניסיונות שלא שינו דבר."]
+
+
 # --- the surfaces ask for it -----------------------------------------------------
 
 def test_the_row_and_the_opened_entry_both_read_the_outcome() -> None:
@@ -369,7 +405,8 @@ def test_the_attestation_strip_reads_the_endpoints_own_applied_figure() -> None:
     assert "const changeCount = Number((body && body.changed) || 0);" in since
     assert "const refusedCount = Number((body && body.refused) || 0);" in since
     assert "counts.change" not in since, "the tab tally is never summed into an attestation again"
-    assert "refusedSinceLine(refusedCount)" in since
+    assert "refusedSinceLine(refusedCount, scope)" in since, (
+        "the refusal sentence reads the same scope the count and empty sentences already do")
     assert "(changeCount || refusedCount) && onShow" in since, (
         "and a window holding only refusals can still be opened in the list")
 

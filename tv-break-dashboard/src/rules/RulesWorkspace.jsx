@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarClock, CalendarDays, Coins, ScrollText, SlidersHorizontal, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { ANONYMOUS_SESSION, doorFor, fetchSession } from '../session.js';
@@ -10,6 +10,7 @@ import PricingManager from './PricingManager';
 import WorthOfASecond from './WorthOfASecond';
 import CalendarEvents from './CalendarEvents';
 import PlanningLevers from './settings-levers';
+import { nextRulesSection } from './rules-lib';
 import './rules-workspace.css';
 
 // Rules is one destination holding the things that constrain a plan or a price.
@@ -45,6 +46,10 @@ export default function RulesWorkspace(props) {
   const { locale, notify, onGlobalRefresh } = props;
   const [session, setSession] = useState(ANONYMOUS_SESSION);
   const [active, setActive] = useState(sectionFromLocation());
+  // The last ?rules value this render has already reconciled against, so a
+  // query this workspace's own open() just wrote is never re-applied a
+  // second time and only a change from elsewhere moves the section on its own.
+  const seenQuery = useRef(sectionFromLocation());
 
   useEffect(() => {
     let alive = true;
@@ -53,6 +58,19 @@ export default function RulesWorkspace(props) {
       .catch(() => {});
     return () => { alive = false; };
   }, []);
+
+  // Read the query on every render, not only the one this component mounted
+  // with. A route elsewhere in the shell can rewrite ?rules without ever
+  // remounting this workspace (the old Pricing bookmark redirect is exactly
+  // this), and the browser's own back and forward buttons do the same, so
+  // following the query only at mount left the section stuck on whatever tab
+  // was open when that redirect landed while the address bar claimed another.
+  const queryNow = sectionFromLocation();
+  if (queryNow !== seenQuery.current) {
+    seenQuery.current = queryNow;
+    const moved = nextRulesSection(active, queryNow);
+    if (moved !== active) setActive(moved);
+  }
 
   const landing = useMemo(() => SECTION_BY_DOOR[doorFor(session)] || 'restrictions', [session]);
   const current = active || landing;
@@ -127,7 +145,7 @@ export default function RulesWorkspace(props) {
           locale={locale}
           notify={notify}
           onGlobalRefresh={onGlobalRefresh}
-          setActiveView={props.setActiveView}
+          onOpenRateCard={() => open('rate_card')}
         />
       )}
       {current === 'channel' && (

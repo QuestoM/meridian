@@ -140,23 +140,35 @@ PLAN_MODEL = """
 export function normalizeRows(rows) { return Array.isArray(rows) ? rows : []; }
 """
 
-# The grid, reduced to the one behaviour this file is about: with no rows a
-# person reads the empty label, and with rows a person reads the rows.
+# The grid, reduced to the behaviour this file is about: with no rows a person
+# reads the empty label, and with rows a person reads each column's own cell,
+# built the same way the real DataTable builds one, through `column.render`.
+# That is the one part of the real grid a column-opens-nothing regression
+# would actually show up in, so the fake keeps it rather than collapsing every
+# row to a row count.
 PRIMITIVES = """
 import React from 'react';
 
-export function DataTable({ rows, emptyLabel }) {
+export function DataTable({ rows, emptyLabel, columns }) {
   if (!rows || !rows.length) {
     return React.createElement('div', { className: 'grid-empty' }, emptyLabel);
   }
-  return React.createElement('div', { className: 'grid-rows' }, `${rows.length} rows`);
+  return React.createElement('div', { className: 'grid-rows' }, rows.map((row, index) =>
+    React.createElement('div', { className: 'grid-row', key: index }, (columns || []).map((column) =>
+      React.createElement('span', { className: `grid-cell grid-cell-${column.key}`, key: column.key },
+        column.render ? column.render(row) : row[column.key])))));
 }
 """
 
-# The read, held open so the test decides when and how it lands.
+# The read, held open so the test decides when and how it lands. The rollup's
+# own drill never opens in these scenarios (no click is simulated), so
+# `loadRollupDetail` only has to exist as a valid export, not do anything.
 API = """
 export function loadRollup() {
   return new Promise((resolve, reject) => { globalThis.__land = resolve; globalThis.__fail = reject; });
+}
+export function loadRollupDetail() {
+  return new Promise(() => {});
 }
 """
 
@@ -169,6 +181,14 @@ export default function MakeGoodAlerts() { return null; }
 # panel receives a truthy prop holding an empty list before anything is read.
 FALLBACKS = """
 export const fallbackCampaigns = { campaigns: [] };
+"""
+
+LUCIDE = """
+export function ArrowLeft() { return null; }
+"""
+
+MONEY_HELPERS = """
+export function exactMoney(value) { return String(value); }
 """
 
 HARNESS = """
@@ -190,15 +210,19 @@ const PRIMITIVES = pathToFileURL(join(here, 'primitives.mjs')).href;
 const API = pathToFileURL(join(here, 'clients-api.mjs')).href;
 const ALERTS = pathToFileURL(join(here, 'alerts.mjs')).href;
 const FALLBACKS = pathToFileURL(join(here, 'fallbacks.mjs')).href;
+const LUCIDE = pathToFileURL(join(here, 'lucide.mjs')).href;
+const MONEY_HELPERS = pathToFileURL(join(here, 'money-helpers.mjs')).href;
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier === 'react') return { url: RUNTIME, shortCircuit: true };
+    if (specifier === 'lucide-react') return { url: LUCIDE, shortCircuit: true };
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
     if (specifier.endsWith('shell/plan-model')) return { url: PLAN, shortCircuit: true };
     if (specifier.endsWith('shell/primitives')) return { url: PRIMITIVES, shortCircuit: true };
     if (specifier.endsWith('shell/fallbacks')) return { url: FALLBACKS, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
+    if (specifier.endsWith('clients-money-helpers')) return { url: MONEY_HELPERS, shortCircuit: true };
     if (specifier.endsWith('MakeGoodAlerts')) return { url: ALERTS, shortCircuit: true };
     if (specifier.endsWith('.css')) return { url: pathToFileURL(join(here, 'empty.mjs')).href, shortCircuit: true };
     return nextResolve(specifier, context);
@@ -223,6 +247,18 @@ function textOf(node, out) {
 
 function screen() { return textOf(react.rendered(), []).join(' '); }
 
+// A rough HTML string, kept only for the one thing plain text cannot answer:
+// whether a cell is a control or a label. Real tag names survive; everything
+// else collapses the way `screen()` already does.
+function html(node) {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(html).join('');
+  if (!node.type) return '';
+  const inner = node.props ? html(node.props.children) : '';
+  return typeof node.type === 'string' ? `<${node.type}>${inner}</${node.type}>` : inner;
+}
+
 const seen = {};
 react.mount(Panel, { locale: 'he', refreshKey: 1 });
 await react.settle();
@@ -231,6 +267,7 @@ seen.inFlight = screen();
 globalThis.__land({ campaigns: [{ Campaign: 'a' }, { Campaign: 'b' }, { Campaign: 'c' }] });
 await react.settle();
 seen.landed = screen();
+seen.landedHtml = html(react.rendered());
 
 react.mount(Panel, { locale: 'he', refreshKey: 2 });
 await react.settle();
@@ -260,6 +297,20 @@ react.mount(Panel, { locale: 'he', refreshKey: 5, campaigns: { campaigns: [{ Cam
 await react.settle();
 seen.supplied = screen();
 
+// The two remaining findings on this panel: a campaign name opened nothing,
+// and a source with no advertiser column rendered a blank cell rather than a
+// stated reason.
+react.mount(Panel, { locale: 'he', refreshKey: 6 });
+await react.settle();
+globalThis.__land({
+  campaigns: [{ Campaign: 'מבצע קיץ', advertiser_id: null, spots: 12, seconds: 340, revenue: null, last_airing: '01/01/2026' }],
+  advertiser_available: false,
+  revenue_available: true,
+});
+await react.settle();
+seen.advertiserUnavailable = screen();
+seen.advertiserUnavailableHtml = html(react.rendered());
+
 process.stdout.write(JSON.stringify(seen));
 """
 
@@ -282,6 +333,7 @@ def _run(tmp_path: Path, source: str) -> dict:
         "react-runtime.mjs": RUNTIME, "format.mjs": FORMAT, "plan-model.mjs": PLAN_MODEL,
         "primitives.mjs": PRIMITIVES, "clients-api.mjs": API, "alerts.mjs": ALERTS,
         "fallbacks.mjs": FALLBACKS, "empty.mjs": "export default {};\n",
+        "lucide.mjs": LUCIDE, "money-helpers.mjs": MONEY_HELPERS,
         "harness.mjs": HARNESS, "CampaignRollupPanel.jsx": source,
     }
     for name, body in stubs.items():
@@ -350,6 +402,28 @@ def test_a_payload_the_shell_really_read_is_used_as_it_is(shipped):
     """The prop still wins when it is a payload, so no second read is spent."""
     assert "1 קמפיינים" in shipped["supplied"]
     assert LOADING_COUNT not in shipped["supplied"]
+
+
+def test_a_campaign_name_opens_its_own_rows(shipped):
+    """The rollup's own dead end: a campaign name used to open nothing at all."""
+    assert "<button>a</button>" in shipped["landedHtml"], shipped["landedHtml"]
+
+
+def test_the_advertiser_column_states_unavailable_rather_than_a_blank(shipped):
+    """The source carries no advertiser column at all, and the cell says so.
+
+    A blank cell with no stated reason is a placeholder, not an honest empty
+    state; the note above the table and the cell itself both have to carry the
+    reason, the way the revenue note already does for a missing revenue column.
+    """
+    assert "לא זמין" in shipped["advertiserUnavailable"]
+    assert "אין עמודת מפרסם" in shipped["advertiserUnavailable"]
+    assert "אין עמודת מפרסם" not in shipped["landed"], "a source that does carry the column prints no such note"
+
+
+def test_the_campaign_name_still_opens_when_the_advertiser_is_unavailable(shipped):
+    """The two fixes live in the same file and must not fight each other."""
+    assert "<button>מבצע קיץ</button>" in shipped["advertiserUnavailableHtml"]
 
 
 # --- the defect, put back ------------------------------------------------------

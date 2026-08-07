@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import ConstraintBuilder from '../../rules/ConstraintBuilder';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
 import ScheduleEditorReadout from './ScheduleEditorReadout';
+import ScheduleEditorScope from './ScheduleEditorScope';
 import ScheduleEditorToolbar from './ScheduleEditorToolbar';
 import ScheduleInspector from './ScheduleInspector';
 import {
@@ -24,6 +25,7 @@ import {
 } from './schedule-editor-format';
 import { pinTarget } from './schedule-editor-pin';
 import { pendingMoves, useEditorMoney } from './schedule-editor-money';
+import { useEditorCoverage } from './schedule-editor-scope';
 import { scopeSentence } from './day-board-actions';
 
 // Local helpers kept self-contained so the editor can live in its own module
@@ -295,6 +297,10 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
   );
   const money = useEditorMoney({ pending, locale, notify, onGlobalRefresh });
 
+  // What this timeline draws against what the day and the plan actually hold.
+  // See schedule-editor-scope.js for the measurement this exists to close.
+  const coverage = useEditorCoverage({ breaksShown: breaks.length, programsShown: programs.length, score: money.score });
+
   async function savePin(item) {
     const { startSec, durationSec } = currentState(item);
     const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
@@ -353,6 +359,8 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         onZoom={setZoom}
         onZoomStep={zoomBy}
       />
+
+      <ScheduleEditorScope coverage={coverage} locale={locale} />
 
       <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale}>
         {({ width, minWidth, ticks }) => lanes.map((lane) => (

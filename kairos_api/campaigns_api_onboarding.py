@@ -76,6 +76,12 @@ NEEDS_AGENCY_NAME = "An agency needs a name, because the name is what a daily fi
 NEEDS_AGENCY_NAME_HE = "לסוכנות צריך שם, מפני שהשם הוא מה שקובץ יומי נושא"
 NEEDS_CLIENT = "A campaign needs a client, because a campaign belongs to one"
 NEEDS_CLIENT_HE = "לקמפיין צריך לקוח, מפני שקמפיין שייך ללקוח"
+# An empty weekday scope reads as "the operator chose no day" here and as ANY,
+# every day, once it reaches the condition grammar (normalize_scope("") ==
+# ANY). Those two readings must never join silently. The refusal that enforces
+# this, worded for whichever path the order actually takes, lives beside the
+# write paths themselves in campaigns_api.check_weekday_scope, so the campaign
+# screen and this flow read it from the same place and can never disagree.
 
 
 def _agencies_frame():
@@ -289,6 +295,17 @@ def precheck(payload: OnboardRequest) -> None:
         store.validate_choice(flight.goal_kind, store.GOAL_KINDS, "goal_kind")
         store.validate_goal(flight.goal_value)
         store.validate_window(starts, ends)
+    # Checked before either half writes, and worded for the path this order
+    # actually takes: the agency-rule wording only when the discount is really
+    # about to become an agency condition, the campaign-term wording otherwise,
+    # because the two paths read an empty scope two different ways.
+    from kairos_api.campaigns_api import check_weekday_scope
+
+    check_weekday_scope(
+        payload.surcharge_discount_percent,
+        payload.surcharge_weekdays,
+        as_agency_rule=bool(payload.apply_surcharge_as_agency_rule),
+    )
     if payload.apply_surcharge_as_agency_rule and payload.surcharge_discount_percent:
         validate_mode_value(PREMIUM_DISCOUNT, float(payload.surcharge_discount_percent))
 

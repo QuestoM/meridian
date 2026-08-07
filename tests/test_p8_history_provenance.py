@@ -349,17 +349,57 @@ def test_the_since_endpoint_answers_a_different_scope_for_admin_and_operator(
         "changeCount alone and never body.scope cannot tell them apart")
 
 
+def test_the_refused_figure_is_scoped_the_same_way_the_changed_figure_is(
+        history_env, auth_env) -> None:
+    """The second half of the same gap, one line lower on the strip: the
+    refusal count beside the attestation is drawn from ``outcome_counts``,
+    which is taken over the ``change`` kind alone, so it is filtered to the
+    caller's own account whenever ``scope`` is 'self' exactly the way the
+    changed figure is (``history_api._assemble`` narrows ``activity`` to
+    ``self_user`` ahead of the merge, before either figure is tallied). Two
+    accounts each make one refused attempt; a self-scoped reader sees only its
+    own, and the admin sees at least both."""
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    assert operator.post("/api/definitely-not-a-route").status_code == 404
+    viewer = _as(history_env, auth_env, "viewer1", "viewer")
+    assert viewer.post("/api/definitely-not-a-route").status_code == 404
+
+    operator = _as(history_env, auth_env, "operator1", "operator")
+    operator_since = operator.get("/api/history/since").json()
+    admin = _as(history_env, auth_env, "admin", "admin")
+    admin_since = admin.get("/api/history/since").json()
+
+    assert operator_since["scope"] == "self"
+    assert operator_since["refused"] == 1, "operator1 sees only its own refused attempt"
+    assert admin_since["scope"] == "all"
+    assert admin_since["refused"] >= 2, "the admin sees both accounts' refused attempts"
+    assert operator_since["refused"] < admin_since["refused"], (
+        "the same store, the same second, two different refusal counts: a strip that prints "
+        "the unqualified sentence for both would be reading a filtered slice as the record")
+
+
 # The exact figures the critic measured on 2026-08-07: an admin read scope all,
 # changed 77, over a store on which a plain operator read scope self, changed 0,
 # in the same second. Hardcoded rather than piped from a live call, because what
 # is under test is the module the strip calls, not the timing of a subprocess.
+# ``self`` is the scope half of that endpoint's own body, cut to the keys these
+# two sentences read and carrying the counts measured on a real store the same
+# day: 2,533 changes, 636 previews and 2,586 sign-ins kept from that reader, and
+# not one restore or restore point. That the live payload really carries this
+# shape is pinned beside it in tests/test_p8_history_kind_denial.py.
 SINCE_SCOPE_PROBE = """
 import { sinceCountLine, sinceEmptyLine } from './tv-break-dashboard/src/history/history-since.js';
+const self = {
+  attested_kinds: ['change', 'restore', 'restore_point'],
+  scope_kinds: {rule: 'self', account: ['change', 'preview', 'sign_in'],
+                shared: ['restore_point', 'restore'], withheld_total: 5755,
+                withheld: {change: 2533, preview: 636, sign_in: 2586}},
+};
 console.log(JSON.stringify({
-  adminChanged: sinceCountLine(77, 45, 'all'),
-  adminEmpty: sinceEmptyLine('all'),
-  operatorEmpty: sinceEmptyLine('self'),
-  operatorChanged: sinceCountLine(3, null, 'self'),
+  adminChanged: sinceCountLine(77, 45, 'all', null),
+  adminEmpty: sinceEmptyLine('all', null),
+  operatorEmpty: sinceEmptyLine('self', self),
+  operatorChanged: sinceCountLine(3, null, 'self', self),
 }));
 """
 
@@ -391,15 +431,20 @@ def test_the_strip_cannot_print_the_same_unqualified_sentence_for_both_scopes() 
     assert admin_empty == ["Nothing has changed since that day.", "שום דבר לא השתנה מאז אותו יום."]
     assert admin_changed[0] == "77 changes and points were applied, and 45 runs were recorded."
 
-    # The self-scoped sentences name the set and the account it excludes, in both
+    # The self-scoped sentences name the set and the kinds excluded from it, in both
     # languages, so a compliance owner reading only the strip is told what a plain
-    # operator's zero does and does not cover.
+    # operator's zero does and does not cover. Both name every attested kind, and the
+    # exclusion names all three kinds the recorder scopes per account rather than the
+    # one this sentence used to name and was measured to be wrong about.
     for line in (operator_empty[0], operator_changed[0]):
         assert "your own" in line, f"the self-scoped line names its own set: {line}"
-    assert "other accounts are not shown" in operator_empty[0]
+        assert "restore points and restores" in line, f"the self-scoped line names every attested kind: {line}"
+    assert "changes, previews and sign-ins by other accounts are withheld here" in operator_empty[0]
+    assert "5,755" in operator_empty[0], "the exclusion carries the figure the payload measured"
     for line in (operator_empty[1], operator_changed[1]):
         assert "שלכם" in line, f"the self-scoped line names its own set: {line}"
-    assert "חשבונות אחרים אינם מוצגים" in operator_empty[1]
+        assert "נקודות השחזור והשחזורים" in line, f"the self-scoped line names every attested kind: {line}"
+    assert "שינויים, תצוגות מקדימות וכניסות של חשבונות אחרים אינם מוצגים" in operator_empty[1]
 
     # Every figure in the qualified sentence is still the payload's own.
     assert "3" in operator_changed[0] and "77" in admin_changed[0]

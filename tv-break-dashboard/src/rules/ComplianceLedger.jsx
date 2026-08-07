@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { complianceDisclaimer, complianceUnitLabel } from '../shell/labels';
-import { complianceViewState, fetchCompliance } from './rules-lib';
+import { complianceScopeSentence, complianceViewState, fetchCompliance } from './rules-lib';
 import './rules-panels.css';
 
 // Today's landing card and the licence page one click away read the same
@@ -80,15 +80,9 @@ export function ComplianceLedger({ compliance, copy, locale }) {
         <h2>{copy.compliance}</h2>
         <span>{checks.length} {copy.activeRules}</span>
       </div>
-      <p className="ledger-scope-line" dir="auto">
+      <p className="ledger-scope-line" dir={locale === 'he' ? 'rtl' : 'ltr'}>
         <Tv size={12} aria-hidden="true" />
-        <span>
-          {pageText(
-            locale,
-            `${scope.scope_channel}, this operator's own channel: ${scope.rows_out} breaks judged, ${scope.competitor_rows_excluded} on other channels left out.`,
-            `${scope.scope_channel}, הערוץ שבבעלות המפעיל: ${scope.rows_out} ברייקים נשפטו, ${scope.competitor_rows_excluded} בערוצים אחרים לא נכללו.`,
-          )}
-        </span>
+        <span>{complianceScopeSentence(locale, scope)}</span>
       </p>
       <div className="ledger-list">
         {checks.map((check) => {

@@ -49,10 +49,10 @@ NODE = shutil.which("node")
 MODULE_URL = (ROOT / "tv-break-dashboard" / "src" / "sources" / "sources-findings.js").as_uri()
 
 # Every code this door raises ITSELF, as opposed to the ones the frozen data
-# contracts raise, which keep their own English detail because the counts and
-# column names inside those sentences are theirs to compute. A finding carrying
-# one of these codes and no Hebrew is an English sentence on a Hebrew screen,
-# which is the one sentence this destination exists to write.
+# contracts raise. Both now get a Hebrew sentence, but the door authors its own
+# in full from its own fields, while the contracts' English stays byte-for-byte
+# theirs in ``message`` and only the Hebrew beside it is authored here, from a
+# count recomputed on the loaded frame rather than from that English.
 OWN_CODES = frozenset({
     "no_parseable_dates", "unparseable_dates", "unreadable_times", "ambiguous_day_month",
     "no_loadable_campaigns", "skipped_campaign_rows", "no_recognized_channel_columns",
@@ -274,16 +274,17 @@ def test_every_reason_this_door_writes_itself_is_readable_in_hebrew(isolated: Te
 
 
 def test_a_finding_the_frozen_contracts_raised_keeps_its_own_english_detail(isolated: TestClient) -> None:
-    """The fallback is deliberate and it is the honest half of the rule: the
-    counts and column names inside a contract violation are the contract's to
-    compute, so its sentence is quoted rather than re-authored from its code."""
+    """The English is quoted, byte-for-byte, because the frozen contract's own
+    counts and column names inside it are its to compute. The Hebrew beside it
+    is authored here, from a count recomputed rather than parsed from it."""
     body = isolated.post(
         "/api/uploads/daily/check",
         files={"file": ("Wally_zero.csv", _daily_bytes(duration="0"), "text/csv")},
     ).json()
     finding = next(f for f in body["findings"] if f["code"] == "non_positive_values")
-    assert finding["message"], "a contract violation arrived with no sentence at all"
-    assert "message_he" not in finding, "a contract's own detail was re-authored in Hebrew"
+    assert finding["message"] == "1 value(s) at or below zero", "the contract's own detail must stay verbatim"
+    assert HEBREW.search(finding.get("message_he") or ""), "a contract's own finding still reads English on a Hebrew screen"
+    assert finding["message_he"] != finding["message"], "the Hebrew must be its own sentence, not the English quoted twice"
 
 
 def test_a_header_refusal_carries_its_reason_in_both_languages(isolated: TestClient) -> None:

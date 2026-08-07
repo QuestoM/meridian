@@ -10,14 +10,30 @@ two unreadable clocks was refused with a Hebrew heading, Hebrew row labels and
 two English reasons, and a dayparts file with renamed channel columns was
 refused with one English reason. Every other word on that card was Hebrew.
 
-The division of labour is exact. A code this destination raises ITSELF is
-authored here in both languages, with its own measured numbers formatted into
-both. A violation raised by the frozen data contracts
-(:mod:`kairos.data.contracts`) keeps its English detail, because the counts and
-column names inside that sentence are the contract's own and re-authoring it in
-Hebrew from the code alone would drop them. A record carries ``message_he`` only
-when there is a real Hebrew sentence behind it, so a surface falls back to the
-English detail rather than to a blank line.
+The division of labour is exact but no longer asymmetric. A code this
+destination raises ITSELF is authored here fully in both languages, with its
+own measured numbers formatted into both. A violation raised by the frozen data
+contracts (:mod:`kairos.data.contracts`) keeps its English detail in
+``message`` byte-for-byte, because that sentence is the contract's own and
+nothing here may re-author it, but it now carries a Hebrew sentence too, keyed
+by the same eleven codes the contracts emit. The count inside that Hebrew is
+never parsed out of the frozen English and it is never assumed to be a row
+count either: it is that CODE's own quantity, recomputed by
+:func:`kairos_api.uploads_validate.finding_records` on the frame the contract
+actually validated, whether or not that frame's positions may be printed as
+row numbers on this operator's file. For most codes the quantity is how many
+values the same rule the contract ran flags on that frame, which is what
+``rows_total`` also holds when a row number may be printed, but the two are
+computed independently so a kind whose loader melts one row per channel
+column (a position in it is not a row the operator's file has) still gets its
+Hebrew count. ``unknown_channel`` is the one code whose quantity is not a
+count of values or rows at all: the sentence says "channel name(s)", so the
+number is the count of DISTINCT unknown names, :func:`unknown_channel_count`,
+never the count of rows carrying one. A record carries ``message_he`` only
+when there is a real Hebrew sentence behind it, so a code with no count in its
+English (a missing column, a wrong frame shape, a wrong dtype) still gets one,
+with no count in it either, and only a count this module could not recompute
+falls back to no Hebrew at all rather than to a blank slot or a stale number.
 
 A left-to-right run inside a right-to-left sentence is wrapped in a first-strong
 isolate, the way :mod:`kairos_api.downloads_api` wraps a path: without it the
@@ -31,6 +47,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
 from fastapi.responses import JSONResponse
 
 # First-strong isolate, around any field that can carry a left-to-right run.
@@ -182,6 +199,59 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en": "campaign_id, flight dates",
         "he": "מזהה קמפיין campaign_id או תאריכי קמפיין",
     },
+    # The frozen kairos.data.contracts codes below. Their English detail is
+    # never touched: it is the contract's own sentence and stays what
+    # ``message`` carries verbatim. Only the Hebrew half is authored here, and
+    # only from a count :func:`kairos_api.uploads_validate.finding_records`
+    # recomputes itself on the loaded frame the contract read, the way it
+    # already recomputes a violation's own row numbers: never by parsing the
+    # frozen English sentence. A code whose English carries no count (a missing
+    # column, a wrong frame shape, a wrong dtype) gets a Hebrew sentence with no
+    # count in it either.
+    "missing_frame": {
+        "en": "no data table could be built from this file",
+        "he": "לא ניתן היה לבנות טבלת נתונים מהקובץ הזה",
+    },
+    "not_a_frame": {
+        "en": "the loaded data did not come back as a table",
+        "he": "הנתונים שנטענו לא חזרו כטבלה",
+    },
+    "missing_column": {
+        "en": "this required column is absent from the loaded file",
+        "he": "העמודה הנדרשת הזאת חסרה בקובץ שנטען",
+    },
+    "not_datetime": {
+        "en": "this column did not load as a readable date or time",
+        "he": "העמודה הזאת לא נטענה כתאריך או שעה שניתן לקרוא",
+    },
+    "non_numeric_values": {
+        "en": "{count} value(s) in this column could not be read as a number",
+        "he": "{count} ערכים בעמודה הזאת לא ניתן היה לקרוא כמספר",
+    },
+    "nan_values": {
+        "en": "{count} value(s) in this column are missing and were left empty",
+        "he": "{count} ערכים בעמודה הזאת חסרים, ונשארו ריקים",
+    },
+    "negative_values": {
+        "en": "{count} value(s) in this column are below zero",
+        "he": "{count} ערכים בעמודה הזאת מתחת לאפס",
+    },
+    "non_positive_values": {
+        "en": "{count} value(s) in this column are zero or below",
+        "he": "{count} ערכים בעמודה הזאת אפס או מתחת לאפס",
+    },
+    "nan_channel": {
+        "en": "{count} row(s) have no channel in this column",
+        "he": "ב־{count} שורות אין ערוץ בעמודה הזאת",
+    },
+    "unknown_channel": {
+        "en": "{count} channel name(s) in this column are not in the known set: {names}",
+        "he": "{count} שמות ערוץ בעמודה הזאת אינם ברשימת הערוצים המוכרים: {names}",
+    },
+    "end_before_start": {
+        "en": "{count} row(s) end before they start",
+        "he": "ב־{count} שורות הסיום קודם להתחלה",
+    },
 }
 
 
@@ -206,6 +276,64 @@ def say(code: str, **fields: object) -> tuple[str, str]:
     english = words["en"].format(**_rendered(fields, 0, False))
     hebrew = words["he"].format(**_rendered(fields, 1, True))
     return english, hebrew
+
+
+def contract_say(code: str, count: int | None = None, names: str = "") -> str:
+    """The Hebrew half of a violation the frozen data contracts raised, or "".
+
+    The contract's own English detail is never touched by this: ``message``
+    keeps carrying it exactly as :mod:`kairos.data.contracts` wrote it. What
+    this returns is a Hebrew sentence for the same code, built only from
+    numbers the caller already recomputed on the loaded frame rather than
+    parsed out of that English sentence, so nothing frozen is read to build it.
+    ``count`` is left unset for a code whose sentence carries none, and a code
+    that needs one but was not given one renders nothing rather than a
+    sentence with a hole in it, the same honest fallback ``say`` already gives
+    a code this module does not know at all.
+    """
+    words = MESSAGES.get(code)
+    if words is None:
+        return ""
+    fields: dict[str, object] = {}
+    if count is not None:
+        fields["count"] = count
+    if names:
+        fields["names"] = names
+    try:
+        return words["he"].format(**_rendered(fields, 1, True))
+    except (KeyError, IndexError):
+        return ""
+
+
+def _unknown_channel_values(frame: pd.DataFrame | None, column: str, mask: pd.Series | None) -> list[str]:
+    """The distinct unknown channel names one violation is about, sorted.
+
+    Read off the same frame and mask :func:`kairos_api.uploads_validate.finding_records`
+    recomputes on the frame the contract validated, never the contract's own
+    Python list with its brackets and quotes. This is the shared root both
+    :func:`unknown_channel_names` and :func:`unknown_channel_count` read from,
+    so the sentence's count and the sentence's list can never disagree: a row
+    carrying the same unknown name twice is one name, not two.
+    """
+    if mask is None or frame is None or column not in frame.columns:
+        return []
+    seen = frame.loc[mask.fillna(False), column].dropna().unique()
+    return sorted({str(value) for value in seen})
+
+
+def unknown_channel_names(frame: pd.DataFrame | None, column: str, mask: pd.Series | None) -> str:
+    """The names one ``unknown_channel`` violation is about, comma-joined."""
+    return ", ".join(_unknown_channel_values(frame, column, mask))
+
+
+def unknown_channel_count(frame: pd.DataFrame | None, column: str, mask: pd.Series | None) -> int:
+    """How many distinct unknown channel NAMES one violation is about.
+
+    Not the number of rows carrying one: forty rows all naming the same
+    unknown channel are one name, and the Hebrew sentence's ``{count}`` must
+    say so, because its own words say "channel name(s)", not "row(s)".
+    """
+    return len(_unknown_channel_values(frame, column, mask))
 
 
 def effect_of(code: str, severity: str) -> dict[str, str]:

@@ -73,10 +73,10 @@ export default function HistorySince({ locale, landing, onShow }) {
   const changeCount = Number((body && body.changed) || 0);
   const refusedCount = Number((body && body.refused) || 0);
   // The set this figure was taken over. "all" is every account's record; "self"
-  // is this account's own changes plus every restore point, because only the
-  // activity half of the count is filtered per account. Both sentences below
-  // read this rather than assuming "all", because a self-scoped zero is a claim
-  // about this account's own view and never a claim that nothing happened.
+  // is every restore point and restore on record plus this account's own
+  // changes, and the payload's own `scope_kinds` says which kinds that filter
+  // narrows rather than this file assuming. Both sentences below read it,
+  // because a self-scoped zero is a claim about this account's own view.
   const scope = String((body && body.scope) || '');
   // The runs are counted only when the product may attribute them. Withheld, the
   // tally is zero because no run entry was assembled, not because none ran, and
@@ -107,10 +107,10 @@ export default function HistorySince({ locale, landing, onShow }) {
         <>
           <span className="hist-since-line" dir="auto">
             {changeCount && counted
-              ? pageText(locale, ...sinceCountLine(changeCount, counts.run || 0, scope))
+              ? pageText(locale, ...sinceCountLine(changeCount, counts.run || 0, scope, body))
               : null}
             {changeCount && !counted
-              ? pageText(locale, ...sinceCountLine(changeCount, null, scope))
+              ? pageText(locale, ...sinceCountLine(changeCount, null, scope, body))
               : null}
             {/* One sentence for the empty case, where the four were two. Whether the
                 runs can be counted decides whether their figure may be printed, which
@@ -120,13 +120,13 @@ export default function HistorySince({ locale, landing, onShow }) {
                 not decide above: a self-scoped zero names the set it covers, because
                 it is a claim about this account's own view and not about the record. */}
             {!changeCount
-              ? pageText(locale, ...sinceEmptyLine(scope))
+              ? pageText(locale, ...sinceEmptyLine(scope, body))
               : null}
           </span>
           {/* What was attempted and did not happen, beside what did. A refusal is
               news of its own on this strip and it is never inside the count. */}
           {refusedCount ? (
-            <span className="hist-since-line warn" dir="auto">{pageText(locale, ...refusedSinceLine(refusedCount))}</span>
+            <span className="hist-since-line warn" dir="auto">{pageText(locale, ...refusedSinceLine(refusedCount, scope))}</span>
           ) : null}
           {/* And the day that count is only as old as. A count of changes since a
               day is evidence for the days the record covers and for no others. */}

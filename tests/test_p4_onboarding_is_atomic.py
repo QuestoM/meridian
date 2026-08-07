@@ -98,6 +98,7 @@ REFUSALS = [
     ("window that runs backwards", {"campaign_starts_on": "2026-09-30", "campaign_ends_on": "2026-09-01"}),
     ("rebate outside the range", {"rebate_percent": 140}),
     ("weekday scope that is not ISO", {"surcharge_weekdays": "9"}),
+    ("weekday scope left empty though a discount is set", {"surcharge_weekdays": ""}),
     ("goal unit outside the vocabulary", {"flights": [
         {"starts_on": "2026-08-02", "ends_on": "2026-08-15", "goal_kind": "bananas", "goal_value": 40},
     ]}),

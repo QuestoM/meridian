@@ -114,6 +114,58 @@ def _weekday_scope(value: Any) -> str:
         ) from None
 
 
+# An empty weekday scope reads two different ways depending on where the term
+# lands. Written as an agency condition it reaches normalize_scope(""), which
+# returns ANY, so a discount with no day chosen would price every day. Written
+# as the campaign's own agreed term it stays the empty string the condition
+# grammar never reads, because a campaign has no scope in that grammar at all,
+# so it would price nothing while still showing a percent. Both are refused
+# rather than stored, and each refusal names the consequence that is true on
+# its own path, so the campaign screen and the onboarding screen never say two
+# different things about the identical act.
+NEEDS_WEEKDAY_AGENCY = (
+    "A weekday surcharge discount needs at least one weekday chosen. Left at none, it would be "
+    "stored as an agency condition covering every day rather than none, so it is refused instead. "
+    "Pick the days it covers, or clear the discount percent to record no discount."
+)
+NEEDS_WEEKDAY_AGENCY_HE = (
+    "להנחת תוספת יום בשבוע צריך לפחות יום אחד נבחר. אם לא נבחר אף יום, ההנחה הייתה נשמרת כתנאי סוכנות "
+    "החל על כל יום במקום אף יום, ולכן היא מסורבת. בחרו את הימים שהיא חלה עליהם, או נקו את אחוז ההנחה "
+    "כדי לא לשמור הנחה כלל."
+)
+NEEDS_WEEKDAY_TERM = (
+    "A weekday surcharge discount needs at least one weekday chosen. Left at none, the campaign term "
+    "would carry a discount percent with no day it covers, so it is refused instead. Pick the days it "
+    "covers, or clear the discount percent to record no discount."
+)
+NEEDS_WEEKDAY_TERM_HE = (
+    "להנחת תוספת יום בשבוע צריך לפחות יום אחד נבחר. אם לא נבחר אף יום, תנאי הקמפיין היה נושא אחוז הנחה "
+    "ללא יום שהוא חל עליו, ולכן הוא מסורב. בחרו את הימים שהיא חלה עליהם, או נקו את אחוז ההנחה כדי לא "
+    "לשמור הנחה כלל."
+)
+
+
+def check_weekday_scope(percent: Any, weekdays: Any, as_agency_rule: bool = False) -> None:
+    """Refuse a discount percent left with no weekday chosen, before it is stored.
+
+    Called from both write paths that can carry this pair: creating or
+    amending a campaign, always as its own term, and the one-flow onboarding,
+    which chooses the agency-rule wording only when it is actually about to
+    write the agency condition.
+    """
+    try:
+        amount = float(percent) if percent not in (None, "") else 0.0
+    except (TypeError, ValueError):
+        amount = 0.0
+    if not amount:
+        return
+    if str(weekdays or "").strip():
+        return
+    if as_agency_rule:
+        raise store.refuse(400, NEEDS_WEEKDAY_AGENCY, NEEDS_WEEKDAY_AGENCY_HE)
+    raise store.refuse(400, NEEDS_WEEKDAY_TERM, NEEDS_WEEKDAY_TERM_HE)
+
+
 def _refuse_duplicate(frame: Any, name: str, advertiser: str, campaign_id: str) -> None:
     """One advertiser cannot hold two campaigns of the same name.
 
@@ -177,6 +229,7 @@ def create_campaign_row(payload: CampaignCreate, request: "Request | None") -> d
             "A campaign needs a client, because a campaign belongs to one",
             "לקמפיין צריך לקוח, מפני שקמפיין שייך ללקוח",
         )
+    check_weekday_scope(payload.surcharge_discount_percent, payload.surcharge_weekdays)
     with store.lock():
         frame = store.load_frame()
         campaign_id = payload.campaign_id.strip() or store.next_campaign_id(frame)
@@ -282,6 +335,14 @@ def update_campaign(campaign_id: str, payload: CampaignUpdate, request: Request 
         advertiser = str(values.get("advertiser", frame.at[index, "advertiser"]) or "").strip()
         if "name" in values or "advertiser" in values:
             _refuse_duplicate(frame, name, advertiser, campaign_id)
+        if "surcharge_discount_percent" in values or "surcharge_weekdays" in values:
+            final_percent = values.get("surcharge_discount_percent")
+            if final_percent is None:
+                final_percent = frame.at[index, "surcharge_discount_percent"]
+            final_weekdays = values.get("surcharge_weekdays")
+            if final_weekdays is None:
+                final_weekdays = frame.at[index, "surcharge_weekdays"]
+            check_weekday_scope(final_percent, final_weekdays)
         for key, value in values.items():
             if value is None:
                 continue

@@ -7,6 +7,7 @@
 // `rules-lib.js` re-exports every name below, so no importer changed.
 
 import { WALLS } from '../session.js';
+import { isolate } from './rules-bidi.js';
 
 // The store's effect keys, and the words a person reads instead of them. The
 // engine writes `fix_offset`; nobody on this surface has to read that. One table
@@ -143,4 +144,55 @@ export function unitLabel(unit, locale) {
   const text = String(unit || '');
   if (locale !== 'he') return text;
   return UNIT_WORDS[text] || text;
+}
+
+// The population line Today's ledger card and the licence page both carry, one
+// sentence naming the channel every figure on the card is drawn from. The
+// channel name is Hebrew even on the English page, because channel names are
+// not translated, so an English sentence that leads with it hands the
+// bidirectional algorithm a Hebrew character to resolve the whole paragraph's
+// direction from: the line paints right to left inside a left to right card
+// and the icon lands on the wrong edge. Leading with an English word fixes
+// the paragraph's own direction, but the channel name is still a foreign
+// script sitting inside that paragraph next to a colon and a digit run of
+// its own (":  2391"), and an unisolated Hebrew run pulls the neutral colon
+// and the following number backwards with it, so the measured result was
+// still wrong: "is 2391 :13 רשת breaks judged". The channel therefore gets
+// the same first-strong isolate this product already wraps every other
+// foreign-script figure in (rules-bidi.js), which fences its own script off
+// from the neutrals on either side of it and leaves the rest of the
+// sentence, English or Hebrew, to run in the direction it already had.
+export function complianceScopeSentence(locale, scope) {
+  const channel = isolate(scope.scope_channel);
+  const rowsOut = scope.rows_out;
+  const excluded = scope.competitor_rows_excluded;
+  if (locale === 'he') {
+    return `${channel}, הערוץ שבבעלות המפעיל: ${rowsOut} ברייקים נשפטו, ${excluded} בערוצים אחרים לא נכללו.`;
+  }
+  return `This operator's own channel is ${channel}: ${rowsOut} breaks judged, ${excluded} on other channels left out.`;
+}
+
+// The calendar's price-multiplier banner. It used to name "the Pricing page",
+// a destination that was renamed once pricing moved into this same workspace
+// as the rate card tab, so the sentence now names the tab it actually opens.
+export function calendarPricingBannerSentence(locale, eventsPricing) {
+  if (eventsPricing === null) {
+    return locale === 'he'
+      ? 'לכל אירוע קיים גם מכפיל תמחור המחובר לשכבת האירועים בכרטיס התעריפים. השרת הזה אינו מדווח על השכבה, ולכן מצב ההפעלה שלה אינו ידוע כאן.'
+      : 'Each event also carries a price multiplier hook for the events layer on the rate card. This server does not report that layer, so its activation state is unknown here.';
+  }
+  if (eventsPricing) {
+    return locale === 'he'
+      ? 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בכרטיס התעריפים. השכבה מופעלת כעת, ולכן מכפילים שונים מ-1.0 משנים את ההכנסה הצפויה בתחזית בימי אירועים.'
+      : 'Each event carries a price multiplier wired to the events layer on the rate card. The layer is currently activated, so multipliers other than 1.0 change expected revenue in the forecast on event days.';
+  }
+  return locale === 'he'
+    ? 'לכל אירוע קיים מכפיל תמחור המחובר לשכבת האירועים בכרטיס התעריפים. השכבה כבויה כעת, ולכן אף מכפיל אינו משנה מספר בתחזית עד הפעלתה שם.'
+    : 'Each event carries a price multiplier wired to the events layer on the rate card. The layer is currently off, so no multiplier changes any forecast number until it is activated there.';
+}
+
+// The label on the banner's own control, named after the tab it opens rather
+// than a page. Matches RulesWorkspace's own SECTIONS label for that tab.
+export function rateCardTabLinkLabel(locale) {
+  return locale === 'he' ? 'לפתיחת כרטיס התעריפים' : 'Open the rate card tab';
 }

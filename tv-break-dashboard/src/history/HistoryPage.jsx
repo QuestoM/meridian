@@ -13,6 +13,7 @@ import { changesSourceLine, emptyWindow } from './history-reach';
 import { foldPreviews, foldSize, matchesSearch } from './history-fold';
 import { refusedTabLine } from './history-refused';
 import { runsCountLine, runsCounted, runsSourceState } from './history-runs';
+import { pageCoveredLine } from './history-scope';
 import {
   DEFAULT_LIMIT,
   WIDE_LIMIT,
@@ -434,9 +435,7 @@ export default function HistoryPage({ locale, notify }) {
           <span>{pageText(locale, `Restore points: ${(sources.restore_points || {}).records || 0}.`, `נקודות שחזור: ${(sources.restore_points || {}).records || 0}.`)}</span>
           <span>{pageText(locale, ...changesSourceLine(sources.changes))}</span>
           <HistoryRunsSource locale={locale} state={runsState} records={(sources.runs || {}).records} channel={runScope.scope_channel} />
-          {body && body.scope === 'self' ? (
-            <span>{pageText(locale, 'You see your own changes and every restore point.', 'מוצגים השינויים שלכם וכל נקודות השחזור.')}</span>
-          ) : null}
+          {body && body.scope === 'self' ? <span>{pageText(locale, ...pageCoveredLine(body))}</span> : null}
           {limit < WIDE_LIMIT && total > limit ? (
             <button type="button" className="hist-link" onClick={() => setLimit(WIDE_LIMIT)}>
               {pageText(locale, `Load ${WIDE_LIMIT}`, `טעינת ${WIDE_LIMIT}`)}

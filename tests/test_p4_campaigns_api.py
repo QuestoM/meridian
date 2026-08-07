@@ -180,6 +180,53 @@ def test_the_weekday_discount_prices_only_when_it_is_asked_to(client):
     assert applied["discount"]["covers_he"]
 
 
+def test_amending_a_campaign_to_no_weekday_is_refused_the_same_as_booking_it(client):
+    """The blind critic's exact repro: amend, not onboard, and no agency rule.
+
+    ``PUT /api/clients/campaigns/{id}`` never writes an agency condition, so an
+    empty scope here can only mean the campaign term would carry a percent with
+    no day it covers, never the onboarding flow's ANY-widening. The refusal
+    fires all the same, and the campaign is left holding its original scope.
+    """
+    _agency(client)
+    created = client.post("/api/clients/onboarding", json={"agency": {"agency_id": "AGY_01"}, **ORDER}).json()
+    campaign_id = created["campaign"]["campaign_id"]
+
+    refused = client.put(f"/api/clients/campaigns/{campaign_id}", json={
+        "surcharge_discount_percent": 12.0, "surcharge_weekdays": "",
+    })
+    assert refused.status_code == 400, refused.text
+    detail = refused.json()["detail"]
+    assert "no day it covers" in detail["message_en"]
+    assert "every day" not in detail["message_en"], "the amend path never becomes an agency condition"
+
+    stored = client.get("/api/clients/campaigns").json()["campaigns"][0]
+    assert stored["surcharge_weekdays"] == "6", "the refused write left the campaign row untouched"
+
+
+def test_amending_only_the_weekdays_to_empty_is_refused_when_a_percent_is_on_file(client):
+    """A partial PUT that clears the days must see the percent already on file."""
+    _agency(client)
+    created = client.post("/api/clients/onboarding", json={"agency": {"agency_id": "AGY_01"}, **ORDER}).json()
+    campaign_id = created["campaign"]["campaign_id"]
+
+    refused = client.put(f"/api/clients/campaigns/{campaign_id}", json={"surcharge_weekdays": ""})
+    assert refused.status_code == 400, refused.text
+
+
+def test_a_new_campaign_with_a_percent_and_no_weekday_is_refused_at_creation(client):
+    """The plain create endpoint, not just onboarding, enforces the same rule."""
+    _agency(client)
+    refused = client.post("/api/clients/campaigns", json={
+        "name": "ללא יום", "advertiser": "בנק הפועלים", "agency_id": "AGY_01",
+        "starts_on": "2026-09-01", "ends_on": "2026-09-30",
+        "surcharge_discount_percent": 12.0, "surcharge_weekdays": "",
+    })
+    assert refused.status_code == 400
+    assert "no day it covers" in refused.json()["detail"]["message_en"]
+    assert client.get("/api/clients/campaigns").json()["campaigns"] == []
+
+
 def test_a_campaign_is_ended_and_never_deleted(client):
     """Deactivate beats delete, exactly as it does for an agency."""
     _agency(client)

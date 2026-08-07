@@ -25,6 +25,7 @@
 // grepped, which is the pattern history-runs.js established here. The extension
 // on the import is explicit for the same reason: node resolves no other way.
 import { ACTION_LABELS, pair } from './history-labels.js';
+import { SCOPE_SELF } from './history-since.js';
 
 export const APPLIED = 'applied';
 export const REFUSED = 'refused';
@@ -176,7 +177,32 @@ export function refusedTabLine(refused) {
 // The sentence beside the attestation, which is the figure a compliance owner
 // reads first. It is printed whenever anything was refused, so what happened and
 // what was attempted are both on the strip and are never one number.
-export function refusedSinceLine(refused) {
+//
+// This figure is tallied over the "change" kind alone (`outcome_counts` in
+// `history_api_timeline.py` skips every other kind), and the activity list it
+// draws from is the one the activity-scope filter already narrows to the
+// caller's own account when `scope` is "self" (`history_api._assemble`, ahead
+// of the merge). So a self-scoped refused count is never a mix the way the
+// count sentence's is: it is only ever this account's own refused attempts.
+// The sentence still has to say so, because a reader of the strip cannot see
+// which rule produced the number, only the number itself, and the same
+// unqualified sentence was measured printing "160" for an admin and "2" for a
+// self-scoped reader on the identical store in the same minute with no word
+// telling the two apart. `sinceCountLine` and `sinceEmptyLine` already take
+// this argument; this is the third and last sentence on the strip that did not.
+export function refusedSinceLine(refused, scope) {
+  if (scope === SCOPE_SELF) {
+    if (Number(refused) === 1) {
+      return [
+        'One of your own attempts was refused and changed nothing.',
+        'ניסיון אחד משלכם נדחה ולא שינה דבר.',
+      ];
+    }
+    return [
+      `${count(refused, 'en')} of your own attempts were refused and changed nothing.`,
+      `נדחו ${count(refused, 'he')} מהניסיונות שלכם ולא שינו דבר.`,
+    ];
+  }
   if (Number(refused) === 1) {
     return ['One attempt was refused and changed nothing.', 'ניסיון אחד נדחה ולא שינה דבר.'];
   }

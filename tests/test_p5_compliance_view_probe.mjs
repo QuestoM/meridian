@@ -47,7 +47,7 @@ await build({
 const built = join(outDir, 'lib.mjs');
 fs.writeFileSync(built, fs.readFileSync(built, 'utf8').replaceAll('import.meta.env', '({})'), 'utf8');
 
-const { complianceViewState } = await import(pathToFileURL(built).href);
+const { complianceViewState, complianceScopeSentence } = await import(pathToFileURL(built).href);
 
 const SCOPED_OWN = {
   scope: { scoped: true, scope_channel: 'ערוץ 13', rows_out: 736, competitor_rows_excluded: 8290 },
@@ -82,5 +82,14 @@ const cases = {
   // "no population" note, not an empty checks list presented as compliant.
   no_channel_fallback: complianceViewState(null, true, NO_CHANNEL),
 };
+
+// The exact scope line the critic measured mispainting: a channel name whose
+// own script is Hebrew, read on the English page. The English sentence must
+// resolve left to right regardless of that name, and the Hebrew sentence
+// still right to left, on the same payload. Channel and figures match the
+// live GET /api/compliance response measured against the reference data.
+const CRITIC_SCOPE = { scope_channel: 'רשת 13', rows_out: 2391, competitor_rows_excluded: 6635 };
+cases.scope_sentence_en = complianceScopeSentence('en', CRITIC_SCOPE);
+cases.scope_sentence_he = complianceScopeSentence('he', CRITIC_SCOPE);
 
 process.stdout.write(JSON.stringify(cases));

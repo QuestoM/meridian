@@ -1,29 +1,63 @@
 {
   "piece": "P9",
-  "critic_round": 1,
+  "critic_round": 4,
   "passed": false,
-  "gap": "The number Kai prints on the applied card does not open the row that explains it. Measured live on port 8087: a Hebrew direct instruction produced batch bedaf54e955e, I approved the settings item, and the card printed restore point d3f88eb7 beside two controls. The inline undo is genuinely good and passes: it opens in 122 ms and shows kairos_settings.json, one change, revenue_weight now 36, after undo 35, then undoes in 122 ms and the file returns byte-identical (sha256 d6f61de4...). The second control, hazaga be-historia, is a dead end. AssistantPanel.jsx passes onShowRestore={() => { window.location.hash = 'Versions'; }} at lines 312 and 443, so it sets the hash and nothing else. I clicked it and landed on a 5,877-entry log across 47 accounts with the restore id neither selected nor anywhere on the page (checked twice, /d3f88eb7/ and /0bca1b53/ both absent from main.innerText); the page then selected its own newest row, a P5 constraint save by another builder. P8 already published the fix and wrote the reason in its own file: history-labels.js:370-381 says in words that Kai hands back a restore point and its see-it-in-the-history control has to land on that point rather than on the top of a list of six thousand rows, and exports ADDRESS_PARAM = 'entry' with writeAddress for exactly that. The row exists and is addressable: version:456f2c32f4cd, kind restore_point, source assistant_apply, batch_id bedaf54e955e, at 21:37:11. The one thing that makes it more than a one-liner is that the same restore point carries two ids and P9 holds the wrong one: the card and /api/assistant/restore use restore_id d3f88eb7615a, while the History address is version:456f2c32f4cd, and GET /api/assistant/proposals returns restore_points entries with restore_id, applied_at, applied_by and item_ids only, no version id. Fix in one pass: carry the version id on the restore point the batch already returns (assistant_actions.py writes both), then have onShowRestore set ?entry=version:<version_id> before the hash, and assert it in tests/test_p9_*. Two smaller things, recorded but not the gap. First token measured in the browser at 2,081 ms against the 2,000 ms in job-stories.md, one sample, inside the 1.6 to 4.5 s band kai-keep-warm.js documents. And useAssistantEntity is called by four surfaces only (AdvertiserDetailDrawer, AgencyDetailDrawer, CalendarEventsList, CalendarMonthGrid), so Kai knows which object is open for an advertiser, an agency and a calendar event, and not for a break, a day, a programme, a campaign or a restriction; that is a handover, not P9's to fix, since the hook lives in the frozen shell and the surfaces belong to P3, P4 and P5.",
+  "last_round_gap_closed": true,
+  "gap": "The gap named last round is CLOSED and I proved it on the real product: the replace-based bounce adds nothing to the Back stack. Four chip clicks made while already on the History page held window.history.length flat at 23 -> 23 -> 23 -> 23 -> 23 while the selection moved row 1 -> 6 -> 15 -> 29 -> 6 and the address matched the screen every time. What is still open is the SAME defect on the other leg of the same function, the first-use leg, which nobody has looked at and which no round has touched since round 7. showRestoreVersion (tv-break-dashboard/src/kai/assistant-panel-state.js:107) calls writeAddress(pointAddress(versionId)) FIRST, and writeAddress is a replaceState on the entry the operator is currently standing on, so the ?entry=version:<id> address is stamped onto the page being LEFT; only then does window.location.hash = 'Versions' push the new entry. Measured on port 8087 from the Today page with the dock open: one chip click pushed exactly one entry (history.length 23 -> 24, correct) and landed on the History page at ?p9c=r4b&entry=version:a770ecb90600#Versions with the right row selected, and then ONE Back press landed the operator on the Today page at http://127.0.0.1:8087/?p9c=r4b&entry=version%3Aa770ecb90600, hash empty, main heading 'היום, רשת 13' (screenshot p9-c4-01-back-from-first-use-lands-on-overview-with-version-address.png). That is exactly the address-bar-says-one-thing, screen-shows-another failure the last three rounds existed to end, and it is one click plus the most ordinary browser gesture there is. Copy that link and your colleague opens Today. It is NOT a regression this round caused (the first-use leg is byte-identical to HEAD), which is why it survived: both prior rounds fixed the repeat-use leg and left this one alone. THE FIX, one pass inside P9's own file, no P8 file touched, and I ran it myself in the live page: stop calling writeAddress on the page you are leaving and push the whole destination address in a single navigation instead. Build the target from the CURRENT search so no other query param is lost (new URLSearchParams(window.location.search), set ADDRESS_PARAM to pointAddress(versionId), keep the rest), then window.history.pushState(null, '', pathname + '?' + params + '#Versions') and window.dispatchEvent(new HashChangeEvent('hashchange')). Measured live: history.length 27 -> 28 (exactly one entry), HistoryPage mounted and selected the addressed row (the 37 restore point), the Overview heading NEVER painted (a 4 ms poll across the whole transition saw only 'היסטוריה'), and one Back press landed on the clean http://127.0.0.1:8087/?p9c=r4d with no entry param at all. Leave the already-on-Versions leg exactly as it shipped: I tested replaceState plus a synthetic hashchange there and it does NOT remount (the hash does not change, so the shell keeps the same view and the row stayed on the previous selection), which is precisely why the bounce exists. Pin it in tests/test_p9_kai_history_second_use.py, whose CDP harness already drives a real browser: after the first use, assert history.length rose by exactly one AND that history.back() returns to an entry whose search carries no ADDRESS_PARAM. The pre-fix control for this one is the shipped first-use leg itself, which returns to an entry that DOES carry it.",
   "stopwatch": {
     "open_kai": {
       "clicks": 0,
-      "how": "Cmd+J, dock opens with the cursor in the box",
-      "baseline": "3 clicks, and the answer never arrived"
+      "how": "Cmd+J from the Today page, activeElement went BODY -> TEXTAREA, hash untouched",
+      "baseline": "3 clicks and the answer never arrived in the browser"
     },
-    "first_token_ms": 2081,
-    "first_token_target_ms": 2000,
-    "answer_with_diff_s": 27.8,
+    "question_to_answer_with_diff_s": 39.8,
     "answer_target_s": 45,
-    "apply_clicks": 2,
-    "apply_ms": 160,
-    "restore_open_ms": 122,
-    "undo_clicks": 2,
-    "undo_ms": 122,
-    "settings_sha_before_after": "d6f61de43e1c13e82dcd55aeec5b50c87f8e6fa06088374073aff55579828a66 both"
+    "answer_note": "my own stream instrumentation read 39.807 s to the last frame and the product's own turn timer printed 39.8s, the same number. Round 3 measured 23.9 s on a different question, so this is model variance, not something this round caused: this round touched one routing function. The answer was Hebrew, grounded, named its representative channel-day (רשת 13, 2024-11-11) and printed the zero deltas as 0 ₪ rather than hiding them, and volunteered unprompted that the guardrails bind so the dial will not move the plan",
+    "first_text_delta_s": 2.39,
+    "first_delta_note": "target 2.0 s, so over on this sample. The first stage frame landed at 0.47 s so the dock is never silent. One sample this round",
+    "apply_clicks": 3,
+    "apply_note": "one click to deselect the full plan run I did not want, one to approve, one on a confirm that says a restore point is created first. revenue_weight 35 -> 39 on disk, sha d6f61de4 -> 8a3ef365",
+    "chip_first_use": {
+      "clicks": 1,
+      "click_to_row_selected_ms": 765,
+      "result": "?entry=version:9cb7e38bcea3#Versions, the restore point just created, labelled with the operator's own instruction"
+    },
+    "chip_repeat_use": {
+      "clicks": 1,
+      "history_entries_added": 0,
+      "result": "row 1 -> 6 -> 15 -> 29 -> 6 across four clicks, address matching the screen each time, history.length flat at 23"
+    },
+    "undo_clicks": 3,
+    "undo_note": "open the preview (names kairos_settings.json, one change, revenue_weight now 39, after undo 35), בטלו עכשיו, then a second confirm that says in words that a file-level undo also reverses manual edits and that a plan run cannot be undone",
+    "settings_sha_round_trip": "d6f61de43e1c13e82dcd55aeec5b50c87f8e6fa06088374073aff55579828a66 before the apply and again after the undo, byte-identical",
+    "cost_of_the_repeat_use_bounce": {
+      "history_entries_per_click": 0,
+      "overview_heading_painted_ms": [
+        20,
+        20
+      ],
+      "requests_per_click": [
+        "/api/yield-per-second",
+        "/api/compliance",
+        "/api/overview?scope=channel:רשת 13",
+        "/api/yield-per-second",
+        "/api/today",
+        "/api/auth/me",
+        "/api/auth/me"
+      ]
+    }
   },
-  "ab": "Linear Agent, the named reference in 07-references.md section 7, was not reachable: no Linear tool is exposed in this session and the only signed-in Linear tab in the shared browser belongs to another builder mid-task. I did not run it and did not invent it. Leaned on the stopwatch.",
-  "regression": "385 assistant/p9 tests pass, 1 skipped. 52 p9-named tests pass. 31 read, 8 propose, 0 write tools. Competitor boundary held on a live adversarial Hebrew probe. No propose tool or applier writes under models/.",
+  "ab": "Unreachable as a live in-product agent for the fourth round running, and I did not invent one. No Linear or agent tool is exposed to this session (ToolSearch for a Linear agent returns Azure SRE, SendMessage and WebFetch, nothing product-like), and the two signed-in Linear tabs in the shared browser belong to other builders mid-task, which I will not drive. What I did run myself, and label as documentation rather than a live comparison: I fetched Figma's published version-history article directly. It documents that a version is previewed by selecting it in the sidebar and seeing it in the viewport, that a restore is non-destructive because two checkpoints are written, and that a single version is addressable through the row menu's Copy link. Kai matches all three in substance and beats the documented model on one point, because Kai shows the field-level before and after of the undo (revenue_weight 39 -> 35, on kairos_settings.json) before you commit to it, which Figma's docs do not describe. Where Kai still falls short is exactly the mechanic these rounds keep circling: Figma's version opens in place, while Kai's repeat click tears the workspace down through the Today page and back, and Kai's first click leaves the version address stamped on the page you came from.",
+  "regression": "Green, and nothing this round touched got worse. tests/test_p9*.py 161 passed 2 skipped, matching the builder's claim. The whole assistant and kai selection, pytest -k 'assistant or kai or p9', 391 passed 2 skipped 2717 deselected. One earlier run of that same selection showed test_p9_kai_undo.py::test_the_base_context_is_served_from_the_cache_and_a_changed_input_is_a_miss failing; I attributed it rather than reporting it, and it was mine: I was applying and undoing revenue_weight on the live server at that moment, which moves the file that test fingerprints. It passes alone and the clean re-run is 391 green. The new test is not vacuous and I proved that myself rather than trusting it: I re-extracted the shipped showRestoreVersion, confirmed the extracted string is present verbatim in the source file, and ran the harness against all three variants by hand. Shipped stays flat at history.length 3 across four uses and remounts every time; the round-8 hash bounce climbs 3 -> 5 -> 9 and remounts; the round-7 pre-fix stays flat and never remounts past the first use. Three distinguishable outcomes, so the pass cannot be an accident of the harness. The bundle another builder rebuilt at 02:29 still carries the shipped replace bounce, so the source builds clean.",
+  "laws": "Clean except the gap. No em-dash and no exclamation mark in any copy across kairos_api/assistant*.py, src/kai/** and tests/test_p9_*: every '!' is a JS negation or a regex class, and every em-dash and every occurrence of משתמש is inside an assertion that FORBIDS it. No emoji; the only non-ASCII symbols are the -> and <- arrows used in before-and-after displays. No file over 450 lines, the largest being kairos_api/assistant_tools.py at 449, untouched this round. Every number on the Kai surface carried its basis, including the zero deltas, printed as 0 ₪ beside the sentence naming the one representative channel-day they were computed on. Competitor boundary held: a fresh Hebrew probe naming two rival channels was refused outright, with the operator channel read from scope_channel and only the unnamed aggregate (3 competitor channels excluded, from per_day_plan.competitor_channels_excluded) in the answer, and no rival figure. Tool surface still 31 read, 8 propose, 0 write, so no training act is reachable and nothing an operator can press writes under models/. Ownership clean: git status --porcelain shows exactly two P9 paths dirty, tv-break-dashboard/src/kai/assistant-panel-state.js (modified) and tests/test_p9_kai_history_second_use.py (untracked), both inside P9's row of section 8.2 plus its reserved test prefix. Every other dirty path in the tree belongs to P3, P4, P5, P6 or P8 and P9 did not touch one of them.",
+  "noted_not_the_gap": [
+    "The repeat-use bounce still routes through the Today page rather than remounting in place: I caught the main heading 'היום, רשת 13' painted for 20 ms between two 'היסטוריה' samples on both of two clicks (4 ms poll), and 7 requests fired per click. This is not fixable inside P9's file alone, because the shell only re-renders on a genuine hash change, so it needs either a remount key or an address listener in P8's HistoryPage. Structural, hand it to the next round as a cross-piece item.",
+    "The chip is completely inert for a restore point carrying no version_id while already on Versions. Measured on d3f88eb7: zero hashchange events, url unchanged, selection unchanged, history.length unchanged, no feedback of any kind. Legacy and snapshot-failure data only. Recorded by the last two rounds and still open.",
+    "First text delta 2.39 s against a 2.0 s target, one sample. The first stage frame lands at 0.47 s so the dock is never silent.",
+    "Turn time 39.8 s on this question against a 45 s target for question to applied change, so the whole story fits but with under 5 s of headroom on this sample. Worth a second look if it slips again.",
+    "The proposal rail still carries dozens of pending proposals of cross-builder test debris, which makes the action plane hard to read. Not P9's doing."
+  ],
   "evidence": [
-    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p9-c1-01-diff-preview-he.png",
-    "/Users/home/Code/questo/meridian/.playwright-mcp/p9-c1-02-restore-preview.png"
+    "/Users/home/Code/questo/meridian/p9-c4-01-back-from-first-use-lands-on-overview-with-version-address.png"
   ]
 }

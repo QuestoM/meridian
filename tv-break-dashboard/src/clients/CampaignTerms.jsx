@@ -57,6 +57,23 @@ function toggleWeekday(scope, key) {
   return next.sort().join(',');
 }
 
+// This screen never writes an agency condition, only the campaign's own term,
+// so an empty scope here always means the discount percent would be stored
+// with no day it covers, never the onboarding flow's ANY-widening. The line
+// says that consequence plainly, the same rule the endpoint itself enforces,
+// so a chip change and a refused submit never disagree about what happens.
+function weekdayCoverage(selected, options, locale) {
+  if (!selected.length) {
+    return pageText(
+      locale,
+      'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
+      'לא נבחר יום בשבוע. שליחה כך תסורב: אחוז ההנחה יהיה ללא יום שהוא חל עליו.',
+    );
+  }
+  const names = options.filter((day) => selected.includes(day.key)).map((day) => (locale === 'he' ? day.he : day.en));
+  return pageText(locale, `Covers ${names.join(', ')}.`, `חל על ${names.join(', ')}.`);
+}
+
 export default function CampaignTerms({
   mode,
   campaign,
@@ -233,6 +250,9 @@ export default function CampaignTerms({
             </button>
           ))}
         </div>
+        <p className="clients-basis-note" role="status">
+          {weekdayCoverage(String(draft.surcharge_weekdays || '').split(',').filter(Boolean), weekdays, locale)}
+        </p>
         <p className="clients-basis-note">{localized(terms, 'reason', locale)}</p>
       </fieldset>
 

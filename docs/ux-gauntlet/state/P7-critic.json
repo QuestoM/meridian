@@ -1,0 +1,57 @@
+{
+  "piece": "P7",
+  "critic_round": 1,
+  "passed": true,
+  "verdict": "PASS. All four bars met on evidence I gathered myself, on a private instance, with the repository unchanged by the measurement.",
+  "stopwatch": {
+    "story": "JS-16, the model steward decides whether to ship",
+    "target_seconds": 120,
+    "baseline": "cannot start: zero of the 113 published operations were training, the gate table lived on the operator's Events calendar, and there was no model version identity",
+    "measured": {
+      "console_open_with_13_gates_ms": 54,
+      "coverage_ms": 51,
+      "drift_ms": 52,
+      "training_panel_ms": 52,
+      "train_press_to_run_visible_ms": 61,
+      "run_finished_on_screen_unattended_s": 9.09,
+      "versions_to_recorded_verdict_ms": 159,
+      "clicks": 9,
+      "screens": 4,
+      "dead_ends": 0
+    },
+    "note": "app time about 9.5 s end to end, of which 9.1 s is the audience training run itself (exit 0, 7.9 s of process). Reading thirteen gate cards is the only human cost and every one of them is on the first screen."
+  },
+  "ab": {
+    "reference": "TensorBoard 2.18.0, launched by me on my own port over three scalar runs written for the comparison",
+    "reachable": true,
+    "result": "Meridian wins on every mechanic JS-16 needs. The reference surface contains no gate, no bar, no reason, no control that starts a run and no way to record a ship or no-ship verdict against a named version; run identity is a directory name a human typed, against a content digest here. TensorBoard wins only on interactive curve exploration (smoothing, zoom, pinned overlay), which a five-point weekly drift series does not need.",
+    "note": "traffica.base44.app remains unreachable, the Chrome extension is still not connected, so no comparison against the trade reference was invented."
+  },
+  "regression": {
+    "tests": "105 tests under the test_p7_ prefix pass, measured in two runs (38 then 67). Matches the count P7 claims.",
+    "gate_coverage": "all 8 gates in models/audience_model.json and all 5 retention gate families are in the ledger, so nothing the Events calendar used to show is missing",
+    "impact_route": "GET /api/impact still answers a channel account 200 with state unavailable and an honest Hebrew reason rather than a 403, so the operator surface that consumes it is not broken",
+    "repository": "models/releases/training_runs.json and decisions.jsonl md5 identical before and after my run; both stores were relocated to scratch for the measurement"
+  },
+  "laws": {
+    "honest_math": "two figures traced byte for byte to the artifacts: retention.first_break p=0.20341935034834022 with n 476 first and 816 later, and audience.competitor_lineup held_out_delta_pct=2.162518438605128",
+    "competitor_boundary": "zero rival channel names across all eight console payloads; coverage says four channels are in the base and names only the operator's own, with the sentence that non-operator channels are counted and never named",
+    "training_versus_runs": "every model route 403s for a channel account, the switcher does not render for one, and the console's own runs write only into the releases store, never over models/tv_break_coefficients.json",
+    "characters_and_size": "zero em-dashes, en-dashes, emojis or exclamation marks and no file over 450 lines across every P7-owned source and test",
+    "vocabulary": "the only hits for the forbidden noun are the verb form in 'the runs use it', not the noun"
+  },
+  "largest_gap": "The decision path is the one write on this console whose affordance does not tell the truth before the click, and the one screen that makes a claim its own behaviour does not back. POST /api/model/decisions is not stamped with can_edit, so a company viewer sees an enabled Record control while both Train buttons are already disabled with the wall's Hebrew refusal; and the refusal that actually lands is the English 'A viewer session is read-only.' from kairos_api/auth.py:111, not the Hebrew sentence the console promises, which tests/test_p7_can_edit.py cannot catch because it compares the stamp to MODEL_WALL.reason() rather than to the write route's real body. In the same file, VersionsPanel.jsx's header comment claims the form says a ship verdict copies no artifact; measured on screen it says no such thing, and a recorded ship verdict on the current model renders the single word 'Shipped' with no qualifier, because DecisionRow prints an adoption line only when the state is 'escalated'.",
+  "minor": [
+    "the four header count chips are plain spans while the same four counts one screen below are working filters, so a number in the header opens nothing",
+    "the console never says that placebo_correction_active and interval_calibration are method defaults rather than gates, which is why the ledger is 13 and not 15; provenance shows the placebo seed but neither the switch nor its reason",
+    "console-words.js packs the English and Hebrew strings of an entry on one source line where the frozen vocabulary.js gives each its own; src/sources does the same, so this is a convention split across the wave rather than a P7 defect"
+  ],
+  "measurement_hazard_for_the_next_agent": "Every server on 127.0.0.1 shares one cookie jar with every other port, and the shared Chrome tab group is being navigated by six other agents. A reading taken across two calls can mix two accounts: one of mine looked exactly like the console header lying about permission and was not. Measure over http://[::1]:8085 in a tab you created, guard every evaluate on location.origin, and take identity and screen in the same call.",
+  "evidence": [
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p7shots/p7-crit-01-console-open.png",
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p7shots/p7-crit-02-reference-tensorboard.png",
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p7_console.json",
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p7_gates.json",
+    "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p7releases/training_runs.json"
+  ]
+}
