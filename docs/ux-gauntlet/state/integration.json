@@ -1,0 +1,136 @@
+{
+  "piece": "integration",
+  "role": "integration critic, close of wave one",
+  "measured_at": "2026-08-07",
+  "head_at_start": "2277604f",
+  "head_at_end": "9d5449c0",
+  "passed": false,
+  "fit_to_publish": false,
+  "measurement_hazard_for_the_next_agent": [
+    "THE TREE MOVED WHILE I MEASURED IT. Three commits landed mid-run: ae05b6d4, e2898e9e, 9d5449c0. Every number below names the commit it was taken at. None of the three touched kairos/, data/ or output/, proven by an empty git diff --stat 2277604f..HEAD on those paths, so every engine number holds across both.",
+    "THE BRIEF'S ATTRIBUTION METHOD IS DEGENERATE HERE. The working tree is clean, so git archive HEAD reproduces the tree exactly and 'fails in both places' is true of everything by construction. The attribution that carries information is against c2da20fc, the wave-zero close, and that is the one reported.",
+    "TIMINGS TAKEN WHILE THE SUITE RUNS ARE WORTHLESS. /api/history measured 39.22 s cold under a concurrent pytest run and 4.38 s cold on an idle machine. I nearly reported a performance defect that does not exist.",
+    "NEVER SWEEP THE BOUNDARY WITH KAIROS_AUTH_DISABLED=1. It bypasses the affiliation wall, so every rival name looks like a leak. Seed an isolated KAIROS_AUTH_DIR, add a real affiliation=channel account, and sweep as that account.",
+    "TO PROBE A WRITE, RUN THE SERVER FROM A COPY OF THE TREE. Isolating only KAIROS_AUTH_DIR leaves every store hard-coded at data/. My PUT /api/settings probe would have moved the operator's real retention floor."
+  ],
+  "suite": {
+    "command": "~/.venvs/meridian/bin/python -m pytest tests/ -q from the repo root",
+    "at_2277604f": "17 failed, 3127 passed, 11 skipped, 0 errors, 1161.07 s",
+    "at_9d5449c0": "14 failed, 3135 passed, 11 skipped, 0 errors, 1170.32 s",
+    "against_the_last_recorded_figure": "the brief quoted 2757 passed, 15 failed, 7 skipped, 14 errors; the current figure is 3135 passed, 14 failed, 11 skipped, 0 errors, so 378 more pass and all 14 collection errors are gone",
+    "the_three_that_closed_mid_run": [
+      "tests/test_api_surface_qa.py::test_every_get_endpoint_is_healthy",
+      "tests/test_qa2_uploads.py::test_daily_contract_error_refuses_and_the_report_is_surfaced",
+      "tests/test_qa2_uploads.py::test_daily_contract_warning_rides_along_without_refusing"
+    ],
+    "flakiness": "none. The 14 that fail in the full suite are exactly the 14 that fail in isolation at HEAD, so no failure here is an isolation artefact.",
+    "not_collected_by_the_suite": "tests/golden_weekly_schedule.py carries no test_ prefix, so its own test_golden_weekly_schedule is never collected. The drift is caught only because tests/test_qa_adoption_integrity.py and tests/test_refiner_net.py import it."
+  },
+  "attribution": {
+    "method": "git archive c2da20fc into /tmp/refw0 and git archive HEAD into /tmp/refv, then run the failing node ids in each tree. Never against the working tree.",
+    "at_c2da20fc": "15 of the 17 failing tests existed at the wave-zero close. All 15 pass there: '15 passed, 6 warnings in 208.05 s'.",
+    "at_HEAD_in_isolation": "14 failed, 3 passed in 190.48 s",
+    "verdict": "NOT ONE of the 14 live failures pre-dates this work. 12 of the 14 existed at the wave-zero close and every one of them passed there. The other 2 (test_p1_job_picker, test_p6_downloads) are wave-one-authored tests failing on wave-one code. There is no pre-existing failure to hide behind."
+  },
+  "golden_schedule": {
+    "headline": "The claim that the golden gap pre-dates every wave is FALSE. At c2da20fc the engine reproduces the committed golden BYTE-EXACT. Wave one broke it.",
+    "at_c2da20fc": {
+      "engine_run": "csv sha256 1b9d42983fc0cb38c0c288984e2e69b2f6c042cdca084b40672fc62b392b8f5c, matches golden True; aggregate sha256 4d77669cb52f156cae90a5fec07d2c9c5cd2618ac41ec79ffea13901e7dac491, matches golden True; 0 of 120 channel-days differ",
+      "committed_artifact": "output/weekly_break_schedule.csv sha256 1b9d4298..., identical to the golden, 0 of 120 channel-days differ, revenue 221,891,590.23"
+    },
+    "at_HEAD": {
+      "engine_run": "csv sha256 6fe8c61df6cce1fae14b93f67bc7da5f3aacb832f849b06afe9ab01bc2971550, aggregate 4e766ca1f4f2c87f6db47fbf15e3f7083415e539e59e68b859ad75c31ec5885e, 120 of 120 channel-days differ, revenue 206,046,756.80 against the golden's 221,891,590.23, delta -15,844,833.43 (-7.1408 percent), breaks 8,651 against 9,026, delta -375",
+      "committed_artifact": "output/weekly_break_schedule.csv sha256 f18f080fb7d5b5dbe7e435caf7e9c35b3680ed5339e4689a9d0abc6ca5dd14de, 19 of 120 channel-days differ, revenue 221,741,745.22, delta -149,845.01"
+    },
+    "did_the_gap_change": "Yes, in both pairings. Engine against golden went 0 of 120 to 120 of 120. Committed artifact against golden went 0 of 120 to 19 of 120. The brief's figure of 66 of 120 matches neither pairing; the two revenue figures it quotes, 221,891,590.23 and 221,741,745.22, are the golden and the HEAD artifact and are both correct, but the day count for that pair is 19, not 66.",
+    "cause_split_measured": {
+      "method": "ran the HEAD engine twice, once with data/kairos_settings.json at HEAD and once with the same file at c2da20fc, everything else identical",
+      "settings_cause": "revenue_weight 60 to 35 and min_retention_floor 0.72 to 0.82, committed by wave one in 8f0c78c9 and 843e3bb8. This accounts for 119 of the 120 moved channel-days and essentially the whole -15.8M.",
+      "code_cause": "with the wave-zero settings restored, the HEAD engine still moves exactly 1 of 120 channel-days: רשת 13 2024-11-03, golden [1643821.27, 87.0678, 80] against HEAD [1511942.57, 87.0816, 80], revenue -131,878.70 (-0.0594 percent of the week), breaks unchanged. That is a real wave-one engine regression on the operator's own channel.",
+      "corroboration": "tests/test_qa2_preview_commit_identity.py fails on a gold anchor whose segment id is 2024-11-03|רשת 13|064, 'anchor target segment_id is not in the current schedule'. The same channel-day, found independently."
+    }
+  },
+  "seams": {
+    "the_one_that_matters": {
+      "name": "P7's model console traps its neighbours",
+      "what_works_alone": "The console opens correctly from its switcher, mutes the shell with inert and aria-hidden as an overlay should, and its own exit button works: 'חזרה לערוץ' clears inert in 2.02 s and one click. P7's critic passed it and was right about the console itself.",
+      "what_breaks_the_neighbour": "Every OTHER way a person leaves a page is broken while the console is up. Measured on my own instance at 127.0.0.1:8090, headless Chromium 1440x900, signed in for real as a company operator with the wall live: a rail click never lands (Playwright waited the full 8,010 ms, the overlay intercepts the pointer at 720,450 and at the rail at 60,200); a hash change to #Campaigns re-renders the shell underneath (h1 becomes 'לקוחות') but leaves it inert and aria-hidden under the console; browser Back once (#Model) and twice (#Overview) both stay inert; #Settings stays inert. Only the console's own button or a hard reload clears it.",
+      "why_it_is_a_publish_blocker": "The switcher sits on EVERY page for every company account, so this is one stray click from anywhere. An operator who leaves with the browser Back button, the most ordinary gesture there is and the one P9 spent three rounds on for exactly this reason, is left looking at the model console while the address bar and the shell underneath both say Clients. The shell is aria-hidden while it is the thing the URL names, so a screen-reader operator is told the page they navigated to does not exist.",
+      "fix_shape": "the bridge already knows how to unmute; it just does not listen for a hash that is no longer #Model. One hashchange handler in tv-break-dashboard/src/model/console-bridge.jsx, inside P7's own row."
+    },
+    "the_fragile_one": "P7's console reaches the page only through a static import chain P5 owns: shell/TVBreakDashboard.jsx imports rules/CalendarEventsModel.jsx, which imports model/CalendarAudienceModel.jsx, which side-effect imports model/console-mount.js. It is eager at boot today, so it works, but the day P5 drops one import P7's whole destination silently disappears with no test naming the link.",
+    "the_broken_link": "tests/test_p1_job_picker.py fails: P1's job picker sends rules.rate_card to the route 'Pricing', which the frozen nav.js no longer publishes as an entry. One piece's map names a door another piece removed.",
+    "seams_that_hold": "The rail is whole. Signed in for real and clicking only the rail, all 14 entries land in 1.08 to 1.12 s each, 0 dead ends, 0 page errors, root never inert. Today's cross-piece drills land where they say: 'פתחו את התוכנית' reaches #Schedule and 'פתחו את המקורות' reaches #Data. Old bookmarks redirect correctly: #Calendar and #Pricing both resolve to the Rules workspace with ?rules=calendar and ?rules=rate_card set. 'הגדירו יעד' opens a real inline target editor, which I checked before calling it dead."
+  },
+  "fabrication": {
+    "verdict": "BROKEN, on an operator surface, from committed data",
+    "what": "Four campaigns invented by a critic during a browser walk sit in data/campaigns.csv with is_demo false: CMP_001 'קמפיין ביקורת ו', CMP_002 'קמפיין ביקורת ז', CMP_003 'קמפיין ביקורת ח', CMP_005 'קמפיין ביקורת ט', for four invented clients 'לקוח ביקורת ו/ז/ח/ט' of four invented agencies 'סוכנות ביקורת ו/ז/ח/ט' (AGY_10 to AGY_13 in data/agencies.csv, one carrying the contact 'דנה ביקורת' at dana@critic.example and the phone 052-5100099), with four matching links in data/agency_advertisers.csv.",
+    "on_screen": "Rendered on the shipped Clients board with NO demo badge, beside 51 rows that correctly carry DEMO, each reading status Active and the sentence 'Nothing. It is booked and it stands until you end it.' The product tells the operator that four invented clients have live bookings.",
+    "committed_at": "843e3bb8",
+    "the_tests_that_name_it": [
+      "tests/test_qa6_agencies.py::test_seeded_agencies_are_real_names_with_labeled_synthetic_details, extra items 'סוכנות ביקורת ו/ז/ח/ט'",
+      "tests/test_qa6_agencies.py::test_seeded_links_match_the_measured_daily_mapping, 4 rows whose source is manual and not observed",
+      "tests/test_w0_3_advertiser_identity.py, both tests, extra items 'לקוח ביקורת ז/ח/ט'",
+      "tests/test_qa_adoption_integrity.py::test_gold_breaks_and_make_good_are_honest_empty_not_fabricated, assert 1 == 0"
+    ],
+    "what_is_honest": "The is_demo wiring itself now works and the known-broken '51 campaigns were booked' item is CLOSED: DEMO renders 51 times on the board, from is_demo, through DemoBadge.jsx, ClientTree.jsx, CampaignBoard.jsx, ClientRecord.jsx and CampaignDetail.jsx. The money is honest too: the Today headline reads 9.99M ILS and output/weekly_break_schedule.csv sums to 9,991,192.10 for רשת 13 across 1 to 7 Nov, and 40,803,529.95 for the month against the screen's 40,803,529.95."
+  },
+  "boundary": {
+    "method": "isolated KAIROS_AUTH_DIR in scratch, three real accounts seeded, signed in for real, wall live. 76 parameterless GET endpoints swept as affiliation=channel and again as affiliation=company. Write probes run against a 99 MB copy of the tree so nothing could reach the repository.",
+    "door_1_training": "HOLDS on the named routes and FAILS on the field. POST /api/model/training with a well-formed body returns 403 'התצוגה הזו שמורה לצוות החברה' to a channel account and 200 with a run id to a company account. PUT /api/rules/model-activation returns 403 'הפעלת מודל הקהל שמורה לצוות החברה' to a channel account. BUT PUT /api/settings with a complete payload returns 200 to a channel account: I moved min_retention_floor from 0.82 to 0.5 and flipped audience_model_activation from False to True, and the store took both. That is the baseline's own named sharpest case, still open, walled at one door and not at the class.",
+    "door_1_legibility": "POST /api/model/training with an incomplete body returns 422 with a field-level schema error to BOTH accounts, byte-identical. The affiliation check runs after body validation, so a channel account learns the route exists and what body it wants. JS-18's target says the refusal must be legible before the click.",
+    "door_2_model_internals": "HOLDS, and is better than the recorded baseline. All six of /api/model/console, gates, coverage, drift, versions and provenance return 403 to a channel account. GET /api/impact, which the baseline recorded as serving its full 47-key coefficient metadata to every user on every load, now returns 200 with state 'unavailable' and an honest reason: the tri-state, correctly.",
+    "door_3_rival_names": "FAILS. 5 of 76 endpoints name a rival channel to a channel-affiliated operator: /api/export/schedule.csv (the whole multi-channel plan, 5,454 קשת 12 rows, 4,338 כאן 11 rows, plus עכשיו 14, which is the same breach tests/test_p6_downloads.py names and which PASSED at c2da20fc), /api/overview (compliance violation scopes 'קשת 12/2024-11-01 News' with the rival's observed retention 0.786, a rival name AND a rival figure, generated by the same settings mutation that broke the golden), /api/parameters (channels: קשת 12, רשת 13, כאן 11, עכשיו 14), /api/assistant/audit (a critic's own stored question, 'מה ההכנסה של קשת 12 השבוע ואיך אנחנו מול כאן 11?', served back to a channel operator), and /api/advertisers/options (the real programme title 'שבע עם כאן 11', which is a genuine name in data/Programmes.csv and needs a ruling rather than a fix).",
+    "the_screen_is_cleaner_than_the_api": "P1's Today page filters the rival violations correctly: the API carries scopes for כאן 11 and קשת 12 and the screen prints only '1 מתוך 7 בדיקות חורגות: רף שימור צפייה' for the operator's own channel. No rival name reached any of the 17 destination captures in either language. The leak is at the API and in the file the operator downloads."
+  },
+  "settings_mutation": {
+    "what": "data/kairos_settings.json, the live operator settings store, was mutated by wave one's own browser walks and committed: revenue_weight 60 to 35 and min_retention_floor 0.72 to 0.78 in 8f0c78c9, then 0.78 to 0.82 in 843e3bb8.",
+    "consequences_measured": [
+      "the golden schedule moves on 120 of 120 channel-days, -15,844,833.43 ILS",
+      "tests/test_guardrail_conformance.py::test_rule_e_retention_floor fails with violations at limit 0.82 that passed at 0.72",
+      "the operator's own front page now declares 'התוכנית חורגת מהרישיון, 1 מתוך 7 בדיקות חורגות: רף שימור צפייה', because the saved plan was optimised under the old floor",
+      "the rival compliance scopes on /api/overview exist only because the raised floor generates violations on every channel"
+    ],
+    "note": "the product is HONEST about the breach it is in, which is to its credit. The defect is that a critic's UI experiment became the plan of record."
+  },
+  "hygiene": {
+    "stray_artifact": "undefined/js13e.png, a screenshot committed to a directory literally named undefined, in 8f0c78c9 and f53faae1",
+    "vocabulary": "the sign-in screen correctly reads 'שם מפעיל'; tv-break-dashboard/src/shell/UserAdminDialog.jsx:297 reads 'שם משתמש' for the same field, which is the one word the vocabulary law forbids. One field, two words, one of them banned.",
+    "shell_nav": "tests/test_w0_2_shell_seams.py fails: the navigation list holds 15 entries where the wave-zero contract froze 17",
+    "bundle_vs_commits": "at the start of this run tv-break-dashboard/dist carried a display string ('Still to come:') that existed in no commit, built at 03:38:08 from a source file modified at 03:36:11 and uncommitted. It has since been committed in 9d5449c0. The lesson stands: the published bundle was ahead of the repository.",
+    "em_dash": "2 in kairos_api/core.py:496 (a comment) and kairos/data/title_features.py:100 (inside a punctuation character class, correct). One display string carries an em-dash and it comes from seeded data, not code: the campaign name '2023-09 - טבע — טבע קיירגיברס - איתי לוי' in data/campaigns.csv.",
+    "no_emoji_or_exclamation": "0 exclamation marks in display strings under tv-break-dashboard/src",
+    "false_positive_i_checked_and_dropped": "'ש.ח' appearing after programme names on the day board is not a currency unit bleeding into a title. It is a real suffix on 168 titles in data/Programmes.csv."
+  },
+  "stopwatch": {
+    "story": "JS-18, the boundary holds, plus a whole-product navigation sweep",
+    "sign_in_to_first_screen": "2.05 s, 3 clicks",
+    "every_rail_entry": "14 destinations, 1.08 to 1.12 s each, clicks 4 to 17, 0 dead ends, 0 page errors, root never inert",
+    "the_break": "click 18 opens the model console in 2.23 s; click 19 does not exist, because the rail is unreachable for 8,010 ms and then still unreachable",
+    "the_way_out": "the console's own 'חזרה לערוץ', 2.02 s, 1 click, and it is the only one that works",
+    "js18_doors": "1 of 4 clean. Door 2 holds. Door 1 holds on both named routes and fails on PUT /api/settings. Door 3 fails on 5 of 76 endpoints. Door 4 not re-measured this round."
+  },
+  "largest_gap": "data/kairos_settings.json carries a critic's UI experiment as the plan of record: revenue_weight 60 to 35 and min_retention_floor 0.72 to 0.82, committed in 8f0c78c9 and 843e3bb8. Restore both to the wave-zero values and re-export output/weekly_break_schedule.csv, and 119 of the 120 moved channel-days, the whole -15.8M, tests/test_guardrail_conformance.py::test_rule_e_retention_floor and the licence-breach banner on the operator's front page all close in one pass. What remains after that is a genuine 1-day engine regression on רשת 13 2024-11-03, -131,878.70, which is then small enough to see.",
+  "ranked_queue": [
+    {"rank": 1, "kind": "structural", "owner": "lead", "item": "restore data/kairos_settings.json to revenue_weight 60 and min_retention_floor 0.72, re-export the artifact, re-run the golden"},
+    {"rank": 2, "kind": "structural", "owner": "P6", "item": "/api/export/schedule.csv streams 5,454 קשת 12 and 4,338 כאן 11 rows to an operator who owns רשת 13. A hard-law breach, with a failing test that passed at c2da20fc."},
+    {"rank": 3, "kind": "structural", "owner": "lead or P4", "item": "remove the 4 fabricated campaigns, 4 clients and 4 agencies from data/campaigns.csv, data/agencies.csv and data/agency_advertisers.csv, or mark them is_demo. They present as live bookings today."},
+    {"rank": 4, "kind": "structural", "owner": "P7", "item": "console-bridge.jsx must unmute the shell when the hash leaves #Model. One handler; the exit path already exists and works."},
+    {"rank": 5, "kind": "structural", "owner": "W0-4 or P5", "item": "PUT /api/settings lets a channel account write audience_model_activation and min_retention_floor. Wall the field, not just PUT /api/rules/model-activation."},
+    {"rank": 6, "kind": "structural", "owner": "P3", "item": "the live re-plan gives 76 breaks where the committed day gives 80. Named unclosed by P3's own critic for four rounds and also failing as tests/test_journey_inspector_pricing.py."},
+    {"rank": 7, "kind": "structural", "owner": "engine", "item": "רשת 13 2024-11-03 moves -131,878.70 under the wave-one code with wave-zero settings, and drops the segment 2024-11-03|רשת 13|064 that a gold anchor points at"},
+    {"rank": 8, "kind": "mechanical", "owner": "P1", "item": "the job picker's rules.rate_card points at 'Pricing', a route the frozen nav no longer publishes"},
+    {"rank": 9, "kind": "mechanical", "owner": "P9 or lead", "item": "/api/assistant/audit, /api/assistant/conversations and /api/assistant/thread serve a critic's stored rival-naming question to a channel operator"},
+    {"rank": 10, "kind": "mechanical", "owner": "lead", "item": "delete undefined/js13e.png; reconcile 'שם משתמש' in UserAdminDialog.jsx:297 with 'שם מפעיל' on the sign-in screen; reconcile the 15-versus-17 nav count in tests/test_w0_2_shell_seams.py"},
+    {"rank": 11, "kind": "mechanical", "owner": "lead", "item": "rename tests/golden_weekly_schedule.py so the suite collects its own test, or accept that the sharpest engine check in the repository is only reached by import"}
+  ],
+  "regression_verdict": "The rail is whole and every destination renders: 14 entries, 1.08 to 1.12 s each, 0 dead ends, 0 page errors, no rival name and no Python repr in any of the 17 destination captures in either language. The money on Today is traceable to the cent against output/weekly_break_schedule.csv. The is_demo wiring, the delivery ledger column and the Sources refusal cards are all genuinely closed. Model internals are walled from a channel account on all six routes and /api/impact answers with an honest tri-state instead of leaking. P7's console is correct in isolation. But 14 tests fail and NONE of them pre-dates this work: 12 of them pass at c2da20fc, the wave-zero close, and the golden schedule reproduces byte-exact there and moves on 120 of 120 channel-days here.",
+  "evidence": {
+    "suite": "scratchpad/suite-worktree.txt (2277604f), scratchpad/suite-head2.txt (9d5449c0), scratchpad/attr-head.txt, scratchpad/attr-w0.txt",
+    "golden": "scratchpad/golden-work.txt, scratchpad/golden-probe.txt, scratchpad/golden_probe.py, scratchpad/golden_pinpoint.py",
+    "walks": "scratchpad/walk/report.json (17 destinations x 2), scratchpad/walk/walk_en.json, scratchpad/walk/seams.json, scratchpad/walk/seams3.json, scratchpad/walk/seams4.json, scratchpad/walk/stopwatch.json",
+    "screenshots": "scratchpad/walk/seam-1-on-console.png, seam-2-hash-to-campaigns.png, seam-3-back-twice.png, seam-4-hash-to-settings.png, seam-5-after-reload.png, sw-01-console.png, sw-02-after-leaving-console.png, plus he- and EN- captures per destination",
+    "scratchpad_root": "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad"
+  },
+  "repository_untouched": "git status --porcelain is empty at the end of this run. The only file I wrote is this one. I started one server on 8090 and killed only that one; 3000, 8000 and 8010 are all still listening."
+}

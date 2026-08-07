@@ -89,9 +89,24 @@ Recorded in the commit messages too, so it survives this file:
 - The frontend does not read `is_demo`, so 51 seeded campaigns present as "51
   campaigns were booked". Data is honest, screen is not. A verifier ruled this
   not fit to publish and was right.
-- The committed golden artifact disagrees with what the engine produces:
-  221,891,590.23 against 221,741,745.22, 66 of 120 channel-days differing. This
-  predates every wave and is the least defensible number in the repository.
+- CORRECTED 2026-08-07, and the old wording below was wrong in every part.
+  It said the golden gap "predates every wave" and cited 66 of 120 channel-days.
+  Measured by the integration critic and re-verified: at c2da20fc the engine
+  reproduces the committed golden BYTE-EXACT, 0 of 120 channel-days differing.
+  WAVE ONE BROKE IT. At HEAD the engine moves 120 of 120 channel-days,
+  -15,844,833.43 ILS. The 66 figure matches no pairing that exists; for the
+  committed artifact against the golden it is 19.
+  THE CAUSE IS NOT THE ENGINE. data/kairos_settings.json, the live operator
+  store, was mutated by a critic's browser walk and committed as the plan of
+  record: revenue_weight 60 to 35 and min_retention_floor 0.72 to 0.78 in
+  8f0c78c9, then to 0.82 in 843e3bb8. Verified against history. Running the HEAD
+  engine twice with only that file swapped attributes 119 of the 120 moved
+  channel-days and essentially the whole -15.8M to it.
+  What is left after restoring it is ONE genuine wave-one engine regression, on
+  the operator's own channel, רשת 13 on 2024-11-03, -131,878.70, corroborated
+  independently by a gold anchor test failing on that same channel-day.
+  The same pollution also puts the operator's front page into a declared licence
+  breach and fails a guardrail conformance test, both of which close with it.
 - Four assertion rulings from the repair wave were never audited. One of them
   decided an existing test described a competitor-boundary leak and changed it.
   That is a rule change that entered main unread.
