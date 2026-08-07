@@ -28,3 +28,22 @@
   color: var(--accent-ink, var(--teal-ink));
   white-space: nowrap;
 }
+
+.schedule-editor-route {
+  flex-basis: 100%;
+}
+
+/* A lane's count with the plan it counts named under it, on both timelines.
+ * One rule for both, so the editor lane and the day board lane cannot drift
+ * apart the way their wording did. */
+.timeline-lane-count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-lane-basis {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}

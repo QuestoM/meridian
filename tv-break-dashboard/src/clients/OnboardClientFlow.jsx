@@ -25,9 +25,22 @@ const NO_WEEKDAY_TERM = [
   'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
   'לא נבחר יום בשבוע. שליחה כך תסורב: אחוז ההנחה יהיה ללא יום שהוא חל עליו.',
 ];
+const NO_DISCOUNT_TO_SCOPE = [
+  'No weekday is selected. Nothing is refused, because there is no discount percent to give a day to.',
+  'לא נבחר יום בשבוע. דבר אינו נדחה, כיוון שאין אחוז הנחה שצריך לתת לו יום.',
+];
 
-function weekdayCoverage(selected, options, locale, asAgencyRule) {
+// The percent is half of the rule the endpoint enforces: check_weekday_scope
+// returns without refusing anything when it is zero or blank. So a flow carrying
+// no discount is told nothing is refused, because nothing is, and the refusal
+// sentence is kept for the case that really raises it.
+function weekdayCoverage(selected, options, locale, asAgencyRule, percent) {
+  const amount = Number(percent);
+  const discounting = Number.isFinite(amount) && amount !== 0;
   if (!selected.length) {
+    if (!discounting) {
+      return pageText(locale, ...NO_DISCOUNT_TO_SCOPE);
+    }
     return pageText(locale, ...(asAgencyRule ? NO_WEEKDAY_AGENCY : NO_WEEKDAY_TERM));
   }
   const names = options.filter((day) => selected.includes(day.key)).map((day) => (locale === 'he' ? day.he : day.en));
@@ -384,7 +397,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             ))}
           </div>
           <p className="clients-basis-note" role="status">
-            {weekdayCoverage(discount.weekdays, weekdays, locale, discount.asAgencyRule)}
+            {weekdayCoverage(discount.weekdays, weekdays, locale, discount.asAgencyRule, discount.percent)}
           </p>
           <label className="clients-checkbox">
             <input type="checkbox" checked={discount.asAgencyRule} onChange={(event) => setDiscount({ ...discount, asAgencyRule: event.target.checked })} />

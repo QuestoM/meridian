@@ -28,6 +28,7 @@ import { fitTheDay, fitTheProgramme } from './day-board-zoom';
 import { predictionFor, useSaveForecast } from './day-board-forecast';
 import * as writes from './day-board-writes';
 import { fetchDay, scoreDay } from './day-board-actions';
+import { LIVE_PLAN, breakCountText, planBasisLabel } from './plan-basis';
 import './day-board.css';
 import './day-readout.css';
 
@@ -360,7 +361,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
             <div className="day-track-lane" dir={he ? 'rtl' : 'ltr'}>
               <strong dir="auto">{board.operator_channel}</strong>
               <span dir="ltr">{board.day}</span>
-              <span>{breaks.length} {pageText(locale, 'breaks', 'ברייקים')}</span>
+              <span className="timeline-lane-count"><span dir="auto">{breakCountText(breaks.length, locale)}</span><small className="timeline-lane-basis" dir="auto">{planBasisLabel(LIVE_PLAN, locale)}</small></span>
             </div>
             <div className="day-track" style={{ width }} ref={trackRef}>
               {ticks.filter((tick) => tick.major).map((tick) => (

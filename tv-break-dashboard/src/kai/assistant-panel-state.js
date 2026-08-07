@@ -79,44 +79,64 @@ export function normalizeBatch(raw) {
 }
 
 // Opens the History page addressed at one row rather than at its own newest
-// row: the version id, when there is one, is written as ?entry=version:<id>
-// before the hash changes, so the page the hash lands on reads it on mount.
-// Without a version id (a restore point older than the timeline column, or a
-// caller with none to give) this falls back to the plain jump it always did.
+// row: the version id, when there is one, is written as ?entry=version:<id> on
+// the entry that shows the page, so the page reads it on mount. Without a
+// version id (a restore point older than the timeline column, or a caller with
+// none to give) the address is cleared instead of left alone, so the page opens
+// on its own newest rows rather than on whichever row an earlier click, or a
+// shared link, had addressed. Two of the four chips that reach this can hand
+// over nothing: a restore point recorded before the version id was stored
+// carries none, and it was measured doing exactly that.
 //
-// A hash assignment to the value it already holds fires no hashchange event.
-// The dock's own control lands on this page (that is where an apply just
-// happened), so the second and every later click leaves the hash unmoved,
-// the shell never remounts the destination, and HistoryPage, which reads the
-// address only in its mount-time initialisers, never sees the address just
-// written above: the url names one entry while the screen keeps showing
-// whichever row it already had selected. When that is the state, the hash is
-// bounced off a value the router does not recognise first, one tick apart so
-// the shell's own listener actually processes the transition away before the
-// transition back, so the assignment back to 'Versions' is a real transition
-// its listener remounts the destination for.
+// Everything below follows from one measured constraint. The shell routes on
+// hashchange and on nothing else, and a browser fires hashchange on a Back
+// press only when the two entries differ in their fragment ALONE: measured in
+// Chrome, a traversal that also changes the query fires popstate and no
+// hashchange at all. So of these three, any two can hold and never all three.
 //
-// The bounce cannot be two plain `window.location.hash = ...` assignments: a
-// hash assignment is a navigation, and every navigation it performs pushes a
-// browser-history entry, even when it lands back on the same view. Measured:
-// four chip clicks made while already on the History page pushed eight
-// entries between them, and one Back press from the correctly addressed
-// History page then landed on Overview at the just-abandoned address, a url
-// that names a History entry on a page that cannot open it. `location.replace`
-// performs the same navigation, and fires the same hashchange, without adding
-// a history entry, so the bounce is written with it instead. The base has to
-// be passed explicitly: a bare `location.replace('#')` drops the ?entry
-// search this function just wrote.
+//   push a browser-history entry for the destination,
+//   leave the page being left carrying its own address and not this one,
+//   have one Back press put the operator's screen back where the url says.
+//
+// Writing the address before the push buys the third by breaking the second:
+// the ?entry is stamped onto the page being left, one Back press lands there
+// under a url naming a History row that page cannot open, and a link copied
+// from there opens the wrong screen for a colleague. That was measured on the
+// running product. Pushing the whole destination url in one navigation buys the
+// second by breaking the third: the query then differs across the Back press,
+// no hashchange fires, the shell never routes, and the address bar names one
+// page while the screen shows another, which is the same defect one gesture
+// over.
+//
+// So the push is what goes. That is what the rest of the product already does:
+// the shell's own setActiveView replaces the current entry rather than pushing
+// one, so no page switch anywhere in this product costs a Back press. The
+// address is replaced onto the entry the operator is standing on, and the
+// destination is landed on with location.replace, which performs the same
+// navigation as a hash assignment, and fires the same hashchange, without
+// adding an entry. Nothing is stamped, because no other entry is touched, and
+// the Back stack is exactly what it was before the click.
+//
+// One case needs more than the landing. A hash assignment to the value it
+// already holds fires no hashchange, and this control's own first use leaves
+// the operator here, so the second and every later click would leave the hash
+// unmoved while HistoryPage, which reads the address only in its mount-time
+// initialisers, keeps showing whichever row it already had selected: the url
+// names one entry and the screen shows another. A replaceState plus a synthetic
+// hashchange does not remount either, because the view does not change. So when
+// the operator is already here, the hash is bounced off a value the router does
+// not recognise first, one tick apart, so the shell's own listener processes the
+// transition away before the transition back.
 export function showRestoreVersion(versionId) {
-  if (versionId) writeAddress(pointAddress(versionId));
-  const onVersions = decodeURIComponent(window.location.hash.replace(/^#/, '')) === 'Versions';
-  if (versionId && onVersions) {
-    const base = window.location.pathname + window.location.search;
+  writeAddress(pointAddress(versionId));
+  const base = window.location.pathname + window.location.search;
+  const land = () => { window.location.replace(`${base}#Versions`); };
+  if (decodeURIComponent(window.location.hash.replace(/^#/, '')) === 'Versions') {
     window.location.replace(`${base}#`);
-    window.setTimeout(() => { window.location.replace(`${base}#Versions`); }, 0);
+    window.setTimeout(land, 0);
     return;
   }
-  window.location.hash = 'Versions';
+  land();
 }
 
 export function useAssistantBatches(notify) {

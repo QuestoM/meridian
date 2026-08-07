@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, ArrowRight, Calculator, CheckCircle2, PinOff, Undo2 } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { clockOf, committedGap, exactCurrency } from './day-board-model';
+import { LIVE_PLAN, SAVED_PLAN, livePlanPointer, planBasisLabel, planBasisLead, scopeWithBasis } from './plan-basis';
 
 // What the move cost, told honestly.
 //
@@ -45,7 +46,10 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
   const { basis, saved, current, delta, changed_inputs: changed, compliance } = score;
   const moneyMoved = Math.abs(delta.revenue) > 0.005;
   const onlyPlacement = changed.placement && !changed.duration && !changed.gold;
-  const scopeText = `${basis.channel} / ${basis.day}`;
+  // This board re-plans the day live, so every figure on it is the live plan's
+  // and its scope line says so. The note below prints the saved plan's own
+  // figures, and the two were being read as one number.
+  const scopeText = scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale);
   const violations = compliance.violations || [];
   const gap = committedGap(basis, saved);
 
@@ -104,12 +108,12 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
           <strong dir="ltr">{formatNumber(current.breaks, locale)}</strong>
-          <small className="day-figure-scope" dir="ltr">{formatNumber(current.ad_seconds, locale)}s</small>
+          <small className="day-figure-scope" dir="auto">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
           <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
           <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope">{gap.state === 'diverged' ? label('this live plan, see below', 'התוכנית החיה הזו, ראו למטה') : label('same basis', 'אותו בסיס')}</small>
+          <small className="day-figure-scope" dir="auto">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
         </div>
       </div>
 
@@ -162,25 +166,34 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
 // disclosure that replaces the silence, in all three states a comparison can
 // honestly land in: no committed row to compare against, the two in agreement,
 // or the two apart, with both figures and the gap printed rather than implied.
+// Two further measurements are folded in here. The percentage is null when the
+// saved plan's revenue is zero, and it used to be interpolated straight into the
+// sentence, so that edge printed the literal "null%"; the clause is now dropped
+// when there is no percentage to print. And the Hebrew used the prefix "ו-"
+// immediately before a negative figure, rendering "ו--4 ברייקים", so both gaps
+// are now introduced by a word rather than by a hyphen.
 export function CommittedPlanNote({ gap, locale }) {
   const label = (en, he) => (locale === 'he' ? he : en);
+  const saved = planBasisLabel(SAVED_PLAN, locale);
+  const live = planBasisLabel(LIVE_PLAN, locale);
   if (gap.state === 'unavailable') {
     return (
       <p className="day-committed-note is-unknown" dir="auto">
-        {label('No committed weekly plan is on file for this channel-day, so there is nothing to check this live plan against.', 'אין תוכנית שבועית שמורה ליום הערוץ הזה, ואין מול מה לבדוק את התוכנית החיה הזו.')}
+        {label(`No committed weekly plan is on file for this channel-day, so there is nothing to check ${live} against.`, `אין תוכנית שבועית שמורה ליום הערוץ הזה, ואין מול מה לבדוק את ${live}.`)}
       </p>
     );
   }
   if (gap.state === 'matches') {
     return (
       <p className="day-committed-note is-matched" dir="auto">
-        {label(`This live plan matches the weekly plan saved to disk: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks.`, `התוכנית החיה הזו תואמת את התוכנית השבועית השמורה בדיסק: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים.`)}
+        {label(`${planBasisLead(LIVE_PLAN, locale)} matches ${saved}: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks.`, `${live} תואמת את ${saved}: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים.`)}
       </p>
     );
   }
+  const percentClause = gap.percent === null ? '' : ` (${gap.percent}%)`;
   return (
     <p className="day-committed-note is-diverged" dir="auto">
-      {label(`This board re-planned this day live. It now differs from the weekly plan saved to disk (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks) by ${exactCurrency(gap.revenueGap, locale)}, ${gap.percent}%, and ${gap.breaksGap} breaks.`, `הלוח הזה תכנן את היום הזה מחדש בזמן אמת. הוא שונה כעת מהתוכנית השבועית השמורה בדיסק (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים) ב-${exactCurrency(gap.revenueGap, locale)}, ${gap.percent}%, ו-${gap.breaksGap} ברייקים.`)}
+      {label(`This board re-planned this day live. It now differs from ${saved} (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks): a gap of ${exactCurrency(gap.revenueGap, locale)}${percentClause}, and a gap of ${gap.breaksGap} breaks.`, `הלוח הזה תכנן את היום הזה מחדש בזמן אמת. הוא שונה כעת מ${saved} (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים): הפרש של ${exactCurrency(gap.revenueGap, locale)}${percentClause}, והפרש של ${gap.breaksGap} ברייקים.`)}
     </p>
   );
 }
@@ -271,7 +284,7 @@ export function SaveForecast({ forecast, locale, editCount }) {
       </p>
     );
   }
-  const scopeText = `${forecast.basis.channel} / ${forecast.basis.day}`;
+  const scopeText = scopeWithBasis(`${forecast.basis.channel} / ${forecast.basis.day}`, LIVE_PLAN, locale);
   return (
     <section className="day-forecast" aria-label={label('What saving would do', 'מה תעשה השמירה')}>
       <h4>{label('What saving would do', 'מה תעשה השמירה')}</h4>
@@ -312,10 +325,11 @@ export function SaveForecast({ forecast, locale, editCount }) {
 export function forecastSentence(forecast, locale) {
   const moved = forecast.rearranged;
   const total = forecast.after.breaks;
+  const live = planBasisLabel(LIVE_PLAN, locale);
   if (locale === 'he') {
-    return `שמירה כותבת מגבלה, והמנוע מתכנן את כל היום מחדש כשהיא בתוקף, ולכן הוא רשאי למקם ברייקים אחרים אחרת. במדידה הזו הוא שינה ${moved.changed} ברייקים מתוך ${total}, ב-${moved.programmes} רצועות שידור. שום דבר עדיין לא נכתב.`;
+    return `שמירה כותבת מגבלה, והמנוע מתכנן את כל היום מחדש כשהיא בתוקף, ולכן הוא רשאי למקם ברייקים אחרים אחרת. במדידה הזו הוא שינה ${moved.changed} ברייקים מתוך ${total} של ${live}, ב-${moved.programmes} רצועות שידור. שום דבר עדיין לא נכתב.`;
   }
-  return `Saving writes a restriction and the engine then plans the whole day again with it in force, so it may place other breaks differently. In this measurement it changed ${moved.changed} breaks of ${total}, across ${moved.programmes} programmes. Nothing has been written yet.`;
+  return `Saving writes a restriction and the engine then plans the whole day again with it in force, so it may place other breaks differently. In this measurement it changed ${moved.changed} breaks of the ${total} in ${live}, across ${moved.programmes} programmes. Nothing has been written yet.`;
 }
 
 export function violationLabel(code, locale) {

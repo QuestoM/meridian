@@ -1,21 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarRange, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { localized, refusalText, vocabularyLabel, vocabularyRemedy, windowLabel } from './clients-money-helpers';
+import { refusalText, vocabularyLabel, vocabularyRemedy, windowLabel } from './clients-money-helpers';
 import { endCampaign, loadOnboardingOptions } from './clients-api';
 import CampaignDetail from './CampaignDetail';
 import CampaignTerms from './CampaignTerms';
+import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 import './clients-campaigns.css';
 
-// Every campaign booked in this product, with its flights and what each flight
-// committed to. Google Ads puts budget on exactly one layer and states the
-// containment; this does the same with the two layers that exist here, and it
-// refuses to render the third column that surface has, pace, because nothing in
-// this repository observes delivery.
+// Every campaign booked in this product, with its flights, what each flight
+// committed to, and what the delivery ledger has counted against it. Google Ads
+// puts budget on exactly one layer and states the containment; this does the
+// same with the two layers that exist here, and it carries the third column that
+// surface has, because this product does derive delivery, per campaign and per
+// broadcast day, from the traffic log.
 //
-// The delivery state is a state, not a blank: it names the missing feed and the
-// path that would supply it, on the board and on every row.
+// The delivered column is a state and a figure at once, never a figure alone: a
+// campaign whose flight still holds days with no per-spot source reads as a
+// floor and says how many of its days were counted. When no day of any campaign
+// carries a source, the same column is the unknown state and the block under the
+// board names the missing feed and the path that would supply it.
 //
 // Every row is a way in rather than a readout. The campaign name opens its
 // terms and its flights and both can be changed there, the client name opens
@@ -93,6 +98,10 @@ export default function CampaignBoard({
   const focus = campaigns.some((campaign) => campaign.campaign_id === focusId) ? focusId : '';
   const visible = focus ? campaigns.filter((campaign) => campaign.campaign_id === focus) : campaigns;
   const statuses = board.status_vocabulary || [];
+  // The three air states and their words, as the payload names them, so the
+  // delivered column reads in the ledger's own vocabulary rather than in one
+  // this file invented for it.
+  const airStates = (board.delivery && board.delivery.air_state_vocabulary) || [];
   const demoCount = board.demo_count ?? campaigns.filter((campaign) => campaign.is_demo).length;
   const bookedCount = board.booked_count ?? (campaigns.length - demoCount);
   const countLine = demoCount > 0
@@ -178,8 +187,7 @@ export default function CampaignBoard({
         </p>
       ) : null}
 
-      <p className="clients-basis-note">{localized(board.delivery, 'reason', locale)}</p>
-      <p className="clients-basis-path">{localized(board.delivery, 'path_forward', locale)}</p>
+      <DeliveryBasis delivery={board.delivery} locale={locale} />
       {optionsError ? <p className="clients-error" role="alert">{optionsError}</p> : null}
 
       {booking && !options ? (
@@ -232,6 +240,7 @@ export default function CampaignBoard({
               <th scope="col">{pageText(locale, 'Agency', 'סוכנות')}</th>
               <th scope="col">{pageText(locale, 'Window', 'חלון')}</th>
               <th scope="col" className="numeric-col">{pageText(locale, 'Flights', 'טיסות')}</th>
+              <th scope="col">{pageText(locale, 'Delivered', 'סופק')}</th>
               <th scope="col">{pageText(locale, 'State', 'מצב')}</th>
               <th scope="col">{pageText(locale, 'What to do', 'מה לעשות')}</th>
             </tr>
@@ -262,6 +271,13 @@ export default function CampaignBoard({
                       <button type="button" className="clients-link" onClick={toggle} aria-expanded={open}>
                         {campaign.flights.length}
                       </button>
+                    </td>
+                    <td>
+                      <DeliveryCell
+                        delivery={campaign.delivery}
+                        vocabulary={airStates}
+                        locale={locale}
+                      />
                     </td>
                     <td>
                       <span className={`clients-state ${campaign.status}`}>
@@ -297,7 +313,7 @@ export default function CampaignBoard({
                   </tr>
                   {open ? (
                     <tr className="clients-subrow">
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <CampaignDetail
                           campaign={campaign}
                           board={board}

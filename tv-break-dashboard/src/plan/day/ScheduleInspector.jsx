@@ -5,6 +5,7 @@ import { pageText } from '../../shell/surface-helpers';
 import { programTypeLabel } from '../../shell/surface-helpers';
 import { KINDS, kindLabel, runDayPlanJob, isNum } from './override-console-lib';
 import { weekdayName } from './day-board-model';
+import { LIVE_PLAN, SAVED_PLAN, withBasis } from './plan-basis';
 import './schedule-inspector.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -130,7 +131,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       const b = isNum(summary[d.after]) ? summary[d.after] : undefined;
       if (!isNum(a) && !isNum(b)) return null;
       const diff = isNum(a) && isNum(b) ? b - a : undefined;
-      return { label: pageText(locale, d.en, d.he), a, b, diff, money: d.money };
+      return { label: withBasis(pageText(locale, d.en, d.he), LIVE_PLAN, locale), a, b, diff, money: d.money };
     }).filter(Boolean);
   }, [preview, locale]);
 
@@ -259,7 +260,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
           </section>
 
           <section className="si-section">
-            <h4>{pageText(locale, 'Break plan', 'תוכנית ברייקים')}</h4>
+            <h4>{withBasis(pageText(locale, 'Break plan', 'תוכנית ברייקים'), SAVED_PLAN, locale)}</h4>
             <Row label={pageText(locale, 'Breaks', 'ברייקים')} value={fmtNum2(plan.num_breaks, locale)} />
             <Row label={pageText(locale, 'Break length', 'אורך ברייק')} value={isNum(plan.break_length_seconds) ? `${Math.round(plan.break_length_seconds)}s` : '-'} />
             <Row label={pageText(locale, 'Total ad time', 'זמן פרסום כולל')} value={isNum(plan.total_break_seconds) ? `${Math.round(plan.total_break_seconds)}s` : '-'} />

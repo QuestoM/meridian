@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import ClientRuleCard from './ClientRuleCard';
 import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, sourceLabel, step, vocabularyLabel, windowLabel } from './clients-money-helpers';
+import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 
 // One client, opened without losing the set it came from. The counter and the
@@ -71,7 +72,11 @@ function Figures({ client, locale }) {
   );
 }
 
-function Flights({ campaign, locale, goalWords }) {
+// The flights of one booked campaign, each with what it committed to and what
+// the delivery ledger has counted against it. The ledger is the campaign board's
+// own, handed down by the workspace, so this record and that board can never
+// print two different answers to the same question.
+function Flights({ campaign, delivery, airStates, locale, goalWords }) {
   if (!campaign.flights.length) {
     return (
       <p className="clients-reason">
@@ -90,7 +95,15 @@ function Flights({ campaign, locale, goalWords }) {
             <small>{pageText(locale, 'booked', 'הוזמן')}</small>
             <span className="numeric" dir="ltr">{goalLabel(flight, locale, goalWords)}</span>
           </span>
-          <span className="clients-unknown">{pageText(locale, 'delivered: unknown', 'סופק: לא ידוע')}</span>
+          <span className="clients-goal">
+            <small>{pageText(locale, 'delivered', 'סופק')}</small>
+            <DeliveryCell
+              delivery={delivery}
+              window={{ starts_on: flight.starts_on, ends_on: flight.ends_on }}
+              vocabulary={airStates}
+              locale={locale}
+            />
+          </span>
         </li>
       ))}
     </ul>
@@ -103,6 +116,8 @@ export default function ClientRecord({
   locale,
   basis = null,
   delivery,
+  deliveryByCampaign = {},
+  airStates = [],
   statuses = [],
   goalWords = [],
   canEdit = true,
@@ -244,7 +259,14 @@ export default function ClientRecord({
                 <span className="numeric" dir="ltr">{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</span>
                 <span className={`clients-state ${campaign.status}`}>{vocabularyLabel(statuses, campaign.status, locale)}</span>
               </header>
-              <Flights campaign={campaign} locale={locale} goalWords={goalWords} />
+              <Flights
+                campaign={campaign}
+                delivery={deliveryByCampaign[campaign.campaign_id] || null}
+                airStates={airStates}
+                locale={locale}
+                goalWords={goalWords}
+              />
+              <DeliveryBasis delivery={deliveryByCampaign[campaign.campaign_id] || null} locale={locale} />
             </article>
           ))
         ) : (
@@ -252,12 +274,7 @@ export default function ClientRecord({
             {pageText(locale, 'Nothing is booked for this client yet.', 'לא הוזמן דבר עבור הלקוח הזה עדיין.')}
           </p>
         )}
-        {delivery && !delivery.available ? (
-          <p className="clients-basis-note">{localized(delivery, 'reason', locale)}</p>
-        ) : null}
-        {delivery && !delivery.available ? (
-          <p className="clients-basis-path">{localized(delivery, 'path_forward', locale)}</p>
-        ) : null}
+        {delivery && !delivery.available ? <DeliveryBasis delivery={delivery} locale={locale} /> : null}
       </section>
 
       {client.observed_campaigns && client.observed_campaigns.length ? (

@@ -3,6 +3,7 @@ import { AlertTriangle, Calculator, CheckCircle2 } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { CommittedPlanNote, SaveForecast, violationLabel } from './DayBoardReadout';
 import { committedGap, exactCurrency } from './day-board-model';
+import { LIVE_PLAN, livePlanPointer, scopeWithBasis } from './plan-basis';
 import './day-readout.css';
 
 // What this day is worth, what the pending edits would do to it, and the check
@@ -55,7 +56,9 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
   const { basis, saved, current, delta, changed_inputs: changed, compliance } = score;
   const moneyMoved = Math.abs(delta.revenue) > 0.005;
   const onlyPlacement = changed.placement && !changed.duration && !changed.gold;
-  const scopeText = `${basis.channel} / ${basis.day}`;
+  // Every figure below is the live re-plan of this day, and the sentence above
+  // the timeline counts the saved weekly plan, so each scope line names which.
+  const scopeText = scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale);
   const violations = compliance.violations || [];
   const gap = committedGap(basis, saved);
 
@@ -102,12 +105,12 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
           <strong dir="ltr">{formatNumber(current.breaks, locale)}</strong>
-          <small className="day-figure-scope" dir="ltr">{formatNumber(current.ad_seconds, locale)}s</small>
+          <small className="day-figure-scope" dir="auto">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
           <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
           <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope">{gap.state === 'diverged' ? label('this live plan, see below', 'התוכנית החיה הזו, ראו למטה') : label('same basis', 'אותו בסיס')}</small>
+          <small className="day-figure-scope" dir="auto">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
         </div>
       </div>
 

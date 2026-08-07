@@ -62,6 +62,18 @@ ROWS = ("rows", "rows_total")
 # because a stored report renders the same chip a live one does.
 KEPT = ("column", "scope", "code", "severity")
 
+# Every key a finding carries a sentence in, and the language each is read in.
+# ``message`` is the sentence for a code this destination authors and the frozen
+# contract's own detail for a code it does not; ``message_en`` is the English
+# half authored beside that frozen detail, and ``message_he`` the Hebrew.
+#
+# **The boundary runs over all three at once and withholds all three together.**
+# They are one finding said three ways, so a name that may not be read in one of
+# them may not be read in any: an ``unknown_channel`` violation carries the
+# file's own channel names into the frozen English AND into the authored English
+# beside it, and withholding two of three would leave the third on the card.
+SENTENCES = {"message": "en", "message_en": "en", "message_he": "he"}
+
 # Where a refusal this destination raises is about, decided by its own code.
 # Every code here is about no column at all: the file, its header row, or the
 # table the loader parsed it into.
@@ -209,9 +221,13 @@ def _to_store_finding(finding: Any) -> dict[str, Any]:
     else:
         # The frozen contracts' own sentence, quoted: the counts and column names
         # inside it are theirs to compute and no code here could re-author them.
+        # The pair authored beside it is quoted for the same reason. It was built
+        # from a count measured on a frame this read no longer holds, so it is
+        # kept as written rather than recomputed from nothing.
         record["message"] = finding.get("message")
-        if finding.get("message_he"):
-            record["message_he"] = finding["message_he"]
+        for key in ("message_en", "message_he"):
+            if finding.get(key):
+                record[key] = finding[key]
     return record
 
 
@@ -232,16 +248,20 @@ def _rendered_finding(finding: Any, owned: str) -> dict[str, Any]:
         record.pop("scope", None)
     if finding.get("boundary") is not None:
         english, hebrew = uploads_messages.say(channel_key(owned), **channel_fields(finding["boundary"], owned))
+        texts = {"message": english, "message_he": hebrew}
     elif finding.get("key"):
         english, hebrew = uploads_messages.say(finding["key"], **{name: _live_value(value) for name, value in (finding.get("fields") or {}).items()})
+        texts = {"message": english, "message_he": hebrew}
     else:
-        # A sentence nothing here can re-author: the frozen contracts' own, or
-        # one stored before this format existed. Quoted, both halves, and swept.
-        english, hebrew = str(finding.get("message") or ""), str(finding.get("message_he") or "")
-    english, hebrew = _inside_the_boundary(english, hebrew, owned)
-    record["message"] = english
-    if hebrew:
-        record["message_he"] = hebrew
+        # Sentences nothing here can re-author: the frozen contract's own detail,
+        # the pair authored beside it, or a report stored before this format
+        # existed. Quoted, every half, and swept as one.
+        texts = {key: str(finding.get(key) or "") for key in SENTENCES if key == "message" or finding.get(key)}
+    swept = _inside_the_boundary(texts, owned)
+    record["message"] = swept.get("message", "")
+    for key in ("message_en", "message_he"):
+        if swept.get(key):
+            record[key] = swept[key]
     for key in ROWS:
         if key in finding:
             record[key] = finding[key]
@@ -273,17 +293,20 @@ def _names_a_rival(text: Any, owned: str) -> bool:
     return any(rival in body for rival in uploads_channels.rivals(owned))
 
 
-def _inside_the_boundary(english: str, hebrew: str, owned: str, notice: dict[str, str] = WITHHELD_STORED) -> tuple[str, str]:
-    """The pair as it may be printed: the sentence, or the notice replacing it.
+def _inside_the_boundary(texts: dict[str, str], owned: str, notice: dict[str, str] = WITHHELD_STORED) -> dict[str, str]:
+    """Every half of one finding as it may be printed, or the notice replacing them.
+
+    ``texts`` is keyed by :data:`SENTENCES`, and a rival name in any half
+    withholds every half, because they are one finding said more than one way.
 
     ``notice`` is which of the two withheld sentences this call may honestly
     print, decided by the caller because only the caller knows which cause it
     measured: :func:`rendered` reading a stored report passes the default,
     :func:`at_the_door` sweeping a live one passes :data:`WITHHELD_LIVE`.
     """
-    if _names_a_rival(english, owned) or _names_a_rival(hebrew, owned):
-        return notice["en"], notice["he"]
-    return english, hebrew
+    if any(_names_a_rival(text, owned) for text in texts.values()):
+        return {key: notice[SENTENCES[key]] for key in texts}
+    return dict(texts)
 
 
 def _swept(lines: Any, owned: str, notice: dict[str, str] = WITHHELD_STORED) -> list[str]:
@@ -328,14 +351,14 @@ def at_the_door(findings: list[dict[str, Any]], owned: str) -> tuple[list[dict[s
     swept_findings: list[dict[str, Any]] = []
     for finding in findings:
         record = dict(finding)
-        english, hebrew = _inside_the_boundary(
-            str(record.get("message") or ""), str(record.get("message_he") or ""), owned, WITHHELD_LIVE
-        )
-        record["message"] = english
-        if hebrew:
-            record["message_he"] = hebrew
-        else:
-            record.pop("message_he", None)
+        texts = {key: str(record.get(key) or "") for key in SENTENCES if key == "message" or record.get(key)}
+        swept = _inside_the_boundary(texts, owned, WITHHELD_LIVE)
+        record["message"] = swept.get("message", "")
+        for key in ("message_en", "message_he"):
+            if swept.get(key):
+                record[key] = swept[key]
+            else:
+                record.pop(key, None)
         swept_findings.append(record)
     errors = [uploads_messages.flat_finding(f) for f in swept_findings if f.get("severity") == "error"]
     warnings = [uploads_messages.flat_finding(f) for f in swept_findings if f.get("severity") == "warning"]

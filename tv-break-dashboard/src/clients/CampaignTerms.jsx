@@ -62,8 +62,22 @@ function toggleWeekday(scope, key) {
 // with no day it covers, never the onboarding flow's ANY-widening. The line
 // says that consequence plainly, the same rule the endpoint itself enforces,
 // so a chip change and a refused submit never disagree about what happens.
-function weekdayCoverage(selected, options, locale) {
+//
+// The percent is half of that rule and the line has to carry it. check_weekday_scope
+// returns without refusing anything when the percent is zero or blank, so an
+// operator amending only the notes of a campaign that has no discount was being
+// promised a refusal that never came. No percent means no scope to state.
+function weekdayCoverage(selected, options, locale, percent) {
+  const amount = Number(percent);
+  const discounting = Number.isFinite(amount) && amount !== 0;
   if (!selected.length) {
+    if (!discounting) {
+      return pageText(
+        locale,
+        'No weekday is selected. Nothing is refused, because there is no discount percent to give a day to.',
+        'לא נבחר יום בשבוע. דבר אינו נדחה, כיוון שאין אחוז הנחה שצריך לתת לו יום.',
+      );
+    }
     return pageText(
       locale,
       'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
@@ -251,7 +265,12 @@ export default function CampaignTerms({
           ))}
         </div>
         <p className="clients-basis-note" role="status">
-          {weekdayCoverage(String(draft.surcharge_weekdays || '').split(',').filter(Boolean), weekdays, locale)}
+          {weekdayCoverage(
+            String(draft.surcharge_weekdays || '').split(',').filter(Boolean),
+            weekdays,
+            locale,
+            draft.surcharge_discount_percent,
+          )}
         </p>
         <p className="clients-basis-note">{localized(terms, 'reason', locale)}</p>
       </fieldset>

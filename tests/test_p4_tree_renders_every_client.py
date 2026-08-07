@@ -40,14 +40,14 @@ BOOKED_CLIENT = "חברת בדיקה חדשה"
 CAMPAIGN_NAME = "קמפיין בדיקה"
 
 # The group the defect dropped, as the shipped component renders it.
-GROUP_TITLE = "הוזמנו, טרם שודרו"
+GROUP_TITLE = "הוזמנו, ללא תמחור ביום הנקרא"
 GROUP_NOTE = "יש להם קמפיין רשום ואין תשדיר מתומחר ביום הנקרא"
 UNLINKED_TITLE = "לקוחות ללא סוכנות"
 
 # The mutation: the third group, cut out of the shipped source exactly as it was
 # missing when this was measured.
 THIRD_GROUP = """      <FlatGroup
-        title={pageText(locale, 'Booked, nothing aired yet', 'הוזמנו, טרם שודרו')}
+        title={pageText(locale, 'Booked, nothing priced in the day being read', 'הוזמנו, ללא תמחור ביום הנקרא')}
         note={pageText(locale, 'they have a campaign on file and no priced spot in the day being read', 'יש להם קמפיין רשום ואין תשדיר מתומחר ביום הנקרא')}
         clients={booked}
         locale={locale}

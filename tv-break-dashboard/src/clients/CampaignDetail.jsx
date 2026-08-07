@@ -4,15 +4,23 @@ import { pageText } from '../shell/format';
 import { localized } from './clients-money-helpers';
 import CampaignFlights from './CampaignFlights';
 import CampaignTerms from './CampaignTerms';
+import { DeliveryProgress } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 
-// What sits under one campaign row: the terms that were agreed, and the flights
-// that carry the booked goals. Both are amendable here, which is the whole
-// point of the row opening at all.
+// What sits under one campaign row: the terms that were agreed, how far the
+// counted delivery has got against them, and the flights that carry the booked
+// goals. The terms and the flights are amendable here, which is the whole point
+// of the row opening at all.
 //
 // An empty term is a control rather than a blank, the same device the client
 // record uses, so a campaign with no rebate on file offers to set one instead of
 // showing a dash that leads nowhere.
+//
+// The progress against the rating goal and the budget is this campaign's own
+// ledger and never the board's. Each percent carries the endpoint's own state
+// word, so a figure counted over part of the flight reads as a floor, and a goal
+// this product cannot measure in its own currency reads as unmeasurable rather
+// than as a zero.
 
 function weekdayNames(scope, weekdays, locale) {
   const tokens = String(scope || '').split(',').filter(Boolean);
@@ -135,12 +143,15 @@ export default function CampaignDetail({
       </div>
       <p className="clients-basis-note">{localized(board.terms, 'reason', locale)}</p>
 
+      <DeliveryProgress delivery={campaign.delivery} locale={locale} />
+
       <CampaignFlights
         campaign={campaign}
         locale={locale}
         goalKinds={board.goal_kinds || []}
         goalWords={board.goal_kind_vocabulary || []}
-        delivery={board.delivery}
+        delivery={campaign.delivery}
+        airStates={(board.delivery && board.delivery.air_state_vocabulary) || []}
         canEdit={canEdit}
         notify={notify}
         onChanged={onChanged}

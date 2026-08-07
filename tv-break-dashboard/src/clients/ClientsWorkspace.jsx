@@ -17,6 +17,7 @@ import {
   loadMoney,
   updateAdvertiserRule,
 } from './clients-api';
+import { campaignDeliveryIndex } from './delivery-helpers';
 import { joinAliases, splitAliases } from './clients-rule-helpers';
 import {
   NO_DRILL,
@@ -38,6 +39,7 @@ import './clients-workspace.css';
 import './clients-tree.css';
 import './clients-record.css';
 import './clients-rule-card.css';
+import './clients-delivery.css';
 
 // Clients: one destination for the commercial spine, agency to advertiser to
 // campaign to flight, reached from any of the three navigation entries that
@@ -161,6 +163,10 @@ export default function ClientsWorkspace({
   // Which campaign names the ledger holds a row for, so a record only offers to
   // open the ones that really open something.
   const ledgerCampaigns = useMemo(() => ledgerCampaignKeys(money), [money]);
+  // The delivery ledger the campaign board already read, keyed by campaign, so a
+  // client record shows what its campaigns delivered from the same read the
+  // board shows it from. Two reads of the same ledger could drift; one cannot.
+  const deliveryByCampaign = useMemo(() => campaignDeliveryIndex(board), [board]);
   const record = openClient ? rows.find((row) => row.advertiser === openClient) : null;
   // The endpoint is the authority on whether this account may change anything
   // here, so a read-only account sees the reason instead of a control that
@@ -360,6 +366,8 @@ export default function ClientsWorkspace({
             locale={locale}
             basis={tree ? tree.basis : null}
             delivery={board ? board.delivery : null}
+            deliveryByCampaign={deliveryByCampaign}
+            airStates={board && board.delivery ? board.delivery.air_state_vocabulary : []}
             statuses={board ? board.status_vocabulary : []}
             goalWords={board ? board.goal_kind_vocabulary : []}
             canEdit={gate.canEdit}

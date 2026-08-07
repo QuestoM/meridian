@@ -42,8 +42,22 @@ export function useScheduleZoom(initial = DEFAULT_PX_PER_MIN) {
 // start_clock, so a click on a programme resolves to its addressable segment.
 // resolve returns the segment record or null; the caller decides how to notify
 // when a programme is not on the owned channel.
+//
+// Each record also carries plannedBreaks, the num_breaks the SAVED weekly plan
+// holds for that segment, straight off the route's own state block. It is the
+// figure a capped timeline cannot state on its own: /api/break-operations serves
+// break_markers, which is already clipped to five and to the programme's own
+// capacity, so a surface that wanted to say "8 drawn of the 13 this plan places
+// in these programmes" had nothing to read the 13 from. This is that read, on a
+// route the same component already fetches for its anchors, so it costs nothing.
+//
+// loaded says whether that fetch has answered. A caller that names the plan's
+// figures before it has them would be guessing, so the flag is served rather
+// than inferred from an empty map, which cannot tell a pending fetch from a
+// channel with no segments.
 export function useSegmentAnchors() {
   const [segMap, setSegMap] = useState(() => new Map());
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let active = true;
     fetch(`${API_BASE}/api/schedule/segments`)
@@ -54,9 +68,16 @@ export function useSegmentAnchors() {
         (payload.segments || []).forEach((seg) => {
           const a = seg.anchor || {};
           const key = `${seg.channel || ''}|${a.date || seg.day || ''}|${a.start_clock || ''}`;
-          map.set(key, { segmentId: seg.segment_id, channel: seg.channel, day: seg.day });
+          const planned = Number(seg.state && seg.state.num_breaks);
+          map.set(key, {
+            segmentId: seg.segment_id,
+            channel: seg.channel,
+            day: seg.day,
+            plannedBreaks: Number.isFinite(planned) ? planned : null,
+          });
         });
         setSegMap(map);
+        setLoaded(true);
       })
       .catch(() => {});
     return () => { active = false; };
@@ -68,7 +89,7 @@ export function useSegmentAnchors() {
     return hit && hit.segmentId ? hit : null;
   }, [segMap]);
 
-  return { segMap, resolve };
+  return { segMap, resolve, loaded };
 }
 
 // The video-editor zoom control: a compact slider flanked by minus and plus

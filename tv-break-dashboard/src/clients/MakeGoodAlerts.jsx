@@ -12,6 +12,11 @@ import {
 // endpoint returns data_available:false with a reason and zero alerts. We render
 // an honest empty state that names the path forward (upload campaign flights),
 // and only show the alert list once real flight data exists.
+//
+// This is a second ledger and not the one the campaign board reads. Its
+// delivered fraction is projected from campaign_flights.csv against elapsed
+// time, so every figure it prints names that source and the instant it was
+// projected at, and neither is left for the reader to assume.
 
 function pct(value, locale) {
   const number = Number(value || 0) * 100;
@@ -93,6 +98,14 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
     }
     return (
       <div className="makegood-list" dir={he ? 'rtl' : 'ltr'}>
+        <p className="data-basis-note">
+          {pageText(
+            locale,
+            'Projected from campaign_flights.csv against the elapsed share of each flight. It is not the per-spot delivery ledger the campaign board counts.',
+            'תחזית מתוך campaign_flights.csv מול החלק שחלף מכל טיסה. אין זה ספר האספקה ברמת התשדיר שלוח הקמפיינים סופר.',
+          )}
+          {asOf ? ` ${asOfLabel(asOf, locale)}.` : ''}
+        </p>
         {alerts.map((alert) => (
           <article className="makegood-row" key={alert.campaign_id}>
             <div className="makegood-row-head">

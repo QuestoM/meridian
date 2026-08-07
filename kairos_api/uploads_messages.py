@@ -4,43 +4,44 @@ Split out of ``uploads_validate.py`` under the file-size cap and named by the
 ``<parent stem>_<role>.py`` rule the package already follows.
 
 **The refusal is the one sentence this destination exists for, so it is the one
-sentence that may not arrive in the wrong language.** Measured on the shipped
-surface before this module existed: a daily file with two unreadable dates and
-two unreadable clocks was refused with a Hebrew heading, Hebrew row labels and
-two English reasons, and a dayparts file with renamed channel columns was
-refused with one English reason. Every other word on that card was Hebrew.
+sentence that may not arrive in the wrong language, in either direction.** A
+code this destination raises ITSELF is authored here in both languages, with its
+own measured numbers in both. A violation raised by the frozen data contracts
+(:mod:`kairos.data.contracts`) keeps its English detail in ``message``
+byte-for-byte, because that sentence is the contract's own and nothing here may
+re-author it, and this module authors the pair a person reads beside it, BOTH
+HALVES FROM ONE ENTRY IN ONE PASS through :func:`contract_say`, keyed by the
+same eleven codes the contracts emit.
 
-The division of labour is exact but no longer asymmetric. A code this
-destination raises ITSELF is authored here fully in both languages, with its
-own measured numbers formatted into both. A violation raised by the frozen data
-contracts (:mod:`kairos.data.contracts`) keeps its English detail in
-``message`` byte-for-byte, because that sentence is the contract's own and
-nothing here may re-author it, but it now carries a Hebrew sentence too, keyed
-by the same eleven codes the contracts emit. The count inside that Hebrew is
-never parsed out of the frozen English and it is never assumed to be a row
-count either: it is that CODE's own quantity, recomputed by
+**Measured on the shipped card when only one half was authored:** the English
+printed the contract's own ``channel(s) not in known set: ['זרזיר 99', 'ערוץ
+פלוני']``, brackets, quotes and comma exactly as ``repr`` wrote them, while the
+Hebrew one click away read a plain comma-joined list with a recomputed count.
+The engine's own words reached the same card the same way, ``NaN value(s)
+present; not imputed`` and ``expected a datetime64 dtype``.
+
+The count inside either half is never parsed out of the frozen English and is
+never assumed to be a row count: it is that CODE's own quantity, recomputed by
 :func:`kairos_api.uploads_validate.finding_records` on the frame the contract
-actually validated, whether or not that frame's positions may be printed as
-row numbers on this operator's file. For most codes the quantity is how many
-values the same rule the contract ran flags on that frame, which is what
-``rows_total`` also holds when a row number may be printed, but the two are
-computed independently so a kind whose loader melts one row per channel
-column (a position in it is not a row the operator's file has) still gets its
-Hebrew count. ``unknown_channel`` is the one code whose quantity is not a
-count of values or rows at all: the sentence says "channel name(s)", so the
-number is the count of DISTINCT unknown names, :func:`unknown_channel_count`,
-never the count of rows carrying one. A record carries ``message_he`` only
-when there is a real Hebrew sentence behind it, so a code with no count in its
-English (a missing column, a wrong frame shape, a wrong dtype) still gets one,
-with no count in it either, and only a count this module could not recompute
-falls back to no Hebrew at all rather than to a blank slot or a stale number.
+validated, whether or not that frame's positions may be printed as row numbers,
+so a kind whose loader melts one row per channel column still gets its count.
+``unknown_channel`` is the one code whose quantity is not a count of values or
+rows at all: its sentence says "channel name(s)", so the number is the count of
+DISTINCT unknown names, :func:`unknown_channel_count`. A quantity of exactly one
+takes the entry's own singular pair, because "1 values" is a sentence in neither
+language.
 
-A left-to-right run inside a right-to-left sentence is wrapped in a first-strong
-isolate, the way :mod:`kairos_api.downloads_api` wraps a path: without it the
-Hebrew sentence's own punctuation is reordered to the wrong side of a column
-name. Each run is its own placeholder so each isolate resolves on its own
-content. The English sentence needs no isolate and carries none, so every
-English string here renders byte-identical to the one the door shipped before.
+No field reaches a sentence as a Python collection. :func:`plain` is the one
+function that turns a field into display text and it joins a list, a set or a
+tuple with a comma, so no route anybody adds later can put a repr on a card.
+
+A run in the other direction is wrapped in a first-strong isolate, the way
+:mod:`kairos_api.downloads_api` wraps a path: without it the sentence's own
+punctuation is reordered to the wrong side of the run, and each run is its own
+placeholder so each isolate resolves on its own content. The sentences authored
+for this module's own codes isolate the Hebrew half only and render
+byte-identical in English to the ones the door shipped; the pair authored for a
+frozen code isolates both, because a channel name in that English is Hebrew.
 """
 
 from __future__ import annotations
@@ -200,14 +201,12 @@ MESSAGES: dict[str, dict[str, str]] = {
         "he": "מזהה קמפיין campaign_id או תאריכי קמפיין",
     },
     # The frozen kairos.data.contracts codes below. Their English detail is
-    # never touched: it is the contract's own sentence and stays what
-    # ``message`` carries verbatim. Only the Hebrew half is authored here, and
-    # only from a count :func:`kairos_api.uploads_validate.finding_records`
-    # recomputes itself on the loaded frame the contract read, the way it
-    # already recomputes a violation's own row numbers: never by parsing the
-    # frozen English sentence. A code whose English carries no count (a missing
-    # column, a wrong frame shape, a wrong dtype) gets a Hebrew sentence with no
-    # count in it either.
+    # never touched: it stays what ``message`` carries verbatim. What is
+    # authored here is the pair a person reads instead of it, both languages
+    # from one entry, built only from a count
+    # :func:`kairos_api.uploads_validate.finding_records` recomputes on the
+    # loaded frame. A code whose sentence carries no count needs no ``_one``
+    # half; every code that counts has one, and the two are added together.
     "missing_frame": {
         "en": "no data table could be built from this file",
         "he": "לא ניתן היה לבנות טבלת נתונים מהקובץ הזה",
@@ -225,45 +224,76 @@ MESSAGES: dict[str, dict[str, str]] = {
         "he": "העמודה הזאת לא נטענה כתאריך או שעה שניתן לקרוא",
     },
     "non_numeric_values": {
-        "en": "{count} value(s) in this column could not be read as a number",
+        "en": "{count} values in this column could not be read as a number",
         "he": "{count} ערכים בעמודה הזאת לא ניתן היה לקרוא כמספר",
+        "en_one": "one value in this column could not be read as a number",
+        "he_one": "ערך אחד בעמודה הזאת לא ניתן היה לקרוא כמספר",
     },
     "nan_values": {
-        "en": "{count} value(s) in this column are missing and were left empty",
+        "en": "{count} values in this column are missing and were left empty",
         "he": "{count} ערכים בעמודה הזאת חסרים, ונשארו ריקים",
+        "en_one": "one value in this column is missing and was left empty",
+        "he_one": "ערך אחד בעמודה הזאת חסר, ונשאר ריק",
     },
     "negative_values": {
-        "en": "{count} value(s) in this column are below zero",
+        "en": "{count} values in this column are below zero",
         "he": "{count} ערכים בעמודה הזאת מתחת לאפס",
+        "en_one": "one value in this column is below zero",
+        "he_one": "ערך אחד בעמודה הזאת מתחת לאפס",
     },
     "non_positive_values": {
-        "en": "{count} value(s) in this column are zero or below",
+        "en": "{count} values in this column are zero or below",
         "he": "{count} ערכים בעמודה הזאת אפס או מתחת לאפס",
+        "en_one": "one value in this column is zero or below",
+        "he_one": "ערך אחד בעמודה הזאת אפס או מתחת לאפס",
     },
     "nan_channel": {
-        "en": "{count} row(s) have no channel in this column",
+        "en": "{count} rows have no channel in this column",
         "he": "ב־{count} שורות אין ערוץ בעמודה הזאת",
+        "en_one": "one row has no channel in this column",
+        "he_one": "בשורה אחת אין ערוץ בעמודה הזאת",
     },
     "unknown_channel": {
-        "en": "{count} channel name(s) in this column are not in the known set: {names}",
+        "en": "{count} channel names in this column are not in the known set: {names}",
         "he": "{count} שמות ערוץ בעמודה הזאת אינם ברשימת הערוצים המוכרים: {names}",
+        "en_one": "one channel name in this column is not in the known set: {names}",
+        "he_one": "שם ערוץ אחד בעמודה הזאת אינו ברשימת הערוצים המוכרים: {names}",
     },
     "end_before_start": {
-        "en": "{count} row(s) end before they start",
+        "en": "{count} rows end before they start",
         "he": "ב־{count} שורות הסיום קודם להתחלה",
+        "en_one": "one row ends before it starts",
+        "he_one": "בשורה אחת הסיום קודם להתחלה",
     },
 }
 
 
+def plain(value: object) -> str:
+    """One field as display text, with no Python punctuation left in it.
+
+    The defect this closes is a class and not a site: a list of channel names
+    reached a card as ``['זרזיר 99', 'ערוץ פלוני']``. Every sentence this
+    destination renders goes through here, so a caller that hands a collection
+    where a list of names goes gets the names, comma-joined, and never the
+    literal. A set is sorted so the same file reads the same way twice. A
+    two-item tuple is this module's two-language pair, resolved before it lands.
+    """
+    if isinstance(value, (set, frozenset)):
+        return ", ".join(sorted(plain(item) for item in value))
+    if isinstance(value, (list, tuple)):
+        return ", ".join(plain(item) for item in value)
+    return str(value)
+
+
 def _rendered(fields: dict[str, object], index: int, isolate: bool) -> dict[str, str]:
-    """One language's view of the fields, left-to-right runs isolated for Hebrew.
+    """One language's view of the fields, runs in the other direction isolated.
 
     A field whose value is a two-item tuple carries its own two languages, which
     is how a fragment assembled before the sentence stays in one language.
     """
     rendered: dict[str, str] = {}
     for name, value in fields.items():
-        text = str(value[index]) if isinstance(value, tuple) else str(value)
+        text = plain(value[index] if isinstance(value, tuple) and len(value) == 2 else value)
         rendered[name] = f"{ISOLATE_START}{text}{ISOLATE_END}" if isolate and text else text
     return rendered
 
@@ -278,31 +308,36 @@ def say(code: str, **fields: object) -> tuple[str, str]:
     return english, hebrew
 
 
-def contract_say(code: str, count: int | None = None, names: str = "") -> str:
-    """The Hebrew half of a violation the frozen data contracts raised, or "".
+def contract_say(code: str, count: int | None = None, names: str = "") -> tuple[str, str]:
+    """Both halves of a violation the frozen data contracts raised, or two blanks.
 
     The contract's own English detail is never touched by this: ``message``
     keeps carrying it exactly as :mod:`kairos.data.contracts` wrote it. What
-    this returns is a Hebrew sentence for the same code, built only from
-    numbers the caller already recomputed on the loaded frame rather than
-    parsed out of that English sentence, so nothing frozen is read to build it.
-    ``count`` is left unset for a code whose sentence carries none, and a code
-    that needs one but was not given one renders nothing rather than a
-    sentence with a hole in it, the same honest fallback ``say`` already gives
-    a code this module does not know at all.
+    this returns is the pair a person reads beside it, ENGLISH AND HEBREW FROM
+    ONE ENTRY IN ONE PASS, because the measured defect was two paths: the Hebrew
+    was authored here and the English was left as the contract's ``repr`` of a
+    Python list.
+
+    Both are built only from numbers the caller recomputed on the loaded frame,
+    never parsed out of the frozen English. ``count`` is left unset for a code
+    whose sentence carries none, and a code that needs one but was not given one
+    renders nothing at all rather than a sentence with a hole in it, in both
+    languages together. A count of exactly one takes the entry's own singular
+    pair when it has one, so no card reads "1 values".
     """
     words = MESSAGES.get(code)
     if words is None:
-        return ""
+        return "", ""
     fields: dict[str, object] = {}
     if count is not None:
         fields["count"] = count
     if names:
         fields["names"] = names
+    english, hebrew = ("en_one", "he_one") if count == 1 and "en_one" in words else ("en", "he")
     try:
-        return words["he"].format(**_rendered(fields, 1, True))
+        return words[english].format(**_rendered(fields, 0, True)), words[hebrew].format(**_rendered(fields, 1, True))
     except (KeyError, IndexError):
-        return ""
+        return "", ""
 
 
 def _unknown_channel_values(frame: pd.DataFrame | None, column: str, mask: pd.Series | None) -> list[str]:

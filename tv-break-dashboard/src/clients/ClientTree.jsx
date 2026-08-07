@@ -332,7 +332,7 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
       />
 
       <FlatGroup
-        title={pageText(locale, 'Booked, nothing aired yet', 'הוזמנו, טרם שודרו')}
+        title={pageText(locale, 'Booked, nothing priced in the day being read', 'הוזמנו, ללא תמחור ביום הנקרא')}
         note={pageText(locale, 'they have a campaign on file and no priced spot in the day being read', 'יש להם קמפיין רשום ואין תשדיר מתומחר ביום הנקרא')}
         clients={booked}
         locale={locale}

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { changedFields, goalLabel, localized, refusalText, vocabularyLabel, windowLabel } from './clients-money-helpers';
+import { changedFields, goalLabel, refusalText, vocabularyLabel, windowLabel } from './clients-money-helpers';
 import { addFlight, removeFlight, updateFlight } from './clients-api';
+import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 
 // The flights of one campaign, as rows that can be changed in place. A flight
 // is a line of the campaign, so it is added, amended and removed on the row
 // itself rather than through a wizard that re-asks for the campaign.
 //
-// The delivered column stays a state and never becomes a figure: nothing in
-// this repository observes delivery, so what a flight delivered is unknown, and
-// the reason and the path to supply it are printed under the table.
+// The delivered column is the campaign's own ledger, held to this flight's
+// dates. It stays a state and a figure at once, never one without the other:
+// what has been counted, over how many of the flight's days, marked as a floor
+// while any day of the flight has no per-spot source. The instant it was counted
+// at, the file it came from and the days that carry no source are printed under
+// the table in both states, so the figure and its basis are on the same screen.
 
 const EMPTY = { name: '', starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
 
@@ -62,6 +66,7 @@ export default function CampaignFlights({
   goalKinds = ['spots'],
   goalWords = [],
   delivery,
+  airStates = [],
   canEdit = false,
   onChanged,
   notify,
@@ -165,7 +170,14 @@ export default function CampaignFlights({
                   </td>
                   <td className="numeric" dir="ltr">{windowLabel(flight.starts_on, flight.ends_on, locale)}</td>
                   <td className="numeric" dir="ltr">{goalLabel(flight, locale, goalWords)}</td>
-                  <td><span className="clients-unknown">{pageText(locale, 'unknown', 'לא ידוע')}</span></td>
+                  <td>
+                    <DeliveryCell
+                      delivery={delivery}
+                      window={{ starts_on: flight.starts_on, ends_on: flight.ends_on }}
+                      vocabulary={airStates}
+                      locale={locale}
+                    />
+                  </td>
                   <td>
                     {canEdit && pendingRemove !== flight.flight_id ? (
                       <span className="clients-row-actions">
@@ -237,12 +249,7 @@ export default function CampaignFlights({
       ) : null}
 
       {error ? <p className="clients-error" role="alert">{error}</p> : null}
-      {delivery && !delivery.available ? (
-        <p className="clients-basis-note">{localized(delivery, 'reason', locale)}</p>
-      ) : null}
-      {delivery && !delivery.available ? (
-        <p className="clients-basis-path">{localized(delivery, 'path_forward', locale)}</p>
-      ) : null}
+      <DeliveryBasis delivery={delivery} locale={locale} />
     </div>
   );
 }

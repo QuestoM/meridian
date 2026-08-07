@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import ConstraintBuilder from '../../rules/ConstraintBuilder';
 import ScheduleEditorBreak from './ScheduleEditorBreak';
 import ScheduleEditorReadout from './ScheduleEditorReadout';
-import ScheduleEditorScope from './ScheduleEditorScope';
+import ScheduleEditorScope, { LaneCount } from './ScheduleEditorScope';
 import ScheduleEditorToolbar from './ScheduleEditorToolbar';
 import ScheduleInspector from './ScheduleInspector';
 import {
@@ -75,7 +75,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
 
   // Owned-channel segment anchors, resolved through the shared hook so a click
   // on a programme band opens the inspector for its addressable segment.
-  const { resolve } = useSegmentAnchors();
+  const { resolve, loaded: anchorsLoaded } = useSegmentAnchors();
   const [inspect, setInspect] = useState(null); // {segmentId, channel, day} | null
 
   const openInspector = (program) => {
@@ -299,7 +299,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
 
   // What this timeline draws against what the day and the plan actually hold.
   // See schedule-editor-scope.js for the measurement this exists to close.
-  const coverage = useEditorCoverage({ breaksShown: breaks.length, programsShown: programs.length, score: money.score });
+  const coverage = useEditorCoverage({ breaksShown: breaks.length, programs, score: money.score, resolve, anchorsLoaded });
 
   async function savePin(item) {
     const { startSec, durationSec } = currentState(item);
@@ -367,7 +367,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
           <div className="timeline-row" key={lane.lane} style={{ minWidth }}>
             <div className="timeline-lane" dir={he ? 'rtl' : 'ltr'}>
               <strong>{lane.label || lane.lane}</strong>
-              <span>{lane.items.length} {editorPageText(locale, 'breaks', 'ברייקים')}</span>
+              <LaneCount shown={lane.items.length} planned={coverage.plannedByLane[lane.lane]} locale={locale} />
             </div>
             <div
               className="timeline-track"

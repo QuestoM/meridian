@@ -36,17 +36,25 @@ import { SCOPE_LABELS, STATE_TONE, label } from './sources-copy.js';
 // contracts, whose own frame-level violations are theirs to name.
 const TOKEN_SCOPE = { '<file>': 'file', '<header>': 'header', '<frame>': 'frame' };
 
-// The reason, in the language the rest of the card is in. The server writes
-// every sentence it authors itself in both, and now writes a Hebrew sentence
-// for the violations the frozen contracts raised too, from a count measured
-// off the same rows rather than one parsed out of their frozen English, which
-// stays unchanged in the other language. Hebrew falls back to the English
-// sentence only for the rare finding this could not put a real count behind,
-// never the other way.
+// The reason, in the language the rest of the card is in, and the two languages
+// are read the same way round. The server authors both halves of a violation
+// the frozen data contracts raised, from a count measured off the same rows
+// rather than parsed out of their English, and sends them as ``message_en`` and
+// ``message_he`` beside the contract's own ``message``, which stays untouched
+// for the readers that parse it.
+//
+// **Measured on the shipped card before the English half was preferred here:**
+// ``message`` was printed verbatim in English, so a spots export with two
+// unknown channel names rendered the contract's own Python list literal,
+// ``['זרזיר 99', 'ערוץ פלוני']``, brackets and quotes and all, while the
+// identical finding one click away in Hebrew read a plain comma-joined list.
+// The engine's own words reached the same card the same way. Each locale
+// prefers its own authored half and falls back to ``message`` only for a
+// finding nothing could be authored for, and neither is the poor relation.
 export function findingMessage(finding, locale) {
   if (!finding) return '';
   if (locale === 'he') return String(finding.message_he || finding.message || '');
-  return String(finding.message || '');
+  return String(finding.message_en || finding.message || '');
 }
 
 // Which scope this finding carries, or an empty string when it is about a

@@ -85,6 +85,13 @@ function CampaignDrill({ open, locale, onBack }) {
               ))}
             </tbody>
           </table>
+          <p className="data-basis-note">
+            {pageText(
+              locale,
+              'Each date and start time is as the loaded spots source records it. No time zone is declared on that source, so which rows fall in a range and how their times read are both on the source clock.',
+              'כל תאריך ושעת התחלה הם כפי שמקור הספוטים שנטען רושם אותם. לא מוצהר אזור זמן במקור הזה, ולכן אילו שורות נופלות בטווח וכיצד נקראות השעות שלהן, שניהם לפי שעון המקור.',
+            )}
+          </p>
           {!revenueAvailable && (
             <p className="data-basis-note">
               {pageText(

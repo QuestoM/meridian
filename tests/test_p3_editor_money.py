@@ -277,7 +277,11 @@ def test_the_editor_prints_no_figure_before_the_engine_has_answered():
     assert "exactCurrency" not in idle and "formatPercent" not in idle, (
         "the idle state may not print a figure of any kind"
     )
-    assert 'const scopeText = `${basis.channel} / ${basis.day}`;' in money
+    # The scope is the channel and the day AND the plan the figure was computed
+    # on, because this panel prices the live re-plan while the sentence above the
+    # timeline counts the saved weekly plan. The basis wording itself is asserted
+    # as a class in test_p3_editor_coverage.py; here it only has to be present.
+    assert 'scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale)' in money
     assert money.count('className="day-figure-scope"') >= 4, "every figure names its own scope"
     assert "negative" not in money.lower()
 

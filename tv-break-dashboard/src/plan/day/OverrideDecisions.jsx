@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { pageText } from '../../shell/surface-helpers';
-import { formatCurrency, formatPercent } from '../../shell/surface-helpers';
+import { formatCurrency, formatPercent, pageText } from '../../shell/surface-helpers';
 import { asList, isNum, fmtNum, anchorText, isStale, runDayPlanJob, KINDS, kindLabel } from './override-console-lib';
+import { LIVE_PLAN, withBasis } from './plan-basis';
 import './override-console.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -132,7 +132,7 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
       const b = isNum(summary[d.after]) ? summary[d.after] : undefined;
       if (!isNum(a) && !isNum(b)) return null;
       const diff = isNum(a) && isNum(b) ? b - a : undefined;
-      return { label: pageText(locale, d.en, d.he), a, b, diff };
+      return { label: withBasis(pageText(locale, d.en, d.he), LIVE_PLAN, locale), a, b, diff };
     }).filter(Boolean);
   }, [preview, locale]);
 

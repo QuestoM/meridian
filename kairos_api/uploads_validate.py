@@ -1,11 +1,9 @@
 """Contract validation for an uploaded file, split out of ``uploads.py``.
 
 Split under the file-size cap, and named by the ``<parent stem>_<role>.py``
-rule the package already follows (``events_access.py`` says the same thing in
-its own docstring). Nothing here resolves a path or writes a file: every
-function takes the bytes it is given and returns findings, so the caller keeps
-every writable path in one module and a test that relocates those paths keeps
-working.
+rule the package already follows. Nothing here resolves a path or writes a
+file: every function takes the bytes it is given and returns findings, so the
+caller keeps every writable path in one module.
 
 The refusal is the point. An accepted upload is parsed with the REAL engine
 loader for its kind and checked against :mod:`kairos.data.contracts`, so a file
@@ -14,33 +12,32 @@ replace the live input, with the contract's own findings attached.
 
 Findings travel in two shapes on purpose. ``errors`` and ``warnings`` stay the
 flat strings every existing reader already parses, and ``findings`` carries the
-same violations as records (column, code, message, severity) so a surface can
-render a row per finding. A refusal also names the rows: a column and a count
-leave a steward searching a 175-row file by hand, so every violation that is
-about cells carries the row numbers those cells are on, recomputed from the
-same frame the contract read.
+same violations as records so a surface can render a row per finding. A refusal
+also names the rows: a column and a count leave a steward searching a 175-row
+file by hand, so every violation about cells carries those cells' row numbers.
 
 A file with a header and no data rows is the one refusal that has to be asked
 about every kind rather than about a loader, so the whole of that rule, and the
 two answers it has, is :mod:`kairos_api.uploads_empty`.
 
 A refusal never names a channel this operator does not own. A header list goes
-through :mod:`kairos_api.uploads_channels`; every finding's sentence goes
-through :func:`kairos_api.uploads_replay.at_the_door`, so message, message_he,
-errors and warnings pass one boundary for a screen and for :func:`store_report`.
-
-A refusal never names a column the operator's file does not have either. Every
-violation, this module's and the frozen contracts', is raised on the LOADED
+through :mod:`kairos_api.uploads_channels`; every finding's sentence goes through
+:func:`kairos_api.uploads_replay.at_the_door`, so every half of it passes one
+boundary for a screen and for :func:`store_report`. It never names a column the
+operator's file does not have either: every violation is raised on the LOADED
 frame, whose names are renamed or computed, so :func:`finding_records` resolves
 each one against the candidate's own header row through
 :mod:`kairos_api.uploads_columns`, once, where the record is made.
 
-A refusal is also read in Hebrew, so every sentence this module writes itself is
-written in both languages: the words live in :mod:`kairos_api.uploads_messages`
-and each record carries ``message_he`` beside ``message``. A violation the frozen
-contracts raised keeps its own English detail verbatim, but now gets a Hebrew
-half too, built by :func:`finding_records` from that code's own quantity on
-whichever frame the contract validated, so a melted kind still gets a count."""
+A refusal is read in two languages and neither may be the poor relation. Every
+sentence this module writes itself is written in both, from
+:mod:`kairos_api.uploads_messages`, and carries ``message_he`` beside
+``message``. A violation the frozen contracts raised keeps its own English detail
+verbatim in ``message``, where the machine record needs it, and carries the pair
+a person reads in ``message_en`` and ``message_he``, authored by
+:func:`finding_records` from ONE
+:func:`kairos_api.uploads_messages.contract_say` call, so the locale that used to
+be handed the contract's ``repr`` of a Python list cannot fall behind again."""
 
 from __future__ import annotations
 
@@ -85,8 +82,8 @@ CONTRACT_VALIDATORS: dict[str, Callable[[pd.DataFrame], contracts.ValidationRepo
 # The datetime column each loader derives. A file whose rows ALL fail to parse a
 # date would silently yield zero engine segments; a file where only SOME fail is
 # the realistic morning case, and those rows reach the engine dateless. Both are
-# refused, with the rows named. Every name in these two is the LOADER's, so it
-# is the header row of the file in hand that gets named on screen, never these.
+# refused, with the rows named. Every name here is the LOADER's, so it is the
+# header row of the file in hand that gets named on screen, never these.
 LOADED_DATE_COLUMN = {"programmes": "start_dt", "spots": "air_dt", "daily": "date"}
 
 # The clock column of the daily file, and what the engine gets from it: the
@@ -98,16 +95,15 @@ DAILY_CLOCK_COLUMN = "spot_time"
 # can tell whether 3/4 was read as the third of April or the fourth of March.
 DAILY_DATE_PATTERN = "M/D/YYYY"
 
-# The most row numbers one finding lists by name. The message carries the true
-# count in words and ``rows_total`` carries it as a number, so a file whose every
-# row is broken says how many without turning a refusal into a data dump.
+# The most row numbers one finding lists by name, so a file whose every row is
+# broken says how many in words and in ``rows_total`` rather than dumping them.
 ROW_LIST_CAP = 25
 
 # The kinds whose loader returns exactly one row per uploaded data row, so a
 # position in the loaded frame IS that row's number in the file. Measured: each
-# of these reads the CSV, adds columns and resets the index without dropping a
-# row. ``load_dayparts`` melts one row per channel column, so its positions are
-# not file rows and no dayparts finding carries one.
+# reads the CSV, adds columns and resets the index without dropping a row.
+# ``load_dayparts`` melts one row per channel column, so its positions are not
+# file rows and no dayparts finding carries one.
 ROW_ALIGNED_KINDS = frozenset({"programmes", "spots", "daily"})
 
 
@@ -124,10 +120,9 @@ def add_finding(report: contracts.ValidationReport, authored: dict[tuple[str, st
     the Hebrew half travels beside it keyed by the column and code it belongs to,
     and :func:`finding_records` puts the two back together. ``key`` is the copy
     table's entry when one code has two situations to say. ``boundary`` is the
-    raw material of the one sentence whose fields depend on the operator
-    channel, standing in for those fields rather than beside them. ``scope`` is
-    what a finding about no column is about, one of
-    :data:`uploads_messages.SCOPES`. ``column`` is the loaded frame's own name,
+    raw material of the one sentence whose fields depend on the operator channel,
+    standing in for those fields rather than beside them. ``scope`` is what a
+    finding about no column is about. ``column`` is the loaded frame's own name,
     resolved to the operator's own header by :func:`finding_records`."""
     english, translated = uploads_messages.say(key or code, **fields)
     report.add(column, code, english, severity)
@@ -151,8 +146,7 @@ def store_report(path: Path, kind: str, report_payload: dict[str, Any]) -> None:
     """Record this kind's latest report as codes, never blocking an upload.
 
     What lands on disk is :func:`uploads_replay.to_store`'s form: each finding's
-    code, key and measured fields, and never the sentence, for that module's own
-    stated reason.
+    code, key and measured fields, never the sentence, for that module's reason.
     """
     reports = load_reports(path)
     reports[kind] = uploads_replay.to_store(report_payload)
@@ -185,10 +179,9 @@ def violation_mask(violation: contracts.Violation, frame: pd.DataFrame) -> pd.Se
     """The rows one violation is about, recomputed on the frame it was raised on.
 
     Same rule, same frame, so a listed row number is that violation's row rather
-    than a guess. A violation about the header or about the frame as a whole (a
-    missing column, a wrong dtype, an empty file) is about no row and returns
-    None, and so does a code with no cell-level rule to re-run. The field is the
-    loaded frame's own name, which is what this frame is keyed by."""
+    than a guess. A violation about the header or about the frame as a whole is
+    about no row and returns None, and so does a code with no cell-level rule to
+    re-run. The field is the loaded frame's own name, which keys this frame."""
     column = str(violation.field)
     code = str(violation.code)
     if code == "end_before_start" and {"start_dt", "end_dt"} <= set(frame.columns):
@@ -236,18 +229,17 @@ def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | No
     column name is resolved against it: every violation, this module's and the
     frozen contracts', is raised on the LOADED frame, whose names are renamed or
     computed and are not what the operator's export says at the top. ``kind``
-    decides the one case where an absent name is still the right word, which is
-    :func:`uploads_columns.place`'s own subject.
+    decides the one case where an absent name is still the right word.
 
-    ``message_he`` is present on every violation this module wrote itself, and
-    now on every one the frozen contracts wrote too, authored below from that
-    code's own quantity on ``frame`` or, when that is None, on ``loaded``
-    itself (always the frame the contract validated), never parsed out of the
-    frozen English, which stays theirs, verbatim, in ``message``. One this
-    module wrote also carries ``key``, ``fields`` and ``boundary`` when the
-    sentence names a channel, so the stored report can re-render it against a
-    different reader's channel. ``scope`` says what a finding about no column
-    is about; ``effect`` says what a warning cost the engine.
+    A violation this module wrote carries ``message_he`` beside its ``message``,
+    and also ``key``, ``fields`` and ``boundary`` when the sentence names a
+    channel, so a stored report can re-render it against a different reader's
+    channel. One the frozen contracts wrote carries ``message_en`` and
+    ``message_he``, both authored below from that code's own quantity on
+    ``frame`` or, when that is None, on ``loaded`` itself (always the frame the
+    contract validated), while the contract's own sentence stays theirs,
+    verbatim, in ``message``. ``scope`` says what a finding about no column is
+    about; ``effect`` says what a warning cost the engine.
 
     ``rows`` carries at most :data:`ROW_LIST_CAP` row numbers of the uploaded
     file, counted from 1, and ``rows_total`` how many in all; both stay absent
@@ -274,14 +266,17 @@ def finding_records(report: contracts.ValidationReport, frame: pd.DataFrame | No
         if source.get("message_he"):
             record["message_he"] = source["message_he"]
         elif not source:
-            # Hebrew for a frozen finding: distinct names for unknown_channel, a value count otherwise.
+            # Both halves of a frozen finding, from one call: distinct names for
+            # unknown_channel, a value count otherwise. They arrive together or
+            # not at all, so one locale cannot be left with the contract's own.
             if code == "unknown_channel":
                 names = uploads_messages.unknown_channel_names(counted_on, column, mask)
                 count: int | None = uploads_messages.unknown_channel_count(counted_on, column, mask)
             else:
                 names, count = "", (int(mask.fillna(False).sum()) if mask is not None else None)
-            if he := uploads_messages.contract_say(code, count, names):
-                record["message_he"] = he
+            english, hebrew = uploads_messages.contract_say(code, count, names)
+            if english and hebrew:
+                record["message_en"], record["message_he"] = english, hebrew
         if source:
             record["key"] = source["key"]
             record["fields"] = source["fields"]
@@ -356,10 +351,10 @@ def run_contract_validation(
     must not replace the live input (error-severity contract violations).
 
     **Every kind reaches the no-rows rule, including the two that have no engine
-    loader at all**, whose measured gap and whose two answers are
-    :mod:`kairos_api.uploads_empty`'s own subject. There is still no contract to
-    run for those two, so a clean file of theirs reports nothing and the payload
-    stays None exactly as it did; an empty one is looked at."""
+    loader at all**, whose measured gap and two answers are
+    :mod:`kairos_api.uploads_empty`'s subject. There is still no contract to run
+    for those two, so a clean file of theirs reports nothing and the payload
+    stays None; an empty one is looked at."""
     checked_at = datetime.now(timezone.utc).isoformat()
     authored: dict[tuple[str, str], dict[str, Any]] = {}
     loaded: Any = None
@@ -438,12 +433,18 @@ def run_contract_validation(
         "rows_loaded": rows_loaded,
     }
     if not accepted:
-        # The Hebrew half of the headline reads the same three reasons, taking
-        # each finding's Hebrew where this module wrote it and its English
-        # detail where the frozen contract did, which is the same fallback the
-        # surface takes.
+        # Both halves of the headline read the same three reasons off the same
+        # three findings, one expression each, taking the sentence authored for
+        # that code and falling back to the contract's own detail. The English
+        # half used to quote the flat ``[error] column: code - detail`` lines
+        # instead, so one locale got internal scaffolding, a bracket and a
+        # Python list literal where the other got a sentence. ``errors`` still
+        # carries those flat lines, unchanged, for the readers that parse them.
         first = [f for f in findings if f["severity"] == "error"][:3]
-        reasons = ("; ".join(flat_errors[:3]), "; ".join(f.get("message_he") or f["message"] for f in first))
+        reasons = (
+            "; ".join(f.get("message_en") or f["message"] for f in first),
+            "; ".join(f.get("message_he") or f["message"] for f in first),
+        )
         detail, detail_he = uploads_messages.say("contract_refusal", dataset=report.dataset, reasons=reasons)
         return payload, warnings, reject(detail, list(flat_errors), detail_he, payload["findings"])
     return payload, warnings, None
