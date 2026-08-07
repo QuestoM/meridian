@@ -227,7 +227,12 @@ def test_a_restriction_that_changes_nothing_is_refused_rather_than_saved(client)
     }
     response = client.post("/api/constraints/restrictions", json=draft)
     assert response.status_code == 400
-    assert "nothing to save" in response.json()["detail"]
+    # Both halves on the wire, because the reader of this refusal may be reading
+    # either language and the server does not know which. Same subject as before,
+    # which is that the refusal says what it is; the English half is unchanged.
+    detail = response.json()["detail"]
+    assert "nothing to save" in detail["en"]
+    assert detail["he"] and detail["code"] == "nothing_to_save"
     assert not constraints_api.CONSTRAINTS_PATH.exists(), "a refused save must write nothing"
 
 

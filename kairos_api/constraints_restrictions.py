@@ -72,19 +72,19 @@ def _iso(value: str, label: str) -> str:
     try:
         return date.fromisoformat(text).isoformat()
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"{label} must be an ISO date, got {text!r}.") from exc
+        raise sentence_lib.refuse("bad_iso_date", field=sentence_lib.field_name(label), value=text) from exc
 
 
 def _validated(draft: RestrictionDraft) -> tuple[Optional[dict[str, Any]], str, str]:
     from kairos_api._constraint_options import validate_where
 
     if draft.kind not in KINDS:
-        raise HTTPException(status_code=400, detail=f"kind must be one of {sorted(KINDS)}")
+        raise sentence_lib.refuse("unknown_kind")
     where = validate_where(draft.where)
     starts_on = _iso(draft.starts_on, "starts_on")
     expires_on = _iso(draft.expires_on, "expires_on")
     if starts_on and expires_on and expires_on <= starts_on:
-        raise HTTPException(status_code=400, detail="The end date has to fall after the start date.")
+        raise sentence_lib.refuse("end_before_start")
     return where, starts_on, expires_on
 
 
@@ -102,7 +102,7 @@ def _compile(draft: RestrictionDraft) -> tuple[list[CompiledRow], list[Any], Opt
             starts_on=starts_on, expires_on=expires_on,
         )
     except RestrictionError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise sentence_lib.refuse("will_not_compile", problem=(str(exc), exc.hebrew)) from exc
     return rows, matched, where, starts_on, expires_on
 
 
@@ -206,7 +206,10 @@ def restriction_airings(title: str = "") -> dict[str, Any]:
         "airings": airings_lib.airing_records(matched) if wanted else [],
         "nights": nights,
         "night_count": len(nights),
-        "reason": "" if wanted else "Name a programme to list its airings.",
+        # Both halves, because a screen prints one of them and the server does
+        # not know which. Empty when a programme was named and nothing is owed.
+        "reason": "" if wanted else sentence_lib.say("name_a_programme")[0],
+        "reason_he": "" if wanted else sentence_lib.say("name_a_programme")[1],
     }
 
 
@@ -284,10 +287,7 @@ def create_restriction(draft: RestrictionDraft, request: Request = None) -> dict
 
     rows, matched, where, starts_on, expires_on = _compile(draft)
     if not rows:
-        raise HTTPException(
-            status_code=400,
-            detail="This restriction changes nothing in the current plan window, so there is nothing to save.",
-        )
+        raise sentence_lib.refuse("nothing_to_save")
     words = sentence_lib.render(draft.kind, draft.params, where)
     restriction_id = uuid.uuid4().hex[:12]
     created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -306,7 +306,14 @@ def create_restriction(draft: RestrictionDraft, request: Request = None) -> dict
             "duration_min_seconds": "",
             "duration_max_seconds": "",
             "order_index": "",
-            "notes": words["sentence_en"],
+            # NOT the sentence. ``notes`` is the free-text field the condition
+            # builder offers a person, and putting the English rendering in it
+            # meant every saved row read back in English to a Hebrew reader, on
+            # a surface whose whole claim is that a rule reads in plain
+            # language. The row carries ``restriction_id``, ``rule_kind`` and
+            # ``rule_params_json``, which is what the sentence renders from in
+            # the reader's own language, so the note stays a note a person typed.
+            "notes": "",
             "where_json": where_json_cell(row.where),
             "restriction_id": restriction_id,
             "rule_kind": draft.kind,
@@ -342,11 +349,11 @@ def delete_restriction(restriction_id: str, request: Request = None) -> dict[str
     with _STORE_LOCK:
         frame = _load_frame()
         if "restriction_id" not in frame.columns:
-            raise HTTPException(status_code=404, detail=f"restriction '{restriction_id}' not found")
+            raise sentence_lib.refuse("restriction_gone", 404)
         mask = frame["restriction_id"].astype(str) == restriction_id
         removed = int(mask.sum())
         if not removed:
-            raise HTTPException(status_code=404, detail=f"restriction '{restriction_id}' not found")
+            raise sentence_lib.refuse("restriction_gone", 404)
         frame = frame[~mask].reset_index(drop=True)
         _snapshot_before_write(request)
         _write_frame(frame)

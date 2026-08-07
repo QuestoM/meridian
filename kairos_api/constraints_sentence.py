@@ -188,3 +188,83 @@ def render(kind: str, params: dict[str, Any], where: Optional[dict[str, Any]]) -
         "scope_en": scope_en,
         "scope_he": scope_he,
     }
+
+
+# Every refusal these routes write themselves, one entry each, both languages in
+# it. The rule this module opens with covers a rule READ BACK; a rule REFUSED is
+# the same sentence with the same reader, and it was authored in English alone,
+# so a Hebrew composer got "This restriction changes nothing in the current plan
+# window" and, where the sentence named a field, the store's own Latin column
+# name inside it. :func:`refuse` is the only way one of these leaves the
+# process, and it carries both halves or it carries neither.
+_FIELD_NAMES = {
+    "starts_on": ("The start date", "תאריך ההתחלה"),
+    "expires_on": ("The end date", "תאריך הסיום"),
+}
+
+REFUSALS: dict[str, dict[str, str]] = {
+    "bad_iso_date": {"en": "{field} has to be a calendar date, and {value} is not one.",
+                     "he": "{field} חייב להיות תאריך בלוח השנה, ו-{value} אינו כזה."},
+    "end_before_start": {"en": "The end date has to fall after the start date.",
+                         "he": "תאריך הסיום חייב לחול אחרי תאריך ההתחלה."},
+    "unknown_kind": {"en": "There is no restriction of that sort to write.",
+                     "he": "אין סוג הגבלה כזה לכתוב."},
+    "will_not_compile": {"en": "This restriction cannot be compiled as written: {problem}",
+                         "he": "לא ניתן להרכיב את ההגבלה הזאת כפי שנכתבה: {problem}"},
+    "nothing_to_save": {"en": "This restriction changes nothing in the current plan window, so there is nothing to save.",
+                        "he": "ההגבלה הזאת אינה משנה דבר בחלון התוכנית הנוכחי, ולכן אין מה לשמור."},
+    "restriction_gone": {"en": "That restriction is not in the store, so there is nothing to remove.",
+                         "he": "ההגבלה הזאת אינה במאגר, ולכן אין מה להסיר."},
+    "constraint_gone": {"en": "That condition is not in the store, so there is nothing to remove.",
+                        "he": "התנאי הזה אינו במאגר, ולכן אין מה להסיר."},
+    "bad_scope_type": {"en": "That is not a scope a condition can be written against.",
+                       "he": "זה אינו היקף שאפשר לכתוב מולו תנאי."},
+    "bad_effect": {"en": "That is not an effect a condition can hold.",
+                   "he": "זו אינה השפעה שתנאי יכול לשאת."},
+    "no_segments": {"en": "The plan of record holds no broadcast day for that channel and date.",
+                    "he": "בתוכנית הרשומה אין יום שידור לערוץ ולתאריך האלה."},
+    "segments_failed": {"en": "The plan segments could not be built for that day, so there is nothing to preview.",
+                        "he": "לא ניתן היה לבנות את מקטעי התוכנית ליום הזה, ולכן אין מה להציג."},
+    "name_a_programme": {"en": "Name a programme to list its airings.",
+                         "he": "נקבו בשם תוכנית כדי לראות את השידורים שלה."},
+}
+
+
+def say(code: str, **fields: object) -> tuple[str, str]:
+    """This refusal in English and in Hebrew, together or not at all.
+
+    A field whose value is a two-item tuple carries its own two languages, which
+    is how the name of a date field stays in the language of the sentence.
+    """
+    words = REFUSALS.get(code)
+    if words is None:
+        return "", ""
+    rendered = [
+        {name: str(value[index] if isinstance(value, tuple) and len(value) == 2 else value)
+         for name, value in fields.items()}
+        for index in (EN, HE)
+    ]
+    try:
+        return words["en"].format(**rendered[EN]), words["he"].format(**rendered[HE])
+    except (KeyError, IndexError):
+        return "", ""
+
+
+def refuse(code: str, status: int = 400, **fields: object) -> Exception:
+    """The refusal as the exception a route raises, both languages on the wire.
+
+    ``detail`` is an object rather than a string because a refusal has one reader
+    and two possible languages and the server does not know which. The surface
+    reads its own half off it. :func:`kairos_api.uploads_messages.reject` puts
+    the same pair on the same wire under ``detail`` and ``detail_he``; this is
+    that contract for a route that has to raise rather than return.
+    """
+    from fastapi import HTTPException
+
+    english, hebrew = say(code, **fields)
+    return HTTPException(status_code=status, detail={"en": english, "he": hebrew, "code": code})
+
+
+def field_name(label: str) -> tuple[str, str]:
+    """One authoring field as a person says it, in both languages."""
+    return _FIELD_NAMES.get(label, (label, label))

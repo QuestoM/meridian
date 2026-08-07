@@ -84,9 +84,27 @@ PER_AIRING_KINDS = frozenset({CLEAN_TAIL, CLEAN_OPEN})
 
 MAX_COMPILED_ROWS = 60
 
+# The parameters a restriction carries, as a person says them rather than as the
+# store spells them, in both languages from one entry.
+_PARAM_NAMES = {
+    "protected_minutes": ("The protected minutes", "מספר הדקות המוגנות"),
+    "count": ("The break count", "מספר הברייקים"),
+    "offset_seconds": ("The offset into the programme", "ההיסט לתוך התוכנית"),
+}
+
 
 class RestrictionError(ValueError):
-    """A restriction that cannot be stated exactly, with the reason."""
+    """A restriction that cannot be stated exactly, with the reason said twice.
+
+    ``str()`` is the English half and ``hebrew`` is the same reason from the same
+    raise. The composer that surfaces this is a Hebrew screen by default, and the
+    reason was authored in English alone, so both halves are given together at
+    every raise or the reason does not leave this module.
+    """
+
+    def __init__(self, english: str, hebrew: str = "") -> None:
+        self.hebrew = hebrew or english
+        super().__init__(english)
 
 
 @dataclass(frozen=True)
@@ -268,7 +286,10 @@ def compile_restriction(
     row whatever the plan holds.
     """
     if kind not in KINDS:
-        raise RestrictionError(f"'{kind}' is not a restriction kind.")
+        raise RestrictionError(
+            "There is no restriction of that sort to write.",
+            "אין סוג הגבלה כזה לכתוב.",
+        )
     scoped = dated_predicate(where, starts_on, expires_on)
 
     if kind == NO_BREAKS:
@@ -306,7 +327,8 @@ def compile_restriction(
         ))
     if len(rows) > MAX_COMPILED_ROWS:
         raise RestrictionError(
-            f"This restriction touches {len(rows)} airings, more than the {MAX_COMPILED_ROWS} the store can name exactly. Narrow it to one programme or a shorter date range."
+            f"This restriction touches {len(rows)} airings, more than the {MAX_COMPILED_ROWS} the store can name exactly. Narrow it to one programme or a shorter date range.",
+            f"ההגבלה הזאת נוגעת ב-{len(rows)} שידורים, יותר מ-{MAX_COMPILED_ROWS} שהמאגר יכול לנקוב בהם בדיוק. צמצמו לתוכנית אחת או לטווח תאריכים קצר יותר.",
         )
     return rows
 
@@ -325,9 +347,15 @@ def _int_param(params: dict[str, Any], name: str, *, low: int, high: int) -> int
     try:
         value = int(float(raw))
     except (TypeError, ValueError) as exc:
-        raise RestrictionError(f"{name} must be a whole number.") from exc
+        raise RestrictionError(
+            f"{_PARAM_NAMES.get(name, (name, name))[0]} has to be a whole number.",
+            f"{_PARAM_NAMES.get(name, (name, name))[1]} חייב להיות מספר שלם.",
+        ) from exc
     if not low <= value <= high:
-        raise RestrictionError(f"{name} must be between {low} and {high}.")
+        raise RestrictionError(
+            f"{_PARAM_NAMES.get(name, (name, name))[0]} has to be between {low} and {high}.",
+            f"{_PARAM_NAMES.get(name, (name, name))[1]} חייב להיות בין {low} ל-{high}.",
+        )
     return value
 
 

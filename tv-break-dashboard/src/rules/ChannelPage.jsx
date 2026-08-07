@@ -4,6 +4,7 @@ import { Lock, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { payloadCanEdit, WALLS } from '../session.js';
 import {
+  detailWords,
   fetchActivation,
   fetchOperatorChannel,
   refusalSentence,
@@ -33,7 +34,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
   const [confirming, setConfirming] = useState('');
 
   const load = useCallback(() => {
-    fetchOperatorChannel().then(setChannel).catch((problem) => setError(problem.message));
+    fetchOperatorChannel().then(setChannel).catch((problem) => setError(detailWords(problem, locale)));
     fetchActivation().then(setActivationState).catch(() => setActivationState(null));
   }, []);
 
@@ -51,7 +52,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
       );
       onGlobalRefresh?.();
     } catch (problem) {
-      notify?.(`Setting the channel failed (${problem.message}).`, `קביעת הערוץ נכשלה (${problem.message}).`);
+      notify?.(`Setting the channel failed (${detailWords(problem, 'en')}).`, `קביעת הערוץ נכשלה (${detailWords(problem, 'he')}).`);
     } finally {
       setPending(false);
     }
@@ -68,7 +69,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
       );
       onGlobalRefresh?.();
     } catch (problem) {
-      notify?.(`The switch was refused (${problem.message}).`, `המתג נדחה (${problem.message}).`);
+      notify?.(`The switch was refused (${detailWords(problem, 'en')}).`, `המתג נדחה (${detailWords(problem, 'he')}).`);
     } finally {
       setPending(false);
     }

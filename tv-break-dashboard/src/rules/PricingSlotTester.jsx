@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
 import { DAY_NAMES, DAY_ORDER, layerLabel, sourceLabel } from './pricing-layers-lib';
+import { detailWords } from './rules-lib';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -72,8 +73,8 @@ function PricingSlotTester({ state, locale, notify, currency }) {
       setTesterError(null);
     } catch (error) {
       setBreakdown(null);
-      setTesterError(error.message);
-      notify(`Price tester failed (${error.message}).`, `בודק המחיר נכשל (${error.message}).`);
+      setTesterError(detailWords(error, locale));
+      notify(`Price tester failed (${detailWords(error, 'en')}).`, `בודק המחיר נכשל (${detailWords(error, 'he')}).`);
     }
   }, [slot, notify]);
 

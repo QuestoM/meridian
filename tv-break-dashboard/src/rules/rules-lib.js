@@ -62,9 +62,15 @@ async function readJson(path, init) {
     body = null;
   }
   if (!response.ok) {
-    const detail = body && body.detail ? String(body.detail) : `${response.status} ${response.statusText}`;
+    // The rules routes send `detail` as an object carrying both languages, so
+    // both halves ride on the error and a renderer picks its reader's own.
+    // Every other route sends one string, which stays what both readers get.
+    const raw = body && body.detail;
+    const words = raw && typeof raw === 'object' ? raw : null;
+    const detail = words ? String(words.en || words.he || '') : (raw ? String(raw) : `${response.status} ${response.statusText}`);
     const error = new Error(detail);
     error.status = response.status;
+    error.words = words;
     throw error;
   }
   return body;
@@ -358,14 +364,19 @@ export function collateralSentence(locale, collateral, moneyText) {
 // keeps reaching them by the same name.
 export {
   EFFECT_LIST,
+  basisReason,
   calendarPricingBannerSentence,
   complianceScopeSentence,
+  detailWords,
   effectLabel,
+  limitBoundsRefusal,
   limitLabel,
+  money,
   moreProgrammesSentence,
   nothingToSaveSentence,
   rateCardTabLinkLabel,
   refusalSentence,
+  refusalWords,
   scheduledChangesSentence,
   unitLabel,
   widerScopeSentence,
@@ -430,18 +441,3 @@ export function dropOverride(base, path) {
   return Object.keys(out).length > 0 ? out : null;
 }
 
-// Money on this surface is never compacted. The shell formatter switches to
-// compact notation above 100,000, which would render a before of 1,067,846 and
-// an after of 1,030,969 as the same two characters, and the whole point of this
-// surface is that the difference between them is the decision. Full grouped
-// digits, always, with the sign kept so a cost reads as a cost.
-export function money(value, locale) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return '--';
-  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
-    style: 'currency',
-    currency: 'ILS',
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  }).format(number);
-}

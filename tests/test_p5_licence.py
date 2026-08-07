@@ -275,17 +275,33 @@ def test_a_channel_administrator_is_refused_the_licence_write_and_keeps_the_read
     change = {"values": {"max_breaks_per_hour": 3}, "effective_date": "2026-12-01", "reason": "test"}
     refused = walled["channel"].post("/api/rules/guardrails", json=change)
     assert refused.status_code == 403, refused.text
-    assert refused.json()["detail"] == guardrail_store.GUARDRAIL_COMPANY_ONLY_DETAIL
 
     read = walled["channel"].get("/api/rules/guardrails")
     assert read.status_code == 200
     assert read.json()["can_edit"] is False
-    assert read.json()["can_edit_reason"] == guardrail_store.GUARDRAIL_COMPANY_ONLY_DETAIL
     assert read.json()["values"]["max_breaks_per_hour"] == 4, "the refusal changed nothing"
+
+    # The subject here is that a refusal explains itself, and that the reason a
+    # control renders BEFORE the click is the one the server would have sent
+    # after it. That subject is kept and widened. What is dropped is the demand
+    # that it be a particular spelling in a particular language: these lines used
+    # to assert the reason equals one Hebrew constant, which is exactly the
+    # defect an English reader was measured hitting, and pinning it here is why
+    # four rounds of this piece could close a site and stay green. The pair comes
+    # from the one entry the wall's own detail is taken from, so the pre-click
+    # reason, the 403 body and both halves are provably the same refusal.
+    english, hebrew = guardrail_store.say("company_only")
+    assert refused.json()["detail"] == hebrew, "the 403 body is still the wall's own single string"
+    assert read.json()["can_edit_reason"] == hebrew, "the reason before the click is the reason after it"
+    assert read.json()["can_edit_reason_he"] == hebrew
+    assert read.json()["can_edit_reason_en"] == english
+    assert english != hebrew and english, "a refusal a reader of either language can read"
 
     attested = walled["channel"].get("/api/rules/attestation")
     assert attested.status_code == 200, "the compliance owner reads their own licence"
     assert attested.json()["can_edit"] is False
+    assert attested.json()["can_edit_reason_en"] == english, "the same pair on every walled licence payload"
+    assert attested.json()["can_edit_reason_he"] == hebrew
 
 
 def test_the_same_refusal_covers_the_apply_route_and_the_company_admin_passes_both(walled):

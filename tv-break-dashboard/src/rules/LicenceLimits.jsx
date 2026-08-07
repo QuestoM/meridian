@@ -3,7 +3,7 @@ import { Button } from '@mui/material';
 import { Lock } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
-import { limitLabel } from './rules-lib';
+import { detailWords, limitBoundsRefusal, limitLabel } from './rules-lib';
 
 // The four numbers that are the licence. They used to sit beside the revenue
 // slider with the same permission, which meant the person accountable for them
@@ -21,7 +21,7 @@ const LIMITS = [
   { key: 'protected_program_max_ad_minutes_per_hour', step: 0.5, unitEn: 'minutes', unitHe: 'דקות' },
 ];
 
-export default function LicenceLimits({ locale, values, effectiveDate, canEdit, reason, onChange }) {
+export default function LicenceLimits({ locale, values, bounds, effectiveDate, canEdit, reason, onChange }) {
   const [draft, setDraft] = useState({});
   const [effective, setEffective] = useState('');
   const [why, setWhy] = useState('');
@@ -29,7 +29,13 @@ export default function LicenceLimits({ locale, values, effectiveDate, canEdit, 
   const [error, setError] = useState('');
 
   const moved = Object.entries(draft).filter(([key, value]) => Number(value) !== Number(values[key]));
-  const ready = moved.length > 0 && Boolean(effective);
+  // A value the licence cannot hold is refused here, in this reader's own
+  // language, off the same bounds the store validates against. The route that
+  // answers a rejected change is frozen and forwards only the English half of
+  // the server's refusal, so the one case a person reaches by typing is the one
+  // case that must never get there. The save stays shut while any value is out.
+  const refusals = moved.map(([key, value]) => limitBoundsRefusal(locale, key, value, bounds)).filter(Boolean);
+  const ready = moved.length > 0 && Boolean(effective) && refusals.length === 0;
 
   async function submit() {
     setSaving(true);
@@ -40,7 +46,7 @@ export default function LicenceLimits({ locale, values, effectiveDate, canEdit, 
       setEffective('');
       setWhy('');
     } catch (problem) {
-      setError(problem.message);
+      setError(detailWords(problem, locale));
     } finally {
       setSaving(false);
     }
@@ -112,10 +118,13 @@ export default function LicenceLimits({ locale, values, effectiveDate, canEdit, 
               'שינוי בתאריך עתידי מתועד עכשיו ואינו משנה מספר עד אותו יום.',
             )}
           </p>
+          {refusals.map((refusal) => (
+            <span className="rules-inline-error" role="status" dir="auto" key={refusal}>{refusal}</span>
+          ))}
           <Button className="run-button" type="button" variant="contained" disabled={!ready || saving} onClick={submit}>
             {pageText(locale, 'Record the change', 'תיעוד השינוי')}
           </Button>
-          {error && <span className="rules-inline-error" role="status">{error}</span>}
+          {error && <span className="rules-inline-error" role="status" dir="auto">{error}</span>}
         </div>
       )}
     </section>

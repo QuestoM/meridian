@@ -6,11 +6,13 @@ import DateField from '../shell/DateField';
 import { payloadCanEdit, WALLS } from '../session.js';
 import LicenceLimits from './LicenceLimits';
 import {
+  detailWords,
   fetchAttestation,
+  fetchGuardrails,
   limitLabel,
   pairLabel,
   recordGuardrailChange,
-  refusalSentence,
+  refusalWords,
   scheduledChangesSentence,
   unitLabel,
   valuePair,
@@ -45,14 +47,20 @@ export default function LicencePage({ locale, session, notify }) {
   const [state, setState] = useState(null);
   const [error, setError] = useState('');
   const [since, setSince] = useState('');
+  // The bounds the store validates a change against, read from the store rather
+  // than restated here, so what this surface refuses and what the server would
+  // refuse are one set of numbers. The attestation does not carry them; the
+  // guardrails read does, and it is the same store either way.
+  const [bounds, setBounds] = useState({});
 
   const load = useCallback((day) => {
     fetchAttestation(day)
       .then((body) => { setState(body); setError(''); })
-      .catch((problem) => setError(problem.message));
+      .catch((problem) => setError(detailWords(problem, locale)));
   }, []);
 
   useEffect(() => { load(since); }, [load, since]);
+  useEffect(() => { fetchGuardrails().then((body) => setBounds(body.bounds || {})).catch(() => setBounds({})); }, []);
 
   async function change(values, effectiveDate, reason) {
     await recordGuardrailChange(values, effectiveDate, reason);
@@ -237,12 +245,16 @@ export default function LicencePage({ locale, session, notify }) {
         )}
       </section>
 
+      {/* The refusal comes from the payload's own pair when the server sent
+          one, which is the same entry the 403 would have carried, so the
+          sentence above four English fields is no longer a Hebrew one. */}
       <LicenceLimits
         locale={locale}
         values={licence.values || {}}
+        bounds={bounds}
         effectiveDate={licence.effective_date}
         canEdit={gate.canEdit}
-        reason={refusalSentence(gate.reason, locale)}
+        reason={refusalWords(state, gate.reason, locale)}
         onChange={change}
       />
     </div>

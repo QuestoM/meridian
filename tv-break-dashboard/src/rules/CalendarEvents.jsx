@@ -3,6 +3,7 @@ import { Button } from '@mui/material';
 import { Info, RefreshCcw } from 'lucide-react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
 import { readEventsLayer } from './pricing-layers-lib';
+import { detailWords } from './rules-lib';
 import { ModelContextPanel, OverlapPanel, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 import CalendarEventsList from './CalendarEventsList';
 import CalendarHolidays from './CalendarHolidays';
@@ -116,7 +117,11 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
     });
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
-      throw new Error(detail.detail || `${response.status} ${response.statusText}`);
+      const raw = detail && detail.detail;
+      const words = raw && typeof raw === 'object' ? raw : null;
+      const failure = new Error(words ? String(words.en || words.he || '') : (raw ? String(raw) : `${response.status} ${response.statusText}`));
+      failure.words = words;
+      throw failure;
     }
     return response.json().catch(() => ({}));
   }
@@ -152,7 +157,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
       onGlobalRefresh?.();
       return true;
     } catch (error) {
-      notify(`Saving the event failed (${error.message}).`, `שמירת האירוע נכשלה (${error.message}).`);
+      notify(`Saving the event failed (${detailWords(error, 'en')}).`, `שמירת האירוע נכשלה (${detailWords(error, 'he')}).`);
       return false;
     } finally {
       setBusy(false);
@@ -170,7 +175,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
       await load();
       onGlobalRefresh?.();
     } catch (error) {
-      notify(`Updating the event failed (${error.message}).`, `עדכון האירוע נכשל (${error.message}).`);
+      notify(`Updating the event failed (${detailWords(error, 'en')}).`, `עדכון האירוע נכשל (${detailWords(error, 'he')}).`);
     } finally {
       setBusy(false);
     }
@@ -200,7 +205,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
       }
       notify(`Imported ${created} holidays as events. They can be restored from the Restore changes page.`, `יובאו ${created} חגים כאירועים. ניתן לשחזר מעמוד שחזור שינויים.`);
     } catch (error) {
-      notify(`Holiday import stopped after ${created} events (${error.message}).`, `ייבוא החגים נעצר אחרי ${created} אירועים (${error.message}).`);
+      notify(`Holiday import stopped after ${created} events (${detailWords(error, 'en')}).`, `ייבוא החגים נעצר אחרי ${created} אירועים (${detailWords(error, 'he')}).`);
     } finally {
       setBusy(false);
       await load();

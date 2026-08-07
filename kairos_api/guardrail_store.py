@@ -9,23 +9,22 @@ had changed since the last review.
 This module is their home. It gives them the three things the settings
 document could not:
 
-- **An effective date.** A change carries the date it takes force. The store
-  answers what the limits were, or will be, on any given day, so a change can
-  be recorded before it applies and an attestation can name the day it covers.
-- **A change record.** Every change appends who changed it, when it was
-  recorded, which values moved, what they were before, and why. The log is
-  append-only; nothing rewrites history.
+- **An effective date.** A change carries the date it takes force, so the store
+  answers what the limits were, or will be, on any given day.
+- **A change record.** Every change appends who changed it, when, which values
+  moved, what they were before, and why. Append-only; nothing rewrites history.
 - **A distinct permission.** Changing a limit is company staff only, by the
   owner's ruling of 2026-08-01, and an admin act on top of that. The revenue
-  slider stays where it is: an operator may still move it. Reading is not gated
-  at all, because the licence is the broadcaster's own and the person who
-  attests to it works for the broadcaster.
+  slider stays where it is. Reading is not gated at all, because the licence is
+  the broadcaster's own and the person who attests to it works for it.
 
 The values here are today's shipped values, and a test pins them against the
 ``KairosSettings`` defaults so the two cannot silently diverge while both
-exist. Nothing reads this store yet: the cutover is one line in the piece that
-owns the rules surface, and :func:`settings_overlay` is that line. It is an
-exact identity while the two agree, which is also a test.
+exist. :func:`settings_overlay` is the cutover onto the engine, an exact
+identity while the two agree, which is also a test. **Every sentence this store
+serves a screen is authored in both languages at once**, through :func:`say`
+and :data:`WORDS`: the reader may be reading either, and a refusal nobody can
+read is not a refusal.
 """
 
 from __future__ import annotations
@@ -40,7 +39,9 @@ from typing import Any, Optional
 
 from fastapi import Request
 
-from kairos_api.affiliation_wall import ADMIN_ROLES, Wall
+from kairos_api.affiliation_wall import ADMIN_ROLES, Wall, has_role
+# The process's one first-strong isolate pair, not a second copy of it.
+from kairos_api.uploads_messages import ISOLATE_END, ISOLATE_START
 
 logger = logging.getLogger(__name__)
 
@@ -67,20 +68,111 @@ BOUNDS: dict[str, tuple[type, float, float]] = {
     "protected_program_max_ad_minutes_per_hour": (float, 0.0, 60.0),
 }
 
-GUARDRAIL_ADMIN_ONLY_DETAIL = "עריכת מגבלות הרגולציה שמורה למנהל המערכת"
-GUARDRAIL_COMPANY_ONLY_DETAIL = "שינוי מגבלות הרגולציה שמור לצוות החברה"
+# The four limits as the person accountable for them says them, both languages
+# from one entry. A sentence below that names a limit takes the pair and each
+# half resolves its own, so a Hebrew refusal never names the engine's key.
+LIMIT_NAMES: dict[str, tuple[str, str]] = {
+    "max_ad_minutes_per_hour": ("ad minutes per broadcast hour", "דקות פרסום לשעת שידור"),
+    "max_breaks_per_hour": ("breaks per hour", "ברייקים בשעה"),
+    "min_break_spacing_minutes": ("the minimum spacing between breaks", "המרווח המינימלי בין ברייקים"),
+    "protected_program_max_ad_minutes_per_hour": ("ad minutes per hour in protected content", "דקות פרסום לשעה בתוכן מוגן"),
+}
 
-# Both gates, and the reason is that the owner ruled on this one. Changing a
-# licence number is company staff only until a real owner for it is named at the
-# broadcaster, so affiliation is the outer gate; role is still the inner one, so
-# a company account that may not write anything may not write this either.
-#
-# The READ is deliberately not gated. The compliance owner is a broadcaster's
-# person and the licence is the broadcaster's own, so they read every limit,
-# every change and the whole attestation; what they cannot do is move a number.
-# Nothing here calls ``guard`` or ``require_read``, so the read stays open by
-# construction and ``stamp`` reports the write answer before the click.
-GUARDRAIL_WALL = Wall(
+# Every sentence this store serves a screen, one entry each. Measured before
+# this: the wall's refusal was authored in Hebrew alone and ``can_edit_reason``
+# carried it verbatim, so with the product in English the licence section printed
+# ``שינוי מגבלות הרגולציה שמור לצוות החברה`` above four English fields; and the
+# mirror of it sat under the save button, where every :class:`GuardrailError` was
+# authored in English alone, reached a Hebrew screen through the 400 the route
+# raises, and named the engine's own key while it did it. The Hebrew halves of
+# ``company_only`` and ``admin_only`` are the wall's own two details, taken from
+# here rather than restated, which is why the 403 body and the reason a control
+# renders before the click are still one string and still byte-identical.
+WORDS: dict[str, dict[str, str]] = {
+    "company_only": {"en": "Only company staff change the regulatory limits.",
+                     "he": "שינוי מגבלות הרגולציה שמור לצוות החברה"},
+    "admin_only": {"en": "Only an administrator changes the regulatory limits.",
+                   "he": "עריכת מגבלות הרגולציה שמורה למנהל המערכת"},
+    "bad_date": {"en": "The effective date has to be a calendar date, and {value} is not one.",
+                 "he": "תאריך התוקף חייב להיות תאריך בלוח השנה, ו-{value} אינו כזה."},
+    "no_limits": {"en": "A licence change has to name at least one limit to move.",
+                  "he": "שינוי רישיון חייב לנקוב לפחות במגבלה אחת שזזה."},
+    "not_a_guardrail": {"en": "There is no regulatory limit called {name}.",
+                        "he": "אין מגבלת רגולציה בשם {name}."},
+    "not_a_number": {"en": "The limit for {name} has to be a number.",
+                     "he": "המגבלה על {name} חייבת להיות מספר."},
+    "out_of_bounds": {"en": "The limit for {name} has to be between {low} and {high}.",
+                      "he": "המגבלה על {name} חייבת להיות בין {low} ל-{high}."},
+}
+
+GUARDRAIL_ADMIN_ONLY_DETAIL = WORDS["admin_only"]["he"]
+GUARDRAIL_COMPANY_ONLY_DETAIL = WORDS["company_only"]["he"]
+
+
+def _rendered(fields: dict[str, object], index: int, isolate: bool) -> dict[str, str]:
+    """One language's view of the fields, runs in the other direction isolated.
+
+    A two-item tuple carries its own two languages, which is how the name of a
+    limit stays in the language of the sentence around it. Without the isolate
+    the Hebrew sentence's punctuation lands on the wrong side of a digit run.
+    """
+    out: dict[str, str] = {}
+    for name, value in fields.items():
+        text = str(value[index] if isinstance(value, tuple) and len(value) == 2 else value)
+        out[name] = f"{ISOLATE_START}{text}{ISOLATE_END}" if isolate and text else text
+    return out
+
+
+def say(code: str, **fields: object) -> tuple[str, str]:
+    """This code's sentence in English and in Hebrew, together or not at all. A
+    code this table lacks renders two blanks, never one half nobody can read."""
+    words = WORDS.get(code)
+    if words is None:
+        return "", ""
+    try:
+        return words["en"].format(**_rendered(fields, 0, False)), words["he"].format(**_rendered(fields, 1, True))
+    except (KeyError, IndexError):
+        return "", ""
+
+
+class GuardrailWall(Wall):
+    """The licence wall, and both halves of its refusal from one call.
+
+    ``can_edit_reason`` is Hebrew because the 403 detail and the reason a control
+    renders before the click are one string by contract, and rendered verbatim it
+    printed a Hebrew sentence above four English fields. The pair rides beside it
+    now, resolved from the gate that actually closed rather than by translating
+    the sentence that gate produced, so the two cannot drift: :meth:`refusal`
+    walks the same two gates in the same order ``Wall.reason`` does, and a test
+    pins that its Hebrew half is that reason for every affiliation and role.
+    """
+
+    def refusal(self, request: Optional[Request]) -> tuple[str, str]:
+        """Why this requester may not CHANGE a limit, both languages, or two blanks."""
+        if self.read_reason(request) is not None:
+            return say("company_only")
+        if self.roles and not has_role(request, self.roles):
+            return say("admin_only")
+        return "", ""
+
+    def stamp(self, payload: dict[str, Any], request: Optional[Request]) -> dict[str, Any]:
+        stamped = super().stamp(payload, request)
+        english, hebrew = self.refusal(request)
+        for key in ("can_edit_reason_en", "can_edit_reason_he"):
+            stamped.pop(key, None)
+        if english and hebrew:
+            stamped["can_edit_reason_en"], stamped["can_edit_reason_he"] = english, hebrew
+        return stamped
+
+
+# Both gates, by the owner's ruling. Changing a licence number is company staff
+# only until a real owner for it is named at the broadcaster, so affiliation is
+# the outer gate and role the inner one. The READ is deliberately not gated: the
+# licence is the broadcaster's own and so is the person who attests to it, so
+# they read every limit, every change and the whole attestation, and what they
+# cannot do is move a number. Nothing here calls ``guard`` or ``require_read``,
+# so the read stays open by construction and ``stamp`` answers before the click.
+GUARDRAIL_WALL = GuardrailWall(
     detail=GUARDRAIL_COMPANY_ONLY_DETAIL,
     company_only=True,
     roles=ADMIN_ROLES,
@@ -91,7 +183,19 @@ _LOCK = threading.RLock()
 
 
 class GuardrailError(ValueError):
-    """Raised when a proposed guardrail value or date is not usable."""
+    """A value or date the licence cannot hold, said in both languages at once.
+
+    ``str()`` is the English half, because the route that answers this is frozen
+    and puts exactly that into the 400's ``detail``. ``hebrew`` is the same
+    sentence from the same entry, so a surface that knows its reader's language
+    has it without translating anything.
+    """
+
+    def __init__(self, code: str, **fields: object) -> None:
+        self.code = code
+        self.fields = fields
+        self.english, self.hebrew = say(code, **fields)
+        super().__init__(self.english)
 
 
 def store_path() -> Path:
@@ -106,9 +210,8 @@ def store_path() -> Path:
 def _settings_defaults() -> dict[str, Any]:
     """The four values as the settings model declares them.
 
-    The seed and the fallback both come from here rather than from literals in
-    this file, so a store that has never been written is exactly the shipped
-    behaviour and never a second opinion about the licence.
+    The seed and the fallback both come from here rather than from literals, so
+    an unwritten store is the shipped behaviour and never a second opinion.
     """
     from kairos_api.core import KairosSettings
 
@@ -176,7 +279,7 @@ def _as_day(value: Any, fallback: Optional[date] = None) -> date:
     except ValueError:
         if fallback is not None:
             return fallback
-        raise GuardrailError(f"The effective date must be an ISO date, got {value!r}.")
+        raise GuardrailError("bad_date", value=text or ("nothing at all", "ערך ריק"))
 
 
 def values_on(day: Optional[date] = None, record: Optional[dict[str, Any]] = None) -> dict[str, Any]:
@@ -189,22 +292,13 @@ def values_on(day: Optional[date] = None, record: Optional[dict[str, Any]] = Non
     when = day or date.today()
     values = dict(_settings_defaults())
     baseline = record.get("baseline") or {}
-    values.update({
-        key: value for key, value in (baseline.get("values") or {}).items()
-        if key in GUARDRAIL_KEYS
-    })
+    values.update({key: value for key, value in (baseline.get("values") or {}).items() if key in GUARDRAIL_KEYS})
     # A change whose date cannot be parsed is treated as not yet in force. A
     # corrupt record must never be the reason a limit reads looser than the
     # licence, so the unreadable case fails toward the baseline.
-    due = [
-        change for change in record.get("changes") or []
-        if _as_day(change.get("effective_date"), date.max) <= when
-    ]
+    due = [item for item in record.get("changes") or [] if _as_day(item.get("effective_date"), date.max) <= when]
     for change in sorted(due, key=lambda item: _as_day(item.get("effective_date"), date.max)):
-        values.update({
-            key: value for key, value in (change.get("values") or {}).items()
-            if key in GUARDRAIL_KEYS
-        })
+        values.update({key: value for key, value in (change.get("values") or {}).items() if key in GUARDRAIL_KEYS})
     return {key: values[key] for key in GUARDRAIL_KEYS}
 
 
@@ -229,11 +323,8 @@ def effective_date(day: Optional[date] = None, record: Optional[dict[str, Any]] 
 
 
 def scheduled_changes(day: Optional[date] = None, record: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
-    """Recorded changes that have not taken force yet, newest date last.
-
-    This is the alert the compliance owner never had: a limit that is about to
-    move is visible before the day it moves.
-    """
+    """Recorded changes not in force yet, newest last: the alert a compliance
+    owner never had, because a limit about to move is visible before it moves."""
     record = load_record() if record is None else record
     when = day or date.today()
     pending = [
@@ -250,11 +341,8 @@ def changes(record: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
 
 
 def changed_since(since: date, record: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
-    """Changes recorded on or after ``since``, which is the attestation answer.
-
-    An empty list is the evidence a compliance owner needs: no guardrail moved
-    since the last review.
-    """
+    """Changes recorded on or after ``since``, the attestation answer. An empty
+    list is the evidence: no guardrail moved since the last review."""
     record = load_record() if record is None else record
     out = []
     for change in record.get("changes") or []:
@@ -266,18 +354,19 @@ def changed_since(since: date, record: Optional[dict[str, Any]] = None) -> list[
 
 def _clean_values(values: dict[str, Any]) -> dict[str, Any]:
     if not values:
-        raise GuardrailError("A guardrail change must name at least one limit.")
+        raise GuardrailError("no_limits")
     cleaned: dict[str, Any] = {}
     for key, raw in values.items():
+        name = LIMIT_NAMES.get(key, (str(key), str(key)))
         if key not in BOUNDS:
-            raise GuardrailError(f"{key} is not a regulatory guardrail.")
+            raise GuardrailError("not_a_guardrail", name=name)
         kind, low, high = BOUNDS[key]
         try:
             value = kind(raw)
         except (TypeError, ValueError) as exc:
-            raise GuardrailError(f"{key} must be a number.") from exc
+            raise GuardrailError("not_a_number", name=name) from exc
         if not low <= value <= high:
-            raise GuardrailError(f"{key} must be between {low} and {high}.")
+            raise GuardrailError("out_of_bounds", name=name, low=low, high=high)
         cleaned[key] = value
     return cleaned
 
@@ -296,9 +385,8 @@ def record_change(
 ) -> dict[str, Any]:
     """Append one change to the log and return it. The permission is the caller's.
 
-    Validates the values and the date, records what the limits were before the
-    change on its own effective day, and writes atomically. Raises
-    :class:`GuardrailError` on a value or date the licence cannot hold.
+    Records what the limits were before the change on its own effective day, and
+    writes atomically. Raises :class:`GuardrailError` on a value it cannot hold.
     """
     cleaned = _clean_values(values)
     effective_day = _as_day(effective)
@@ -321,9 +409,8 @@ def record_change(
 def settings_overlay(settings: Any, day: Optional[date] = None) -> Any:
     """The cutover in one line: settings with the store's limits applied.
 
-    Returns a copy carrying the four values in force, and leaves every other
-    field alone. While the store and the settings model agree, which a test
-    pins, this is an exact identity and no number moves.
+    A copy carrying the four values in force, every other field left alone.
+    While the two agree, which a test pins, this is an exact identity.
     """
     values = values_on(day)
     if isinstance(settings, dict):
@@ -340,7 +427,14 @@ def payload(request: Optional[Request] = None, day: Optional[date] = None) -> di
     """The honest read: the limits, their date, the log, and who may edit.
 
     ``can_edit`` and its reason come from the same wall the write path uses, so
-    the refusal is legible before the click rather than a 403 after it.
+    the refusal is legible before the click rather than a 403 after it, and the
+    reason arrives in both languages together.
+
+    ``bounds`` is the other refusal a person can reach here. The route that
+    answers a rejected change is frozen and forwards ``str(exc)`` alone, so only
+    a :class:`GuardrailError`'s English half can travel on it. The numbers travel
+    instead, from the same :data:`BOUNDS` the write path validates against, so
+    the surface refuses in its reader's own language before it sends.
     """
     record = load_record()
     when = day or date.today()
@@ -349,6 +443,7 @@ def payload(request: Optional[Request] = None, day: Optional[date] = None) -> di
         "source_url": record.get("source_url", ""),
         "effective_date": effective_date(when, record),
         "values": values_on(when, record),
+        "bounds": {key: {"min": low, "max": high} for key, (_, low, high) in BOUNDS.items()},
         "changes": changes(record),
         "scheduled_changes": scheduled_changes(when, record),
     }

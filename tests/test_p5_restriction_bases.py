@@ -180,7 +180,11 @@ def test_a_rule_can_be_dated_to_start_later_as_well_as_to_stop(client):
     backwards = {**base, "starts_on": base["expires_on"], "expires_on": base["starts_on"]}
     refused = client.post("/api/constraints/restrictions", json=backwards)
     assert refused.status_code == 400
-    assert "after the start date" in refused.json()["detail"]
+    # Both halves on the wire. Same subject, that the refusal says which date is
+    # wrong; the English half is unchanged and the Hebrew reader now has one too.
+    detail = refused.json()["detail"]
+    assert "after the start date" in detail["en"]
+    assert detail["he"] and detail["code"] == "end_before_start"
 
 
 def test_the_preview_reports_both_bases_and_never_blends_them(client):

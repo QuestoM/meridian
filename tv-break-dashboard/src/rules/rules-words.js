@@ -56,6 +56,107 @@ export function refusalSentence(reason, locale) {
   return REFUSALS_EN.get(text) || text;
 }
 
+// The refusal a walled payload carries, in the reader's own language, from the
+// one call on the server that produced both halves together.
+//
+// `can_edit_reason` is one string and it is Hebrew, because the 403 detail and
+// the reason a control renders before the click are the same string by
+// contract. Measured on the shipped licence page in English: that string was
+// printed verbatim above four English fields. The store now stamps
+// `can_edit_reason_en` and `can_edit_reason_he` beside it from one entry, so the
+// pair is the answer whenever it is there. The table above stays as the answer
+// for an endpoint that has not been upgraded and for a gate the session decided
+// on its own, and the server's own words stay the answer of last resort, so a
+// wall nobody has translated is never printed as a blank.
+export function refusalWords(payload, reason, locale) {
+  const body = payload && typeof payload === 'object' ? payload : {};
+  const pair = locale === 'he' ? body.can_edit_reason_he : body.can_edit_reason_en;
+  const own = String(pair || '').trim();
+  if (own && body.can_edit === false) return own;
+  return refusalSentence(reason, locale);
+}
+
+// The reader's own half of a refusal a route raised. The rules routes send an
+// object under `detail` carrying both halves and the code that produced them;
+// every other route on this product sends one string, which is kept as the
+// answer for both readers rather than guessed at.
+export function detailWords(error, locale) {
+  const words = error && typeof error === 'object' ? error.words : null;
+  if (words && typeof words === 'object') {
+    const own = String((locale === 'he' ? words.he : words.en) || '').trim();
+    if (own) return own;
+  }
+  return String((error && error.message) || '').trim();
+}
+
+// What this surface will not send, said before it is sent. The route that
+// answers a rejected licence change is frozen and forwards the English half of
+// the server's refusal alone, so the one case a person can actually reach by
+// typing is refused here instead, in the reader's own language, off the same
+// bounds the server validates against and the same limit names the list above
+// prints. Returns nothing at all when the value is one the licence can hold.
+export function limitBoundsRefusal(locale, key, value, bounds) {
+  const rule = (bounds || {})[key];
+  if (!rule) return '';
+  const number = Number(value);
+  if (String(value).trim() === '' || !Number.isFinite(number)) {
+    return locale === 'he'
+      ? `${limitLabel(key, 'he')}: הערך חייב להיות מספר.`
+      : `${limitLabel(key, 'en')}: the value has to be a number.`;
+  }
+  if (number >= Number(rule.min) && number <= Number(rule.max)) return '';
+  return locale === 'he'
+    ? `${limitLabel(key, 'he')}: הערך חייב להיות בין ${isolate(rule.min)} ל-${isolate(rule.max)}.`
+    : `${limitLabel(key, 'en')}: the value has to be between ${rule.min} and ${rule.max}.`;
+}
+
+// Why a figure panel has no figure, in the reader's own language.
+//
+// The two panels on this surface that state an empty basis, the rate-card
+// effect and the worth of a second, read `reason` off endpoints outside this
+// piece's row (`/api/pricing/effect` and `/api/yield-per-second`), and those
+// author it in English alone. Measured: a Hebrew reader with no saved plan got
+// `No saved weekly schedule with segment ids on disk.` under a Hebrew heading.
+// The sentence cannot be re-authored where it is produced, so the Hebrew half is
+// authored here keyed off the producer's own English, exactly as the wall
+// refusals above are: change the English and the key stops matching, and the
+// fallback returns the producer's own words rather than a stale translation.
+const BASIS_REASONS_HE = new Map([
+  ['No saved weekly plan with segment ids is on disk to price.', 'אין בדיסק תוכנית שבועית שמורה עם מזהי מקטעים לתמחר.'],
+  ['No saved weekly schedule with segment ids on disk.', 'אין בדיסק לוח שבועי שמור עם מזהי מקטעים.'],
+  ['No saved weekly schedule on disk.', 'אין בדיסק לוח שבועי שמור.'],
+  ['The saved plan carries no rows for the declared operator channel.', 'בתוכנית השמורה אין שורות לערוץ המפעיל שהוגדר.'],
+  ['The saved plan carries no rows for the configured operator channel.', 'בתוכנית השמורה אין שורות לערוץ המפעיל שהוגדר.'],
+  ['Plan segment rebuild failed; see the server log.', 'בניית מקטעי התוכנית מחדש נכשלה. ראו את יומן השרת.'],
+  ['The optimization engine is unavailable.', 'מנוע האופטימיזציה אינו זמין.'],
+  ['Saved plan no longer joins the EPG rebuild; recompute the schedule.', 'התוכנית השמורה כבר אינה מתחברת לבניית לוח השידורים מחדש. חשבו את הלוח מחדש.'],
+  ['Saved schedule has no ad-seconds to monetize.', 'ללוח השמור אין שניות פרסום להפיק מהן הכנסה.'],
+  ['Band computation failed; see the server log.', 'חישוב הרצועה נכשל. ראו את יומן השרת.'],
+]);
+
+export function basisReason(reason, locale) {
+  const text = String(reason || '').trim();
+  if (!text || locale !== 'he') return text;
+  return BASIS_REASONS_HE.get(text) || text;
+}
+
+// Money on this surface is never compacted. The shell formatter switches to
+// compact notation above 100,000, which would render a before of 1,067,846 and
+// an after of 1,030,969 as the same two characters, and the whole point of this
+// surface is that the difference between them is the decision. Full grouped
+// digits, always, with the sign kept so a cost reads as a cost. It lives beside
+// the words because it is one too: a stored value read back as display text.
+export function money(value, locale) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
+    style: 'currency',
+    currency: 'ILS',
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(number);
+}
+
 // How many programmes matched beyond the ones on screen, and the act that
 // reaches them. The same rule the night picker answers to: a list that shows
 // fewer things than matched has to say so and has to name the way to the rest,

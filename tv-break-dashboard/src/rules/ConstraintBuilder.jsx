@@ -4,12 +4,42 @@ import { Save, Send, Trash2 } from 'lucide-react';
 import { GroupNode, defaultGroup, serializeNode } from './constraint-predicate';
 // The effect words are shared with the restriction list above this panel, so the
 // two surfaces cannot say different things about the same stored value.
-import { EFFECT_LIST, effectLabel } from './rules-lib';
+import { EFFECT_LIST, detailWords, effectLabel } from './rules-lib';
+
+// What a stored row SAYS, in the reader's own language.
+//
+// Every row one authored restriction wrote carries that restriction's id, and
+// GET /api/constraints/restrictions renders the same restriction as a sentence
+// in both languages off the rule it was authored from. Before this the sentence
+// was written into `notes` at save time, in English, once: seven of seven rows
+// on the shipped list read `No breaks in the last 8 minutes of <programme>` to a
+// Hebrew reader. `notes` is now what its own field label says it is, a note a
+// person typed, and the sentence is joined back on the id, so each reader gets
+// the one their own language was rendered in and neither is a translation of
+// the other. A row with no restriction behind it, which is a row written before
+// restrictions existed, still reads back its own note.
+function rowSentence(item, sentences, locale) {
+  const said = sentences.get(String((item || {}).restriction_id || '').trim());
+  if (said) return locale === 'he' ? said.he : said.en;
+  return String((item || {}).notes || '');
+}
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 function t(locale, en, he) {
   return locale === 'he' ? he : en;
+}
+
+// A refused response as an error carrying both halves of its own reason. The
+// two writes below used to throw the status line and drop the body, so a
+// bilingual refusal the server had just authored never reached the screen.
+async function failure(res) {
+  const body = await res.json().catch(() => null);
+  const raw = body && body.detail;
+  const words = raw && typeof raw === 'object' ? raw : null;
+  const error = new Error(words ? String(words.en || words.he || '') : (raw ? String(raw) : `${res.status} ${res.statusText}`));
+  error.words = words;
+  return error;
 }
 
 function normalizeRows(value) {
@@ -69,6 +99,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
   const [scope, setScope] = useState(null);
   const [optionsLoaded, setOptionsLoaded] = useState(false);
   const [items, setItems] = useState([]);
+  const [sentences, setSentences] = useState(() => new Map());
   const [available, setAvailable] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -121,6 +152,19 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       } catch {
         // leave list empty
       }
+      try {
+        const saidRes = await fetch(`${API_BASE}/api/constraints/restrictions`);
+        if (saidRes.ok && active) {
+          const payload = await saidRes.json();
+          const said = new Map();
+          (payload.restrictions || []).forEach((record) => {
+            said.set(String(record.restriction_id || ''), { en: record.sentence_en || '', he: record.sentence_he || '' });
+          });
+          setSentences(said);
+        }
+      } catch {
+        // a row with no sentence joined to it reads back its own note
+      }
     }
     load();
     return () => { active = false; };
@@ -144,14 +188,14 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         notify('The constraints API is not available yet.', 'ממשק האילוצים עדיין לא זמין.');
         return;
       }
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      if (!res.ok) throw await failure(res);
       const saved = await res.json();
       const savedId = saved.constraint_id ?? saved.id;
       setItems((current) => [...current, { ...body, id: savedId || `constraint-${current.length + 1}` }]);
       notify('Constraint saved.', 'האילוץ נשמר.');
       onGlobalRefresh?.();
     } catch (err) {
-      notify(`Saving the constraint failed (${err.message}).`, `שמירת האילוץ נכשלה (${err.message}).`);
+      notify(`Saving the constraint failed (${detailWords(err, 'en')}).`, `שמירת האילוץ נכשלה (${detailWords(err, 'he')}).`);
     } finally {
       setSaving(false);
     }
@@ -165,12 +209,12 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         setItems((current) => current.filter((item) => !matchesId(item)));
         return;
       }
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      if (!res.ok) throw await failure(res);
       setItems((current) => current.filter((item) => !matchesId(item)));
       notify('Constraint removed.', 'האילוץ הוסר.');
       onGlobalRefresh?.();
     } catch (err) {
-      notify(`Removing the constraint failed (${err.message}).`, `הסרת האילוץ נכשלה (${err.message}).`);
+      notify(`Removing the constraint failed (${detailWords(err, 'en')}).`, `הסרת האילוץ נכשלה (${detailWords(err, 'he')}).`);
     }
   }
 
@@ -303,7 +347,9 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
                 <li key={itemId ?? `constraint-${index}`}>
                   <span className="constraint-chip">{effectLabel(item.effect, locale)}</span>
                   <span className="constraint-scope">{item.where ? t(locale, 'filter conditions', 'תנאי סינון') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
-                  {item.notes && <span className="constraint-channel">{item.notes}</span>}
+                  {rowSentence(item, sentences, locale) && (
+                    <span className="constraint-channel" dir="auto">{rowSentence(item, sentences, locale)}</span>
+                  )}
                   <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחיקת אילוץ')}>
                     <Trash2 size={14} />
                   </Button>

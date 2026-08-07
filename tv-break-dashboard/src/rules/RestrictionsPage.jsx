@@ -4,7 +4,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import RestrictionComposer from './RestrictionComposer';
 import ConstraintBuilder from './ConstraintBuilder';
-import { deleteRestriction, effectLabel, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
+import { deleteRestriction, detailWords, effectLabel, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
 
 // A restriction reads as one line. The store's own words are on the record, one
 // click away, but nobody has to read them to know what a rule does: the sentence
@@ -72,7 +72,7 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
   const load = useCallback(() => {
     fetchRestrictions()
       .then((body) => { setState(body); setError(''); })
-      .catch((problem) => setError(problem.message));
+      .catch((problem) => setError(detailWords(problem, locale)));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -84,7 +84,7 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
       load();
       onGlobalRefresh?.();
     } catch (problem) {
-      notify?.(`Removing the restriction failed (${problem.message}).`, `הסרת ההגבלה נכשלה (${problem.message}).`);
+      notify?.(`Removing the restriction failed (${detailWords(problem, 'en')}).`, `הסרת ההגבלה נכשלה (${detailWords(problem, 'he')}).`);
     }
   }
 

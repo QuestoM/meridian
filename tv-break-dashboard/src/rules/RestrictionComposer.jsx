@@ -10,6 +10,7 @@ import WiderScopeNote from './WiderScopeNote';
 import {
   KINDS,
   buildWhere,
+  detailWords,
   fetchAirings,
   fetchTitles,
   kindMeta,
@@ -100,7 +101,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         .catch((error) => {
           if (error.name === 'AbortError') return;
           setPreview(null);
-          setPreviewError(error.message);
+          setPreviewError(detailWords(error, locale));
           setPreviewing(false);
         });
     }, PREVIEW_DEBOUNCE_MS);
@@ -129,7 +130,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
       setPreview(null);
       onSaved?.(saved);
     } catch (error) {
-      notify?.(`Saving the restriction failed (${error.message}).`, `שמירת ההגבלה נכשלה (${error.message}).`);
+      notify?.(`Saving the restriction failed (${detailWords(error, 'en')}).`, `שמירת ההגבלה נכשלה (${detailWords(error, 'he')}).`);
     } finally {
       setSaving(false);
     }

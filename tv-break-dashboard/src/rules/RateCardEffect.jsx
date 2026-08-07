@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { Loader2 } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { fetchPricingEffect, isolate, money, pairLabel, rate, valuePair } from './rules-lib';
+import { basisReason, detailWords, fetchPricingEffect, isolate, money, pairLabel, rate, valuePair } from './rules-lib';
 
 // What a rate-card edit does, before it is saved. The two figures are the ones
 // the revenue owner's question actually needs: what a second of airtime is worth
@@ -41,7 +41,7 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
     setError('');
     fetchPricingEffect(overrides, false)
       .then((body) => { if (alive) { setEffect(body); setLoading(false); } })
-      .catch((problem) => { if (alive) { setError(problem.message); setLoading(false); } });
+      .catch((problem) => { if (alive) { setError(detailWords(problem, locale)); setLoading(false); } });
     return () => { alive = false; };
   }, [overrides, dirty]);
 
@@ -73,10 +73,10 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
           <span>{pageText(locale, 'Re-pricing the plan', 'מתמחר מחדש את התוכנית')}</span>
         </p>
       )}
-      {error && <p className="rules-inline-error" role="status">{error}</p>}
+      {error && <p className="rules-inline-error" role="status" dir="auto">{error}</p>}
 
       {effect && effect.available === false && (
-        <p className="rules-figure-reason">{effect.reason}</p>
+        <p className="rules-figure-reason" dir="auto">{basisReason(effect.reason, locale)}</p>
       )}
 
       {effect && effect.available && (

@@ -35,14 +35,21 @@ export const POSITION_NAMES = {
   default_middle: ['Middle default', 'אמצע (ברירת מחדל)'], last: ['Last (L)', 'אחרון (L)'],
 };
 
-// Bilingual titles + Hebrew descriptions for the stable engine layers; the API text is English-only.
+// Bilingual titles and descriptions for the stable engine layers, both halves in
+// one entry. The description used to be a half from here and a half from the
+// API: `descHe` for a Hebrew reader, the API's own English-only `description`
+// for everybody else, so a layer this table did not name printed English prose
+// under a Hebrew heading, and the two languages could say different things about
+// the same layer. Each `descEn` is the API's own sentence, kept byte-for-byte so
+// no English screen moved, and `layerDescription` refuses to take one half from
+// here and the other from the wire.
 export const LAYER_TEXT = {
-  program: { en: 'Programme type', he: 'סוג תוכנית', descHe: 'פרמיית מחלקת תוכנית (חדשות, תוכניות פריים, אחר). חלה תמיד.' },
-  day: { en: 'Day of week', he: 'יום בשבוע', descHe: 'פרמיית יום בשבוע. חלה תמיד.' },
-  show: { en: 'Specific show', he: 'תוכנית ספציפית', descHe: 'פרמיה לתוכנית ספציפית (למשל האח הגדול). נערמת על מחלקת התוכנית.' },
-  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (1 עד 5 ו-L לאחרון). כבויה עד להפעלה.' },
-  ad_type: { en: 'Ad type', he: 'סוג פרסומת', descHe: 'פרמיית סוג פרסומת (פרסומת, חסות, פרומו). כבויה עד להפעלה.' },
-  events: { en: 'Calendar events', he: 'אירועי לוח שנה', descHe: 'מכפיל תמחור לימים שבתוך אירועים פעילים מלוח האירועים. הצהרת מפעיל, לא מדידה. כבויה עד להפעלה.' },
+  program: { en: 'Programme type', he: 'סוג תוכנית', descHe: 'פרמיית מחלקת תוכנית (חדשות, תוכניות פריים, אחר). חלה תמיד.', descEn: 'Program-class premium (News, prime shows, other). Always applied.' },
+  day: { en: 'Day of week', he: 'יום בשבוע', descHe: 'פרמיית יום בשבוע. חלה תמיד.', descEn: 'Day-of-week premium. Always applied.' },
+  show: { en: 'Specific show', he: 'תוכנית ספציפית', descHe: 'פרמיה לתוכנית ספציפית (למשל האח הגדול). נערמת על מחלקת התוכנית.', descEn: 'Per-show premium (for example Big Brother). Stacks on the program class.' },
+  position: { en: 'Position in break', he: 'מיקום בברייק', descHe: 'פרמיית מיקום בברייק (1 עד 5 ו-L לאחרון). כבויה עד להפעלה.', descEn: 'Position-in-break premium (1 to 5 and L for last). Off until activated.' },
+  ad_type: { en: 'Ad type', he: 'סוג פרסומת', descHe: 'פרמיית סוג פרסומת (פרסומת, חסות, פרומו). כבויה עד להפעלה.', descEn: 'Ad-type premium (commercial, sponsorship, promo). Off until activated.' },
+  events: { en: 'Calendar events', he: 'אירועי לוח שנה', descHe: 'מכפיל תמחור לימים שבתוך אירועים פעילים מלוח האירועים. הצהרת מפעיל, לא מדידה. כבויה עד להפעלה.', descEn: 'A price multiplier for days inside an active event on the events calendar. An operator assertion, not a measurement. Off until activated.' },
   event: { en: 'Calendar event', he: 'אירוע לוח שנה' },
   // Override target layers the price-slot tester can name beyond the stable set.
   prime: { en: 'Prime time', he: 'פריים טיים' },
@@ -51,6 +58,54 @@ export const LAYER_TEXT = {
 
 export const layerLabel = (name, locale) =>
   (LAYER_TEXT[name] ? pageText(locale, LAYER_TEXT[name].en, LAYER_TEXT[name].he) : name.charAt(0).toUpperCase() + name.slice(1));
+
+// One layer's description, both halves from one entry or neither. A layer this
+// table does not name falls back to the server's own words for both readers,
+// which is the producer's sentence unaltered rather than one language for one
+// reader and another language for the other.
+export function layerDescription(layer, locale) {
+  const entry = LAYER_TEXT[(layer || {}).name] || {};
+  if (entry.descEn && entry.descHe) return pageText(locale, entry.descEn, entry.descHe);
+  return String((layer || {}).description || '');
+}
+
+// What each priced category IS, in the reader's own language.
+//
+// The rate card's keys are config, and config is written once in one language:
+// `program_type` is keyed News / PrimeShow1 / PrimeShow2 / Other and `ad_type`
+// is keyed פרסומת / חסות / פרומו, both straight out of
+// config/optimization_weights.yaml. Printed raw, each language got the half that
+// is not its own: the English card listed three Hebrew words down its ad-type
+// column, the Hebrew card listed four Latin ones down its programme column, and
+// the zero-multiplier warning put a Hebrew category inside an English sentence.
+// One entry per category, both halves in it, and the rows and the warning read
+// the same one, so a category cannot be named two ways on one screen.
+//
+// The `show` layer is deliberately absent: its keys are programme titles, which
+// are proper nouns like a channel name and are not translated in either
+// direction. They pass through, which is what `keyLabel` does with any key no
+// table names.
+export const CATEGORY_TEXT = {
+  program: {
+    News: ['News', 'חדשות'],
+    PrimeShow1: ['First prime show', 'תוכנית פריים ראשונה'],
+    PrimeShow2: ['Second prime show', 'תוכנית פריים שנייה'],
+    Other: ['Other', 'אחר'],
+  },
+  ad_type: {
+    'פרסומת': ['Commercial', 'פרסומת'],
+    'חסות': ['Sponsorship', 'חסות'],
+    'פרומו': ['Promo', 'פרומו'],
+  },
+};
+
+// A comma-joined run of categories, every one of them read through the table
+// above, so a sentence that names a set of them stays in one language.
+export function categoryList(layerName, categories, locale) {
+  return (Array.isArray(categories) ? categories : [])
+    .map((key) => keyLabel(layerName, key, locale))
+    .join(', ');
+}
 
 // Humanizes a multiplier's provenance ("rate_card" / "override:<rule_id>" / the
 // events calendar): the operator reads plain words, never the raw tag.
@@ -65,9 +120,11 @@ export function sourceLabel(source, locale) {
   return pageText(locale, 'rate card', 'כרטיס תעריפים');
 }
 
-// Turns a layer's raw key into a human, bilingual label so no snake_case key
-// reaches the operator. Day keys are ISO weekdays; position keys are named engine
-// slots; program, show and ad-type keys are already human and pass through.
+// Turns a layer's raw key into a human, bilingual label so neither a snake_case
+// key nor a config word in the other language reaches the operator. Day keys are
+// ISO weekdays, position keys are named engine slots, and programme-class and
+// ad-type keys are config words in whichever language the file was written in.
+// A key no table names passes through, which is what a programme title needs.
 export function keyLabel(layerName, key, locale) {
   if (layerName === 'day' && DAY_NAMES[key]) {
     return pageText(locale, DAY_NAMES[key][0], DAY_NAMES[key][1]);
@@ -75,6 +132,8 @@ export function keyLabel(layerName, key, locale) {
   if (layerName === 'position' && POSITION_NAMES[key]) {
     return pageText(locale, POSITION_NAMES[key][0], POSITION_NAMES[key][1]);
   }
+  const named = (CATEGORY_TEXT[layerName] || {})[key];
+  if (named) return pageText(locale, named[0], named[1]);
   return String(key);
 }
 

@@ -41,6 +41,7 @@ from kairos.optimize.constraints_store import (
     load_constraints,
     resolve_constraints,
 )
+from kairos_api import constraints_sentence
 from kairos_api.constraints_language import AUTHORING_COLUMNS
 from kairos_api._constraint_options import (
     daypart_options_list as _daypart_options_list,
@@ -210,14 +211,14 @@ def _record(row: "pd.Series[Any]") -> dict[str, Any]:
 def _validate_scope(scope_type: str) -> str:
     cleaned = str(scope_type or "").strip().lower()
     if cleaned not in _SCOPES:
-        raise HTTPException(status_code=400, detail=f"scope_type must be one of {sorted(_SCOPES)}")
+        raise constraints_sentence.refuse("bad_scope_type")
     return cleaned
 
 
 def _validate_effect(effect: str) -> str:
     cleaned = str(effect or "").strip().lower()
     if cleaned not in _EFFECTS:
-        raise HTTPException(status_code=400, detail=f"effect must be one of {sorted(_EFFECTS)}")
+        raise constraints_sentence.refuse("bad_effect")
     return cleaned
 
 
@@ -270,7 +271,7 @@ def create_constraint(payload: ConstraintCreate, request: Request = None) -> dic
 def _locate(frame: pd.DataFrame, constraint_id: str) -> int:
     mask = frame["constraint_id"].astype(str) == constraint_id
     if not mask.any():
-        raise HTTPException(status_code=404, detail=f"constraint '{constraint_id}' not found")
+        raise constraints_sentence.refuse("constraint_gone", 404)
     return int(frame.index[mask][0])
 
 
@@ -384,9 +385,9 @@ def constraint_effect(
     try:
         segments, engine_kwargs = preview_inputs(channel, day, daily_input)
     except Exception as exc:  # pragma: no cover - data/environment dependent
-        raise HTTPException(status_code=503, detail=f"Could not build segments for preview: {exc}")
+        raise constraints_sentence.refuse("segments_failed", 503)
     if not segments:
-        raise HTTPException(status_code=404, detail="No segments found for the requested channel-day")
+        raise constraints_sentence.refuse("no_segments", 404)
 
     # Resolve once for the honest report (matched / skipped); the WITH leg passes
     # the raw constraint list into the shared core, which resolves them again

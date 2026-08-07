@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { pageText } from '../shell/format';
 import { API_BASE } from '../shell/api';
-import { isolate, rate } from './rules-lib';
+import { basisReason, detailWords, isolate, rate } from './rules-lib';
 
 // The revenue owner's own question, on the door they walk through. What is a
 // second of airtime worth, on the plan of record, on their channel, computed by
@@ -40,7 +40,7 @@ export default function WorthOfASecond({ locale }) {
     fetch(`${API_BASE}/api/yield-per-second`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`${response.status}`))))
       .then((body) => { if (alive) setState(body); })
-      .catch((problem) => { if (alive) setError(problem.message); });
+      .catch((problem) => { if (alive) setError(detailWords(problem, locale)); });
     return () => { alive = false; };
   }, []);
 
@@ -59,7 +59,7 @@ export default function WorthOfASecond({ locale }) {
     return (
       <section className="rules-card rules-worth">
         <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
-        <span className="rules-figure-reason">{state.reason}</span>
+        <span className="rules-figure-reason" dir="auto">{basisReason(state.reason, locale)}</span>
       </section>
     );
   }

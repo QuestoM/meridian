@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
-import { LAYER_TEXT, LAYER_TO_YAML, keyLabel, layerEntries, layerLabel } from './pricing-layers-lib';
+import { LAYER_TO_YAML, categoryList, keyLabel, layerDescription, layerEntries, layerLabel } from './pricing-layers-lib';
 import PricingEventsLayer from './PricingEventsLayer';
 import PricingPreferredPositions from './PricingPreferredPositions';
 import PricingSlotTester from './PricingSlotTester';
 import RateCardEffect from './RateCardEffect';
-import { draftValueAt, dropOverride, mergeOverrides } from './rules-lib';
+import { detailWords, draftValueAt, dropOverride, mergeOverrides } from './rules-lib';
 import './pricing-management.css';
 import './rules-workspace.css';
 
@@ -56,8 +56,12 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
         body: JSON.stringify({ overrides, reset }),
       });
       if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
-        throw new Error(detail.detail || `${response.status} ${response.statusText}`);
+        const body = await response.json().catch(() => ({}));
+        const raw = body && body.detail;
+        const words = raw && typeof raw === 'object' ? raw : null;
+        const failure = new Error(words ? String(words.en || words.he || '') : (raw ? String(raw) : `${response.status} ${response.statusText}`));
+        failure.words = words;
+        throw failure;
       }
       setState(await response.json());
       if (reset) {
@@ -70,7 +74,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
       onGlobalRefresh?.();
       return true;
     } catch (error) {
-      notify(`Rate-card save failed (${error.message}).`, `שמירת כרטיס התעריפים נכשלה (${error.message}).`);
+      notify(`Rate-card save failed (${detailWords(error, 'en')}).`, `שמירת כרטיס התעריפים נכשלה (${detailWords(error, 'he')}).`);
       return false;
     }
   }, [notify, onGlobalRefresh]);
@@ -255,7 +259,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                   <div className="pricing-layer-head">
                     <div>
                       <span className="pricing-layer-title">{layerLabel(layer.name, locale)}</span>
-                      <p className="pricing-layer-desc">{(locale === 'he' && LAYER_TEXT[layer.name] && LAYER_TEXT[layer.name].descHe) || layer.description}</p>
+                      <p className="pricing-layer-desc">{layerDescription(layer, locale)}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span className={`pricing-chip ${chip}`}>{chipText}</span>
@@ -271,8 +275,12 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                       )}
                     </div>
                   </div>
+                  {/* The categories are named through the same table the rows
+                      below print, so the sentence and the row cannot call one
+                      category two things. Before this the warning read "would
+                      zero the price for פרומו" inside an English sentence. */}
                   {Array.isArray(layer.warnings) && layer.warnings.map((warning, index) => {
-                    const categories = Array.isArray(warning.categories) ? warning.categories.join(', ') : '';
+                    const categories = categoryList(layer.name, warning.categories, locale);
                     return (
                       <p className="pricing-layer-warning" key={`${layer.name}-warn-${index}`} role="status">
                         {pageText(
