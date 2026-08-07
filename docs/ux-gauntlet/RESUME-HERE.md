@@ -122,3 +122,47 @@ Recorded in the commit messages too, so it survives this file:
   model, every verifier). **Sonnet for bounded work that is cheap to check**
   (mapping, surveying, mechanical wiring). If you can check the result at a
   glance, sonnet; if you have to trust it, opus.
+
+## The class-fix lesson, and what it cost to learn
+
+Wave one's close capped five of seven pieces at four rounds without passing.
+Reading every round of every piece showed one pathology behind all five: the
+instruction "close exactly the gap the critic named and nothing else" meets a
+defect with several sites, the builder closes one, and the next critic finds the
+next. Four rounds, four sites, same bug.
+
+Five class fixes were run against the capped pieces. Every one found more sites
+than its critic had named:
+
+| piece | critic named | actually found |
+|---|---|---|
+| P8 | one constant | four call sites, plus a false claim withholding 5,756 entries |
+| P9 | "the other leg" | four legs, three broken, two never looked at |
+| P3 | one sentence | ten sites |
+| P4 | one column | eleven sites |
+| P6 | the English card | four live sites and one latent |
+
+**So the rule is: a gap named at one site is a defect class. Grep every site
+before the first edit, fix them all in one pass, and widen the guard from the
+instance to the class.** Every guarding test that let one of these survive four
+rounds was named after the single instance it protected.
+
+**And prove the guard bites before trusting it.** P3 injected seven regressions
+into a scratch copy, one per site shape, and all seven failed. P4's last test
+restores the hard-coded literal and asserts the defect returns. P8's new test
+was proven to fail against the round-13 and round-15 sentences. A test that has
+never failed has never been shown to work.
+
+**Trust the measured diagnosis, verify the prescription.** Two agents were right
+to overrule their critic. P9's critic prescribed pushing a URL; measured in real
+Chrome, that would have left the address bar and the screen disagreeing, because
+the shell listens for hashchange only and a query change fires popstate. P3's
+critic wrote that the sentence it named was the only unattributed count on those
+surfaces; checking that claim rather than accepting it is what found the other
+nine.
+
+**Do not run `git add -A` while agents are live.** It happened four times in one
+session and swept four pieces' work into commits titled for other pieces, so the
+history misdescribes its own contents. Commit by explicit path list, or wait.
+The records for P3 and P4 live in their state files because history was already
+pushed and rewriting it would have been worse.

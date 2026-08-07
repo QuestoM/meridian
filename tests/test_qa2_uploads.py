@@ -62,6 +62,44 @@ def _daily_bytes(*, date_value: str = "4/27/2025", duration: str = "30", planned
     return frame.to_csv(index=False).encode("utf-8")
 
 
+# The operator's own header for one loader field, read off the map the loader
+# renames by, so these tests track that map rather than a header copied here.
+LOADED_TO_HEADER = {loaded: header for header, loaded in DAILY_COLUMN_MAP.items()}
+
+
+def _fields_named(lines: list, code: str) -> list[str]:
+    """The FIELD slot of every flat line carrying this code.
+
+    A flat line is ``[severity] field: code - detail``, so the field is read out
+    of its own slot and compared whole, never searched for anywhere in the line.
+    A short or numeric header would otherwise be answered for free by the detail
+    beside it, and WHICH NAME identifies the field is the whole subject here.
+    """
+    fields = []
+    for line in lines:
+        prefix, carries, _ = str(line).partition(f": {code} - ")
+        _, opened, field = prefix.partition("] ")
+        if carries and opened:
+            fields.append(field)
+    return fields
+
+
+def _names_the_field_in_the_operators_own_words(raw: bytes, lines: list, code: str, loaded: str) -> None:
+    """A finding must name WHICH FIELD is wrong, by the name the file uses.
+
+    That subject is what these assertions were written to defend and it keeps a
+    test. Their means was the LOADER's internal name, ``duration_sec`` and
+    ``planned_tvr``, which the column-resolution work rightly stopped printing
+    in favour of the header the operator's own export carries. The header is
+    checked against the uploaded file's real header row first, so this cannot
+    pass by matching nothing.
+    """
+    header = LOADED_TO_HEADER[loaded]
+    columns = raw.decode("utf-8").splitlines()[0].split(",")
+    assert header in columns, f"{header} is not a column of the file this test uploaded"
+    assert header in _fields_named(lines, code), f"the {code} line does not name the field by the operator's own header"
+
+
 FLIGHTS_HEADER = ",".join(uploads.REQUIRED_COLUMNS["campaign_flights"])
 
 
@@ -215,9 +253,10 @@ def test_dayparts_with_a_real_channel_column_is_accepted(isolated) -> None:
 
 # --- contracts are wired: error severity refuses, warnings ride along ------------
 def test_daily_contract_error_refuses_and_the_report_is_surfaced(isolated) -> None:
-    bad = _post(isolated, "daily", "Wally_bad.csv", _daily_bytes(duration="-5"))
+    raw = _daily_bytes(duration="-5")
+    bad = _post(isolated, "daily", "Wally_bad.csv", raw)
     assert bad.status_code == 400, bad.text
-    assert any("duration_sec" in err for err in bad.json()["errors"])
+    _names_the_field_in_the_operators_own_words(raw, bad.json()["errors"], "non_positive_values", "duration_sec")
     assert not (uploads.DAILY_DIR.exists() and list(uploads.DAILY_DIR.glob("*.csv"))), (
         "a refused upload must never land on disk"
     )
@@ -235,10 +274,11 @@ def test_daily_contract_error_refuses_and_the_report_is_surfaced(isolated) -> No
 
 
 def test_daily_contract_warning_rides_along_without_refusing(isolated) -> None:
-    response = _post(isolated, "daily", "Wally_warn.csv", _daily_bytes(planned=""))
+    raw = _daily_bytes(planned="")
+    response = _post(isolated, "daily", "Wally_warn.csv", raw)
     assert response.status_code == 200, response.text
     payload = response.json()
-    assert any("planned_tvr" in warning for warning in payload["warnings"])
+    _names_the_field_in_the_operators_own_words(raw, payload["warnings"], "nan_values", "planned_tvr")
     assert payload["validation"]["is_valid"] is True
     assert payload["validation"]["warnings"]
 
