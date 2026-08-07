@@ -181,3 +181,19 @@ session and swept four pieces' work into commits titled for other pieces, so the
 history misdescribes its own contents. Commit by explicit path list, or wait.
 The records for P3 and P4 live in their state files because history was already
 pushed and rewriting it would have been worse.
+
+## Before writing any new wave script, read workflow-fixes.md
+
+`docs/ux-gauntlet/workflow-fixes.md` holds seven defects in the ORCHESTRATION
+itself, each named with the incident that proved it, written down on 2026-08-07
+rather than promised for a wave that might never run. They are cheap and they
+are the difference between a wave that survives an interruption and one that
+loses two pieces to a limit.
+
+Do not apply them by editing a running script: that invalidates the resume cache
+for every agent in the run, which is the most expensive lesson this campaign has
+paid for.
+
+The shape all seven share, and the test to apply to any new check you write:
+**ask what it does when it has nothing to say. If the answer is "passes
+quietly", it is not a check.**
