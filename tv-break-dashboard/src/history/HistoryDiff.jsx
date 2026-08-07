@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/format';
+import { Code, Name } from '../shell/bidi';
 import { changeRows } from './history-fields';
 import { FILE_LABELS, pair } from './history-labels';
 import { rowIdentity } from './history-rows';
@@ -61,9 +62,9 @@ function RowChip({ file, item, locale, tone }) {
   const identity = rowIdentity(file, item, locale);
   return (
     <li className={`hist-diff-chip ${tone}`}>
-      <span className="hist-diff-chip-name" dir="auto">
+      <span className="hist-diff-chip-name">
         {identity.label ? <span className="hist-diff-chip-key">{`${identity.label} `}</span> : null}
-        {identity.title}
+        <Name>{identity.title}</Name>
       </span>
       {identity.parts.length ? (
         <span className="hist-diff-chip-parts">
@@ -71,7 +72,7 @@ function RowChip({ file, item, locale, tone }) {
             <span className="hist-diff-chip-part" key={part.key}>
               <span className="hist-diff-chip-key">{part.label}</span>
               {part.values.map((value, index) => (
-                <bdi dir={part.ltr ? 'ltr' : 'auto'} key={index}>{value}</bdi>
+                part.ltr ? <Code key={index}>{value}</Code> : <Name key={index}>{value}</Name>
               ))}
             </span>
           ))}
@@ -137,7 +138,7 @@ function FileDiff({ file, detail, locale }) {
         <ChipList title={pageText(locale, 'Removed', 'הוסרו')} items={detail.removed} file={file} locale={locale} tone="remove" />
         {groups.map((group) => (
           <div className="hist-diff-adv" key={group.name || 'row'}>
-            <span className="hist-diff-adv-h" dir="auto">{group.name}</span>
+            <span className="hist-diff-adv-h"><Name>{group.name}</Name></span>
             <div className="hist-diff-grid">
               {headRow}
               <FieldRows file={file} changed={group.rows} locale={locale} />
@@ -171,7 +172,7 @@ function FileDiff({ file, detail, locale }) {
 export default function HistoryDiff({ diff, locale }) {
   const files = Object.keys(FILE_LABELS).filter((file) => diff && diff[file] && fileHasChanges(diff[file]));
   if (!files.length) {
-    return <p className="hist-empty" dir="auto">{pageText(locale, 'Nothing would change. This point matches the current state.', 'שום דבר לא ישתנה. הנקודה הזו זהה למצב הנוכחי.')}</p>;
+    return <p className="hist-empty">{pageText(locale, 'Nothing would change. This point matches the current state.', 'שום דבר לא ישתנה. הנקודה הזו זהה למצב הנוכחי.')}</p>;
   }
   return <div className="hist-diff">{files.map((file) => <FileDiff key={file} file={file} detail={diff[file]} locale={locale} />)}</div>;
 }

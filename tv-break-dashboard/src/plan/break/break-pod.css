@@ -1,0 +1,362 @@
+/* The pod: one break's spots, and the arithmetic between what they declare and
+   how long the break runs.
+
+   Logical properties throughout, so the whole surface mirrors in Hebrew without
+   a second stylesheet. Every clock, duration and house number is marked ltr in
+   the markup, because a time read right to left is a different time. */
+
+.pod-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pod-page-head h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.pod-page-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.pod-days {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.pod-day {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.pod-day-open {
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
+  font-weight: var(--weight-medium);
+}
+
+.pod-empty {
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.pod-empty p {
+  margin: 0 0 var(--space-1);
+}
+
+.pod-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pod-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: start;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.pod-row span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-row-open {
+  border-color: var(--line-strong);
+  background: var(--surface-muted);
+}
+
+.pod-row:focus-visible,
+.pod-day:focus-visible,
+.pod-act:focus-visible,
+.pod-spot:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pod-tag {
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  font-size: var(--text-2xs);
+}
+
+.pod-board {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-3);
+  margin-block-start: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pod-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pod-head h3 {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.pod-head code {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  word-break: break-all;
+}
+
+.pod-when {
+  margin: var(--space-1) 0 0;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.pod-basis,
+.pod-hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.pod-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+}
+
+.pod-figure {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-muted);
+}
+
+.pod-figure-label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.pod-figure strong {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pod-figure-basis {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.pod-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.pod-verdict-overflow {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.pod-verdict-gap {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.pod-verdict-unavailable {
+  color: var(--muted);
+  background: var(--surface-muted);
+}
+
+.pod-warning {
+  margin: 0;
+  color: var(--amber-ink);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.pod-order-note p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.pod-spots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pod-spot {
+  display: grid;
+  grid-template-columns: 16px 28px 32px minmax(0, 1.4fr) minmax(0, 1.6fr) 92px 72px 72px 56px;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  cursor: grab;
+}
+
+.pod-spot-dragging {
+  opacity: 0.5;
+  border-color: var(--line-strong);
+}
+
+.pod-grip {
+  color: var(--subtle);
+}
+
+.pod-seq {
+  color: var(--subtle);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.pod-pos {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.pod-pos-last {
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: var(--weight-medium);
+}
+
+.pod-pos-preferred {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.pod-pos-unpositioned,
+.pod-pos-unknown {
+  border-style: dashed;
+  color: var(--subtle);
+}
+
+.pod-advertiser,
+.pod-creative,
+.pod-house,
+.pod-type,
+.pod-clock {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-advertiser {
+  font-weight: var(--weight-medium);
+}
+
+.pod-creative,
+.pod-house,
+.pod-type,
+.pod-clock {
+  color: var(--muted);
+  font-weight: var(--weight-regular);
+}
+
+.pod-len {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.pod-missing {
+  color: var(--amber-ink);
+  font-style: normal;
+  font-size: var(--text-2xs);
+  display: block;
+}
+
+.pod-acts {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.pod-act {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.pod-act-save {
+  border-color: var(--line-strong);
+  font-weight: var(--weight-medium);
+}
+
+.pod-act:disabled {
+  color: var(--subtle);
+  cursor: not-allowed;
+}

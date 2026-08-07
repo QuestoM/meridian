@@ -8,6 +8,7 @@ import { buildCsv, downloadCsv } from '../../shell/downloads';
 import { DataTable, PageHeader, StatusBadge } from '../../shell/primitives';
 import ScheduleInspector from '../day/ScheduleInspector';
 import BreakBoard from './BreakBoard';
+import PodPage from './PodPage';
 
 export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalRefresh }) {
   const rows = normalizeRows(breakLibrary.breaks);
@@ -52,6 +53,12 @@ export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalR
         bodyHe="כל הברייקים ביום שידור אחד, עם ההכנסה שהתוכנית מייחסת לכל אחד. פתחו ברייק לפרטים המלאים, או השתמשו במדף המדורג שלמטה כדי למצוא את הברייקים החזקים בכל התוכנית."
       />
       <BreakBoard locale={locale} notify={notify} />
+      {/* The break's contents, which is the object below the break. It sits on
+          this page because this is the page a person reaches to work a break, and
+          it reads its own day from the traffic files rather than from the plan. */}
+      <section className="page-panel">
+        <PodPage locale={locale} notify={notify} />
+      </section>
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Ranked break candidates', 'ברייקים מדורגים')}</h2>

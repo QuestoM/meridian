@@ -32,6 +32,14 @@ the day's totals byte for byte in 30 ms.
 has a spot ledger behind it. Every break therefore reports delivered as
 unavailable with the two dates named and the path to supply a delivery feed. It
 will never report a guess.
+
+**The break's contents are a pod, and they live in
+:mod:`kairos_api.break_api_pod`.** Its four routes are included below rather than
+written here, both because this module is at its size cap and because the pod is
+read from the daily traffic file while everything else here is read from the
+plan. The include is the first statement after the router so the pod's own paths
+are matched before ``/api/breaks/{break_id}``, which would otherwise swallow
+``/api/breaks/pods`` as a break id and answer 422 on it.
 """
 
 from __future__ import annotations
@@ -43,13 +51,14 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from kairos_api import break_api_board as board
+from kairos_api import break_api_pod as pod
 from kairos_api import break_api_states as states
 from kairos_api import break_store, break_store_pins
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["plan-day"])
-
+router.include_router(pod.router)
 
 
 class BreakMove(BaseModel):

@@ -1,0 +1,88 @@
+{
+  "piece": "P10",
+  "round": 1,
+  "passed": true,
+  "title": "Break contents: the pod, its positions, and its arithmetic",
+  "summary": "The break's contents were a fixed unavailable state on every break in the product, with no input that could ever change it. They are an entity now. The pod is read from the daily traffic file, whose break_start column is the same value for every spot in one break, which is exactly the per-ad break identifier P3's path_forward asked for and which was already on disk. A pod carries its spots with an advertiser, a campaign, a creative, a house number, a declared duration and a position; it states the sum of its spots against its own span with the difference in seconds; it names Last as its own position rather than the fifth ordinal; and it can be reordered and put back.",
+
+  "what_i_built": [
+    "kairos_api/break_api_pod.py: the pod read, the pod identity <day>~<HH:MM:SS>, build_pod, pods_for_day, covered_days, contents_state, and four routes. GET /api/breaks/pods, GET /api/breaks/pod/{pod_id}, PUT /api/breaks/pod/{pod_id}/order, DELETE /api/breaks/pod/{pod_id}/order.",
+    "kairos_api/break_api_pod_math.py: the arithmetic. Declared load, span, the difference, the gaps and overlaps between consecutive spots, the plan-side declared break length, and the gap or overflow against it.",
+    "kairos_api/break_api_pod_spots.py: one spot and the position model. 1 to 5 plus L, where the file's 99 is L and its 0 is an unrequested position, and neither is returned as an ordinal. Also top_and_tail, the campaigns holding both position 1 and Last in one pod.",
+    "kairos_api/break_api_pod_order.py: the saved order register on data/break_pod_order.csv, with the same atomic-write discipline as the other operator stores, and a pod fingerprint so a saved order knows the traffic file moved under it.",
+    "kairos_api/break_api.py: includes the pod router as the first statement after the router, so /api/breaks/pods is matched before /api/breaks/{break_id} would swallow it.",
+    "kairos_api/break_api_detail.py: the contents field now calls pod.contents_state instead of returning a constant.",
+    "tv-break-dashboard/src/plan/break/pod-model.js: the pure model. The reorder move, the position labels, the arithmetic rows with their bases, and the declared verdict.",
+    "tv-break-dashboard/src/plan/break/PodBoard.jsx: one pod drawn. The three figures with their bases, the declared verdict, the spot list reorderable by drag and by Alt with the arrow keys, save, discard and back to the traffic file order.",
+    "tv-break-dashboard/src/plan/break/PodPage.jsx: the day's pods, the covered-day picker, and the honest state for a day no traffic file covers.",
+    "tv-break-dashboard/src/plan/break/break-pod.css: logical properties throughout so the whole surface mirrors in Hebrew.",
+    "tv-break-dashboard/src/plan/break/BreakInspector.jsx: the Break contents section renders the same PodBoard when the pod is real, and otherwise names the days a traffic file does cover. The reorder acts are absent there because that drawer is opened to read a break and a write with no inverse on the surface that performed it is the defect P3 spent a round closing.",
+    "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx: mounts PodPage, which is the door."
+  ],
+
+  "files_touched": [
+    "kairos_api/break_api_pod.py (new, 356)",
+    "kairos_api/break_api_pod_math.py (new, 167)",
+    "kairos_api/break_api_pod_spots.py (new, 179)",
+    "kairos_api/break_api_pod_order.py (new, 179)",
+    "kairos_api/break_api.py (edited, 435 to 444)",
+    "kairos_api/break_api_detail.py (edited, 223)",
+    "tv-break-dashboard/src/plan/break/pod-model.js (new, 173)",
+    "tv-break-dashboard/src/plan/break/PodBoard.jsx (new, 199)",
+    "tv-break-dashboard/src/plan/break/PodPage.jsx (new, 142)",
+    "tv-break-dashboard/src/plan/break/break-pod.css (new, 362)",
+    "tv-break-dashboard/src/plan/break/BreakInspector.jsx (edited, 348 to 365)",
+    "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx (edited, 106 to 113)",
+    "tests/test_p10_pod_arithmetic.py (new, 210)",
+    "tests/test_p10_pod_declared_length.py (new, 189)",
+    "tests/test_p10_pod_api.py (new, 242)",
+    "docs/ux-gauntlet/state/P10.json (new)"
+  ],
+
+  "evidence": {
+    "tests": "python -m pytest tests/ -q -k p10: 28 passed, 0 skipped, 0 failed, 6.51 s.",
+    "pod_arithmetic_on_real_data": "data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv declares 10 pods on 2025-04-27. The break at 20:40:09 holds 28 spots declaring 569 s between them; its last spot starts 20:50:37 and runs 6 s, so the pod ends 20:50:43, which is 634 s from the break's own declared start; 634 less 569 is 65 s that no spot covers. Two internal gaps, 13 s after the opening billboards and 10 s before the closing ones, 23 s in all, and 0 overlaps. Every one of the 10 pods closes span less load equals unfilled.",
+    "positions_on_real_data": "That pod carries ordinals 1 to 18, exactly one Last (the file's 99) and 9 unpositioned sponsorship billboards (the file's 0), 6 at the head and 3 at the tail. Last is returned with code L and no ordinal; unpositioned is returned with no code at all; neither is ever a number.",
+    "declared_length_today": "Unavailable on every real pod and it says why: the plan covers 2024-11-01 to 2024-11-30 and the one traffic file covers 2025-04-27, both windows named in the payload in both languages.",
+    "declared_length_proven_real": "tests/test_p10_pod_declared_length.py builds a traffic file on a day the plan does cover, over a break the plan really places, and drives the shipped path to a figure. The declared length is read from the plan rather than written into the fixture: 120 s declared against 85 s sold reads gap 35 s, against 165 s reads overflow 45 s, and against 120 s reads exact 0 s. The same fixture turns contents from unavailable into real with 3 spots and 85 s of load, which is the behaviour that did not exist before this piece.",
+    "why_the_pod_is_not_joined_to_a_planned_break_by_time": "Measured on רשת 13 / 2024-11-01: the plan's 80 breaks and the spot ledger's 72 pods sit a median 156 s apart, p25 52 s, p75 217 s, and only 21 of 72 fall within 60 s of each other. A proximity join would attach real spots to a break that did not carry them, so a planned break claims a pod only when that pod starts inside the break's own window.",
+    "reorder": "PUT with a reordered key list is applied and the sequence is restated with it, the arithmetic does not move because reordering changes no length, and a reread over HTTP returns the saved order. DELETE puts the pod back in the file's order and a second DELETE answers 404. A key list that is not exactly the pod's own keys, each once, is refused 422 on all four malformed shapes and the pod stays in the file order. A saved order whose pod fingerprint has moved is reported stale and is not applied.",
+    "competitor_boundary": "The traffic file carries no channel column at all, so no rival channel name can reach this surface from it. Asserted by greping the whole serialized /api/breaks/pods payload for every other channel name in the saved plan. The channel printed beside a pod is the operator's own from settings and the payload says that is where it came from.",
+    "route_ordering": "/api/breaks/pods and /api/breaks/{break_id} share a prefix. The pod router is included as the first statement after the router so the pod paths match first, and a test holds it there: without it the first route answers 422 with the word pods parsed as a break id.",
+    "frontend_build": "The whole-app build is blocked by a file that is not this piece's, so the pod tree was built in isolation with the project's own vite 8.0.16: PodPage.jsx entry, 7 modules transformed, pod.mjs 14.84 kB and pod.css 5.37 kB; BreakLibraryPage.jsx entry, 28 modules transformed, lib.mjs 77.71 kB and lib.css 13.78 kB. Both clean.",
+    "size_law": "Every file this piece owns is inside 450 lines, asserted by a test that enumerates them. break_api_pod.py was 602 on its first pass and was split by subject into the pod, the arithmetic and the spot.",
+    "stores_untouched": "The order tests point the register at a temporary path. data/ is byte-identical to its pre-run state and data/break_pod_order.csv does not exist.",
+    "voice": "0 em-dashes and 0 exclamation marks in any file this piece wrote. Every ! is a boolean negation."
+  },
+
+  "could_not_close": [
+    {
+      "what": "The whole-app frontend build fails.",
+      "where": "tv-break-dashboard/src/history/HistoryDiff.jsx:75",
+      "detail": "The line reads {part.values.map((value, index) => ( {part.ltr ? <Code .../> : <Name .../>} ))}, and a parenthesis followed by a brace is an object literal rather than JSX, so rolldown reports Expected , or } but found . at 75:22. The file is modified in the working tree and src/history/** is frozen for this piece, so it is another builder's in-flight edit. Reported rather than fixed. The pod tree was verified by building it in isolation instead.",
+      "owner": "whoever is live in src/history/"
+    },
+    {
+      "what": "Five tests in the P3 suite fail, none of them caused here.",
+      "detail": "117 pass, 1 skip, 5 fail. test_p3_boundary_and_regression size law reports DayBoard.jsx 451 and OverrideDecisions.jsx 451, both 450 at HEAD and both changed by another builder. test_p3_framing twice, test_p3_save_scope and test_p3_surface_readout are source-text assertions against plan/day/DayBoardChip.jsx, plan/day/ScheduleEditorRow.jsx and a day stylesheet rule. All are in plan/day/**, which this piece never writes, and all 34 files under plan/day and plan/week are modified in the working tree by other builders.",
+      "owner": "whoever is live in src/plan/day/"
+    },
+    {
+      "what": "A pod cannot yet be compared against a declared break length on real data.",
+      "detail": "Not a defect and not fakeable: the saved plan covers 2024-11-01 to 2024-11-30 and the only traffic file covers 2025-04-27, so the two overlap on zero dates. The comparison reports unavailable with both windows named, and it lights up with no code change the moment a traffic file lands on a planned day, which the declared-length tests prove by doing exactly that.",
+      "owner": "whoever supplies traffic files"
+    },
+    {
+      "what": "A saved pod order does not reach the optimizer.",
+      "detail": "It is a traffic decision recorded on the operator's own register, not a constraint. The plan prices a break on its programme's rating, rate, premium and length, so the order of spots inside a break moves no figure the engine computes. Stated here so a reader takes the absence as a decision rather than an oversight."
+    }
+  ],
+
+  "trade_facts_honoured": [
+    "Positions are 1 to 5 plus L, and L is its own thing rather than the fifth ordinal, because one campaign can hold both the first and the last spot of a break. The file's 99 is L and its 0 is an unrequested position; neither is returned as an ordinal, and top_and_tail reports the campaigns holding both 1 and L.",
+    "Which positions count as preferred is agreed per client, so the preferred set travels with the payload as a stated default and never as a reading of anybody's contract.",
+    "The two counting methods, agency and channel, give different percentages for one schedule, so no preferred-position percentage is computed here at all.",
+    "A creative carries a house number that differs per channel, and every spot carries its own house number from the file.",
+    "Length is in whole seconds. There are no milliseconds anywhere on this surface."
+  ]
+}

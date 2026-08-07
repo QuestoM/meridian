@@ -40,6 +40,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from kairos_api import break_api_board as board
+from kairos_api import break_api_pod as pod
 from kairos_api import break_store, break_store_pins
 
 
@@ -164,14 +165,13 @@ def build_detail(plan: break_store.DayPlan, segment_id: str, ordinal: int) -> Op
             "min_break_spacing_seconds": float(plan.guardrails.min_break_spacing_seconds),
         },
         "compliance": board.compliance(items, plan.guardrails),
-        "contents": {
-            "state": "unavailable",
-            "spots": [],
-            "reason": "The individual ads inside this break are not modelled yet.",
-            "reason_he": "התשדירים הבודדים בתוך הברייק הזה עדיין אינם מיוצגים במערכת.",
-            "path_forward": "Supply a break identifier per ad on the daily traffic file.",
-            "path_forward_he": "הוסיפו מזהה ברייק לכל תשדיר בקובץ הטראפיק היומי.",
-        },
+        # The individual ads inside a break are modelled now. The daily traffic
+        # file already carries a break identifier per ad, which is the input the
+        # earlier state here asked for, so this reads the pod that covers this
+        # break's window instead of declaring the contents unavailable in every
+        # case. It stays a state when no traffic file covers the day, and it now
+        # names the days that are covered rather than only the missing input.
+        "contents": pod.contents_state(plan.day, start, duration),
         "basis": board.basis(plan),
     }
 

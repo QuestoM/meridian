@@ -4,6 +4,7 @@ import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { exactCurrency } from '../day/day-board-model';
 import { violationLabel } from '../day/DayBoardReadout';
 import ScheduleInspector, { confidenceLabel } from '../day/ScheduleInspector';
+import PodBoard from './PodBoard';
 import './break-inspector.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -296,8 +297,24 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
 
           <section>
             <h3>{pageText(locale, 'Break contents', 'תוכן הברייק')}</h3>
-            <p className="break-unavailable" dir="auto">{say(detail.contents, 'reason', he)}</p>
-            <p className="break-basis" dir="auto">{say(detail.contents, 'path_forward', he)}</p>
+            {detail.contents.state === 'real' && detail.contents.pod ? (
+              // The same component the contents page draws, given the same pod.
+              // The reorder acts are deliberately absent here: this drawer is
+              // opened from a plan board to read a break, and a write with no
+              // inverse on the surface that performed it is the defect P3 spent a
+              // round closing. The pod's own page carries the acts and the inverse.
+              <PodBoard pod={detail.contents.pod} locale={locale} busy onSaveOrder={noNotify} onRevertOrder={noNotify} />
+            ) : (
+              <>
+                <p className="break-unavailable" dir="auto">{say(detail.contents, 'reason', he)}</p>
+                <p className="break-basis" dir="auto">{say(detail.contents, 'path_forward', he)}</p>
+                {(detail.contents.covered_days || []).length > 0 && (
+                  <p className="break-basis" dir="auto">
+                    {label('A traffic file covers', 'קובץ טראפיק מכסה')}: <span dir="ltr">{detail.contents.covered_days.join(', ')}</span>
+                  </p>
+                )}
+              </>
+            )}
           </section>
         </div>
       )}
