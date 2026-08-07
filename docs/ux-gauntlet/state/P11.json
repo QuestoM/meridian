@@ -1,0 +1,45 @@
+{
+  "piece": "P11",
+  "round": 1,
+  "passed": false,
+  "gap": "",
+  "history": [
+    "round 1: built the pacing board and the make-good ledger on P4's campaign store and derived delivery ledger, three new routes on the wave-zero router, the surface under src/clients/pacing, 41 tests green; the mount into the Clients destination is blocked on two P4 files and the exact patch is in contracts/P11.md section 5"
+  ],
+  "files_touched": [
+    "kairos_api/pacing_alerts_api.py",
+    "kairos_api/pacing_alerts_api_board.py",
+    "kairos_api/pacing_alerts_api_read.py",
+    "kairos_api/pacing_alerts_api_words.py",
+    "kairos_api/makegood_store.py",
+    "data/make_goods.csv",
+    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
+    "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
+    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
+    "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
+    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
+    "tv-break-dashboard/src/clients/pacing/pacing-api.js",
+    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
+    "tv-break-dashboard/src/clients/pacing/pacing.css",
+    "tv-break-dashboard/src/clients/pacing/makegood.css",
+    "tests/test_p11_pacing_board.py",
+    "tests/test_p11_make_good_ledger.py",
+    "tests/test_p11_regression.py",
+    "tests/test_p11_surface_remedy.py",
+    "docs/ux-gauntlet/contracts/P11.md",
+    "docs/ux-gauntlet/state/P11.json"
+  ],
+  "blockers": [
+    "The mount: src/clients/pacing/** is P11's and sits inside P4's src/clients/**. Four lines in ClientsChrome.jsx and ClientsWorkspace.jsx are needed to reach the surface from the shell. Exact patch in docs/ux-gauntlet/contracts/P11.md section 5.",
+    "Owner decision 4 is still open for campaign_flights.csv, a current broadcast week and a live delivery feed. GET /api/make-good-alerts remains honestly data-pending. The pacing board reads P4's derived delivery ledger instead, which is real for the one sourced broadcast day and honestly unknown for the other six of every flight."
+  ],
+  "measured": {
+    "board_rows": 56,
+    "verdicts": {"behind": 0, "at_risk": 13, "on_pace": 38, "unknown": 5},
+    "worst_row_ms_zero_clicks": 304,
+    "api_pacing_ms_warm": [36, 30, 31],
+    "competitor_rows_excluded_on_seed": 0,
+    "competitor_names_on_screen": 0,
+    "tests": "41 passed across the four test_p11_* files"
+  }
+}

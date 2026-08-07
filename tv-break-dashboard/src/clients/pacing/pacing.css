@@ -1,0 +1,394 @@
+/* Clients, pacing. Logical properties throughout, so one stylesheet is correct in
+   both directions and no rule has to be mirrored by hand. Every token is read from
+   tokens.css and none is defined here. */
+
+.pacing-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.pacing-refresh,
+.pacing-views button,
+.pacing-failed button {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.pacing-refresh:focus-visible,
+.pacing-views button:focus-visible,
+.pacing-list:focus-visible,
+.pacing-chip:focus-visible,
+.pacing-remedy:focus-visible,
+.pacing-days-toggle:focus-visible,
+.makegood-actions button:focus-visible,
+.makegood-campaign:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pacing-views {
+  display: flex;
+  gap: var(--space-2);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-2);
+}
+
+.pacing-views button.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--surface);
+}
+
+.pacing-open-count {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  font-size: var(--text-xs);
+}
+
+.pacing-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pacing-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pacing-chip.active {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.pacing-chip-count {
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pacing-chip.behind .pacing-chip-count { color: var(--red); }
+.pacing-chip.at_risk .pacing-chip-count { color: var(--amber); }
+.pacing-chip.on_pace .pacing-chip-count { color: var(--teal-ink); }
+.pacing-chip.unknown .pacing-chip-count { color: var(--muted); }
+
+.pacing-basis,
+.pacing-keys {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pacing-basis p {
+  margin: 0 0 2px;
+}
+
+.pacing-scope-note {
+  color: var(--subtle);
+}
+
+.pacing-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pacing-focused .pacing-row {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.pacing-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-inline-start: 3px solid var(--line-strong);
+}
+
+.pacing-row.behind { border-inline-start-color: var(--red); }
+.pacing-row.at_risk { border-inline-start-color: var(--amber); }
+.pacing-row.on_pace { border-inline-start-color: var(--teal); }
+
+.pacing-row-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pacing-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.pacing-verdict.behind { background: var(--red-soft); color: var(--red); }
+.pacing-verdict.at_risk { background: var(--amber-soft); color: var(--amber-ink); }
+.pacing-verdict.on_pace { background: var(--teal-soft); color: var(--teal-ink); }
+.pacing-verdict.unknown { background: var(--surface-muted); color: var(--muted); }
+
+.pacing-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.pacing-names strong {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.pacing-names small {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.pacing-demo {
+  align-self: flex-start;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.pacing-headline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-inline-start: auto;
+}
+
+.pacing-figure {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.pacing-scope {
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.pacing-ratio {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pacing-ratio.behind { color: var(--red); }
+.pacing-ratio.at_risk { color: var(--amber-ink); }
+.pacing-ratio.on_pace { color: var(--teal-ink); }
+
+.pacing-track {
+  position: relative;
+  block-size: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  overflow: visible;
+}
+
+.pacing-track i {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: calc(var(--bar) * 100%);
+  border-radius: var(--radius-pill);
+}
+
+.pacing-booked { background: var(--line-strong); }
+.pacing-counted { background: var(--teal); }
+.pacing-counted.behind { background: var(--red); }
+.pacing-counted.at_risk { background: var(--amber); }
+
+.pacing-reference {
+  position: absolute;
+  inset-block: -3px;
+  inset-inline-start: calc(var(--at) * 100%);
+  inline-size: 2px;
+  background: var(--primary);
+}
+
+.pacing-unknown,
+.pacing-remedy-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.pacing-forward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  align-items: baseline;
+}
+
+.pacing-forward-word {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.pacing-forward-figure,
+.pacing-forward-missing {
+  color: var(--muted);
+}
+
+.pacing-row-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pacing-remedy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.pacing-remedy.open {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.pacing-remedy[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.pacing-days-toggle {
+  border: none;
+  background: none;
+  color: var(--blue);
+  font-size: var(--text-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  padding: var(--space-1);
+}
+
+.pacing-days {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: var(--space-2);
+}
+
+.pacing-days table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.pacing-days-caption {
+  text-align: start;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  padding-block-end: var(--space-1);
+}
+
+.pacing-days th,
+.pacing-days td {
+  text-align: start;
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.pacing-days thead th {
+  color: var(--subtle);
+  font-weight: var(--weight-medium);
+}
+
+.pacing-days tr.unknown td,
+.pacing-days tr.unknown th {
+  color: var(--muted);
+  background: var(--surface-muted);
+}
+
+.pacing-day-figures {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+}
+
+.pacing-day-unknown {
+  color: var(--muted);
+}
+
+.pacing-second-line,
+.pacing-days-source {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.pacing-empty,
+.pacing-loading {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.pacing-failed {
+  border: 1px solid var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+/* A sentence quoted out of a store that writes in one language only. It is set
+   apart so a reader can tell the source's words from this surface's own. */
+.pacing-source-quote q {
+  unicode-bidi: isolate;
+  color: var(--subtle);
+}

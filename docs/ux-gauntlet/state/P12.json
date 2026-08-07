@@ -1,0 +1,49 @@
+{
+ "piece": "P12",
+ "name": "Model improvement",
+ "round": 1,
+ "passed": false,
+ "gap": "Not yet swept by a critic. The known open item is the frontend row src/model/candidates/**, which cannot be mounted without editing P7 files that are frozen. See docs/ux-gauntlet/contracts/P12.md section 6.",
+ "history": [
+  "round 1: built the whole piece from zero. scripts/adopt_candidate.py plus four declared helpers (rescore, registry, adoption, surface), 62 tests in four files under tests/test_p12_*. Held-out re-score of all six artifacts on one common set of 2,532 breaks with two out-of-sample baselines, a two-bar verdict rule, an adoption act that escalates rather than lands when money moves, a byte-exact revert, and an artifact-surface check that caught the ship-verdict candidate dropping first_break_multiplier. Measured afterwindow money live at +923,843.08 on the operator's own channel in 179.6 s. models/tv_break_coefficients.json byte identical throughout, digest 1e41d92b1a14. P7's 53 model-console tests still pass. Frontend tree not built and reported as a blocker."
+ ],
+ "files_touched": [
+  "scripts/adopt_candidate.py",
+  "scripts/adopt_candidate_rescore.py",
+  "scripts/adopt_candidate_registry.py",
+  "scripts/adopt_candidate_adoption.py",
+  "scripts/adopt_candidate_surface.py",
+  "tests/test_p12_rescore.py",
+  "tests/test_p12_adoption.py",
+  "tests/test_p12_surface.py",
+  "tests/test_p12_training_line.py",
+  "models/releases/holdout_rescores.json",
+  "models/releases/candidate_registry.json",
+  "models/releases/candidate_measurements.json",
+  "docs/ux-gauntlet/contracts/P12.md",
+  "docs/ux-gauntlet/state/P12.json"
+ ],
+ "blockers": [
+  "tv-break-dashboard/src/model/candidates/** cannot be reached. A mount needs an import in src/model/console/ModelConsole.jsx and a section in console-api.js, both P7 and frozen; a feed needs a route in kairos_api/model_console_api.py, also P7. No dynamic panel registry and no import.meta.glob exist in the frontend. The payload a route would serve is published at models/releases/candidate_registry.json.",
+  "models/tv_break_coefficients.json is the write target of the adoption act and is absent from P12's row in spec.md section 8.2, so it is frozen by absence. Nothing is blocked today because every candidate fails a check, but the piece that owns the act should own the artifact.",
+  "No unseen data exists. All six artifacts were fitted on the same 2,532 breaks, so the re-score states its in-sample limit on every payload. A second month of measured breaks would lift it."
+ ],
+ "measured": {
+  "shipped_artifact_sha256_short": "1e41d92b1a14",
+  "rescore_breaks": 2532,
+  "rescore_cells": 36,
+  "rescore_folds": 5,
+  "shipped_rmse": 0.241161,
+  "candidate_verdicts": {"spotclip": "not_distinguishable", "afterwindow": "not_distinguishable", "calibrated": "not_distinguishable", "competitor": "not_distinguishable", "placebo_corrected": "identical"},
+  "baseline_global_mean_loo_rmse": 0.241474,
+  "baseline_cell_mean_loo_rmse": 0.242097,
+  "cell_split_earns_its_place": false,
+  "duplicate_predictors": [["afterwindow", "calibrated"]],
+  "afterwindow_money_operator_channel": 923843.08,
+  "afterwindow_money_whole_plan": 5290848.33,
+  "afterwindow_money_seconds": 179.6,
+  "p12_tests": 62,
+  "p7_regression_tests": 53,
+  "timings_seconds": {"show": 0.31, "checks": 0.19, "report": 0.2, "adopt_to_refusal": 0.46, "rescore": 10, "measure": 179.6}
+ }
+}

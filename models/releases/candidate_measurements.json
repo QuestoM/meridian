@@ -1,15 +1,15 @@
 {
  "afterwindow": {
   "candidate_id": "afterwindow",
-  "fingerprint": "c5c9f5f4c38008a8ee53c78378b07a4c5ee368ab3ca5e6d886b4c0259dfe6cfb",
+  "fingerprint": "ec285d5079b800540d90886bef77b09da49d5b179b927016fbff68a9e38cb397",
   "inputs": {
    "candidate": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
    "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
-   "settings": "38568e0c0349a7373b1c8de5aab5a80acc75e580a3133d1d4c092947b7ee18d0",
+   "settings": "cc084437ec62af9fc306521e757afd7a19b8acc8f160c8b7c7a746da09d501cf",
    "engine": "1.0.0"
   },
-  "measured_at": "2026-08-01T08:47:20.124212+00:00",
-  "duration_seconds": 87.0,
+  "measured_at": "2026-08-07T02:42:07.179571+00:00",
+  "duration_seconds": 179.6,
   "engine_version": "1.0.0",
   "operator_channel": "רשת 13",
   "scope": {
@@ -25,59 +25,59 @@
   },
   "shipped_totals": {
    "operator_channel": {
-    "revenue": 40900927.61,
-    "retention_sum": 2422.8312,
+    "revenue": 40812880.63,
+    "retention_sum": 2422.7552,
     "breaks": 2391,
     "rows": 2540
    },
    "whole_plan": {
-    "revenue": 221701567.09,
-    "retention_sum": 8256.2965,
+    "revenue": 221759711.53,
+    "retention_sum": 8256.0608,
     "breaks": 9026,
     "rows": 8704,
     "channels": 4
    },
    "other_channels_aggregate": {
-    "revenue": 180800639.48000002,
+    "revenue": 180946830.9,
     "rows": 6164,
     "channels": 3
    }
   },
   "candidate_totals": {
    "operator_channel": {
-    "revenue": 41864404.98,
-    "retention_sum": 2448.9034,
+    "revenue": 41736723.70999999,
+    "retention_sum": 2448.8992,
     "breaks": 2391,
     "rows": 2540
    },
    "whole_plan": {
-    "revenue": 227138878.98000002,
-    "retention_sum": 8354.2242,
-    "breaks": 9026,
+    "revenue": 227050559.85999998,
+    "retention_sum": 8354.1109,
+    "breaks": 9028,
     "rows": 8704,
     "channels": 4
    },
    "other_channels_aggregate": {
-    "revenue": 185274474.0,
+    "revenue": 185313836.15,
     "rows": 6164,
     "channels": 3
    }
   },
   "operator_channel_delta": {
-   "revenue_shipped": 40900927.61,
-   "revenue_candidate": 41864404.98,
-   "revenue_delta": 963477.37,
-   "revenue_delta_pct": 2.3556,
+   "revenue_shipped": 40812880.63,
+   "revenue_candidate": 41736723.71,
+   "revenue_delta": 923843.08,
+   "revenue_delta_pct": 2.2636,
    "breaks_delta": 0,
-   "retention_sum_delta": 26.072
+   "retention_sum_delta": 26.144
   },
   "whole_plan_delta": {
-   "revenue_shipped": 221701567.09,
-   "revenue_candidate": 227138878.98,
-   "revenue_delta": 5437311.89,
-   "revenue_delta_pct": 2.4525,
-   "breaks_delta": 0,
-   "retention_sum_delta": 97.928
+   "revenue_shipped": 221759711.53,
+   "revenue_candidate": 227050559.86,
+   "revenue_delta": 5290848.33,
+   "revenue_delta_pct": 2.3858,
+   "breaks_delta": 2,
+   "retention_sum_delta": 98.05
   }
  },
  "calibrated": {

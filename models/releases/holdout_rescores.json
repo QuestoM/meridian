@@ -1,0 +1,300 @@
+{
+ "measured_at": "2026-08-07T02:35:52.964369+00:00",
+ "evaluation": {
+  "breaks": 2532,
+  "cells": 36,
+  "window": "2024-11-01 to 2024-11-30",
+  "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
+  "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
+  "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+  "folds": 5
+ },
+ "limit": {
+  "state": "in_sample",
+  "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
+  "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
+  "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
+  "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו."
+ },
+ "fingerprint": "56798941ce3587ab47a81573b2ccc9749d6a53ed9f46e46263f0c473be8069fe",
+ "inputs": {
+  "shipped": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+  "candidate:afterwindow": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
+  "candidate:calibrated": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
+  "candidate:competitor": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
+  "candidate:placebo_corrected": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
+  "candidate:spotclip": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
+  "data:Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+  "data:Programmes.xlsx": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+  "data:Dayparts.xlsx": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0"
+ },
+ "baselines": [
+  {
+   "id": "global_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.241474068,
+   "mae": 0.158958114,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks, never from itself."
+  },
+  {
+   "id": "cell_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.242097429,
+   "mae": 0.159240951,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself."
+  }
+ ],
+ "shipped": {
+  "id": "shipped",
+  "kind": "shipped",
+  "rmse": 0.241160667,
+  "mae": 0.159794185,
+  "breaks": 2532,
+  "target_sd": 0.241378699,
+  "out_of_sample": false,
+  "cells": 36,
+  "cells_not_carried": 0,
+  "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+  "file": "models/tv_break_coefficients.json"
+ },
+ "candidates": [
+  {
+   "id": "afterwindow",
+   "kind": "candidate",
+   "rmse": 0.241046876,
+   "mae": 0.158517967,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": false,
+   "cells": 36,
+   "cells_not_carried": 0,
+   "sha256": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
+   "file": "models/candidates/tv_break_coefficients_afterwindow.json",
+   "breaks_fitted_on": 2532,
+   "paired": {
+    "rmse_delta": -0.00011379,
+    "mean_squared_error_delta": -5.487048719664714e-05,
+    "standard_error": 0.00010528247612009018,
+    "paired_statistic": -0.5212,
+    "paired_bar": 2.0,
+    "fold_rmse_deltas": [
+     0.000210503,
+     0.000402098,
+     -0.000118909,
+     -0.000360906,
+     -0.00076277
+    ],
+    "fold_dispersion": 0.000461744,
+    "folds": 5,
+    "breaks_improved": 1430,
+    "breaks_worsened": 1102,
+    "breaks": 2532
+   },
+   "verdict": {
+    "state": "not_distinguishable",
+    "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+    "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+    "clears_paired_bar": false,
+    "clears_fold_dispersion": false
+   },
+   "prediction_signature": "c613b795afdf",
+   "duplicate_of": [
+    "calibrated"
+   ]
+  },
+  {
+   "id": "calibrated",
+   "kind": "candidate",
+   "rmse": 0.241046876,
+   "mae": 0.158517967,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": false,
+   "cells": 36,
+   "cells_not_carried": 0,
+   "sha256": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
+   "file": "models/candidates/tv_break_coefficients_calibrated.json",
+   "breaks_fitted_on": 2532,
+   "paired": {
+    "rmse_delta": -0.00011379,
+    "mean_squared_error_delta": -5.487048719664714e-05,
+    "standard_error": 0.00010528247612009018,
+    "paired_statistic": -0.5212,
+    "paired_bar": 2.0,
+    "fold_rmse_deltas": [
+     0.000210503,
+     0.000402098,
+     -0.000118909,
+     -0.000360906,
+     -0.00076277
+    ],
+    "fold_dispersion": 0.000461744,
+    "folds": 5,
+    "breaks_improved": 1430,
+    "breaks_worsened": 1102,
+    "breaks": 2532
+   },
+   "verdict": {
+    "state": "not_distinguishable",
+    "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+    "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+    "clears_paired_bar": false,
+    "clears_fold_dispersion": false
+   },
+   "prediction_signature": "c613b795afdf",
+   "duplicate_of": [
+    "afterwindow"
+   ]
+  },
+  {
+   "id": "competitor",
+   "kind": "candidate",
+   "rmse": 0.241150155,
+   "mae": 0.158647937,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": false,
+   "cells": 36,
+   "cells_not_carried": 0,
+   "sha256": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
+   "file": "models/candidates/tv_break_coefficients_competitor.json",
+   "breaks_fitted_on": 2532,
+   "paired": {
+    "rmse_delta": -1.0511e-05,
+    "mean_squared_error_delta": -5.0697155845327055e-06,
+    "standard_error": 0.0001039395100246689,
+    "paired_statistic": -0.0488,
+    "paired_bar": 2.0,
+    "fold_rmse_deltas": [
+     0.000323036,
+     0.000530829,
+     -6.5868e-05,
+     -0.000296514,
+     -0.00060706
+    ],
+    "fold_dispersion": 0.000459413,
+    "folds": 5,
+    "breaks_improved": 1431,
+    "breaks_worsened": 1101,
+    "breaks": 2532
+   },
+   "verdict": {
+    "state": "not_distinguishable",
+    "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+    "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.0488, movement -0.000011, dispersion 0.000459.",
+    "clears_paired_bar": false,
+    "clears_fold_dispersion": false
+   },
+   "prediction_signature": "f1910d550687",
+   "duplicate_of": []
+  },
+  {
+   "id": "placebo_corrected",
+   "kind": "candidate",
+   "rmse": 0.241160667,
+   "mae": 0.159794185,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": false,
+   "cells": 36,
+   "cells_not_carried": 0,
+   "sha256": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
+   "file": "models/candidates/tv_break_coefficients_placebo_corrected.json",
+   "breaks_fitted_on": 2532,
+   "paired": {
+    "rmse_delta": 0.0,
+    "mean_squared_error_delta": 0.0,
+    "standard_error": 0.0,
+    "paired_statistic": 0.0,
+    "paired_bar": 2.0,
+    "fold_rmse_deltas": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "fold_dispersion": 0.0,
+    "folds": 5,
+    "breaks_improved": 0,
+    "breaks_worsened": 0,
+    "breaks": 2532
+   },
+   "verdict": {
+    "state": "identical",
+    "en": "Predicts exactly what the shipped model predicts, break for break.",
+    "he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
+    "rule_en": "Both artifacts predict the same value for every break."
+   },
+   "prediction_signature": "1e76c1c24620",
+   "duplicate_of": []
+  },
+  {
+   "id": "spotclip",
+   "kind": "candidate",
+   "rmse": 0.241004968,
+   "mae": 0.158575405,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": false,
+   "cells": 36,
+   "cells_not_carried": 0,
+   "sha256": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
+   "file": "models/candidates/tv_break_coefficients_spotclip.json",
+   "breaks_fitted_on": 2336,
+   "paired": {
+    "rmse_delta": -0.000155699,
+    "mean_squared_error_delta": -7.507262203841973e-05,
+    "standard_error": 9.67920577630378e-05,
+    "paired_statistic": -0.7756,
+    "paired_bar": 2.0,
+    "fold_rmse_deltas": [
+     0.000165339,
+     0.00029232,
+     -0.000164101,
+     -0.000380859,
+     -0.000743805
+    ],
+    "fold_dispersion": 0.000418291,
+    "folds": 5,
+    "breaks_improved": 1431,
+    "breaks_worsened": 1101,
+    "breaks": 2532
+   },
+   "verdict": {
+    "state": "not_distinguishable",
+    "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+    "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.7756, movement -0.000156, dispersion 0.000418.",
+    "clears_paired_bar": false,
+    "clears_fold_dispersion": false
+   },
+   "prediction_signature": "9e0e5a7a10dc",
+   "duplicate_of": []
+  }
+ ],
+ "duplicate_groups": [
+  [
+   "afterwindow",
+   "calibrated"
+  ]
+ ],
+ "cell_structure": {
+  "cell_mean_loo_rmse": 0.242097429,
+  "global_mean_loo_rmse": 0.241474068,
+  "rmse_delta": 0.000623361,
+  "earns_its_place": false,
+  "out_of_sample": true,
+  "reading_en": "Out of sample the per-cell split does not predict better than a single constant.",
+  "reading_he": "מחוץ למדגם החלוקה לתאים אינה חוזה טוב יותר מקבוע יחיד."
+ }
+}

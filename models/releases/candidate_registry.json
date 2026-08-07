@@ -1,0 +1,461 @@
+{
+ "live_version": {
+  "available": true,
+  "id": "mv-2026-07-29-35cc2e21",
+  "name": "2026-07-29",
+  "short": "35cc2e21",
+  "trained_at": {
+   "retention": "2026-07-29T00:12:13.100043+00:00",
+   "audience": "2026-07-29T06:41:29.045699+00:00"
+  },
+  "artifacts": {
+   "retention": {
+    "kind": "retention",
+    "present": true,
+    "path": "models/tv_break_coefficients.json",
+    "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+    "short": "1e41d92b",
+    "bytes": 21014,
+    "computed_at": "2026-07-29T00:12:13.100043+00:00",
+    "subject_en": "Predicted retention: what a break costs in audience.",
+    "subject_he": "שימור חזוי: כמה ברייק עולה בקהל.",
+    "source_fingerprints": {
+     "data/reference/Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+     "data/reference/Programmes.xlsx": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+     "data/reference/Dayparts.xlsx": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0"
+    }
+   },
+   "audience": {
+    "kind": "audience",
+    "present": true,
+    "path": "models/audience_model.json",
+    "sha256": "862cf829bc0e898be3c616a15a6f4f82bd7322591ee1c5fd49b1a74eaddf7600",
+    "short": "862cf829",
+    "bytes": 121514,
+    "computed_at": "2026-07-29T06:41:29.045699+00:00",
+    "subject_en": "Expected rating: what a segment is predicted to draw.",
+    "subject_he": "רייטינג צפוי: כמה מקטע צפוי למשוך.",
+    "source_fingerprints": {
+     "data/calendar_events.csv": "17302e1a7ad2836f6c8c9410c18ea4521f8a1428dc71dba4de59b728f7a4d1e7",
+     "data/reference/Spots.xlsx": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+     "kairos/config/israel_calendar.csv": "a814d8b376fc6b2c6a87e48640fc63be154ace59302e63f2479893b373b1ef33"
+    }
+   }
+  },
+  "basis_en": "The identity is a digest of both artifacts' bytes, so it is reproducible from the tree.",
+  "basis_he": "הזהות היא טביעת אצבע של הבייטים של שני הקבצים, ולכן היא ניתנת לשחזור מהעץ."
+ },
+ "rescore_state": {
+  "state": "current",
+  "measured_at": "2026-08-07T02:35:52.964369+00:00"
+ },
+ "evaluation": {
+  "breaks": 2532,
+  "cells": 36,
+  "window": "2024-11-01 to 2024-11-30",
+  "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
+  "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
+  "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+  "folds": 5
+ },
+ "limit": {
+  "state": "in_sample",
+  "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
+  "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
+  "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
+  "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו."
+ },
+ "baselines": [
+  {
+   "id": "global_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.241474068,
+   "mae": 0.158958114,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks, never from itself."
+  },
+  {
+   "id": "cell_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.242097429,
+   "mae": 0.159240951,
+   "breaks": 2532,
+   "target_sd": 0.241378699,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself."
+  }
+ ],
+ "shipped": {
+  "id": "shipped",
+  "kind": "shipped",
+  "rmse": 0.241160667,
+  "mae": 0.159794185,
+  "breaks": 2532,
+  "target_sd": 0.241378699,
+  "out_of_sample": false,
+  "cells": 36,
+  "cells_not_carried": 0,
+  "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+  "file": "models/tv_break_coefficients.json"
+ },
+ "cell_structure": {
+  "cell_mean_loo_rmse": 0.242097429,
+  "global_mean_loo_rmse": 0.241474068,
+  "rmse_delta": 0.000623361,
+  "earns_its_place": false,
+  "out_of_sample": true,
+  "reading_en": "Out of sample the per-cell split does not predict better than a single constant.",
+  "reading_he": "מחוץ למדגם החלוקה לתאים אינה חוזה טוב יותר מקבוע יחיד."
+ },
+ "duplicate_groups": [
+  [
+   "afterwindow",
+   "calibrated"
+  ]
+ ],
+ "candidates": [
+  {
+   "id": "spotclip",
+   "file": "models/candidates/tv_break_coefficients_spotclip.json",
+   "bytes": 12457,
+   "computed_at": "2026-07-05T17:52:51.165302+00:00",
+   "breaks_fitted_on": 2336,
+   "rmse": 0.241004968,
+   "rmse_delta": -0.000155699,
+   "paired_statistic": -0.7756,
+   "fold_dispersion": 0.000418291,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "duplicate_of": [],
+   "money": {
+    "state": "stale",
+    "revenue_delta": 902998.61,
+    "measured_at": "2026-08-01T08:53:05.583529+00:00",
+    "changed": [
+     "settings"
+    ],
+    "scope_rows": 2540
+   },
+   "decisions": 1,
+   "latest_decision": {
+    "decision_id": "md-2212595fbb9e",
+    "recorded_at": "2026-08-02T02:13:22.813973+00:00",
+    "actor": "steward",
+    "model_version_id": "mv-2026-07-29-35cc2e21",
+    "model_version_name": "2026-07-29",
+    "subject": "candidate",
+    "candidate_id": "spotclip",
+    "decision": "not_shipped",
+    "reason": "ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון.",
+    "release_note_he": "",
+    "release_note_en": "",
+    "money_direction": "unknown",
+    "evidence": {
+     "gate_counts": {
+      "active": 3,
+      "tested_and_lost": 5,
+      "no_contrast": 5,
+      "not_measured": 0
+     },
+     "gate_total": 13,
+     "money_state": "measured",
+     "revenue_delta": 902998.61,
+     "revenue_delta_pct": 2.2078,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     },
+     "measured_at": "2026-08-01T08:53:05.583529+00:00"
+    },
+    "adoption": {
+     "state": "not_applicable"
+    }
+   },
+   "owner_approval": false,
+   "adopted": false,
+   "adoption_id": null,
+   "next_act": {
+    "en": "Measure the money adopting it would move.",
+    "command": "python scripts/adopt_candidate.py measure spotclip"
+   }
+  },
+  {
+   "id": "afterwindow",
+   "file": "models/candidates/tv_break_coefficients_afterwindow.json",
+   "bytes": 12410,
+   "computed_at": "2026-07-05T17:47:58.285153+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241046876,
+   "rmse_delta": -0.00011379,
+   "paired_statistic": -0.5212,
+   "fold_dispersion": 0.000461744,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "duplicate_of": [
+    "calibrated"
+   ],
+   "money": {
+    "state": "measured",
+    "revenue_delta": 923843.08,
+    "measured_at": "2026-08-07T02:42:07.179571+00:00",
+    "changed": [],
+    "scope_rows": 2540
+   },
+   "decisions": 1,
+   "latest_decision": {
+    "decision_id": "md-7805cd5b25b4",
+    "recorded_at": "2026-08-01T14:31:48.874771+00:00",
+    "actor": "unknown (login is not set up)",
+    "model_version_id": "mv-2026-07-29-35cc2e21",
+    "model_version_name": "2026-07-29",
+    "subject": "candidate",
+    "candidate_id": "afterwindow",
+    "decision": "shipped",
+    "reason": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור.",
+    "release_note_he": "עלות השימור לברייק מחושבת מעכשיו על חלון רחב יותר. תוכניות שירוצו מכאן ואילך עשויות למקם ברייקים מעט אחרת.",
+    "release_note_en": "",
+    "money_direction": "unknown",
+    "evidence": {
+     "gate_counts": {
+      "active": 3,
+      "tested_and_lost": 5,
+      "no_contrast": 5,
+      "not_measured": 0
+     },
+     "gate_total": 13,
+     "money_state": "stale",
+     "revenue_delta": 963477.37,
+     "revenue_delta_pct": 2.3556,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     },
+     "measured_at": "2026-08-01T08:47:20.124212+00:00"
+    },
+    "adoption": {
+     "state": "escalated",
+     "performed": false,
+     "reason_en": "Copying this candidate over the shipped artifact would move revenue in every plan run afterwards, so the verdict is recorded and the adoption is escalated for owner approval rather than performed here.",
+     "reason_he": "העתקת המועמד הזה על הקובץ המשודר תזיז הכנסה בכל הרצה שאחריה, ולכן ההכרעה נרשמת וההטמעה מועברת לאישור בעלים במקום להתבצע כאן.",
+     "measured_revenue_delta": 963477.37,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     }
+    }
+   },
+   "owner_approval": false,
+   "adopted": false,
+   "adoption_id": null,
+   "next_act": {
+    "en": "Read the adoption checks.",
+    "command": "python scripts/adopt_candidate.py adopt afterwindow --adopted-by \"<name>\" --reason \"<sentence>\""
+   }
+  },
+  {
+   "id": "calibrated",
+   "file": "models/candidates/tv_break_coefficients_calibrated.json",
+   "bytes": 20682,
+   "computed_at": "2026-07-05T21:34:41.413211+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241046876,
+   "rmse_delta": -0.00011379,
+   "paired_statistic": -0.5212,
+   "fold_dispersion": 0.000461744,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "duplicate_of": [
+    "afterwindow"
+   ],
+   "money": {
+    "state": "stale",
+    "revenue_delta": 963477.37,
+    "measured_at": "2026-08-01T08:48:46.484343+00:00",
+    "changed": [
+     "settings"
+    ],
+    "scope_rows": 2540
+   },
+   "decisions": 2,
+   "latest_decision": {
+    "decision_id": "md-693f95698d4e",
+    "recorded_at": "2026-08-01T19:04:24.745372+00:00",
+    "actor": "unknown (login is not set up)",
+    "model_version_id": "mv-2026-07-29-35cc2e21",
+    "model_version_name": "2026-07-29",
+    "subject": "candidate",
+    "candidate_id": "calibrated",
+    "decision": "not_shipped",
+    "reason": "the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded",
+    "release_note_he": "",
+    "release_note_en": "",
+    "money_direction": "unknown",
+    "evidence": {
+     "gate_counts": {
+      "active": 3,
+      "tested_and_lost": 5,
+      "no_contrast": 5,
+      "not_measured": 0
+     },
+     "gate_total": 13,
+     "money_state": "stale",
+     "revenue_delta": 963477.37,
+     "revenue_delta_pct": 2.3556,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     },
+     "measured_at": "2026-08-01T08:48:46.484343+00:00"
+    },
+    "adoption": {
+     "state": "not_applicable"
+    }
+   },
+   "owner_approval": false,
+   "adopted": false,
+   "adoption_id": null,
+   "next_act": {
+    "en": "Measure the money adopting it would move.",
+    "command": "python scripts/adopt_candidate.py measure calibrated"
+   }
+  },
+  {
+   "id": "competitor",
+   "file": "models/candidates/tv_break_coefficients_competitor.json",
+   "bytes": 13917,
+   "computed_at": "2026-07-05T18:07:24.784743+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241150155,
+   "rmse_delta": -1.0511e-05,
+   "paired_statistic": -0.0488,
+   "fold_dispersion": 0.000459413,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "duplicate_of": [],
+   "money": {
+    "state": "stale",
+    "revenue_delta": 948456.21,
+    "measured_at": "2026-08-01T08:50:11.871980+00:00",
+    "changed": [
+     "settings"
+    ],
+    "scope_rows": 2540
+   },
+   "decisions": 1,
+   "latest_decision": {
+    "decision_id": "md-8e1761b105fc",
+    "recorded_at": "2026-08-01T18:50:51.892000+00:00",
+    "actor": "unknown (login is not set up)",
+    "model_version_id": "mv-2026-07-29-35cc2e21",
+    "model_version_name": "2026-07-29",
+    "subject": "candidate",
+    "candidate_id": "competitor",
+    "decision": "not_shipped",
+    "reason": "the held-out figures do not move far enough to be worth the restatement",
+    "release_note_he": "",
+    "release_note_en": "",
+    "money_direction": "unknown",
+    "evidence": {
+     "gate_counts": {
+      "active": 3,
+      "tested_and_lost": 5,
+      "no_contrast": 5,
+      "not_measured": 0
+     },
+     "gate_total": 13,
+     "money_state": "stale",
+     "revenue_delta": 948456.21,
+     "revenue_delta_pct": 2.3189,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     },
+     "measured_at": "2026-08-01T08:50:11.871980+00:00"
+    },
+    "adoption": {
+     "state": "not_applicable"
+    }
+   },
+   "owner_approval": false,
+   "adopted": false,
+   "adoption_id": null,
+   "next_act": {
+    "en": "Measure the money adopting it would move.",
+    "command": "python scripts/adopt_candidate.py measure competitor"
+   }
+  },
+  {
+   "id": "placebo_corrected",
+   "file": "models/candidates/tv_break_coefficients_placebo_corrected.json",
+   "bytes": 15069,
+   "computed_at": "2026-07-05T21:07:47.793580+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241160667,
+   "rmse_delta": 0.0,
+   "paired_statistic": 0.0,
+   "fold_dispersion": 0.0,
+   "verdict": "identical",
+   "verdict_en": "Predicts exactly what the shipped model predicts, break for break.",
+   "verdict_he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
+   "duplicate_of": [],
+   "money": {
+    "state": "stale",
+    "revenue_delta": 0.0,
+    "measured_at": "2026-08-01T08:51:38.335070+00:00",
+    "changed": [
+     "settings"
+    ],
+    "scope_rows": 2540
+   },
+   "decisions": 1,
+   "latest_decision": {
+    "decision_id": "md-b4b207f13299",
+    "recorded_at": "2026-08-01T18:51:33.198623+00:00",
+    "actor": "unknown (login is not set up)",
+    "model_version_id": "mv-2026-07-29-35cc2e21",
+    "model_version_name": "2026-07-29",
+    "subject": "candidate",
+    "candidate_id": "placebo_corrected",
+    "decision": "not_shipped",
+    "reason": "the held-out figures do not move far enough to be worth the restatement",
+    "release_note_he": "",
+    "release_note_en": "",
+    "money_direction": "unknown",
+    "evidence": {
+     "gate_counts": {
+      "active": 3,
+      "tested_and_lost": 5,
+      "no_contrast": 5,
+      "not_measured": 0
+     },
+     "gate_total": 13,
+     "money_state": "stale",
+     "revenue_delta": 0.0,
+     "revenue_delta_pct": 0.0,
+     "scope": {
+      "rows": 2540,
+      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+     },
+     "measured_at": "2026-08-01T08:51:38.335070+00:00"
+    },
+    "adoption": {
+     "state": "not_applicable"
+    }
+   },
+   "owner_approval": false,
+   "adopted": false,
+   "adoption_id": null,
+   "next_act": {
+    "en": "Measure the money adopting it would move.",
+    "command": "python scripts/adopt_candidate.py measure placebo_corrected"
+   }
+  }
+ ],
+ "adoptions": []
+}
