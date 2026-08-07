@@ -19,6 +19,7 @@ import { unrecordedProposalClaim } from './kai-claimed-action';
 import { applyStage, noteStageLimits } from './kai-live-turn';
 import { isolate } from '../shell/bidi';
 import './assistant-console.css';
+import { formatDay } from '../shell/dates';
 
 // The assistant console, named Kai: a chat column grounded in the saved data
 // plus a rail for pending proposals and the conversation history. Answers come
@@ -37,10 +38,8 @@ import './assistant-console.css';
 // moment the person starts typing, so the ask does not pay for it afterwards.
 
 
-function startedLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function startedLabel(iso) {
+  return formatDay(String(iso || '').slice(0, 10));
 }
 
 export default function AssistantPanel({ locale, notify, dock = false }) {
@@ -296,7 +295,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   // the loaded entries, the start date of the first entry, and applied changes
   // counted from this conversation's loaded batches. Nothing is invented, so
   // the applied figure only renders when at least one applied item is loaded.
-  const startedAt = thread.length > 0 && thread[0].at ? startedLabel(thread[0].at, locale) : '';
+  const startedAt = thread.length > 0 && thread[0].at ? startedLabel(thread[0].at) : '';
   const appliedCount = useMemo(() => {
     const seen = new Set();
     let total = 0;

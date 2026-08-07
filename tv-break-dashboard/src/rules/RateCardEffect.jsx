@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { Loader2 } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { formatSpan } from '../shell/dates';
 import { Figure } from '../shell/bidi';
 import { basisReason, detailWords, fetchPricingEffect, isolate, money, pairLabel, rate, valuePair } from './rules-lib';
 
@@ -59,8 +60,8 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
   const scopeText = scope
     ? pageText(
       locale,
-      `${where}, ${scope.date_from} to ${scope.date_to}, ${scope.rows} planned segments`,
-      `${where}, ${scope.date_from} עד ${scope.date_to}, ${scope.rows} מקטעים בתוכנית`,
+      `${where}, ${formatSpan(scope.date_from, scope.date_to, locale)}, ${scope.rows} planned segments`,
+      `${where}, ${formatSpan(scope.date_from, scope.date_to, locale)}, ${scope.rows} מקטעים בתוכנית`,
     )
     : '';
 

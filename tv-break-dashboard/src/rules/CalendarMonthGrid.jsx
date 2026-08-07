@@ -3,6 +3,7 @@ import { Button, Tooltip } from '@mui/material';
 import { Plus } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
+import { formatDay, formatDayRange, formatSpan } from '../shell/dates';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import { eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 import { EventEditor } from './CalendarEventsList';
@@ -19,9 +20,7 @@ import './calendar-month-grid.css';
 const LANE_CAP = 4;
 
 function barTooltip(event, locale) {
-  const dates = event.end_date
-    ? `${formatEventDate(event.start_date, locale)} - ${formatEventDate(event.end_date, locale)}`
-    : pageText(locale, `${formatEventDate(event.start_date, locale)}, no end date`, `${formatEventDate(event.start_date, locale)}, ללא תאריך סיום`);
+  const dates = formatSpan(event.start_date, event.end_date, locale);
   return `${event.name} · ${eventTypeLabel(event.type, locale)} · ${pageText(locale, `intensity ${event.intensity}/5`, `עוצמה ${event.intensity}/5`)} · ${dates}`;
 }
 
@@ -38,10 +37,14 @@ function DayEventRow({ event, locale, busy, canEdit, onEdit }) {
       <Name className="cal-event-name">{event.name}</Name>
       <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
       <span className="cal-mg-dayevent-facts">
-        <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>
         {event.end_date
-          ? <span className="bidi-figure figure-nowrap">{`- ${formatEventDate(event.end_date, locale)}`}</span>
-          : <span>{pageText(locale, 'no end date, treated as ongoing', 'ללא תאריך סיום, נחשב מתמשך')}</span>}
+          ? <span className="bidi-figure figure-nowrap">{formatDayRange(event.start_date, event.end_date)}</span>
+          : (
+            <>
+              <span className="bidi-figure figure-nowrap">{formatDay(event.start_date)}</span>
+              <span>{pageText(locale, 'no end date, treated as ongoing', 'ללא תאריך סיום, נחשב מתמשך')}</span>
+            </>
+          )}
         <span>{pageText(locale, `intensity ${event.intensity}/5`, `עוצמה ${event.intensity}/5`)}</span>
       </span>
       {canEdit && (
@@ -141,7 +144,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                     className={classes.join(' ')}
                     style={{ gridColumn: dayIndex + 1 }}
                     aria-pressed={day === selectedDay}
-                    aria-label={formatEventDate(day, locale)}
+                    aria-label={formatEventDate(day)}
                     onClick={() => pickDay(day)}
                   >
                     <span className="cal-mg-daynum bidi-figure figure-nowrap">{Number(day.slice(8, 10))}</span>
@@ -179,7 +182,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
         {selectedDay && (
           <div className="cal-mg-daypanel">
             <div className="cal-mg-daypanel-head">
-              <h3>{formatEventDate(selectedDay, locale)}</h3>
+              <h3>{formatEventDate(selectedDay)}</h3>
               {canEdit && !editor && (
                 <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={() => setEditor({ event: null, draftDay: selectedDay })}>
                   <Plus size={14} />

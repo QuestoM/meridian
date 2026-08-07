@@ -3,6 +3,7 @@ import { Button } from '@mui/material';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Name } from '../shell/bidi';
+import { formatStamp } from '../shell/dates';
 
 // The conversations section of the assistant rail: the saved conversations
 // newest first with title and last-activity time, a new-conversation button,
@@ -10,11 +11,8 @@ import { Figure, Name } from '../shell/bidi';
 // removed. All mutations go through the useConversations hook so the panel,
 // the chat column and this list stay on one source of truth.
 
-function whenLabel(iso, locale) {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function whenLabel(iso) {
+  return iso ? formatStamp(iso) : '';
 }
 
 export default function AssistantConversationsRail({ locale, conv, disabled }) {
@@ -86,7 +84,7 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
                     <button type="button" className="asst-conv-open" onClick={() => conv.select(id)} disabled={busy}>
                       <span className="asst-conv-title"><Name>{title}</Name></span>
                       <span className="asst-conv-meta">
-                        <time><Figure>{whenLabel(item.updated_at || item.created_at, locale)}</Figure></time>
+                        <time><Figure>{whenLabel(item.updated_at || item.created_at)}</Figure></time>
                         <span>{count === 1 ? pageText(locale, 'one question', 'שאלה אחת') : pageText(locale, `${count} questions`, `${count} שאלות`)}</span>
                       </span>
                     </button>

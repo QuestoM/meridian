@@ -247,3 +247,25 @@
 .cb-finding p { margin: var(--space-1) 0 0; }
 .cb-finding-figures { display: flex; flex-wrap: wrap; align-items: baseline; }
 .cb-duplicates { margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--muted); }
+
+/* The fit basis and the producer's own recommendation.
+   Logical properties only, like everything above, so the blocks flip with the
+   document direction rather than restating it. */
+.cb-basis-rows { margin: var(--space-2) 0 0; padding-inline-start: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.cb-basis-rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
+.cb-basis-head { list-style: none; margin-inline-start: calc(var(--space-4) * -1); }
+.cb-basis-said { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); }
+.cb-basis-fitted, .cb-basis-short { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
+.cb-self-words { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
+
+/* The mark sits under the artifact name rather than beside it, so a long caveat
+   cannot push the widest column of the table wider than the viewport. */
+.cb-basis-mark { display: block; width: fit-content; margin-block-start: var(--space-1); font-size: var(--text-xs); }
+
+.cb-self { margin-block-start: var(--space-3); }
+.cb-self h4 { margin: 0 0 var(--space-1); font-size: var(--text-sm); }
+.cb-self p { margin: var(--space-1) 0 0; }
+.cb-self-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.cb-self-n { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
+.cb-self-basis { color: var(--muted); font-size: var(--text-xs); }
+.cb-detail-shortfall { font-size: var(--text-xs); }

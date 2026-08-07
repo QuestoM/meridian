@@ -12,13 +12,20 @@ two honest baselines on exactly the same breaks with exactly the same metric, so
 a difference between two rows is a difference between two models.
 
 **The limit of this evaluation, stated first because it decides how the numbers
-may be read.** Every artifact in this tree was fitted on all 2,532 breaks in
-``data/reference``, and there is no second month anywhere in the repository. So
-no unseen data exists and the absolute figure for every artifact is optimistic.
-What survives that is the paired comparison: the artifacts have the same 36
-cells fitted on the same breaks, so the optimism is common-mode and the
-difference between two of them is still readable. Every payload this module
-emits carries that limit in words, plus the condition that would lift it.
+may be read, and measured rather than asserted.** There is no second month
+anywhere in the repository, so no unseen data exists and the absolute figure for
+every artifact is optimistic. What usually survives that is the paired
+comparison, on the argument that the optimism is common-mode. That argument
+holds only when every row was fitted on the breaks it is scored on, and until
+round 6 this module asserted it of every tree without checking.
+
+Measured on this tree it does not hold. Five artifacts record a fit over 2,532
+breaks and ``spotclip`` records 2,336, having dropped 196 of them, and it is
+scored on all 2,532 like everything else. So the optimism is not common-mode,
+and the row it is uneven on is the row this table ranks first. Which of three
+limit sentences a payload carries is now decided by ``adopt_candidate_basis.py``
+from what the artifacts themselves record, and the condition that would lift the
+limit is carried beside it.
 
 **The two baselines are genuinely out of sample and they are the point.** They
 live in ``adopt_candidate_baselines.py`` with the argument for them written out,
@@ -60,6 +67,7 @@ from scripts.adopt_candidate_baselines import (  # noqa: E402
     cell_structure,
     squared_errors as baseline_errors,
 )
+from scripts import adopt_candidate_basis as basis  # noqa: E402
 from scripts import adopt_candidate_cells as cells_module  # noqa: E402
 from scripts import adopt_candidate_words as words  # noqa: E402
 
@@ -267,17 +275,29 @@ def rescore(paths: Optional[Paths] = None,
     fallback = float(np.mean(list(shipped_coefficients.values()))) if shipped_coefficients else 0.0
     shipped_predictions, shipped_missing = _predictions(shipped_coefficients, cells, fallback)
     shipped_errors = (y - shipped_predictions) ** 2
+    shipped_metadata = shipped_payload.get("metadata") or {}
     shipped_row = _row("shipped", "shipped", shipped_errors)
     shipped_row.update({"out_of_sample": False, "cells": len(shipped_coefficients),
                         "cells_not_carried": shipped_missing,
                         "sha256": sha256_file(paths.shipped),
-                        "file": paths.shipped.relative_to(paths.root).as_posix()})
+                        "file": paths.shipped.relative_to(paths.root).as_posix(),
+                        # The live artifact is a row in this comparison like any
+                        # other, so its fit basis is stated like any other. It
+                        # was the one row that carried no fit basis at all,
+                        # which is how the whole evaluation could assert that
+                        # every row was fitted on the same breaks.
+                        "breaks_fitted_on": shipped_metadata.get("total_breaks_measured"),
+                        "self_reported": basis.self_reported("shipped", shipped_metadata)})
+    scored_on = int(len(y))
+    basis_rows = [basis.basis_row("shipped", shipped_metadata, scored_on)]
 
     rows: list[dict[str, Any]] = []
     signatures: dict[str, list[str]] = {}
     for path in candidate_files(paths):
         identifier = candidate_id(path)
         payload = read_artifact(path)
+        metadata = payload.get("metadata") or {}
+        basis_rows.append(basis.basis_row(identifier, metadata, scored_on))
         coefficients = payload.get("coefficients") or {}
         candidate_fallback = float(np.mean(list(coefficients.values()))) if coefficients else fallback
         predictions, missing = _predictions(coefficients, cells, candidate_fallback)
@@ -291,7 +311,12 @@ def rescore(paths: Optional[Paths] = None,
             "cells_not_carried": missing,
             "sha256": sha256_file(path),
             "file": path.relative_to(paths.root).as_posix(),
-            "breaks_fitted_on": (payload.get("metadata") or {}).get("total_breaks_measured"),
+            "breaks_fitted_on": metadata.get("total_breaks_measured"),
+            # What the artifact's own producer recorded about adopting it. Not
+            # ranked and not compared: it is the artifact's own split under its
+            # own fit, and it is carried because a recommendation is the one
+            # thing about an artifact that only its producer knows.
+            "self_reported": basis.self_reported(identifier, metadata),
             "paired": paired,
             "verdict": verdict(paired, identical),
             # JS-19's done condition names the coefficient deltas beside the
@@ -306,6 +331,7 @@ def rescore(paths: Optional[Paths] = None,
         row["prediction_signature"] = signature[:12]
         rows.append(row)
 
+    fit_basis = basis.fit_basis(basis_rows, scored_on)
     duplicates = [sorted(group) for group in signatures.values() if len(group) > 1]
     for row in rows:
         row["duplicate_of"] = sorted(
@@ -329,7 +355,11 @@ def rescore(paths: Optional[Paths] = None,
             "target_sd_he": words.TARGET_SD["he"],
             "folds": FOLDS,
         },
-        "limit": dict(IN_SAMPLE_LIMIT),
+        # Measured, not asserted. Which of the three limit sentences this
+        # evaluation carries is decided by what the artifacts record they were
+        # fitted on, against what they are scored on here.
+        "limit": basis.limit_for(fit_basis),
+        "fit_basis": fit_basis,
         "fingerprint": rescore_fingerprint(paths),
         "inputs": rescore_inputs(paths),
         "baselines": baselines,

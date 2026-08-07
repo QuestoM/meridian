@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '@mui/material';
-import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, formatPlanDate, pageText } from '../shell/format';
+import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
+import { formatDay, formatSpan } from '../shell/dates';
 import { programTypeLabel, recommendationTitle } from '../shell/labels';
 import { Name, isolate } from '../shell/bidi';
 import TodayDecisionDetail from './TodayDecisionDetail';
@@ -40,10 +41,8 @@ function scopeLine(today, locale) {
   const scope = (today.decisions || {}).scope || {};
   if (!scope.date_from || !scope.date_to) return '';
   const moneyScope = ((today.money || {}).scope) || {};
-  const from = formatPlanDate(String(scope.date_from), locale);
-  const to = formatPlanDate(String(scope.date_to), locale);
   const days = finiteNumber(scope.n_dates);
-  const span = pageText(locale, `${from} to ${to}`, `${from} עד ${to}`);
+  const span = formatSpan(scope.date_from, scope.date_to, locale);
   const beyondTheWindow = scope.date_from !== moneyScope.date_from || scope.date_to !== moneyScope.date_to;
   const parts = [];
   if (scope.channel) parts.push(isolate(scope.channel));
@@ -119,7 +118,7 @@ export function TodayDecisions({ today, locale, onOpenInOptimizer, onOpenSetting
                   <Name>
                     {[
                       programTypeLabel(item.program_type, locale) || pageText(locale, 'Mixed', 'מעורב'),
-                      item.date ? formatPlanDate(String(item.date), locale) : '',
+                      item.date ? formatDay(item.date) : '',
                       pageText(locale, risk[0], risk[1]),
                     ].filter(Boolean).join(' · ')}
                   </Name>

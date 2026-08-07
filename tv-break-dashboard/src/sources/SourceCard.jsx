@@ -15,6 +15,7 @@ import { checkFile, uploadFile } from './sources-api';
 import { fieldLabel } from './sources-fields';
 import { acceptedVerdict, findingMessage, stateTone, visibleFindings } from './sources-findings';
 import SourceChecks from './SourceChecks';
+import { formatStamp } from '../shell/dates';
 
 function formatSize(bytes, locale) {
   const number = Number(bytes) || 0;
@@ -27,11 +28,9 @@ function formatSize(bytes, locale) {
   return `${formatNumber(Math.round(kilobytes / 1024), locale)} MB`;
 }
 
-function formatWhen(value, locale) {
+function formatWhen(value) {
   if (!value) return '-';
-  const when = new Date(value);
-  if (Number.isNaN(when.getTime())) return String(value);
-  return when.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
+  return formatStamp(value) || String(value);
 }
 
 // The rows the finding is about. A column and a count leave a steward searching
@@ -118,7 +117,7 @@ function StoredFiles({ input, locale, onOpenFile }) {
                   <span>{text('rows', locale)}</span>
                 </span>
               )}
-              <Numeric>{formatWhen(file.last_modified, locale)}</Numeric>
+              <Numeric>{formatWhen(file.last_modified)}</Numeric>
             </span>
             <span className="source-stored-why">{serverText(file.reason, locale)}</span>
           </li>
@@ -159,7 +158,7 @@ function fieldValue(key, input, locale, onOpenRows) {
     return <Numeric>{input.exists ? formatSize(input.size_bytes, locale) : '-'}</Numeric>;
   }
   if (key === 'updated') {
-    return <Numeric>{formatWhen(input.last_modified, locale)}</Numeric>;
+    return <Numeric>{formatWhen(input.last_modified)}</Numeric>;
   }
   if (key === 'path') {
     return <Code className="source-card-file">{input.path}</Code>;
@@ -170,7 +169,7 @@ function fieldValue(key, input, locale, onOpenRows) {
   if (key === 'lastChecked') {
     const checked = input.last_validation && input.last_validation.checked_at;
     if (!checked) return <span className="source-none">-</span>;
-    return <Numeric>{formatWhen(checked, locale)}</Numeric>;
+    return <Numeric>{formatWhen(checked)}</Numeric>;
   }
   return null;
 }
@@ -312,7 +311,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
       {lastValidation && !check ? (
         <div className="source-last-check">
           <span>{text('lastChecked', locale)}</span>
-          <Numeric>{formatWhen(lastValidation.checked_at, locale)}</Numeric>
+          <Numeric>{formatWhen(lastValidation.checked_at)}</Numeric>
           {/* The name of the file that was checked, beside the moment it was
               checked. A timestamp with no filename beside it is how a check of
               one file reads as a check of the one the card names. */}

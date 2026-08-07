@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from scripts import adopt_candidate_basis as basis
 from scripts import adopt_candidate_cells as cells
 from scripts import adopt_candidate_words as words
 from scripts.adopt_candidate_state import moved_inputs
@@ -118,11 +119,16 @@ def render(payload: dict[str, Any]) -> list[str]:
     limit = payload.get("limit") or {}
     if limit:
         lines.append(f"  limit: {limit.get('en')}")
+        # Which rows the limit is naming, and by how much. The sentence above is
+        # selected by a measurement now, so when it says "not every artifact"
+        # the rows it means are printed rather than left to the reader.
+        lines.extend(basis.render_fit_basis(payload))
         lines.append(f"  lifted by: {limit.get('unblocked_by_en')}")
     lines.append("")
 
     lines.extend(_render_table(payload))
     lines.extend(_render_cells(payload))
+    lines.extend(basis.render_self_tests(payload))
     lines.extend(_render_baselines(payload))
     lines.extend(_render_notes(payload))
     return lines

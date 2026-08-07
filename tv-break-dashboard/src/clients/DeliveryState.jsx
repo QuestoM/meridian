@@ -3,6 +3,7 @@ import { Figure, Code } from '../shell/bidi';
 import { pageText } from '../shell/format';
 import { localized, vocabularyLabel } from './clients-money-helpers';
 import { isolate } from '../shell/bidi';
+import { formatDayList, formatStamp } from '../shell/dates';
 import {
   AIRED,
   COUNTED_EMPTY,
@@ -113,7 +114,7 @@ function AsOf({ asOf, locale }) {
     <p className="clients-basis-note">
       <span>{pageText(locale, 'Counted as of', 'נספר נכון ל־')}</span>
       {pageText(locale, ' ', '')}
-      <Figure className="numeric">{instant}</Figure>
+      <Figure className="numeric">{formatStamp(instant) || instant}</Figure>
       {basis ? (
         <>
           {'. '}
@@ -173,7 +174,16 @@ export function DeliveryBasis({ delivery, locale }) {
             )}
           </span>
           {' '}
-          <Figure className="numeric">{slice.unknownDates.join(', ')}</Figure>
+          {/* Not wrapped in Figure, and not clickable, and both were measured.
+              Figure forces left-to-right, which is right for one quantity and
+              wrong for a list, because it would put the earliest run on the far
+              side of a Hebrew line; formatDayList isolates each run on its own
+              and leaves the ORDER to the line. And a click here does nothing:
+              this is a span inside a paragraph with no handler on it or on any
+              of its three call sites (CampaignBoard, ClientRecord,
+              CampaignFlights), so merging a run into a range takes nothing away
+              from a reader. A day rendered as a control it is not would. */}
+          {formatDayList(slice.unknownDates, locale)}
         </p>
       ) : null}
       {files.length ? (

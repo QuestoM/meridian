@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
+import { formatDayList } from '../../shell/dates';
 import { exactCurrency } from '../day/day-board-model';
 import { violationLabel } from '../day/DayBoardReadout';
 import ScheduleInspector, { confidenceLabel } from '../day/ScheduleInspector';
@@ -310,7 +311,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                 <p className="break-basis" dir="auto">{say(detail.contents, 'path_forward', he)}</p>
                 {(detail.contents.covered_days || []).length > 0 && (
                   <p className="break-basis" dir="auto">
-                    {label('A traffic file covers', 'קובץ טראפיק מכסה')}: <span dir="ltr">{detail.contents.covered_days.join(', ')}</span>
+                    {label('A traffic file covers', 'קובץ טראפיק מכסה')}: {formatDayList(detail.contents.covered_days, he ? 'he' : 'en')}
                   </p>
                 )}
               </>

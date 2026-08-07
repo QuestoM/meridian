@@ -1,5 +1,6 @@
 import React from 'react';
 import { Figure } from './bidi';
+import { formatDay, formatSpan } from './dates';
 
 // Honest empty-state sentinel: null/undefined/non-finite input renders as a
 // plain hyphen, never a confident 0 that hides missing data. Callers that mean
@@ -115,23 +116,6 @@ export function stableSettingsKey(value) {
   return JSON.stringify(value);
 }
 
-// Format a plan calendar date for the basis line. ISO YYYY-MM-DD only; anything
-// else is returned unchanged so we never invent a calendar day.
-export function formatPlanDate(value, locale) {
-  const text = String(value || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}/.test(text)) return text;
-  const iso = text.slice(0, 10);
-  try {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
-
 // Reads the backend's basis fields off the overview summary (which channel and
 // which calendar span the headline numbers cover). Renders nothing when the
 // backend does not provide them; no scope is ever invented here.
@@ -151,18 +135,18 @@ export function summaryBasisLabel(summary, locale) {
     parts.push(pageText(locale, `your channel (${channel})`, `הערוץ שלכם (${channel})`));
   }
   if (dateFrom && dateTo) {
-    const fromLabel = formatPlanDate(dateFrom, locale);
-    const toLabel = formatPlanDate(dateTo, locale);
     if (dateFrom === dateTo) {
-      parts.push(pageText(locale, `plan day ${fromLabel}`, `יום התוכנית ${fromLabel}`));
+      const dayLabel = formatDay(dateFrom);
+      parts.push(pageText(locale, `plan day ${dayLabel}`, `יום התוכנית ${dayLabel}`));
     } else {
+      const window = formatSpan(dateFrom, dateTo, locale);
       const span = nDates !== null
         ? pageText(
           locale,
-          `${fromLabel} – ${toLabel} (${formatNumber(nDates, locale)} days on the saved plan)`,
-          `${fromLabel} – ${toLabel} (${formatNumber(nDates, locale)} ימים בתוכנית השמורה)`,
+          `${window} (${formatNumber(nDates, locale)} days on the saved plan)`,
+          `${window} (${formatNumber(nDates, locale)} ימים בתוכנית השמורה)`,
         )
-        : pageText(locale, `${fromLabel} – ${toLabel}`, `${fromLabel} – ${toLabel}`);
+        : window;
       parts.push(span);
     }
   } else if (nDates !== null) {

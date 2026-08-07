@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { ChevronDown, ChevronUp, Download, X } from 'lucide-react';
-import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPlanDate, pageText } from '../shell/format';
+import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
+import { formatDay } from '../shell/dates';
 import { programTypeLabel } from '../shell/labels';
 import { fetchTodayDay } from './today-data';
 import { SEGMENT_COLUMNS, download, scopeComment, toCsv } from './today-export';
@@ -86,10 +87,10 @@ export function TodayDayDetail({ date, scope, locale, onClose, onWalk, onOpenPla
       ref={panel}
       tabIndex={-1}
       onKeyDown={keyDown}
-      aria-label={pageText(locale, `The rows behind ${date}`, `השורות שמאחורי ${date}`)}
+      aria-label={pageText(locale, `The rows behind ${formatDay(date)}`, `השורות שמאחורי ${formatDay(date)}`)}
     >
       <div className="today-day-detail-head">
-        <strong><Numeric>{formatPlanDate(date, locale)}</Numeric></strong>
+        <strong><Numeric>{formatDay(date)}</Numeric></strong>
         <span className="today-day-position">
           <Numeric>{`${position.index || '-'} / ${position.total || '-'}`}</Numeric>
         </span>

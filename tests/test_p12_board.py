@@ -28,10 +28,44 @@ WORDS = BOARD_DIR / "board-words.js"
 # What the panel may import. Everything else is either its own or a path it does
 # not own, and a panel reaching into a frozen module by any other door is the
 # thing the contract exists to prevent.
+#
+# `shell/bidi` and `shell/styles.css` are the direction primitive and the
+# stylesheet that defines its three classes. They arrived when the lead's
+# isolation sweep rewired every surface in the product onto one home for
+# direction, this board included, and that is the correct dependency: consuming
+# a frozen shell primitive read-only is what `shell/format` beside them already
+# does. What was not correct was that the sweep landed and this guard did not
+# know, so the piece shipped a red test.
 ALLOWED_IMPORTS = {
     "react", "react-dom/client",
-    "../../shell/format", "../console/console-api", "../../tokens.css",
+    "../../shell/format", "../../shell/bidi", "../console/console-api",
+    "../../tokens.css", "../../shell/styles.css",
 }
+
+# Both doors, which is the point. The guard read `from '<target>'` only, so every
+# side-effect import in the tree was invisible to it: `import '../../tokens.css'`
+# was on the allowed list and had never once been matched by the pattern that
+# checks the list, and `import '../../shell/styles.css'` entered the row without
+# the guard seeing it at all. A rule that cannot see half of what it governs is
+# not a weaker rule, it is a rule about a different thing.
+IMPORT_PATTERN = re.compile(r"(?:from|import)\s+'([^']+)'")
+
+
+def imports_outside(directory: Path, allowed: set[str]) -> dict[str, list[str]]:
+    """Every import in a directory that the allowed set does not name.
+
+    Relative imports inside the row are the piece's own and are skipped. Exposed
+    rather than inlined so a test can point it at a scratch copy and prove the
+    guard bites, which is the only way to know a guard works.
+    """
+    outside: dict[str, list[str]] = {}
+    for path in sorted(directory.glob("*.js*")):
+        for target in IMPORT_PATTERN.findall(path.read_text(encoding="utf-8")):
+            if target.startswith("./"):
+                continue
+            if target not in allowed:
+                outside.setdefault(path.name, []).append(target)
+    return outside
 
 
 def _published():
@@ -160,14 +194,42 @@ def test_every_word_on_the_board_carries_both_halves():
 
 
 def test_the_panel_imports_nothing_it_does_not_own_beyond_the_published_surface():
-    outside = {}
+    assert imports_outside(BOARD_DIR, ALLOWED_IMPORTS) == {}
+
+
+def test_the_import_guard_catches_a_side_effect_import_and_not_only_a_from(tmp_path):
+    """Prove the guard bites, on the door it used to be blind to.
+
+    A test that has never failed has never been shown to work, and this one did
+    not work: the old pattern matched ``from '<target>'`` and the two imports
+    that actually reached outside this row are written ``import '<target>';``
+    with no ``from`` in them. Both shapes are injected here and both must be
+    caught, so a future edit that narrows the pattern back fails here rather
+    than silently reopening the door.
+    """
+    (tmp_path / "panel.jsx").write_text(
+        "import React from 'react';\n"
+        "import { thing } from '../../shell/frozen-module';\n"
+        "import '../../shell/frozen-sheet.css';\n"
+        "import local from './board-words';\n",
+        encoding="utf-8")
+    caught = imports_outside(tmp_path, {"react"})
+    assert caught == {"panel.jsx": ["../../shell/frozen-module", "../../shell/frozen-sheet.css"]}
+
+
+def test_every_allowed_import_is_one_the_row_actually_uses():
+    """No headroom in the allowed set.
+
+    An allowance nobody exercises is indistinguishable from an allowance for a
+    dependency that has since been removed, and it is where the next unnoticed
+    reach lands. Every name on the list has to be matched by something in the
+    row, which also means the list cannot be padded in advance of a need.
+    """
+    used = set()
     for path in sorted(BOARD_DIR.glob("*.js*")):
-        for target in re.findall(r"from '([^']+)'", path.read_text(encoding="utf-8")):
-            if target.startswith("./"):
-                continue
-            if target not in ALLOWED_IMPORTS:
-                outside.setdefault(path.name, []).append(target)
-    assert outside == {}
+        used.update(IMPORT_PATTERN.findall(path.read_text(encoding="utf-8")))
+    unused = {name for name in ALLOWED_IMPORTS if name not in used}
+    assert unused == set()
 
 
 def _prose(text: str) -> str:

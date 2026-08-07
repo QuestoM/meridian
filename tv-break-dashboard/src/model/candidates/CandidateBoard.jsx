@@ -108,6 +108,49 @@ function StateStrip({ state, board, locale }) {
   );
 }
 
+// The rows the limit sentence is naming, under the sentence that names them.
+//
+// Only the rows that do not cover the evaluation are listed. When every row does
+// cover it the whole block is absent, because the limit sentence in that case
+// says so itself and a list of six rows agreeing with it is noise.
+function BasisRows({ board, locale }) {
+  const rows = ((board.fit_basis || {}).rows || []).filter((row) => row.state !== 'all');
+  if (!rows.length) return null;
+  return (
+    <ul className="cb-basis-rows">
+      <li className="cb-basis-head"><span className="cb-label">{t('limit.rows', locale)}</span></li>
+      {rows.map((row) => (
+        <li key={row.id}>
+          <Code>{row.id}</Code>
+          {row.state === 'fewer' ? (
+            <span className="cb-basis-said">
+              {/* Two rules meet on this line and both are kept. Design rule 3
+                  puts a middle dot between facts rather than whitespace, and a
+                  numeric line may never put two bare figures side by side, where
+                  "2532 . 196" can be read as one decimal. So the first group
+                  ends on a word and the dot separates the groups. */}
+              <span className="cb-basis-fitted">
+                <span className="cb-label">{t('basis.title', locale)}</span>
+                <BidiFigure><Numeric>{String(row.fitted_on)}</Numeric></BidiFigure>
+                <span>{t('basis.of', locale)}</span>
+                <BidiFigure><Numeric>{String(row.scored_on)}</Numeric></BidiFigure>
+                <span>{t('evaluation.breaks', locale)}</span>
+              </span>
+              <span className="cb-dot">.</span>
+              <span className="cb-basis-short">
+                <BidiFigure><Numeric>{String(row.not_fitted_on)}</Numeric></BidiFigure>
+                <span>{t('basis.never_fitted', locale)}</span>
+              </span>
+            </span>
+          ) : (
+            <span>{t('basis.unknown_mark', locale)}</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Evaluation({ board, locale }) {
   const evaluation = board.evaluation || {};
   const limit = board.limit || {};
@@ -138,6 +181,7 @@ function Evaluation({ board, locale }) {
       <div className="cb-limit cb-amber">
         <span className="cb-label">{t('limit.title', locale)}</span>
         <p>{locale === 'en' ? limit.en : limit.he}</p>
+        <BasisRows board={board} locale={locale} />
         <p className="cb-limit-lifted">
           <span className="cb-label">{t('limit.lifted', locale)}</span>
           {locale === 'en' ? limit.unblocked_by_en : limit.unblocked_by_he}
@@ -172,6 +216,17 @@ function Head({ id, label, locale, sort, onSort }) {
       </button>
     </th>
   );
+}
+
+// The caveat on the row it is a caveat about. The paragraph under the limit
+// names the rows too, but a reader comparing two numbers is reading the table,
+// and a confound stated only in a paragraph above is a confound the comparison
+// is made without.
+function BasisMark({ basis, locale }) {
+  const state = (basis || {}).state;
+  if (state !== 'fewer' && state !== 'unknown') return null;
+  const label = state === 'fewer' ? t('basis.mark', locale) : t('basis.unknown_mark', locale);
+  return <span className="cb-basis-mark cb-tag cb-amber" title={label}>{label}</span>;
 }
 
 const COLUMNS = [
@@ -219,6 +274,7 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
               <button type="button" className="cb-pick" onClick={() => onSelect(row.id)} aria-label={`${t('table.pick', locale)} ${row.id}`}>
                 <span className="cb-name"><Code>{row.id}</Code></span>
               </button>
+              <BasisMark basis={row.fit_basis} locale={locale} />
               <code className="cb-digest"><Code>{row.short}</Code></code>
             </th>
             <td><BidiFigure><Figure value={row.rmse} /></BidiFigure></td>
@@ -291,7 +347,6 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
   const state = useMemo(() => freshness(board, live), [board, live]);
   const rows = useMemo(() => sortRows(board.candidates || [], sort), [board, sort]);
   const current = rows.find((row) => row.id === selected) || null;
-  const dir = locale === 'en' ? 'ltr' : 'rtl';
 
   function onSort(key) {
     setSort((was) => (was.key === key ? { key, ascending: !was.ascending } : { key, ascending: true }));
@@ -315,7 +370,10 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
   }
 
   return (
-    <DirectionRoot locale={locale} className={`cb-board ${dir}`} lang={locale} ref={region} onKeyDown={onKeyDown} tabIndex={-1}>
+    // DirectionRoot states the direction from the locale and is the only thing
+    // that should. A `rtl` or `ltr` class beside it was a third statement of
+    // the same fact and no stylesheet in the product selects on either one.
+    <DirectionRoot locale={locale} className="cb-board" lang={locale} ref={region} onKeyDown={onKeyDown} tabIndex={-1}>
       <header className="cb-head">
         <h2>{t('board.title', locale)}</h2>
         <p>{t('board.sub', locale)}</p>

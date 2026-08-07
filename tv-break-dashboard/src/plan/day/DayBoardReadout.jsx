@@ -4,6 +4,7 @@ import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Figure, Code, Name } from '../../shell/bidi';
 import { clockOf, committedGap, exactCurrency } from './day-board-model';
 import { LIVE_PLAN, SAVED_PLAN, livePlanPointer, planBasisLabel, planBasisLead, scopeWithBasis } from './plan-basis';
+import { formatDay } from '../../shell/dates';
 
 // What the move cost, told honestly.
 //
@@ -50,7 +51,7 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
   // This board re-plans the day live, so every figure on it is the live plan's
   // and its scope line says so. The note below prints the saved plan's own
   // figures, and the two were being read as one number.
-  const scopeText = scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale);
+  const scopeText = scopeWithBasis(`${basis.channel} / ${formatDay(basis.day)}`, LIVE_PLAN, locale);
   const violations = compliance.violations || [];
   const gap = committedGap(basis, saved);
 
@@ -285,7 +286,7 @@ export function SaveForecast({ forecast, locale, editCount }) {
       </p>
     );
   }
-  const scopeText = scopeWithBasis(`${forecast.basis.channel} / ${forecast.basis.day}`, LIVE_PLAN, locale);
+  const scopeText = scopeWithBasis(`${forecast.basis.channel} / ${formatDay(forecast.basis.day)}`, LIVE_PLAN, locale);
   return (
     <section className="day-forecast" aria-label={label('What saving would do', 'מה תעשה השמירה')}>
       <h4>{label('What saving would do', 'מה תעשה השמירה')}</h4>

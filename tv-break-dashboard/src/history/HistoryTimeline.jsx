@@ -33,8 +33,7 @@ export default function HistoryTimeline({ entries, locale, selectedId, onSelect,
   return (
     <div className="hist-list" role="listbox" aria-label={pageText(locale, 'History', 'היסטוריה')} ref={listRef}>
       {groups.map((group) => {
-        const date = new Date(`${group.day}T00:00:00`);
-        const weekend = !Number.isNaN(date.getTime()) && isWeekend(date);
+        const weekend = isWeekend(group.day);
         return (
           <section className="hist-group" key={group.day}>
             <header className={`hist-day${weekend ? ' weekend' : ''}`}>

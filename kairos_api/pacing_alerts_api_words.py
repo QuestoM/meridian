@@ -37,33 +37,16 @@ NOT_BOOKED_YET = "not_booked_yet"
 RATING_POINTS = "rating_points"
 ILS = "ils"
 
-TRIGGER_EN = (
-    "Counted through the end of the last sourced broadcast day, divided by an even share of the goal "
-    "over the flight's broadcast days. At or above 95 percent is on pace, below 85 percent is behind."
-)
-TRIGGER_HE = (
-    "הנספר עד סוף יום השידור האחרון שיש לו מקור, חלקי חלק שווה מהיעד על פני ימי השידור של הטיסה. "
-    "95 אחוז ומעלה בקצב, מתחת ל-85 אחוז מפגר."
-)
-TRIGGER_OWNER_EN = (
-    "These two triggers are the product's stated rule and not a commercial term. The commercial "
-    "trigger is owner-pending."
-)
-TRIGGER_OWNER_HE = (
-    "שני הספים האלה הם הכלל המוצהר של המוצר ואינם תנאי מסחרי. הסף המסחרי ממתין להחלטת הבעלים."
-)
+TRIGGER_EN = "Counted through the end of the last sourced broadcast day, divided by an even share of the goal over the flight's broadcast days. At or above 95 percent is on pace, below 85 percent is behind."
+TRIGGER_HE = "הנספר עד סוף יום השידור האחרון שיש לו מקור, חלקי חלק שווה מהיעד על פני ימי השידור של הטיסה. 95 אחוז ומעלה בקצב, מתחת ל-85 אחוז מפגר."
+TRIGGER_OWNER_EN = "These two triggers are the product's stated rule and not a commercial term. The commercial trigger is owner-pending."
+TRIGGER_OWNER_HE = "שני הספים האלה הם הכלל המוצהר של המוצר ואינם תנאי מסחרי. הסף המסחרי ממתין להחלטת הבעלים."
 
 EVEN_REFERENCE_EN = "An even share of the goal across the flight's broadcast days."
 EVEN_REFERENCE_HE = "חלק שווה מהיעד על פני ימי השידור של הטיסה."
 
-COUNTED_BASIS_EN = (
-    "Rating points are the planned break rating the traffic log carries, on the all-viewers base. "
-    "Money is engine-priced from the same per-spot ledger the money board reads. Nothing is invoiced."
-)
-COUNTED_BASIS_HE = (
-    "נקודות הרייטינג הן רייטינג הברייק המתוכנן שיומן השידור נושא, על בסיס כלל הצופים. הכסף מתומחר "
-    "במנוע מאותו ספר תשדירים שלוח הכספים קורא. דבר אינו מחויב בחשבונית."
-)
+COUNTED_BASIS_EN = "Rating points are the planned break rating the traffic log carries, on the all-viewers base. Money is engine-priced from the same per-spot ledger the money board reads. Nothing is invoiced."
+COUNTED_BASIS_HE = "נקודות הרייטינג הן רייטינג הברייק המתוכנן שיומן השידור נושא, על בסיס כלל הצופים. הכסף מתומחר במנוע מאותו ספר תשדירים שלוח הכספים קורא. דבר אינו מחויב בחשבונית."
 
 # The one sentence that has to be in front of the reader rather than behind the
 # disclosure, because it changes what every verdict on the board means. The long
@@ -79,35 +62,18 @@ NO_GOAL_HE = "הקמפיין הזה אינו נושא יעד ביחידה הזו
 NO_GOAL_PATH_EN = "Open the campaign and set a goal on its flight."
 NO_GOAL_PATH_HE = "פתחו את הקמפיין וקבעו יעד על הטיסה שלו."
 
-UNMEASURABLE_EN = (
-    "The goal names a target audience this product holds no panel breakdown for, so pace against it "
-    "is unknown rather than measured against a different base."
-)
-UNMEASURABLE_HE = (
-    "היעד נוקב בקהל יעד שאין למערכת עבורו פילוח פאנל, ולכן הקצב מולו אינו ידוע ואינו נמדד מול בסיס אחר."
-)
+UNMEASURABLE_EN = "The goal names a target audience this product holds no panel breakdown for, so pace against it is unknown rather than measured against a different base."
+UNMEASURABLE_HE = "היעד נוקב בקהל יעד שאין למערכת עבורו פילוח פאנל, ולכן הקצב מולו אינו ידוע ואינו נמדד מול בסיס אחר."
 UNMEASURABLE_PATH_EN = "Supply a panel breakdown for that audience, or restate the goal on the all-viewers base."
 UNMEASURABLE_PATH_HE = "ספקו פילוח פאנל לקהל הזה, או נסחו את היעד מחדש על בסיס כלל הצופים."
 
 NO_SOURCE_EN = "No broadcast day of this flight carries a per-spot source, so what it delivered is unknown."
 NO_SOURCE_HE = "אף יום שידור של הטיסה הזו אינו נושא מקור ברמת התשדיר, ולכן מה שסופק אינו ידוע."
-NO_SOURCE_PATH_EN = (
-    "Upload a daily traffic file for the flight days, then run scripts/seed_campaigns.py to build the "
-    "delivery ledger from it."
-)
-NO_SOURCE_PATH_HE = (
-    "העלו קובץ שידור יומי לימי הטיסה, ואז הריצו את scripts/seed_campaigns.py כדי לבנות ממנו את ספר "
-    "האספקה."
-)
+NO_SOURCE_PATH_EN = "Upload a daily traffic file for the flight days, then run scripts/seed_campaigns.py to build the delivery ledger from it."
+NO_SOURCE_PATH_HE = "העלו קובץ שידור יומי לימי הטיסה, ואז הריצו את scripts/seed_campaigns.py כדי לבנות ממנו את ספר האספקה."
 
-GAP_IN_ELAPSED_EN = (
-    "Broadcast days that have already run carry no per-spot source, so what was delivered to date is "
-    "a floor and no pace can be stated against it."
-)
-GAP_IN_ELAPSED_HE = (
-    "ימי שידור שכבר חלפו אינם נושאים מקור ברמת התשדיר, ולכן מה שסופק עד כה הוא רף תחתון ואי אפשר "
-    "לקבוע מולו קצב."
-)
+GAP_IN_ELAPSED_EN = "Broadcast days that have already run carry no per-spot source, so what was delivered to date is a floor and no pace can be stated against it."
+GAP_IN_ELAPSED_HE = "ימי שידור שכבר חלפו אינם נושאים מקור ברמת התשדיר, ולכן מה שסופק עד כה הוא רף תחתון ואי אפשר לקבוע מולו קצב."
 
 NOT_STARTED_EN = "The flight has not started at the instant this ledger was counted at."
 NOT_STARTED_HE = "הטיסה טרם החלה ברגע שבו נספר ספר האספקה הזה."
@@ -121,13 +87,8 @@ NO_FLIGHT_DATES_PATH_HE = "פתחו את הקמפיין וקבעו את תארי
 
 FORWARD_COVERED_EN = "The spots already on the traffic log reach the goal."
 FORWARD_COVERED_HE = "התשדירים שכבר ביומן השידור מגיעים ליעד."
-FORWARD_SHORT_EN = (
-    "Every remaining broadcast day of this flight has a source and the spots on them do not reach the "
-    "goal, so the shortfall is measured rather than projected."
-)
-FORWARD_SHORT_HE = (
-    "לכל יום שידור שנותר בטיסה הזו יש מקור והתשדירים שבהם אינם מגיעים ליעד, ולכן החוסר נמדד ואינו תחזית."
-)
+FORWARD_SHORT_EN = "Every remaining broadcast day of this flight has a source and the spots on them do not reach the goal, so the shortfall is measured rather than projected."
+FORWARD_SHORT_HE = "לכל יום שידור שנותר בטיסה הזו יש מקור והתשדירים שבהם אינם מגיעים ליעד, ולכן החוסר נמדד ואינו תחזית."
 FORWARD_OPEN_EN = "Remaining broadcast days carry no source, so the rest of the flight cannot be projected."
 FORWARD_OPEN_HE = "ימי שידור שנותרו אינם נושאים מקור, ולכן אי אפשר לחזות את המשך הטיסה."
 FORWARD_OPEN_PATH_EN = "Book the remaining days, or upload the traffic file that already holds them."
@@ -138,22 +99,10 @@ FORWARD_OPEN_PATH_HE = "הזמינו את הימים שנותרו, או העלו
 # distinguishable if the second one is written down.
 NEEDS_A_DECISION = (BEHIND, AT_RISK)
 
-ACCEPT_NOT_AT_RISK_EN = (
-    "Only a campaign the board is asking a decision about can have its risk taken on. This one is not "
-    "behind and not at risk at the day the delivery ledger was counted at."
-)
-ACCEPT_NOT_AT_RISK_HE = (
-    "אפשר לקבל את הסיכון רק בקמפיין שהלוח מבקש עליו החלטה. הקמפיין הזה אינו מפגר ואינו בסיכון ביום "
-    "שבו נספר ספר האספקה."
-)
-ACCEPT_MEANING_EN = (
-    "Taking the risk on records a decision and changes no figure. The campaign stays on the board with "
-    "the same verdict, and the row now says who decided and when."
-)
-ACCEPT_MEANING_HE = (
-    "קבלת הסיכון רושמת החלטה ואינה משנה שום נתון. הקמפיין נשאר בלוח עם אותו מצב, והשורה אומרת מעכשיו "
-    "מי החליט ומתי."
-)
+ACCEPT_NOT_AT_RISK_EN = "Only a campaign the board is asking a decision about can have its risk taken on. This one is not behind and not at risk at the day the delivery ledger was counted at."
+ACCEPT_NOT_AT_RISK_HE = "אפשר לקבל את הסיכון רק בקמפיין שהלוח מבקש עליו החלטה. הקמפיין הזה אינו מפגר ואינו בסיכון ביום שבו נספר ספר האספקה."
+ACCEPT_MEANING_EN = "Taking the risk on records a decision and changes no figure. The campaign stays on the board with the same verdict, and the row now says who decided and when."
+ACCEPT_MEANING_HE = "קבלת הסיכון רושמת החלטה ואינה משנה שום נתון. הקמפיין נשאר בלוח עם אותו מצב, והשורה אומרת מעכשיו מי החליט ומתי."
 
 # One rule for one act, published so no client can hold a second one.
 #

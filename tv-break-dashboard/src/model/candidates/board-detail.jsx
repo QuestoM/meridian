@@ -15,6 +15,54 @@ import { pick, t } from './board-words';
 // screen that silently shows eight of thirty-six is a screen that has hidden
 // twenty-eight.
 
+// What the artifact's own producer recorded about adopting it.
+//
+// Rendered as its own block and never as a column, because it is not a rank. A
+// self-test is the artifact's own split under its own fit, and putting two of
+// them in one column is exactly the comparison this whole board exists to
+// replace. The sentence saying so travels with it every time it is shown.
+function SelfReported({ self, locale }) {
+  const state = (self || {}).state;
+  if (!state || state === 'absent') return null;
+  const tone = state === 'advised_against' ? 'cb-amber' : state === 'recommended' ? 'cb-teal' : 'cb-neutral';
+  return (
+    <section className="cb-self">
+      <h4>{t('self.title', locale)}</h4>
+      <p className="cb-self-head">
+        <span className={`cb-tag ${tone}`}>{t(`self.${state}`, locale)}</span>
+        <span>{pick(self, 'reading', locale)}</span>
+      </p>
+      {self.reason ? (
+        <p className="cb-self-words">
+          <span className="cb-label">{t('self.words', locale)}</span>
+          <Code>{self.reason}</Code>
+        </p>
+      ) : null}
+      {self.n_test ? (
+        <p className="cb-self-n">
+          <span className="cb-label">{t('self.n_test', locale)}</span>
+          <BidiFigure><Numeric>{Number(self.n_test).toLocaleString('en-US')}</Numeric></BidiFigure>
+          <span>{t('self.breaks_own', locale)}</span>
+        </p>
+      ) : null}
+      <p className="cb-self-basis">{t('self.basis', locale)}</p>
+    </section>
+  );
+}
+
+// How much of the evaluation was in this artifact's own fit, beside the count it
+// sits next to. A count of breaks fitted on means nothing without the count it
+// is scored on.
+function FitBasis({ basis, locale }) {
+  if (!basis || basis.state !== 'fewer') return null;
+  return (
+    <span className="cb-detail-shortfall cb-tag cb-amber">
+      <BidiFigure><Numeric>{`${basis.not_fitted_on} `}</Numeric></BidiFigure>
+      <span>{t('basis.never_fitted', locale)}</span>
+    </span>
+  );
+}
+
 function Number6({ value, digits = 6, sign = false }) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return <span className="cb-absent-figure">-</span>;
@@ -178,6 +226,8 @@ export default function BoardDetail({ candidate, board, locale }) {
         </p>
       ) : null}
 
+      <SelfReported self={candidate.self_reported} locale={locale} />
+
       <h4>{t('detail.identity', locale)}</h4>
       <p className="cb-detail-identity">
         <code><Code>{candidate.file}</Code></code>
@@ -186,6 +236,7 @@ export default function BoardDetail({ candidate, board, locale }) {
         <span className="cb-label">{t('detail.fitted_on', locale)}</span>
         <BidiFigure><Numeric>{Number(candidate.breaks_fitted_on || 0).toLocaleString('en-US')}</Numeric></BidiFigure>
         <span>{t('evaluation.breaks', locale)}</span>
+        <FitBasis basis={candidate.fit_basis} locale={locale} />
       </p>
     </section>
   );

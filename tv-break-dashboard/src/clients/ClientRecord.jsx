@@ -7,6 +7,7 @@ import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, s
 import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 import { isolate } from '../shell/bidi';
+import { formatDay } from '../shell/dates';
 
 // One client, opened without losing the set it came from. The counter and the
 // two arrows are Linear's device: a record page that knows it is the nth of a
@@ -199,7 +200,7 @@ export default function ClientRecord({
           <p className="clients-basis-path">
             {pageText(
               locale,
-              `The day being read is ${basis.day}, from ${basis.file}. A daily file carrying this client prices their spots and fills these figures.`,
+              `The day being read is ${formatDay(basis.day)}, from ${basis.file}. A daily file carrying this client prices their spots and fills these figures.`,
               `היום הנקרא הוא ${isolate(basis.day)}, מתוך ${isolate(basis.file)}. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.`,
             )}
             <button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>

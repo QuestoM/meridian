@@ -1,4 +1,5 @@
 import { pageText } from '../shell/surface-helpers';
+import { formatSpan } from '../shell/dates';
 
 // Shared vocabulary and readers for the Pricing page modules (PricingManager,
 // PricingSlotTester, PricingEventsLayer). Split out so each module stays small.
@@ -204,12 +205,9 @@ export function readEventsLayer(state) {
   return { supported: true, enabled, count, events };
 }
 
-// One human date-span line for an event: "start - end", open-ended when the
-// server sent no end date. Dates render as sent (ISO), direction-isolated.
+// One date-span line for an event, open-ended when the server sent no end date.
+// The shape and the open-ended wording both come from shell/dates.js, so an
+// event window and a campaign flight read the same way.
 export function eventDatesLabel(entry, locale) {
-  const start = entry && entry.start ? String(entry.start) : '';
-  const end = entry && entry.end ? String(entry.end) : '';
-  if (start && end) return `${start} - ${end}`;
-  if (start) return pageText(locale, `from ${start}, open-ended`, `מ-${start}, ללא תאריך סיום`);
-  return pageText(locale, 'no dates reported', 'לא דווחו תאריכים');
+  return formatSpan(entry && entry.start, entry && entry.end, locale);
 }

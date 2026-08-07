@@ -8,6 +8,7 @@
 
 import { pageText } from '../shell/format';
 import { isolate } from '../shell/bidi';
+import { formatDay, formatSpan } from '../shell/dates';
 
 export const VIEWS = ['clients', 'money', 'campaigns', 'advertisers', 'agencies'];
 
@@ -170,8 +171,8 @@ export function basisLine(basis, locale) {
   const rows = Number(basis.rows_in_file || 0);
   return pageText(
     locale,
-    `${scope}, ${basis.day}, ${priced} priced spots of ${rows} in ${basis.file}`,
-    `${scope}, ${basis.day}, ${isolate(priced)} תשדירים מתומחרים מתוך ${isolate(rows)} בקובץ ${basis.file}`,
+    `${scope}, ${formatDay(basis.day)}, ${priced} priced spots of ${rows} in ${basis.file}`,
+    `${scope}, ${formatDay(basis.day)}, ${isolate(priced)} תשדירים מתומחרים מתוך ${isolate(rows)} בקובץ ${basis.file}`,
   );
 }
 
@@ -385,11 +386,12 @@ export function goalLabel(flight, locale, vocabulary) {
   return `${value.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')} ${unit}`.trim();
 }
 
+// A booked window, in the one shape a window has anywhere in this product. The
+// arrow this used to draw was wrong twice over: it pointed left-to-right in a
+// right-to-left line, and it left the open-ended case printing a question mark
+// where the truth is that no end date has been set yet.
 export function windowLabel(starts, ends, locale) {
-  if (!starts && !ends) {
-    return pageText(locale, 'No dates set', 'לא נקבעו תאריכים');
-  }
-  return `${isolate(`${starts || '?'} → ${ends || '?'}`)}`;
+  return formatSpan(starts, ends, locale);
 }
 
 // A closed value set arrives from the endpoint that owns it, as records

@@ -37,6 +37,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchDays } from './day-board-actions.js';
+import { formatDay, formatDayList } from '../../shell/dates.js';
 import { LIVE_PLAN, SAVED_PLAN, planBasisLabel, planBasisLead } from './plan-basis.js';
 
 // What the saved plan places in the programmes this timeline draws, by lane and
@@ -107,8 +108,8 @@ export function coverageSentence(coverage, locale) {
   if (committedUnavailable) {
     const lead = planBasisLead(SAVED_PLAN, locale);
     return label(
-      `${lead} carries no committed figures for this day${day ? ` (${day})` : ''}, so what this timeline draws cannot be checked against it.`,
-      `${lead} אינה מחזיקה נתונים מחויבים ליום הזה${day ? ` (${day})` : ''}, ולכן אי אפשר לבדוק מולה מה הרצועה הזו מציגה.`,
+      `${lead} carries no committed figures for this day${day ? ` (${formatDay(day)})` : ''}, so what this timeline draws cannot be checked against it.`,
+      `${lead} אינה מחזיקה נתונים מחויבים ליום הזה${day ? ` (${formatDay(day)})` : ''}, ולכן אי אפשר לבדוק מולה מה הרצועה הזו מציגה.`,
     );
   }
   if (breaksInDay === null || programmesInDay === null) {
@@ -131,12 +132,13 @@ export function coverageSentence(coverage, locale) {
     `across ${shownProgrammes} of its ${programmesInDay} programmes`,
     `על פני ${shownProgrammes} מתוך ${programmesInDay} התוכניות שלה`,
   );
+  const named = day ? ` (${formatDay(day)})` : '';
   const dayPart = daysInPlan
     ? label(
-        `on 1 of its ${daysInPlan} days${day ? ` (${day})` : ''}`,
-        `ביום 1 מתוך ${daysInPlan} ימיה${day ? ` (${day})` : ''}`,
+        `on 1 of its ${daysInPlan} days${named}`,
+        `ביום 1 מתוך ${daysInPlan} ימיה${named}`,
       )
-    : label(`on this one day${day ? ` (${day})` : ''}`, `ביום הזה בלבד${day ? ` (${day})` : ''}`);
+    : label(`on this one day${named}`, `ביום הזה בלבד${named}`);
   return `${breaksPart}, ${programsPart}, ${dayPart}.${unmatchedClause(coverage, locale)}${straddleClause(daysDrawn, day, locale)}`;
 }
 
@@ -158,9 +160,10 @@ function unmatchedClause(coverage, locale) {
 function straddleClause(daysDrawn, day, locale) {
   const dates = Array.isArray(daysDrawn) ? daysDrawn.filter((value) => value && value !== day) : [];
   if (!dates.length) return '';
+  const list = formatDayList(dates, locale);
   return locale === 'he'
-    ? ` הברייקים המוצגים משתרעים גם על ${dates.join(', ')}.`
-    : ` The breaks drawn also fall on ${dates.join(', ')}.`;
+    ? ` הברייקים המוצגים משתרעים גם על ${list}.`
+    : ` The breaks drawn also fall on ${list}.`;
 }
 
 // Where the link goes, and what is actually there.

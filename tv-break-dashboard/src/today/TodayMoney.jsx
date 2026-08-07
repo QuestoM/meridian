@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@mui/material';
 import { ChevronDown, ChevronUp, Download } from 'lucide-react';
-import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPlanDate, pageText } from '../shell/format';
+import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
+import { formatDay, formatSpan } from '../shell/dates';
 import { WALLS } from '../session.js';
 import TargetForm from './TargetForm';
 import TodayDayDetail from './TodayDayDetail';
@@ -53,9 +54,7 @@ function refusalText(target, locale) {
 // One span, formatted one way, wherever a span is printed on this surface.
 function spanLabel(start, end, locale) {
   if (!start || !end) return '';
-  const from = formatPlanDate(String(start), locale);
-  const to = formatPlanDate(String(end), locale);
-  return pageText(locale, `${from} to ${to}`, `${from} עד ${to}`);
+  return formatSpan(start, end, locale);
 }
 
 export function windowLabel(money, locale) {
@@ -87,7 +86,7 @@ function scopeLine(money, locale) {
 // Who set the target, and when. With login not set up there is no account to
 // attribute it to, so the line says that rather than naming somebody unknown.
 function authorLine(target, locale) {
-  const when = formatPlanDate(String(target.set_at || '').slice(0, 10), locale);
+  const when = formatDay(String(target.set_at || '').slice(0, 10));
   const who = String(target.set_by || '').trim();
   if (!who || who === 'unknown') {
     return pageText(locale, `Set on ${when}, before login was set up`, `נקבע ב${when}, לפני שהוגדרה כניסה למערכת`);
@@ -233,7 +232,7 @@ function DayRows({ money, locale, openDate, onToggleDate, onOpenPlan }) {
                 {pageText(locale, day.weekday_en || '', day.weekday_he || '')}
                 {day.is_weekend ? <span className="today-weekend">{pageText(locale, 'weekend', 'סוף שבוע')}</span> : null}
               </span>
-              <span className="today-day-date"><Numeric>{formatPlanDate(day.date, locale)}</Numeric></span>
+              <span className="today-day-date"><Numeric>{formatDay(day.date)}</Numeric></span>
               <span className="today-day-breaks"><Numeric>{formatNumber(day.total_breaks, locale)}</Numeric></span>
               <span className="today-day-money"><Numeric>{formatCurrency(day.projected_revenue, locale)}</Numeric></span>
               <span className="today-day-share"><Numeric>{share === null ? '-' : `${formatNumber(Math.round(share * 10) / 10, locale)}%`}</Numeric></span>

@@ -4,6 +4,7 @@ import { ChevronDown, Plus, Search } from 'lucide-react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
+import { formatDay, formatDayRange } from '../shell/dates';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import { EVENT_TYPES, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 
@@ -149,13 +150,15 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
         <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
         {event.active === false && <span className="cal-chip off">{pageText(locale, 'Deactivated', 'מושבת')}</span>}
         <span className="cal-event-dates">
-          <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>
           {openEnded ? (
-            <span className={event.type === 'war' ? 'cal-open-ended war' : 'cal-open-ended'}>
-              {pageText(locale, 'no end date, treated as ongoing until you set one', 'ללא תאריך סיום, נחשב מתמשך עד שתקבעו תאריך')}
-            </span>
+            <>
+              <span className="bidi-figure figure-nowrap">{formatDay(event.start_date)}</span>
+              <span className={event.type === 'war' ? 'cal-open-ended war' : 'cal-open-ended'}>
+                {pageText(locale, 'no end date, treated as ongoing until you set one', 'ללא תאריך סיום, נחשב מתמשך עד שתקבעו תאריך')}
+              </span>
+            </>
           ) : (
-            <span className="bidi-figure figure-nowrap">{`- ${formatEventDate(event.end_date, locale)}`}</span>
+            <span className="bidi-figure figure-nowrap">{formatDayRange(event.start_date, event.end_date)}</span>
           )}
         </span>
       </button>

@@ -23,14 +23,24 @@ def _frame(cells, values, start="2024-11-01"):
                          "break_start": stamps})
 
 
-def _tree(tmp_path, shipped, candidates):
+def _tree(tmp_path, shipped, candidates, metadata=None):
+    """A scratch tree. ``metadata`` maps an artifact id, or ``shipped``, to its own.
+
+    Empty metadata by default, which is deliberately the ``unknown`` fit basis:
+    an artifact that records nothing about what it was fitted on has not thereby
+    recorded a match, and the tests below assert that reading rather than
+    letting a bare fixture stand in for a measured agreement.
+    """
+    metadata = metadata or {}
     (tmp_path / "models" / "candidates").mkdir(parents=True)
     (tmp_path / "models" / "releases").mkdir(parents=True)
     (tmp_path / "models" / "tv_break_coefficients.json").write_text(
-        json.dumps({"coefficients": shipped, "metadata": {}, "detail": {}}), encoding="utf-8")
+        json.dumps({"coefficients": shipped, "metadata": metadata.get("shipped", {}),
+                    "detail": {}}), encoding="utf-8")
     for name, coefficients in candidates.items():
         (tmp_path / "models" / "candidates" / f"tv_break_coefficients_{name}.json").write_text(
-            json.dumps({"coefficients": coefficients, "metadata": {}, "detail": {}}), encoding="utf-8")
+            json.dumps({"coefficients": coefficients, "metadata": metadata.get(name, {}),
+                        "detail": {}}), encoding="utf-8")
     return rescore.Paths(root=tmp_path)
 
 
@@ -142,13 +152,82 @@ def test_a_score_that_was_never_run_says_so_rather_than_reading_as_zero(tmp_path
     assert rescore.load_rescore(paths) is None
 
 
-def test_the_in_sample_limit_rides_on_every_payload_with_what_would_lift_it(tmp_path):
-    paths = _tree(tmp_path, {"a": 0.0}, {"one": {"a": 0.3}})
-    limit = rescore.rescore(paths, _frame(["a"] * 8, [0.1] * 8))["limit"]
-    assert limit["state"] == "in_sample"
-    assert "optimistic" in limit["en"]
-    assert limit["unblocked_by_en"]
-    assert limit["unblocked_by_he"]
+def test_the_limit_says_common_optimism_only_when_every_row_was_fitted_on_them_all(tmp_path):
+    """The sentence that decides how every figure may be read is a measurement.
+
+    It was a constant, asserted of every tree. On the repository's own tree it
+    is false: ``spotclip`` records a fit over 2,336 of the 2,532 breaks it is
+    scored on. Here the common case is built explicitly, so the wording that
+    claims common optimism appears only when the artifacts support it.
+    """
+    paths = _tree(tmp_path, {"a": 0.0}, {"one": {"a": 0.3}},
+                  metadata={"shipped": {"total_breaks_measured": 8},
+                            "one": {"total_breaks_measured": 8}})
+    payload = rescore.rescore(paths, _frame(["a"] * 8, [0.1] * 8))
+    assert payload["limit"]["state"] == "in_sample"
+    assert "optimistic" in payload["limit"]["en"]
+    assert payload["limit"]["unblocked_by_en"] and payload["limit"]["unblocked_by_he"]
+    assert payload["fit_basis"]["state"] == "common"
+    assert payload["fit_basis"]["uneven"] == []
+
+
+def test_a_row_fitted_on_fewer_breaks_changes_the_limit_and_is_named_by_it(tmp_path):
+    """The defect this closes, reproduced at the shape rather than the figure.
+
+    The old constant would have printed "every artifact was fitted on all of
+    these breaks" over exactly this payload, which is the thing that was on
+    screen. The shortfall is stated as a count because a count is what the
+    artifacts record; the identity of the breaks is recorded nowhere, so the
+    effect on the metric stays uncomputed rather than being guessed at.
+    """
+    paths = _tree(tmp_path, {"a": 0.0}, {"clipped": {"a": 0.3}, "whole": {"a": 0.2}},
+                  metadata={"shipped": {"total_breaks_measured": 8},
+                            "clipped": {"total_breaks_measured": 6, "base_breaks": 8,
+                                        "dropped_by_spot_clip": 2},
+                            "whole": {"total_breaks_measured": 8}})
+    payload = rescore.rescore(paths, _frame(["a"] * 8, [0.1] * 8))
+    assert payload["limit"]["state"] == "in_sample_uneven"
+    assert payload["limit"]["uneven"] == ["clipped"]
+    assert payload["limit"]["largest_shortfall"] == 2
+    assert payload["limit"]["largest_shortfall_at"] == "clipped"
+    assert "optimism is not the same in every row" in payload["limit"]["en"]
+    assert payload["limit"]["he"] and payload["limit"]["unblocked_by_he"]
+    rows = {row["id"]: row for row in payload["fit_basis"]["rows"]}
+    assert rows["clipped"]["state"] == "fewer" and rows["clipped"]["not_fitted_on"] == 2
+    assert rows["whole"]["state"] == "all" and rows["shipped"]["state"] == "all"
+
+
+def test_an_artifact_recording_no_fit_basis_is_unknown_and_not_an_assumed_match(tmp_path):
+    """Three states, and the third is not the first.
+
+    An artifact that records nothing about its own fit has not agreed with the
+    others; nobody asked it. Reporting that as the common case is the same
+    mistake as the constant, one step quieter.
+    """
+    paths = _tree(tmp_path, {"a": 0.0}, {"silent": {"a": 0.3}},
+                  metadata={"shipped": {"total_breaks_measured": 8}})
+    payload = rescore.rescore(paths, _frame(["a"] * 8, [0.1] * 8))
+    assert payload["limit"]["state"] == "in_sample_unknown"
+    assert payload["fit_basis"]["state"] == "unknown"
+    assert payload["fit_basis"]["unknown"] == ["silent"]
+    assert "unknown here rather than established" in payload["limit"]["en"]
+
+
+def test_a_row_never_claims_a_shortfall_it_did_not_measure(tmp_path):
+    """The guard on the finding itself, in the direction that would embarrass it.
+
+    An artifact recording a fit over MORE breaks than this evaluation scores is
+    not a shortfall and must not be reported as one, because a negative
+    shortfall rendered as a count reads as a confound that does not exist.
+    """
+    paths = _tree(tmp_path, {"a": 0.0}, {"wider": {"a": 0.3}},
+                  metadata={"shipped": {"total_breaks_measured": 8},
+                            "wider": {"total_breaks_measured": 40}})
+    payload = rescore.rescore(paths, _frame(["a"] * 8, [0.1] * 8))
+    rows = {row["id"]: row for row in payload["fit_basis"]["rows"]}
+    assert rows["wider"]["state"] == "all"
+    assert rows["wider"]["not_fitted_on"] == 0
+    assert payload["limit"]["state"] == "in_sample"
 
 
 @pytest.mark.parametrize("state", ["identical", "better", "worse", "not_distinguishable"])

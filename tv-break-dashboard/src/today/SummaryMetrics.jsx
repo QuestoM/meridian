@@ -6,10 +6,10 @@ import {
   formatMinutes,
   formatNumber,
   formatPercent,
-  formatPlanDate,
   pageText,
   summaryBasisLabel,
 } from '../shell/format';
+import { formatSpan } from '../shell/dates';
 import { riskLabel } from '../shell/labels';
 import { Metric } from '../shell/primitives';
 import { PlanEventBadges } from '../rules/CalendarEventsModel';
@@ -61,7 +61,7 @@ export function SummaryMetrics({ overview, copy, locale, planEvents = null, onOp
   const weekDates = week ? finiteNumber(week.n_dates) : null;
   const weekRevenue = week ? finiteNumber(week.projected_revenue) : null;
   const weekRange = week && week.date_from && week.date_to
-    ? `${formatPlanDate(String(week.date_from), locale)} - ${formatPlanDate(String(week.date_to), locale)}`
+    ? formatSpan(week.date_from, week.date_to, locale)
     : null;
   const revenueSub = week && weekRange && weekDates > 0 && weekRevenue !== null
     ? pageText(

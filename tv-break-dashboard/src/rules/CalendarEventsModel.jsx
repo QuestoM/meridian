@@ -3,6 +3,7 @@ import { Tooltip } from '@mui/material';
 import { Info } from 'lucide-react';
 import { API_BASE, pageText, finiteNumber, formatNumber } from '../shell/surface-helpers';
 import { AudienceModelBlock } from '../model/CalendarAudienceModel';
+import { formatDay, formatDayOfMonth, formatStamp } from '../shell/dates';
 
 // Companion module for the Calendar tab (CalendarEvents.jsx): the read-only
 // "what the model relies on today" panel, the overlap panel, and the small
@@ -51,27 +52,12 @@ export function israeliWeekdaySort(entries) {
 // JS Date.getDay() order, mapped onto the planner's day keys.
 const WEEKDAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function formatEventDate(value, locale) {
-  const text = String(value || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}/.test(text)) return text;
-  const iso = text.slice(0, 10);
-  try {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
-      day: 'numeric', month: 'short', year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
+export function formatEventDate(value) {
+  return formatDay(value);
 }
 
-function formatShortDate(value, locale) {
-  const iso = String(value || '').slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  try {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'short' });
-  } catch {
-    return iso;
-  }
+function formatShortDate(value) {
+  return formatDayOfMonth(value);
 }
 
 // Fetches the stored events once per refresh for the display-only plan-surface
@@ -333,7 +319,7 @@ export function ModelContextPanel({ context, locale }) {
               label={pageText(locale, 'Coefficients computed at', 'המקדמים חושבו בתאריך')}
               hint={pageText(locale, 'When the current retention coefficients were last rebuilt from the source data.', 'מתי מקדמי השימור הנוכחיים נבנו מחדש בפעם האחרונה מנתוני המקור.')}
             >
-              <span className="bidi-figure figure-nowrap">{new Date(ctx.computedAt).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
+              <span className="bidi-figure figure-nowrap">{formatStamp(ctx.computedAt)}</span>
             </ContextRow>
           )}
           {wartimeText(ctx.wartime, locale) && (
@@ -390,7 +376,7 @@ export function OverlapPanel({ events, locale }) {
                     {planDates.length === 0
                       ? pageText(locale, 'No overlap with the saved plan', 'אין חפיפה עם התוכנית השמורה')
                       : planDates.map((date) => (
-                        <span className="cal-date-chip bidi-figure figure-nowrap" key={date}>{formatShortDate(date, locale)}</span>
+                        <span className="cal-date-chip bidi-figure figure-nowrap" key={date}>{formatShortDate(date)}</span>
                       ))}
                   </span>
                 </div>

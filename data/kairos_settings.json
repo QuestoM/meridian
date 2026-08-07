@@ -1,7 +1,7 @@
 {
   "profile_name": "Israel commercial TV",
-  "locale": "he",
-  "direction": "rtl",
+  "locale": "en",
+  "direction": "ltr",
   "chart_direction": "ltr",
   "timezone": "Asia/Jerusalem",
   "currency": "ILS",

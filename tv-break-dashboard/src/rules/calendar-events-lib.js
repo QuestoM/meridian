@@ -4,6 +4,8 @@
 // Israeli week law: the week starts Sunday and ends Saturday, weekend is Friday
 // and Saturday only. Data stays ISO-keyed; only presentation is Sunday-first.
 
+import { formatMonthTitle } from '../shell/dates';
+
 const VIEW_KEY = 'kairos.calendar.view';
 
 // The persisted grid/list choice. Anything unreadable resolves to the grid,
@@ -65,11 +67,7 @@ export function addMonths(year, month, delta) {
 }
 
 export function monthTitle(year, month, locale) {
-  try {
-    return new Date(year, month - 1, 1).toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', { month: 'long', year: 'numeric' });
-  } catch {
-    return `${year}-${String(month).padStart(2, '0')}`;
-  }
+  return formatMonthTitle(year, month, locale);
 }
 
 // Sunday-first month matrix: full weeks of ISO dates covering the month,

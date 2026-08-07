@@ -1,5 +1,5 @@
 {
- "measured_at": "2026-08-07T08:24:57.851714+00:00",
+ "measured_at": "2026-08-07T10:16:34.029174+00:00",
  "evaluation": {
   "breaks": 2532,
   "cells": 36,
@@ -14,11 +14,91 @@
   "folds": 5
  },
  "limit": {
-  "state": "in_sample",
-  "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
-  "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
-  "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
-  "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו."
+  "en": "Not every artifact was fitted on all of these breaks, so the optimism is not the same in every row and a difference against one of the named rows carries a confound on top of the noise.",
+  "he": "לא כל קובץ אומן על כל הברייקים האלה, ולכן האופטימיות אינה זהה בכל שורה, והפרש מול אחת השורות שנקובות כאן נושא הטיה נוספת מעבר לרעש.",
+  "unblocked_by_en": "The identity of the breaks each artifact was fitted on, recorded in the artifact rather than the count alone. The counts are recorded here and the identities are not, so the size of this confound is not computable from anything on disk.",
+  "unblocked_by_he": "זהות הברייקים שכל קובץ אומן עליהם, רשומה בתוך הקובץ ולא רק המניין. המניינים רשומים כאן והזהויות לא, ולכן גודל ההטיה הזו אינו ניתן לחישוב מדבר שנמצא על הדיסק.",
+  "state": "in_sample_uneven",
+  "uneven": [
+   "spotclip"
+  ],
+  "unknown": [],
+  "largest_shortfall": 196,
+  "largest_shortfall_at": "spotclip",
+  "largest_shortfall_share": 0.077409163
+ },
+ "fit_basis": {
+  "state": "uneven",
+  "scored_on": 2532,
+  "rows": [
+   {
+    "id": "shipped",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "afterwindow",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "calibrated",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "competitor",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "placebo_corrected",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "spotclip",
+    "fitted_on": 2336,
+    "base": 2532,
+    "dropped": 196,
+    "scored_on": 2532,
+    "not_fitted_on": 196,
+    "share_not_fitted_on": 0.077409163,
+    "state": "fewer"
+   }
+  ],
+  "uneven": [
+   "spotclip"
+  ],
+  "unknown": [],
+  "largest_shortfall": 196,
+  "largest_shortfall_at": "spotclip",
+  "largest_shortfall_share": 0.077409163
  },
  "fingerprint": "56798941ce3587ab47a81573b2ccc9749d6a53ed9f46e46263f0c473be8069fe",
  "inputs": {
@@ -64,7 +144,14 @@
   "cells": 36,
   "cells_not_carried": 0,
   "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
-  "file": "models/tv_break_coefficients.json"
+  "file": "models/tv_break_coefficients.json",
+  "breaks_fitted_on": 2532,
+  "self_reported": {
+   "id": "shipped",
+   "state": "absent",
+   "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+   "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+  }
  },
  "candidates": [
   {
@@ -79,6 +166,15 @@
    "sha256": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
    "file": "models/candidates/tv_break_coefficients_afterwindow.json",
    "breaks_fitted_on": 2532,
+   "self_reported": {
+    "id": "afterwindow",
+    "n_test": 452,
+    "reason": null,
+    "adopt_recommended": null,
+    "state": "recorded_without_a_verdict",
+    "reading_en": "This artifact records its own out-of-sample test and reaches no recommendation either way.",
+    "reading_he": "הקובץ הזה רושם בדיקה מחוץ למדגם משלו ואינו מגיע להמלצה לכאן או לכאן."
+   },
    "paired": {
     "rmse_delta": -0.00011379,
     "mean_squared_error_delta": -5.487048719664714e-05,
@@ -526,6 +622,12 @@
    "sha256": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
    "file": "models/candidates/tv_break_coefficients_calibrated.json",
    "breaks_fitted_on": 2532,
+   "self_reported": {
+    "id": "calibrated",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
    "paired": {
     "rmse_delta": -0.00011379,
     "mean_squared_error_delta": -5.487048719664714e-05,
@@ -973,6 +1075,12 @@
    "sha256": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
    "file": "models/candidates/tv_break_coefficients_competitor.json",
    "breaks_fitted_on": 2532,
+   "self_reported": {
+    "id": "competitor",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
    "paired": {
     "rmse_delta": -1.0511e-05,
     "mean_squared_error_delta": -5.0697155845327055e-06,
@@ -1419,6 +1527,12 @@
    "sha256": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
    "file": "models/candidates/tv_break_coefficients_placebo_corrected.json",
    "breaks_fitted_on": 2532,
+   "self_reported": {
+    "id": "placebo_corrected",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
    "paired": {
     "rmse_delta": 0.0,
     "mean_squared_error_delta": 0.0,
@@ -1846,6 +1960,15 @@
    "sha256": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
    "file": "models/candidates/tv_break_coefficients_spotclip.json",
    "breaks_fitted_on": 2336,
+   "self_reported": {
+    "id": "spotclip",
+    "n_test": 461,
+    "reason": "variant rmse improves base by -0.38% (threshold 2%): keep OFF (within noise)",
+    "adopt_recommended": false,
+    "state": "advised_against",
+    "reading_en": "Whatever produced this artifact recorded its own out-of-sample test and advised against adopting it.",
+    "reading_he": "מה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ שלא לאמץ אותו."
+   },
    "paired": {
     "rmse_delta": -0.000155699,
     "mean_squared_error_delta": -7.507262203841973e-05,

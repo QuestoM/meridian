@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Figure } from '../shell/bidi';
+import { formatStamp } from '../shell/dates';
 import { AlertTriangle, BellRing } from 'lucide-react';
 import {
   API_BASE,
@@ -30,10 +31,7 @@ function pct(value, locale) {
 function asOfLabel(value, locale) {
   const text = String(value || '').trim();
   if (!text) return '';
-  const parsed = new Date(text);
-  const formatted = Number.isNaN(parsed.getTime())
-    ? text
-    : parsed.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const formatted = formatStamp(text) || text;
   return locale === 'he' ? `נכון ל־${formatted}` : `As of ${formatted}`;
 }
 

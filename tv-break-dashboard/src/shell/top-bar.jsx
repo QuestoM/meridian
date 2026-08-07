@@ -4,6 +4,7 @@ import { Bell, Bot, CalendarDays, ChevronDown, GitCompare, Info, Languages, Play
 import { Numeric, pageText } from './format';
 import { planningWeekLabel } from './plan-model';
 import { Figure } from './bidi';
+import { formatClock } from './dates';
 
 export function renderTopBar({
   copy,
@@ -114,7 +115,7 @@ export function renderTopBar({
               {online ? (partial ? copy.partialData : copy.liveApi) : copy.snapshot}
             </span>
             <Tooltip title={locale === 'he' ? 'מועד עדכון הנתונים האחרון מה־API' : 'Time the data was last updated from the API'} arrow placement="bottom">
-              <span className="freshness">{online && overview.data_freshness ? `${copy.dataUpdated} ${new Date(overview.data_freshness).toLocaleTimeString(locale === 'he' ? 'he-IL' : [], { hour: '2-digit', minute: '2-digit' })}` : `${copy.dataUpdated} -`}</span>
+              <span className="freshness">{online && overview.data_freshness ? `${copy.dataUpdated} ${formatClock(overview.data_freshness)}` : `${copy.dataUpdated} -`}</span>
             </Tooltip>
             <IconButton className="icon-button" type="button" aria-label={copy.refresh} size="small" onClick={handleRefresh}>
               <RefreshCcw size={15} />

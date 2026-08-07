@@ -132,6 +132,12 @@ def _candidate(row: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
         "short": _short(row.get("sha256")),
         "computed_at": row.get("computed_at"),
         "breaks_fitted_on": row.get("breaks_fitted_on"),
+        # Both halves of what this row does not share with the rows beside it:
+        # how much of the evaluation was in its own fit, and what its producer
+        # recorded about adopting it. The screen reads the first as a caveat on
+        # the comparison and the second as a note about the artifact alone.
+        "fit_basis": row.get("fit_basis"),
+        "self_reported": row.get("self_reported"),
         "rmse": row.get("rmse"),
         "rmse_delta": row.get("rmse_delta"),
         "paired_statistic": row.get("paired_statistic"),
@@ -168,6 +174,7 @@ def board(paths: Optional[rescore.Paths] = None,
         "fingerprint": stored.get("fingerprint"),
         "evaluation": payload.get("evaluation"),
         "limit": payload.get("limit"),
+        "fit_basis": payload.get("fit_basis"),
         "baselines": payload.get("baselines") or [],
         "cell_structure": payload.get("cell_structure"),
         "structure_finding": payload.get("structure_finding"),

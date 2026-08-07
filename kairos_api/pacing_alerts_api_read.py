@@ -22,14 +22,8 @@ from kairos_api import pacing_alerts_api_board as board
 from kairos_api import pacing_alerts_api_wire as wire
 from kairos_api import pacing_alerts_api_words as words
 
-NOTHING_TO_RAISE_EN = (
-    "This campaign has no measured shortfall to raise a make-good against. Its pacing row states what "
-    "is missing before a figure could exist."
-)
-NOTHING_TO_RAISE_HE = (
-    "לקמפיין הזה אין חוסר נמדד שאפשר לפתוח מולו פיצוי שידור. שורת הקצב שלו אומרת מה חסר לפני שיכול "
-    "להיות נתון."
-)
+NOTHING_TO_RAISE_EN = "This campaign has no measured shortfall to raise a make-good against. Its pacing row states what is missing before a figure could exist."
+NOTHING_TO_RAISE_HE = "לקמפיין הזה אין חוסר נמדד שאפשר לפתוח מולו פיצוי שידור. שורת הקצב שלו אומרת מה חסר לפני שיכול להיות נתון."
 UNKNOWN_CAMPAIGN_EN = "No campaign on this operator's channel carries that id."
 UNKNOWN_CAMPAIGN_HE = "אין קמפיין בערוץ של המפעיל הזה שנושא את המזהה הזה."
 

@@ -1,4 +1,5 @@
 import { pageText } from './format';
+import { formatSpan } from './dates';
 
 export const dayKeys = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const daypartKeys = ['Morning', 'Daytime', 'Access', 'Primetime', 'Late night'];
@@ -47,14 +48,5 @@ export function planningWeekLabel(schedule, locale) {
   if (dates.length === 0) {
     return pageText(locale, 'Planning week', 'שבוע התכנון');
   }
-  const format = (value) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-    return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-US', { month: 'short', day: 'numeric' });
-  };
-  const first = dates[0];
-  const last = dates[dates.length - 1];
-  return first === last ? format(first) : `${format(first)} - ${format(last)}`;
+  return formatSpan(dates[0], dates[dates.length - 1], locale);
 }

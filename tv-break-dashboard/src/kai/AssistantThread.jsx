@@ -5,6 +5,7 @@ import { sourceLabel, stepLabel } from './AssistantRunTrace';
 import { inApprovedWords } from './kai-vocabulary';
 import { claimSegments } from './kai-claimed-action';
 import './kai-claimed-action.css';
+import { formatClock } from '../shell/dates';
 
 // Companion pieces for the assistant chat column: the single-exchange renderer
 // and the paragraph-level text renderer. Both have honest empty and error
@@ -66,10 +67,8 @@ function RetractedText({ text, locale }) {
   );
 }
 
-function timeLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+function timeLabel(iso) {
+  return formatClock(iso);
 }
 
 // One question-and-answer exchange in the live thread, including the quiet
@@ -131,7 +130,7 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
         </details>
       ) : null}
       <footer className="asst-meta">
-        <time><Figure>{timeLabel(entry.at, locale)}</Figure></time>
+        <time><Figure>{timeLabel(entry.at)}</Figure></time>
         {Number.isFinite(entry.elapsedSeconds) ? (
           <Figure>{`${entry.elapsedSeconds.toFixed(1)}s`}</Figure>
         ) : null}

@@ -4,6 +4,7 @@ import { Lock, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { Name } from '../shell/bidi';
 import { payloadCanEdit, WALLS } from '../session.js';
+import { formatDay } from '../shell/dates';
 import {
   detailWords,
   fetchActivation,
@@ -193,8 +194,8 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
                   )
                   : pageText(
                     locale,
-                    `Forward-dated ratings come from the model version of ${String(activation.computed_at || '').slice(0, 10)}.`,
-                    `רייטינג לתאריכים עתידיים מגיע מגרסת המודל מ-${String(activation.computed_at || '').slice(0, 10)}.`,
+                    `Forward-dated ratings come from the model version of ${formatDay(String(activation.computed_at || '').slice(0, 10))}.`,
+                    `רייטינג לתאריכים עתידיים מגיע מגרסת המודל מ-${formatDay(String(activation.computed_at || '').slice(0, 10))}.`,
                   )}
             </span>
           </p>

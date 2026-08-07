@@ -11,6 +11,7 @@ import {
 import { Figure, isolate } from '../shell/bidi';
 import ChannelRefusal from './ChannelRefusal';
 import { scopeState, unattributed } from './today-scope';
+import { formatSpan } from '../shell/dates';
 
 // The shared money story. Gross revenue is the real invoiced headline and stays
 // visually dominant everywhere. The retention cost is an explicitly marked model
@@ -219,13 +220,14 @@ export function YieldMoneyPanel({ locale, refreshKey = 0, onOpenSettings = null 
     scopeParts.push(pageText(locale, `channel ${isolate(scopeChannel)}`, `ערוץ ${isolate(scopeChannel)}`));
   }
   if (dateFrom && dateTo) {
+    const window = formatSpan(dateFrom, dateTo, locale);
     scopeParts.push(
       dateFrom === dateTo
-        ? dateFrom
+        ? window
         : pageText(
           locale,
-          `${dateFrom} to ${dateTo}${nDates !== null ? ` (${nDates} days)` : ''}`,
-          `${dateFrom} עד ${dateTo}${nDates !== null ? ` (${nDates} ימים)` : ''}`,
+          `${window}${nDates !== null ? ` (${nDates} days)` : ''}`,
+          `${window}${nDates !== null ? ` (${nDates} ימים)` : ''}`,
         ),
     );
   } else if (nDates !== null) {

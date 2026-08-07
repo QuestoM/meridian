@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button, TextField } from '@mui/material';
 import { ChevronDown, ChevronUp, History, Lock, RotateCcw } from 'lucide-react';
-import { Numeric, formatCurrency, formatNumber, formatPlanDate, pageText } from '../../shell/format';
+import { Numeric, formatCurrency, formatNumber, pageText } from '../../shell/format';
+import { formatStamp } from '../../shell/dates';
 import { Figure, Name } from '../../shell/bidi';
 import { diffReason, scopeLine } from './plan-week-model';
 
@@ -24,7 +25,7 @@ function VersionRow({ version, locale, selected, canEdit, onSelect, onDiff, onRe
       <button type="button" className="plan-version-main" onClick={() => onSelect(version.version_id)}>
         <Name className="plan-version-name">{version.name}</Name>
         <span className="plan-version-meta">
-          <Numeric>{formatPlanDate(version.created_at, locale) || version.created_at}</Numeric>
+          <Numeric>{formatStamp(version.created_at) || version.created_at}</Numeric>
           {' · '}
           <Name>{version.actor}</Name>
         </span>

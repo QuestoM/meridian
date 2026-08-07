@@ -11,6 +11,7 @@ import PlanningCanvas from './PlanningCanvas';
 import TimelineView from './TimelineView';
 import DaypartView from './DaypartView';
 import { boardReason, exportScopeNote, scopeLine, weekdayLabel } from './plan-week-model';
+import { formatDay } from '../../shell/dates';
 
 // The week the plan produced, and the zoom control that steps into a day.
 //
@@ -41,7 +42,7 @@ function DayHeader({ board, focusDate, state, error, locale, onClear, weekday })
   if (state === 'loading') {
     return (
       <p className="plan-note plan-note-quiet" role="status">
-        {pageText(locale, `Opening broadcast day ${focusDate}`, `פותח את יום השידור ${focusDate}`)}
+        {pageText(locale, `Opening broadcast day ${formatDay(focusDate)}`, `פותח את יום השידור ${formatDay(focusDate)}`)}
       </p>
     );
   }

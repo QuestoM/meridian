@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { X } from 'lucide-react';
-import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPlanDate, pageText } from '../shell/format';
+import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
+import { formatDay } from '../shell/dates';
 import { programTypeLabel } from '../shell/labels';
 import { fetchTodayDay } from './today-data';
 
@@ -126,7 +127,7 @@ function DecisionRows({ state, item, date, locale }) {
     return <p className="today-note">{pageText(locale, "That day's plan rows carry no row for this segment.", 'בשורות התוכנית של אותו יום אין שורה למקטע הזה.')}</p>;
   }
   const share = finiteNumber(row.share_percent);
-  const printedDate = formatPlanDate(date, locale);
+  const printedDate = formatDay(date);
   return (
     <>
       <p className="today-note">

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import { Play, RefreshCcw } from 'lucide-react';
-import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPlanDate, pageText } from '../../shell/format';
+import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../../shell/format';
+import { formatStamp } from '../../shell/dates';
 import { scopeLine } from './plan-week-model';
 
 // Step two: run the plan, and read what the run produced.
@@ -52,7 +53,7 @@ export function RunPanel({
     : status === 'stale'
       ? words.planOutOfDate
       : status === 'fresh'
-        ? `${words.planCurrent} ${formatPlanDate(freshness?.computed_at, locale) || ''}`.trim()
+        ? `${words.planCurrent} ${formatStamp(freshness?.computed_at)}`.trim()
         : pageText(locale, 'The plan state is unknown', 'מצב התוכנית אינו ידוע');
 
   return (
@@ -126,7 +127,7 @@ export function RunPanel({
           />
           <Figure
             label={pageText(locale, 'Run at', 'הורצה ב')}
-            value={formatPlanDate(runResult.computed_at, locale) || pageText(locale, 'unknown', 'לא ידוע')}
+            value={formatStamp(runResult.computed_at) || pageText(locale, 'unknown', 'לא ידוע')}
           />
         </div>
       )}

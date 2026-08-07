@@ -68,6 +68,8 @@ def registry(paths: Optional[Paths] = None) -> dict[str, Any]:
                  if record.get("action") == "adopted"}
     reverted = {record.get("adoption_id") for record in adoptions(paths)
                 if record.get("action") == "reverted"}
+    basis_rows = {row.get("id"): row
+                  for row in ((stored.get("fit_basis") or {}).get("rows") or [])}
 
     rows = []
     for path in candidate_files(paths):
@@ -109,6 +111,15 @@ def registry(paths: Optional[Paths] = None) -> dict[str, Any]:
             "rule_en": (score.get("verdict") or {}).get("rule_en"),
             "rule_he": (score.get("verdict") or {}).get("rule_he"),
             "duplicate_of": score.get("duplicate_of") or [],
+            # What this artifact's own producer recorded about adopting it. Not
+            # a figure this table ranks: it is the artifact's own split under
+            # its own fit. On this tree the row the table ranks first is a row
+            # whose producer advised against adopting it, and the join dropped
+            # that entirely.
+            "self_reported": score.get("self_reported"),
+            # This row's own share of the evaluation, so a screen can mark the
+            # row rather than only print a paragraph naming it.
+            "fit_basis": basis_rows.get(identifier),
             # The coefficient delta JS-19 names beside the gate deltas and the
             # money. The summary rather than the 36 rows, because this row is a
             # line in a comparison across five candidates; the rows are the
@@ -133,6 +144,10 @@ def registry(paths: Optional[Paths] = None) -> dict[str, Any]:
         "rescore_state": rescore_state(paths, stored or None),
         "evaluation": stored.get("evaluation"),
         "limit": stored.get("limit"),
+        # Which rows the limit sentence is true of, measured. The sentence is
+        # selected from this, so carrying one without the other would leave a
+        # reader with a claim about named rows and no way to see the rows.
+        "fit_basis": stored.get("fit_basis"),
         "baselines": stored.get("baselines") or [],
         "shipped": stored.get("shipped"),
         "cell_structure": stored.get("cell_structure"),

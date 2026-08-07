@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
 import './calendar-audience.css';
 import './console-mount.js';
+import { formatStamp } from '../shell/dates';
 
 // The audience-model block on the calendar, which is a run surface.
 //
@@ -77,7 +78,7 @@ export function AudienceModelBlock({ locale, refreshKey }) {
         {typeof payload.computed_at === 'string' && payload.computed_at ? (
           <span className="aud-fact">
             {pageText(locale, 'Model version, trained at:', 'גרסת מודל, אומנה ב:')}
-            <span className="bidi-figure figure-nowrap">{new Date(payload.computed_at).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
+            <span className="bidi-figure figure-nowrap">{formatStamp(payload.computed_at)}</span>
           </span>
         ) : null}
       </div>

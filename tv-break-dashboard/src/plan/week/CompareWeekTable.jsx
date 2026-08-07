@@ -2,6 +2,7 @@ import React from 'react';
 import { finiteNumber, formatCurrency, pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
 import { isWeekend, weekdayLabel } from './plan-week-model';
+import { formatDay } from '../../shell/dates';
 
 // Which day separates the two scenarios most. A highlighted row is a colour and
 // a colour is not a statement, so the day the choice really turns on is also
@@ -17,8 +18,9 @@ function biggestLine(best, locale) {
   if (!best) return null;
   const day = weekdayLabel(best.weekday, locale);
   const amount = formatCurrency(Math.abs(Number(best.delta_revenue_net)), locale);
-  const en = `The two scenarios differ most on ${day} ${best.date}, by ${amount} of net.`;
-  const he = `ההפרש הגדול ביותר בין שני התרחישים הוא ביום ${day} ${best.date}, ${amount} נטו.`;
+  const when = formatDay(best.date);
+  const en = `The two scenarios differ most on ${day} ${when}, by ${amount} of net.`;
+  const he = `ההפרש הגדול ביותר בין שני התרחישים הוא ביום ${day} ${when}, ${amount} נטו.`;
   return pageText(locale, en, he);
 }
 
@@ -32,7 +34,7 @@ function DayOpener({ date, weekday, locale, onOpenDay, children }) {
       type="button"
       className="plan-compare-day-open"
       onClick={() => onOpenDay(date)}
-      aria-label={pageText(locale, `Open ${date} on the week board`, `פתיחת ${date} בלוח השבוע`)}
+      aria-label={pageText(locale, `Open ${formatDay(date)} on the week board`, `פתיחת ${formatDay(date)} בלוח השבוע`)}
       title={pageText(locale, 'Open this broadcast day on the week board', 'פתיחת יום השידור הזה בלוח השבוע')}
       data-weekday={weekday || ''}
     >

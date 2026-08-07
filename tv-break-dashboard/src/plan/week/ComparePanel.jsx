@@ -7,6 +7,7 @@ import ScenarioLegForm from './ScenarioLegForm';
 import CompareWeekTable from './CompareWeekTable';
 import { leverLabel } from './plan-week-model';
 import ScenarioAdopt from './ScenarioAdopt';
+import { formatDay, formatSpan } from '../../shell/dates';
 
 // Step three, and the reason this destination exists.
 //
@@ -215,7 +216,7 @@ export function ComparePanel({
         {pageText(locale, 'Your channel ', 'הערוץ שלכם ')}
         <bdi>{scope.channel}</bdi>
         {week ? pageText(locale, ', ', ', ') : pageText(locale, ', broadcast day ', ', יום שידור ')}
-        <bdi>{week ? `${scope.date_from} ${pageText(locale, 'to', 'עד')} ${scope.date_to}` : scope.day}</bdi>
+        <bdi>{week ? formatSpan(scope.date_from, scope.date_to, locale) : formatDay(scope.day)}</bdi>
         {pageText(
           locale,
           `, ${formatNumber(scope.segments, locale)} programme segments`,

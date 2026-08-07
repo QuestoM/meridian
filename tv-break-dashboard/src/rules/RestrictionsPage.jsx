@@ -5,6 +5,7 @@ import { pageText } from '../shell/format';
 import RestrictionComposer from './RestrictionComposer';
 import ConstraintBuilder from './ConstraintBuilder';
 import { deleteRestriction, detailWords, effectLabel, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
+import { formatDay } from '../shell/dates';
 
 // A restriction reads as one line. The store's own words are on the record, one
 // click away, but nobody has to read them to know what a rule does: the sentence
@@ -27,14 +28,14 @@ function RestrictionRow({ record, locale, onDelete }) {
           {record.reason && <span>{record.reason}</span>}
           {record.starts_on && (
             <span>
-              {pageText(locale, `Starts applying on ${record.starts_on}`, `יתחיל לחול ב-${record.starts_on}`)}
+              {pageText(locale, `Starts applying on ${formatDay(record.starts_on)}`, `יתחיל לחול ב-${formatDay(record.starts_on)}`)}
             </span>
           )}
           {record.expires_on && (
             <span>
               {expired
-                ? pageText(locale, `Stopped applying on ${record.expires_on}`, `הפסיק לחול ב-${record.expires_on}`)
-                : pageText(locale, `Stops applying on ${record.expires_on}`, `יפסיק לחול ב-${record.expires_on}`)}
+                ? pageText(locale, `Stopped applying on ${formatDay(record.expires_on)}`, `הפסיק לחול ב-${formatDay(record.expires_on)}`)
+                : pageText(locale, `Stops applying on ${formatDay(record.expires_on)}`, `יפסיק לחול ב-${formatDay(record.expires_on)}`)}
             </span>
           )}
           <span>{rulesWrittenSentence(record.row_count, locale)}</span>

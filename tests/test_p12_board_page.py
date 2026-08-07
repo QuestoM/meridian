@@ -89,6 +89,9 @@ function report() {
       body: text(),
       dir: (one('.cb-board') || {}).getAttribute('dir'),
       cells_rows: all('.cb-cells-table tbody tr').length,
+      basis_marks: all('.cb-basis-mark').map((node) => node.textContent),
+      basis_rows: all('.cb-basis-rows li').map((node) => node.textContent),
+      self_block: (one('.cb-self') || {}).innerText || '',
     }),
   });
 }
@@ -212,3 +215,64 @@ def test_the_screen_offers_no_act_and_names_no_path_into_one(tmp_path):
         assert name not in result["body"]
     # Every control on this screen either sorts the table or opens an artifact.
     assert result["cells_rows"] >= 0
+
+
+def test_the_row_fitted_on_fewer_breaks_carries_the_caveat_on_the_row(tmp_path):
+    """The confound reaches the reader who is comparing the numbers.
+
+    The limit paragraph names the row, but a steward reading two figures is
+    reading the table, so a caveat stated only above it is a caveat the
+    comparison is made without. Measured on the real screen: the marked rows are
+    exactly the rows the published measurement says do not cover the evaluation.
+    """
+    board = _board()
+    uneven = [row["id"] for row in board["candidates"]
+              if (row.get("fit_basis") or {}).get("state") in ("fewer", "unknown")]
+    assert uneven, "no uneven row on this tree, so this test would prove nothing"
+    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    assert len(result["basis_marks"]) == len(uneven)
+    assert all(mark.strip() for mark in result["basis_marks"])
+    # And the shortfall itself is on screen with both of its denominators.
+    row = next(row for row in board["candidates"] if row["id"] == uneven[0])
+    basis = row["fit_basis"]
+    body = result["body"].replace(",", "")
+    assert str(basis["fitted_on"]) in body
+    assert str(basis["not_fitted_on"]) in body
+    assert str(basis["scored_on"]) in body
+    assert any(uneven[0] in line for line in result["basis_rows"])
+
+
+def test_the_limit_on_screen_is_the_measured_one_and_not_the_constant(tmp_path):
+    """The sentence that was false, no longer asserted on this tree."""
+    board = _board()
+    assert board["limit"]["state"] == "in_sample_uneven"
+    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    assert board["limit"]["he"] in result["body"]
+    assert "כל קובץ שנמדד כאן אומן על כל הברייקים האלה" not in result["body"]
+
+
+def test_opening_an_artifact_shows_what_its_own_producer_recorded(tmp_path):
+    """Carried, and carried with the sentence that stops it reading as a rank."""
+    board = _board()
+    first = sorted(board["candidates"], key=lambda row: row["rmse"])[0]
+    reported = first.get("self_reported") or {}
+    assert reported.get("state") == "advised_against", reported
+    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    assert result["opened"] == first["id"]
+    assert result["self_block"].strip()
+    assert reported["reading_he"] in result["self_block"]
+    assert str(reported["n_test"]) in result["self_block"]
+    # The non-comparability sentence, every time the block is shown.
+    assert "בת השוואה" in result["self_block"]
+
+
+def test_a_row_that_covers_the_evaluation_carries_no_caveat_and_no_self_block(tmp_path):
+    """The tri-state on screen: an absent state renders nothing, not a reassurance."""
+    board = _board()
+    covered = [row for row in board["candidates"]
+               if (row.get("fit_basis") or {}).get("state") == "all"
+               and (row.get("self_reported") or {}).get("state") == "absent"]
+    assert covered, "no covered row on this tree, so this test would prove nothing"
+    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    marked = set(result["basis_marks"])
+    assert covered[0]["id"] not in " ".join(marked)

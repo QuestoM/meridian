@@ -269,7 +269,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
               <span className="cal-upcoming-dates">
                 {eventRange(event).start <= todayIso
                   ? pageText(locale, 'ongoing', 'מתמשך')
-                  : <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>}
+                  : <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date)}</span>}
               </span>
             </button>
           ))}

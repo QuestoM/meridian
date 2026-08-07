@@ -127,14 +127,29 @@ table says so rather than implying coverage.
 | Direction, isolation, how a figure or name sits in a line | `tv-break-dashboard/src/shell/bidi.jsx`, and the `.bidi-figure` / `.bidi-code` / `.bidi-name` rules in `shell/styles.css` | `npm run test:direction` |
 | Colour, spacing, radius, shadow, typography scale | `tv-break-dashboard/src/tokens.css`, the only place a token may be defined | not enforced |
 | State colours and their soft twins | `tokens.css`, applied per rule 2 above | not enforced |
-| Number, currency, percent and date formatting | `tv-break-dashboard/src/shell/format.jsx` | not enforced |
+| A calendar day, a list of days, a window, a timestamp or a clock | `tv-break-dashboard/src/shell/dates.js` | `npm run test:dates` |
+| Number, currency and percent formatting | `tv-break-dashboard/src/shell/format.jsx` | not enforced |
 | Shared components: metric, page header, status badge, data table | `tv-break-dashboard/src/shell/primitives.jsx` | not enforced |
 | Wording and bilingual copy | `tv-break-dashboard/src/shell/copy.js` and the per-surface copy modules | not enforced |
 
-Only the first row has a guard. **Everything below it is convention held by
-review alone**, and the accent-bar rule in section 1 is the proof that
+Only the first two rows have a guard. **Everything below them is convention held
+by review alone**, and the accent-bar rule in section 1 is the proof that
 convention alone does not hold: it had to be swept twice. If you are adding a
 rule here, add a test with it or say plainly that you did not.
+
+### Dates, in one paragraph
+
+`dd/mm/yyyy` in both locales, because an English-reading buyer in Tel Aviv must
+not read `04/28` while the person beside them reads `28/04`. A list of days
+collapses consecutive days into runs, and a run prints both ends in full with a
+tight hyphen between them: `28/04/2025-03/05/2025`. Items in a list are
+separated by a spaced middle dot, `28/04/2025 · 12/05/2025`, and the two
+separators differ on shape AND on spacing so no reader can mistake the joiner
+inside a range for the one between items. Tight binds, loose separates. A run's
+shape never changes when it crosses a month or a year, because eliding the parts
+the two ends share is what makes a boundary a special case, and there is no
+reason to have one. Past six runs the line states how many days it stopped
+naming instead of running off the card.
 
 ## 8. What to do when a rule is missing
 

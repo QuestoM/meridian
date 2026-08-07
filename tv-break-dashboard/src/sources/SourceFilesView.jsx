@@ -6,6 +6,7 @@ import { normalizeRows } from '../shell/plan-model';
 import { Code } from '../shell/bidi';
 import { ROLE_LABELS, label, serverText, text } from './sources-copy';
 import RowsDrawer from './RowsDrawer';
+import { formatStamp } from '../shell/dates';
 
 function formatSize(bytes, locale) {
   const number = Number(bytes) || 0;
@@ -18,11 +19,9 @@ function formatSize(bytes, locale) {
   return `${formatNumber(Math.round(kilobytes / 1024), locale)} MB`;
 }
 
-function formatWhen(value, locale) {
+function formatWhen(value) {
   if (!value) return '-';
-  const when = new Date(value);
-  if (Number.isNaN(when.getTime())) return String(value);
-  return when.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
+  return formatStamp(value) || String(value);
 }
 
 // Every file the product reads or writes, with the two facts that are not the
@@ -98,7 +97,7 @@ export function SourceFilesView({ files, inputs, locale, highlight }) {
                   </span>
                 </td>
                 <td className="numeric-cell"><Numeric>{formatSize(row.size, locale)}</Numeric></td>
-                <td className="numeric-cell"><Numeric>{formatWhen(row.modified, locale)}</Numeric></td>
+                <td className="numeric-cell"><Numeric>{formatWhen(row.modified)}</Numeric></td>
               </tr>
             ))}
           </tbody>

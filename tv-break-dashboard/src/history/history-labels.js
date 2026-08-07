@@ -1,3 +1,5 @@
+import { BROADCAST_ZONE, formatClock, formatDayWithWeekday, formatStamp, isWeekendDay, isoDay, todayIso } from '../shell/dates';
+
 // Every word History renders, in both languages, in one place.
 //
 // The API sends no prose: an entry carries a kind, an action code, an actor and
@@ -37,9 +39,10 @@ export const WEEKDAYS = [
 
 export const WEEKEND_DAYS = [5, 6];
 
-export function isWeekend(date) {
-  return WEEKEND_DAYS.includes(date.getDay());
-}
+// Takes the ISO day itself, not a Date built from it. The Date form read the
+// weekday in the machine's local zone, which files a Friday broadcast day under
+// Thursday for a reader west of here.
+export const isWeekend = isWeekendDay;
 
 // The six kinds a timeline entry can be. A closed vocabulary, so a reader can
 // learn the whole set once and a critic can enumerate it.
@@ -324,48 +327,17 @@ export function pair(table, key, locale) {
   return locale === 'he' ? found[1] : found[0];
 }
 
-// A broadcast day is an Israeli day, so every timestamp on this surface is read
-// in one declared zone rather than in whatever zone the reader's machine is set
-// to. The server groups on the same zone, so the day a row is filed under and
-// the clock printed on it can never disagree.
-export const BROADCAST_ZONE = 'Asia/Jerusalem';
+// The declared zone lives with the dates, not with the words. Re-exported here
+// because this file was where the rest of History reached for it.
+export { BROADCAST_ZONE };
 
 export function dayHeading(iso, locale) {
-  const date = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return iso;
-  const names = WEEKDAYS[date.getDay()];
-  const name = locale === 'he' ? names[1] : names[0];
-  const day = date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', { day: 'numeric', month: 'long' });
-  return locale === 'he' ? `יום ${name}, ${day}` : `${name}, ${day}`;
+  return formatDayWithWeekday(iso, locale) || iso;
 }
 
-export function clockLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-GB', {
-    hour: '2-digit', minute: '2-digit', timeZone: BROADCAST_ZONE,
-  });
-}
-
-export function stampLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: BROADCAST_ZONE,
-  });
-}
-
-// The broadcast day a timestamp falls on, as YYYY-MM-DD. en-CA is the locale
-// whose short date is exactly that shape, so this needs no string surgery.
-export function isoDay(iso) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return String(iso || '').slice(0, 10);
-  return date.toLocaleDateString('en-CA', { timeZone: BROADCAST_ZONE });
-}
-
-export function todayIso() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: BROADCAST_ZONE });
-}
+export const clockLabel = (iso) => formatClock(iso);
+export const stampLabel = (iso) => formatStamp(iso);
+export { isoDay, todayIso };
 
 // An entry has an address, so it can be linked to, reloaded onto and handed
 // over. Kai hands back a restore point and its "see it in the history" control

@@ -1,4 +1,5 @@
 import { API_BASE } from '../shell/api';
+import { formatDayWithWeekday } from '../shell/dates';
 
 // The restriction kinds, in the order the composer offers them. Each carries the
 // sentence frame a representative reads and the parameter it needs, so the
@@ -176,18 +177,11 @@ export function buildWhere({ title, day }) {
   return { combinator: 'and', conditions };
 }
 
-// The Israeli week, Sunday first, for a date read back to a person. The stored
-// value stays the ISO date; only the reading is localized.
-const WEEKDAY_HE = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-const WEEKDAY_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
+// A date read back to a person, with the weekday it falls on. The stored value
+// stays the ISO date; only the reading is localized, and the reading itself is
+// shell/dates.js's to decide.
 export function dayLabel(iso, locale) {
-  const text = String(iso || '').slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-  const parsed = new Date(`${text}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return text;
-  const names = locale === 'he' ? WEEKDAY_HE : WEEKDAY_EN;
-  return `${names[parsed.getDay()]}, ${text}`;
+  return formatDayWithWeekday(iso, locale);
 }
 
 export function clock(seconds) {

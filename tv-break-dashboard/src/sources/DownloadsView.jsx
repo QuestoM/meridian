@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from '../shell/primitives';
 import { serverText, text } from './sources-copy';
 import ReportRowsDrawer from './ReportRowsDrawer';
+import { formatStamp } from '../shell/dates';
 
 // The declared basis, printed on the report and not in a tooltip: the period
 // the rows cover, the scope they are summed over, the file they are built
@@ -25,8 +26,7 @@ function factValue(fact, locale) {
   // A moment is sent as an ISO instant so it is unambiguous on the wire. It is
   // read by a person, so it is printed the way this locale writes a date.
   if (fact.code !== 'updated') return value;
-  const when = new Date(value);
-  return Number.isNaN(when.getTime()) ? value : when.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
+  return formatStamp(value) || value;
 }
 
 function Basis({ basis, locale }) {

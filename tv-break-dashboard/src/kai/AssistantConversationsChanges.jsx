@@ -7,6 +7,7 @@ import { fetchConversationChanges, restoreConversation } from './AssistantConver
 import { KINDS } from './AssistantProposalCard';
 import ProposalSummary from './AssistantProposalSummary';
 import { isolate } from '../shell/bidi';
+import { formatStamp } from '../shell/dates';
 
 // The per-conversation applied-changes view: every proposal batch the active
 // conversation produced, with kind, summary, status, who resolved it and when,
@@ -40,11 +41,8 @@ const STATUS_LABELS = {
   rejected: ['Rejected', 'נדחה'],
 };
 
-function timeLabel(iso, locale) {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function timeLabel(iso) {
+  return iso ? formatStamp(iso) : '';
 }
 
 function StatusChip({ locale, status }) {
@@ -174,7 +172,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
             <div className="asst-chg-meta">
               {batch.status ? <StatusChip locale={locale} status={String(batch.status)} /> : null}
               {batch.created_by ? <span>{pageText(locale, 'Asked by ', 'נשאל על ידי ')}<Name>{batch.created_by}</Name></span> : null}
-              {batch.created_at ? <time><Figure>{timeLabel(batch.created_at, locale)}</Figure></time> : null}
+              {batch.created_at ? <time><Figure>{timeLabel(batch.created_at)}</Figure></time> : null}
             </div>
             {items.map((item, index) => {
               const pair = kindPair(item.kind);
@@ -187,7 +185,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
                   <ProposalSummary item={withTerms(item, batch)} locale={locale} className="asst-chg-summary" />
 
                   {item.resolved_by ? (
-                    <p className="asst-chg-resolved">{pageText(locale, 'Resolved by ', 'מבצע: ')}<Name>{item.resolved_by}</Name>{item.resolved_at ? <>{' · '}<Figure>{timeLabel(item.resolved_at, locale)}</Figure></> : null}</p>
+                    <p className="asst-chg-resolved">{pageText(locale, 'Resolved by ', 'מבצע: ')}<Name>{item.resolved_by}</Name>{item.resolved_at ? <>{' · '}<Figure>{timeLabel(item.resolved_at)}</Figure></> : null}</p>
                   ) : null}
                 </div>
               );

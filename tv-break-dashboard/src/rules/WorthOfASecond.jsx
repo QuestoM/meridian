@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { pageText } from '../shell/format';
+import { formatSpan } from '../shell/dates';
 import { Code, Figure } from '../shell/bidi';
 import { API_BASE } from '../shell/api';
 import { basisReason, detailWords, isolate, rate } from './rules-lib';
@@ -96,8 +97,8 @@ export default function WorthOfASecond({ locale }) {
         <span className="rules-figure-scope">
           {pageText(
             locale,
-            `${where}, ${state.date_from} to ${state.date_to}, ${totals.segment_count} segments carrying breaks`,
-            `${where}, ${state.date_from} עד ${state.date_to}, ${totals.segment_count} מקטעים שנושאים ברייקים`,
+            `${where}, ${formatSpan(state.date_from, state.date_to, locale)}, ${totals.segment_count} segments carrying breaks`,
+            `${where}, ${formatSpan(state.date_from, state.date_to, locale)}, ${totals.segment_count} מקטעים שנושאים ברייקים`,
           )}
         </span>
         {!declared && (

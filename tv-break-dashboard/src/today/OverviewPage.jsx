@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { formatPlanDate, pageText } from '../shell/format';
+import { pageText } from '../shell/format';
+import { formatDay } from '../shell/dates';
 import { PageHeader } from '../shell/primitives';
 import { fetchSession, needsJobPicker } from '../session.js';
 import { word } from '../vocabulary.js';
@@ -129,7 +130,7 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
   // heading rather than here, so the raw name stays available to anything that
   // has to compare it, and only the printed copy carries the marks.
   const channel = today.channel || operatorChannel || '';
-  const planRunAt = today.plan_run_at ? formatPlanDate(String(today.plan_run_at).slice(0, 10), locale) : '';
+  const planRunAt = today.plan_run_at ? formatDay(String(today.plan_run_at).slice(0, 10)) : '';
   // The source-file count the control-room panel used to carry, kept on the
   // input row it belongs to rather than lost with the panel.
   const fileRows = Array.isArray(files && files.files) ? files.files : [];

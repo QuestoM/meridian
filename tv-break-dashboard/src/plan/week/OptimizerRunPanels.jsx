@@ -1,6 +1,7 @@
 import React from 'react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Name } from '../../shell/bidi';
+import { formatStamp } from '../../shell/dates';
 import { dayLabel, impactSegmentLabel } from '../../shell/labels';
 import { normalizeRows } from '../../shell/plan-model';
 
@@ -108,15 +109,8 @@ export function RetentionCostSegment({ segment, copy, locale }) {
 // gone stale. The block is read from the live optimize plan first (most current
 // to the run on screen), falling back to /api/parameters. When the API returns
 // no coefficient_freshness block at all, nothing is rendered (no fabricated state).
-export function freshnessDateLabel(value, locale) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleDateString(locale === 'he' ? 'he-IL' : undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+export function freshnessDateLabel(value) {
+  return formatStamp(value) || null;
 }
 
 export function CoefficientFreshnessChip({ plan, parameters, locale }) {
@@ -126,7 +120,7 @@ export function CoefficientFreshnessChip({ plan, parameters, locale }) {
   const status = String(freshness.status || '').toLowerCase();
   if (status !== 'fresh' && status !== 'stale' && status !== 'unknown') return null;
 
-  const computedLabel = freshnessDateLabel(freshness.computed_at, locale);
+  const computedLabel = freshnessDateLabel(freshness.computed_at);
   const changedFiles = normalizeRows(freshness.changed_files).filter(
     (name) => typeof name === 'string' && name.length > 0,
   );

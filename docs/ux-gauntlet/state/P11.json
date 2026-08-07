@@ -1,16 +1,23 @@
 {
   "piece": "P11",
-  "round": 1,
-  "round_note": "labelled round 1 by the wave-two re-run; it is the third recorded round on this piece, and the history below is append-only",
+  "round": 2,
+  "round_note": "labelled round 1 by the wave-two re-run; it is the fourth recorded round on this piece. The third round did substantial work (the wire collapse, makegood_store_words, the reason-on-transition) and died before writing state, so this round began by reading that work off disk rather than rebuilding it.",
   "passed": false,
-  "gap": "The surface still ships to nobody, and that is the only bar left open. Re-measured this round: npm run build in tv-break-dashboard produces an operator bundle with 0 occurrences of pacing-workspace, makegood-kindmark, pacing-row or pacing-strip, because nothing in the repo imports src/clients/pacing/**. Closing it is three lines in files P4 owns and P11 may not write: a VIEW_LABELS row in ClientsChrome.jsx with the controlled Hebrew קצב אספקה, 'pacing' in VIEWS at clients-money-helpers.js:11 so the address survives a reload, and one import plus one branch in ClientsWorkspace.jsx. Applied to a scratch copy and driven in a browser, the same tree compiles clean and reaches the worst-pacing row in 193 to 262 ms and 2 clicks against a 60 s target. The same patch must also pass notify into CampaignsPage, or every notice this panel sends stays swallowed by the shell.",
+  "gap": "The surface still ships to nobody and that is still not P11's to close: nothing imports src/clients/pacing/**, so the operator bundle carries 0 occurrences of pacing-workspace, makegood-kindmark or pacing-open-count. The three-line patch is in contracts/P11.md section 5 and the files are P4's. What changed this round is that the patch would have FAILED on first application until now: PacingWorkspace.jsx opened a <Figure> and closed a </span>, so the whole tree failed to compile, and the repo build could not see it because it never parses a tree nothing imports. Fixed, and guarded by a test that runs the real bundler. The remaining open items are decision 4, which approval cannot lift, and the notify prop into CampaignsPage, which is the frozen shell's.",
   "history": [
     "round 1: built the pacing board and the make-good ledger on P4's campaign store and derived delivery ledger, three new routes on the wave-zero router, the surface under src/clients/pacing, 41 tests green; the mount into the Clients destination is blocked on two P4 files and the exact patch is in contracts/P11.md section 5",
     "round 1 critic: measured all four bars before editing. Board reaches the worst-pacing row in 1.36 s and 2 clicks with the published mount applied in a scratch copy, against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 28 to 32 ms warm, 366 KB, 56 rows, 0 rival names, 0 fabricated figures, every unsourced day stated rather than counted as zero. Closed nine mechanical findings inside the ownership row: the write gate read as a boolean, the ledger recording nobody, an offer of 0.6 rendering as 2025-05-100.6, 51 seeded rows counted as a morning's work with no disclosure, store keys inside a bilingual refusal, the view tabs ballooning to 158 px whenever the content was short, raw ISO instants, a unit printed twice, and a 3.99:1 count. Six new guards proven to fail against HEAD's code and pass against the fix. Suite 3262 passed, 11 failed, all 11 reproduced identically on a clean HEAD tree. Largest gap left open is the mount, which is not P11's to write.",
     "round 2: finished the round the session limit killed mid-flight and closed every structural item in the queue that sits inside this ownership row. The second ending is now reachable end to end: the ledger renders payload.decisions rather than payload.make_goods, which had made every recorded acceptance invisible while the view tab counted it, and actWord takes the record's kind so a Hebrew reader stops being shown the English verb. Fixed a wrong figure on every one of 56 rows: a left-to-right isolate wrapped around a phrase that is already Hebrew, so the headline read '4.4 מתוך נקודות רייטינג 35' with the unit ahead of its own number; amount() now isolates its numeral and no caller wraps it again. Restored node execution of pacing-helpers.js by writing the extension on the vocabulary import, which had failed all six surface-remedy tests. Wrote the nine CSS classes the killed run referenced and nothing defined, split the sheet four ways on the component boundary under the size law, and inverted the two 4.29:1 pairs to 5.09:1 without asking for a token. Made the keyboard legend name only the keys that fire on the rows in front of the reader. Took the panel's h1 to an h2 and put its view controls on the heading row, which removed the second h1 and moved the first row from y=531 to y=441. Tests 37 passed 10 failed at the start, 56 passed 0 failed at the end, with four new guards proven to fail against a clean HEAD tree.",
-    "round 1 critic (wave-two re-run, third recorded round on this piece): measured every bar before editing anything, on my own uvicorn at 127.0.0.1:8062 hosting the repo API plus a scratch dashboard build carrying the published three-line mount. Board reaches the worst-pacing row in 193 to 262 ms and 2 clicks against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 17.2 to 24.4 ms warm, 184,610 B, 56 rows, 0 rival names, 0 fabricated figures, 4.4/5.0=0.88 reproduced by hand from data/campaigns.csv and data/campaign_delivery.csv, every unsourced day named rather than counted as zero. Closed thirteen findings inside the ownership row, including all three the owner reported on this card the same morning: the banned one-sided accent bar, the three facts with no separator, the three competing button weights. Also closed the percentage whose other operand was nowhere on the screen, a refused write that said nothing at all for 2.5 s of polling, an offer form that threw away what the reader typed on every refusal, a ledger campaign name that landed on the wrong row, a 4.46:1 disclosure sentence, a raw ISO instant, a re-authored delivery vocabulary, an empty state that promised a control no row carries, an offer field that never named its unit, and a name element that took the surface's direction instead of its own. Nine new guards across tests/test_p11_regression.py and the new tests/test_p11_design_rules.py, every one proven to fail against the code as reported and pass against the fix. 67 P11 tests and 79 shared tests green. Largest gap left open is still the mount, which is not P11's to write."
+    "round 1 critic (wave-two re-run, third recorded round on this piece): measured every bar before editing anything, on my own uvicorn at 127.0.0.1:8062 hosting the repo API plus a scratch dashboard build carrying the published three-line mount. Board reaches the worst-pacing row in 193 to 262 ms and 2 clicks against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 17.2 to 24.4 ms warm, 184,610 B, 56 rows, 0 rival names, 0 fabricated figures, 4.4/5.0=0.88 reproduced by hand from data/campaigns.csv and data/campaign_delivery.csv, every unsourced day named rather than counted as zero. Closed thirteen findings inside the ownership row, including all three the owner reported on this card the same morning: the banned one-sided accent bar, the three facts with no separator, the three competing button weights. Also closed the percentage whose other operand was nowhere on the screen, a refused write that said nothing at all for 2.5 s of polling, an offer form that threw away what the reader typed on every refusal, a ledger campaign name that landed on the wrong row, a 4.46:1 disclosure sentence, a raw ISO instant, a re-authored delivery vocabulary, an empty state that promised a control no row carries, an offer field that never named its unit, and a name element that took the surface's direction instead of its own. Nine new guards across tests/test_p11_regression.py and the new tests/test_p11_design_rules.py, every one proven to fail against the code as reported and pass against the fix. 67 P11 tests and 79 shared tests green. Largest gap left open is still the mount, which is not P11's to write.",
+    "round 2 (fourth recorded): resumed rather than rebuilt. Read the third round's unrecorded work off disk and verified it complete and green (raisable_deficit closing the API-versus-surface split, the reason-and-confirm ladder on every closing transition, the wire collapse taking /api/pacing from 184,610 to 100,145 bytes, figures_basis and the plain-string refusal both reaching the surface). FOUND AND FIXED THE ONE DEFECT THAT MATTERED: src/clients/pacing/** did not compile. PacingWorkspace.jsx:265 opened <Figure> and closed </span>, so applying the published mount would have broken the Clients destination and the mount would have been blamed. npm run build transforms 3,510 modules and none is in this tree, so a green build was not evidence about it. Guarded with verify-parses.mjs plus a pytest that runs the real bundler, proven to fail against the defect and pass against the fix. Closed two law violations inside the row: 21 display strings hard-wrapped across two source lines joined to one line each, with all 81 module string constants proven byte-identical and all four API payloads byte-identical afterwards; and test_p11_regression.py at 664 lines split three ways on the boundary of what a test can see (API and stores, components as text, shipped JavaScript executed), with the size guard extended to cover the test files it had exempted. 81 P11 tests green, 79 shared green, repo build clean."
   ],
   "queue": [
+    {
+      "what": "A tree that nothing imports is not covered by the build, whatever the build says. This is the general form of the compile defect found this round, and it is not only P11's: any piece shipping a destination subtree behind an unapplied mount is in the same position, P13 under P10 next. A green npm run build is not evidence about an unimported tree.",
+      "where": "the run, and every piece whose mount is still open",
+      "kind": "structural",
+      "severity": "serious"
+    },
     {
       "what": "The surface ships to nobody. Nothing in the repo imports src/clients/pacing/**, so npm run build produces an operator bundle with zero occurrences of it and JS-6 cannot be started in the running product. Re-measured this round on dist/assets/index-DrjQIIWW.js: pacing-workspace 0, makegood-kindmark 0, pacing-row 0, pacing-strip 0, \"Decision ledger\" 0. The one hit for קצב אספקה is vocabulary.js. The patch is three lines and is in contracts/P11.md section 5; applied to a scratch copy and driven in a browser it reaches the worst-pacing row in 193 to 262 ms and 2 clicks.",
       "where": "tv-break-dashboard/src/clients/ClientsChrome.jsx VIEW_LABELS, tv-break-dashboard/src/clients/clients-money-helpers.js:11 VIEWS, tv-break-dashboard/src/clients/ClientsWorkspace.jsx, all three P4's",
@@ -26,12 +33,6 @@
     {
       "what": "Every notice this panel emits is swallowed at its own published address. workspace-router.jsx:152 renders CampaignsPage without a notify prop, so ClientsWorkspace falls back to its no-op default. Measured before my fix: a refused offer produced a 400 with a bilingual detail, the form closed, and polling the whole document every 100 ms for 2.5 s found no refusal text anywhere. I mitigated inside my own row with an inline alert, but the product's own toast and its persistent activity feed still record nothing for any pacing write, including the successful ones.",
       "where": "tv-break-dashboard/src/shell/workspace-router.jsx:152 (frozen shell) and tv-break-dashboard/src/clients/CampaignsPage.jsx (P4)",
-      "kind": "structural",
-      "severity": "serious"
-    },
-    {
-      "what": "The API and the surface disagree about when a make-good may be raised. POST /api/make-goods on CMP_D040 returns 201 with deficit_kind to_date and deficit_value 0.6, while remedyFor offers that raise on 0 of 56 rows because the flight has unsourced days ahead. The contract defends the surface's rule and it is the better one, but two rules for one act means any other client, Kai included, can put a debt in the ledger the product says is not owed. Either the surface offers the to_date raise with its ladder named, or makegood_store refuses it.",
-      "where": "kairos_api/pacing_alerts_api_read.py deficit_for, against tv-break-dashboard/src/clients/pacing/pacing-helpers.js remedyFor",
       "kind": "structural",
       "severity": "serious"
     },
@@ -126,36 +127,6 @@
       "severity": "minor"
     },
     {
-      "what": "A viewer's write is refused by the auth middleware with detail as a plain English string rather than the bilingual {message_en, message_he} shape this piece's own refusals use, so refusalText returns an empty string for it. Unreachable from the UI because the controls are hidden from a viewer, reachable by any other client.",
-      "where": "kairos_api/auth.py enforce_request, read by tv-break-dashboard/src/clients/pacing/pacing-api.js refusalText",
-      "kind": "structural",
-      "severity": "minor"
-    },
-    {
-      "what": "The ledger records no reason on any transition and confirms nothing. Stripe requires a reason on every refund and requires a note when the reason is Other, and confirms a cancellation with 'Yes, cancel refund'. Here 'Withdraw it' and 'Revoke the decision' fire on one click, take an optional free-text note and no reason, and cannot be undone. A withdrawn decision is unauditable.",
-      "where": "kairos_api/makegood_store.py transitions, tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx ACTS",
-      "kind": "structural",
-      "severity": "minor"
-    },
-    {
-      "what": "GET /api/pacing is 184,610 bytes for 56 rows with no windowing on the row list, and grows as campaigns times flight days. It is 17.2 to 24.4 ms warm today, so it is a shape to watch rather than a cost to pay now.",
-      "where": "kairos_api/pacing_alerts_api_read.py board_payload",
-      "kind": "structural",
-      "severity": "minor"
-    },
-    {
-      "what": "The counted figure is the planned break rating the traffic log carries, not a measured delivery, and the sentence that says so sits behind a collapsed 'How this is counted' disclosure. The row's own word is 'counted' and never 'delivered', which is careful, but a reader who never opens the disclosure can take an at-risk verdict as a measured delivery shortfall. The delivery ledger's own figures_basis says it plainly and is not rendered anywhere on this surface.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx Basis details, against data/campaign_delivery.csv figures_basis",
-      "kind": "structural",
-      "severity": "minor"
-    },
-    {
-      "what": "21 display strings are split across two source lines by adjacent-literal concatenation, which design-rules.md section 5 now bans. Measured repo-wide the same pattern appears 365 times across 33 kairos_api modules and none of the results contains a newline, so it is a codebase convention rather than a P11 novelty. Needs a lead ruling on whether the rule reaches implicit concatenation before anyone rewrites one module of 33.",
-      "where": "kairos_api/pacing_alerts_api_words.py (15), makegood_store.py (4), pacing_alerts_api_read.py (2)",
-      "kind": "mechanical",
-      "severity": "minor"
-    },
-    {
       "what": "The panel's two view controls and its Read again control wrap to a second line at 1440 px, below the heading rather than on its row: measured, the first tab at y=263 and the other two at y=299. The contract says they ride the heading row. It costs 36 px of the fold and the fold count is unchanged at 2 rows, so it is cosmetic.",
       "where": "tv-break-dashboard/src/clients/pacing/pacing.css .pacing-header and .pacing-views",
       "kind": "mechanical",
@@ -187,28 +158,19 @@
     "tests/test_p11_design_rules.py: new, five guards on the three owner-reported defects and on design-rules.md itself"
   ],
   "evidence": {
-    "server": "my own uvicorn on 127.0.0.1:8062 running a critic-only ASGI host that serves the repo API and the scratch dashboard build on one port. Ports 8000, 3000 and 8010 confirmed listening and untouched throughout. Auth pointed at a scratch KAIROS_AUTH_DIR so data/auth/users.json is byte-unchanged.",
-    "ui": "a scratch copy of tv-break-dashboard under /private/tmp/p11-critic-scratch carrying the three-line mount, built with vite. The repo tree was never mounted, and the English pass was taken by forcing the locale in that scratch copy rather than by the shell control that writes data/kairos_settings.json.",
-    "measured_before_edits": "docs/ux-gauntlet/evidence/p11-c1-measured-before-edits.txt",
-    "screenshots": [
-      "docs/ux-gauntlet/evidence/p11-c1-01-board-he.png",
-      "docs/ux-gauntlet/evidence/p11-c1-02-board-en-before.png",
-      "docs/ux-gauntlet/evidence/p11-c1-03-row-en-before.png",
-      "docs/ux-gauntlet/evidence/p11-c1-04-refusal-and-form-kept-en.png",
-      "docs/ux-gauntlet/evidence/p11-c1-05-row-en-after.png",
-      "docs/ux-gauntlet/evidence/p11-c1-06-row-he-after.png",
-      "docs/ux-gauntlet/evidence/p11-c1-07-row-he-design-rules-applied.png"
-    ],
-    "stopwatch": "Today to the worst-pacing row painted, 2 clicks: 249, 262, 193 ms before my edits and 386, 289, 219 ms after, against a 60 s target and the 6.61 to 8.26 s baseline for a campaigns screen with no pacing field at all. Drill 239 ms. Take the risk on, pressed to recorded, 164 ms. First row at y=462 in an 851 px viewport, 2 rows in the fold before and after.",
-    "api": "/api/pacing 184,610 B and 17.2 to 24.4 ms warm; /api/pacing/{id}/days 2,838 B; /api/make-goods 4,851 B and 2.1 to 2.5 ms; /api/make-good-alerts 134 B, data_available false. openapi 155 paths, 193 operations, 92 writes, and the route table holds zero duplicate (method, path) pairs.",
-    "honest_math": "CMP_D040 reproduced by hand: goal 35.00 and budget 37000.00 from data/campaigns.csv, one aired day with rating_points_planned 4.4000 and spend_ils 5280.00 from data/campaign_delivery.csv sourced to Wally_Prime_Reshet_Example_2025-04-27.csv, six unknown days with every figure blank. 35*1/7=5.0, 4.4/5.0=0.88 at risk; 37000*1/7=5285.71, 5280/5285.71=0.9989 on pace.",
-    "boundary": "scope_channel רשת 13, competitor_rows_excluded 0, and 0 occurrences of קשת 12, כאן 11 or עכשיו 14 across the board, the ledger and the day drill.",
-    "contrast": "seeded 4.46 to 5.56, against 5.91, refusal 14.95, dismiss 17.74, ratio 6.39, verdict 5.68 to 5.91, chip count 5.09, keys and basis 5.56, scope 4.74, days toggle 6.83, summary 6.43, figure and forward word 17.74.",
-    "tests": "67 P11 tests green (56 before my edits, 5 new in test_p11_design_rules.py and 6 new in test_p11_regression.py), 79 shared tests green across test_api_surface_qa, test_campaign_entity, test_insights_endpoints, test_inventory_pacing_signals and test_p4_form_field_semantics. Every one of the eleven new guards proven to fail against the code as it was and pass against the fix."
+    "server": "my own uvicorn on 127.0.0.1:8042, started and killed by me. Ports 8000, 3000 and 8010 were not listening at any point in this round and nothing of mine touched them.",
+    "tests": "81 P11 tests green across seven files, 79 shared green (test_api_surface_qa, test_campaign_entity, test_insights_endpoints, test_inventory_pacing_signals, test_p4_form_field_semantics). The new compile guard proven to fail against the defect and pass against the fix, through pytest.",
+    "api": "/api/pacing 100,145 B and 23.8 to 25.9 ms warm over 10 samples, 56 rows, down from 184,610 B. /api/make-goods 5,764 B and 4.2 ms. /api/pacing/{id}/days 3,031 B. /api/make-good-alerts 134 B, data_available false with the campaign_flights.csv reason, unchanged.",
+    "honest_math": "CMP_D040 reproduced by hand from the CSVs: goal 35.00 from data/campaigns.csv, one aired day at rating_points_planned 4.4000 sourced to Wally_Prime_Reshet_Example_2025-04-27.csv, six unknown days with every figure blank. 35*1/7=5.0 and 4.4/5.0=0.88, at risk, exactly what the payload states. The six unsourced days are named on the row, never counted as zero.",
+    "boundary": "scope_channel רשת 13, competitor_rows_excluded 0, exactly one distinct channel across all 56 rows, and 0 occurrences of קשת 12, כאן 11, עכשיו 14, Keshet or Kan in the board, the ledger or the day drill.",
+    "build": "repo npm run build clean, 3,510 modules, and 0 occurrences of this surface in the operator bundle because the mount is not applied. Scratch copy carrying the section 5 mount builds clean and the surface reaches the bundle: pacing-workspace 1, makegood-kindmark 1, pacing-open-count 1, ספר ההחלטות 5, קצב אספקה 3 in the JS, pacing-row 9 and makegood-close-form 4 in the CSS.",
+    "size_law": "every file in the ownership row at or under 450 lines, tests included, which was not true at the start of the round.",
+    "payload_identity": "all four API payloads byte-identical before and after the string edits, and all 81 module string constants compared equal."
   },
   "blockers": [
-    "The mount, unchanged and still the only thing between this piece and a person using it. Exact patch in docs/ux-gauntlet/contracts/P11.md section 5, verified again this round by building and driving a scratch copy that carries it. Add a notify prop to CampaignsPage in the same patch.",
-    "Owner decision 4. No current broadcast week, no populated campaign_flights.csv and no delivery feed. The delivered half of pacing has no input and GET /api/make-good-alerts stays honestly data-pending."
+    "The mount, still the only thing between this piece and a person using it, and still P4's three files: ClientsChrome.jsx VIEW_LABELS, clients-money-helpers.js:11 VIEWS, ClientsWorkspace.jsx. Exact patch in contracts/P11.md section 5. It is now verified to compile, which it did not before this round.",
+    "The same patch must pass notify into CampaignsPage, or every notice this panel sends stays swallowed by the shell (workspace-router.jsx:152, frozen).",
+    "Owner decision 4. No current broadcast week, no populated campaign_flights.csv and no delivery feed. The delivered half of pacing has no input and GET /api/make-good-alerts stays honestly data-pending. Not lifted and not worked around."
   ],
   "files_touched_by_critic": [
     "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
@@ -225,24 +187,16 @@
     "docs/ux-gauntlet/state/P11.json"
   ],
   "side_effects": [
-    "data/make_goods.csv: probe records written through the API while exercising the write path, restored to the header-only seed, sha256 456e620dd2763606851445f1f3e507caab6c8e29710c36b863722ff67750ca11",
-    "output/weekly_break_schedule.csv: rewritten by a suite run, restored once with git checkout-index, and modified again afterwards while two other pytest processes were running in this shared tree. It is not a P11 path and I am not its only writer this session, so I left the second rewrite alone rather than destroying another agent's output.",
-    "data/kairos_settings.json and data/auth/users.json: untouched, verified clean in git status.",
-    "The working tree grew from 23 to 155 modified paths during this round, and HEAD moved from d7fc73ce to fdba013c, because other wave-two agents are writing the same checkout. The 15 test failures in my broad slice are all in files outside this row (plan/day, plan/week, history, kai, w0), none of the failing tests reads src/clients/pacing/**, and the P11 and shared suites are green."
+    "data/make_goods.csv unchanged, sha256 1668aef670385b5521e11cad8b1749abb80fbcbf2e1b4dec50a7a915a4794406, verified at the start and the end of the round. No write path was exercised against it.",
+    "No frozen path written. The section 5 mount was applied only to a throwaway copy under /tmp/p11-scratch, never to the repo tree."
   ],
   "previous_gap_closed": false,
-  "previous_gap_note": "The gap the last round left open was the mount, and it is not closed, because it is not P11's to close. Everything else that round left in the queue is either closed here or restated with fresh measurement.",
+  "previous_gap_note": "The gap was the mount and it is still not P11's to close. What this round did instead was make the mount actually work: it would have failed to compile on first application.",
   "closed_this_round": [
-    "The ledger rendered payload.make_goods, so every recorded acceptance was invisible while the view tab counted it. Measured live: 1 record, 1 in the badge, 0 rows and the empty state on screen. Now renders payload.decisions, the joined timeline, with a kind chip on each row.",
-    "actWord(state, kind, locale) was called with two arguments, so kind received the locale and locale was undefined. Every act button printed English to a Hebrew reader and the acceptance verbs were never reachable. Measured after: the acceptance row's control reads בטלו את ההחלטה.",
-    "A wrong number on every row. isolate() is a left-to-right isolate and was wrapped around amount(), a phrase that is already Hebrew, so the headline figure of all 56 rows rendered as 4.4 מתוך נקודות רייטינג 35 with the unit ahead of its own number. amount() now isolates its numeral only; six call sites stopped double-wrapping.",
-    "pacing-helpers.js imported ../../vocabulary with no extension. Vite resolves that and node does not, and tests/test_p11_surface_remedy.py executes this module in node so its assertions are about the shipped file. All six of those tests failed with ERR_MODULE_NOT_FOUND. Every other importer in the product already wrote the extension.",
-    "Nine CSS classes the killed round-two run referenced had no rule anywhere: pacing-accept, pacing-accepted, pacing-basis-details, pacing-basis-line, pacing-board, pacing-chrome, pacing-day-weekday, pacing-remedy-book, pacing-remedy-days. The repo build never parses this tree, so they would have shipped unstyled and silent. A guard now compares every class the JSX names against every rule the sheets define.",
-    "The behind verdict chip and the declined state chip were --red on --red-soft, measured 4.29:1 against the 4.5:1 AA floor at 11 px. A piece may not define a token and there is no --red-ink, so the pair is inverted: --surface on --red measures 5.09:1, confirmed live in the browser as rgb(194,65,65) on rgb(255,255,255).",
-    "The keyboard legend advertised r on a board where 0 of 56 rows can reach a raise. It now names only the keys that fire on the rows in front of the reader, and reads j and k, Enter, a on this data.",
-    "The panel rendered an h1 inside a destination that already carries one, above a second stacked view strip. It is an h2 now with its two view controls on the heading row, which took the first row from y=531 to y=441 in an 851 px viewport and put three rows above the fold instead of two.",
-    "pacing.css reached 489 lines, over the file-size law. Split four ways on the component boundary: pacing.css, pacing-row.css, pacing-days.css, makegood.css, at 228, 266, 80 and 181 lines, with a guard that every sheet the tree ships is imported by it.",
-    "Four regression tests were stale against the routes and module split the killed run left behind, and were asserting a shape that no longer exists."
+    "src/clients/pacing/** did not compile. PacingWorkspace.jsx opened <Figure> and closed </span>. The repo build never parses this tree because nothing imports it, so the error was invisible to the build, and every existing guard read components as text, so it was invisible to the tests. Measured after the fix on a scratch copy carrying the section 5 mount: the tree compiles and the bundle grows 1,623.16 to 1,659.43 kB of JavaScript and 305.75 to 319.41 kB of CSS.",
+    "21 display strings were hard-wrapped across two source lines by adjacent-literal concatenation, against design-rules.md section 5. Joined programmatically in pacing_alerts_api_words.py (15), makegood_store_words.py (4) and pacing_alerts_api_read.py (2). Proven safe: all 81 module string constants compared byte-identical, and /api/pacing, /api/make-goods, /api/make-good-alerts and the day drill all byte-identical before and after. The queue asked for a lead ruling because the pattern appears 365 times across 33 modules; this fixes only the three files in this ownership row, which the piece's own brief requires either way.",
+    "tests/test_p11_regression.py was 664 lines, over the 450-line law, under a guard that read the modules and the surface and never the tests. Split three ways: test_p11_regression.py (304) reads the API, the stores and the words; test_p11_surface_regression.py (227) reads the components as text; test_p11_surface_javascript.py (263) executes the shipped module in node. The size guard now includes tests/test_p11_*.py, so the law covers its own enforcement.",
+    "A new guard pins the split-string law on every module in the row, proven against the 21 occurrences it now forbids."
   ],
   "files_touched": [
     "kairos_api/pacing_alerts_api.py",
@@ -268,20 +222,21 @@
     "tests/test_p11_regression.py",
     "tests/test_p11_surface_remedy.py",
     "docs/ux-gauntlet/contracts/P11.md",
-    "docs/ux-gauntlet/state/P11.json"
+    "docs/ux-gauntlet/state/P11.json",
+    "kairos_api/makegood_store_words.py",
+    "tv-break-dashboard/src/clients/pacing/verify-parses.mjs",
+    "tests/test_p11_surface_regression.py",
+    "tests/test_p11_surface_javascript.py"
   ],
   "files_touched_this_round": [
-    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
+    "kairos_api/pacing_alerts_api_words.py",
+    "kairos_api/makegood_store_words.py",
+    "kairos_api/pacing_alerts_api_read.py",
     "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
-    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
-    "tv-break-dashboard/src/clients/pacing/pacing.css",
-    "tv-break-dashboard/src/clients/pacing/pacing-row.css",
-    "tv-break-dashboard/src/clients/pacing/pacing-days.css",
-    "tv-break-dashboard/src/clients/pacing/makegood.css",
+    "tv-break-dashboard/src/clients/pacing/verify-parses.mjs",
     "tests/test_p11_regression.py",
-    "tests/test_p11_make_good_ledger.py",
+    "tests/test_p11_surface_regression.py",
+    "tests/test_p11_surface_javascript.py",
     "docs/ux-gauntlet/contracts/P11.md",
     "docs/ux-gauntlet/state/P11.json"
   ],

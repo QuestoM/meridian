@@ -43,12 +43,78 @@ VERDICTS: dict[str, dict[str, str]] = {
     },
 }
 
+# The sentence that decides how every figure on this surface may be read. There
+# are three of them and which one is emitted is a measurement, taken in
+# adopt_candidate_basis.py against what each artifact records it was fitted on.
+# It was one constant until round 6, which asserted the first of these three of
+# every tree, including the tree it is on, where it is false.
 IN_SAMPLE_LIMIT: dict[str, str] = {
     "state": "in_sample",
     "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
     "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
     "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
     "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו.",
+}
+
+LIMIT_UNEVEN: dict[str, str] = {
+    "en": "Not every artifact was fitted on all of these breaks, so the optimism is not the same in every row and a difference against one of the named rows carries a confound on top of the noise.",
+    "he": "לא כל קובץ אומן על כל הברייקים האלה, ולכן האופטימיות אינה זהה בכל שורה, והפרש מול אחת השורות שנקובות כאן נושא הטיה נוספת מעבר לרעש.",
+    "unblocked_by_en": "The identity of the breaks each artifact was fitted on, recorded in the artifact rather than the count alone. The counts are recorded here and the identities are not, so the size of this confound is not computable from anything on disk.",
+    "unblocked_by_he": "זהות הברייקים שכל קובץ אומן עליהם, רשומה בתוך הקובץ ולא רק המניין. המניינים רשומים כאן והזהויות לא, ולכן גודל ההטיה הזו אינו ניתן לחישוב מדבר שנמצא על הדיסק.",
+}
+
+LIMIT_UNKNOWN: dict[str, str] = {
+    "en": "At least one artifact records nothing about how many breaks it was fitted on, so whether the optimism is common to every row is unknown here rather than established.",
+    "he": "לפחות קובץ אחד אינו רושם דבר על מספר הברייקים שאומן עליהם, ולכן השאלה אם האופטימיות משותפת לכל שורה אינה ידועה כאן ולא הוכחה.",
+    "unblocked_by_en": "The number of breaks each artifact was fitted on, recorded in the artifact by whatever produced it.",
+    "unblocked_by_he": "מספר הברייקים שכל קובץ אומן עליהם, רשום בתוך הקובץ על ידי מה שהפיק אותו.",
+}
+
+# What an artifact's own producer recorded about adopting it. Carried per row and
+# never ranked: a self-test is its own split under its own fit, and ranking two
+# of those against each other is the mistake the common-basis re-score exists to
+# stop. A recommendation is not a comparison, and it is the one thing about an
+# artifact that only the person who produced it knows.
+SELF_TEST: dict[str, dict[str, str]] = {
+    "advised_against": {
+        "en": "Whatever produced this artifact recorded its own out-of-sample test and advised against adopting it.",
+        "he": "מה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ שלא לאמץ אותו.",
+    },
+    "recommended": {
+        "en": "Whatever produced this artifact recorded its own out-of-sample test and recommended adopting it.",
+        "he": "מה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ לאמץ אותו.",
+    },
+    "recorded_without_a_verdict": {
+        "en": "This artifact records its own out-of-sample test and reaches no recommendation either way.",
+        "he": "הקובץ הזה רושם בדיקה מחוץ למדגם משלו ואינו מגיע להמלצה לכאן או לכאן.",
+    },
+    "absent": {
+        "en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+        "he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו.",
+    },
+}
+
+# The sentence that keeps a self-test from being read as a rank. It travels with
+# every self-test the surface prints, in both halves.
+SELF_TEST_BASIS: dict[str, str] = {
+    "en": "A self-test is the artifact's own split under its own fit, so it is readable about that artifact alone and is never comparable with another row here.",
+    "he": "בדיקה עצמית היא הפיצול של הקובץ עצמו תחת האימון של עצמו, ולכן היא ניתנת לקריאה על אותו קובץ בלבד ולעולם אינה בת השוואה לשורה אחרת כאן.",
+}
+
+# The fit basis as a line under the table, filled from the measurement.
+FIT_BASIS: dict[str, dict[str, str]] = {
+    "fewer": {
+        "en": "fitted on {fitted} of the {scored} breaks it is scored on, so {shortfall} of them were never in its fit and are in the fit of every row it is compared against",
+        "he": "אומן על {fitted} מתוך {scored} הברייקים שהוא נמדד עליהם, ולכן {shortfall} מהם מעולם לא היו באימון שלו והם באימון של כל שורה שהוא מושווה מולה",
+    },
+    "all": {
+        "en": "fitted on {fitted} breaks, as many as it is scored on",
+        "he": "אומן על {fitted} ברייקים, כמספר הברייקים שהוא נמדד עליהם",
+    },
+    "unknown": {
+        "en": "records no fit basis, so whether it was fitted on these breaks is unknown rather than assumed",
+        "he": "אינו רושם בסיס אימון, ולכן השאלה אם אומן על הברייקים האלה אינה ידועה ולא מונחת",
+    },
 }
 
 METRIC: dict[str, str] = {

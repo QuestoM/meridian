@@ -188,22 +188,10 @@ DEFICIT_KIND_VOCABULARY = (
     },
 )
 
-SIGN_OFF_EN = (
-    "This product was not given the commercial rule for what a make-good may be offered against or who "
-    "signs one off, so it records who acted and refuses to derive an entitlement."
-)
-SIGN_OFF_HE = (
-    "המוצר לא קיבל את הכלל המסחרי לגבי מה מותר להציע כפיצוי או מי מאשר אותו, ולכן הוא רושם מי פעל "
-    "ונמנע מלגזור זכאות."
-)
+SIGN_OFF_EN = "This product was not given the commercial rule for what a make-good may be offered against or who signs one off, so it records who acted and refuses to derive an entitlement."
+SIGN_OFF_HE = "המוצר לא קיבל את הכלל המסחרי לגבי מה מותר להציע כפיצוי או מי מאשר אותו, ולכן הוא רושם מי פעל ונמנע מלגזור זכאות."
 SIGN_OFF_PATH_EN = "Supply the offer rule and the approver role, and this ledger will enforce them."
 SIGN_OFF_PATH_HE = "ספקו את כלל ההצעה ואת תפקיד המאשר, וספר הפיצויים יאכוף אותם."
 
-NO_INVENTORY_EN = (
-    "An offer is a recorded value and a window. It does not reserve inventory: the spots are booked on "
-    "the plan, and this row links to the campaign they belong to."
-)
-NO_INVENTORY_HE = (
-    "הצעה היא ערך רשום וחלון תאריכים. היא אינה משריינת מלאי: התשדירים מוזמנים בתוכנית, והשורה הזו "
-    "מקשרת לקמפיין שאליו הם שייכים."
-)
+NO_INVENTORY_EN = "An offer is a recorded value and a window. It does not reserve inventory: the spots are booked on the plan, and this row links to the campaign they belong to."
+NO_INVENTORY_HE = "הצעה היא ערך רשום וחלון תאריכים. היא אינה משריינת מלאי: התשדירים מוזמנים בתוכנית, והשורה הזו מקשרת לקמפיין שאליו הם שייכים."

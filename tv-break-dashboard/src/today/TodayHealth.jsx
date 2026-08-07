@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react';
-import { formatNumber, formatPlanDate, pageText } from '../shell/format';
+import { formatNumber, pageText } from '../shell/format';
+import { formatDay } from '../shell/dates';
 import { Name } from '../shell/bidi';
 import { word } from '../vocabulary.js';
 
@@ -36,9 +37,9 @@ function joinLabels(labels, locale) {
   return locale === 'he' ? `${head} ו${list[list.length - 1]}` : `${head} and ${list[list.length - 1]}`;
 }
 
-function stamp(value, locale) {
+function stamp(value) {
   const text = String(value || '').slice(0, 10);
-  return text ? formatPlanDate(text, locale) : '';
+  return text ? formatDay(text) : '';
 }
 
 function rowCopy(check, locale, sourceFiles) {
@@ -54,8 +55,8 @@ function rowCopy(check, locale, sourceFiles) {
       title: pageText(locale, 'Your changes are not in the plan yet', 'השינויים שלכם עדיין לא נכנסו לתוכנית'),
       detail: pageText(
         locale,
-        `${changed} changed after the plan was last run on ${stamp(check.plan_run_at, locale)}`,
-        `${changed} השתנו אחרי שהתוכנית הורצה לאחרונה ב${stamp(check.plan_run_at, locale)}`,
+        `${changed} changed after the plan was last run on ${stamp(check.plan_run_at)}`,
+        `${changed} השתנו אחרי שהתוכנית הורצה לאחרונה ב${stamp(check.plan_run_at)}`,
       ),
     };
   }
@@ -64,15 +65,15 @@ function rowCopy(check, locale, sourceFiles) {
       title: word('state.newer_model_version', locale),
       detail: pageText(
         locale,
-        `Trained on ${stamp(check.model_trained_at, locale)}, after this plan was run on ${stamp(check.plan_run_at, locale)}`,
-        `אומנה ב${stamp(check.model_trained_at, locale)}, אחרי שהתוכנית הזו הורצה ב${stamp(check.plan_run_at, locale)}`,
+        `Trained on ${stamp(check.model_trained_at)}, after this plan was run on ${stamp(check.plan_run_at)}`,
+        `אומנה ב${stamp(check.model_trained_at)}, אחרי שהתוכנית הזו הורצה ב${stamp(check.plan_run_at)}`,
       ),
     };
   }
   if (check.id === 'plan_current') {
     return {
       title: pageText(locale, 'The plan is current with its inputs', 'התוכנית מעודכנת מול הקלטים שלה'),
-      detail: pageText(locale, `Run on ${stamp(check.plan_run_at, locale)}`, `הורצה ב${stamp(check.plan_run_at, locale)}`),
+      detail: pageText(locale, `Run on ${stamp(check.plan_run_at)}`, `הורצה ב${stamp(check.plan_run_at)}`),
     };
   }
   if (check.id === 'plan_currency_unknown') {

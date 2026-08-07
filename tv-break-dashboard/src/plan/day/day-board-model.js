@@ -1,3 +1,5 @@
+import { isWeekendDay, weekdayIndex } from '../../shell/dates.js';
+
 // The day board's pure model: the arrangement, the edits, and the undo history.
 //
 // Every act on the board is a named action with an inverse, held on one stack.
@@ -324,15 +326,7 @@ export function weekdayName(isoDate, locale) {
   return (locale === 'he' ? WEEKDAY_NAMES_HE : WEEKDAY_NAMES_EN)[index];
 }
 
-export function weekdayIndex(isoDate) {
-  const parsed = new Date(`${isoDate}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? -1 : parsed.getDay();
-}
-
-export function isWeekend(isoDate) {
-  const index = weekdayIndex(isoDate);
-  return index === 5 || index === 6;
-}
+export { weekdayIndex, isWeekendDay as isWeekend };
 
 // Group a list of ISO days into Sunday-first weeks for the day picker.
 export function weeksOf(days) {

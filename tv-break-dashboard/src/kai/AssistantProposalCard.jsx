@@ -8,6 +8,7 @@ import EffectView from './AssistantEffectView';
 import ProposalSummary from './AssistantProposalSummary';
 import FieldName from './kai-field-name';
 import { inApprovedWords } from './kai-vocabulary';
+import { formatStamp } from '../shell/dates';
 
 // One proposal batch from the assistant, rendered for explicit approval. The
 // card never applies anything by itself: selection, an inline confirm step that
@@ -57,10 +58,8 @@ function shortValue(value) {
   return String(value);
 }
 
-function appliedLabel(iso, locale) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function appliedLabel(iso) {
+  return formatStamp(iso);
 }
 
 // Four of the fields Kai may propose are the broadcast licence, not ordinary
@@ -358,7 +357,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
             <div className="asst-restore-point" key={point.restoreId}>
               <p className="asst-restore-line">
                 {pageText(locale, 'A restore point was created before this change.', 'נוצרה נקודת שחזור לפני השינוי הזה.')}
-                {point.appliedAt ? <time><Figure>{appliedLabel(point.appliedAt, locale)}</Figure></time> : null}
+                {point.appliedAt ? <time><Figure>{appliedLabel(point.appliedAt)}</Figure></time> : null}
                 {point.appliedBy ? <span>{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<Name>{point.appliedBy}</Name></span> : null}
               </p>
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />

@@ -4,6 +4,7 @@ import { formatNumber, pageText } from '../../shell/format';
 import { Figure } from '../../shell/bidi';
 import { exactCurrency } from './day-board-model';
 import { LIVE_PLAN, scopeWithBasis } from './plan-basis';
+import { formatDay } from '../../shell/dates';
 
 // What the last act actually did to the plan, kept on screen after the board has
 // re-read the day. A save, a gold change, or the undo of either.
@@ -25,7 +26,7 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
   const { act, basis, before, after, realised, predicted, verdict } = settlement;
   // Both totals are the engine's own day figures, read before and after the act,
   // so they are the live plan's and every scope line here names it.
-  const scopeText = basis ? scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale) : '';
+  const scopeText = basis ? scopeWithBasis(`${basis.channel} / ${formatDay(basis.day)}`, LIVE_PLAN, locale) : '';
   const total = after && after.breaks ? after.breaks : 0;
 
   return (

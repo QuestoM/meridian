@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import { Command, Play, RefreshCcw } from 'lucide-react';
-import { formatNumber, formatPlanDate, pageText } from '../../shell/format';
+import { formatNumber, pageText } from '../../shell/format';
+import { formatStamp } from '../../shell/dates';
 import { Code, Figure } from '../../shell/bidi';
 
 // The step strip, and the plan's own state above it.
@@ -42,7 +43,7 @@ function stateDetail({ reading, error, status, changed, freshness, words, locale
     return pageText(locale, `Changed since the last run: ${changed.join(', ')}`, `השתנה מאז ההרצה האחרונה: ${changed.join(', ')}`);
   }
   if (status === 'stale') return words.planOutOfDate;
-  if (status === 'fresh') return `${words.planCurrent} ${formatPlanDate(freshness?.computed_at, locale) || ''}`.trim();
+  if (status === 'fresh') return `${words.planCurrent} ${formatStamp(freshness?.computed_at)}`.trim();
   return pageText(locale, 'No run stamp was found for the saved plan.', 'לא נמצא חותם הרצה לתוכנית השמורה.');
 }
 

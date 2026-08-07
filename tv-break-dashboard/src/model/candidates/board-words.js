@@ -29,6 +29,22 @@ export const WORDS = {
 
   'limit.title': { en: 'The limit of this evaluation', he: 'מגבלת המדידה הזו' },
   'limit.lifted': { en: 'What would lift it', he: 'מה ירים אותה' },
+  'limit.rows': { en: 'The rows this is true of', he: 'השורות שזה נכון לגביהן' },
+
+  'basis.mark': { en: 'Fitted on fewer breaks than it is scored on', he: 'אומן על פחות ברייקים מאלה שהוא נמדד עליהם' },
+  'basis.unknown_mark': { en: 'Records no fit basis', he: 'אינו רושם בסיס אימון' },
+  'basis.title': { en: 'What it was fitted on', he: 'על מה הוא אומן' },
+  'basis.of': { en: 'of', he: 'מתוך' },
+  'basis.never_fitted': { en: 'of them were never in its own fit', he: 'מהם מעולם לא היו באימון שלו' },
+
+  'self.title': { en: 'What its own producer recorded about adopting it', he: 'מה שהמפיק שלו רשם על אימוצו' },
+  'self.basis': { en: 'A self-test is the artifact own split under its own fit, so it is readable about that artifact alone and is never comparable with another row here.', he: 'בדיקה עצמית היא הפיצול של הקובץ עצמו תחת האימון של עצמו, ולכן היא ניתנת לקריאה על אותו קובץ בלבד ולעולם אינה בת השוואה לשורה אחרת כאן.' },
+  'self.advised_against': { en: 'Advised against', he: 'הומלץ שלא' },
+  'self.recommended': { en: 'Recommended', he: 'הומלץ' },
+  'self.recorded_without_a_verdict': { en: 'No recommendation', he: 'ללא המלצה' },
+  'self.words': { en: 'Its own words', he: 'במילותיו שלו' },
+  'self.n_test': { en: 'Taken on', he: 'נלקחה על' },
+  'self.breaks_own': { en: 'breaks of its own choosing', he: 'ברייקים לבחירתו' },
 
   'table.title': { en: 'Artifacts, closest to the measured effects first', he: 'קבצים, הקרוב ביותר לאפקטים הנמדדים תחילה' },
   'table.artifact': { en: 'Artifact', he: 'קובץ' },

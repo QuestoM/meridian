@@ -1,3 +1,5 @@
+import { formatStamp } from './dates';
+
 // ScheduleStalenessBanner: an honest "saved schedule is out of date" strip.
 //
 // The Schedule, Reports, and Overview pages all render off one saved CSV. When
@@ -65,7 +67,7 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
 
   // Format the computation time in the browser locale, guarded against a null or
   // invalid date so the "on <date>" clause is simply omitted when unavailable.
-  const computedLabel = formatComputedAt(freshness.computed_at, locale);
+  const computedLabel = formatComputedAt(freshness.computed_at);
 
   const heading = t('Saved schedule is out of date', 'לוח השידור השמור אינו מעודכן');
 
@@ -122,13 +124,10 @@ function joinList(items, locale) {
   return locale === 'he' ? `${head}${conjunction}${tail}` : `${head}${conjunction}${tail}`;
 }
 
-// formatComputedAt renders the ISO timestamp in the browser locale, returning
+// formatComputedAt reads the ISO timestamp back in the broadcast zone, returning
 // null for a missing or unparseable value so the caller can omit the date clause.
-function formatComputedAt(value, locale) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleString(locale === 'he' ? 'he-IL' : 'en-US');
+function formatComputedAt(value) {
+  return formatStamp(value) || null;
 }
 
 export default ScheduleStalenessBanner;

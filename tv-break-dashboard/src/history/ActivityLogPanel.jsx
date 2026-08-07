@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { Activity, RefreshCcw } from 'lucide-react';
+import { formatStamp } from '../shell/dates';
 import { API_BASE } from '../shell/api';
 import { Code, Figure } from '../shell/bidi';
 import { SIGN_IN_LABELS, pair } from './history-labels';
@@ -25,11 +26,8 @@ export function activityActionLabel(entry, he) {
   return actLabel(action, outcomeOf(entry), locale) || null;
 }
 
-export function activityTimeLabel(ts, he) {
-  if (!ts) return '';
-  const date = new Date(ts);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(he ? 'he-IL' : 'en-US', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+export function activityTimeLabel(ts) {
+  return ts ? formatStamp(ts) : '';
 }
 
 // The settings-page activity log: who changed what and when, served by
@@ -155,7 +153,7 @@ export function ActivityLogPanel({ locale }) {
                 const hasStatus = Number.isFinite(status) && status > 0;
                 return (
                   <tr key={`${entry.ts || 'entry'}-${index}`}>
-                    <td><span className="alog-time"><Figure>{activityTimeLabel(entry.ts, he)}</Figure></span></td>
+                    <td><span className="alog-time"><Figure>{activityTimeLabel(entry.ts)}</Figure></span></td>
                     {showUserColumn && <td><span className="alog-user">{entry.user || ''}</span></td>}
                     <td>
                       {label ? <span>{label}</span> : <code className="alog-code"><Code>{`${entry.method || ''} ${entry.path || ''}`.trim()}</Code></code>}

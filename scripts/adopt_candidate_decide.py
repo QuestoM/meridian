@@ -119,6 +119,14 @@ def evidence_for(identifier: str, paths: Optional[Paths] = None) -> dict[str, An
         "rule_en": verdict.get("rule_en"),
         "rule_he": verdict.get("rule_he"),
         "duplicate_of": row.get("duplicate_of") or [],
+        # How many of the breaks this verdict was taken on were in this
+        # artifact's own fit, and what its own producer recorded about adopting
+        # it. Both ride inside the record because a decision log is read years
+        # later by somebody who cannot re-run the measurement, and a verdict
+        # that rested on a confounded comparison should say so from inside
+        # itself rather than from a terminal that has since moved on.
+        "breaks_fitted_on": row.get("breaks_fitted_on"),
+        "self_reported": row.get("self_reported") or {},
         # The coefficient delta travels with the verdict for the same reason the
         # re-score does: JS-19's done condition names it, and the console has no
         # route of its own that can serve it. Attached as the summary rather
@@ -131,6 +139,7 @@ def evidence_for(identifier: str, paths: Optional[Paths] = None) -> dict[str, An
     }
     evidence["evaluation"] = stored.get("evaluation")
     evidence["limit"] = stored.get("limit")
+    evidence["fit_basis"] = stored.get("fit_basis")
     evidence["baselines"] = stored.get("baselines") or []
     evidence["cell_structure"] = stored.get("cell_structure")
     return evidence

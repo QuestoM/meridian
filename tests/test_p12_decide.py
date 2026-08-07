@@ -237,20 +237,43 @@ def test_the_english_reason_rides_in_the_evidence_so_neither_language_is_lost(tr
     assert _log(tree)[0]["evidence"]["reason_en"].startswith("Not distinguishable")
 
 
-@pytest.mark.parametrize("table", ["VERDICTS", "BASIS", "RULE", "HOW", "NEXT_ACT"])
-def test_every_authored_string_this_piece_emits_exists_in_both_languages(table):
-    """The law is that an authored string is two strings, so the table is walked.
+def _string_tables():
+    """Every table of two-language entries in the words module, found rather than listed.
 
-    Five display fields shipped in English only before this: how_en on every
-    adoption check, rule_en on every verdict, metric_en, basis_en and the next
-    act. A table cannot drift into one language without failing here.
+    This was a hardcoded list of five names. That is the same defect round 3
+    found in the module-size test and fixed there with a glob: a list of names
+    stops covering new code the moment new code is added, and it does it
+    silently, so the law it holds quietly stops applying exactly when there is
+    something new to hold it against. Round 6 added two tables and both would
+    have escaped. Discovered now, with a floor so an accident that makes the
+    discovery return nothing fails instead of passing vacuously.
     """
-    for key, entry in getattr(words, table).items():
+    found = {}
+    for name in dir(words):
+        if not name.isupper():
+            continue
+        value = getattr(words, name)
+        if isinstance(value, dict) and value and all(
+                isinstance(entry, dict) and "en" in entry for entry in value.values()):
+            found[name] = value
+    assert len(found) >= 7, f"the discovery found only {sorted(found)}"
+    for known in ("VERDICTS", "BASIS", "RULE", "HOW", "NEXT_ACT", "SELF_TEST", "FIT_BASIS"):
+        assert known in found, f"{known} was not discovered"
+    return found
+
+
+@pytest.mark.parametrize("table", sorted(_string_tables()))
+def test_every_authored_string_this_piece_emits_exists_in_both_languages(table):
+    """The law is that an authored string is two strings, so the table is walked."""
+    for key, entry in _string_tables()[table].items():
         assert entry.get("en", "").strip(), f"{table}.{key} has no English"
         assert entry.get("he", "").strip(), f"{table}.{key} has no Hebrew"
 
 
 def test_the_evaluation_and_the_limit_carry_both_halves_too():
-    for pair in (words.METRIC, words.TARGET_SD, words.DECISION_BASIS, words.GATE_ABSENT):
+    for pair in (words.METRIC, words.TARGET_SD, words.DECISION_BASIS, words.GATE_ABSENT,
+                 words.SELF_TEST_BASIS):
         assert pair["en"].strip() and pair["he"].strip()
-    assert words.IN_SAMPLE_LIMIT["unblocked_by_en"] and words.IN_SAMPLE_LIMIT["unblocked_by_he"]
+    for limit in (words.IN_SAMPLE_LIMIT, words.LIMIT_UNEVEN, words.LIMIT_UNKNOWN):
+        assert limit["en"].strip() and limit["he"].strip()
+        assert limit["unblocked_by_en"].strip() and limit["unblocked_by_he"].strip()

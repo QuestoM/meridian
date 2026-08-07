@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Calculator, CheckCircle2 } from 'lucide-react';
 import { Figure } from '../../shell/bidi';
+import { formatDay, formatDayList } from '../../shell/dates';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { CommittedPlanNote, SaveForecast, violationLabel } from './DayBoardReadout';
 import { committedGap, exactCurrency } from './day-board-model';
@@ -37,8 +38,8 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
       {otherDays && otherDays.length > 0 && (
         <p className="day-readout-note">
           {label(
-            `The figures above cover one broadcast day. Edits on ${otherDays.join(', ')} are not counted in them.`,
-            `הנתונים שלמעלה מכסים יום שידור אחד. שינויים ב-${otherDays.join(', ')} אינם נכללים בהם.`,
+            `The figures above cover one broadcast day. Edits on ${formatDayList(otherDays, locale)} are not counted in them.`,
+            `הנתונים שלמעלה מכסים יום שידור אחד. שינויים ב-${formatDayList(otherDays, locale)} אינם נכללים בהם.`,
           )}
         </p>
       )}
@@ -59,7 +60,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
   const onlyPlacement = changed.placement && !changed.duration && !changed.gold;
   // Every figure below is the live re-plan of this day, and the sentence above
   // the timeline counts the saved weekly plan, so each scope line names which.
-  const scopeText = scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale);
+  const scopeText = scopeWithBasis(`${basis.channel} / ${formatDay(basis.day)}`, LIVE_PLAN, locale);
   const violations = compliance.violations || [];
   const gap = committedGap(basis, saved);
 

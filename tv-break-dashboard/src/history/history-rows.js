@@ -1,5 +1,6 @@
 import { genreLabel } from '../vocabulary.js';
 import { WEEKDAYS } from './history-labels.js';
+import { formatDay, formatDayRange } from '../shell/dates.js';
 import {
   ROW_CHANNEL_SCOPE, ROW_DAYPARTS, ROW_EFFECTS, ROW_EVENT_TYPES, ROW_KINDS, ROW_MODES,
   ROW_MORE, ROW_PARTS, ROW_SOURCES, ROW_UNNAMED, ROW_UNREADABLE, ROW_WEEKDAY_INDEX,
@@ -49,16 +50,11 @@ function locWord(locale) {
   return locale === 'he' ? 'he' : 'en';
 }
 
-// A bare calendar day, read at local noon so a machine west of the broadcast
-// zone cannot render it as the day before.
-function plainDay(iso, locale) {
+// A bare calendar day. No clock is involved at all, so there is no zone for a
+// machine west of the broadcast zone to render it a day early in.
+function plainDay(iso) {
   const raw = String(iso ?? '').trim();
-  if (!raw) return '';
-  const date = new Date(`${raw.slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(date.getTime())) return raw;
-  return date.toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
+  return raw ? formatDay(raw) : '';
 }
 
 function weekdayName(index, locale) {
@@ -101,7 +97,7 @@ function conditionValue(condition, locale) {
   const value = condition.value;
   if (value === null || value === undefined || typeof value === 'object') return '';
   if (field === 'hour') return `${String(value).padStart(2, '0')}:00`;
-  if (field === 'date') return plainDay(value, locale);
+  if (field === 'date') return plainDay(value);
   if (field === 'daypart') return dayPart(value, locale);
   if (field === 'weekday') return weekdayName(ROW_WEEKDAY_INDEX[String(value).slice(0, 3)], locale);
   if (field === 'genre') return genreOrTitle(value, locale);
@@ -143,7 +139,7 @@ function scopeValues(row, locale) {
   const value = text(row, 'scope_value');
   if (type === 'channel') return [rowPhrase(ROW_CHANNEL_SCOPE, locale)];
   if (!value || type === 'always' || !type) return [];
-  if (type === 'date') return [plainDay(value, locale)];
+  if (type === 'date') return [plainDay(value)];
   if (type === 'weekday') return [weekdayName(Number(value) % 7, locale)];
   return [genreOrTitle(value, locale)];
 }
@@ -231,7 +227,7 @@ function eventRow(row, locale, file) {
   const end = text(row, 'end_date');
   const price = text(row, 'price_multiplier');
   add('type', rowWord(ROW_EVENT_TYPES, text(row, 'type'), locale) || text(row, 'type'));
-  add('when', [plainDay(start, locale), end && end !== start ? plainDay(end, locale) : ''], true);
+  add('when', formatDayRange(start, end), true);
   if (Number(text(row, 'intensity')) > 1) add('intensity', text(row, 'intensity'), true);
   if (price && Number(price) !== 1) add('price', price, true);
   if (text(row, 'active').toLowerCase() === 'false') add('status', text(row, 'active'), true);

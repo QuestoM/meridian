@@ -1,6 +1,7 @@
 import React from 'react';
 import { pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
+import { formatDay } from '../../shell/dates';
 import {
   WEEKDAY_NAMES_EN,
   WEEKDAY_NAMES_HE,
@@ -45,7 +46,7 @@ function DayPicker({ days, value, onChange, locale, channel }) {
                   type="button"
                   className={`day-pill${active ? ' is-on' : ''}${isWeekend(iso) ? ' is-weekend' : ''}`}
                   aria-pressed={active}
-                  aria-label={`${names[index] || ''} ${iso}`}
+                  aria-label={`${names[index] || ''} ${formatDay(iso)}`}
                   onClick={() => onChange(iso)}
                 >
                   <b>{shorts[index] || ''}</b>

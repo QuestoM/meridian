@@ -10,6 +10,7 @@ import {
   pageText,
 } from '../../shell/surface-helpers';
 import { Figure } from '../../shell/bidi';
+import { formatDay } from '../../shell/dates';
 
 // ScenarioCompare: a small A/B what-if. The operator picks two revenue weights
 // (weight_a, weight_b) and runs both through POST /api/scenario-compare, which
@@ -178,8 +179,8 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
             <p className="data-basis-note">
               {pageText(
                 locale,
-                `Both runs optimize one representative channel-day (${payload.a.channel}, ${payload.a.day}), not the weekly total.`,
-                `שני התרחישים מחושבים על יום-ערוץ מייצג אחד (${payload.a.channel}, ${payload.a.day}), לא על הסך השבועי.`,
+                `Both runs optimize one representative channel-day (${payload.a.channel}, ${formatDay(payload.a.day)}), not the weekly total.`,
+                `שני התרחישים מחושבים על יום-ערוץ מייצג אחד (${payload.a.channel}, ${formatDay(payload.a.day)}), לא על הסך השבועי.`,
               )}
             </p>
           )}

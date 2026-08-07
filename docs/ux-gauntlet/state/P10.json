@@ -2,6 +2,11 @@
   "piece": "P10",
   "round": 1,
   "passed": true,
+  "gap": null,
+  "history": [
+    "round 1: pod entity built end to end (break_api_pod.py/_math/_spots/_order + PodPage/PodBoard/pod-model), 28/28 tests green, passed.",
+    "resume 2026-08-07: re-invoked with a prompt claiming nothing was built. Checked disk first per the resume rule: all owned files present at their recorded line counts, committed at fdba013c with no later commits touching them, working tree clean. Reran python -m pytest tests/ -q -k p10: 28 passed, 0 failed, matching the round-1 record exactly, so no regression since the pass. Live-checked GET /api/breaks/pods on :8041 against the same 2025-04-27 traffic file: 10 pods, tri-state arithmetic, operator's own channel from settings, byte-for-byte consistent with the round-1 evidence. Bonus: the whole-app build (npm run build) now succeeds end to end (3510 modules, clean) because another builder fixed the HistoryDiff.jsx JSX-syntax error that had forced round 1's isolated-tree build; nothing in this piece changed to cause that. No edits made this session, since there was nothing to fix and every path outside break_api_pod*.py and src/plan/break/** is frozen."
+  ],
   "title": "Break contents: the pod, its positions, and its arithmetic",
   "summary": "The break's contents were a fixed unavailable state on every break in the product, with no input that could ever change it. They are an entity now. The pod is read from the daily traffic file, whose break_start column is the same value for every spot in one break, which is exactly the per-ad break identifier P3's path_forward asked for and which was already on disk. A pod carries its spots with an advertiser, a campaign, a creative, a house number, a declared duration and a position; it states the sum of its spots against its own span with the difference in seconds; it names Last as its own position rather than the fifth ordinal; and it can be reordered and put back.",
 

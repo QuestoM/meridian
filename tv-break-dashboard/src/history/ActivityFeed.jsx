@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BellOff, RotateCcw, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { formatClock } from '../shell/dates';
 import { Figure } from '../shell/bidi';
 import './activity-feed.css';
 
@@ -12,13 +13,8 @@ import './activity-feed.css';
 // plan run finished, a download): never fabricated, so the feed is an honest
 // record of what happened in this session.
 
-function timeLabel(ts, locale) {
-  if (!ts) return '';
-  try {
-    return new Date(ts).toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
+function timeLabel(ts) {
+  return ts ? formatClock(ts) : '';
 }
 
 export default function ActivityFeed({ notifications, locale, onDismiss, onRestore, onClearAll, onRestoreAll, onClose }) {
@@ -67,7 +63,7 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
         {active.map((n) => (
           <div className="af-item" key={n.id}>
             <div className="af-item-main">
-              <span className="af-item-time"><Figure>{timeLabel(n.ts, locale)}</Figure></span>
+              <span className="af-item-time"><Figure>{timeLabel(n.ts)}</Figure></span>
               <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
             </div>
             <button type="button" className="af-item-btn" onClick={() => onDismiss(n.id)} aria-label={pageText(locale, 'Dismiss', 'סימון כנצפה')}>
@@ -87,7 +83,7 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
             {dismissed.map((n) => (
               <div className="af-item dismissed" key={n.id}>
                 <div className="af-item-main">
-                  <span className="af-item-time"><Figure>{timeLabel(n.ts, locale)}</Figure></span>
+                  <span className="af-item-time"><Figure>{timeLabel(n.ts)}</Figure></span>
                   <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
                 </div>
                 <button type="button" className="af-item-btn restore" onClick={() => onRestore(n.id)} aria-label={pageText(locale, 'Restore', 'שחזור')}>
