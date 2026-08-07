@@ -4,6 +4,7 @@ import { ArrowUpRight, CalendarDays, X } from 'lucide-react';
 import { formatNumber, pageText } from '../../shell/format';
 import { useScheduleZoom } from '../day/schedule-track-view';
 import ScheduleEditor from '../day/ScheduleEditor';
+import { SAVED_PLAN, withBasis } from '../day/plan-basis';
 import GridAxisControl from './GridAxisControl';
 import PlanningCanvas from './PlanningCanvas';
 import TimelineView from './TimelineView';
@@ -65,8 +66,16 @@ function DayHeader({ board, focusDate, state, error, locale, onClear, weekday })
         <p className="plan-board-day-counts">
           {pageText(
             locale,
-            `${formatNumber(board?.programmes, locale)} programmes and ${formatNumber(board?.breaks, locale)} breaks on your channel`,
-            `${formatNumber(board?.programmes, locale)} תוכניות ו-${formatNumber(board?.breaks, locale)} ברייקים בערוץ שלכם`,
+            withBasis(
+              `${formatNumber(board?.programmes, locale)} programmes and ${formatNumber(board?.breaks, locale)} breaks on your channel`,
+              SAVED_PLAN,
+              'en',
+            ),
+            withBasis(
+              `${formatNumber(board?.programmes, locale)} תוכניות ו-${formatNumber(board?.breaks, locale)} ברייקים בערוץ שלכם`,
+              SAVED_PLAN,
+              'he',
+            ),
           )}
         </p>
       )}

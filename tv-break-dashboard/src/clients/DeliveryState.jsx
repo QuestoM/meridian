@@ -33,7 +33,7 @@ function decimals(value, places, locale) {
 }
 
 function spotWord(count, locale) {
-  return pageText(locale, count === 1 ? 'spot' : 'spots', 'תשדירים');
+  return pageText(locale, count === 1 ? 'spot' : 'spots', count === 1 ? 'תשדיר' : 'תשדירים');
 }
 
 // The counted figure, with the word that says what kind of count it is. A floor
@@ -88,8 +88,8 @@ export function DeliveryCell({ delivery, window = null, vocabulary = [], locale 
         <small>
           {pageText(
             locale,
-            `${stillToCome} more ${spotWord(stillToCome, locale)} scheduled and not aired yet`,
-            `⁦${stillToCome}⁩ תשדירים נוספים מתוזמנים וטרם שודרו`,
+            `Still to come: ${stillToCome} ${spotWord(stillToCome, locale)}`,
+            `עוד לפנינו: ⁦${stillToCome}⁩ ${spotWord(stillToCome, locale)}`,
           )}
         </small>
       ) : null}
@@ -109,8 +109,8 @@ function AsOf({ asOf, locale }) {
   }
   return (
     <p className="clients-basis-note">
-      <span>{pageText(locale, 'Counted as of', 'נספר נכון ל')}</span>
-      {' '}
+      <span>{pageText(locale, 'Counted as of', 'נספר נכון ל־')}</span>
+      {pageText(locale, ' ', '')}
       <span className="numeric" dir="ltr">{instant}</span>
       {basis ? (
         <>
@@ -186,8 +186,8 @@ export function DeliveryBasis({ delivery, locale }) {
           <span>
             {pageText(
               locale,
-              `${dropped} ${spotWord(dropped, locale)} on the counted days were removed by a rule, so the count above is short by that many.`,
-              `⁦${dropped}⁩ תשדירים בימים שנספרו הוסרו על ידי כלל, ולכן הספירה שלמעלה חסרה במספר הזה.`,
+              `Removed by a rule on the counted days: ${dropped} ${spotWord(dropped, locale)}. The count above is short by that many.`,
+              `הוסרו על ידי כלל בימים שנספרו: ⁦${dropped}⁩ ${spotWord(dropped, locale)}. הספירה שלמעלה חסרה במספר הזה.`,
             )}
           </span>
           {rules.length ? <span dir="ltr">{` ${rules.join(', ')}`}</span> : null}

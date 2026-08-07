@@ -85,5 +85,17 @@
       "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/shots/r4-06-editor-drag.png",
       "/private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/shots/r4-08-plain-click.png"
     ]
-  }
+  },
+  "class_fix_2026_08_07": {
+    "landed_in": "The P3 work is on main but scattered through commits titled for other pieces (eac2ad09, 984e4cc0, dc7f78ff), because the lead committed mid-flight. Those messages do not describe it. This key is the record.",
+    "class": "Two plans answer how many breaks a day has. The saved weekly plan holds 80 on this channel-day, the live re-plan holds 76. A count that does not say which plan it counted is the defect.",
+    "sites": "Ten, not one: three clauses of the timeline sentence, the route note, two lane headers, twelve figure tiles and three forecast tiles across three panels, two preview tables. The critic wrote that the sentence it named was the only unattributed count on these surfaces; verifying that claim rather than accepting it is what found the other nine.",
+    "seam": "tv-break-dashboard/src/plan/day/plan-basis.js holds the basis words; every site composes from it.",
+    "guard": "tests/test_p3_basis_class.py asserts the class. Seven regressions were injected into a scratch copy, one per site shape, and all seven failed the guard before it was trusted.",
+    "measured": "121 passed, 2 skipped, 0 failed for -k p3. Ground truth re-derived independently in Python and it matches the critic per-programme figures exactly.",
+    "tenth_site_closed_by_lead": "tv-break-dashboard/src/plan/week/BoardPanel.jsx printed an unattributed count directly above the newly attributed sentence. It reads the saved plan, traced through week_api to _load_break_schedule, so it now says so in P3 own vocabulary. No test pinned that line and BoardPanel already imported from ../day/, so this crossed nothing new. Measured after: 411 passed, 2 skipped, 0 failed across -k p2 or p3, build clean.",
+    "still_open": "Two queue items are a different defect, both blocked behind ScheduleEditor.jsx sitting at exactly the 450-line cap, which needs restructuring rather than editing. One assertion in tests/test_p3_editor_money.py was changed from pinning a literal line to asserting the property, and is flagged rather than slipped in.",
+    "connection": "The 80 against 76 is the same phenomenon as the replay test that now fails red after its skip was removed, and as the golden artifact discrepancy. P3 did not fix that and could not. It stopped the screen hiding it behind an unattributed count."
+  },
+  "passed_note": "Still false. The class fix did not re-run the four bars; no blind sweep has passed this piece."
 }

@@ -150,6 +150,30 @@ def _build_campaigns(spots: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+NO_CAMPAIGN_NAMED = "Name a campaign to list the spots behind it."
+NO_CAMPAIGN_NAMED_HE = "נקבו בשם קמפיין כדי לראות את התשדירים שמאחוריו."
+
+
+def _no_campaign_named() -> dict[str, Any]:
+    """The answer to a request that named no campaign: empty, and it says why.
+
+    ``count`` is zero because nothing was asked for, which is a different thing
+    from a campaign that really has no spot on file. ``revenue_available`` and
+    ``scope`` are null rather than true, because both are facts about a source
+    this answer never opened, and stating a fact about a file nobody read is the
+    same fabrication as reporting a delivery nobody measured.
+    """
+    return {
+        "spots": [],
+        "count": 0,
+        "revenue_available": None,
+        "scope": None,
+        "campaign": "",
+        "reason": NO_CAMPAIGN_NAMED,
+        "reason_he": NO_CAMPAIGN_NAMED_HE,
+    }
+
+
 def _campaign_detail(spots: pd.DataFrame, campaign: str, advertiser: str) -> dict[str, Any]:
     """The individual spot rows behind one rollup row, so its name opens something.
 
@@ -194,15 +218,27 @@ def campaigns() -> dict[str, Any]:
 
 
 @router.get("/api/campaigns/detail", tags=["catalog"])
-def campaign_detail(campaign: str, advertiser: str = "") -> dict[str, Any]:
+def campaign_detail(campaign: str = "", advertiser: str = "") -> dict[str, Any]:
     """The rows behind one rollup row, so a campaign name opens something.
 
     ``campaign`` and ``advertiser`` together are the same pair the rollup
     grouped on, so the row a person clicked is the exact set of spots this
     returns rather than every airing of a campaign name reused by a different
     advertiser.
+
+    With no campaign this is not an error, it is an empty list with the input it
+    is waiting for named in the payload. A missing input is a state the caller
+    can render, and a refusal is not: this route answered 422 to a bare call
+    while every other GET on this product answers one, which is the same defect
+    already closed on ``/api/history/since`` and on the restrictions airings
+    route. The name is read for emptiness only and passed on untouched, so no
+    campaign whose stored name carries spacing starts matching differently.
     """
-    return _campaign_detail(_load_spots(), campaign, advertiser)
+    return (
+        _campaign_detail(_load_spots(), campaign, advertiser)
+        if str(campaign or "").strip()
+        else _no_campaign_named()
+    )
 
 
 @router.get("/api/clients", tags=["clients"])
