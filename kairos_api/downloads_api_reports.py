@@ -75,6 +75,12 @@ BASIS_LABELS: dict[str, dict[str, str]] = {
     "scope": {"en": "Scope", "he": "היקף"},
     "built_from": {"en": "Built from", "he": "נבנה מתוך"},
     "updated": {"en": "Source updated", "he": "המקור עודכן"},
+    # The licence date is when the terms the checks are measured AGAINST came
+    # into force. It is not the period the checks were measured OVER, and it
+    # carried the period label until 2026-08-07, so a compliance report computed
+    # over November 2024 announced itself under a date in June 2026, which is
+    # neither the data's period nor today. Two different questions, two labels.
+    "licence_effective": {"en": "Licence in force from", "he": "הרישיון בתוקף מ"},
 }
 
 # Scope sentences that are not a channel name. The plan file carries every
@@ -319,7 +325,8 @@ def build(
             "owner": "Legal / Ops",
             "unit": {"code": "compliance", **UNITS["compliance"]},
             "basis": _basis(
-                _fact("period", compliance.get("effective_date")),
+                _fact("period", period),
+                _fact("licence_effective", compliance.get("effective_date")),
                 _scope("plan_guardrails"),
                 _fact("built_from", PLAN_FILE),
                 _fact("updated", plan_updated),
