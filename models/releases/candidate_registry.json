@@ -47,7 +47,7 @@
  },
  "rescore_state": {
   "state": "current",
-  "measured_at": "2026-08-07T02:35:52.964369+00:00"
+  "measured_at": "2026-08-07T03:51:19.829440+00:00"
  },
  "evaluation": {
   "breaks": 2532,
@@ -56,6 +56,10 @@
   "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
   "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
   "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+  "metric_he": "שורש שגיאת הריבוע הממוצעת מול אותו אפקט נמדד, על אותם ברייקים בכל שורה.",
+  "target_sd": 0.241378699,
+  "target_sd_en": "The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.",
+  "target_sd_he": "סטיית התקן של האפקט הנמדד עצמו. שגיאה קרובה למספר הזה היא מודל שמסביר מעט מעבר לממוצע.",
   "folds": 5
  },
  "limit": {
@@ -72,9 +76,9 @@
    "rmse": 0.241474068,
    "mae": 0.158958114,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": true,
-   "basis_en": "Predicts each break from the other breaks, never from itself."
+   "basis_en": "Predicts each break from the other breaks, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים, לעולם לא מתוך עצמו."
   },
   {
    "id": "cell_mean_loo",
@@ -82,9 +86,9 @@
    "rmse": 0.242097429,
    "mae": 0.159240951,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": true,
-   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself."
+   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים בתא שלו, לעולם לא מתוך עצמו."
   }
  ],
  "shipped": {
@@ -93,7 +97,6 @@
   "rmse": 0.241160667,
   "mae": 0.159794185,
   "breaks": 2532,
-  "target_sd": 0.241378699,
   "out_of_sample": false,
   "cells": 36,
   "cells_not_carried": 0,
@@ -174,11 +177,13 @@
      "state": "not_applicable"
     }
    },
+   "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
     "en": "Measure the money adopting it would move.",
+    "he": "יש למדוד את הכסף שהטמעתו תזיז.",
     "command": "python scripts/adopt_candidate.py measure spotclip"
    }
   },
@@ -248,12 +253,14 @@
      }
     }
    },
+   "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
-    "en": "Read the adoption checks.",
-    "command": "python scripts/adopt_candidate.py adopt afterwindow --adopted-by \"<name>\" --reason \"<sentence>\""
+    "en": "The verdict on record was taken before this comparison existed. Record one on the common-basis re-score, or read the adoption checks.",
+    "he": "ההכרעה הרשומה התקבלה לפני שההשוואה הזו התקיימה. יש לרשום הכרעה על בסיס המדידה המשותפת, או לקרוא את בדיקות ההטמעה.",
+    "command": "python scripts/adopt_candidate.py decide afterwindow --decision <shipped|not_shipped> --actor \"<name>\" --reason \"<sentence>\""
    }
   },
   {
@@ -316,11 +323,13 @@
      "state": "not_applicable"
     }
    },
+   "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
     "en": "Measure the money adopting it would move.",
+    "he": "יש למדוד את הכסף שהטמעתו תזיז.",
     "command": "python scripts/adopt_candidate.py measure calibrated"
    }
   },
@@ -382,11 +391,13 @@
      "state": "not_applicable"
     }
    },
+   "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
     "en": "Measure the money adopting it would move.",
+    "he": "יש למדוד את הכסף שהטמעתו תזיז.",
     "command": "python scripts/adopt_candidate.py measure competitor"
    }
   },
@@ -448,11 +459,13 @@
      "state": "not_applicable"
     }
    },
+   "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
     "en": "Measure the money adopting it would move.",
+    "he": "יש למדוד את הכסף שהטמעתו תזיז.",
     "command": "python scripts/adopt_candidate.py measure placebo_corrected"
    }
   }

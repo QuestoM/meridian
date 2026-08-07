@@ -1,0 +1,79 @@
+P11 round 1, blind critic. Raw measurements only. Taken 2026-08-07 against 21b96c5d
+before any edit, on my own uvicorn at 127.0.0.1:8062 and a scratch copy of the
+dashboard built with the published mount and served at 127.0.0.1:3072.
+
+STOPWATCH, JS-6, the campaign manager works the pacing board
+  target                    60 s to the worst-pacing campaign, remedy on the row, 0 derivation
+  baseline 06-baseline.md   6.61 to 8.26 s, 1 click, 1 screen, 1 dead end, no pacing field anywhere
+  shipped product           unreachable. 0 hits for "Pacing and make-good" and "pacing-workspace"
+                            in tv-break-dashboard/dist/assets/index-DrjQIIWW.js after npm run build
+  with the published mount  1,364 ms and 2 clicks from Today to the worst row painted
+                            772 ms of that to the Clients destination
+                            0 dead ends inside the board, 0 moments of guessing on the board
+  keyboard                  j and k step (measured index 2 to 3 to 4 to 3), Enter expands the
+                            focused row, the focused row scrolls into view
+  drill                     Enter opens 7 broadcast day rows, 1 aired with figures and a source
+                            file, 6 unknown printing "no source" rather than a zero
+
+API
+  GET /api/pacing           36, 30, 31 ms warm, 365,884 bytes
+  GET /api/make-goods       3.6, 3.6 ms
+  GET /api/make-good-alerts 1.9 ms, data_available false, campaign_flights.csv reason unchanged
+  openapi                   153 paths, 191 operations, 91 writes; this piece owns exactly
+                            /api/pacing, /api/make-goods, /api/make-goods/{id}/state and the
+                            pre-existing /api/make-good-alerts, and redefines none
+
+BOARD CONTENT
+  rows 56, all on רשת 13. verdicts behind 0, at risk 13, on pace 38, unknown 5
+  demo 51 of 56. campaigns with a source 51. as_of 2025-04-27T22:59:00 from the ledger
+  scope competitor_rows_excluded 0, competitor_channels_excluded 0, 0 rival names in the payload
+  worst row CMP_D040, rating goal 35.0 over 7 flight days, 1 day counted, reference 5.0,
+  counted 4.4 from Wally_Prime_Reshet_Example_2025-04-27.csv, ratio 0.88, verdict at risk.
+  4.4 / 5.0 = 0.88 reproduced by hand. Every figure on the screen traces to that ledger row.
+
+WALL
+  admin        can_edit true
+  viewer1      can_edit false, can_edit_reason "לחשבון צפייה אין הרשאת עריכה", POST refused 403
+  surface      held the gate object as a boolean, so the refusal could never render. Fixed.
+
+ATTRIBUTION, before the fix
+  raised_by "" on a real authenticated raise. After the fix, "admin", and closed_by and
+  offered_by likewise.
+
+CONTRAST, computed from tokens.css
+  amber-ink on white 6.39   amber-ink on amber-soft 5.91   red on white 5.09
+  red on red-soft 4.29 FAILS AA for 11 px    amber on white 3.99 FAILS, fixed to amber-ink
+  teal-ink on teal-soft 5.68   muted on surface-muted 5.75   subtle on white 4.74
+  blue on blue-soft 5.95   blue on white 6.83
+
+LAYOUT, before the fix
+  .pacing-workspace computed display grid, not the declared flex, because the shell's
+  .page-workspace has equal specificity and comes later. min-height 779 px stretched three
+  auto rows to 195 / 167 / 337. View tabs 158 px tall with the ledger open and with an empty
+  filter. After the fix: display flex, nav 37 px, buttons 28 px.
+
+BIDI, before the fix
+  offer 0.6 rating points with a window ending 2025-05-10 rendered as "2025-05-100.6" because
+  the separating space sat inside the dir=ltr span. One site in the tree, now guarded.
+
+TESTS
+  tests/test_p11_*            41 passed before, 47 after
+  tests/ full                 3262 passed, 11 failed, 10 skipped, 20:17
+  the same 11                 reproduce identically on a clean HEAD tree from git archive, so
+                              none of them is this round's: p1_job_picker, p6_downloads,
+                              qa2_preview_commit_identity, qa6_agencies x2, qa_adoption_integrity
+                              x2, refiner_net blend golden, w0_2_shell_seams, w0_3 x2
+  six new guards              proven to fail against the code at HEAD and pass against the fix
+
+SIDE EFFECTS I CAUSED AND WHAT I DID
+  data/kairos_settings.json   the shell language toggle wrote locale en and direction ltr into
+                              the live operator store during the English pass. Restored byte
+                              exact to HEAD, sha256
+                              cc084437ec62af9fc306521e757afd7a19b8acc8f160c8b7c7a746da09d501cf
+  data/make_goods.csv         two probe rows written through the API while exercising the write
+                              path. Restored to the header-only seed, sha256
+                              60d0aee6602af73b0bb6161b03208283ef04ea64d879ad88b401d928c93b5cdc
+  output/weekly_break_schedule.csv
+                              rewritten by running the full pytest suite, 66 rows differ from
+                              HEAD. Not restored, because it is not mine and P12 was running the
+                              engine at the same time. Any full suite run does this.

@@ -1,12 +1,19 @@
-"""Clients, pacing: is a campaign behind, and what is owed when it is.
+"""Clients, pacing: is a campaign behind, and what is decided when it is.
 
-Three reads and two writes, over two stores this module never edits.
+Four reads and three writes, over two stores this module never edits.
 
 ``GET /api/pacing`` is the board an account manager opens in the morning: every
 campaign on the operator's channel, worst pacing first, each row carrying the
 verdict, the figures it was computed from, the published trigger that decided it,
-and the one thing to do about it. ``GET`` and ``POST /api/make-goods`` are the
-ledger of what is owed, and ``POST /api/make-goods/{id}/state`` moves one along.
+and the one thing to do about it. ``GET /api/pacing/{id}/days`` is the drill
+behind one row of it. ``GET`` and ``POST /api/make-goods`` are the ledger of what
+is owed, and ``POST /api/make-goods/{id}/state`` moves one along.
+
+``POST /api/pacing/{id}/accept`` is the other ending. The job this serves is done
+when every at-risk campaign has an act taken against it or an explicit decision to
+accept the risk, and both are recorded. Without the second one a campaign somebody
+read and accepted is indistinguishable from one nobody opened, which is the half
+of the job a ledger of raises alone cannot close.
 
 ``GET /api/make-good-alerts`` is the older projection over
 ``campaign_flights.csv`` and it is unchanged. That file is still a header-only
@@ -21,18 +28,21 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from kairos_api import makegood_store as ledger
 from kairos_api import pacing_alerts_api_board as board
 from kairos_api import pacing_alerts_api_read as read
 from kairos_api import pacing_alerts_api_words as words
+from kairos_api import pacing_alerts_api_write as write
 from kairos_api.affiliation_wall import Wall
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+refuse = write.refuse
 
 # Pacing is a run-side commercial act, so affiliation does not gate it and role
 # does: any account reads the board, a write role raises and moves a make-good.
@@ -41,32 +51,27 @@ PACING_WALL = Wall(company_only=False)
 
 DUPLICATE_EN = "This campaign already has an open make-good. Open it rather than raising a second one."
 DUPLICATE_HE = "לקמפיין הזה כבר פתוח פיצוי שידור. פתחו אותו במקום לפתוח פיצוי שני."
-UNKNOWN_MAKE_GOOD_EN = "The ledger holds no make-good with that id."
-UNKNOWN_MAKE_GOOD_HE = "ספר הפיצויים אינו מחזיק פיצוי עם המזהה הזה."
-NEEDS_OFFER_EN = "A make-good is settled or declined against an offer, and this one carries none yet."
-NEEDS_OFFER_HE = "פיצוי נסגר או נדחה מול הצעה, ולפיצוי הזה עדיין אין הצעה."
-OFFER_ORDER_EN = "The offer window ends before it starts."
-OFFER_ORDER_HE = "חלון ההצעה מסתיים לפני שהוא מתחיל."
-OFFER_VALUE_EN = "An offer carries a value above zero in the shortfall's own unit."
-OFFER_VALUE_HE = "הצעה נושאת ערך גדול מאפס ביחידה של החוסר עצמו."
-
-
-def refuse(status_code: int, message_en: str, message_he: str,
-           opens: Optional[dict[str, str]] = None) -> HTTPException:
-    """One refusal in both languages, the shape every write on this spine already sends."""
-    detail: dict[str, Any] = {"message_en": message_en, "message_he": message_he}
-    if opens and opens.get("kind") and opens.get("id"):
-        detail["opens"] = {"kind": str(opens["kind"]), "id": str(opens["id"])}
-    return HTTPException(status_code=status_code, detail=detail)
+DUPLICATE_ACCEPT_EN = "The risk on this campaign was already taken on. Open that record rather than writing a second one."
+DUPLICATE_ACCEPT_HE = "הסיכון בקמפיין הזה כבר התקבל. פתחו את הרשומה הקיימת במקום לכתוב שנייה."
+UNKNOWN_MAKE_GOOD_EN = "The ledger holds no record with that id."
+UNKNOWN_MAKE_GOOD_HE = "ספר ההחלטות אינו מחזיק רשומה עם המזהה הזה."
 
 
 def _actor(request: "Request | None") -> str:
-    """Who acted, when the session says so and blank when it does not."""
+    """Who acted, when the session says so and blank when it does not.
+
+    The identity comes from ``affiliation_wall.session_for``, which is the
+    accessor W0-4 published for exactly this. Nothing in this package writes
+    ``request.state.session``, so reading that attribute returned a blank name on
+    every write and the ledger recorded nobody, which is the one thing a ledger
+    exists to do.
+    """
     if request is None:
         return ""
     try:
-        session = getattr(request.state, "session", None)
-        return str(getattr(session, "username", "") or "")
+        from kairos_api.affiliation_wall import session_for
+
+        return str((session_for(request) or {}).get("username") or "").strip()
     except Exception:  # noqa: BLE001 - attribution must never fail a write
         return ""
 
@@ -80,6 +85,17 @@ class RaiseMakeGood(BaseModel):
     """
 
     campaign_id: str = Field(min_length=1, max_length=64)
+    note: str = Field(default="", max_length=500)
+
+
+class AcceptRisk(BaseModel):
+    """Taking a risk on names a campaign and a note, and no figure at all.
+
+    The figures on the record are the ones the board measured at the instant of
+    the decision, exactly as a raise takes them, so the two endings are recorded
+    against the same numbers and can be read side by side.
+    """
+
     note: str = Field(default="", max_length=500)
 
 
@@ -105,19 +121,39 @@ def pacing_board(request: Request = None) -> dict[str, Any]:
     empty.
     """
     payload = read.board_payload()
-    payload["make_goods"] = _open_index()
+    frame = ledger.load_frame()
+    payload["make_goods"] = _open_index(frame, ledger.MAKE_GOOD)
+    payload["acceptances"] = _open_index(frame, ledger.ACCEPTANCE)
+    payload["needs_a_decision"] = list(words.NEEDS_A_DECISION)
     return PACING_WALL.stamp(payload, request)
 
 
-def _open_index() -> dict[str, list[str]]:
-    """Which campaigns already carry an open make-good, so a row never offers a duplicate."""
-    frame = ledger.load_frame()
+def _open_index(frame: Any, kind: str) -> dict[str, list[str]]:
+    """Which campaigns already carry an open record of one kind, so a row never offers a duplicate."""
     index: dict[str, list[str]] = {}
     for row_record in ledger.records(frame):
         if row_record["state"] in (ledger.SETTLED, ledger.WITHDRAWN):
             continue
+        if row_record["kind"] != kind:
+            continue
         index.setdefault(row_record["campaign_id"], []).append(row_record["make_good_id"])
     return index
+
+
+@router.get("/api/pacing/{campaign_id}/days", tags=["clients"])
+@PACING_WALL.guard()
+def pacing_days(campaign_id: str, request: Request = None) -> dict[str, Any]:
+    """The broadcast days behind one campaign's figures, read when a reader opens them.
+
+    The board is a list somebody triages and the days are the drill behind one row
+    of it, so the days ride their own read. Measured on the shipped data they were
+    144 KB of a 366 KB board payload, and they are the one term that grows as
+    campaigns times flight days.
+    """
+    payload = read.days_payload(campaign_id)
+    if payload is None:
+        raise refuse(404, read.UNKNOWN_CAMPAIGN_EN, read.UNKNOWN_CAMPAIGN_HE)
+    return PACING_WALL.stamp(payload, request)
 
 
 @router.get("/api/make-goods", tags=["clients"])
@@ -138,72 +174,75 @@ def raise_make_good(payload: RaiseMakeGood, request: Request = None) -> dict[str
     against. That last refusal is the important one: it is what keeps the ledger
     from holding a figure the board could not compute.
     """
-    campaign_id = payload.campaign_id.strip()
+    return _write_decision(ledger.MAKE_GOOD, payload.campaign_id.strip(), payload.note.strip(), request)
+
+
+@router.post("/api/pacing/{campaign_id}/accept", tags=["clients"], status_code=201)
+@PACING_WALL.guard()
+def accept_risk(campaign_id: str, payload: AcceptRisk, request: Request = None) -> dict[str, Any]:
+    """Record the decision that the risk on this campaign stands as it is.
+
+    This is the second way a row on the board is finished with. It changes no
+    figure and reserves nothing: the campaign keeps its verdict and its place in
+    the order, and the row now carries who decided and when. Refused on a campaign
+    the board is not asking a decision about, because accepting a risk that was
+    never stated is not a thing a person can mean.
+    """
+    return _write_decision(ledger.ACCEPTANCE, campaign_id.strip(), payload.note.strip(), request)
+
+
+DUPLICATES = {
+    ledger.MAKE_GOOD: (DUPLICATE_EN, DUPLICATE_HE, "make_good"),
+    ledger.ACCEPTANCE: (DUPLICATE_ACCEPT_EN, DUPLICATE_ACCEPT_HE, "acceptance"),
+}
+
+
+def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | None") -> dict[str, Any]:
+    """One act on one campaign, measured from the board and written to the ledger.
+
+    Both acts take the same route through this function so that neither can ever
+    stamp a figure the other would not have. What differs between them is only
+    which rows they are allowed on, which is decided by the reader below.
+    """
     view = read.board_payload()
     row = read.find_row(view, campaign_id)
     if row is None:
         raise refuse(404, read.UNKNOWN_CAMPAIGN_EN, read.UNKNOWN_CAMPAIGN_HE)
     as_of_day = board.parse_date(view.get("as_of", {}).get("instant"))
-    deficit = read.deficit_for(row, as_of_day)
+    if kind == ledger.ACCEPTANCE:
+        deficit = read.acceptance_figures(row, as_of_day)
+        refusal = (words.ACCEPT_NOT_AT_RISK_EN, words.ACCEPT_NOT_AT_RISK_HE)
+    else:
+        deficit = read.deficit_for(row, as_of_day)
+        refusal = (read.NOTHING_TO_RAISE_EN, read.NOTHING_TO_RAISE_HE)
     if deficit is None:
-        raise refuse(409, read.NOTHING_TO_RAISE_EN, read.NOTHING_TO_RAISE_HE,
-                     opens={"kind": "campaign", "id": campaign_id})
+        raise refuse(409, refusal[0], refusal[1], opens={"kind": "campaign", "id": campaign_id})
 
+    duplicate_en, duplicate_he, opens_kind = DUPLICATES[kind]
     with ledger.lock():
         frame = ledger.load_frame()
-        already = ledger.open_for(frame, campaign_id)
+        already = ledger.open_for(frame, campaign_id, kind)
         if already:
-            raise refuse(409, DUPLICATE_EN, DUPLICATE_HE,
-                         opens={"kind": "make_good", "id": already[0]})
+            raise refuse(409, duplicate_en, duplicate_he, opens={"kind": opens_kind, "id": already[0]})
         record_id = ledger.next_id(frame)
-        new_row = _raised_row(record_id, row, view, deficit, payload.note.strip(), _actor(request))
+        fresh = write.new_row(record_id, kind, row, view, deficit, note, _actor(request))
         import pandas as pd
 
-        frame = pd.concat([frame, pd.DataFrame([new_row])], ignore_index=True)
+        frame = pd.concat([frame, pd.DataFrame([fresh])], ignore_index=True)
         ledger.write_frame(frame)
-        stored = ledger.record(new_row)
+        stored = ledger.record(fresh)
     return PACING_WALL.stamp({"make_good": stored}, request)
-
-
-def _raised_row(record_id: str, row: dict[str, Any], view: dict[str, Any],
-                deficit: dict[str, Any], note: str, actor: str) -> dict[str, str]:
-    """The ledger row a raise writes, every figure taken from the board rather than the request."""
-    flight = row["flight"]
-    new_row = ledger.blank_row()
-    new_row.update({
-        "make_good_id": record_id,
-        "campaign_id": row["campaign_id"],
-        "campaign_name": row["name"],
-        "advertiser": row["advertiser"],
-        "channel": row["channel"],
-        "flight_starts_on": flight["starts_on"],
-        "flight_ends_on": flight["ends_on"],
-        "unit": deficit["unit"],
-        "goal_value": f"{deficit['goal_value']}",
-        "counted_value": f"{deficit['counted_value']}",
-        "deficit_value": f"{deficit['deficit_value']}",
-        "deficit_kind": deficit["deficit_kind"],
-        "counted_as_of": str(view.get("as_of", {}).get("instant", "")),
-        "days_counted": f"{flight['days_counted']}",
-        "days_in_flight": f"{flight['days']}",
-        "unsourced_days": f"{deficit['unsourced_days']}",
-        "state": ledger.RAISED,
-        "raised_at": ledger.now_stamp(),
-        "raised_by": actor,
-        "raised_note": note,
-        "is_demo": "true" if row["is_demo"] else "false",
-    })
-    return new_row
 
 
 @router.post("/api/make-goods/{make_good_id}/state", tags=["clients"])
 @PACING_WALL.guard()
 def move_make_good(make_good_id: str, payload: MoveMakeGood, request: Request = None) -> dict[str, Any]:
-    """Move one make-good to its next state, recording who did it and when.
+    """Move one ledger record to its next state, recording who did it and when.
 
     A transition the state machine does not allow is refused with the states that
     are allowed from here, so a caller is told the shape of the machine rather than
-    guessing at it. Settling or declining needs an offer to exist first.
+    guessing at it. Settling or declining needs an offer to exist first, and an
+    accepted risk moves only to withdrawn because it was never an offer.
     """
     target = payload.state.strip()
     actor = _actor(request)
@@ -213,45 +252,13 @@ def move_make_good(make_good_id: str, payload: MoveMakeGood, request: Request = 
         if index < 0:
             raise refuse(404, UNKNOWN_MAKE_GOOD_EN, UNKNOWN_MAKE_GOOD_HE)
         current = str(frame.at[index, "state"] or ledger.RAISED)
+        kind = str(frame.at[index, "kind"] or ledger.MAKE_GOOD)
         if not ledger.transition_allowed(current, target):
-            allowed = ", ".join(sorted(ledger.TRANSITIONS.get(current, frozenset()))) or "none"
-            raise refuse(
-                409,
-                f"A make-good in {current} does not move to {target}. Allowed from here: {allowed}.",
-                f"פיצוי במצב {current} אינו עובר ל{target}. מותר מכאן: {allowed}.",
-            )
-        _apply(frame, index, target, payload, actor)
+            raise write.refuse_transition(current, target, kind)
+        write.apply_move(frame, index, target, payload, actor)
         ledger.write_frame(frame)
         stored = ledger.record(frame.loc[index])
     return PACING_WALL.stamp({"make_good": stored}, request)
-
-
-def _apply(frame: Any, index: int, target: str, payload: MoveMakeGood, actor: str) -> None:
-    """Write one transition onto the row, validating what the target state needs."""
-    stamp = ledger.now_stamp()
-    if target == ledger.OFFERED:
-        value = payload.offer_value
-        if value is None or float(value) <= 0:
-            raise refuse(400, OFFER_VALUE_EN, OFFER_VALUE_HE)
-        start = payload.offer_window_start.strip()
-        end = payload.offer_window_end.strip()
-        if start and end and board.parse_date(end) and board.parse_date(start):
-            if board.parse_date(end) < board.parse_date(start):
-                raise refuse(400, OFFER_ORDER_EN, OFFER_ORDER_HE)
-        frame.at[index, "offer_value"] = f"{round(float(value), 2)}"
-        frame.at[index, "offer_window_start"] = start
-        frame.at[index, "offer_window_end"] = end
-        frame.at[index, "offered_at"] = stamp
-        frame.at[index, "offered_by"] = actor
-        frame.at[index, "offer_note"] = payload.note.strip()
-    elif target in ledger.NEEDS_OFFER:
-        if not str(frame.at[index, "offer_value"] or "").strip():
-            raise refuse(409, NEEDS_OFFER_EN, NEEDS_OFFER_HE)
-    if target in (ledger.SETTLED, ledger.DECLINED, ledger.WITHDRAWN):
-        frame.at[index, "closed_at"] = stamp
-        frame.at[index, "closed_by"] = actor
-        frame.at[index, "close_note"] = payload.note.strip()
-    frame.at[index, "state"] = target
 
 
 @router.get("/api/make-good-alerts", tags=["insights"])
@@ -313,4 +320,4 @@ def _reference_today(settings: Any) -> Any:
     return date.today()
 
 
-__all__ = ["router", "words", "PACING_WALL"]
+__all__ = ["router", "words", "write", "PACING_WALL"]

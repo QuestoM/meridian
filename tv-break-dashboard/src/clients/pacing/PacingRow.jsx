@@ -1,5 +1,14 @@
 import React from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, CircleCheck, CircleHelp, Plus } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  CircleCheck,
+  CircleHelp,
+  Plus,
+  ShieldCheck,
+  Upload,
+} from 'lucide-react';
 import {
   amount,
   barsFor,
@@ -7,11 +16,18 @@ import {
   isolate,
   localized,
   otherLine,
+  pair,
   percent,
   pick,
   vocabularyLabel,
 } from './pacing-helpers';
 import PacingDays from './PacingDays';
+
+// The destination a traffic file is uploaded at, in the shell's own address form
+// and under the shell's own name for it. This is a link and not a callback: the
+// shell reads the hash and this piece owns no seam into its router, so the
+// address contract is the thing both sides already agree on.
+const UPLOAD_HASH = '#Data';
 
 // One campaign on the pacing board.
 //
@@ -45,14 +61,11 @@ function Verdict({ verdict, vocabulary, locale }) {
 // The counted figure and the goal it is counted against, with the days it covers.
 function Headline({ line, flight, locale }) {
   if (!line) return null;
-  const counted = amount(line.counted.through_counted_day, line.unit, locale);
-  const goal = amount(line.goal, line.unit, locale);
+  const figures = pair(line.counted.through_counted_day, line.goal, line.unit, locale);
   const ratio = line.pace ? percent(line.pace.ratio, locale) : null;
   return (
     <div className="pacing-headline">
-      <strong className="pacing-figure">
-        {pick(locale, `${counted} of ${goal}`, `${isolate(counted)} מתוך ${isolate(goal)}`)}
-      </strong>
+      <strong className="pacing-figure">{figures}</strong>
       <small className="pacing-scope">
         {pick(
           locale,
@@ -141,16 +154,36 @@ function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
       </button>
     );
   }
+  // The statement carries the act. A remedy that names an upload and then leaves
+  // the reader to find the upload themselves is a diagnosis, not a remedy, so the
+  // sentence ends in the control that performs it and the dates it names sit
+  // behind a disclosure rather than in front of the control.
   if (remedy.kind === 'book') {
     const left = amount(remedy.remaining, remedy.unit, locale);
     return (
-      <span className="pacing-remedy-note">
-        {pick(
-          locale,
-          `Book ${left} across the ${remedy.days.length} remaining days, or upload the traffic file that already holds them. Missing: ${remedy.days.join(', ')}.`,
-          `הזמינו ${isolate(left)} על פני ${isolate(remedy.days.length)} הימים שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם. חסרים: ${isolate(remedy.days.join(', '))}.`,
-        )}
-      </span>
+      <div className="pacing-remedy-book">
+        <span className="pacing-remedy-note">
+          {pick(
+            locale,
+            `Book ${left} across the ${remedy.days.length} remaining broadcast days, or upload the traffic file that already holds them.`,
+            `הזמינו ${isolate(left)} על פני ${isolate(remedy.days.length)} ימי השידור שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם.`,
+          )}
+        </span>
+        <a className="pacing-remedy open" href={UPLOAD_HASH}>
+          <Upload size={13} aria-hidden="true" />
+          {pick(locale, 'Open Data to upload it', 'פתחו את נתונים כדי להעלות')}
+        </a>
+        <details className="pacing-remedy-days">
+          <summary>
+            {pick(
+              locale,
+              `The ${remedy.days.length} days with no source`,
+              `${isolate(remedy.days.length)} הימים שאין להם מקור`,
+            )}
+          </summary>
+          <span dir="ltr">{remedy.days.join(', ')}</span>
+        </details>
+      </div>
     );
   }
   // A supply remedy is the same block the row already prints above the track,
@@ -160,18 +193,45 @@ function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
   return null;
 }
 
+// The other ending. A row the board is asking a decision about is finished with
+// either by acting on it or by somebody recording that the risk stands, and the
+// second one is the only ending available on every such row. Once it is recorded
+// the row states it, so a person scanning the board can see at a glance which
+// rows have been read and which have not.
+function Acceptance({ acceptance, locale, busy, onAccept, onOpenLedger }) {
+  if (!acceptance || acceptance.kind === 'none') return null;
+  if (acceptance.kind === 'accepted') {
+    return (
+      <button type="button" className="pacing-accepted" onClick={() => onOpenLedger(acceptance.makeGoodId)}>
+        <ShieldCheck size={13} aria-hidden="true" />
+        {pick(locale, 'Risk taken on, open the record', 'הסיכון התקבל, פתחו את הרשומה')}
+      </button>
+    );
+  }
+  return (
+    <button type="button" className="pacing-accept" disabled={busy} onClick={onAccept}>
+      {pick(locale, 'Take the risk on', 'קבלו את הסיכון')}
+    </button>
+  );
+}
+
 export default function PacingRow({
   row,
   vocabulary,
   locale,
   remedy,
+  acceptance,
+  demoMarking,
+  drill,
   expanded,
   busy,
   canEdit,
   editRefusal,
   onToggle,
   onRaise,
+  onAccept,
   onOpenMakeGood,
+  onRetryDays,
 }) {
   const line = headlineLine(row);
   const second = otherLine(row);
@@ -189,7 +249,10 @@ export default function PacingRow({
           </small>
         </div>
         {row.is_demo ? (
-          <span className="pacing-demo" title={localized(row.demo, 'meaning', locale)}>
+          // The marking is one paragraph the seed wrote about every row it wrote,
+          // so it rides the payload once. A row that carries its own keeps it, and
+          // the row is never described by a sentence written about a different one.
+          <span className="pacing-demo" title={localized(row.demo || demoMarking, 'meaning', locale)}>
             {pick(locale, 'Demo', 'הדגמה')}
           </span>
         ) : null}
@@ -207,23 +270,32 @@ export default function PacingRow({
 
       <div className="pacing-row-foot">
         {canEdit ? (
-          <Remedy
-            remedy={remedy}
-            locale={locale}
-            busy={busy}
-            onRaise={onRaise}
-            onOpenMakeGood={onOpenMakeGood}
-          />
+          <>
+            <Remedy
+              remedy={remedy}
+              locale={locale}
+              busy={busy}
+              onRaise={onRaise}
+              onOpenMakeGood={onOpenMakeGood}
+            />
+            <Acceptance
+              acceptance={acceptance}
+              locale={locale}
+              busy={busy}
+              onAccept={onAccept}
+              onOpenLedger={onOpenMakeGood}
+            />
+          </>
         ) : (
           <span className="pacing-remedy-note">{editRefusal}</span>
         )}
-        {row.days.length ? (
+        {row.days_available ? (
           <button type="button" className="pacing-days-toggle" aria-expanded={expanded} onClick={onToggle}>
             <Chevron size={13} aria-hidden="true" />
             {pick(
               locale,
-              `${expanded ? 'Hide' : 'Show'} the ${row.days.length} broadcast days behind this`,
-              `${expanded ? 'הסתירו' : 'הציגו'} את ${isolate(row.days.length)} ימי השידור שמאחורי זה`,
+              `${expanded ? 'Hide' : 'Show'} the ${row.days_available} broadcast days behind this`,
+              `${expanded ? 'הסתירו' : 'הציגו'} את ${isolate(row.days_available)} ימי השידור שמאחורי זה`,
             )}
           </button>
         ) : (
@@ -237,7 +309,9 @@ export default function PacingRow({
         )}
       </div>
 
-      {expanded ? <PacingDays row={row} second={second} locale={locale} /> : null}
+      {expanded ? (
+        <PacingDays drill={drill} second={second} locale={locale} onRetry={onRetryDays} />
+      ) : null}
     </article>
   );
 }

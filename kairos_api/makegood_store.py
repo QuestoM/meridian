@@ -1,9 +1,19 @@
-"""The make-good ledger: a measured shortfall, what was offered against it, and who acted.
+"""The decision ledger: a measured shortfall, what was done about it, and who acted.
 
 A make-good is the compensating delivery a channel owes a client when a flight
 finishes under the goal it was booked against. Before this store the product held
 the shortfall as a fraction returned by a projection function and nothing else:
 no record, no remedy, no approval, no link back to the flight it belongs to.
+
+**Two kinds of record, because the job has two endings.** The job this ledger
+serves is done when every at-risk campaign has either an act taken against it or
+an explicit decision to accept the risk, and both are recorded. A ledger that held
+only the first left an at-risk campaign somebody had read and accepted looking
+exactly like one nobody had opened. So a record is a ``make_good``, raised against
+a measured shortfall and offered, settled, declined or withdrawn; or it is an
+``acceptance``, the recorded decision that the risk on this row is accepted as it
+stands. An acceptance derives nothing: it stamps the figures the board showed at
+the instant of the decision, and it never becomes an offer.
 
 Four rules hold this store honest and each one is enforced here rather than
 explained on the surface.
@@ -49,6 +59,9 @@ MAKE_GOODS_PATH = DATA_DIR / "make_goods.csv"
 
 COLUMNS = [
     "make_good_id",
+    # Which of the two endings this row records. Blank reads as a make-good, so a
+    # ledger written before the second kind existed still loads exactly as it was.
+    "kind",
     "campaign_id",
     "campaign_name",
     "advertiser",
@@ -83,18 +96,28 @@ COLUMNS = [
     "is_demo",
 ]
 
+MAKE_GOOD = "make_good"
+ACCEPTANCE = "acceptance"
+
 RAISED = "raised"
 OFFERED = "offered"
 SETTLED = "settled"
 DECLINED = "declined"
 WITHDRAWN = "withdrawn"
+ACCEPTED = "accepted"
 
-# Which state may follow which. A settled or withdrawn make-good is finished, so
-# it has no successor: reopening one would rewrite a record somebody acted on.
+# The entry state each kind is written in. Nothing else may be written directly.
+ENTRY_STATE = {MAKE_GOOD: RAISED, ACCEPTANCE: ACCEPTED}
+
+# Which state may follow which. A settled or withdrawn record is finished, so it
+# has no successor: reopening one would rewrite a record somebody acted on. One
+# table covers both kinds because no state is shared between their two paths
+# except the ending, so a state names its kind without ambiguity.
 TRANSITIONS: dict[str, frozenset[str]] = {
     RAISED: frozenset({OFFERED, WITHDRAWN}),
     OFFERED: frozenset({SETTLED, DECLINED, WITHDRAWN}),
     DECLINED: frozenset({OFFERED, WITHDRAWN}),
+    ACCEPTED: frozenset({WITHDRAWN}),
     SETTLED: frozenset(),
     WITHDRAWN: frozenset(),
 }
@@ -140,8 +163,32 @@ STATE_VOCABULARY = (
         "value": WITHDRAWN,
         "label_en": "Withdrawn",
         "label_he": "בוטל",
-        "meaning_en": "The make-good should not have been raised, and the row records who withdrew it.",
-        "meaning_he": "לא היה מקום לפתוח את הפיצוי, והשורה רושמת מי ביטל אותו.",
+        "meaning_en": "The record should not have been opened, and the row records who withdrew it.",
+        "meaning_he": "לא היה מקום לפתוח את הרשומה, והשורה רושמת מי ביטל אותה.",
+    },
+    {
+        "value": ACCEPTED,
+        "label_en": "Risk taken on",
+        "label_he": "הסיכון התקבל",
+        "meaning_en": "A person read the row and decided the risk stands as it is. The figures are the ones the board showed at that instant.",
+        "meaning_he": "אדם קרא את השורה והחליט שהסיכון נשאר כפי שהוא. הנתונים הם אלה שהלוח הציג באותו רגע.",
+    },
+)
+
+KIND_VOCABULARY = (
+    {
+        "value": MAKE_GOOD,
+        "label_en": "Make-good",
+        "label_he": "פיצוי שידור",
+        "meaning_en": "Compensating delivery raised against a measured shortfall.",
+        "meaning_he": "השלמת שידור שנפתחה מול חוסר נמדד.",
+    },
+    {
+        "value": ACCEPTANCE,
+        "label_en": "Risk taken on",
+        "label_he": "קבלת הסיכון",
+        "meaning_en": "A recorded decision to leave the risk on this campaign as it stands.",
+        "meaning_he": "החלטה רשומה להשאיר את הסיכון בקמפיין הזה כפי שהוא.",
     },
 )
 
@@ -266,6 +313,7 @@ def record(row: Any) -> dict[str, Any]:
     state = _text(row, "state") or RAISED
     return {
         "make_good_id": _text(row, "make_good_id"),
+        "kind": _text(row, "kind") or MAKE_GOOD,
         "campaign_id": _text(row, "campaign_id"),
         "campaign_name": _text(row, "campaign_name"),
         "advertiser": _text(row, "advertiser"),
@@ -324,16 +372,23 @@ def transition_allowed(current: str, target: str) -> bool:
     return target in TRANSITIONS.get(current, frozenset())
 
 
-def open_for(frame: pd.DataFrame, campaign_id: str) -> list[str]:
-    """The ids of the make-goods already open against a campaign.
+def open_for(frame: pd.DataFrame, campaign_id: str, kind: str = MAKE_GOOD) -> list[str]:
+    """The ids of the records of one kind already open against a campaign.
 
     Open means not settled and not withdrawn. A second raise against a campaign
     that already has one open is a duplicate, and the caller refuses it by name
     rather than quietly adding a second row for the same shortfall.
+
+    The kind is part of the question. An accepted risk is not a make-good, so a
+    campaign whose risk somebody took on last week must still be able to carry a
+    make-good when the shortfall becomes owed, and a shared duplicate check would
+    have silently forbidden exactly that.
     """
     out: list[str] = []
     for _, row in frame.iterrows():
         if _text(row, "campaign_id") != str(campaign_id):
+            continue
+        if (_text(row, "kind") or MAKE_GOOD) != kind:
             continue
         if (_text(row, "state") or RAISED) in (SETTLED, WITHDRAWN):
             continue
@@ -358,6 +413,7 @@ def vocabularies() -> dict[str, Any]:
     """Every controlled word the ledger prints, both languages."""
     return {
         "states": [dict(entry) for entry in STATE_VOCABULARY],
+        "kinds": [dict(entry) for entry in KIND_VOCABULARY],
         "deficit_kinds": [dict(entry) for entry in DEFICIT_KIND_VOCABULARY],
         "transitions": {state: sorted(nexts) for state, nexts in TRANSITIONS.items()},
     }

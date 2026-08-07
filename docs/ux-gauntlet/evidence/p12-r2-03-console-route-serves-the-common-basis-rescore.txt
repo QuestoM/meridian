@@ -1,0 +1,86 @@
+P12 round 2. The held-out re-score reaching the screen where the verdict is taken.
+
+The blocking queue item said the common-basis re-score never reaches the model console.
+It does now, through the console's own decision store and the console's own route, with
+no frozen file touched. This is the readback of a verdict recorded by
+  python scripts/adopt_candidate.py decide afterwindow --decision not_shipped ... --perform
+against a COPY of models/releases under KAIROS_MODEL_RELEASES_DIR, so the product's own
+decision log is untouched. A steward's verdict is the steward's to take, not this build's.
+
+Server: 127.0.0.1:8043, started from the repo root, killed at the end of the round.
+GET /api/model/candidates/afterwindow, which is what src/model/console/CandidateVerdict.jsx reads.
+
+{
+ "decision": "not_shipped",
+ "decision_id": "md-a9fb64bcac86",
+ "actor": "steward (scratch store, not the product log)",
+ "money_direction": "up",
+ "reason": "המדידה המשותפת אינה מבחינה בינו למודל המשודר, והוא משמיט את first_break_multiplier שהמנוע קורא",
+ "model_version_name": "2026-07-29",
+ "evidence": {
+  "money_state": "measured",
+  "revenue_delta": 923843.08,
+  "revenue_delta_pct": 2.2636,
+  "scope": {
+   "rows": 2540,
+   "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+  },
+  "measured_at": "2026-08-07T02:42:07.179571+00:00",
+  "gate_counts": {
+   "active": 3,
+   "tested_and_lost": 5,
+   "no_contrast": 5,
+   "not_measured": 0
+  },
+  "basis_en": "Taken on the common-basis re-score: every artifact scored on one identical set of breaks with one metric, not on each artifact's own self-reported held-out figures, which come from different splits and are not comparable.",
+  "basis_he": "התקבלה על בסיס המדידה המשותפת: כל קובץ נמדד על אותה קבוצת ברייקים בדיוק ובאותו מדד, ולא על המספרים המוחזקים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.",
+  "reason_en": "The common-basis re-score does not distinguish it from the shipped model, and it drops first_break_multiplier, which the engine reads.",
+  "rescore": {
+   "rmse": 0.241046876,
+   "shipped_rmse": 0.241160667,
+   "rmse_delta": -0.00011379,
+   "paired_statistic": -0.5212,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.000461744,
+   "breaks_improved": 1430,
+   "breaks_worsened": 1102,
+   "state": "not_distinguishable",
+   "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+   "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
+   "duplicate_of": [
+    "calibrated"
+   ],
+   "sha256": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
+   "file": "models/candidates/tv_break_coefficients_afterwindow.json",
+   "measured_at": "2026-08-07T03:51:19.829440+00:00",
+   "fingerprint": "56798941ce3587ab47a81573b2ccc9749d6a53ed9f46e46263f0c473be8069fe"
+  },
+  "evaluation": {
+   "breaks": 2532,
+   "cells": 36,
+   "window": "2024-11-01 to 2024-11-30",
+   "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
+   "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
+   "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+   "metric_he": "שורש שגיאת הריבוע הממוצעת מול אותו אפקט נמדד, על אותם ברייקים בכל שורה.",
+   "target_sd": 0.241378699,
+   "target_sd_en": "The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.",
+   "target_sd_he": "סטיית התקן של האפקט הנמדד עצמו. שגיאה קרובה למספר הזה היא מודל שמסביר מעט מעבר לממוצע.",
+   "folds": 5
+  },
+  "cell_structure": {
+   "cell_mean_loo_rmse": 0.242097429,
+   "global_mean_loo_rmse": 0.241474068,
+   "rmse_delta": 0.000623361,
+   "earns_its_place": false,
+   "out_of_sample": true,
+   "reading_en": "Out of sample the per-cell split does not predict better than a single constant.",
+   "reading_he": "מחוץ למדגם החלוקה לתאים אינה חוזה טוב יותר מקבוע יחיד."
+  }
+ }
+}
+
+Route count on this tree, proving P12 added none: 
+ paths 153  paths matching adopt: []

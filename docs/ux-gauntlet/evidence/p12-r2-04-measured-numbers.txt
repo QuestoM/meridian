@@ -1,0 +1,91 @@
+P12 round 2. Every number, and the command that produced it.
+Taken on the delivered tree, after the last edit.
+
+TIMINGS, the terminal route JS-19 walks
+  python scripts/adopt_candidate.py show              0.323 s
+  python scripts/adopt_candidate.py checks afterwindow 0.238 s
+  python scripts/adopt_candidate.py decide <id> ...    5.034 s planning
+  python scripts/adopt_candidate.py decide <id> ... --perform  4.002 s
+  whole route, show then checks then decide --perform  4.563 s
+  JS-19 target                                         120 s
+
+  Where decide's four seconds go, attributed in process:
+    import kairos_api.model_console_api_payloads       0.019 s
+    first decision_evidence('candidate','afterwindow') 3.913 s
+    second call, same process                          0.001 s
+  It is P7's gate ledger warming its artifacts once. It is the same cost the
+  model console pays on first paint and it is not this piece's to move.
+
+  python scripts/adopt_candidate.py rescore --force   13.3 s wall, 2532 breaks
+  python scripts/adopt_candidate.py report             0.20 s
+
+THE RE-SCORE, all six artifacts on one identical set of breaks
+  2532 breaks, 36 cells, 2024-11-01 to 2024-11-30, 5 temporal folds
+  target spread                 0.241379   one standard deviation of the target
+  shipped (live)                0.241161   0.000218 under the target spread
+  spotclip                      0.241005   -0.000156  stat -0.78  disp 0.000418
+  afterwindow                   0.241047   -0.000114  stat -0.52  disp 0.000462
+  calibrated                    0.241047   -0.000114  stat -0.52  disp 0.000462
+  competitor                    0.241150   -0.000011  stat -0.05  disp 0.000459
+  placebo_corrected             0.241161   +0.000000  stat  0.00  identical
+  global_mean_loo               0.241474   out of sample
+  cell_mean_loo                 0.242097   out of sample
+  cell split minus one constant +0.000623 rmse, so the 36-cell split does not
+  earn its place out of sample, and that gap is four times the largest movement
+  any candidate makes.
+
+  Every candidate is not distinguishable from the shipped model, and the shipped
+  model is within 0.000218 of the target's own spread. This surface says that in
+  words rather than ranking five artifacts by a difference it cannot resolve.
+
+THE VERDICTS ON RECORD, and what each was taken on
+  spotclip           no ship *
+  afterwindow        ship    *
+  calibrated         no ship (2) *
+  competitor         no ship *
+  placebo_corrected  no ship *
+  All five carry the asterisk, which the registry defines under the table: the
+  verdict was taken before the common-basis comparison existed, so it rests on
+  each artifact's own held-out figures, from different splits, on different test
+  sets. 2,532 breaks for the shipped artifact against 506 for placebo_corrected.
+  A verdict recorded by this terminal carries the comparison and loses the mark.
+
+THE MONEY, from the model console's own measurement, never a second opinion
+  afterwindow  +923,843.08 on the operator's own channel over 2,540 plan rows
+               +5,290,848.33 on the whole plan
+               measured 2026-08-07T02:42:07
+  spotclip, calibrated, competitor, placebo_corrected all read stale, and the
+  registry now names what moved under each one: the saved settings.
+
+THE VERDICT ACT, proven live through P7's own route
+  A verdict recorded at this terminal against a COPY of models/releases came
+  back out of GET /api/model/candidates/afterwindow with:
+    decision           not_shipped
+    money_direction    up            computed from the measurement, not typed
+    evidence.rescore.rmse          0.241046876
+    evidence.rescore.shipped_rmse  0.241160667
+    evidence.rescore.rmse_delta    -0.00011379
+    evidence.rescore.paired_statistic -0.5212
+    evidence.evaluation.breaks     2532
+  That is the payload src/model/console/CandidateVerdict.jsx renders. The
+  product's own decisions.jsonl still holds the seven records it held before,
+  because which way a candidate goes is the steward's call and the log is
+  append-only.
+
+FILE SIZES, cap 450, asserted by a test on all eight
+  adopt_candidate.py            276
+  adopt_candidate_adoption.py   389
+  adopt_candidate_decide.py     295
+  adopt_candidate_registry.py   406
+  adopt_candidate_rescore.py    428
+  adopt_candidate_state.py      115
+  adopt_candidate_surface.py    126
+  adopt_candidate_words.py      194
+
+REGRESSION
+  tests/test_p12_*.py           91 passed
+  tests/test_p7_*.py            105 passed, 230.93 s
+  npm run build                 green, 1.55 s
+  openapi.json                  153 paths, 0 matching adopt
+  models/tv_break_coefficients.json  1e41d92b1a14, unchanged all round
+  models/releases/decisions.jsonl    7 records, unchanged all round

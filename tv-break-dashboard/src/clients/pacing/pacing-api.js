@@ -1,4 +1,4 @@
-// Clients, pacing: the three reads and two writes this destination makes.
+// Clients, pacing: the four reads and three writes this destination makes.
 //
 // A failed read is a failure and never an empty result, so every function here
 // throws with the server's own bilingual refusal attached rather than returning a
@@ -34,6 +34,23 @@ export function loadBoard() {
 
 export function loadLedger() {
   return request('/api/make-goods');
+}
+
+// The broadcast days behind one row, read when a reader opens them rather than
+// on every board load. They were 144 KB of a 366 KB payload and they grow as
+// campaigns times flight days.
+export function loadDays(campaignId) {
+  return request(`/api/pacing/${encodeURIComponent(campaignId)}/days`);
+}
+
+// The second ending. Taking a risk on records a decision and changes no figure,
+// so the request carries a note and nothing that is a number.
+export function acceptRisk(campaignId, note) {
+  return request(`/api/pacing/${encodeURIComponent(campaignId)}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note: note || '' }),
+  });
 }
 
 export function raiseMakeGood(campaignId, note) {

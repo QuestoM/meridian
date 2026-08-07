@@ -20,7 +20,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from scripts import adopt_candidate_words as words
 from scripts.adopt_candidate_adoption import adoptions, owner_approval, preconditions
+from scripts.adopt_candidate_state import decision_rests_on_rescore, moved_inputs
 from scripts.adopt_candidate_rescore import (
     Paths,
     candidate_files,
@@ -44,6 +46,14 @@ MONEY_TAGS = {
     "measured": "measured",
     "stale": "stale",
     "not_measured": "not measured",
+}
+
+# The verdict somebody already recorded, which is JS-19's whole done condition.
+# A bare count of decisions cannot say which way one went, and four of the five
+# candidates on this tree carry a no-ship that a count renders as "1".
+DECISION_TAGS = {
+    "shipped": "ship",
+    "not_shipped": "no ship",
 }
 
 
@@ -120,6 +130,11 @@ def registry(paths: Optional[Paths] = None) -> dict[str, Any]:
             "money": money,
             "decisions": len(taken),
             "latest_decision": taken[0] if taken else None,
+            # Whether the verdict on record was taken on the common-basis
+            # comparison or on the artifacts' own self-reported figures. On this
+            # tree every recorded verdict predates the comparison, and a screen
+            # that showed only "no ship" would hide what the no ship rests on.
+            "decision_on_rescore": decision_rests_on_rescore(taken[0] if taken else None),
             "owner_approval": owner_approval(identifier, paths) is not None,
             "adopted": bool(adoption) and adoption.get("adoption_id") not in reverted,
             "adoption_id": (adoption or {}).get("adoption_id"),
@@ -149,16 +164,14 @@ def _next_act(identifier: str, score: dict[str, Any], money: dict[str, Any],
     the command that reports them.
     """
     if not score:
-        return {"en": "Re-score it against the shipped model.",
-                "command": "python scripts/adopt_candidate.py rescore"}
+        return words.next_act("rescore")
     if money.get("state") != "measured":
-        return {"en": "Measure the money adopting it would move.",
-                "command": f"python scripts/adopt_candidate.py measure {identifier}"}
+        return words.next_act("measure", id=identifier)
     if not decisions:
-        return {"en": "Record a ship or no-ship verdict on the model console.",
-                "command": "POST /api/model/decisions"}
-    return {"en": "Read the adoption checks.",
-            "command": f"python scripts/adopt_candidate.py adopt {identifier} --adopted-by \"<name>\" --reason \"<sentence>\""}
+        return words.next_act("decide", id=identifier)
+    if not decision_rests_on_rescore(decisions[0]):
+        return words.next_act("redecide", id=identifier)
+    return words.next_act("checks", id=identifier)
 
 
 def _money_cell(money: dict[str, Any]) -> str:
@@ -173,6 +186,24 @@ def _money_cell(money: dict[str, Any]) -> str:
 
 def _number(value: Any, digits: int) -> str:
     return f"{value:.{digits}f}" if isinstance(value, (int, float)) else "not measured"
+
+
+def _decision_cell(row: dict[str, Any]) -> str:
+    """The verdict on record, and whether it rests on this comparison.
+
+    A bare "no ship" cannot say what the no ship was decided on, and on this
+    tree that is the whole question: every recorded verdict was taken by reading
+    two artifacts' own held-out figures, on different test sets. The asterisk is
+    explained in the note under the table.
+    """
+    latest = row.get("latest_decision") or {}
+    state = str(latest.get("decision") or "")
+    if not state:
+        return "none"
+    tag = DECISION_TAGS.get(state, state)
+    if row["decisions"] > 1:
+        tag = f"{tag} ({row['decisions']})"
+    return tag if row.get("decision_on_rescore") else f"{tag} *"
 
 
 def render(payload: dict[str, Any]) -> list[str]:
@@ -190,12 +221,17 @@ def render(payload: dict[str, Any]) -> list[str]:
     evaluation = payload.get("evaluation") or {}
     lines.append(f"Held-out re-score: {state.get('state')}")
     if state.get("state") == "current":
-        lines.append(f"  measured {state.get('measured_at')}")
+        lines.append(f"  measured {words.when(state.get('measured_at'))}")
     elif state.get("reason_en"):
         lines.append(f"  {state['reason_en']}")
     if evaluation:
         lines.append(f"  {evaluation.get('breaks')} breaks, {evaluation.get('cells')} cells, {evaluation.get('window')}, {evaluation.get('folds')} temporal folds")
         lines.append(f"  metric: {evaluation.get('metric_en')}")
+        # The single most honest line on this surface. Every rmse below sits
+        # against it, and one that is not clearly under it is a model that has
+        # not beaten the mean of the thing it is predicting.
+        if isinstance(evaluation.get("target_sd"), (int, float)):
+            lines.append(f"  target spread: {evaluation['target_sd']:.6f} standard deviation. {evaluation.get('target_sd_en')}")
     limit = payload.get("limit") or {}
     if limit:
         lines.append(f"  limit: {limit.get('en')}")
@@ -210,9 +246,9 @@ def render(payload: dict[str, Any]) -> list[str]:
 
 def _render_table(payload: dict[str, Any]) -> list[str]:
     shipped = payload.get("shipped") or {}
-    header = f"  {'artifact':20s} {'rmse':>10s} {'vs shipped':>11s} {'stat':>6s} {'verdict':>14s} {'money on own channel':>21s}  {'decisions':>9s}"
+    header = f"  {'artifact':20s} {'rmse':>10s} {'vs shipped':>11s} {'stat':>6s} {'re-score':>14s} {'money on own channel':>21s}  {'verdict on record':>17s}"
     lines = ["Artifacts, closest to the measured effects first", header]
-    lines.append(f"  {'shipped (live)':20s} {_number(shipped.get('rmse'), 6):>10s} {'':>11s} {'':>6s} {'':>14s} {'':>21s}  {'':>9s}")
+    lines.append(f"  {'shipped (live)':20s} {_number(shipped.get('rmse'), 6):>10s} {'':>11s} {'':>6s} {'':>14s} {'':>21s}  {'':>17s}")
     for row in payload.get("candidates") or []:
         verdict = VERDICT_TAGS.get(row["verdict"], row["verdict"])
         delta = row.get("rmse_delta")
@@ -221,8 +257,30 @@ def _render_table(payload: dict[str, Any]) -> list[str]:
             f"  {row['id']:20s} {_number(row.get('rmse'), 6):>10s} "
             f"{(f'{delta:+.6f}' if isinstance(delta, (int, float)) else ''):>11s} "
             f"{(f'{statistic:+.2f}' if isinstance(statistic, (int, float)) else ''):>6s} "
-            f"{verdict:>14s} {_money_cell(row['money']):>21s}  {row['decisions']:>9d}")
+            f"{verdict:>14s} {_money_cell(row['money']):>21s}  {_decision_cell(row):>17s}")
     lines.append("")
+    lines.append("  money is the revenue movement on the operator's own channel, from the model console's own measurement. A cell marked stale names a figure whose inputs have since moved.")
+    lines.append("  a verdict marked * was taken before this comparison existed, so it rests on each artifact's own held-out figures, which come from different splits and are not comparable.")
+    lines.extend(_render_money_notes(payload))
+    lines.append("")
+    return lines
+
+
+def _render_money_notes(payload: dict[str, Any]) -> list[str]:
+    """The rows behind each money figure, and the named reason a stale one is stale.
+
+    Both were computed per candidate and dropped by the render, so the count of
+    rows a figure was summed over and the input that moved under it were only
+    reachable through --json. A figure with no denominator is not a measurement.
+    """
+    lines: list[str] = []
+    for row in payload.get("candidates") or []:
+        money = row.get("money") or {}
+        rows = money.get("scope_rows")
+        if money.get("state") == "measured" and isinstance(rows, int):
+            lines.append(f"  {row['id']:20s} summed over {rows:,} plan rows, measured {words.when(money.get('measured_at'))}")
+        elif money.get("state") == "stale":
+            lines.append(f"  {row['id']:20s} stale since it was measured. What moved: {moved_inputs(money.get('changed'))}")
     return lines
 
 
@@ -245,15 +303,25 @@ def _render_notes(payload: dict[str, Any]) -> list[str]:
     if lines:
         lines.append("")
     adopted = [row for row in payload.get("candidates") or [] if row.get("adopted")]
+    lines.append("Adopted and live")
     if adopted:
-        lines.append("Adopted and live")
         for row in adopted:
             lines.append(f"  {row['id']} as {row['adoption_id']}")
-        lines.append("")
+    elif payload.get("adoptions"):
+        lines.append(f"  nothing is live from a candidate. {len(payload['adoptions'])} adoption records exist and every one was reverted")
+    else:
+        lines.append("  nothing has ever been adopted on this tree, so the live artifact is the one the training script wrote")
+    lines.append("")
     lines.append("Next act, per candidate")
     for row in payload.get("candidates") or []:
         lines.append(f"  {row['id']:20s} {row['next_act']['en']}")
         lines.append(f"  {'':20s} {row['next_act']['command']}")
+    lines.append("")
+    # The path was in the payload and not on the screen, so a steward who wanted
+    # to open one had to guess the filename or read the json.
+    lines.append("Artifact files")
+    for row in payload.get("candidates") or []:
+        lines.append(f"  {row['id']:20s} {row['file']}  {row['bytes']:,} bytes")
     return lines
 
 
@@ -269,8 +337,10 @@ def _render_surface(surface: dict[str, Any]) -> list[str]:
     lines = ["What else the adopted artifact would change"]
     intervals = surface.get("intervals") or {}
     if intervals.get("bounds_moved"):
-        lines.append(f"  credible bounds moved on {intervals['bounds_moved']} of them, largest {intervals['max_abs_move']} at {intervals['max_abs_move_at']}")
-        lines.append(f"  read by {intervals['read_by']}")
+        lines.append(f"  credible bounds moved on {intervals['bounds_moved']} of the {intervals.get('bounds_compared')} bounds compared, across {intervals.get('cells_compared')} cells")
+        # ``read_by`` is already a sentence about the line that reads the bound,
+        # so introducing it with "read by" made "read by <path> prices the ...".
+        lines.append(f"  largest move {intervals['max_abs_move']} at {intervals['max_abs_move_at']}. {intervals['read_by']}")
     for key, label in (("metadata_dropped", "metadata keys dropped"),
                        ("metadata_added", "metadata keys added"),
                        ("detail_fields_dropped", "per-cell fields dropped"),
@@ -285,15 +355,83 @@ def _render_surface(surface: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _render_gates(evidence: dict[str, Any]) -> list[str]:
+    """What its gates decide differently, and what each side decided that on.
+
+    JS-19's sequence says "read what its gates decided differently" and its
+    target adds "with its held-out figure". Both were one surface away, on the
+    model console, while the verdict is taken here. The two held-out sizes sit
+    on one line on purpose: 2,532 against 506 is the argument for the re-score.
+    """
+    if not evidence:
+        return []
+    cell = words.gate_cell
+    lines = ["What its gates decide differently"]
+    for row in evidence.get("verdicts") or []:
+        lines.append(f"  {row['key']:34s} shipped {cell(row['shipped'], row['shipped_absent']):22s} candidate {cell(row['candidate'], row['candidate_absent'])}")
+    if len(lines) == 1:
+        lines.append("  no gate decides differently from the shipped artifact")
+    if evidence.get("held_out"):
+        lines.append("  how much each gate was decided on, as each artifact reports it about itself")
+        for row in evidence["held_out"]:
+            lines.append(f"  {row['block']:34s} shipped {words.size_cell(row['shipped_size'], row['shipped_unit'], row['shipped_absent']):22s} candidate {words.size_cell(row['candidate_size'], row['candidate_unit'], row['candidate_absent'])}")
+        lines.append("  two sides measured on different amounts are not comparable, which is why show scores every artifact again on one common set.")
+    lines.append("")
+    return lines
+
+
+def _render_money(money: dict[str, Any]) -> list[str]:
+    """The figure itself, in shekels and with its scope, not just its state.
+
+    JS-19's target asks for the money movement in shekels with its scope, and a
+    check that says only "measured and current" has answered a different
+    question. When it is not measured the state is printed instead, because an
+    absent measurement is a state and never a zero.
+    """
+    delta = money.get("revenue_delta")
+    scope = money.get("scope") or {}
+    if money.get("state") != "measured" or not isinstance(delta, (int, float)):
+        # A state, never a figure. A stale one still carries the date it was
+        # taken and what has moved since, which is what makes it actionable.
+        lines = [f"Money if adopted: {MONEY_TAGS.get(str(money.get('state')), 'unknown')}"]
+        if money.get("state") == "stale":
+            lines.append(f"  last measured {words.when(money.get('measured_at'))}. What moved since: {moved_inputs(money.get('changed'))}")
+        return lines + [""]
+    whole = money.get("whole_plan_delta")
+    rows = scope.get("rows")
+    counted = f"{rows:,}" if isinstance(rows, int) else "an unrecorded number of"
+    lines = [f"Money if adopted: {delta:+,.2f} on the operator's own channel over {counted} rows"]
+    if isinstance(whole, (int, float)):
+        lines.append(f"  whole plan, every channel the optimizer schedules: {whole:+,.2f}")
+    lines.append(f"  basis: {scope.get('basis')}")
+    lines.append(f"  measured {words.when(money.get('measured_at'))}")
+    if money.get("moved_fields"):
+        lines.append(f"  shipped figures this would move: {', '.join(money['moved_fields'])}")
+    lines.append("")
+    return lines
+
+
 def render_checks(state: dict[str, Any]) -> list[str]:
-    """The adoption checks as a terminal reads them, passed and failed alike."""
+    """The adoption checks as a terminal reads them, passed and failed alike.
+
+    A name that is not a candidate stops after the first check. The payload
+    still answers every condition, but rendering the rest would state as fact
+    that a file which does not exist drops the engine inputs the shipped one has.
+    """
     lines = [f"Adoption checks for {state.get('candidate_id')}"]
     for check in state.get("checks") or []:
         mark = "pass" if check["passed"] else "STOP"
         lines.append(f"  [{mark}] {check['id']:32s} {check['reason_en']}")
         if not check["passed"] and check.get("how_en"):
             lines.append(f"         {'':32s} {check['how_en']}")
+        if check["id"] == "candidate_exists" and not check["passed"]:
+            lines.append("")
+            lines.append("Nothing below can be answered about a candidate that is not on disk.")
+            lines.append(f"outcome: {state.get('outcome')}")
+            return lines
     lines.append("")
+    lines.extend(_render_money(state.get("money") or {}))
+    lines.extend(_render_gates(state.get("gate_evidence") or {}))
     lines.extend(_render_surface(state.get("artifact_surface") or {}))
     if state.get("escalated"):
         lines.append("This adoption is escalated and will not land.")

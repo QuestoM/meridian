@@ -139,3 +139,70 @@ def test_the_board_tells_a_reader_whether_it_may_be_changed_before_the_click() -
     assert "can_edit" in body
     ledger = _client().get("/api/make-goods").json()
     assert "can_edit" in ledger
+
+
+def test_who_acted_is_read_through_the_accessor_the_wall_publishes() -> None:
+    """Attribution comes from ``session_for`` and never from a request attribute.
+
+    Nothing in this package writes ``request.state.session``, so a module that
+    reads it records a blank name on every write. The ledger's whole subject is
+    who acted, so the accessor is pinned rather than the behaviour of a mock.
+    """
+    source = (ROOT / "kairos_api/pacing_alerts_api.py").read_text(encoding="utf-8")
+    assert "session_for" in source
+    assert "getattr(request.state" not in source
+
+
+def test_a_refused_transition_never_prints_a_stored_state_key() -> None:
+    """The guard on the class. A key is how a row is stored, not how it is read.
+
+    Proven to bite against the sentence this replaced, which put ``raised`` and
+    ``settled`` verbatim into both halves and the English word ``none`` into the
+    Hebrew one.
+    """
+    from kairos_api.pacing_alerts_api import _refuse_transition
+
+    for current in makegood_store.TRANSITIONS:
+        for target in makegood_store.TRANSITIONS:
+            detail = _refuse_transition(current, target).detail
+            for key in makegood_store.TRANSITIONS:
+                assert key not in detail["message_en"], (current, target, key)
+                assert key not in detail["message_he"], (current, target, key)
+            assert not re.search(r"[a-zA-Z]", detail["message_he"]), (current, target)
+
+
+def test_no_display_string_opens_a_direction_isolate_with_its_own_separator() -> None:
+    """A space inside an isolate is reordered onto the far edge of the run.
+
+    Measured on the shipped ledger: an offer of 0.6 beside a window ending
+    2025-05-10 rendered as ``2025-05-100.6``, because the separating space sat
+    inside the ``dir`` element instead of beside it.
+    """
+    for path in sorted(SURFACE.glob("*.jsx")):
+        text = (ROOT / path).read_text(encoding="utf-8")
+        for number, line in enumerate(text.splitlines(), start=1):
+            assert not re.search(r'dir=(?:"[a-z]+"|\{[^}]*\})>\s+\S', line), f"{path}:{number} {line}"
+
+
+def test_the_write_gate_is_read_as_the_pair_the_session_module_returns() -> None:
+    """``payloadCanEdit`` returns an object, so holding it whole is always true.
+
+    A read-only account was shown the raise control and the server refused it
+    afterwards, which is the opposite of the contract this piece published.
+    """
+    text = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    assert "gate.canEdit" in text
+    assert "gate.reason" in text
+    assert "const canEdit = payloadCanEdit(" not in text
+
+
+def test_the_board_says_how_many_of_its_rows_the_demo_seed_wrote() -> None:
+    """A count that mixes seeded rows into an operational one is not honest.
+
+    The payload has carried ``counts.demo`` from the first round; the sentence
+    above the list did not read it.
+    """
+    text = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    assert "counts.demo" in text
+    body = _client().get("/api/pacing").json()
+    assert "demo" in body["counts"]

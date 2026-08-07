@@ -124,6 +124,28 @@ FORWARD_OPEN_HE = "ימי שידור שנותרו אינם נושאים מקור
 FORWARD_OPEN_PATH_EN = "Book the remaining days, or upload the traffic file that already holds them."
 FORWARD_OPEN_PATH_HE = "הזמינו את הימים שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם."
 
+# The second ending. A row the board asked a decision about is done when somebody
+# acted on it or when somebody recorded that the risk stands, and the two are only
+# distinguishable if the second one is written down.
+NEEDS_A_DECISION = (BEHIND, AT_RISK)
+
+ACCEPT_NOT_AT_RISK_EN = (
+    "Only a campaign the board is asking a decision about can have its risk taken on. This one is not "
+    "behind and not at risk at the day the delivery ledger was counted at."
+)
+ACCEPT_NOT_AT_RISK_HE = (
+    "אפשר לקבל את הסיכון רק בקמפיין שהלוח מבקש עליו החלטה. הקמפיין הזה אינו מפגר ואינו בסיכון ביום "
+    "שבו נספר ספר האספקה."
+)
+ACCEPT_MEANING_EN = (
+    "Taking the risk on records a decision and changes no figure. The campaign stays on the board with "
+    "the same verdict, and the row now says who decided and when."
+)
+ACCEPT_MEANING_HE = (
+    "קבלת הסיכון רושמת החלטה ואינה משנה שום נתון. הקמפיין נשאר בלוח עם אותו מצב, והשורה אומרת מעכשיו "
+    "מי החליט ומתי."
+)
+
 PACE_VERDICTS = (
     {
         "value": ON_PACE,

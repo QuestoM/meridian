@@ -150,8 +150,16 @@ def test_the_state_machine_refuses_a_move_it_does_not_hold_and_names_what_it_doe
 
     straight_to_settled = client.post(f"/api/make-goods/{make_good_id}/state", json={"state": "settled"})
     assert straight_to_settled.status_code == 409
-    assert "offered" in straight_to_settled.json()["detail"]["message_en"]
-    assert straight_to_settled.json()["detail"]["message_he"]
+    detail = straight_to_settled.json()["detail"]
+    # The refusal names the states a person may move to, in the words the ledger
+    # publishes for them, and never in the keys the rows are stored under.
+    labels = {entry["value"]: entry for entry in ledger.STATE_VOCABULARY}
+    assert labels["offered"]["label_en"] in detail["message_en"]
+    assert labels["offered"]["label_he"] in detail["message_he"]
+    assert labels["settled"]["label_en"] in detail["message_en"]
+    for key in ledger.TRANSITIONS:
+        assert key not in detail["message_en"], key
+        assert key not in detail["message_he"], key
 
 
 def test_an_offer_is_a_persons_number_and_settling_needs_one(client) -> None:

@@ -1,9 +1,14 @@
 import React from 'react';
-import { amount, isolate, pick } from './pacing-helpers';
+import { amount, isWeekend, pair, pick, weekday } from './pacing-helpers';
 
 // The broadcast days behind a figure, which is the second level of the drill: a
 // figure on the board opens the days it was summed from, and each day names the
 // file it was read out of.
+//
+// The days ride their own read rather than the board payload, so this component
+// is handed a read that can be in flight or have failed, and it states which. A
+// drill that printed an empty table while its request was still running would
+// read as a flight with no days.
 //
 // A day with no source is a row here, not an absence. It prints the word unknown
 // and the sentence the ledger wrote beside it, because a day dropped from the
@@ -29,8 +34,31 @@ function figure(day, locale) {
   );
 }
 
-export default function PacingDays({ row, second, locale }) {
-  const sources = Array.from(new Set(row.days.map((day) => day.source_file).filter(Boolean)));
+export default function PacingDays({ drill, second, locale, onRetry }) {
+  if (!drill || drill.status === 'loading') {
+    return (
+      <p className="pacing-loading">
+        {pick(locale, 'Reading the broadcast days', 'קורא את ימי השידור')}
+      </p>
+    );
+  }
+  if (drill.status === 'failed') {
+    return (
+      <div className="pacing-failed" role="alert">
+        <p>
+          {pick(
+            locale,
+            'The broadcast days behind this row could not be read. What is missing is a failure, not an empty flight.',
+            'לא ניתן היה לקרוא את ימי השידור שמאחורי השורה. מה שחסר הוא כשל, לא טיסה ריקה.',
+          )}
+        </p>
+        <button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</button>
+      </div>
+    );
+  }
+
+  const days = drill.days || [];
+  const sources = Array.from(new Set(days.map((day) => day.source_file).filter(Boolean)));
   return (
     <div className="pacing-days">
       <table>
@@ -50,9 +78,13 @@ export default function PacingDays({ row, second, locale }) {
           </tr>
         </thead>
         <tbody>
-          {row.days.map((day) => (
-            <tr key={`${day.broadcast_date}-${day.air_state}`} className={day.air_state}>
-              <th scope="row" dir="ltr">{day.broadcast_date}</th>
+          {days.map((day) => (
+            <tr key={`${day.broadcast_date}-${day.air_state}`}
+                className={`${day.air_state}${isWeekend(day.broadcast_date) ? ' weekend' : ''}`}>
+              <th scope="row">
+                <span dir="ltr">{day.broadcast_date}</span>
+                <small className="pacing-day-weekday">{weekday(day.broadcast_date, locale)}</small>
+              </th>
               <td>{stateWord(day.air_state, locale)}</td>
               <td dir="ltr">{day.spots === null || day.spots === undefined ? '' : day.spots}</td>
               <td>{figure(day, locale)}</td>
@@ -65,8 +97,8 @@ export default function PacingDays({ row, second, locale }) {
         <p className="pacing-second-line">
           {pick(
             locale,
-            `The other goal on this campaign: ${amount(second.counted.through_counted_day, second.unit, locale)} of ${amount(second.goal, second.unit, locale)}.`,
-            `היעד הנוסף של הקמפיין הזה: ${isolate(amount(second.counted.through_counted_day, second.unit, locale))} מתוך ${isolate(amount(second.goal, second.unit, locale))}.`,
+            `The other goal on this campaign: ${pair(second.counted.through_counted_day, second.goal, second.unit, locale)}.`,
+            `היעד הנוסף של הקמפיין הזה: ${pair(second.counted.through_counted_day, second.goal, second.unit, locale)}.`,
           )}
         </p>
       ) : null}

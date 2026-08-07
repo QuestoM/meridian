@@ -1,0 +1,247 @@
+"""Every authored string this piece emits, in both languages, in one place.
+
+Split out of ``adopt_candidate_rescore.py`` and ``adopt_candidate_adoption.py``
+under the naming rule of section 8.2, for a reason worth stating: five display
+fields in the frozen payload shape existed in English only. ``how_en`` on every
+adoption check, ``rule_en`` on every verdict, ``metric_en`` in the evaluation
+block, ``basis_en`` on both baselines and ``next_act.en`` in the registry. The
+campaign law is that an authored string is two strings, and neither parent file
+had the room to hold the second half: adoption was at 448 lines of a 450 cap.
+
+Keeping the pairs here rather than beside their use has a second effect that is
+worth more than the line count. A pair that lives in a table cannot drift into
+one language, because adding a key without its partner is visible in one look
+at one file, and a test walks this table and asserts both halves of every entry.
+
+The terminal renders the English half, because the terminal is a company-side
+tool and every other line on it is English. The payloads carry both halves, so
+the Hebrew console that a route will one day serve has the string it needs
+without a translation step and without this piece guessing at one.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+# The verdict the common-basis re-score reaches, and what each one means.
+VERDICTS: dict[str, dict[str, str]] = {
+    "identical": {
+        "en": "Predicts exactly what the shipped model predicts, break for break.",
+        "he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
+    },
+    "better": {
+        "en": "Closer to the measured effects than the shipped model, by more than the fold dispersion.",
+        "he": "קרוב יותר לאפקטים הנמדדים מהמודל המשודר, ביותר מפיזור הקיפולים.",
+    },
+    "worse": {
+        "en": "Further from the measured effects than the shipped model, by more than the fold dispersion.",
+        "he": "רחוק יותר מהאפקטים הנמדדים מהמודל המשודר, ביותר מפיזור הקיפולים.",
+    },
+    "not_distinguishable": {
+        "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+        "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+    },
+}
+
+IN_SAMPLE_LIMIT: dict[str, str] = {
+    "state": "in_sample",
+    "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
+    "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
+    "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
+    "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו.",
+}
+
+METRIC: dict[str, str] = {
+    "en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+    "he": "שורש שגיאת הריבוע הממוצעת מול אותו אפקט נמדד, על אותם ברייקים בכל שורה.",
+}
+
+# What the spread of the target itself is, which is the figure that says how
+# much of it any of these artifacts explains. Rendered beside the metric.
+TARGET_SD: dict[str, str] = {
+    "en": "The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.",
+    "he": "סטיית התקן של האפקט הנמדד עצמו. שגיאה קרובה למספר הזה היא מודל שמסביר מעט מעבר לממוצע.",
+}
+
+BASIS: dict[str, dict[str, str]] = {
+    "global_mean_loo": {
+        "en": "Predicts each break from the other breaks, never from itself.",
+        "he": "חוזה כל ברייק מתוך שאר הברייקים, לעולם לא מתוך עצמו.",
+    },
+    "cell_mean_loo": {
+        "en": "Predicts each break from the other breaks in its own cell, never from itself.",
+        "he": "חוזה כל ברייק מתוך שאר הברייקים בתא שלו, לעולם לא מתוך עצמו.",
+    },
+}
+
+# The rule that decided a verdict, stated as a rule and then as the measurement
+# that ran through it. ``{fields}`` are filled by the caller from the same
+# figures the payload carries, so the sentence cannot say one thing and the
+# table another.
+RULE = {
+    "identical": {
+        "en": "Both artifacts predict the same value for every break.",
+        "he": "שני הקבצים חוזים את אותו ערך בכל ברייק.",
+    },
+    "two_bars": {
+        "en": "Distinguishable only when the paired statistic reaches {bar} and the movement in RMSE exceeds the fold dispersion. Measured: statistic {statistic}, movement {moved}, dispersion {dispersion}.",
+        "he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל {bar} והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי {statistic}, תנועה {moved}, פיזור {dispersion}.",
+    },
+}
+
+# What would clear a failed adoption check. Keyed by the check that failed, so
+# a check carries a key rather than a sentence and the sentence has one home.
+HOW: dict[str, dict[str, str]] = {
+    "rescore": {
+        "en": "python scripts/adopt_candidate.py rescore",
+        "he": "python scripts/adopt_candidate.py rescore",
+    },
+    "measure": {
+        "en": "python scripts/adopt_candidate.py measure {id}",
+        "he": "python scripts/adopt_candidate.py measure {id}",
+    },
+    "record_verdict": {
+        "en": "python scripts/adopt_candidate.py decide {id} --decision shipped --actor \"<name>\" --reason \"<sentence>\" --release-note-he \"<sentence>\"",
+        "he": "python scripts/adopt_candidate.py decide {id} --decision shipped --actor \"<name>\" --reason \"<sentence>\" --release-note-he \"<sentence>\"",
+    },
+    "adopted_by": {
+        "en": "--adopted-by \"<name>\"",
+        "he": "--adopted-by \"<name>\"",
+    },
+    "reason": {
+        "en": "--reason \"<sentence>\"",
+        "he": "--reason \"<sentence>\"",
+    },
+    "actor": {
+        "en": "--actor \"<name>\"",
+        "he": "--actor \"<name>\"",
+    },
+    "release_note": {
+        "en": "--release-note-he \"<sentence the operator side reads>\"",
+        "he": "--release-note-he \"<המשפט שהצד התפעולי קורא>\"",
+    },
+    "rebuild_candidate": {
+        "en": "Rebuild the candidate with the layers the shipped artifact carries.",
+        "he": "יש לבנות מחדש את המועמד עם השכבות שהקובץ המשודר נושא.",
+    },
+    "owner_approval": {
+        "en": "models/releases/owner_approvals/{id}.json with approved_revenue_delta set to the measured figure.",
+        "he": "models/releases/owner_approvals/{id}.json עם approved_revenue_delta שנקוב בדיוק במספר הנמדד.",
+    },
+}
+
+# The one act that would move a candidate forward, per state it is in. Never a
+# suggestion to adopt: adoption runs its own checks and this table would be
+# guessing at their outcome.
+NEXT_ACT: dict[str, dict[str, str]] = {
+    "rescore": {
+        "en": "Re-score it against the shipped model on the common set of breaks.",
+        "he": "יש למדוד אותו מחדש מול המודל המשודר על אותה קבוצת ברייקים.",
+        "command": "python scripts/adopt_candidate.py rescore",
+    },
+    "measure": {
+        "en": "Measure the money adopting it would move.",
+        "he": "יש למדוד את הכסף שהטמעתו תזיז.",
+        "command": "python scripts/adopt_candidate.py measure {id}",
+    },
+    "decide": {
+        "en": "Record a ship or no-ship verdict against the model version on disk.",
+        "he": "יש לרשום הכרעת שיגור או אי שיגור מול גרסת המודל שעל הדיסק.",
+        "command": "python scripts/adopt_candidate.py decide {id} --decision <shipped|not_shipped> --actor \"<name>\" --reason \"<sentence>\"",
+    },
+    "redecide": {
+        "en": "The verdict on record was taken before this comparison existed. Record one on the common-basis re-score, or read the adoption checks.",
+        "he": "ההכרעה הרשומה התקבלה לפני שההשוואה הזו התקיימה. יש לרשום הכרעה על בסיס המדידה המשותפת, או לקרוא את בדיקות ההטמעה.",
+        "command": "python scripts/adopt_candidate.py decide {id} --decision <shipped|not_shipped> --actor \"<name>\" --reason \"<sentence>\"",
+    },
+    "checks": {
+        "en": "Read the adoption checks.",
+        "he": "יש לקרוא את בדיקות ההטמעה.",
+        "command": "python scripts/adopt_candidate.py adopt {id} --adopted-by \"<name>\" --reason \"<sentence>\"",
+    },
+}
+
+# What the verdict recorded from this terminal was taken on, carried into the
+# decision record itself so a later reader knows which comparison it rests on.
+DECISION_BASIS: dict[str, str] = {
+    "en": "Taken on the common-basis re-score: every artifact scored on one identical set of breaks with one metric, not on each artifact's own self-reported held-out figures, which come from different splits and are not comparable.",
+    "he": "התקבלה על בסיס המדידה המשותפת: כל קובץ נמדד על אותה קבוצת ברייקים בדיוק ובאותו מדד, ולא על המספרים המוחזקים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.",
+}
+
+
+# What a gate cell says when one artifact does not carry the key at all. A
+# different fact from a key it carries with a different value, so it is a
+# sentence and never a blank.
+GATE_ABSENT: dict[str, str] = {
+    "en": "does not carry it",
+    "he": "אינו נושא אותו",
+}
+
+
+# What each held-out block counted. Three gates on this tree record their size
+# under three different key names and they are three different things, so the
+# unit travels with the figure and 34,560 is never read as 34,560 breaks.
+HELD_OUT_UNITS: dict[str, str] = {
+    "n_test": "breaks",
+    "n_test_minutes": "minutes",
+    "n_test_days": "days",
+}
+
+
+def gate_cell(value: Any, absent: bool, language: str = "en") -> str:
+    """One side of a gate row: its value, or that this side has no such key.
+
+    A boolean is lowered and a count is grouped, because ``True`` and ``2532``
+    are how Python prints them and not how a person reads them, and a float is
+    cut at six decimals so a p-value does not arrive with seventeen.
+    """
+    if absent:
+        return GATE_ABSENT[language]
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return f"{value:,}"
+    return str(round(value, 6)) if isinstance(value, float) else str(value)
+
+
+def size_cell(size: Any, unit: str, absent: bool, language: str = "en") -> str:
+    """One side of a held-out row: how much it was measured on, and of what."""
+    if absent:
+        return GATE_ABSENT[language]
+    return f"{gate_cell(size, False)} {HELD_OUT_UNITS.get(unit, unit or '')}".strip()
+
+
+def when(value: Any) -> str:
+    """A stored timestamp as a line of text: to the second, and nothing after.
+
+    The store writes microseconds and an offset because it is a record. Three
+    lines on this surface printed the same kind of stamp three different ways,
+    one of them truncated and two of them carrying six digits nobody reads, so
+    the cut happens once and in one place.
+    """
+    return str(value or "")[:19] or "not recorded"
+
+
+def _fill(text: str, fields: dict[str, Any]) -> str:
+    return text.format(**fields) if fields else text
+
+
+def pair(table: dict[str, dict[str, str]], key: str, prefix: str,
+         **fields: Any) -> dict[str, str]:
+    """One entry of a table as two payload fields, ``<prefix>_en`` and ``_he``.
+
+    An unknown or empty key returns empty strings rather than raising, because a
+    check that has nothing to suggest is a real state and not a defect.
+    """
+    entry = table.get(str(key or ""))
+    if not entry:
+        return {f"{prefix}_en": "", f"{prefix}_he": ""}
+    return {f"{prefix}_en": _fill(entry["en"], fields),
+            f"{prefix}_he": _fill(entry["he"], fields)}
+
+
+def next_act(key: str, **fields: Any) -> dict[str, str]:
+    """The next act as the registry emits it: both languages and the command."""
+    entry = NEXT_ACT[key]
+    return {"en": entry["en"], "he": entry["he"],
+            "command": _fill(entry["command"], fields)}

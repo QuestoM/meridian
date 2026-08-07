@@ -52,6 +52,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts import adopt_candidate_words as words  # noqa: E402
+
 # Contiguous blocks in break_start order, the same fold construction and the
 # same count the series gate uses (kairos/model/series_gate.py, GATE_FOLDS), so
 # a dispersion figure here is comparable with the one the gates report.
@@ -67,32 +69,11 @@ RESCORE_FILE = "holdout_rescores.json"
 # stored re-score can say the data moved rather than being served as current.
 SOURCE_FILES = ("Spots.xlsx", "Programmes.xlsx", "Dayparts.xlsx")
 
-IN_SAMPLE_LIMIT = {
-    "state": "in_sample",
-    "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
-    "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
-    "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
-    "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו.",
-}
-
-VERDICTS = {
-    "identical": {
-        "en": "Predicts exactly what the shipped model predicts, break for break.",
-        "he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
-    },
-    "better": {
-        "en": "Closer to the measured effects than the shipped model, by more than the fold dispersion.",
-        "he": "קרוב יותר לאפקטים הנמדדים מהמודל המשודר, ביותר מפיזור המקטעים.",
-    },
-    "worse": {
-        "en": "Further from the measured effects than the shipped model, by more than the fold dispersion.",
-        "he": "רחוק יותר מהאפקטים הנמדדים מהמודל המשודר, ביותר מפיזור המקטעים.",
-    },
-    "not_distinguishable": {
-        "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
-        "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
-    },
-}
+# Both live in adopt_candidate_words.py, which is where every authored string
+# this piece emits keeps its two halves. Re-exported under their old names
+# because they are read from three modules and from the tests.
+IN_SAMPLE_LIMIT = words.IN_SAMPLE_LIMIT
+VERDICTS = words.VERDICTS
 
 
 @dataclass(frozen=True)
@@ -238,31 +219,29 @@ def verdict(paired: dict[str, Any], identical: bool) -> dict[str, Any]:
     """
     if identical:
         return {"state": "identical", **VERDICTS["identical"],
-                "rule_en": "Both artifacts predict the same value for every break."}
+                **words.pair(words.RULE, "identical", "rule")}
     clears_paired = abs(float(paired["paired_statistic"])) >= PAIRED_T_BAR
     moved = float(paired["rmse_delta"])
     dispersion = float(paired["fold_dispersion"])
     clears_dispersion = abs(moved) > dispersion > 0
-    rule_en = (
-        "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. "
-        f"Measured: statistic {paired['paired_statistic']}, movement {moved:.6f}, dispersion {dispersion:.6f}."
-    )
+    rule = words.pair(words.RULE, "two_bars", "rule", bar=f"{PAIRED_T_BAR:.1f}",
+                      statistic=paired["paired_statistic"], moved=f"{moved:.6f}",
+                      dispersion=f"{dispersion:.6f}")
     if clears_paired and clears_dispersion:
         state = "better" if moved < 0 else "worse"
     else:
         state = "not_distinguishable"
-    return {"state": state, **VERDICTS[state], "rule_en": rule_en,
+    return {"state": state, **VERDICTS[state], **rule,
             "clears_paired_bar": clears_paired, "clears_fold_dispersion": clears_dispersion}
 
 
-def _row(name: str, kind: str, errors: np.ndarray, y: np.ndarray) -> dict[str, Any]:
+def _row(name: str, kind: str, errors: np.ndarray) -> dict[str, Any]:
     return {
         "id": name,
         "kind": kind,
         "rmse": round(_rmse(errors), 9),
         "mae": round(float(np.abs(np.sqrt(errors)).mean()), 9) if errors.size else 0.0,
         "breaks": int(errors.size),
-        "target_sd": round(float(y.std()), 9),
     }
 
 
@@ -272,25 +251,30 @@ def rescore(paths: Optional[Paths] = None,
     paths = paths or Paths()
     frame = effects if effects is not None else measured_effects()
     y = frame["log_effect"].to_numpy(dtype=float)
+    # ``channel_name`` is the column name the measured frame carries, and its
+    # value is the composite cell key the artifacts are keyed by, of the form
+    # News_first_long. It is not a channel and no channel name reaches any
+    # payload from here. Measured on this tree: 36 distinct values, every one a
+    # programme class, break position and length, and cells_not_carried is 0 on
+    # all six artifacts. The column is the frozen measure module's and renaming
+    # it is not this piece's to do, so the name is explained rather than moved.
     cells = frame["channel_name"].to_numpy()
     folds = _fold_slices(len(y))
 
     baselines = [
-        _row("global_mean_loo", "baseline", (y - _leave_one_out(y, None)) ** 2, y),
-        _row("cell_mean_loo", "baseline", (y - _leave_one_out(y, cells)) ** 2, y),
+        _row("global_mean_loo", "baseline", (y - _leave_one_out(y, None)) ** 2),
+        _row("cell_mean_loo", "baseline", (y - _leave_one_out(y, cells)) ** 2),
     ]
     for row in baselines:
         row["out_of_sample"] = True
-        row["basis_en"] = ("Predicts each break from the other breaks, never from itself."
-                           if row["id"] == "global_mean_loo" else
-                           "Predicts each break from the other breaks in its own cell, never from itself.")
+        row.update(words.pair(words.BASIS, row["id"], "basis"))
 
     shipped_payload = read_artifact(paths.shipped)
     shipped_coefficients = shipped_payload.get("coefficients") or {}
     fallback = float(np.mean(list(shipped_coefficients.values()))) if shipped_coefficients else 0.0
     shipped_predictions, shipped_missing = _predictions(shipped_coefficients, cells, fallback)
     shipped_errors = (y - shipped_predictions) ** 2
-    shipped_row = _row("shipped", "shipped", shipped_errors, y)
+    shipped_row = _row("shipped", "shipped", shipped_errors)
     shipped_row.update({"out_of_sample": False, "cells": len(shipped_coefficients),
                         "cells_not_carried": shipped_missing,
                         "sha256": sha256_file(paths.shipped),
@@ -305,7 +289,7 @@ def rescore(paths: Optional[Paths] = None,
         candidate_fallback = float(np.mean(list(coefficients.values()))) if coefficients else fallback
         predictions, missing = _predictions(coefficients, cells, candidate_fallback)
         errors = (y - predictions) ** 2
-        row = _row(identifier, "candidate", errors, y)
+        row = _row(identifier, "candidate", errors)
         identical = bool(np.array_equal(predictions, shipped_predictions))
         paired = _paired(errors, shipped_errors, folds)
         row.update({
@@ -336,7 +320,14 @@ def rescore(paths: Optional[Paths] = None,
             "window": f"{frame['break_start'].min():%Y-%m-%d} to {frame['break_start'].max():%Y-%m-%d}",
             "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
             "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
-            "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+            "metric_en": words.METRIC["en"],
+            "metric_he": words.METRIC["he"],
+            # One figure, not one per row: it is a property of the target and it
+            # is identical for every artifact scored against it. An rmse read
+            # without it cannot be judged at all.
+            "target_sd": round(float(y.std()), 9),
+            "target_sd_en": words.TARGET_SD["en"],
+            "target_sd_he": words.TARGET_SD["he"],
             "folds": FOLDS,
         },
         "limit": dict(IN_SAMPLE_LIMIT),

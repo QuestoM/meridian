@@ -2,9 +2,16 @@
    both directions and no rule has to be mirrored by hand. Every token is read from
    tokens.css and none is defined here. */
 
-.pacing-workspace {
+/* Both classes are on the same element and both are one class deep, so the
+   shell's .page-workspace won this on source order alone: measured, the
+   computed display was grid, min-height was the viewport, and the three auto
+   rows stretched to fill it. That put the view tabs at 158 px tall with the
+   ledger open and moved the control the reader had just pressed. Naming both
+   classes settles the tie without touching the shell. */
+.page-workspace.pacing-workspace {
   display: flex;
   flex-direction: column;
+  align-content: start;
   gap: var(--space-4);
 }
 
@@ -85,13 +92,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Measured on white: --amber is 3.99 against it and --amber-ink is 6.39, and
+   this is a count somebody triages on, so it takes the ink weight. */
 .pacing-chip.behind .pacing-chip-count { color: var(--red); }
-.pacing-chip.at_risk .pacing-chip-count { color: var(--amber); }
+.pacing-chip.at_risk .pacing-chip-count { color: var(--amber-ink); }
 .pacing-chip.on_pace .pacing-chip-count { color: var(--teal-ink); }
 .pacing-chip.unknown .pacing-chip-count { color: var(--muted); }
 
 .pacing-basis,
-.pacing-keys {
+.pacing-keys,
+.pacing-seeded {
   font-size: var(--text-xs);
   color: var(--muted);
   margin: 0;

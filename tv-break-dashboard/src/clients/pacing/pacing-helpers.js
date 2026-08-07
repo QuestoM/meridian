@@ -4,6 +4,18 @@
 // unit it is in, because rating points and shekels are two different currencies on
 // one board. And a missing figure returns null rather than zero, so a component
 // renders the reason it was handed instead of drawing a bar out of nothing.
+//
+// The names of the two things this destination is about come from the product
+// vocabulary rather than from here. This surface had authored its own and drifted:
+// it said קצב where the controlled word is קצב אספקה. The one module that holds
+// those words is imported, and it imports nothing itself, so this file is still
+// executable on its own the way its test runs it.
+
+import { word } from '../../vocabulary';
+
+export function term(key, locale) {
+  return word(key, locale === 'he' ? 'he' : 'en');
+}
 
 export const ON_PACE = 'on_pace';
 export const AT_RISK = 'at_risk';
@@ -20,6 +32,42 @@ export const ILS = 'ils';
 // The order the verdict strip reads in, worst first, which is the order the board
 // itself is sorted in so the strip and the list never disagree.
 export const VERDICT_ORDER = [BEHIND, AT_RISK, UNKNOWN, ON_PACE];
+
+// The verdicts the board is asking a decision about. The server publishes the
+// same list on the payload; this is the fallback for a payload written before it
+// did, and the two are asserted equal by the test that reads both.
+export const NEEDS_A_DECISION = [BEHIND, AT_RISK];
+
+// The Israeli week reads Sunday first, and a broadcast day is named by its own
+// weekday rather than left as an ISO string a reader has to derive one from.
+const WEEKDAYS = [
+  { en: 'Sunday', he: 'ראשון' },
+  { en: 'Monday', he: 'שני' },
+  { en: 'Tuesday', he: 'שלישי' },
+  { en: 'Wednesday', he: 'רביעי' },
+  { en: 'Thursday', he: 'חמישי' },
+  { en: 'Friday', he: 'שישי' },
+  { en: 'Saturday', he: 'שבת' },
+];
+
+export function weekday(isoDate, locale) {
+  const parts = String(isoDate || '').slice(0, 10).split('-');
+  if (parts.length !== 3) return '';
+  const when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+  if (Number.isNaN(when.getTime())) return '';
+  const entry = WEEKDAYS[when.getUTCDay()];
+  return entry ? pick(locale, entry.en, entry.he) : '';
+}
+
+// The two days the week ends on here, marked because a flight day that falls on
+// one of them is not a day a media buyer reads the same way as a weekday.
+export function isWeekend(isoDate) {
+  const parts = String(isoDate || '').slice(0, 10).split('-');
+  if (parts.length !== 3) return false;
+  const when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+  if (Number.isNaN(when.getTime())) return false;
+  return when.getUTCDay() === 5 || when.getUTCDay() === 6;
+}
 
 export function pick(locale, en, he) {
   return locale === 'he' ? he : en;
@@ -49,9 +97,40 @@ export function amount(value, unit, locale) {
   return pick(locale, `${points} rating points`, `${points} נקודות רייטינג`);
 }
 
+// The same figure without its unit, for the left half of a pair that already
+// names the unit once on its right. Two units in one phrase reads as two
+// different quantities, and the phrase is a comparison of one.
+export function bare(value, unit, locale) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return null;
+  if (unit === ILS) return decimals(Math.round(Number(value)), 0, locale);
+  return decimals(Number(value), 1, locale);
+}
+
+// A counted figure against the figure it is counted towards, with the unit said
+// once at the end where it governs both.
+export function pair(counted, goal, unit, locale) {
+  const left = bare(counted, unit, locale);
+  const right = amount(goal, unit, locale);
+  if (left === null || right === null) return null;
+  return pick(locale, `${left} of ${right}`, `${isolate(left)} מתוך ${isolate(right)}`);
+}
+
 export function percent(ratio, locale) {
   if (ratio === null || ratio === undefined) return null;
   return `${decimals(Number(ratio) * 100, 0, locale)}%`;
+}
+
+// An instant as a person reads it, from the instant the store recorded. The
+// offset is kept when the source carries one and never invented when it does
+// not, because two instants on one row can be on two different clocks and a
+// screen that hides that says they are on one.
+export function instant(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const head = text.slice(0, 16).replace('T', ' ');
+  if (head.length < 16) return text;
+  const utc = /(\+00:00|Z)$/.test(text);
+  return utc ? `${head} UTC` : head;
 }
 
 export function vocabularyLabel(entries, value, locale) {
@@ -128,6 +207,30 @@ export function remedyFor(row, openIds) {
     };
   }
   return { kind: 'none', line };
+}
+
+// The other ending, resolved beside the remedy rather than inside it.
+//
+// A row on this board is finished with in one of two ways: something was done
+// about it, or somebody read it and decided the risk stands. Only the second one
+// applies to every row the board asks a decision about, and without it a campaign
+// a person accepted looks exactly like one nobody opened.
+//
+// Three answers and nothing else:
+//
+//   accept    the board is asking a decision about this row and none is recorded
+//   accepted  a decision is on the ledger, and the row shows it rather than the control
+//   none      the board is not asking a decision about this row
+export function acceptanceFor(row, acceptedIds, needsDecision) {
+  const already = (acceptedIds || {})[row.campaign_id] || [];
+  if (already.length) {
+    return { kind: 'accepted', makeGoodId: already[0] };
+  }
+  const asking = needsDecision && needsDecision.length ? needsDecision : NEEDS_A_DECISION;
+  if (asking.indexOf(row.headline.verdict) >= 0) {
+    return { kind: 'accept', verdict: row.headline.verdict };
+  }
+  return { kind: 'none' };
 }
 
 // The two bars a row draws: what is counted, and where the reference sits on the

@@ -1,0 +1,22 @@
+Adoption checks for placebo_corrected
+  [pass] candidate_exists                 The candidate placebo_corrected is in models/candidates/.
+  [pass] rescore_current                  The held-out re-score is current.
+  [pass] not_measured_worse               The re-score does not call this candidate worse than the shipped model.
+  [STOP] money_current                    The stored money measurement is not current. What changed: settings.
+                                          python scripts/adopt_candidate.py measure placebo_corrected
+  [STOP] ship_decision_recorded           The verdict on record for this candidate is no ship, taken 2026-08-01T18:51:33.198623+00:00. Adopting it would contradict a decision somebody already took.
+                                          Record a new verdict on the model console, section 6, model versions.
+  [pass] steward_named                    The steward taking this decision is named.
+  [pass] reason_given                     The adoption carries its reason.
+  [pass] no_engine_input_dropped          The candidate carries every field the engine reads out of the shipped artifact.
+  [STOP] no_shipped_figure_moves          Whether a shipped figure moves is unknown until the money is measured.
+
+Money if adopted: stale
+
+What else the adopted artifact would change
+  credible bounds moved on 72 of the 72 bounds compared, across 36 cells
+  largest move 0.015310991 at PrimeShow2_first_short.ci_low, read by kairos/optimize/_segment_math.py:49 prices the risk_lambda decision
+  metadata keys dropped: bootstrap_B, event_layer_gate, interval_calibration_reason, interval_method, interval_seed, level_drift, moderated_variances, prior_df, width_factor_measured
+  per-cell fields dropped: predictive_high, predictive_low
+
+outcome: refused

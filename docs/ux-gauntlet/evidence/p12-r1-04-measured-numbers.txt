@@ -1,0 +1,49 @@
+P12 round 1, blind critic. Every number below was taken by this critic on the
+delivered tree, most of them before any edit.
+
+RE-SCORE, REPRODUCED FROM SOURCE IN 10.5 s (rescore.rescore, nothing saved)
+  2532 breaks, 36 cells, 2024-11-01 to 2024-11-30, 5 temporal folds
+  shipped            0.241160667
+  spotclip           0.241004968  statistic -0.7756  dispersion 0.000418291  not_distinguishable
+  afterwindow        0.241046876  statistic -0.5212  dispersion 0.000461744  not_distinguishable
+  calibrated         0.241046876  statistic -0.5212  dispersion 0.000461744  not_distinguishable
+  competitor         0.241150155  statistic -0.0488  dispersion 0.000459413  not_distinguishable
+  placebo_corrected  0.241160667  statistic  0.0     dispersion 0.0          identical
+  baseline global_mean_loo 0.241474068  baseline cell_mean_loo 0.242097429
+  cell split earns its place: False, delta 0.000623361
+  duplicate predictors: afterwindow and calibrated
+  Every figure matches the stored holdout_rescores.json and the contract table.
+
+STOPWATCH, terminal route, wall clock
+  show    0.345 s     checks  0.236 s     adopt   0.243 s (to a refusal)
+  three commands end to end 0.824 s, exit code 1 on the escalation
+  shipped artifact after adopt: 1e41d92b1a14, byte identical, adoptions.jsonl absent
+
+STOPWATCH, console route for the verdict (P7 surface, measured on 127.0.0.1:3063)
+  shell to model console          1 click
+  console to candidates panel     1 click
+  candidate to decision form      1 click, lands on section 6
+  form: ship or no ship radio, reason textarea, record, cancel
+  four clicks plus one sentence typed, far inside the 120 s target
+
+REFERENCE, W&B public project stacey/mnist-viz
+  project first paint on the order of 7 s, /table SPA route 1211 ms, 250 resources
+  13 runs, sortable and filterable, each showing its own logged metric
+
+REGRESSION
+  tests/test_p12_*.py                  62 passed, before and after my edits
+  tests/test_p7_*.py                  105 passed, before and after my edits
+  model console plus test_model.py     73 passed, 1 skipped, after my edits
+  npm run build                        green, built in 352 ms
+  models/tv_break_coefficients.json    1e41d92b1a14 throughout
+  git status models/                   empty, nothing under models/ changed by this round
+
+LAWS
+  em dashes 0, exclamation marks 0, emojis 0, the word mshtmsh 0
+  file sizes after my edits: 237, 448, 361, 437, 126, all under 450
+  rival channel names in candidate_registry.json and holdout_rescores.json: 0
+  operator channel from data/kairos_settings.json: reshet 13, and it is the only
+  channel named in candidate_measurements.json; the other three appear only as an
+  unnamed aggregate, which is the form the boundary allows
+  training line: no file under tv-break-dashboard/src and no module under
+  kairos_api names adopt_candidate, and no route resolves to a scripts module

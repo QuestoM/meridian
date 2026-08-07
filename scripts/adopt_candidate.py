@@ -3,6 +3,8 @@
     PYTHONUTF8=1 python scripts/adopt_candidate.py show
     PYTHONUTF8=1 python scripts/adopt_candidate.py rescore
     PYTHONUTF8=1 python scripts/adopt_candidate.py measure <candidate>
+    PYTHONUTF8=1 python scripts/adopt_candidate.py checks <candidate>
+    PYTHONUTF8=1 python scripts/adopt_candidate.py decide <candidate> --decision <shipped|not_shipped> --actor "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py adopt <candidate> --adopted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py revert <adoption id> --reverted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py report
@@ -17,8 +19,15 @@ ships can reach it.
 **Nothing expensive happens by accident.** ``show`` and ``report`` read what has
 been measured and never measure anything. ``rescore`` costs about ten seconds of
 data loading. ``measure`` costs about two hundred seconds of optimizer because it
-computes the weekly plan twice. ``adopt`` without ``--perform`` writes nothing at
-all and prints the distance to a landing.
+computes the weekly plan twice. ``adopt`` and ``decide`` without ``--perform``
+write nothing at all and print the distance to a landing.
+
+**Deciding and adopting are two acts, and the order is fixed.** ``decide``
+records a ship or no-ship verdict into the model console's own decision store,
+which is the done condition of JS-19 and the only part of it this terminal
+previously could not perform. It moves no artifact. ``adopt`` is the separate act
+that copies a candidate over the shipped file, and it requires a ship verdict to
+already be on record against the model version on disk.
 
 **An adoption that would move a shipped figure stops here.** It is reported as
 escalated, with the measured movement in shekels and the scope it was measured
@@ -40,6 +49,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import adopt_candidate_adoption as adoption  # noqa: E402
+from scripts import adopt_candidate_decide as verdict  # noqa: E402
 from scripts import adopt_candidate_registry as registry  # noqa: E402
 from scripts import adopt_candidate_rescore as rescore  # noqa: E402
 
@@ -114,6 +124,25 @@ def command_checks(args: argparse.Namespace) -> int:
         return 0
     _print(registry.render_checks(state))
     return 0
+
+
+def command_decide(args: argparse.Namespace) -> int:
+    """Record a ship or no-ship verdict, which is where JS-19 actually ends.
+
+    The record lands in the model console's own store through the console's own
+    function, so this terminal and that console cannot hold different verdicts
+    about the same candidate.
+    """
+    result = verdict.decide(args.candidate, decision=args.decision, actor=args.actor,
+                            reason=args.reason, reason_en=args.reason_en,
+                            release_note_he=args.release_note_he,
+                            release_note_en=args.release_note_en,
+                            paths=_paths(), perform=args.perform)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=1))
+    else:
+        _print(verdict.render(result))
+    return 0 if result["outcome"] in ("recorded", "ready") else 1
 
 
 def command_adopt(args: argparse.Namespace) -> int:
@@ -192,6 +221,16 @@ def build_parser() -> argparse.ArgumentParser:
     checks_parser.add_argument("--adopted-by", default="")
     checks_parser.add_argument("--reason", default="")
 
+    decide_parser = subparsers.add_parser("decide", help="record a ship or no-ship verdict against the model version on disk")
+    decide_parser.add_argument("candidate")
+    decide_parser.add_argument("--decision", choices=verdict.DECISIONS, required=True)
+    decide_parser.add_argument("--actor", default="", help="who is taking this verdict")
+    decide_parser.add_argument("--reason", default="", help="why, in one sentence, rendered verbatim on a right-to-left card")
+    decide_parser.add_argument("--reason-en", default="", help="the same sentence in English, carried in the evidence")
+    decide_parser.add_argument("--release-note-he", default="", help="the sentence the operator side reads, required for a ship verdict")
+    decide_parser.add_argument("--release-note-en", default="")
+    decide_parser.add_argument("--perform", action="store_true", help="record it; without this nothing is written")
+
     adopt_parser = subparsers.add_parser("adopt", help="adopt a candidate, or report why it cannot land")
     adopt_parser.add_argument("candidate")
     adopt_parser.add_argument("--adopted-by", default="", help="who is taking this decision")
@@ -214,6 +253,7 @@ COMMANDS = {
     "rescore": command_rescore,
     "measure": command_measure,
     "checks": command_checks,
+    "decide": command_decide,
     "adopt": command_adopt,
     "revert": command_revert,
     "report": command_report,

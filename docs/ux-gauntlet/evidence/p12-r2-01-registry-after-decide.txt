@@ -1,0 +1,59 @@
+Live model version
+  2026-07-29  short 35cc2e21
+  retention  models/tv_break_coefficients.json  1e41d92b1a14  trained 2026-07-29T00:12:13.100043+00:00
+  audience   models/audience_model.json  862cf829bc0e  trained 2026-07-29T06:41:29.045699+00:00
+
+Held-out re-score: current
+  measured 2026-08-07T03:51:19.829440+00:00
+  2532 breaks, 36 cells, 2024-11-01 to 2024-11-30, 5 temporal folds
+  metric: Root mean squared error against that measured effect, over the same breaks for every row.
+  target spread: 0.241379 standard deviation. The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.
+  limit: Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.
+  lifted by: A second month of measured breaks that no artifact here was fitted on.
+
+Artifacts, closest to the measured effects first
+  artifact                   rmse  vs shipped   stat       re-score  money on own channel  verdict on record
+  shipped (live)         0.241161                                                                           
+  spotclip               0.241005   -0.000156  -0.78  no difference      stale (+902,999)          no ship *
+  afterwindow            0.241047   -0.000114  -0.52  no difference           +923,843.08             ship *
+  calibrated             0.241047   -0.000114  -0.52  no difference      stale (+963,477)      no ship (2) *
+  competitor             0.241150   -0.000011  -0.05  no difference      stale (+948,456)          no ship *
+  placebo_corrected      0.241161   +0.000000  +0.00      identical            stale (+0)          no ship *
+
+  money is the revenue movement on the operator's own channel, from the model console's own measurement. A cell marked stale names a figure whose inputs have since moved.
+  a verdict marked * was taken before this comparison existed, so it rests on each artifact's own held-out figures, which come from different splits and are not comparable.
+  spotclip             stale since it was measured. What moved: settings
+  afterwindow          summed over 2,540 plan rows, measured 2026-08-07T02:42:07
+  calibrated           stale since it was measured. What moved: settings
+  competitor           stale since it was measured. What moved: settings
+  placebo_corrected    stale since it was measured. What moved: settings
+
+Baselines, out of sample, no artifact involved
+  global_mean_loo        0.241474  Predicts each break from the other breaks, never from itself.
+  cell_mean_loo          0.242097  Predicts each break from the other breaks in its own cell, never from itself.
+  Out of sample the per-cell split does not predict better than a single constant.
+  cell split minus one constant: 0.000623 rmse
+
+Duplicate predictors: afterwindow, calibrated predict the same value for every break.
+
+Adopted and live
+  nothing has ever been adopted on this tree, so the live artifact is the one the training script wrote
+
+Next act, per candidate
+  spotclip             Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure spotclip
+  afterwindow          The verdict on record was taken before this comparison existed. Record one on the common-basis re-score, or read the adoption checks.
+                       python scripts/adopt_candidate.py decide afterwindow --decision <shipped|not_shipped> --actor "<name>" --reason "<sentence>"
+  calibrated           Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure calibrated
+  competitor           Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure competitor
+  placebo_corrected    Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure placebo_corrected
+
+Artifact files
+  spotclip             models/candidates/tv_break_coefficients_spotclip.json  12,457 bytes
+  afterwindow          models/candidates/tv_break_coefficients_afterwindow.json  12,410 bytes
+  calibrated           models/candidates/tv_break_coefficients_calibrated.json  20,682 bytes
+  competitor           models/candidates/tv_break_coefficients_competitor.json  13,917 bytes
+  placebo_corrected    models/candidates/tv_break_coefficients_placebo_corrected.json  15,069 bytes

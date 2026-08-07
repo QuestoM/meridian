@@ -70,11 +70,13 @@ def board_payload() -> dict[str, Any]:
     as_of_day = board.parse_date(as_of.get("instant"))
     rows = board.build_rows(campaigns, grouped, as_of_day)
     sourced = sum(1 for row in rows if row.get("flight") and row["flight"]["days_sourced"])
+    marking = board.collapse_demo(rows)
     return {
         "available": bool(rows),
         "rows": rows,
         "counts": board.counts(rows),
         "campaigns_with_a_source": sourced,
+        "demo_marking": marking,
         "as_of": as_of,
         "scope": scope,
         "trigger": words.trigger_block(),
@@ -85,6 +87,29 @@ def board_payload() -> dict[str, Any]:
         "path_forward_en": words.NO_SOURCE_PATH_EN,
         "path_forward_he": words.NO_SOURCE_PATH_HE,
         "vocabulary": words.vocabularies(),
+    }
+
+
+def days_payload(campaign_id: str) -> Optional[dict[str, Any]]:
+    """The broadcast days behind one campaign's figures, or None off the operator's channel.
+
+    The drill behind a board row, read on demand. It goes through the same scope
+    the board does, so a campaign on a rival channel has no day read either and the
+    boundary is not something a second caller could forget to apply.
+    """
+    campaigns, _ = channel_scope.scope_records(_campaigns(), key="channel")
+    match = next((one for one in campaigns if str(one.get("campaign_id", "")) == str(campaign_id)), None)
+    if match is None:
+        return None
+    grouped, as_of = _delivery()
+    days = grouped.get(str(campaign_id), [])
+    sources = sorted({str(day.get("source_file") or "") for day in days if day.get("source_file")})
+    return {
+        "campaign_id": str(campaign_id),
+        "days": days,
+        "count": len(days),
+        "sources": sources,
+        "as_of": as_of,
     }
 
 
@@ -149,14 +174,40 @@ def _deficit(line: dict[str, Any], goal: float, counted: float, deficit: float,
     }
 
 
+def acceptance_figures(row: dict[str, Any], as_of_day: Optional[date]) -> Optional[dict[str, Any]]:
+    """The measured state an acceptance stamps, or None when the row is not one to accept.
+
+    Only a row the board is asking a decision about may have its risk taken on,
+    and the record carries the same measured figures a make-good would have been
+    raised against. Nothing is derived for it and nothing is softened: taking a
+    risk on is a decision about a number, so the number goes on the record.
+    """
+    if row.get("headline", {}).get("verdict") not in words.NEEDS_A_DECISION:
+        return None
+    return deficit_for(row, as_of_day)
+
+
 def ledger_payload(frame: Any) -> dict[str, Any]:
-    """The make-good ledger as the API reports it, with what it does not decide beside it."""
+    """The decision ledger as the API reports it, with what it does not decide beside it.
+
+    Both endings ride one read because they are one ledger. ``make_goods`` is kept
+    as its own list because that is the shape this piece published and a consumer
+    of it must not have to learn a new one to keep working.
+    """
     rows = ledger.records(frame)
+    live = [row for row in rows if row["state"] not in (ledger.SETTLED, ledger.WITHDRAWN)]
+    made = [row for row in rows if row["kind"] == ledger.MAKE_GOOD]
+    accepted = [row for row in rows if row["kind"] == ledger.ACCEPTANCE]
     return {
         "available": True,
-        "make_goods": rows,
+        "decisions": rows,
+        "make_goods": made,
+        "acceptances": accepted,
         "count": len(rows),
-        "open_count": sum(1 for row in rows if row["state"] not in (ledger.SETTLED, ledger.WITHDRAWN)),
+        "open_count": sum(1 for row in live if row["kind"] == ledger.MAKE_GOOD),
+        "accepted_count": sum(1 for row in live if row["kind"] == ledger.ACCEPTANCE),
+        "acceptance_means_en": words.ACCEPT_MEANING_EN,
+        "acceptance_means_he": words.ACCEPT_MEANING_HE,
         "sign_off": ledger.sign_off_block(),
         "vocabulary": ledger.vocabularies(),
     }

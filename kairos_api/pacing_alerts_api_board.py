@@ -231,8 +231,16 @@ def _rank(row: dict[str, Any]) -> tuple[int, float, str]:
     return (order.get(headline["verdict"], 4), ratio if ratio is not None else 9.9, row["campaign_id"])
 
 
-def campaign_row(campaign: dict[str, Any], days: list[dict[str, Any]], as_of_day: Optional[date]) -> dict[str, Any]:
-    """One campaign on the board: its flight, its two goal lines, and its day rows."""
+def campaign_row(campaign: dict[str, Any], days: list[dict[str, Any]], as_of_day: Optional[date],
+                 with_days: bool = False) -> dict[str, Any]:
+    """One campaign on the board: its flight, its two goal lines, and its day count.
+
+    The day rows themselves ride a second read rather than the board, because the
+    board is a list somebody triages and the days are the drill behind one row of
+    it. Measured on the shipped data they were 144 KB of a 366 KB payload and they
+    grow as campaigns times flight days, which is the one term on this board that
+    grows in two directions at once.
+    """
     start, end, goal_kind = _flight_dates(campaign)
     terms = campaign.get("commitment") or {}
     base = {
@@ -245,8 +253,10 @@ def campaign_row(campaign: dict[str, Any], days: list[dict[str, Any]], as_of_day
         "is_demo": bool(campaign.get("is_demo")),
         "demo": campaign.get("demo") or {},
         "goal_kind": goal_kind,
-        "days": days,
+        "days_available": len(days),
     }
+    if with_days:
+        base["days"] = days
     if start is None or end is None:
         state = dict(words.reason("no_flight_dates"))
         return {**base, "flight": None, "rating": None, "money": None,
@@ -327,6 +337,28 @@ def build_rows(campaigns: list[dict[str, Any]], grouped: dict[str, list[dict[str
             for campaign in campaigns]
     rows.sort(key=_rank)
     return rows
+
+
+def collapse_demo(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Lift the demo marking off the rows when every demo row carries the same one.
+
+    The marking is a paragraph in two languages and it was repeated on all 51 demo
+    rows, which measured 48 KB of the payload. A row keeps its own block whenever
+    it differs from the published one, so nothing is lost and no row is described
+    by a sentence that was written about a different row.
+    """
+    distinct: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        block = row.get("demo") or {}
+        if block.get("is_demo"):
+            distinct[repr(sorted(block.items()))] = block
+    if len(distinct) != 1:
+        return {}
+    marking = next(iter(distinct.values()))
+    for row in rows:
+        if (row.get("demo") or {}) == marking or not (row.get("demo") or {}).get("is_demo"):
+            row.pop("demo", None)
+    return marking
 
 
 def counts(rows: list[dict[str, Any]]) -> dict[str, int]:

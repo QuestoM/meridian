@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PacingRow from './PacingRow';
-import { VERDICT_ORDER, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
+import { loadDays } from './pacing-api';
+import { VERDICT_ORDER, acceptanceFor, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
 
 // The board an account manager opens in the morning.
 //
@@ -9,9 +10,17 @@ import { VERDICT_ORDER, isolate, localized, pick, remedyFor, vocabularyLabel } f
 // list states the same counts the list is ordered by, and pressing one filters to
 // it rather than sorting it, so the order never changes under the reader.
 //
+// The table comes first and the definition sits behind a control. Measured on the
+// round that shipped it, 621 characters of basis prose sat between the strip and
+// the first row and put that row at y=540 in an 851 px viewport, which is a
+// definition charging rent on the thing it defines. What stays in front of the
+// reader is the instant the figures were counted at and the channel they cover,
+// because those two change what the numbers mean.
+//
 // Keyboard control is the whole list: j and k step, Enter opens the days behind a
-// row, and r raises the make-good the focused row's remedy names. Nothing here
-// needs a dialog, because none of it is a destructive act.
+// row, r raises the make-good a row names when it names one, and a records the
+// decision to take the risk on. Nothing here needs a dialog, because none of it is
+// a destructive act.
 
 function Strip({ counts, active, vocabulary, locale, onPick }) {
   return (
@@ -35,35 +44,37 @@ function Strip({ counts, active, vocabulary, locale, onPick }) {
 function Basis({ payload, locale }) {
   const asOf = payload.as_of || {};
   const trigger = payload.trigger || {};
+  const channel = payload.scope ? payload.scope.scope_channel : '';
   return (
     <div className="pacing-basis">
-      <p>
+      <p className="pacing-basis-line">
         {pick(locale, `Counted through ${asOf.instant}.`, `נספר עד ${isolate(asOf.instant)}.`)}
+        {channel ? ' ' : ''}
+        {channel ? pick(
+          locale,
+          `This board covers ${channel} and no other channel.`,
+          `הלוח מכסה את ${isolate(channel)} ולא ערוץ אחר.`,
+        ) : ''}
       </p>
-      {asOf.basis ? (
-        // The delivery ledger writes this sentence in one language only, so it is
-        // quoted as the source's own words rather than presented as this surface's
-        // copy. A reader is told where the instant came from either way.
-        <p className="pacing-source-quote">
-          {pick(locale, 'The ledger states: ', 'ספר האספקה אומר: ')}
-          <q lang="en" dir="ltr">{asOf.basis}</q>
+      <details className="pacing-basis-details">
+        <summary>{pick(locale, 'How this is counted', 'איך זה נספר')}</summary>
+        <p>{localized(payload, 'counted_basis', locale)}</p>
+        <p>
+          {localized(trigger, 'rule', locale)}
+          {' '}
+          {localized(trigger, 'not_a_commercial_term', locale)}
         </p>
-      ) : null}
-      <p>{localized(payload, 'counted_basis', locale)}</p>
-      <p>
-        {localized(trigger, 'rule', locale)}
-        {' '}
-        {localized(trigger, 'not_a_commercial_term', locale)}
-      </p>
-      {payload.scope && payload.scope.scope_channel ? (
-        <p className="pacing-scope-note">
-          {pick(
-            locale,
-            `This board covers ${payload.scope.scope_channel} and no other channel.`,
-            `הלוח הזה מכסה את ${isolate(payload.scope.scope_channel)} ולא ערוץ אחר.`,
-          )}
-        </p>
-      ) : null}
+        {asOf.basis ? (
+          // The delivery ledger writes this sentence in one language only, so it
+          // is quoted as the source's own words rather than presented as this
+          // surface's copy. A reader is told where the instant came from either
+          // way, and a Hebrew reader now meets the English of it only on asking.
+          <p className="pacing-source-quote">
+            {pick(locale, 'The ledger states: ', 'ספר האספקה אומר: ')}
+            <q lang="en" dir="ltr">{asOf.basis}</q>
+          </p>
+        ) : null}
+      </details>
     </div>
   );
 }
@@ -75,20 +86,48 @@ export default function PacingBoard({
   editRefusal,
   busyId,
   onRaise,
+  onAccept,
   onOpenMakeGood,
 }) {
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState('');
   const [focused, setFocused] = useState(0);
+  const [drills, setDrills] = useState({});
   const listRef = useRef(null);
 
   const rows = (payload.rows || []).filter((row) => !filter || row.headline.verdict === filter);
   const counts = payload.counts || {};
   const vocabulary = payload.vocabulary || {};
+  const countedAt = (payload.as_of || {}).instant || '';
 
   useEffect(() => {
     setFocused(0);
   }, [filter]);
+
+  // A drill is a read of the same ledger the board was counted from, so a board
+  // counted at a new instant invalidates every day already on screen rather than
+  // leaving one row dated by an older read than the row above it.
+  useEffect(() => {
+    setDrills({});
+    setExpanded('');
+  }, [countedAt]);
+
+  const openDays = useCallback((campaignId) => {
+    setDrills((current) => ({ ...current, [campaignId]: { status: 'loading' } }));
+    loadDays(campaignId)
+      .then((body) => setDrills((current) => ({
+        ...current,
+        [campaignId]: { status: 'ready', days: body.days || [] },
+      })))
+      .catch(() => setDrills((current) => ({ ...current, [campaignId]: { status: 'failed' } })));
+  }, []);
+
+  const toggle = useCallback((campaignId) => {
+    setExpanded((current) => (current === campaignId ? '' : campaignId));
+    // A day read is kept once it lands, so opening the same row twice costs one
+    // request. A failed one is retried, because a failure is not an answer.
+    if (!drills[campaignId] || drills[campaignId].status === 'failed') openDays(campaignId);
+  }, [drills, openDays]);
 
   const onKeyDown = useCallback((event) => {
     if (!rows.length) return;
@@ -101,7 +140,7 @@ export default function PacingBoard({
     } else if (event.key === 'Enter') {
       event.preventDefault();
       const row = rows[focused];
-      if (row) setExpanded((current) => (current === row.campaign_id ? '' : row.campaign_id));
+      if (row) toggle(row.campaign_id);
     } else if (event.key === 'r') {
       const row = rows[focused];
       const remedy = row ? remedyFor(row, payload.make_goods) : null;
@@ -109,8 +148,17 @@ export default function PacingBoard({
         event.preventDefault();
         onRaise(row);
       }
+    } else if (event.key === 'a') {
+      const row = rows[focused];
+      const acceptance = row
+        ? acceptanceFor(row, payload.acceptances, payload.needs_a_decision)
+        : null;
+      if (row && acceptance && acceptance.kind === 'accept' && canEdit) {
+        event.preventDefault();
+        onAccept(row);
+      }
     }
-  }, [rows, focused, payload.make_goods, canEdit, onRaise]);
+  }, [rows, focused, payload.make_goods, payload.acceptances, payload.needs_a_decision, canEdit, onRaise, onAccept, toggle]);
 
   useEffect(() => {
     const node = listRef.current;
@@ -123,15 +171,17 @@ export default function PacingBoard({
   return (
     <section className="pacing-board" aria-label={pick(locale, 'Campaign pacing', 'קצב הקמפיינים')}>
       <Strip counts={counts} active={filter} vocabulary={vocabulary} locale={locale} onPick={setFilter} />
-      <Basis payload={payload} locale={locale} />
 
-      <p className="pacing-keys">
-        {pick(
-          locale,
-          'j and k step the list, Enter opens the days behind a row, r raises the make-good the row names.',
-          'j ו-k מדלגים ברשימה, Enter פותח את ימי השידור שמאחורי השורה, r פותח את פיצוי השידור שהשורה נוקבת בו.',
-        )}
-      </p>
+      <div className="pacing-chrome">
+        <Basis payload={payload} locale={locale} />
+        <p className="pacing-keys">
+          {pick(
+            locale,
+            'j and k step, Enter opens the broadcast days, r raises the make-good a row names, a takes the risk on.',
+            'j ו-k מדלגים, Enter פותח את ימי השידור, r פותח את פיצוי השידור שהשורה נוקבת בו, a מקבל את הסיכון.',
+          )}
+        </p>
+      </div>
 
       {rows.length === 0 ? (
         <p className="pacing-empty">
@@ -158,13 +208,18 @@ export default function PacingBoard({
               vocabulary={vocabulary}
               locale={locale}
               remedy={remedyFor(row, payload.make_goods)}
+              acceptance={acceptanceFor(row, payload.acceptances, payload.needs_a_decision)}
+              demoMarking={payload.demo_marking}
+              drill={drills[row.campaign_id]}
               expanded={expanded === row.campaign_id}
               busy={busyId === row.campaign_id}
               canEdit={canEdit}
               editRefusal={editRefusal}
-              onToggle={() => setExpanded((current) => (current === row.campaign_id ? '' : row.campaign_id))}
+              onToggle={() => toggle(row.campaign_id)}
               onRaise={() => onRaise(row)}
+              onAccept={() => onAccept(row)}
               onOpenMakeGood={onOpenMakeGood}
+              onRetryDays={() => openDays(row.campaign_id)}
             />
           </div>
         ))}

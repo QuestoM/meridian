@@ -1,5 +1,5 @@
 {
- "measured_at": "2026-08-07T02:35:52.964369+00:00",
+ "measured_at": "2026-08-07T03:51:19.829440+00:00",
  "evaluation": {
   "breaks": 2532,
   "cells": 36,
@@ -7,6 +7,10 @@
   "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
   "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
   "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+  "metric_he": "שורש שגיאת הריבוע הממוצעת מול אותו אפקט נמדד, על אותם ברייקים בכל שורה.",
+  "target_sd": 0.241378699,
+  "target_sd_en": "The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.",
+  "target_sd_he": "סטיית התקן של האפקט הנמדד עצמו. שגיאה קרובה למספר הזה היא מודל שמסביר מעט מעבר לממוצע.",
   "folds": 5
  },
  "limit": {
@@ -35,9 +39,9 @@
    "rmse": 0.241474068,
    "mae": 0.158958114,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": true,
-   "basis_en": "Predicts each break from the other breaks, never from itself."
+   "basis_en": "Predicts each break from the other breaks, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים, לעולם לא מתוך עצמו."
   },
   {
    "id": "cell_mean_loo",
@@ -45,9 +49,9 @@
    "rmse": 0.242097429,
    "mae": 0.159240951,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": true,
-   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself."
+   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים בתא שלו, לעולם לא מתוך עצמו."
   }
  ],
  "shipped": {
@@ -56,7 +60,6 @@
   "rmse": 0.241160667,
   "mae": 0.159794185,
   "breaks": 2532,
-  "target_sd": 0.241378699,
   "out_of_sample": false,
   "cells": 36,
   "cells_not_carried": 0,
@@ -70,7 +73,6 @@
    "rmse": 0.241046876,
    "mae": 0.158517967,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": false,
    "cells": 36,
    "cells_not_carried": 0,
@@ -101,6 +103,7 @@
     "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
     "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
     "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },
@@ -115,7 +118,6 @@
    "rmse": 0.241046876,
    "mae": 0.158517967,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": false,
    "cells": 36,
    "cells_not_carried": 0,
@@ -146,6 +148,7 @@
     "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
     "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
     "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },
@@ -160,7 +163,6 @@
    "rmse": 0.241150155,
    "mae": 0.158647937,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": false,
    "cells": 36,
    "cells_not_carried": 0,
@@ -191,6 +193,7 @@
     "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
     "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
     "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.0488, movement -0.000011, dispersion 0.000459.",
+    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.0488, תנועה -0.000011, פיזור 0.000459.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },
@@ -203,7 +206,6 @@
    "rmse": 0.241160667,
    "mae": 0.159794185,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": false,
    "cells": 36,
    "cells_not_carried": 0,
@@ -233,7 +235,8 @@
     "state": "identical",
     "en": "Predicts exactly what the shipped model predicts, break for break.",
     "he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
-    "rule_en": "Both artifacts predict the same value for every break."
+    "rule_en": "Both artifacts predict the same value for every break.",
+    "rule_he": "שני הקבצים חוזים את אותו ערך בכל ברייק."
    },
    "prediction_signature": "1e76c1c24620",
    "duplicate_of": []
@@ -244,7 +247,6 @@
    "rmse": 0.241004968,
    "mae": 0.158575405,
    "breaks": 2532,
-   "target_sd": 0.241378699,
    "out_of_sample": false,
    "cells": 36,
    "cells_not_carried": 0,
@@ -275,6 +277,7 @@
     "en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
     "he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
     "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.7756, movement -0.000156, dispersion 0.000418.",
+    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.7756, תנועה -0.000156, פיזור 0.000418.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },

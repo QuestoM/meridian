@@ -1,47 +1,62 @@
 import React, { useState } from 'react';
-import { amount, isolate, localized, pick, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
+import { amount, instant, isolate, localized, pair, pick, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
 
-// The make-good ledger: what was measured, what was offered against it, and who
+// The decision ledger: what was measured, what was decided about it, and who
 // acted. Every row is a record with a state, and the states it may move to next
 // are the only controls it shows, so the machine is legible from the screen rather
 // than from documentation.
+//
+// Two kinds of record share it, because the job has two endings. A make-good is
+// compensating delivery raised against a measured shortfall. An acceptance is the
+// recorded decision that the risk stands. Reading them in one timeline is the
+// point: a person answering for a campaign has to see both.
 //
 // The offer is entered inline on the row. It is not a dialog because it is not a
 // destructive act and because a form that covers the figure it is about makes the
 // person copy a number out of their own memory.
 
+const ACCEPTANCE = 'acceptance';
+
 // A control is named by the act it performs, not by the state it lands in. The
 // server publishes the states as nouns because a payload describes a record; a
-// button is pressed by a person, so it takes the verb.
+// button is pressed by a person, so it takes the verb. The same state ends the
+// two kinds differently, so the verb is chosen by kind as well.
 const ACTS = {
   offered: { en: 'Record an offer', he: 'רשמו הצעה' },
   settled: { en: 'Settle it', he: 'סגרו את הפיצוי' },
   declined: { en: 'Mark it declined', he: 'סמנו שנדחה' },
   withdrawn: { en: 'Withdraw it', he: 'בטלו את הפיצוי' },
 };
+const ACCEPTANCE_ACTS = {
+  withdrawn: { en: 'Revoke the decision', he: 'בטלו את ההחלטה' },
+};
 
-function actWord(state, locale) {
-  const act = ACTS[state];
+function actWord(state, kind, locale) {
+  const table = kind === ACCEPTANCE ? { ...ACTS, ...ACCEPTANCE_ACTS } : ACTS;
+  const act = table[state];
   if (!act) return state;
   return pick(locale, act.en, act.he);
+}
+
+function headlineFigure(record, locale) {
+  const shortfall = record.shortfall;
+  const value = amount(shortfall.deficit_value, shortfall.unit, locale);
+  if (record.kind === ACCEPTANCE) {
+    return pick(locale, `${value} behind when the risk was taken on`, `פיגור של ${isolate(value)} בעת קבלת הסיכון`);
+  }
+  return pick(locale, `${value} short`, `חסרים ${isolate(value)}`);
 }
 
 function Figures({ record, locale, vocabulary }) {
   const shortfall = record.shortfall;
   return (
     <div className="makegood-figures">
-      <strong>
-        {pick(
-          locale,
-          `${amount(shortfall.deficit_value, shortfall.unit, locale)} short`,
-          `חסרים ${isolate(amount(shortfall.deficit_value, shortfall.unit, locale))}`,
-        )}
-      </strong>
+      <strong>{headlineFigure(record, locale)}</strong>
       <small>
         {pick(
           locale,
-          `${amount(shortfall.counted_value, shortfall.unit, locale)} counted of ${amount(shortfall.goal_value, shortfall.unit, locale)}`,
-          `${isolate(amount(shortfall.counted_value, shortfall.unit, locale))} נספרו מתוך ${isolate(amount(shortfall.goal_value, shortfall.unit, locale))}`,
+          `counted ${pair(shortfall.counted_value, shortfall.goal_value, shortfall.unit, locale)}`,
+          `נספרו ${pair(shortfall.counted_value, shortfall.goal_value, shortfall.unit, locale)}`,
         )}
       </small>
       <span className={`makegood-kind ${shortfall.deficit_kind}`}
@@ -95,6 +110,10 @@ function OfferForm({ record, locale, busy, onSubmit, onCancel }) {
   );
 }
 
+// The separating space lives outside the window, never inside it. Inside, the
+// bidi reorder puts it on the far edge of the run and the window's last digits
+// sit against the offer's first, which was measured rendering an offer of 0.6
+// against a window ending 2025-05-10 as the string 2025-05-100.6.
 function Offer({ record, locale }) {
   if (record.offer.value === null || record.offer.value === undefined) return null;
   const window = record.offer.window_start && record.offer.window_end
@@ -107,7 +126,8 @@ function Offer({ record, locale }) {
         `Offered ${amount(record.offer.value, record.shortfall.unit, locale)}`,
         `הוצעו ${isolate(amount(record.offer.value, record.shortfall.unit, locale))}`,
       )}
-      {window ? <span dir="ltr"> {window}</span> : null}
+      {window ? ' ' : ''}
+      {window ? <span dir="ltr">{window}</span> : null}
       {record.offer.offered_by ? ` ${pick(locale, 'by', 'על ידי')} ${record.offer.offered_by}` : ''}
       {record.offer.note ? ` ${record.offer.note}` : ''}
     </p>
@@ -160,8 +180,8 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
           <small className="makegood-trail">
             {pick(
               locale,
-              `Raised ${record.raised_at}${record.raised_by ? ` by ${record.raised_by}` : ''}. Counted as of ${record.shortfall.counted_as_of}.`,
-              `נפתח ${isolate(record.raised_at)}${record.raised_by ? ` על ידי ${record.raised_by}` : ''}. נספר נכון ל${isolate(record.shortfall.counted_as_of)}.`,
+              `Raised ${instant(record.raised_at)}${record.raised_by ? ` by ${record.raised_by}` : ''}. Counted as of ${instant(record.shortfall.counted_as_of)}.`,
+              `נפתח ${isolate(instant(record.raised_at))}${record.raised_by ? ` על ידי ${record.raised_by}` : ''}. נספר נכון ל־${isolate(instant(record.shortfall.counted_as_of))}.`,
             )}
           </small>
 

@@ -37,6 +37,35 @@ ENGINE_READ_DETAIL = {
 }
 
 
+def shipped_value(value: Any) -> str:
+    """The dropped value as a line of text, and never as a Python repr.
+
+    ``source_fingerprints`` holds a map of three source paths to their sha256
+    digests, and printing it whole put a two-hundred-character dict repr in the
+    middle of a refusal sentence. A map and a list are described by their size,
+    a timestamp is cut to the second, and a scalar is printed as it stands,
+    because 1.0 against 1.947 is exactly the distinction this line exists for.
+    """
+    if isinstance(value, dict):
+        return f"a map of {len(value)} entries"
+    if isinstance(value, (list, tuple)):
+        return f"a list of {len(value)} entries"
+    text = str(value)
+    return text[:19] if len(text) > 19 and text[:4].isdigit() and text[4:5] == "-" else text
+
+
+def dropped_field(item: dict[str, Any]) -> str:
+    """A dropped field and the value being dropped, because 1.0 is not 1.947.
+
+    Naming the field alone leaves a steward unable to tell a live layer from one
+    that is already off, and the two refuse an adoption identically.
+    ``kairos/service.py:112`` says in its own words that a missing or 1.0
+    multiplier leaves the optimizer assumptions unchanged, so a steward who
+    cannot see the value cannot tell a real loss from a no-op.
+    """
+    return f"{item['field']} (shipped value {shipped_value(item.get('shipped_value'))})"
+
+
 def _interval_moves(shipped_detail: dict[str, Any],
                     candidate_detail: dict[str, Any]) -> dict[str, Any]:
     """How far the credible bands move, cell by cell, kept apart from the points.
@@ -46,7 +75,7 @@ def _interval_moves(shipped_detail: dict[str, Any],
     point. This is reported whether or not the plan moves today, since today's
     plan is computed at one risk weight and the operator can move it.
     """
-    moved, largest, largest_cell = 0, 0.0, None
+    moved, compared, largest, largest_cell = 0, 0, 0.0, None
     for cell, before in shipped_detail.items():
         after = candidate_detail.get(cell)
         if not isinstance(before, dict) or not isinstance(after, dict):
@@ -55,12 +84,15 @@ def _interval_moves(shipped_detail: dict[str, Any],
             left, right = before.get(key), after.get(key)
             if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
                 continue
+            compared += 1
             gap = abs(float(right) - float(left))
             if gap > 1e-12:
                 moved += 1
             if gap > largest:
                 largest, largest_cell = gap, f"{cell}.{key}"
-    return {"bounds_moved": moved, "max_abs_move": round(largest, 9),
+    return {"bounds_moved": moved, "bounds_compared": compared,
+            "cells_compared": len(set(shipped_detail) & set(candidate_detail)),
+            "max_abs_move": round(largest, 9),
             "max_abs_move_at": largest_cell,
             "read_by": ENGINE_READ_DETAIL["ci_low"]}
 
@@ -100,10 +132,12 @@ def artifact_surface(shipped: dict[str, Any], candidate: dict[str, Any]) -> dict
         "detail_fields_added": sorted(detail_keys_after - detail_keys_before),
         "cells_dropped": sorted(set(shipped.get("coefficients") or {}) - set(candidate.get("coefficients") or {})),
         "engine_inputs_dropped": [
-            {"field": key, "read_by": ENGINE_READ_METADATA[key], "where": "metadata"}
+            {"field": key, "read_by": ENGINE_READ_METADATA[key], "where": "metadata",
+             "shipped_value": shipped_meta.get(key)}
             for key in engine_metadata
         ] + [
-            {"field": key, "read_by": ENGINE_READ_DETAIL[key], "where": "detail"}
+            {"field": key, "read_by": ENGINE_READ_DETAIL[key], "where": "detail",
+             "shipped_value": f"one per cell, on {len(shipped_detail)} cells"}
             for key in engine_detail
         ],
     }

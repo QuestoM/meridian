@@ -81,6 +81,38 @@ def test_every_file_the_adoption_act_writes_lands_under_models(tmp_path, monkeyp
     assert all(path.startswith("models/") for path in _listing(tmp_path) - before)
 
 
+def test_every_file_the_verdict_act_writes_lands_under_models(tmp_path, monkeypatch):
+    """Recording a verdict is training too, by the same measured test.
+
+    It appends to the model console's own decision log, which is a file under
+    ``models/releases/``, so it is company staff only for the same reason the
+    adoption act is. The classification is run and looked at, not asserted.
+    """
+    import pandas as pd
+
+    from scripts import adopt_candidate_decide as decide
+
+    paths = _tree(tmp_path)
+    frame = pd.DataFrame({"channel_name": ["a"] * 20, "log_effect": [-0.05] * 20,
+                          "break_start": pd.date_range("2024-11-01", periods=20, freq="h")})
+    rescore.save_rescore(rescore.rescore(paths, frame), paths)
+    monkeypatch.setenv("KAIROS_MODEL_RELEASES_DIR", str(tmp_path / "models" / "releases"))
+    monkeypatch.setattr(decide, "live_version", lambda: {"id": "mv-1", "name": "n"})
+    monkeypatch.setattr(decide, "money_state", lambda i: {"state": "measured", "revenue_delta": 0.0,
+                                                          "scope": {"rows": 1}})
+    from kairos_api import model_console_api_payloads as payloads
+
+    monkeypatch.setattr(payloads, "decision_evidence", lambda subject, candidate_id: {})
+
+    before = _listing(tmp_path)
+    result = decide.decide("twin", decision="not_shipped", actor="steward",
+                           reason="לא מבחין", paths=paths, perform=True)
+    assert result["outcome"] == "recorded"
+    written = _listing(tmp_path) - before
+    assert written, "the verdict wrote nothing, so this test proves nothing"
+    assert all(path.startswith("models/") for path in written), sorted(written)
+
+
 def test_no_backend_module_imports_the_adoption_act():
     """A route cannot call what no module in the API package can import."""
     offenders = []
@@ -131,7 +163,8 @@ def test_the_entry_point_states_that_it_is_training_and_company_only():
 
 @pytest.mark.parametrize("module", ["adopt_candidate", "adopt_candidate_rescore",
                                     "adopt_candidate_registry", "adopt_candidate_adoption",
-                                    "adopt_candidate_surface"])
+                                    "adopt_candidate_surface", "adopt_candidate_words",
+                                    "adopt_candidate_state", "adopt_candidate_decide"])
 def test_every_module_of_this_piece_stays_under_the_file_size_cap(module):
     lines = (ROOT / "scripts" / f"{module}.py").read_text(encoding="utf-8").splitlines()
     assert len(lines) <= 450, f"{module}.py is {len(lines)} lines"
@@ -139,7 +172,8 @@ def test_every_module_of_this_piece_stays_under_the_file_size_cap(module):
 
 @pytest.mark.parametrize("module", ["adopt_candidate", "adopt_candidate_rescore",
                                     "adopt_candidate_registry", "adopt_candidate_adoption",
-                                    "adopt_candidate_surface"])
+                                    "adopt_candidate_surface", "adopt_candidate_words",
+                                    "adopt_candidate_state", "adopt_candidate_decide"])
 def test_no_module_of_this_piece_carries_an_em_dash_an_emoji_or_an_exclamation(module):
     text = (ROOT / "scripts" / f"{module}.py").read_text(encoding="utf-8")
     assert "—" not in text

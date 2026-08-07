@@ -2,11 +2,165 @@
   "piece": "P11",
   "round": 1,
   "passed": false,
-  "gap": "",
+  "gap": "The surface does not ship. Nothing imports tv-break-dashboard/src/clients/pacing/**, so the built operator bundle carries zero bytes of it (measured: 0 hits for 'Pacing and make-good' and 'pacing-workspace' in tv-break-dashboard/dist/assets/index-DrjQIIWW.js after npm run build). JS-6 is unreachable in the running product against a 60 s target, while the same build with the four published mount lines applied reaches the worst-pacing campaign in 1.36 s and 2 clicks. Closing it needs those four lines in P4's ClientsChrome.jsx and ClientsWorkspace.jsx plus a third site the published patch missed, 'pacing' in the VIEWS list at clients-money-helpers.js:11, without which the tab writes an address that does not restore.",
   "history": [
-    "round 1: built the pacing board and the make-good ledger on P4's campaign store and derived delivery ledger, three new routes on the wave-zero router, the surface under src/clients/pacing, 41 tests green; the mount into the Clients destination is blocked on two P4 files and the exact patch is in contracts/P11.md section 5"
+    "round 1: built the pacing board and the make-good ledger on P4's campaign store and derived delivery ledger, three new routes on the wave-zero router, the surface under src/clients/pacing, 41 tests green; the mount into the Clients destination is blocked on two P4 files and the exact patch is in contracts/P11.md section 5",
+    "round 1 critic: measured all four bars before editing. Board reaches the worst-pacing row in 1.36 s and 2 clicks with the published mount applied in a scratch copy, against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 28 to 32 ms warm, 366 KB, 56 rows, 0 rival names, 0 fabricated figures, every unsourced day stated rather than counted as zero. Closed nine mechanical findings inside the ownership row: the write gate read as a boolean, the ledger recording nobody, an offer of 0.6 rendering as 2025-05-100.6, 51 seeded rows counted as a morning's work with no disclosure, store keys inside a bilingual refusal, the view tabs ballooning to 158 px whenever the content was short, raw ISO instants, a unit printed twice, and a 3.99:1 count. Six new guards proven to fail against HEAD's code and pass against the fix. Suite 3262 passed, 11 failed, all 11 reproduced identically on a clean HEAD tree. Largest gap left open is the mount, which is not P11's to write."
   ],
-  "files_touched": [
+  "queue": [
+    {
+      "what": "The surface ships to nobody. Nothing imports src/clients/pacing/**, so npm run build produces an operator bundle with zero occurrences of this destination and JS-6 cannot be started in the running product. The published patch in contracts/P11.md section 5 is correct and still unapplied.",
+      "where": "tv-break-dashboard/src/clients/ClientsChrome.jsx VIEW_LABELS, tv-break-dashboard/src/clients/ClientsWorkspace.jsx, both P4",
+      "kind": "structural",
+      "severity": "blocking"
+    },
+    {
+      "what": "The published mount patch has a third site it does not name. VIEWS gates the ?clients= query parameter, so with only the two published edits the pacing tab writes an address that reloads to the clients view. Measured: reload of ?clients=pacing landed on ?clients=campaigns.",
+      "where": "tv-break-dashboard/src/clients/clients-money-helpers.js:11, P4",
+      "kind": "structural",
+      "severity": "serious"
+    },
+    {
+      "what": "JS-6's done condition has two halves and only one is buildable. There is no way to record an explicit decision to accept the risk, so an at-risk campaign a person has looked at and accepted is indistinguishable from one nobody opened. The ledger records raises only.",
+      "where": "kairos_api/makegood_store.py TRANSITIONS, tv-break-dashboard/src/clients/pacing/PacingRow.jsx foot",
+      "kind": "structural",
+      "severity": "serious"
+    },
+    {
+      "what": "No row on the shipped data can reach the raise control. All 51 demo rows are not_booked_yet and all 5 real ones are no_goal, so remedyFor returns book or supply on 56 of 56 rows and the make-good half of the piece is reachable only through the API. The keyboard hint 'r raises the make-good the row names' is never true on this data.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing-helpers.js:106 remedyFor, PacingBoard.jsx:131 hint",
+      "kind": "structural",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. The write gate was held as an object and used as a boolean. payloadCanEdit returns {canEdit, reason}, which is always truthy, so a viewer account would have been shown the raise control and told only after pressing it. Measured server side: can_edit false with the wall's own reason, and POST /api/make-goods refused 403.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx:52",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. The ledger recorded nobody. _actor read request.state.session, which nothing in kairos_api ever sets, so raised_by, offered_by and closed_by were blank on every write. Measured before: raised_by ''. After, through the accessor W0-4 published: raised_by 'admin'.",
+      "where": "kairos_api/pacing_alerts_api.py:63 _actor",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. A wrong number on screen. The separating space sat inside the dir=ltr window span, so bidi reordering put the window's last digits against the offer's first: an offer of 0.6 with a window ending 2025-05-10 rendered as 2025-05-100.6.",
+      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx:110",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. The board headline counted 51 seeded rows as a morning's work with no disclosure: '13 of 56 campaigns need a decision today'. counts.demo rode the payload from round one and no sentence read it. This is the known-broken class recorded in RESUME-HERE for the campaigns screen, repeated here.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx headline",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. A refused transition printed store keys to both readers and Latin text inside the Hebrew half: 'פיצוי במצב raised אינו עובר לsettled. מותר מכאן: offered, withdrawn.' The module publishes a label for every one of those states and did not use it.",
+      "where": "kairos_api/pacing_alerts_api.py move_make_good",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. The workspace layout broke whenever its content was short. .pacing-workspace declared display flex and lost to the shell's .page-workspace grid on source order, so the viewport min-height stretched the auto rows. Measured with the ledger open and with an empty filter: view tabs 158 px tall in a 167 px nav, and the control the reader had just pressed moved 178 px down the page. After: 28 px and 37 px.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing.css:5",
+      "kind": "mechanical",
+      "severity": "serious"
+    },
+    {
+      "what": "FIXED. Raw ISO instants on the ledger trail, and no separator after the Hebrew preposition: 'נפתח 2026-08-07T03:11:41+00:00. נספר נכון ל2025-04-27T22:59:00.' Now '2026-08-07 03:37 UTC' and 'נכון ל־2025-04-27 22:59', with the offset kept only where the store carries one so two clocks are never presented as one.",
+      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx trail",
+      "kind": "mechanical",
+      "severity": "minor"
+    },
+    {
+      "what": "FIXED. The unit printed twice inside one comparison at three sites: '4.4 rating points of 35 rating points'. One quantity, one unit, said once at the end where it governs both.",
+      "where": "PacingRow.jsx Headline, MakeGoodLedger.jsx Figures, PacingDays.jsx second line",
+      "kind": "mechanical",
+      "severity": "minor"
+    },
+    {
+      "what": "FIXED. The at-risk count on the verdict strip was --amber on white, measured 3.99:1 against the 4.5:1 AA floor for its size. --amber-ink measures 6.39:1 and is already in the token set.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing.css:89",
+      "kind": "mechanical",
+      "severity": "minor"
+    },
+    {
+      "what": "The behind chip is --red on --red-soft, measured 4.29:1 at 11 px, under the AA floor. There is no --red-ink in tokens.css and a piece may not define a token, so this is an escalation to W0-4 for one, not an edit inside this row. Every other pair on the surface passes: amber-ink on soft 5.91, teal-ink on soft 5.68, muted on surface-muted 5.75, subtle on white 4.74, blue on blue-soft 5.95.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing.css:152 and makegood.css:39, token set tv-break-dashboard/src/tokens.css",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "The remedy on a not_booked_yet row is prose with six dates inline and no control, so the row that names the act cannot perform it. Stripe, the reference for how a shortfall states its remedy, attaches the act to the statement. A link to the upload destination would close it and needs a navigation seam this piece does not have.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingRow.jsx Remedy, kind book",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "The surface authors its own labels and imports nothing from src/vocabulary.js, where concept.pacing is 'קצב אספקה' and object.make_good is 'פיצוי שידור'. The board says 'קצב'. Product-wide, 3 of 281 frontend files import that module, so the mechanism is unadopted everywhere and this piece at least publishes its own controlled vocabulary from the server; the drift in the destination name is still real.",
+      "where": "tv-break-dashboard/src/clients/pacing/*.jsx against tv-break-dashboard/src/vocabulary.js:268",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "The broadcast-day table names no weekday. A person reading 2025-04-28 in an Israeli week has to derive that it is a Monday. No Monday-first violation, an absence.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingDays.jsx:55",
+      "kind": "mechanical",
+      "severity": "minor"
+    },
+    {
+      "what": "621 characters of basis prose sit between the verdict strip and the first row, which puts the first row at y=540 in an 851 px viewport. Google Ads puts the table first and the definition behind a control.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx Basis",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "An English sentence is quoted to a Hebrew reader: the delivery ledger's counted_as_of_basis column is English-only and the board prints it verbatim. It is attributed, isolated and marked as the source's own words, which is the honest form of an untranslatable passthrough, but a Hebrew-first operator screen still carries an English paragraph.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx:49, value from data/campaign_delivery.csv",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "GET /api/pacing returns 366 KB and the board renders 56 rows with no windowing, because every broadcast day of every campaign rides the board payload. It is 28 to 32 ms warm today and grows as campaigns times flight days.",
+      "where": "kairos_api/pacing_alerts_api_read.py board_payload",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "The repo's own build never parses this piece's frontend. npm run build in tv-break-dashboard succeeds without compiling these files because nothing imports them, so a syntax error here would ship undetected. Verified by building a scratch copy with the mount applied, which does compile them and is clean.",
+      "where": "tv-break-dashboard/src/clients/pacing/**",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "Recorded against myself. The language toggle in the shell header writes locale and direction into data/kairos_settings.json, the live operator store, so a critic doing an English and Hebrew comparison mutates the plan of record. Mine did. Restored byte-exact to HEAD, sha256 cc084437ec62af9fc306521e757afd7a19b8acc8f160c8b7c7a746da09d501cf, he and rtl and רשת 13 confirmed. This is the exact mechanism that cost wave one 15.8M ILS of golden drift and it is still armed.",
+      "where": "the shell header language control, writing data/kairos_settings.json",
+      "kind": "structural",
+      "severity": "minor"
+    }
+  ],
+  "fixed_myself": [
+    "kairos_api/pacing_alerts_api.py: _actor now reads affiliation_wall.session_for, the accessor W0-4 published, so the ledger records who acted; the refused transition is stated in the labels the store publishes, in both languages, with no store key and no Latin text in the Hebrew half",
+    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx: the write gate is read as the pair payloadCanEdit returns, and the refusal shown before the click is the wall's own; a sentence under the headline says how many of the counted rows the demo seed wrote",
+    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx: the separator moved outside the direction isolate so an offer beside its window is no longer read as one number; instants are readable and keep their offset only where the store carries one; the unit is said once",
+    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx and PacingDays.jsx: the counted figure and its goal share one unit",
+    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js: bare(), pair() and instant() added, so the three sites format one way",
+    "tv-break-dashboard/src/clients/pacing/pacing.css: .page-workspace.pacing-workspace settles the display tie with the shell so the tabs stop ballooning, the at-risk count takes the ink weight, and the new sentence takes the basis type",
+    "tests/test_p11_regression.py: five new guards, and tests/test_p11_make_good_ledger.py: the transition assertion now pins the published label and forbids every store key. All six proven to fail against the code at HEAD and pass against the fix"
+  ],
+  "evidence": {
+    "server": "my own uvicorn on 127.0.0.1:8062 with KAIROS_AUTH_DIR in scratch, killed at the end; ports 8000, 8010, 3000 untouched",
+    "ui": "a scratch copy of tv-break-dashboard under /tmp with the published four-line mount applied, built with vite and served on 3072, proxying to 8062; the repo tree was never mounted",
+    "screenshots": "board, days drill, ledger, empty filter and both languages captured through the browser during the round",
+    "api": "/api/pacing 36, 30, 31 ms warm, 365,884 bytes, 56 rows, counts behind 0 at_risk 13 on_pace 38 unknown 5, demo 51, scope רשת 13 with 0 competitor rows",
+    "stopwatch": "1,364 ms and 2 clicks from Today to the worst-pacing row on the production build, of which 772 ms to the Clients destination, against a 60 s target and the 6.61 to 8.26 s baseline for a campaigns screen with no pacing at all",
+    "suite": "tests/ 3262 passed, 11 failed, 10 skipped in 20:17; the same 11 reproduce identically on a clean HEAD tree extracted with git archive, so none is this round's",
+    "p11_tests": "47 passed across the four test_p11_* files after the fixes, 41 before",
+    "build": "npm run build in tv-break-dashboard clean; the scratch build with the mount also clean and it is the only one that compiles this piece"
+  },
+  "files_touched_by_builder": [
     "kairos_api/pacing_alerts_api.py",
     "kairos_api/pacing_alerts_api_board.py",
     "kairos_api/pacing_alerts_api_read.py",
@@ -29,17 +183,20 @@
     "docs/ux-gauntlet/contracts/P11.md",
     "docs/ux-gauntlet/state/P11.json"
   ],
-  "blockers": [
-    "The mount: src/clients/pacing/** is P11's and sits inside P4's src/clients/**. Four lines in ClientsChrome.jsx and ClientsWorkspace.jsx are needed to reach the surface from the shell. Exact patch in docs/ux-gauntlet/contracts/P11.md section 5.",
-    "Owner decision 4 is still open for campaign_flights.csv, a current broadcast week and a live delivery feed. GET /api/make-good-alerts remains honestly data-pending. The pacing board reads P4's derived delivery ledger instead, which is real for the one sourced broadcast day and honestly unknown for the other six of every flight."
+  "files_touched_by_critic": [
+    "kairos_api/pacing_alerts_api.py",
+    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
+    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
+    "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
+    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
+    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
+    "tv-break-dashboard/src/clients/pacing/pacing.css",
+    "tests/test_p11_regression.py",
+    "tests/test_p11_make_good_ledger.py",
+    "docs/ux-gauntlet/state/P11.json"
   ],
-  "measured": {
-    "board_rows": 56,
-    "verdicts": {"behind": 0, "at_risk": 13, "on_pace": 38, "unknown": 5},
-    "worst_row_ms_zero_clicks": 304,
-    "api_pacing_ms_warm": [36, 30, 31],
-    "competitor_rows_excluded_on_seed": 0,
-    "competitor_names_on_screen": 0,
-    "tests": "41 passed across the four test_p11_* files"
-  }
+  "blockers": [
+    "The mount: src/clients/pacing/** is P11's and sits inside P4's src/clients/**. Four lines in ClientsChrome.jsx and ClientsWorkspace.jsx are needed to reach the surface from the shell, plus 'pacing' in VIEWS at clients-money-helpers.js:11 for the address to survive a reload. Exact patch in docs/ux-gauntlet/contracts/P11.md section 5, corrected by the third site here.",
+    "Owner decision 4 is still open for campaign_flights.csv, a current broadcast week and a live delivery feed. GET /api/make-good-alerts remains honestly data-pending. The pacing board reads P4's derived delivery ledger instead, which is real for the one sourced broadcast day and honestly unknown for the other six of every flight, and the critic confirmed no delivered figure or pacing percentage anywhere on the surface comes from anything but that ledger."
+  ]
 }

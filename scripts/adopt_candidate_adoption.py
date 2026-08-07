@@ -41,11 +41,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from scripts.adopt_candidate_surface import artifact_surface
+from scripts import adopt_candidate_words as words
+from scripts.adopt_candidate_state import (
+    gate_evidence,
+    live_version,
+    money_state,
+    recorded_decision,
+    ship_decision,
+)
+from scripts.adopt_candidate_surface import artifact_surface, dropped_field
 from scripts.adopt_candidate_rescore import (
     Paths,
     candidate_files,
     candidate_id,
+    load_rescore,
     read_artifact,
     rescore_state,
     sha256_file,
@@ -128,73 +137,17 @@ def owner_approval(identifier: str, paths: Optional[Paths] = None) -> Optional[d
     return payload or None
 
 
-def live_version() -> dict[str, Any]:
-    """The model version the tree currently holds, from the console's own reader.
+def _check(identifier: str, passed: bool, en: str, he: str, how: str = "",
+           **fields: Any) -> dict[str, Any]:
+    """One condition answered in both languages, including what would clear it.
 
-    A seam rather than a direct call so a test can stand a version up without a
-    whole model tree, and so this piece has exactly one place where it asks
-    another piece what the live version is.
+    ``how`` is a key into the words table rather than a sentence, because the
+    sentence is two sentences and neither belongs in the middle of a condition.
     """
-    from kairos_api import model_console_artifacts as artifacts
-
-    return artifacts.model_version()
-
-
-def money_state(identifier: str) -> dict[str, Any]:
-    """The stored money measurement and whether it is current, from P7's store.
-
-    Read through P7's own store module rather than off the disk, so the state a
-    steward sees here is the state the model console shows, computed by the same
-    code, and this piece never has a second opinion about a figure it did not
-    measure.
-    """
-    from kairos_api import model_console_candidates as console
-    from kairos_api import model_version_store as store
-
-    stored = store.measurement(identifier)
-    path = console.candidate_path(identifier)
-    if stored is None:
-        return {"state": "not_measured", "revenue_delta": None,
-                "reason_en": "The money this would move has not been measured.",
-                "how_en": f"python scripts/adopt_candidate.py measure {identifier}"}
-    if path is None or str(stored.get("fingerprint") or "") != console.measurement_fingerprint(path):
-        moved = console.changed_inputs(path, stored) if path is not None else []
-        return {"state": "stale", "revenue_delta": None, "changed": moved,
-                "measured_at": stored.get("measured_at"),
-                "reason_en": "The stored money measurement is not current. What changed: " + (", ".join(moved) or "not recorded") + ".",
-                "how_en": f"python scripts/adopt_candidate.py measure {identifier}"}
-    own = stored.get("operator_channel_delta") or {}
-    whole = stored.get("whole_plan_delta") or {}
-    # A shipped figure is not only revenue. The plan publishes the retention sum
-    # and the break count as well, so a candidate that leaves revenue alone and
-    # moves either of those has still moved something an operator reads.
-    moved_fields = sorted(
-        key for source in (own, whole)
-        for key in ("revenue_delta", "retention_sum_delta", "breaks_delta")
-        if isinstance(source.get(key), (int, float)) and abs(float(source[key])) > 0)
-    return {"state": "measured", "revenue_delta": own.get("revenue_delta"),
-            "measured_at": stored.get("measured_at"),
-            "scope": (stored.get("scope") or {}).get("operator_channel"),
-            "moved_fields": moved_fields,
-            "whole_plan_delta": whole.get("revenue_delta")}
+    return {"id": identifier, "passed": bool(passed), "reason_en": en, "reason_he": he,
+            **words.pair(words.HOW, how, "how", **fields)}
 
 
-def ship_decision(identifier: str, version_id: str) -> Optional[dict[str, Any]]:
-    from kairos_api import model_version_store as store
-
-    for record in store.decisions():
-        if record.get("subject") != "candidate" or record.get("candidate_id") != identifier:
-            continue
-        if record.get("decision") != "shipped":
-            continue
-        if version_id and record.get("model_version_id") != version_id:
-            continue
-        return record
-    return None
-
-
-def _check(identifier: str, passed: bool, en: str, he: str, how: str = "") -> dict[str, Any]:
-    return {"id": identifier, "passed": bool(passed), "reason_en": en, "reason_he": he, "how_en": how}
 
 
 def preconditions(identifier: str, paths: Optional[Paths] = None,
@@ -222,7 +175,7 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
         "rescore_current", state["state"] == "current",
         "The held-out re-score is current." if state["state"] == "current" else str(state.get("reason_en") or state["state"]),
         "המדידה החוזרת עדכנית." if state["state"] == "current" else str(state.get("reason_he") or ""),
-        "python scripts/adopt_candidate.py rescore"))
+        "rescore"))
 
     verdict = _stored_verdict(identifier, paths)
     checks.append(_check(
@@ -236,37 +189,43 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
     checks.append(_check(
         "money_current", money["state"] == "measured",
         "The money this would move is measured and current." if money["state"] == "measured" else str(money.get("reason_en") or ""),
-        "הכסף שזה יזיז נמדד והוא עדכני." if money["state"] == "measured" else "מדידת הכסף אינה עדכנית.",
-        str(money.get("how_en") or "")))
+        "הכסף שזה יזיז נמדד והוא עדכני." if money["state"] == "measured" else str(money.get("reason_he") or ""),
+        str(money.get("how") or ""), id=identifier))
 
     decision = ship_decision(identifier, version_id)
+    taken = None if decision else recorded_decision(identifier)
     checks.append(_check(
         "ship_decision_recorded", decision is not None,
         f"A ship verdict is recorded for this candidate: {decision['decision_id']}." if decision else
-        "No ship verdict is recorded for this candidate against the model version on disk.",
-        "נרשמה הכרעת שיגור למועמד הזה." if decision else "לא נרשמה הכרעת שיגור למועמד הזה מול גרסת המודל שעל הדיסק.",
-        "Record it on the model console, or POST /api/model/decisions."))
+        f"The verdict on record for this candidate is no ship, taken {words.when((taken or {}).get('recorded_at'))}. Adopting it would contradict a decision somebody already took." if taken else
+        "No verdict of any kind is recorded for this candidate against the model version on disk.",
+        "נרשמה הכרעת שיגור למועמד הזה." if decision else
+        "ההכרעה הרשומה למועמד הזה היא לא להשיק, והטמעה תסתור הכרעה שכבר התקבלה." if taken else
+        "לא נרשמה שום הכרעה למועמד הזה מול גרסת המודל שעל הדיסק.",
+        "record_verdict", id=identifier))
 
     checks.append(_check(
         "steward_named", bool(str(approved_by).strip()),
         "The steward taking this decision is named." if approved_by else "Nobody is named as taking this decision.",
         "מי שמכריע נקוב בשם." if approved_by else "לא נקוב מי מכריע.",
-        "--adopted-by \"<name>\""))
+        "adopted_by"))
     checks.append(_check(
         "reason_given", bool(str(reason).strip()),
         "The adoption carries its reason." if reason else "The adoption carries no reason, and a verdict with no reason is not a record.",
         "להטמעה יש סיבה." if reason else "להטמעה אין סיבה, והכרעה בלי סיבה אינה רישום.",
-        "--reason \"<sentence>\""))
+        "reason"))
 
-    surface = artifact_surface(read_artifact(paths.shipped), read_artifact(path) if path else {})
+    shipped_payload = read_artifact(paths.shipped)
+    candidate_payload = read_artifact(path) if path else {}
+    surface = artifact_surface(shipped_payload, candidate_payload)
     dropped = surface["engine_inputs_dropped"]
     checks.append(_check(
         "no_engine_input_dropped", not dropped,
         "The candidate carries every field the engine reads out of the shipped artifact." if not dropped else
-        "The candidate drops fields the engine reads: " + ", ".join(item["field"] for item in dropped) + ".",
+        "The candidate drops fields the engine reads: " + ", ".join(dropped_field(item) for item in dropped) + ".",
         "המועמד נושא כל שדה שהמנוע קורא מהקובץ המשודר." if not dropped else
-        "המועמד משמיט שדות שהמנוע קורא: " + ", ".join(item["field"] for item in dropped) + ".",
-        "Rebuild the candidate with the layers the shipped artifact carries."))
+        "המועמד משמיט שדות שהמנוע קורא: " + ", ".join(dropped_field(item) for item in dropped) + ".",
+        "rebuild_candidate"))
 
     money_moves = bool(money.get("moved_fields")) if money["state"] == "measured" else False
     approval = owner_approval(identifier, paths)
@@ -278,7 +237,7 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
             "owner_approval_matches_movement", bool(matches),
             "The owner's recorded approval names this exact movement." if matches else ESCALATION["en"],
             "אישור הבעלים הרשום נוקב בדיוק בתנועה הזו." if matches else ESCALATION["he"],
-            f"models/releases/owner_approvals/{identifier}.json with approved_revenue_delta set to the measured figure."))
+            "owner_approval", id=identifier))
     else:
         checks.append(_check(
             "no_shipped_figure_moves", money["state"] == "measured",
@@ -296,6 +255,10 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
         "money_moves": money_moves,
         "escalated": bool(money_moves and not matches),
         "artifact_surface": surface,
+        # JS-19's second sentence is "read what its gates decided differently",
+        # and its target asks for each with its held-out figure. Both are here
+        # rather than one screen away, because the verdict is taken here.
+        "gate_evidence": gate_evidence(shipped_payload, candidate_payload),
         "rescore_verdict": verdict,
         "model_version": version,
         "ship_decision": decision,
@@ -303,8 +266,6 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
 
 
 def _stored_verdict(identifier: str, paths: Paths) -> str:
-    from scripts.adopt_candidate_rescore import load_rescore
-
     stored = load_rescore(paths) or {}
     for row in stored.get("candidates") or []:
         if row.get("id") == identifier:

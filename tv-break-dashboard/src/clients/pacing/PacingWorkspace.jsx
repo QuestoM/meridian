@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { WALLS, fetchSession, payloadCanEdit } from '../../session';
 import MakeGoodLedger from './MakeGoodLedger';
 import PacingBoard from './PacingBoard';
-import { loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalText } from './pacing-api';
-import { isolate, pick, vocabularyLabel } from './pacing-helpers';
+import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalText } from './pacing-api';
+import { isolate, pick, term, vocabularyLabel } from './pacing-helpers';
 import './pacing.css';
 import './makegood.css';
 
@@ -49,8 +49,14 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     return () => { active = false; };
   }, []);
 
-  const canEdit = payloadCanEdit(board.payload, session, WALLS.readOnlyRole);
-  const editRefusal = WALLS.readOnlyRole.detail;
+  // The gate is a pair, the canEdit answer and the refusal that goes with it,
+  // which is the shape every other destination reads. Held as one object it is
+  // always truthy, so a read-only account was shown a control the server would
+  // then refuse, and the refusal it was shown came from a constant here rather
+  // than from the wall that made the decision.
+  const gate = payloadCanEdit(board.payload, session, WALLS.readOnlyRole);
+  const canEdit = gate.canEdit;
+  const editRefusal = gate.reason || WALLS.readOnlyRole.detail;
 
   async function onRaise(row) {
     setBusyId(row.campaign_id);
@@ -67,6 +73,28 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
       notify(
         `The make-good could not be raised. ${refusalText(error, 'en')}`,
         `לא ניתן היה לפתוח את פיצוי השידור. ⁦${refusalText(error, 'he')}⁩`,
+      );
+    } finally {
+      setBusyId('');
+    }
+  }
+
+  // The other ending. It writes a record and changes no figure, so the notice
+  // says what was recorded rather than claiming the campaign moved.
+  async function onAccept(row) {
+    setBusyId(row.campaign_id);
+    try {
+      const answer = await acceptRisk(row.campaign_id, '');
+      const record = answer.make_good;
+      notify(
+        `The risk on ${row.name} is recorded as taken on, ${record.make_good_id}.`,
+        `הסיכון ב⁦${row.name}⁩ נרשם כמתקבל, ⁦${record.make_good_id}⁩.`,
+      );
+      reload();
+    } catch (error) {
+      notify(
+        `The risk could not be recorded. ${refusalText(error, 'en')}`,
+        `לא ניתן היה לרשום את קבלת הסיכון. ⁦${refusalText(error, 'he')}⁩`,
       );
     } finally {
       setBusyId('');
@@ -112,10 +140,42 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     }
     const counts = board.payload.counts || {};
     const acting = (counts.behind || 0) + (counts.at_risk || 0);
+    const settled = decided();
     return pick(
       locale,
-      `${acting} of ${counts.total || 0} campaigns need a decision today, ${counts.unknown || 0} cannot be paced yet.`,
-      `${isolate(acting)} מתוך ${isolate(counts.total || 0)} קמפיינים דורשים החלטה היום, ${isolate(counts.unknown || 0)} עדיין לא ניתנים למדידת קצב.`,
+      `${acting - settled} of ${counts.total || 0} campaigns still need a decision, ${settled} of the ${acting} at risk already carry one, ${counts.unknown || 0} cannot be paced yet.`,
+      `${isolate(acting - settled)} מתוך ${isolate(counts.total || 0)} קמפיינים עדיין דורשים החלטה, ל־${isolate(settled)} מתוך ${isolate(acting)} שבסיכון כבר יש אחת, ${isolate(counts.unknown || 0)} עדיין לא ניתנים למדידת קצב.`,
+    );
+  }
+
+  // How many of the rows the board is asking a decision about already carry one.
+  // The job this destination serves is done when every at-risk campaign has an
+  // act taken against it or a recorded decision to take the risk on, so the
+  // headline counts what is left rather than what exists.
+  function decided() {
+    if (board.status !== 'ready') return 0;
+    const payload = board.payload;
+    const asking = payload.needs_a_decision || [];
+    const raised = payload.make_goods || {};
+    const accepted = payload.acceptances || {};
+    return (payload.rows || []).filter((row) => (
+      asking.indexOf(row.headline.verdict) >= 0
+      && ((raised[row.campaign_id] || []).length > 0 || (accepted[row.campaign_id] || []).length > 0)
+    )).length;
+  }
+
+  // How many of the counted rows the demo seed wrote. A count that mixes seeded
+  // rows into an operational one reads as a morning's work, and on this data
+  // most of them are seeded, so the count says which is which. The rows
+  // themselves are marked; the sentence above them was not.
+  function seeded() {
+    if (board.status !== 'ready') return null;
+    const counts = board.payload.counts || {};
+    if (!counts.demo) return null;
+    return pick(
+      locale,
+      `${counts.demo} of the ${counts.total || 0} are demo rows the seed wrote against the real traffic log, not campaigns an operator booked. Their goals and flight dates are the seed's.`,
+      `${isolate(counts.demo)} מתוך ${isolate(counts.total || 0)} הן שורות הדגמה שנכתבו על בסיס יומן השידור האמיתי ולא קמפיינים שמפעיל הזמין. היעדים ותאריכי הטיסה שלהן הם של זרע ההדגמה.`,
     );
   }
 
@@ -123,8 +183,18 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     <section className="page-workspace pacing-workspace" dir={he ? 'rtl' : 'ltr'}>
       <div className="page-header">
         <div>
-          <h1>{pick(locale, 'Pacing and make-good', 'קצב ופיצוי שידור')}</h1>
+          {/* The two words this destination is about come from the product
+              vocabulary, not from here. It had drifted to קצב where the
+              controlled word is קצב אספקה. */}
+          <h1>
+            {pick(
+              locale,
+              `${term('concept.pacing', 'en')} and make-good`,
+              `${term('concept.pacing', 'he')} ו${term('object.make_good', 'he')}`,
+            )}
+          </h1>
           <p>{headline()}</p>
+          {seeded() ? <p className="pacing-seeded">{seeded()}</p> : null}
         </div>
         <button type="button" className="pacing-refresh" onClick={reload}>
           {pick(locale, 'Read again', 'קראו שוב')}
@@ -134,13 +204,17 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
       <nav className="pacing-views" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
         <button type="button" role="tab" aria-selected={view === BOARD}
                 className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
-          {pick(locale, 'Campaign pacing', 'קצב הקמפיינים')}
+          {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
         </button>
         <button type="button" role="tab" aria-selected={view === LEDGER}
                 className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
-          {pick(locale, 'Make-good ledger', 'ספר פיצויי השידור')}
-          {ledger.status === 'ready' && ledger.payload.open_count
-            ? <span className="pacing-open-count" dir="ltr">{ledger.payload.open_count}</span>
+          {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
+          {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
+            ? (
+              <span className="pacing-open-count" dir="ltr">
+                {ledger.payload.open_count + ledger.payload.accepted_count}
+              </span>
+            )
             : null}
         </button>
       </nav>
@@ -168,6 +242,7 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           editRefusal={editRefusal}
           busyId={busyId}
           onRaise={onRaise}
+          onAccept={onAccept}
           onOpenMakeGood={() => setView(LEDGER)}
         />
       ) : null}
@@ -188,15 +263,15 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           <p>
             {pick(
               locale,
-              'The make-good ledger could not be read. What is missing is a failure, not an empty result.',
-              'לא ניתן היה לקרוא את ספר פיצויי השידור. מה שחסר הוא כשל, לא תוצאה ריקה.',
+              'The decision ledger could not be read. What is missing is a failure, not an empty result.',
+              'לא ניתן היה לקרוא את ספר ההחלטות. מה שחסר הוא כשל, לא תוצאה ריקה.',
             )}
           </p>
           <button type="button" onClick={reload}>{pick(locale, 'Try again', 'נסו שוב')}</button>
         </div>
       ) : null}
       {view === LEDGER && ledger.status === 'loading' ? (
-        <p className="pacing-loading">{pick(locale, 'Reading the make-good ledger', 'קורא את ספר פיצויי השידור')}</p>
+        <p className="pacing-loading">{pick(locale, 'Reading the decision ledger', 'קורא את ספר ההחלטות')}</p>
       ) : null}
     </section>
   );
