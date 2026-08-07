@@ -5688,7 +5688,7 @@ button {
 
 .mw-bar-net {
   background: var(--teal-soft);
-  border-inline-end: 2px solid var(--teal);
+  border: 1px solid var(--teal);
 }
 
 .mw-bar-cost {

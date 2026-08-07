@@ -38,13 +38,21 @@ function actWord(state, kind, locale) {
   return pick(locale, act.en, act.he);
 }
 
+// What a record's own timeline calls its opening. A make-good is raised against a
+// shortfall and an acceptance is recorded about one, and a single verb for both
+// would tell a Hebrew reader that a decision was opened.
+function openedWord(kind, locale) {
+  if (kind === ACCEPTANCE) return pick(locale, 'Recorded', 'נרשמה');
+  return pick(locale, 'Raised', 'נפתח');
+}
+
 function headlineFigure(record, locale) {
   const shortfall = record.shortfall;
   const value = amount(shortfall.deficit_value, shortfall.unit, locale);
   if (record.kind === ACCEPTANCE) {
-    return pick(locale, `${value} behind when the risk was taken on`, `פיגור של ${isolate(value)} בעת קבלת הסיכון`);
+    return pick(locale, `${value} behind when the risk was taken on`, `פיגור של ${value} בעת קבלת הסיכון`);
   }
-  return pick(locale, `${value} short`, `חסרים ${isolate(value)}`);
+  return pick(locale, `${value} short`, `חסרים ${value}`);
 }
 
 function Figures({ record, locale, vocabulary }) {
@@ -124,7 +132,7 @@ function Offer({ record, locale }) {
       {pick(
         locale,
         `Offered ${amount(record.offer.value, record.shortfall.unit, locale)}`,
-        `הוצעו ${isolate(amount(record.offer.value, record.shortfall.unit, locale))}`,
+        `הוצעו ${amount(record.offer.value, record.shortfall.unit, locale)}`,
       )}
       {window ? ' ' : ''}
       {window ? <span dir="ltr">{window}</span> : null}
@@ -137,10 +145,16 @@ function Offer({ record, locale }) {
 export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, busyId, onMove, onOpenCampaign }) {
   const [offering, setOffering] = useState('');
   const vocabulary = payload.vocabulary || {};
-  const rows = payload.make_goods || [];
+  // Both endings, in one timeline. Reading only make_goods was measured hiding
+  // every recorded acceptance: the tab badge counted one record and the list said
+  // no make-good had been raised, which is the exact pair of screens the second
+  // ending exists to make impossible. make_goods is the fallback for a payload
+  // written before this read carried both.
+  const rows = payload.decisions || payload.make_goods || [];
+  const accepted = payload.accepted_count || 0;
 
   return (
-    <section className="makegood-ledger" aria-label={pick(locale, 'Make-good ledger', 'ספר פיצויי השידור')}>
+    <section className="makegood-ledger" aria-label={pick(locale, 'Decision ledger', 'ספר ההחלטות')}>
       <p className="pacing-basis">
         {localized(payload.sign_off, 'reason', locale)}
         {' '}
@@ -148,13 +162,16 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
         {' '}
         {localized(payload.sign_off, 'offer_reserves_nothing', locale)}
       </p>
+      {accepted ? (
+        <p className="pacing-basis">{localized(payload, 'acceptance_means', locale)}</p>
+      ) : null}
 
       {rows.length === 0 ? (
         <p className="pacing-empty">
           {pick(
             locale,
-            'No make-good has been raised. A campaign with a measured shortfall carries the control that raises one.',
-            'לא נפתח פיצוי שידור. קמפיין עם חוסר נמדד נושא את הפקד שפותח אחד.',
+            'Nothing has been decided yet. A campaign with a measured shortfall carries the control that raises a make-good, and every campaign the board asks about carries the one that records the risk as taken on.',
+            'עדיין לא הוכרעה אף החלטה. קמפיין עם חוסר נמדד נושא את הפקד שפותח פיצוי שידור, וכל קמפיין שהלוח מבקש עליו החלטה נושא את הפקד שרושם את קבלת הסיכון.',
           )}
         </p>
       ) : null}
@@ -164,6 +181,13 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
           <div className="makegood-row-head">
             <span className={`makegood-state ${record.state}`}>
               {vocabularyLabel(vocabulary.states, record.state, locale)}
+            </span>
+            {/* Which of the two endings this row is. The state words already
+                differ, and a person scanning a mixed timeline should not have to
+                read a state to learn which kind of record they are looking at. */}
+            <span className={`makegood-kindmark ${record.kind}`}
+                  title={vocabularyMeaning(vocabulary.kinds, record.kind, locale)}>
+              {vocabularyLabel(vocabulary.kinds, record.kind, locale)}
             </span>
             <button type="button" className="makegood-campaign" onClick={() => onOpenCampaign(record.campaign_id)}>
               {record.campaign_name || record.campaign_id}
@@ -180,8 +204,8 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
           <small className="makegood-trail">
             {pick(
               locale,
-              `Raised ${instant(record.raised_at)}${record.raised_by ? ` by ${record.raised_by}` : ''}. Counted as of ${instant(record.shortfall.counted_as_of)}.`,
-              `נפתח ${isolate(instant(record.raised_at))}${record.raised_by ? ` על ידי ${record.raised_by}` : ''}. נספר נכון ל־${isolate(instant(record.shortfall.counted_as_of))}.`,
+              `${openedWord(record.kind, locale)} ${instant(record.raised_at)}${record.raised_by ? ` by ${record.raised_by}` : ''}. Counted as of ${instant(record.shortfall.counted_as_of)}.`,
+              `${openedWord(record.kind, locale)} ${isolate(instant(record.raised_at))}${record.raised_by ? ` על ידי ${record.raised_by}` : ''}. נספר נכון ל־${isolate(instant(record.shortfall.counted_as_of))}.`,
             )}
           </small>
 
@@ -196,7 +220,7 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
                     ? setOffering(record.make_good_id)
                     : onMove(record.make_good_id, { state }))}
                 >
-                  {actWord(state, locale)}
+                  {actWord(state, record.kind, locale)}
                 </button>
               ))}
               {record.next_states.length === 0 ? (

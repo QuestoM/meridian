@@ -1,0 +1,80 @@
+/* Clients, pacing: the broadcast days behind one row. Split out of pacing.css
+   under the file-size law, and split along the component boundary so the sheet
+   travels with PacingDays.jsx. Logical properties throughout, every token read
+   from tokens.css and none defined here. */
+
+.pacing-days {
+  border-block-start: 1px solid var(--line);
+  padding-block-start: var(--space-2);
+}
+
+.pacing-days table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+}
+
+.pacing-days-caption {
+  text-align: start;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  padding-block-end: var(--space-1);
+}
+
+.pacing-days th,
+.pacing-days td {
+  text-align: start;
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.pacing-days thead th {
+  color: var(--subtle);
+  font-weight: var(--weight-medium);
+}
+
+.pacing-days tbody th {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+/* The date and the weekday it falls on, stacked so the ISO string keeps its own
+   direction and the reader never derives a weekday from it. */
+.pacing-day-weekday {
+  display: block;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+}
+
+/* The Israeli week ends on Friday and Saturday. A flight day that lands on one
+   is not a day a media buyer reads the same way as a weekday, so it is marked
+   rather than left for the reader to work out from the date. */
+.pacing-days tr.weekend th,
+.pacing-days tr.weekend td {
+  background: var(--surface-muted);
+}
+
+.pacing-days tr.unknown td,
+.pacing-days tr.unknown th {
+  color: var(--muted);
+  background: var(--surface-muted);
+}
+
+.pacing-day-figures {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+}
+
+.pacing-day-unknown {
+  color: var(--muted);
+}
+
+.pacing-second-line,
+.pacing-days-source {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}

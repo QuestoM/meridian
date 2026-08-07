@@ -33,7 +33,7 @@
 .source-stored li {
   display: grid;
   gap: var(--space-1);
-  border-inline-start: 2px solid var(--line);
+  border: 1px solid var(--line);
   padding-inline-start: var(--space-2);
 }
 

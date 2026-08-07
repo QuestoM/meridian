@@ -108,11 +108,11 @@
 }
 
 .plan-scenario-card.accent-a {
-  border-inline-start: 3px solid var(--blue);
+  border: 1px solid var(--blue);
 }
 
 .plan-scenario-card.accent-b {
-  border-inline-start: 3px solid var(--teal);
+  border: 1px solid var(--teal);
 }
 
 .plan-scenario-head {

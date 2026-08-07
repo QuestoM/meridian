@@ -121,7 +121,7 @@ function Forward({ line, vocabulary, locale }) {
       </span>
       {remaining ? (
         <span className="pacing-forward-figure">
-          {pick(locale, `${remaining} left to the goal`, `${isolate(remaining)} נותרו עד היעד`)}
+          {pick(locale, `${remaining} left to the goal`, `${remaining} נותרו עד היעד`)}
         </span>
       ) : null}
       {missing ? (
@@ -143,7 +143,7 @@ function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
     return (
       <button type="button" className="pacing-remedy" disabled={busy} onClick={onRaise}>
         <Plus size={13} aria-hidden="true" />
-        {pick(locale, `Raise a make-good for ${value}`, `פתחו פיצוי שידור על ${isolate(value)}`)}
+        {pick(locale, `Raise a make-good for ${value}`, `פתחו פיצוי שידור על ${value}`)}
       </button>
     );
   }
@@ -166,7 +166,7 @@ function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
           {pick(
             locale,
             `Book ${left} across the ${remedy.days.length} remaining broadcast days, or upload the traffic file that already holds them.`,
-            `הזמינו ${isolate(left)} על פני ${isolate(remedy.days.length)} ימי השידור שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם.`,
+            `הזמינו ${left} על פני ${isolate(remedy.days.length)} ימי השידור שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם.`,
           )}
         </span>
         <a className="pacing-remedy open" href={UPLOAD_HASH}>

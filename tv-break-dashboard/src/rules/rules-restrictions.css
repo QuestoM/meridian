@@ -95,7 +95,7 @@
 .rules-effect-collateral {
   margin: 0 0 var(--space-4);
   padding-inline-start: var(--space-3);
-  border-inline-start: 2px solid var(--amber);
+  border: 1px solid var(--amber);
 }
 
 .rules-effect-collateral-note {
@@ -173,7 +173,7 @@
 .rules-effect-gap {
   margin: var(--space-3) 0 0;
   padding-inline-start: var(--space-3);
-  border-inline-start: 2px solid var(--line-strong);
+  border: 1px solid var(--line-strong);
   font-size: var(--text-sm);
   color: var(--muted);
 }
@@ -183,7 +183,7 @@
 .rules-effect-unknown {
   margin: 0 0 var(--space-3);
   padding-inline-start: var(--space-3);
-  border-inline-start: 2px solid var(--amber);
+  border: 1px solid var(--amber);
   font-size: var(--text-sm);
   color: var(--muted);
 }

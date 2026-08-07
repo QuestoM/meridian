@@ -168,19 +168,30 @@ export default function PacingBoard({
     if (card) card.scrollIntoView({ block: 'nearest' });
   }, [focused, rows.length]);
 
+  // The legend names the keys that do something on the rows in front of the
+  // reader, and no others. Measured on the shipped data, 0 of 56 rows reach a
+  // raise, so a fixed legend advertised a key that could not fire on any row on
+  // the board. A shortcut nobody can press is a claim about a capability, and
+  // this piece states capability from what the rows carry rather than from what
+  // the code can do in principle.
+  const keys = [pick(locale, 'j and k step', 'j ו-k מדלגים')];
+  if (rows.some((row) => row.days_available)) {
+    keys.push(pick(locale, 'Enter opens the broadcast days', 'Enter פותח את ימי השידור'));
+  }
+  if (canEdit && rows.some((row) => remedyFor(row, payload.make_goods).kind === 'raise')) {
+    keys.push(pick(locale, 'r raises the make-good a row names', 'r פותח את פיצוי השידור שהשורה נוקבת בו'));
+  }
+  if (canEdit && rows.some((row) => acceptanceFor(row, payload.acceptances, payload.needs_a_decision).kind === 'accept')) {
+    keys.push(pick(locale, 'a takes the risk on', 'a מקבל את הסיכון'));
+  }
+
   return (
     <section className="pacing-board" aria-label={pick(locale, 'Campaign pacing', 'קצב הקמפיינים')}>
       <Strip counts={counts} active={filter} vocabulary={vocabulary} locale={locale} onPick={setFilter} />
 
       <div className="pacing-chrome">
         <Basis payload={payload} locale={locale} />
-        <p className="pacing-keys">
-          {pick(
-            locale,
-            'j and k step, Enter opens the broadcast days, r raises the make-good a row names, a takes the risk on.',
-            'j ו-k מדלגים, Enter פותח את ימי השידור, r פותח את פיצוי השידור שהשורה נוקבת בו, a מקבל את הסיכון.',
-          )}
-        </p>
+        <p className="pacing-keys">{`${keys.join(', ')}.`}</p>
       </div>
 
       {rows.length === 0 ? (

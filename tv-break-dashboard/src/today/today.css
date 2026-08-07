@@ -304,7 +304,7 @@
   display: grid;
   gap: 6px;
   padding: 10px 12px;
-  border-inline-start: 2px solid var(--teal);
+  border: 1px solid var(--teal);
   background: var(--surface-muted);
 }
 

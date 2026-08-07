@@ -5,6 +5,8 @@ import PacingBoard from './PacingBoard';
 import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalText } from './pacing-api';
 import { isolate, pick, term, vocabularyLabel } from './pacing-helpers';
 import './pacing.css';
+import './pacing-row.css';
+import './pacing-days.css';
 import './makegood.css';
 
 // Clients, pacing: whether a campaign is behind before it is too late to fix, and
@@ -181,43 +183,50 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
 
   return (
     <section className="page-workspace pacing-workspace" dir={he ? 'rtl' : 'ltr'}>
-      <div className="page-header">
+      {/* The heading is an h2 and the two view controls ride the same row as it.
+          Mounted inside a destination that already carries an h1 and a view
+          strip, a second h1 above a second strip is two documents on one page,
+          and it was measured costing 90 px of the fold before the first row.
+          Measured before: the first row sat at y=531 in an 851 px viewport. */}
+      <div className="page-header pacing-header">
         <div>
           {/* The two words this destination is about come from the product
               vocabulary, not from here. It had drifted to קצב where the
               controlled word is קצב אספקה. */}
-          <h1>
+          <h2>
             {pick(
               locale,
               `${term('concept.pacing', 'en')} and make-good`,
               `${term('concept.pacing', 'he')} ו${term('object.make_good', 'he')}`,
             )}
-          </h1>
-          <p>{headline()}</p>
-          {seeded() ? <p className="pacing-seeded">{seeded()}</p> : null}
+          </h2>
+          <p>
+            {headline()}
+            {seeded() ? ' ' : ''}
+            {seeded() ? <span className="pacing-seeded">{seeded()}</span> : null}
+          </p>
         </div>
-        <button type="button" className="pacing-refresh" onClick={reload}>
-          {pick(locale, 'Read again', 'קראו שוב')}
-        </button>
+        <nav className="pacing-views" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
+          <button type="button" role="tab" aria-selected={view === BOARD}
+                  className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
+            {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
+          </button>
+          <button type="button" role="tab" aria-selected={view === LEDGER}
+                  className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
+            {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
+            {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
+              ? (
+                <span className="pacing-open-count" dir="ltr">
+                  {ledger.payload.open_count + ledger.payload.accepted_count}
+                </span>
+              )
+              : null}
+          </button>
+          <button type="button" className="pacing-refresh" onClick={reload}>
+            {pick(locale, 'Read again', 'קראו שוב')}
+          </button>
+        </nav>
       </div>
-
-      <nav className="pacing-views" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
-        <button type="button" role="tab" aria-selected={view === BOARD}
-                className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
-          {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
-        </button>
-        <button type="button" role="tab" aria-selected={view === LEDGER}
-                className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
-          {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
-          {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
-            ? (
-              <span className="pacing-open-count" dir="ltr">
-                {ledger.payload.open_count + ledger.payload.accepted_count}
-              </span>
-            )
-            : null}
-        </button>
-      </nav>
 
       {view === BOARD && board.status === 'loading' ? (
         <p className="pacing-loading">{pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב')}</p>

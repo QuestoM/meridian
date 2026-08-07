@@ -10,8 +10,15 @@
 // it said קצב where the controlled word is קצב אספקה. The one module that holds
 // those words is imported, and it imports nothing itself, so this file is still
 // executable on its own the way its test runs it.
+//
+// The extension is on the specifier deliberately. Vite resolves an extensionless
+// path and node does not, and this module is executed by node directly in
+// tests/test_p11_surface_remedy.py so the assertions are about the file the
+// browser loads. Measured: without it, node raised ERR_MODULE_NOT_FOUND and all
+// six of those tests failed. Every other importer of this module in the product
+// already writes the extension.
 
-import { word } from '../../vocabulary';
+import { word } from '../../vocabulary.js';
 
 export function term(key, locale) {
   return word(key, locale === 'he' ? 'he' : 'en');
@@ -74,6 +81,15 @@ export function pick(locale, en, he) {
 }
 
 // A number inside Hebrew prose, isolated so the digits never reorder around it.
+//
+// It takes a numeral, an ISO date or a Latin identifier, and nothing that holds
+// a Hebrew word. The isolate is a left-to-right one, so it lays its contents out
+// left to right: given a phrase that is already Hebrew it puts the words in the
+// wrong order. Measured on the shipped board, isolate(amount(35, rating_points,
+// he)) rendered the headline figure of every row as
+// "4.4 מתוך נקודות רייטינג 35", the unit ahead of its own number. A figure that
+// carries a unit isolates its numeral inside amount below and is never wrapped
+// again by a caller.
 export function isolate(text) {
   return `⁦${text}⁩`;
 }
@@ -87,14 +103,19 @@ export function decimals(value, places, locale) {
 
 // A figure with its unit. Rating points keep one decimal because a tenth of a
 // point is a real trading quantity; money is whole shekels.
+//
+// The Hebrew form isolates the numeral and leaves the unit in the surrounding
+// direction, so the phrase reads as Hebrew with a number in it. A caller never
+// isolates the result again: doing that put the unit ahead of its own number on
+// every row of the board.
 export function amount(value, unit, locale) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null;
   if (unit === ILS) {
     const shekels = decimals(Math.round(Number(value)), 0, locale);
-    return pick(locale, `ILS ${shekels}`, `${shekels} ש"ח`);
+    return pick(locale, `ILS ${shekels}`, `${isolate(shekels)} ש"ח`);
   }
   const points = decimals(Number(value), 1, locale);
-  return pick(locale, `${points} rating points`, `${points} נקודות רייטינג`);
+  return pick(locale, `${points} rating points`, `${isolate(points)} נקודות רייטינג`);
 }
 
 // The same figure without its unit, for the left half of a pair that already
@@ -107,12 +128,14 @@ export function bare(value, unit, locale) {
 }
 
 // A counted figure against the figure it is counted towards, with the unit said
-// once at the end where it governs both.
+// once at the end where it governs both. The left half is a bare numeral and is
+// isolated here; the right half carries a unit and isolated its own numeral in
+// amount, so wrapping it again would put that unit in front of its number.
 export function pair(counted, goal, unit, locale) {
   const left = bare(counted, unit, locale);
   const right = amount(goal, unit, locale);
   if (left === null || right === null) return null;
-  return pick(locale, `${left} of ${right}`, `${isolate(left)} מתוך ${isolate(right)}`);
+  return pick(locale, `${left} of ${right}`, `${isolate(left)} מתוך ${right}`);
 }
 
 export function percent(ratio, locale) {

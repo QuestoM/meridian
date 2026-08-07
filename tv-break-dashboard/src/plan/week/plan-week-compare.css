@@ -115,7 +115,7 @@
 }
 
 .plan-compare-table tr.is-weekend th {
-  border-inline-start: 3px solid var(--line-strong);
+  border: 1px solid var(--line-strong);
   padding-inline-start: var(--space-2);
 }
 

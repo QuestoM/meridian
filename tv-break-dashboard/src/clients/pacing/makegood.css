@@ -36,7 +36,28 @@
 .makegood-state.raised { background: var(--amber-soft); color: var(--amber-ink); }
 .makegood-state.offered { background: var(--blue-soft); color: var(--blue); }
 .makegood-state.settled { background: var(--teal-soft); color: var(--teal-ink); }
-.makegood-state.declined { background: var(--red-soft); color: var(--red); }
+.makegood-state.accepted { background: var(--teal-soft); color: var(--teal-ink); }
+/* Measured 4.29:1 as --red on --red-soft at this size, under the AA floor, and
+   there is no --red-ink to reach for. Inverted, it measures 5.09:1. */
+.makegood-state.declined { background: var(--red); color: var(--surface); }
+
+/* Which of the two endings a row records, beside the state rather than inferred
+   from it. A mixed timeline is the point of this ledger, so the kind is on the
+   row and not left to the reader to derive from a state word. */
+.makegood-kindmark {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.makegood-kindmark.acceptance {
+  border-color: var(--teal-soft);
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
 
 .makegood-campaign {
   border: none;

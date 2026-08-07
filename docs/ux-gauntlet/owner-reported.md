@@ -83,3 +83,31 @@ into the stylesheet. The item alignment applied inside the column track while th
 track itself stayed centred, so each card read as a centred title over
 start-aligned detail lines. Both properties are now set, both logical, so the
 card flips whole in Hebrew.
+
+## 2026-08-07, the pacing card
+
+Reported with two screenshots of `?clients=pacing#Campaigns`. Three defects, all
+on P11's surface, and the first is a class rather than a site.
+
+**1. A one-sided accent bar, banned outright.** "ביקשתי בלי דברים כאלו בשום
+מקום". Swept the whole dashboard: **26 of them across 17 files**, each a
+slightly different width and colour. 23 are fixed and the rule is now written
+down in `design-rules.md`. Three remain because live agents own those files:
+`clients/pacing/pacing-row.css:18` (the one reported), `plan/break/break-inspector.css:119`,
+`model/console/model-console.css:187`. Owner: whoever closes wave two.
+
+**2. No separator between facts.** The basis line runs three separate facts
+together with only whitespace: the remaining days have no source, 30.6 rating
+points remain to target, 6 broadcast days remain without a source. It reads as
+one broken sentence, and worse in Hebrew where there are no capitals to find the
+boundaries. Fix: a thin muted vertical rule between facts. Owner: P11.
+
+**3. The button row has three competing weights.** A large filled button, a
+medium outlined button and a bare text link with a chevron, on different
+baselines, wrapping mid-group. Fix per `design-rules.md` section 4: one primary
+act filled, everything else outlined at the same height, and the expand
+disclosure on its own line. Owner: P11.
+
+The owner's underlying question was why there are no uniform design rules. The
+honest answer is that the rules existed in the code and were never written down,
+so every surface reinvented them. `design-rules.md` is the correction.

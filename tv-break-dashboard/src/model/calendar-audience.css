@@ -45,7 +45,7 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--muted);
-  border-inline-start: 3px solid var(--line);
+  border: 1px solid var(--line);
   padding-inline-start: var(--space-2);
 }
 
