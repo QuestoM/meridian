@@ -34,5 +34,14 @@
     "verdict": "fail on bar 4",
     "named_gap_status": "closed",
     "previous_gap": "ROUND THREE'S NAMED GAP IS CLOSED, MEASURED LIVE AND IN TESTS. kairos_api.uploads_replay.at_the_door(findings, owned) is new and runs inside uploads_validate.run_contract_validation on the full finding_records list before it becomes the response's findings/errors/warnings, so a rival channel name authored by a frozen contract's own English detail (unknown_channel quoting the file's Channel column "
-  }
+  },
+  "class_fix_2026_08_07": {
+    "landed_in": "Swept into d95e9f32 and e2898e9e by the lead git add -A while the agent was live. Titles do not describe item 3.",
+    "item_1": "The English card printed a Python list literal where channel names go, while Hebrew read correctly. Four live sites and one latent, not one: the finding on the card, the English refusal headline built from a different shape than the Hebrew, eleven frozen codes whose authored English existed and which nothing read, a count of one rendered as a numeral, and a bare str() leaving the route open for any future caller. Both languages now come from one call that returns both halves or neither.",
+    "item_2": "tests/test_qa2_uploads.py:182, the boundary contradiction. Replaced the means and kept the subject. The agent pinned the operator channel to CHANNELS[0], which is the exact name the old assertion demanded, proving the honest distinction directly: the name was never forbidden, being someone else name is. It also caught that the set-size digit could be answered by a channel name carrying that digit, so it counts on detail with the owned name removed.",
+    "item_3": "The two same-species reds. duration_sec and planned_tvr are internal loader names the column-resolution work rightly stopped printing in favour of the operator own header. The subject worth keeping is that the refusal names WHICH FIELD is wrong. One shared helper inverts the column map so the tests track the map rather than a Hebrew string copied into a test.",
+    "non_vacuity": "Proved rather than claimed. The expected header is checked against the posted file real header row parsed out of the bytes the test itself sent, the field slot really parses out non-empty, and the old spelling now reds. The field is read from its own slot in the flat line and compared whole, never as a substring: on a decoy line carrying the header inside the detail instead of the field slot, the naive substring match passed wrongly and the slot match did not.",
+    "measured": "151 passed, 1 failed across -k p6 or qa2_uploads. The one failure is ruling 009, escalated and deliberately unresolved."
+  },
+  "passed_note": "Still false. The class fix did not re-run the four bars; no blind sweep has passed this piece."
 }

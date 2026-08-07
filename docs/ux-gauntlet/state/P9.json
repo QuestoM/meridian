@@ -37,5 +37,13 @@
       "the repeat-use bounce still routes through Overview: heading painted for 20 ms and 7 API requests fired per click (/api/yield-per-second x2, /api/compliance, /api/overview, /api/today, /api/auth/me x2)",
       "the chip is inert with no feedback for a restore point carrying no version_id while already on Versions, measured on d3f88eb7: zero hashchange, url unchanged, selection unchanged"
     ]
-  }
+  },
+  "class_fix_2026_08_07": {
+    "landed_in": "984e4cc0, which does describe it.",
+    "class": "The critic said the same defect on the other leg of the same function. There were four legs and three were broken; two had never been looked at by any round, both reachable live from chips that can hand the function a null version id.",
+    "overruled_the_critic": "The prescribed fix was wrong and the agent measured it in real Chrome before shipping. A Back press fires hashchange only when two entries differ in the fragment alone, a traversal that also changes the query fires popstate, and the frozen shell listens for hashchange only. Pushing the whole destination url would have left the address bar reading Overview while the screen showed History: the same defect one gesture over. The product own idiom was used instead, since setActiveView replaces the current entry.",
+    "guard": "The leg-named test is deleted and replaced by an invariant test over every path in, carrying three controls each the exact shape of one shipped round, one byte-identical to what was on main so it is a live regression witness.",
+    "measured": "history.length flat at 2 across six clicks on all four paths in real headless Chrome, against 2 going to 3 at HEAD. 163 passed, 2 skipped."
+  },
+  "passed_note": "Still false. The class fix did not re-run the four bars; no blind sweep has passed this piece."
 }
