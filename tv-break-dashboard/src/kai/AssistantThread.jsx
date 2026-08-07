@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code } from '../shell/bidi';
 import { sourceLabel, stepLabel } from './AssistantRunTrace';
 import { inApprovedWords } from './kai-vocabulary';
 import { claimSegments } from './kai-claimed-action';
@@ -47,7 +48,7 @@ export function ModelText({ text, className }) {
 function RetractedText({ text, locale }) {
   return (
     <blockquote className="asst-retracted">
-      <span className="asst-retracted-label" dir="auto">
+      <span className="asst-retracted-label">
         {pageText(locale, 'What Kai wrote, with the unbacked part struck out', 'מה שקאי כתב, כשהחלק שאינו נתמך מסומן במחיקה')}
       </span>
       {inApprovedWords(text).split('\n').map((line, index) => (
@@ -88,30 +89,30 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
       {entry.answer && !entry.unrecordedClaim ? <ModelText className="asst-a" text={entry.answer} /> : null}
       {entry.unrecordedClaim ? (
         <p className="asst-unrecorded">
-          <span dir="auto">{pageText(locale, 'No proposal was recorded for this answer, so there is nothing here to approve.', 'לא נרשמה הצעה לתשובה הזו, ולכן אין כאן מה לאשר.')}</span>
+          <span>{pageText(locale, 'No proposal was recorded for this answer, so there is nothing here to approve.', 'לא נרשמה הצעה לתשובה הזו, ולכן אין כאן מה לאשר.')}</span>
           {onAskAgain ? (
             <button type="button" onClick={onAskAgain}>{pageText(locale, 'Ask again', 'שאלו שוב')}</button>
-          ) : <span dir="auto">{pageText(locale, 'Ask again to have the change recorded.', 'אפשר לשאול שוב כדי שהשינוי יירשם.')}</span>}
+          ) : <span>{pageText(locale, 'Ask again to have the change recorded.', 'אפשר לשאול שוב כדי שהשינוי יירשם.')}</span>}
         </p>
       ) : null}
       {entry.answer && entry.unrecordedClaim ? <RetractedText text={entry.answer} locale={locale} /> : null}
       {entry.answerWithheld ? (
-        <p className="asst-truncated" dir="auto">{pageText(locale, 'This question came back as a tool call rather than as an answer, so there is nothing to read here. Ask it again.', 'השאלה הזו חזרה כקריאה לכלי ולא כתשובה, ולכן אין כאן מה לקרוא. אפשר לשאול אותה שוב.')}</p>
+        <p className="asst-truncated">{pageText(locale, 'This question came back as a tool call rather than as an answer, so there is nothing to read here. Ask it again.', 'השאלה הזו חזרה כקריאה לכלי ולא כתשובה, ולכן אין כאן מה לקרוא. אפשר לשאול אותה שוב.')}</p>
       ) : null}
       {entry.truncated ? <p className="asst-truncated">{pageText(locale, 'The answer was shortened by the server.', 'התשובה קוצרה על ידי השרת.')}</p> : null}
       {entry.stoppedAtDeadline ? (
-        <p className="asst-truncated" dir="auto">{pageText(locale, 'The answer stopped at the time limit and reports what it had reached by then.', 'התשובה נעצרה במגבלת הזמן ומדווחת על מה שהגיעה אליו עד אז.')}</p>
+        <p className="asst-truncated">{pageText(locale, 'The answer stopped at the time limit and reports what it had reached by then.', 'התשובה נעצרה במגבלת הזמן ומדווחת על מה שהגיעה אליו עד אז.')}</p>
       ) : null}
       {entry.stoppedAtCeiling ? (
-        <p className="asst-truncated" dir="auto">{pageText(locale, 'The search stopped at its limit of model turns and reports what it had reached by then.', 'החיפוש נעצר במגבלת תורות המודל ומדווח על מה שהגיע אליו עד אז.')}</p>
+        <p className="asst-truncated">{pageText(locale, 'The search stopped at its limit of model turns and reports what it had reached by then.', 'החיפוש נעצר במגבלת תורות המודל ומדווח על מה שהגיע אליו עד אז.')}</p>
       ) : null}
       {entry.error ? <RichText className="asst-a error" text={entry.error} /> : null}
       {proposalCard}
       {entry.disclosure || sources.length || toolTrace.length ? (
         <details className="asst-disclosure">
           <summary>{pageText(locale, 'What data this is based on', 'על בסיס אילו נתונים')}</summary>
-          {entry.disclosure ? <p dir="auto">{entry.disclosure}</p> : null}
-          {sources.length ? <p dir="ltr">{sources.map(String).join(', ')}</p> : null}
+          {entry.disclosure ? <p>{entry.disclosure}</p> : null}
+          {sources.length ? <p><Code>{sources.map(String).join(', ')}</Code></p> : null}
           {toolTrace.length ? (
             <ol className="asst-run-steps done">
               {toolTrace.map((step, index) => {
@@ -119,9 +120,9 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
                 const label = stepLabel(tool, locale);
                 return (
                   <li key={index} className={step && step.ok === false ? 'fail' : ''}>
-                    <span dir="auto">{label || pageText(locale, 'Read saved data', 'קרא נתונים שמורים')}</span>
-                    {label ? null : <code dir="ltr">{tool}</code>}
-                    {step && step.source ? <span className="asst-run-source" dir="auto">{sourceLabel(step.source, locale)}</span> : null}
+                    <span>{label || pageText(locale, 'Read saved data', 'קרא נתונים שמורים')}</span>
+                    {label ? null : <Code>{tool}</Code>}
+                    {step && step.source ? <span className="asst-run-source">{sourceLabel(step.source, locale)}</span> : null}
                   </li>
                 );
               })}
@@ -130,9 +131,9 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
         </details>
       ) : null}
       <footer className="asst-meta">
-        <time dir="ltr">{timeLabel(entry.at, locale)}</time>
+        <time><Figure>{timeLabel(entry.at, locale)}</Figure></time>
         {Number.isFinite(entry.elapsedSeconds) ? (
-          <span dir="ltr">{`${entry.elapsedSeconds.toFixed(1)}s`}</span>
+          <Figure>{`${entry.elapsedSeconds.toFixed(1)}s`}</Figure>
         ) : null}
       </footer>
     </article>

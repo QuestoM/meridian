@@ -108,7 +108,7 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
   return (
     <div className="timeline-view">
       <div className="timeline-topbar no-print">
-        <div className="timeline-summary" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+        <div className="timeline-summary">
           <div>
             <strong>{formatNumber(summary.programs, locale)}</strong>
             <span>{pageText(locale, 'programs on timeline', 'תוכניות בציר')}</span>
@@ -144,7 +144,7 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
           const laneRevenue = laneBreaks.reduce((sum, item) => sum + Number(item.revenue_calculated || 0), 0);
           return (
             <div className="timeline-row" key={lane} style={{ minWidth }}>
-              <div className="timeline-lane" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+              <div className="timeline-lane">
                 <strong>{lane}</strong>
                 <span>{laneBreaks.length} {pageText(locale, 'breaks', 'ברייקים')} / <Numeric>{formatCurrency(laneRevenue, locale)}</Numeric></span>
               </div>

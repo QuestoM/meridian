@@ -1,0 +1,249 @@
+/* The candidate board's own chrome.
+
+   Logical properties throughout, so the whole surface mirrors in Hebrew without
+   one direction-specific rule. Every colour, space and size is a token from the
+   frozen token file; nothing is defined here.
+
+   State is a full border in the state colour with its matching soft background,
+   never a rule down one edge, which inverts under right-to-left and reads as an
+   unfinished frame. Design rule 1. */
+
+.cb-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.cb-board:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+
+.cb-head h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+}
+
+.cb-head p { margin: var(--space-1) 0 0; color: var(--muted); }
+.cb-read-only { font-size: var(--text-xs); }
+
+.cb-label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  margin-inline-end: var(--space-2);
+}
+
+/* A row of facts is separated by a middle dot in the muted colour, never by
+   whitespace alone. Design rule 3. */
+.cb-dot {
+  color: var(--subtle);
+  margin-inline: var(--space-2);
+}
+
+.cb-absent-figure { color: var(--subtle); }
+
+.cb-tag {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.cb-teal { border: 1px solid var(--teal); background: var(--teal-soft); color: var(--teal-ink); }
+.cb-amber { border: 1px solid var(--amber); background: var(--amber-soft); color: var(--amber-ink); }
+.cb-red { border: 1px solid var(--red); background: var(--red-soft); color: var(--red); }
+.cb-blue { border: 1px solid var(--blue); background: var(--blue-soft); color: var(--blue); }
+.cb-neutral { border: 1px solid var(--line); background: var(--surface-muted); color: var(--muted); }
+
+.cb-state {
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.cb-state-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.cb-state-label { font-size: var(--text-xs); }
+.cb-state-word { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.cb-state-reason { margin: var(--space-1) 0 0; }
+
+.cb-state-moved {
+  margin: var(--space-2) 0 0;
+  padding-inline-start: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cb-state-moved-label { margin-inline-end: var(--space-2); font-size: var(--text-xs); }
+.cb-state-moved code { margin-inline-end: var(--space-2); }
+
+.cb-state-when {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.cb-evaluation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.cb-evaluation-line {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-weight: var(--weight-medium);
+}
+
+.cb-evaluation-metric { margin: 0; color: var(--muted); }
+
+.cb-limit { border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
+.cb-limit p { margin: var(--space-1) 0 0; }
+.cb-limit-lifted { font-size: var(--text-xs); }
+
+.cb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.cb-caption {
+  text-align: start;
+  padding-block-end: var(--space-2);
+  font-weight: var(--weight-semibold);
+}
+
+.cb-table th,
+.cb-table td {
+  text-align: start;
+  padding: var(--space-2);
+  border-block-end: 1px solid var(--line);
+  vertical-align: baseline;
+}
+
+.cb-table thead th {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.cb-sort {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.cb-sort:hover { color: var(--ink); }
+.cb-sort:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.cb-sort.on { color: var(--ink); font-weight: var(--weight-semibold); }
+.cb-sort-mark { font-size: var(--text-2xs); color: var(--subtle); }
+
+.cb-row.on { background: var(--teal-soft); }
+.cb-reference { background: var(--surface-muted); }
+.cb-reference-note { color: var(--muted); font-size: var(--text-xs); }
+
+.cb-pick {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.cb-pick:hover .cb-name { text-decoration: underline; }
+.cb-pick:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.cb-name { font-weight: var(--weight-semibold); display: block; }
+
+.cb-digest {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.cb-cancels { display: block; color: var(--muted); font-size: var(--text-2xs); }
+.cb-money-stale { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.cb-recorded { display: inline-flex; align-items: baseline; gap: var(--space-1); }
+.cb-mark { color: var(--amber-ink); font-weight: var(--weight-bold); }
+
+.cb-detail {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.cb-detail.cb-empty { color: var(--muted); }
+.cb-detail h3 { margin: 0; font-size: var(--text-md); display: flex; gap: var(--space-2); align-items: baseline; }
+.cb-detail h4 {
+  margin: var(--space-4) 0 var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: var(--weight-medium);
+  border-block-end: 1px solid var(--line);
+  padding-block-end: var(--space-1);
+}
+
+.cb-detail p { margin: var(--space-1) 0 0; }
+.cb-detail-verdict { font-weight: var(--weight-medium); }
+.cb-detail-rule { color: var(--muted); }
+.cb-detail-bars { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
+.cb-detail-figure { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-lg); }
+.cb-detail-scope { display: inline-flex; align-items: baseline; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+.cb-detail-decision { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.cb-detail-basis { font-size: var(--text-xs); }
+.cb-detail-basis.cb-amber { border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.cb-detail-identity { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); font-size: var(--text-xs); }
+
+.cb-cells-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block-start: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+}
+
+.cb-cells-table th,
+.cb-cells-table td {
+  text-align: start;
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.cb-cells-table thead th { color: var(--muted); font-weight: var(--weight-medium); }
+
+.cb-note { color: var(--muted); font-size: var(--text-xs); }
+.cb-note span { margin-inline-start: var(--space-2); }
+
+.cb-baselines h3 { margin: 0 0 var(--space-2); font-size: var(--text-md); }
+.cb-baselines ul { margin: 0; padding-inline-start: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+.cb-baselines li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+
+.cb-finding { border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin-block-start: var(--space-3); }
+.cb-finding p { margin: var(--space-1) 0 0; }
+.cb-finding-figures { display: flex; flex-wrap: wrap; align-items: baseline; }
+.cb-duplicates { margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--muted); }

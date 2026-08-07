@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE } from '../shell/surface-helpers';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 
 // Transport and shared state for the assistant conversations feature: the
 // conversation index CRUD, the per-conversation changes and restore calls, a

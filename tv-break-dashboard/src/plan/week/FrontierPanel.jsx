@@ -226,7 +226,6 @@ export function FrontierPanel({ data, copy, locale, loading = false, operatorCha
             {safeActiveIndex !== null && activePoint && (
               <div
                 className={tooltipClass}
-                dir={locale === 'he' ? 'rtl' : 'ltr'}
                 style={{ left: `${(activeX / width) * 100}%`, top: `${(activeY / height) * 100}%` }}
               >
                 <span>{hoverLabel}</span>

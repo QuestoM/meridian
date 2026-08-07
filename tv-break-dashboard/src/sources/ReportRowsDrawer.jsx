@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { X } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
+import { Code } from '../shell/bidi';
 import { serverText, text } from './sources-copy';
 import { reportRows } from './report-rows';
 
@@ -72,7 +73,7 @@ export function ReportRowsDrawer({ report, files, locale, onClose }) {
           </dl>
           {preview.source ? (
             <p className="rows-drawer-note">
-              <span>{text('reportRowsSource', locale)}</span> <span dir="ltr">{preview.source}</span>
+              <span>{text('reportRowsSource', locale)}</span> <Code>{preview.source}</Code>
             </p>
           ) : null}
           {(preview.notes || []).map((entry) => (

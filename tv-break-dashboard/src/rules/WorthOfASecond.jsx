@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { pageText } from '../shell/format';
+import { Code, Figure } from '../shell/bidi';
 import { API_BASE } from '../shell/api';
 import { basisReason, detailWords, isolate, rate } from './rules-lib';
 
@@ -59,7 +60,7 @@ export default function WorthOfASecond({ locale }) {
     return (
       <section className="rules-card rules-worth">
         <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
-        <span className="rules-figure-reason" dir="auto">{basisReason(state.reason, locale)}</span>
+        <span className="rules-figure-reason">{basisReason(state.reason, locale)}</span>
       </section>
     );
   }
@@ -87,7 +88,7 @@ export default function WorthOfASecond({ locale }) {
             "142.2122" with the shekel sign against the last digit and its space
             stranded, while the pair below it painted the sign in front. One
             screen, one currency, one rendering. */}
-        <strong className="rules-worth-value" dir="ltr">{isolate(rate(totals.yield_per_second, locale))}</strong>
+        <strong className="rules-worth-value"><Figure>{isolate(rate(totals.yield_per_second, locale))}</Figure></strong>
         {/* The count is the payload's own: segments with ad seconds on them,
             which is fewer than the plan's rows. The rate-card delta beside this
             counts every planned row, so the two say what they each counted
@@ -120,8 +121,8 @@ export default function WorthOfASecond({ locale }) {
                 'ההכנסה הצפויה בהיקף שצוין למעלה, חלקי שניות הפרסום שהוא נושא.',
               )}
             </span>
-            <code dir="ltr">{totals.basis.formula}</code>
-            <code dir="ltr">{`${plain(totals.revenue, locale, 2)} / ${plain(totals.ad_seconds, locale, 0)} = ${plain(totals.yield_per_second, locale, 4)}`}</code>
+            <code><Code>{totals.basis.formula}</Code></code>
+            <code><Code>{`${plain(totals.revenue, locale, 2)} / ${plain(totals.ad_seconds, locale, 0)} = ${plain(totals.yield_per_second, locale, 4)}`}</Code></code>
           </>
         ) : (
           <span>

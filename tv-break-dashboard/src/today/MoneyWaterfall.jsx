@@ -8,7 +8,7 @@ import {
   formatNumber,
   pageText,
 } from '../shell/surface-helpers';
-import { isolate } from './today-bidi';
+import { Figure, isolate } from '../shell/bidi';
 import ChannelRefusal from './ChannelRefusal';
 import { scopeState, unattributed } from './today-scope';
 
@@ -91,7 +91,7 @@ export default function MoneyWaterfall({
     <div className={rootClass}>
       <div className="mw-row mw-gross">
         <span className="mw-label">{pageText(locale, 'Gross revenue', 'הכנסות ברוטו')}</span>
-        <strong className="mw-value numeric" dir="ltr">{formatCurrency(grossValue, locale)}</strong>
+        <Figure className="mw-value numeric">{formatCurrency(grossValue, locale)}</Figure>
       </div>
       {hasCostAndNet ? (
         <>
@@ -104,12 +104,12 @@ export default function MoneyWaterfall({
               </span>
             </Tooltip>
             <span className="mw-money">
-              <strong className="mw-value numeric" dir="ltr">{`-${formatCurrency(costValue, locale)}`}</strong>
+              <Figure className="mw-value numeric">{`-${formatCurrency(costValue, locale)}`}</Figure>
             </span>
           </div>
           <div className="mw-row mw-net">
             <span className="mw-label">{pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור')}</span>
-            <strong className="mw-value numeric" dir="ltr">{formatCurrency(netValue, locale)}</strong>
+            <Figure className="mw-value numeric">{formatCurrency(netValue, locale)}</Figure>
           </div>
         </>
       ) : (
@@ -150,7 +150,7 @@ export default function MoneyWaterfall({
                 <span className="mw-bar-key">
                   <i className="mw-dot band" />
                   {pageText(locale, 'Estimate range', 'טווח האומדן')}
-                  <span className="mw-band-range" dir="ltr">{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</span>
+                  <Figure className="mw-band-range">{`${formatCurrency(bandLow, locale)} - ${formatCurrency(bandHigh, locale)}`}</Figure>
                 </span>
               </Tooltip>
             ) : null}
@@ -365,7 +365,7 @@ export function NetComparisonCard({ locale, refreshSignal = '', currentFocus = '
                   {row.label}
                   {row.estimate ? <Tooltip title={estimateExplainer(locale)} arrow placement="bottom"><span className="mw-chip">{pageText(locale, 'Model estimate', 'אומדן מודל')}</span></Tooltip> : null}
                 </span>
-                <strong className="numeric" dir="ltr">{row.value}</strong>
+                <Figure className="numeric">{row.value}</Figure>
               </div>
             ))}
           </div>

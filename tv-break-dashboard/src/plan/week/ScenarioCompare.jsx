@@ -9,6 +9,7 @@ import {
   formatPercent,
   pageText,
 } from '../../shell/surface-helpers';
+import { Figure } from '../../shell/bidi';
 
 // ScenarioCompare: a small A/B what-if. The operator picks two revenue weights
 // (weight_a, weight_b) and runs both through POST /api/scenario-compare, which
@@ -25,28 +26,28 @@ function SummaryCard({ title, summary, accent, locale }) {
     <div className={`scenario-card${accent ? ` ${accent}` : ''}`}>
       <div className="scenario-card-head">
         <strong>{title}</strong>
-        <span className="numeric" dir="ltr">{pageText(locale, 'weight', 'משקל')} {finiteNumber(summary.revenue_weight) ?? '-'}</span>
+        <Figure className="numeric">{pageText(locale, 'weight', 'משקל')} {finiteNumber(summary.revenue_weight) ?? '-'}</Figure>
       </div>
       <dl className="scenario-stat-list">
         <div>
           <dt>{pageText(locale, 'Plan revenue (scenario day)', 'הכנסת תוכנית (יום התרחיש)')}</dt>
-          <dd className="numeric" dir="ltr">{formatCurrency(summary.projected_revenue, locale)}</dd>
+          <dd className="numeric"><Figure>{formatCurrency(summary.projected_revenue, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{pageText(locale, 'Average retention', 'שימור ממוצע')}</dt>
-          <dd className="numeric" dir="ltr">{formatPercent(summary.average_retention, locale)}</dd>
+          <dd className="numeric"><Figure>{formatPercent(summary.average_retention, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{pageText(locale, 'Blended score (revenue and retention)', 'ציון משוקלל (הכנסה ושימור)')}</dt>
-          <dd className="numeric" dir="ltr">{formatNumber(summary.objective, locale)}</dd>
+          <dd className="numeric"><Figure>{formatNumber(summary.objective, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{pageText(locale, 'Total breaks', 'סך ברייקים')}</dt>
-          <dd className="numeric" dir="ltr">{formatNumber(summary.total_breaks, locale)}</dd>
+          <dd className="numeric"><Figure>{formatNumber(summary.total_breaks, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</dt>
-          <dd className="numeric" dir="ltr">{formatNumber(summary.total_ad_seconds, locale)}</dd>
+          <dd className="numeric"><Figure>{formatNumber(summary.total_ad_seconds, locale)}</Figure></dd>
         </div>
       </dl>
       <span className={`scenario-compliance${summary.compliant ? ' ok' : ' warn'}`}>
@@ -73,7 +74,7 @@ function DeltaRow({ label, value, locale, formatter, suffix }) {
   return (
     <div className="scenario-delta-row">
       <span>{label}</span>
-      <strong className={`numeric ${tone}`} dir="ltr">{sign}{formatter(number, locale)}{suffix || ''}</strong>
+      <strong className={`numeric ${tone}`}><Figure>{sign}{formatter(number, locale)}{suffix || ''}</Figure></strong>
     </div>
   );
 }
@@ -119,7 +120,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
         <span>{pageText(locale, 'Two weights, one full plan computed for each', 'שני משקלים, תוכנית מלאה מחושבת לכל תרחיש')}</span>
       </div>
 
-      <div className="scenario-controls" dir={he ? 'rtl' : 'ltr'}>
+      <div className="scenario-controls">
         <div className="scenario-weight-field">
           <label>{pageText(locale, 'Scenario A revenue weight', 'משקל הכנסה לתרחיש A')}</label>
           <div className="scenario-slider-row">
@@ -132,7 +133,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
               valueLabelDisplay="auto"
               onChange={(_event, value) => setWeightA(Array.isArray(value) ? value[0] : value)}
             />
-            <strong className="numeric" dir="ltr">{Math.round(weightA)}</strong>
+            <strong className="numeric"><Figure>{Math.round(weightA)}</Figure></strong>
           </div>
         </div>
         <div className="scenario-weight-field">
@@ -147,7 +148,7 @@ export default function ScenarioCompare({ locale, savedRevenueWeight = null }) {
               valueLabelDisplay="auto"
               onChange={(_event, value) => setWeightB(Array.isArray(value) ? value[0] : value)}
             />
-            <strong className="numeric" dir="ltr">{Math.round(weightB)}</strong>
+            <strong className="numeric"><Figure>{Math.round(weightB)}</Figure></strong>
           </div>
         </div>
         <Button

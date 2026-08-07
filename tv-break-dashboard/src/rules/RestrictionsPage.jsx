@@ -17,14 +17,14 @@ function RestrictionRow({ record, locale, onDelete }) {
   return (
     <li className={`rules-restriction${expired ? ' expired' : ''}`}>
       <div className="rules-restriction-main">
-        <p className="rules-restriction-sentence" dir="auto">
+        <p className="rules-restriction-sentence">
           {locale === 'he' ? record.sentence_he : record.sentence_en}
         </p>
         <p className="rules-restriction-meta">
           {record.author && (
             <span>{pageText(locale, `Asked by ${record.author}`, `נדרש על ידי ${record.author}`)}</span>
           )}
-          {record.reason && <span dir="auto">{record.reason}</span>}
+          {record.reason && <span>{record.reason}</span>}
           {record.starts_on && (
             <span>
               {pageText(locale, `Starts applying on ${record.starts_on}`, `יתחיל לחול ב-${record.starts_on}`)}
@@ -144,7 +144,7 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
                   reason to exist is that an unreadable rule should not bind the
                   plan cannot then hide some of them behind its own count. */}
               {unauthored.map((row) => (
-                <li key={row.constraint_id} dir="auto">
+                <li key={row.constraint_id}>
                   <span className="rules-unauthored-effect">{effectLabel(row.effect, locale)}</span>
                   <span>{row.notes || row.scope_value || pageText(locale, 'no description', 'ללא תיאור')}</span>
                 </li>

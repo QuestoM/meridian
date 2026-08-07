@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { CalendarClock, ExternalLink, ShieldCheck, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import DateField from '../shell/DateField';
 import { payloadCanEdit, WALLS } from '../session.js';
 import LicenceLimits from './LicenceLimits';
@@ -32,7 +33,7 @@ function CheckRow({ check, locale }) {
   return (
     <li className={`rules-check${breached ? ' breached' : ''}`}>
       <span className="rules-check-label">{locale === 'he' ? check.label_he : check.label_en}</span>
-      <span className="rules-check-values" dir="ltr">{observed} / {limit}</span>
+      <Figure className="rules-check-values">{observed} / {limit}</Figure>
       <span className="rules-check-unit">{unitLabel(check.unit, locale)}</span>
       <span className={`rules-check-status${breached ? ' breached' : ''}`}>
         {breached
@@ -128,7 +129,7 @@ export default function LicencePage({ locale, session, notify }) {
             the retention model is measured against it; what a compliance owner
             signs is the operator's own channel and nobody else's. */}
         {scope && scope.scoped && (
-          <p className="rules-scope-line" dir="auto">
+          <p className="rules-scope-line">
             <Tv size={13} aria-hidden="true" />
             <span>
               {pageText(
@@ -140,7 +141,7 @@ export default function LicencePage({ locale, session, notify }) {
           </p>
         )}
         {scope && !scope.scoped && (
-          <p className="rules-inline-error" role="status" dir="auto">
+          <p className="rules-inline-error" role="status">
             {locale === 'he' ? scope.reason_he : scope.reason_en}
           </p>
         )}
@@ -222,18 +223,18 @@ export default function LicencePage({ locale, session, notify }) {
             {changes.map((entry, index) => (
               <li key={`${entry.recorded_at}-${index}`}>
                 <span className="rules-change-when">{entry.effective_date}</span>
-                <span className="rules-change-what" dir="auto">
+                <span className="rules-change-what">
                   {Object.entries(entry.values || {}).map(([key, value]) => (
                     <span className="rules-change-limit" key={key}>
                       <span>{limitLabel(key, locale)}</span>
-                      <span dir="ltr" aria-label={pairLabel(locale, entry.before?.[key], value)}>
+                      <Figure aria-label={pairLabel(locale, entry.before?.[key], value)}>
                         {valuePair(entry.before?.[key], value)}
-                      </span>
+                      </Figure>
                     </span>
                   ))}
                 </span>
                 <span className="rules-change-who">{entry.actor}</span>
-                <span className="rules-change-why" dir="auto">{entry.reason}</span>
+                <span className="rules-change-why">{entry.reason}</span>
               </li>
             ))}
           </ul>

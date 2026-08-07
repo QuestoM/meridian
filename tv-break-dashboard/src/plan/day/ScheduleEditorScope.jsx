@@ -13,7 +13,7 @@ import './schedule-editor.css';
 // should recognise where they land.
 function ScheduleEditorScope({ coverage, locale }) {
   return (
-    <p className="schedule-editor-scope" dir="auto">
+    <p className="schedule-editor-scope">
       <span>{coverageSentence(coverage, locale)}</span>
       <span className="schedule-editor-route">{routeSentence(coverage, locale)}</span>
       <a href="#Overrides">{pageText(locale, 'Open the full day board (Overrides)', 'פתחו את לוח היום המלא (עקיפות)')}</a>
@@ -31,8 +31,8 @@ function ScheduleEditorScope({ coverage, locale }) {
 export function LaneCount({ shown, planned, locale }) {
   return (
     <span className="timeline-lane-count">
-      <span dir="auto">{drawnOfPlannedText(shown, planned, locale)}</span>
-      <small className="timeline-lane-basis" dir="auto">{planBasisLabel(SAVED_PLAN, locale)}</small>
+      <span>{drawnOfPlannedText(shown, planned, locale)}</span>
+      <small className="timeline-lane-basis">{planBasisLabel(SAVED_PLAN, locale)}</small>
     </span>
   );
 }

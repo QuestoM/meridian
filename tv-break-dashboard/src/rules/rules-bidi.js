@@ -24,19 +24,13 @@
 // end; the first-strong isolate gives each figure the direction Intl formatted
 // it for, so it reads "₪ 11,155,641" as Hebrew ordinarily renders money, with
 // the pair still running before then after.
-export const FIRST_STRONG_ISOLATE = '\u2068';
-export const POP_DIRECTIONAL_ISOLATE = '\u2069';
+// The isolate itself is not defined here. It is the shared one from
+// shell/bidi.jsx, which is the single home for direction and isolation across
+// the dashboard and uses the same first-strong marks this file's note argues
+// for. Re-exported so this module's existing callers keep their import.
+import { isolate } from '../shell/bidi';
 
-// One figure on a line whose direction is not the figure's own. A signed delta
-// sits in a dir="ltr" element directly above the pair, so without this it keeps
-// the old paint while the pair beside it gets the new one, and the same card
-// renders one currency two ways. Measured: unisolated it reads "13,633,643₪"
-// with the sign against the last digit and its space stranded, isolated it
-// reads "₪ 13,633,643". A negative reads correctly either way, as "-72,625 ₪"
-// unisolated and "₪ -72,625" isolated, so this is what makes the two agree.
-export function isolate(value) {
-  return `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`;
-}
+export { isolate };
 
 // The arrow stays direction-neutral on purpose. It replaced the word "to",
 // which was English on a Hebrew screen, and the spoken form is supplied

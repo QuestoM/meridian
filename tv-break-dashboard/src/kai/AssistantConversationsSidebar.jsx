@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 import AssistantConversationsRail from './AssistantConversationsRail';
 import AssistantConversationsChanges from './AssistantConversationsChanges';
 
@@ -20,7 +21,7 @@ export default function AssistantConversationsSidebar({ locale, conv, notify, di
     if (!tabsShown && tab !== 'pending') setTab('pending');
   }, [tabsShown, tab]);
 
-  const pendingBadge = pendingCount > 0 ? <span className="asst-badge" dir="ltr">{pendingCount}</span> : null;
+  const pendingBadge = pendingCount > 0 ? <span className="asst-badge"><Figure>{pendingCount}</Figure></span> : null;
 
   return (
     <aside className="page-panel asst-rail">
@@ -60,7 +61,7 @@ export default function AssistantConversationsSidebar({ locale, conv, notify, di
         ) : proposalsState === 'loading' ? (
           <div className="asst-loading">{pageText(locale, 'Loading pending actions', 'טוען פעולות ממתינות')}</div>
         ) : proposalsState === 'error' ? (
-          <div className="asst-error-note">{pageText(locale, 'Pending actions could not be loaded (', 'לא ניתן לטעון את הפעולות הממתינות (')}<bdi dir="auto">{proposalsError}</bdi>{').'}</div>
+          <div className="asst-error-note">{pageText(locale, 'Pending actions could not be loaded (', 'לא ניתן לטעון את הפעולות הממתינות (')}<Name>{proposalsError}</Name>{').'}</div>
         ) : visibleBatches.length === 0 ? (
           <div className="asst-empty">{pageText(locale, 'No pending actions. When you ask the assistant for a change, its proposals appear here for approval.', 'אין פעולות ממתינות. כשתבקשו מהעוזר שינוי, ההצעות שלו יופיעו כאן לאישור.')}</div>
         ) : (

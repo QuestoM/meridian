@@ -79,12 +79,12 @@ export function ReachPager({ locale, body, searching, onOlder, onNewest }) {
   const dropped = olderLine(reach);
   return (
     <>
-      <span className="hist-reach" dir="auto">{pageText(locale, position[0], position[1])}</span>
+      <span className="hist-reach">{pageText(locale, position[0], position[1])}</span>
       {reach.older ? (
-        <span className="hist-reach warn" dir="auto">{pageText(locale, dropped[0], dropped[1])}</span>
+        <span className="hist-reach warn">{pageText(locale, dropped[0], dropped[1])}</span>
       ) : null}
       {searching ? (
-        <span className="hist-reach warn" dir="auto">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
+        <span className="hist-reach warn">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
       ) : null}
       {reach.cursor ? (
         <button type="button" className="hist-link" onClick={() => onOlder(reach.cursor)}>
@@ -109,7 +109,7 @@ export function ReachPager({ locale, body, searching, onOlder, onNewest }) {
 export function ReachStart({ locale, body }) {
   const line = recordStartLine(body);
   if (!line) return null;
-  return <span className="hist-reach" dir="auto">{pageText(locale, line[0], line[1])}</span>;
+  return <span className="hist-reach">{pageText(locale, line[0], line[1])}</span>;
 }
 
 // A link asked for one entry and this page does not hold it. The note names
@@ -119,7 +119,7 @@ export function ReachStart({ locale, body }) {
 export function ReachMissed({ locale, missed, points, limit, wide, day, onClear, onWide, onDay }) {
   const line = missedLine(missed, points, limit);
   return (
-    <p className="hist-block" role="note" dir="auto">
+    <p className="hist-block" role="note">
       {pageText(locale, line[0], line[1])}
       {missed === 'filtered' ? (
         <button type="button" className="hist-link" onClick={onClear}>
@@ -152,7 +152,7 @@ export function ReachEmpty({ locale, empty, onClear, onNewest }) {
     <>
       {pageText(locale, line[0], line[1])}
       {state.scope ? (
-        <span className="hist-reach warn" dir="auto">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
+        <span className="hist-reach warn">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
       ) : null}
       {state.clear ? (
         <button type="button" className="hist-link" onClick={onClear}>
@@ -186,10 +186,10 @@ export function ReachEmptyPage(props) {
     <>
       {pageText(locale, state.line[0], state.line[1])}
       {state.covers ? (
-        <span className="hist-reach warn" dir="auto">{pageText(locale, state.covers[0], state.covers[1])}</span>
+        <span className="hist-reach warn">{pageText(locale, state.covers[0], state.covers[1])}</span>
       ) : null}
       {control ? (
-        <span className="hist-reach" dir="auto">{pageText(locale, ...byActorLine(state.actor))}</span>
+        <span className="hist-reach">{pageText(locale, ...byActorLine(state.actor))}</span>
       ) : null}
       {control ? (
         <button type="button" className="hist-link" onClick={() => onActor(state.actor)}>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { Command, Play, RefreshCcw } from 'lucide-react';
 import { formatNumber, formatPlanDate, pageText } from '../../shell/format';
+import { Code, Figure } from '../../shell/bidi';
 
 // The step strip, and the plan's own state above it.
 //
@@ -81,7 +82,7 @@ export function PlanWeekHeader({
           <Button className="secondary-button compact" type="button" variant="outlined" onClick={onOpenPalette}>
             <Command size={14} />
             {pageText(locale, 'Commands', 'פקודות')}
-            <kbd dir="ltr" className="plan-header-kbd">Cmd K</kbd>
+            <kbd className="plan-header-kbd"><Code>Cmd K</Code></kbd>
           </Button>
         </div>
       </div>
@@ -125,9 +126,9 @@ export function PlanWeekHeader({
               aria-current={isActive ? 'step' : undefined}
               onClick={() => onGo(section.id)}
             >
-              {section.step ? <span className="plan-step-number" dir="ltr">{section.step}</span> : null}
+              {section.step ? <Figure className="plan-step-number">{section.step}</Figure> : null}
               <span className="plan-step-name">{locale === 'he' ? section.he : section.en}</span>
-              <kbd className="plan-step-key" dir="ltr">G {section.key.toUpperCase()}</kbd>
+              <kbd className="plan-step-key"><Code>G {section.key.toUpperCase()}</Code></kbd>
             </button>
           );
         })}

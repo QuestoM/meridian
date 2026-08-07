@@ -2,7 +2,9 @@ import React from 'react';
 import { Tooltip } from '@mui/material';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from './format';
+import { Figure, Name } from './bidi';
 import { normalizeRows } from './plan-model';
+import { isolate } from './bidi';
 
 export const LazyDataGrid = React.lazy(() => import('@mui/x-data-grid').then((module) => ({ default: module.DataGrid })));
 
@@ -78,6 +80,7 @@ export function DataTable({ columns, rows, emptyLabel, locale = 'en', onRowClick
     'size',
     'rows',
   ]);
+  const startEdge = locale === 'he' ? 'right' : 'left';
   const gridColumns = columns.map((column) => ({
     field: column.key,
     headerName: column.label,
@@ -95,11 +98,20 @@ export function DataTable({ columns, rows, emptyLabel, locale = 'en', onRowClick
         isNumeric ? 'numeric-cell' : '',
         column.status ? 'status-grid-content' : '',
       ].filter(Boolean).join(' ');
-      return <span className={className} dir="auto">{value}</span>;
+      // A numeric column is a figure; anything else may be a name in either
+      // script. Neither states a direction of its own, so the cell keeps the
+      // grid's direction and the column stays aligned with its neighbours.
+      return isNumeric
+        ? <Figure className={className}>{value}</Figure>
+        : <Name className={className}>{value}</Name>;
     },
-    align: column.align || (column.numeric || numericKeys.has(column.key) ? 'right' : locale === 'he' ? 'right' : 'left'),
-    headerAlign:
-      column.headerAlign || (column.numeric || numericKeys.has(column.key) ? 'right' : locale === 'he' ? 'right' : 'left'),
+    // The reading edge, for every column and its header alike. The grid takes
+    // physical values only, so "start" is spelled out from the locale here, in
+    // one place. A numeric column used to be pinned right in both locales, which
+    // put it on the opposite edge from its neighbours in Hebrew and was the
+    // misalignment the owner reported.
+    align: column.align || startEdge,
+    headerAlign: column.headerAlign || startEdge,
   }));
 
   const wrapClassName = [
@@ -125,12 +137,12 @@ export function DataTable({ columns, rows, emptyLabel, locale = 'en', onRowClick
           paginationDisplayedRows: ({ from, to, count, estimated }) => {
             const total = count !== -1 ? formatNumber(count, locale) : pageText(locale, `more than ${to}`, `יותר מ-${to}`);
             const estimate = estimated && estimated > to ? formatNumber(estimated, locale) : total;
-            // The from-to range is isolated as one LTR run (LRI/PDI marks) so
-            // the RTL line never reorders it into to-from.
+            // The from-to range is isolated as one run so the RTL line never
+            // reorders it into to-from.
             return pageText(
               locale,
               `${formatNumber(from, locale)}-${formatNumber(to, locale)} of ${estimate}`,
-              `⁦${formatNumber(from, locale)}-${formatNumber(to, locale)}⁩ מתוך ${estimate}`,
+              `${isolate(`${formatNumber(from, locale)}-${formatNumber(to, locale)}`)} מתוך ${estimate}`,
             );
           },
         }}

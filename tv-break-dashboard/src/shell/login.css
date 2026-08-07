@@ -277,9 +277,10 @@
   vertical-align: middle;
 }
 
+/* The cell keeps the document direction so it stays aligned with its column.
+   The username inside it renders through the Code primitive, which carries the
+   direction and the isolation. */
 .auth-mono {
-  direction: ltr;
-  unicode-bidi: isolate;
   text-align: start;
   font-variant-numeric: tabular-nums;
 }

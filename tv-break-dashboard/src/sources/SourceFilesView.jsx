@@ -3,6 +3,7 @@ import { Button, Tooltip } from '@mui/material';
 import { CheckCircle2, MinusCircle, Rows3 } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from '../shell/format';
 import { normalizeRows } from '../shell/plan-model';
+import { Code } from '../shell/bidi';
 import { ROLE_LABELS, label, serverText, text } from './sources-copy';
 import RowsDrawer from './RowsDrawer';
 
@@ -80,11 +81,11 @@ export function SourceFilesView({ files, inputs, locale, highlight }) {
                     <Tooltip title={text('openRowsForFile', locale)} arrow placement="top">
                       <Button className="link-figure" type="button" onClick={() => setRowsFor(openable.get(row.path))}>
                         <Rows3 size={12} />
-                        <span className="source-file-path" dir="ltr">{row.path}</span>
+                        <Code className="source-file-path">{row.path}</Code>
                       </Button>
                     </Tooltip>
                   ) : (
-                    <span className="source-file-path" dir="ltr">{row.path}</span>
+                    <Code className="source-file-path">{row.path}</Code>
                   )}
                   {row.exists ? null : <span className="source-none">{text('filesMissing', locale)}</span>}
                   {serverText(row.note, locale) ? <span className="source-file-note">{serverText(row.note, locale)}</span> : null}

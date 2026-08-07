@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@mui/material';
 import { Camera, RefreshCcw, Search } from 'lucide-react';
 import { formatNumber, pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import { ANONYMOUS_SESSION, WALLS, fetchSession, payloadCanEdit } from '../session.js';
 import HistoryDetail from './HistoryDetail';
 import { ReachDays, ReachEmpty, ReachEmptyPage, ReachMissed, ReachPager, ReachStart } from './HistoryReach';
@@ -278,7 +279,7 @@ export default function HistoryPage({ locale, notify }) {
         <div className="hist-keys" aria-label={pageText(locale, 'Keyboard', 'מקלדת')}>
           {KEY_HINTS.map(([key, en, he]) => (
             <span className="hist-key" key={key}>
-              <kbd dir="ltr">{key}</kbd>
+              <kbd><Figure>{key}</Figure></kbd>
               {pageText(locale, en, he)}
             </span>
           ))}
@@ -291,7 +292,7 @@ export default function HistoryPage({ locale, notify }) {
         <div className="hist-kinds" role="tablist" aria-label={pageText(locale, 'Filter', 'סינון')}>
           <button type="button" role="tab" aria-selected={kind === ''} className={`hist-tab${kind === '' ? ' on' : ''}`} onClick={() => { setBefore(''); setKind(''); }}>
             {pageText(locale, 'Everything', 'הכול')}
-            <span className="hist-tab-count" dir="ltr">{windowTotal}</span>
+            <span className="hist-tab-count"><Figure>{windowTotal}</Figure></span>
           </button>
           {Object.keys(KIND_LABELS).map((name) => (
             <button
@@ -306,12 +307,12 @@ export default function HistoryPage({ locale, notify }) {
               <span className={`hist-dot k-${name}`} aria-hidden="true" />
               {pair(KIND_LABELS, name, locale)}
               {name === 'run' && runsHint ? (
-                <span className="hist-tab-count unknown" dir="ltr" aria-label={runsHint}>?</span>
+                <span className="hist-tab-count unknown" aria-label={runsHint}>?</span>
               ) : (
-                <span className="hist-tab-count" dir="ltr">{counts[name] || 0}</span>
+                <span className="hist-tab-count"><Figure>{counts[name] || 0}</Figure></span>
               )}
               {name === 'change' && refused ? (
-                <span className="hist-tab-refused" dir="ltr" title={pageText(locale, ...refusedTabLine(refused))}>{refused}</span>
+                <span className="hist-tab-refused" title={pageText(locale, ...refusedTabLine(refused))}><Figure>{refused}</Figure></span>
               ) : null}
             </button>
           ))}
@@ -325,7 +326,6 @@ export default function HistoryPage({ locale, notify }) {
               onChange={(event) => setNeedle(event.target.value)}
               placeholder={pageText(locale, 'Search this list', 'חיפוש ברשימה')}
               aria-label={pageText(locale, 'Search this list', 'חיפוש ברשימה')}
-              dir="auto"
             />
           </label>
           <label className="hist-select">
@@ -348,7 +348,6 @@ export default function HistoryPage({ locale, notify }) {
                   value={pointLabel}
                   onChange={(event) => setPointLabel(event.target.value)}
                   maxLength={120}
-                  dir="auto"
                   placeholder={pageText(locale, 'Name this restore point', 'שם לנקודת השחזור')}
                   aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')}
                   disabled={saving}
@@ -368,13 +367,13 @@ export default function HistoryPage({ locale, notify }) {
             )}
           </div>
         ) : (
-          <span className="hist-block" role="note" dir="auto">{gate.reason}</span>
+          <span className="hist-block" role="note">{gate.reason}</span>
         )}
       </div>
 
       {state === 'loading' ? <p className="hist-empty">{pageText(locale, 'Reading the record', 'קורא את הרישום')}</p> : null}
       {state === 'error' ? (
-        <p className="hist-empty warn" dir="auto">{pageText(locale, `History could not be read. ${error}`, `לא ניתן לקרוא את ההיסטוריה. ${error}`)}</p>
+        <p className="hist-empty warn">{pageText(locale, `History could not be read. ${error}`, `לא ניתן לקרוא את ההיסטוריה. ${error}`)}</p>
       ) : null}
 
       {addressMissed ? (
@@ -385,7 +384,7 @@ export default function HistoryPage({ locale, notify }) {
       {/* An empty run list has one true cause and it is not the filters: the source
           is withheld or unreadable, so it says what the footer says and opens the same door. */}
       {state === 'ready' && !shown ? (
-        <p className={`hist-empty${runsBlocked ? ' warn' : ''}`} dir="auto">
+        <p className={`hist-empty${runsBlocked ? ' warn' : ''}`}>
           {runsBlocked ? (
             <HistoryRunsSource locale={locale} state={runsState} records={(sources.runs || {}).records} channel={runScope.scope_channel} />
           ) : null}
@@ -426,7 +425,7 @@ export default function HistoryPage({ locale, notify }) {
       ) : null}
 
       {state === 'ready' ? (
-        <footer className="hist-provenance" dir="auto">
+        <footer className="hist-provenance">
           <span>{pageText(locale, `Showing ${shown} rows over ${covered} of ${formatNumber(total, 'en')} recorded entries.`, `מוצגות ${shown} שורות על ${covered} מתוך ${formatNumber(total, 'he')} רשומות.`)}</span>
           {/* How far back that record goes. "0 of 5,396" is a true sentence about a
               record that stops five hours ago, and alone it reads as an answer. */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 
 // A proposal's one-line summary, said in the reader's own language.
 //
@@ -52,7 +53,7 @@ const OVERRIDE_SCOPES = {
 };
 
 function Token({ value }) {
-  return <bdi dir="ltr">{String(value)}</bdi>;
+  return <Figure>{String(value)}</Figure>;
 }
 
 // A list of identifiers, each isolated so a Hebrew sentence around them stays
@@ -118,7 +119,7 @@ function say(terms, locale) {
       <>
         {t('Pricing: edit ', 'תמחור: עריכת ')}
         <Tokens values={keys} />
-        {terms.note ? <>{'. '}<span dir="auto">{String(terms.note)}</span></> : null}
+        {terms.note ? <>{'. '}<Name>{String(terms.note)}</Name></> : null}
       </>
     );
   }
@@ -152,5 +153,5 @@ export default function ProposalSummary({ item, locale, className }) {
     : null;
   const said = terms ? say(terms, locale) : null;
   if (!said && !summary) return null;
-  return <p className={className} dir="auto">{said || summary}</p>;
+  return <p className={className}>{said || summary}</p>;
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { finiteNumber, formatCurrency, pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import { isWeekend, weekdayLabel } from './plan-week-model';
 
 // Which day separates the two scenarios most. A highlighted row is a colour and
@@ -54,8 +55,8 @@ function DayOpener({ date, weekday, locale, onOpenDay, children }) {
 
 function DayCell({ value, locale }) {
   const number = finiteNumber(value);
-  if (number === null) return <td className="numeric" dir="ltr">{pageText(locale, 'waiting', 'ממתין')}</td>;
-  return <td className="numeric" dir="ltr">{formatCurrency(number, locale)}</td>;
+  if (number === null) return <td className="numeric"><Figure>{pageText(locale, 'waiting', 'ממתין')}</Figure></td>;
+  return <td className="numeric"><Figure>{formatCurrency(number, locale)}</Figure></td>;
 }
 
 export function CompareWeekTable({ locale, dates, days, running, elapsedMs, biggestDate, onOpenDay }) {
@@ -76,7 +77,7 @@ export function CompareWeekTable({ locale, dates, days, running, elapsedMs, bigg
         {running ? (
           <p className="plan-compare-progress" role="status" aria-live="polite">
             {pageText(locale, `Day ${done} of ${total}`, `יום ${done} מתוך ${total}`)}
-            {seconds === null ? null : <span className="numeric" dir="ltr">{pageText(locale, `, ${seconds} s so far`, `, ${seconds} שניות עד כה`)}</span>}
+            {seconds === null ? null : <Figure className="numeric">{pageText(locale, `, ${seconds} s so far`, `, ${seconds} שניות עד כה`)}</Figure>}
           </p>
         ) : null}
       </div>
@@ -99,17 +100,19 @@ export function CompareWeekTable({ locale, dates, days, running, elapsedMs, bigg
               <tr key={row.date} className={`${weekend ? 'is-weekend' : ''}${row.date === biggestDate ? ' is-biggest' : ''}`}>
                 <th scope="row">
                   <DayOpener date={row.date} weekday={row.weekday} locale={locale} onOpenDay={onOpenDay}>
-                    <span className="numeric" dir="ltr">{row.date}</span>
+                    <Figure className="numeric">{row.date}</Figure>
                     <small>{weekdayLabel(row.weekday, locale)}</small>
                   </DayOpener>
-                  {reason ? <small className="plan-compare-reason" dir="auto">{reason}</small> : null}
+                  {reason ? <small className="plan-compare-reason"><Name>{reason}</Name></small> : null}
                 </th>
                 <DayCell value={row.a?.revenue_net} locale={locale} />
                 <DayCell value={row.b?.revenue_net} locale={locale} />
-                <td className={`numeric${tone}`} dir="ltr">
-                  {delta === null
-                    ? pageText(locale, 'waiting', 'ממתין')
-                    : `${delta > 0 ? '+' : ''}${formatCurrency(delta, locale)}`}
+                <td className={`numeric${tone}`}>
+                  <Figure>
+                    {delta === null
+                      ? pageText(locale, 'waiting', 'ממתין')
+                      : `${delta > 0 ? '+' : ''}${formatCurrency(delta, locale)}`}
+                  </Figure>
                 </td>
               </tr>
             );

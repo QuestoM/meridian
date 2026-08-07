@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import { dayLabel, nightAriaLabel, nightDetail, nightsHeadSentence } from './rules-lib';
 
 // Which night this restriction is about. Every night the programme runs, none
@@ -47,7 +48,7 @@ export default function AiringNights({ locale, airings, nights, day, onPick }) {
             onClick={() => onPick(night.day)}
           >
             <span>{dayLabel(night.day, locale)}</span>
-            <small dir="ltr">{nightDetail(night, locale)}</small>
+            <small><Figure>{nightDetail(night, locale)}</Figure></small>
           </button>
         ))}
       </div>

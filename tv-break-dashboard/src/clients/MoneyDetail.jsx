@@ -1,7 +1,9 @@
 import React from 'react';
+import { Figure, Code } from '../shell/bidi';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { exactMoney, ledgerBreakKeys, ledgerCampaignKeys, localized } from './clients-money-helpers';
+import { isolate } from '../shell/bidi';
 
 // The rows behind one figure. Two levels below the group row: its campaigns,
 // and the individual spots that make each of them up, with the break each spot
@@ -80,17 +82,17 @@ function SpotRows({ spots, locale, onOpenBreak }) {
           <tr key={spot.spot_key}>
             <td>
               <button type="button" className="clients-chip" onClick={() => onOpenBreak(spot.break_id)}>
-                <span className="numeric" dir="ltr">{spot.break_id}</span>
+                <Code className="numeric">{spot.break_id}</Code>
               </button>
             </td>
             <td>{spot.programme}</td>
             <td>{spot.ad}</td>
-            <td className="numeric" dir="ltr">{spot.position === null ? '-' : spot.position}</td>
-            <td className="numeric" dir="ltr">{spot.duration_seconds}</td>
-            <td className="numeric" dir="ltr">{spot.planned_tvr}</td>
-            <td className="numeric" dir="ltr">{exactMoney(spot.gross, locale)}</td>
-            <td className="numeric" dir="ltr">{spot.rebate_percent}%</td>
-            <td className="numeric" dir="ltr">{exactMoney(spot.net, locale)}</td>
+            <td className="numeric"><Figure>{spot.position === null ? '-' : spot.position}</Figure></td>
+            <td className="numeric"><Figure>{spot.duration_seconds}</Figure></td>
+            <td className="numeric"><Figure>{spot.planned_tvr}</Figure></td>
+            <td className="numeric"><Figure>{exactMoney(spot.gross, locale)}</Figure></td>
+            <td className="numeric"><Figure>{spot.rebate_percent}%</Figure></td>
+            <td className="numeric"><Figure>{exactMoney(spot.net, locale)}</Figure></td>
           </tr>
         ))}
       </tbody>
@@ -117,13 +119,13 @@ function DroppedRows({ dropped, locale, onOpenBreak, openableBreaks }) {
           <li key={row.spot_key}>
             {openableBreaks.includes(String(row.break_id)) ? (
               <button type="button" className="clients-chip" onClick={() => onOpenBreak(row.break_id)}>
-                <span className="numeric" dir="ltr">{row.break_id}</span>
+                <Code className="numeric">{row.break_id}</Code>
               </button>
-            ) : <span className="numeric" dir="ltr">{row.break_id}</span>}
+            ) : <Code className="numeric">{row.break_id}</Code>}
             <strong>{row.ad || row.campaign}</strong>
             {row.rule_id ? (
               <span className="clients-rule-id">
-                {pageText(locale, `Rule ${row.rule_id}`, `כלל ⁦${row.rule_id}⁩`)}
+                {pageText(locale, `Rule ${row.rule_id}`, `כלל ${isolate(row.rule_id)}`)}
               </span>
             ) : null}
             <small className="clients-dropped-why">{localized(row, 'explanation', locale)}</small>
@@ -175,13 +177,13 @@ export default function MoneyDetail({
             ) : title}
           </h3>
           <p className="clients-detail-sub">
-            <span className="numeric" dir="ltr">{exactMoney(row.gross, locale)}</span>
+            <Figure className="numeric">{exactMoney(row.gross, locale)}</Figure>
             <small>{pageText(locale, 'gross', 'ברוטו')}</small>
-            <span className="numeric" dir="ltr">{exactMoney(row.net, locale)}</span>
+            <Figure className="numeric">{exactMoney(row.net, locale)}</Figure>
             <small>{pageText(locale, 'net', 'נטו')}</small>
-            <span className="numeric" dir="ltr">{row.spots}</span>
+            <Figure className="numeric">{row.spots}</Figure>
             <small>{pageText(locale, 'spots', 'תשדירים')}</small>
-            <span className="numeric" dir="ltr">{(row.share_of_gross * 100).toFixed(2)}%</span>
+            <Figure className="numeric">{(row.share_of_gross * 100).toFixed(2)}%</Figure>
             <small>{pageText(locale, 'of the day', 'מהיום')}</small>
           </p>
         </div>
@@ -191,7 +193,7 @@ export default function MoneyDetail({
               <button type="button" onClick={() => onStep(-1)} aria-label={pageText(locale, 'Previous', 'הקודם')}>
                 <ChevronRight size={14} aria-hidden="true" />
               </button>
-              <span className="numeric" dir="ltr">{`${position.position} / ${position.total}`}</span>
+              <Figure className="numeric">{`${position.position} / ${position.total}`}</Figure>
               <button type="button" onClick={() => onStep(1)} aria-label={pageText(locale, 'Next', 'הבא')}>
                 <ChevronLeft size={14} aria-hidden="true" />
               </button>
@@ -232,13 +234,13 @@ export default function MoneyDetail({
                       </button>
                     ) : campaign.campaign}
                   </td>
-                  <td className="numeric" dir="ltr">{exactMoney(campaign.gross, locale)}</td>
-                  <td className="numeric" dir="ltr">{exactMoney(campaign.net, locale)}</td>
-                  <td className="numeric" dir="ltr">{campaign.spots}</td>
+                  <td className="numeric"><Figure>{exactMoney(campaign.gross, locale)}</Figure></td>
+                  <td className="numeric"><Figure>{exactMoney(campaign.net, locale)}</Figure></td>
+                  <td className="numeric"><Figure>{campaign.spots}</Figure></td>
                   <td className="clients-break-chips">
                     {(campaign.breaks || []).map((breakId) => (
                       <button key={breakId} type="button" className="clients-chip" onClick={() => onOpenBreak(breakId)}>
-                        <span className="numeric" dir="ltr">{breakId}</span>
+                        <Code className="numeric">{breakId}</Code>
                       </button>
                     ))}
                   </td>

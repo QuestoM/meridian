@@ -26,7 +26,7 @@ function ScheduleEditorToolbar({
   const he = locale === 'he';
   const label = (en, heText) => (he ? heText : en);
   return (
-    <div className="schedule-editor-toolbar" dir={he ? 'rtl' : 'ltr'}>
+    <div className="schedule-editor-toolbar">
       <div className="schedule-editor-snap" role="group" aria-label={label('Snap grid', 'רשת הצמדה')}>
         <span>{label('Snap', 'הצמדה')}</span>
         <Button

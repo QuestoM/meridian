@@ -1,6 +1,7 @@
 import React from 'react';
 import { Slider } from '@mui/material';
 import { formatPercent, pageText } from '../../shell/format';
+import { Figure } from '../../shell/bidi';
 import { OBJECTIVE_FOCUS, leverLabel } from './plan-week-model';
 
 // One leg of the comparison: all five levers, on both sides.
@@ -46,7 +47,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
             aria-label={`${title} ${leverLabel('retention_floor', locale)}`}
             onChange={(_event, value) => onChange('retention_floor', (Array.isArray(value) ? value[0] : value) / 100)}
           />
-          <strong className="numeric" dir="ltr">{formatPercent(floorPercent, locale)}</strong>
+          <strong className="numeric"><Figure>{formatPercent(floorPercent, locale)}</Figure></strong>
         </div>
       </Row>
 
@@ -62,7 +63,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
             aria-label={`${title} ${leverLabel('revenue_weight', locale)}`}
             onChange={(_event, value) => onChange('revenue_weight', Array.isArray(value) ? value[0] : value)}
           />
-          <strong className="numeric" dir="ltr">{Number(values.revenue_weight) || 0}</strong>
+          <strong className="numeric"><Figure>{Number(values.revenue_weight) || 0}</Figure></strong>
         </div>
       </Row>
 
@@ -79,7 +80,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
             aria-label={`${title} ${leverLabel('max_breaks_per_hour', locale)}`}
             onChange={(_event, value) => onChange('max_breaks_per_hour', Array.isArray(value) ? value[0] : value)}
           />
-          <strong className="numeric" dir="ltr">{Number(values.max_breaks_per_hour) || 1}</strong>
+          <strong className="numeric"><Figure>{Number(values.max_breaks_per_hour) || 1}</Figure></strong>
         </div>
       </Row>
 
@@ -95,7 +96,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
             aria-label={`${title} ${leverLabel('risk_lambda', locale)}`}
             onChange={(_event, value) => onChange('risk_lambda', (Array.isArray(value) ? value[0] : value) / 100)}
           />
-          <strong className="numeric" dir="ltr">{caution}</strong>
+          <strong className="numeric"><Figure>{caution}</Figure></strong>
         </div>
       </Row>
 

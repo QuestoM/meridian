@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { AlertTriangle, BellRing } from 'lucide-react';
 import {
   API_BASE,
@@ -97,7 +98,7 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
       );
     }
     return (
-      <div className="makegood-list" dir={he ? 'rtl' : 'ltr'}>
+      <div className="makegood-list">
         <p className="data-basis-note">
           {pageText(
             locale,
@@ -111,25 +112,25 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
             <div className="makegood-row-head">
               <AlertTriangle size={15} aria-hidden="true" />
               <strong>{alert.campaign_id}</strong>
-              <span className="makegood-shortfall numeric" dir="ltr">
-                -{pct(alert.projected_shortfall, locale)}
+              <span className="makegood-shortfall numeric">
+                <Figure>-{pct(alert.projected_shortfall, locale)}</Figure>
               </span>
             </div>
             <div className="makegood-bars">
               <div className="makegood-bar">
                 <span>{pageText(locale, 'Elapsed', 'חלף')}</span>
                 <i style={{ '--bar': Math.min(1, Number(alert.elapsed_frac || 0)) }} />
-                <small className="numeric" dir="ltr">{pct(alert.elapsed_frac, locale)}</small>
+                <small className="numeric"><Figure>{pct(alert.elapsed_frac, locale)}</Figure></small>
               </div>
               <div className="makegood-bar">
                 <span>{pageText(locale, 'Delivered', 'סופק')}</span>
                 <i style={{ '--bar': Math.min(1, Number(alert.delivered_frac || 0)) }} />
-                <small className="numeric" dir="ltr">{pct(alert.delivered_frac, locale)}</small>
+                <small className="numeric"><Figure>{pct(alert.delivered_frac, locale)}</Figure></small>
               </div>
               <div className="makegood-bar">
                 <span>{pageText(locale, 'Projected', 'תחזית')}</span>
                 <i style={{ '--bar': Math.min(1, Number(alert.projected_frac || 0)) }} />
-                <small className="numeric" dir="ltr">{pct(alert.projected_frac, locale)}</small>
+                <small className="numeric"><Figure>{pct(alert.projected_frac, locale)}</Figure></small>
               </div>
             </div>
           </article>

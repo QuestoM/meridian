@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Undo2, X } from 'lucide-react';
 import { formatNumber, pageText } from '../../shell/format';
+import { Figure } from '../../shell/bidi';
 import { exactCurrency } from './day-board-model';
 import { LIVE_PLAN, scopeWithBasis } from './plan-basis';
 
@@ -40,35 +41,35 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
       <div className="day-readout-figures">
         <div className={`day-figure ${directionOf(realised.revenue)}`}>
           <span className="day-figure-label">{label('Realised change', 'שינוי בפועל')}</span>
-          <strong dir="ltr">{exactCurrency(realised.revenue, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{exactCurrency(realised.revenue, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{label('Predicted before the act', 'התחזית לפני הפעולה')}</span>
-          <strong dir="ltr">{predicted === null ? '-' : exactCurrency(predicted, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{predicted === null ? '-' : exactCurrency(predicted, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</span>
-          <strong dir="ltr" className="day-settlement-pair">
-            {exactCurrency(before.revenue, locale)}
+          <strong className="day-settlement-pair">
+            <Figure>{exactCurrency(before.revenue, locale)}</Figure>
             <ArrowRight size={12} aria-hidden="true" />
-            {exactCurrency(after.revenue, locale)}
+            <Figure>{exactCurrency(after.revenue, locale)}</Figure>
           </strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
-          <strong dir="ltr" className="day-settlement-pair">
-            {formatNumber(before.breaks, locale)}
+          <strong className="day-settlement-pair">
+            <Figure>{formatNumber(before.breaks, locale)}</Figure>
             <ArrowRight size={12} aria-hidden="true" />
-            {formatNumber(after.breaks, locale)}
+            <Figure>{formatNumber(after.breaks, locale)}</Figure>
           </strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
       </div>
 
-      <p className="day-readout-note" dir="auto">{verdictSentence(settlement, locale, total)}</p>
+      <p className="day-readout-note">{verdictSentence(settlement, locale, total)}</p>
 
       <div className="day-readout-actions">
         {act !== 'undo' && (

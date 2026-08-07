@@ -1,6 +1,8 @@
 import React from 'react';
+import { Figure, Code } from '../shell/bidi';
 import { pageText } from '../shell/format';
 import { localized, vocabularyLabel } from './clients-money-helpers';
+import { isolate } from '../shell/bidi';
 import {
   AIRED,
   COUNTED_EMPTY,
@@ -41,16 +43,16 @@ function spotWord(count, locale) {
 function countedText(slice, count, locale) {
   const unit = spotWord(count, locale);
   if (slice.isFloor) {
-    return pageText(locale, `at least ${count} ${unit}`, `לפחות ⁦${count}⁩ ${unit}`);
+    return pageText(locale, `at least ${count} ${unit}`, `לפחות ${isolate(count)} ${unit}`);
   }
-  return pageText(locale, `${count} ${unit}`, `⁦${count}⁩ ${unit}`);
+  return pageText(locale, `${count} ${unit}`, `${isolate(count)} ${unit}`);
 }
 
 function daysText(slice, locale) {
   return pageText(
     locale,
     `${slice.sourcedDays} of ${slice.flightDays} flight days counted`,
-    `⁦${slice.sourcedDays}⁩ מתוך ⁦${slice.flightDays}⁩ ימי טיסה נספרו`,
+    `${isolate(slice.sourcedDays)} מתוך ${isolate(slice.flightDays)} ימי טיסה נספרו`,
   );
 }
 
@@ -82,14 +84,14 @@ export function DeliveryCell({ delivery, window = null, vocabulary = [], locale 
   return (
     <span className="clients-delivered">
       <span className={`clients-air-state ${slice.state}`}>{stateLabel(slice.state, vocabulary, locale)}</span>
-      <strong className="numeric" dir="ltr">{countedText(slice, counted, locale)}</strong>
+      <strong className="numeric"><Figure>{countedText(slice, counted, locale)}</Figure></strong>
       <small>{daysText(slice, locale)}</small>
       {stillToCome ? (
         <small>
           {pageText(
             locale,
             `Still to come: ${stillToCome} ${spotWord(stillToCome, locale)}`,
-            `עוד לפנינו: ⁦${stillToCome}⁩ ${spotWord(stillToCome, locale)}`,
+            `עוד לפנינו: ${isolate(stillToCome)} ${spotWord(stillToCome, locale)}`,
           )}
         </small>
       ) : null}
@@ -111,11 +113,11 @@ function AsOf({ asOf, locale }) {
     <p className="clients-basis-note">
       <span>{pageText(locale, 'Counted as of', 'נספר נכון ל־')}</span>
       {pageText(locale, ' ', '')}
-      <span className="numeric" dir="ltr">{instant}</span>
+      <Figure className="numeric">{instant}</Figure>
       {basis ? (
         <>
           {'. '}
-          <span lang="en" dir="ltr">{basis}</span>
+          <span lang="en">{basis}</span>
         </>
       ) : '.'}
     </p>
@@ -167,18 +169,18 @@ export function DeliveryBasis({ delivery, locale }) {
             {pageText(
               locale,
               `${slice.unknownDays} flight days carry no per-spot source and are not counted as zero:`,
-              `⁦${slice.unknownDays}⁩ ימי טיסה ללא מקור ברמת התשדיר, ואינם נספרים כאפס:`,
+              `${isolate(slice.unknownDays)} ימי טיסה ללא מקור ברמת התשדיר, ואינם נספרים כאפס:`,
             )}
           </span>
           {' '}
-          <span className="numeric" dir="ltr">{slice.unknownDates.join(', ')}</span>
+          <Figure className="numeric">{slice.unknownDates.join(', ')}</Figure>
         </p>
       ) : null}
       {files.length ? (
         <p className="clients-basis-note">
           <span>{pageText(locale, 'The file these counts were read out of:', 'הקובץ שממנו נקראו הספירות האלה:')}</span>
           {' '}
-          <span dir="ltr">{files.join(', ')}</span>
+          <Code>{files.join(', ')}</Code>
         </p>
       ) : null}
       {dropped > 0 ? (
@@ -187,10 +189,10 @@ export function DeliveryBasis({ delivery, locale }) {
             {pageText(
               locale,
               `Removed by a rule on the counted days: ${dropped} ${spotWord(dropped, locale)}. The count above is short by that many.`,
-              `הוסרו על ידי כלל בימים שנספרו: ⁦${dropped}⁩ ${spotWord(dropped, locale)}. הספירה שלמעלה חסרה במספר הזה.`,
+              `הוסרו על ידי כלל בימים שנספרו: ${isolate(dropped)} ${spotWord(dropped, locale)}. הספירה שלמעלה חסרה במספר הזה.`,
             )}
           </span>
-          {rules.length ? <span dir="ltr">{` ${rules.join(', ')}`}</span> : null}
+          {rules.length ? <Code>{` ${rules.join(', ')}`}</Code> : null}
         </p>
       ) : null}
       <p className="clients-basis-note">
@@ -216,10 +218,10 @@ function Goal({ label, reading, reason, basis, locale }) {
       <dd>
         {reading.hasPercent ? (
           <>
-            <strong className="numeric" dir="ltr">
-              {reading.isFloor
-                ? pageText(locale, `at least ${decimals(reading.percent, 2, locale)}%`, `לפחות ⁦${decimals(reading.percent, 2, locale)}%⁩`)
-                : `${decimals(reading.percent, 2, locale)}%`}
+            <strong className="numeric">
+              <Figure>{reading.isFloor
+                ? pageText(locale, `at least ${decimals(reading.percent, 2, locale)}%`, `לפחות ${isolate(`${decimals(reading.percent, 2, locale)}%`)}`)
+                : `${decimals(reading.percent, 2, locale)}%`}</Figure>
             </strong>
             <span className={`clients-air-state ${reading.state}`}>
               {reading.isFloor

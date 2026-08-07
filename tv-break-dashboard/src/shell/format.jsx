@@ -1,4 +1,5 @@
 import React from 'react';
+import { Figure } from './bidi';
 
 // Honest empty-state sentinel: null/undefined/non-finite input renders as a
 // plain hyphen, never a confident 0 that hides missing data. Callers that mean
@@ -88,12 +89,11 @@ export function formatRetentionDelta(value, locale = 'en') {
   return `${sign}${formatNumber(points, locale)}pp`;
 }
 
+// The figure primitive under its older name, kept because 150-odd call sites
+// read well as <Numeric>. Direction and isolation are Figure's to state; this
+// wrapper states nothing of its own.
 export function Numeric({ children }) {
-  return (
-    <span className="numeric" dir="ltr">
-      {children}
-    </span>
-  );
+  return <Figure>{children}</Figure>;
 }
 
 export function pageText(locale, en, he) {

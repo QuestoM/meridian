@@ -68,7 +68,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
         {!canEdit && (
           <span className="rules-locked">
             <Lock size={13} aria-hidden="true" />
-            <span dir="auto">{reason}</span>
+            <span>{reason}</span>
           </span>
         )}
       </div>
@@ -84,7 +84,6 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
               <input
                 id={`limit-${limit.key}`}
                 type="number"
-                dir="ltr"
                 step={limit.step}
                 value={value}
                 disabled={!canEdit}
@@ -92,7 +91,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
               />
               <span className="rules-limit-unit">{locale === 'he' ? limit.unitHe : limit.unitEn}</span>
               {changed && (
-                <span className="rules-limit-was" dir="ltr">
+                <span className="rules-limit-was">
                   {pageText(locale, `was ${current}`, `היה ${current}`)}
                 </span>
               )}
@@ -109,7 +108,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
           </label>
           <label>
             <span>{pageText(locale, 'Why', 'סיבה')}</span>
-            <input type="text" value={why} onChange={(event) => setWhy(event.target.value)} dir="auto" />
+            <input type="text" value={why} onChange={(event) => setWhy(event.target.value)} />
           </label>
           <p className="rules-limit-note">
             {pageText(
@@ -119,12 +118,12 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
             )}
           </p>
           {refusals.map((refusal) => (
-            <span className="rules-inline-error" role="status" dir="auto" key={refusal}>{refusal}</span>
+            <span className="rules-inline-error" role="status" key={refusal}>{refusal}</span>
           ))}
           <Button className="run-button" type="button" variant="contained" disabled={!ready || saving} onClick={submit}>
             {pageText(locale, 'Record the change', 'תיעוד השינוי')}
           </Button>
-          {error && <span className="rules-inline-error" role="status" dir="auto">{error}</span>}
+          {error && <span className="rules-inline-error" role="status">{error}</span>}
         </div>
       )}
     </section>

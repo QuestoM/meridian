@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, formatPlanDate, pageText } from '../shell/format';
 import { programTypeLabel, recommendationTitle } from '../shell/labels';
-import { isolate } from './today-bidi';
+import { Name, isolate } from '../shell/bidi';
 import TodayDecisionDetail from './TodayDecisionDetail';
 
 // Answer three: what needs a decision.
@@ -116,13 +116,13 @@ export function TodayDecisions({ today, locale, onOpenInOptimizer, onOpenSetting
               >
                 <div>
                   <strong>{recommendationTitle(item, locale)}</strong>
-                  <span dir="auto">
+                  <Name>
                     {[
                       programTypeLabel(item.program_type, locale) || pageText(locale, 'Mixed', 'מעורב'),
                       item.date ? formatPlanDate(String(item.date), locale) : '',
                       pageText(locale, risk[0], risk[1]),
                     ].filter(Boolean).join(' · ')}
-                  </span>
+                  </Name>
                 </div>
                 <div>
                   <strong><Numeric>{formatCurrency(item.impact, locale)}</Numeric></strong>

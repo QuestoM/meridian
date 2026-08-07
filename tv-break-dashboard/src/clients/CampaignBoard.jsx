@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { CalendarRange, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { refusalText, vocabularyLabel, vocabularyRemedy, windowLabel } from './clients-money-helpers';
@@ -8,6 +9,7 @@ import CampaignTerms from './CampaignTerms';
 import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 import './clients-campaigns.css';
+import { isolate } from '../shell/bidi';
 
 // Every campaign booked in this product, with its flights, what each flight
 // committed to, and what the delivery ledger has counted against it. Google Ads
@@ -108,9 +110,9 @@ export default function CampaignBoard({
     ? pageText(
       locale,
       `${campaigns.length} campaigns on this board: ${bookedCount} booked, ${demoCount} demo seed data`,
-      `⁦${campaigns.length}⁩ קמפיינים על הלוח: ⁦${bookedCount}⁩ הוזמנו, ⁦${demoCount}⁩ נתוני זרע הדגמה`,
+      `${isolate(campaigns.length)} קמפיינים על הלוח: ${isolate(bookedCount)} הוזמנו, ${isolate(demoCount)} נתוני זרע הדגמה`,
     )
-    : pageText(locale, `${campaigns.length} campaigns booked`, `⁦${campaigns.length}⁩ קמפיינים הוזמנו`);
+    : pageText(locale, `${campaigns.length} campaigns booked`, `${isolate(campaigns.length)} קמפיינים הוזמנו`);
 
   async function end(campaignId) {
     try {
@@ -156,7 +158,7 @@ export default function CampaignBoard({
   }
 
   return (
-    <section className="clients-campaigns" dir={he ? 'rtl' : 'ltr'}>
+    <section className="clients-campaigns">
       <div className="clients-toolbar">
         <span className="clients-counts">{countLine}</span>
         {canEdit ? (
@@ -179,7 +181,7 @@ export default function CampaignBoard({
           {pageText(
             locale,
             `Showing the one campaign that was asked for, of ${campaigns.length} on this board.`,
-            `מוצג הקמפיין שהתבקש בלבד, מתוך ⁦${campaigns.length}⁩ שעל הלוח.`,
+            `מוצג הקמפיין שהתבקש בלבד, מתוך ${isolate(campaigns.length)} שעל הלוח.`,
           )}
           <button type="button" className="clients-inline-action" onClick={() => setFocusId('')}>
             {pageText(locale, 'Show every campaign', 'הציגו את כל הקמפיינים')}
@@ -266,10 +268,10 @@ export default function CampaignBoard({
                       </button>
                     </td>
                     <td>{agencyCell(campaign)}</td>
-                    <td className="numeric" dir="ltr">{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</td>
-                    <td className="numeric" dir="ltr">
+                    <td className="numeric"><Figure>{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</Figure></td>
+                    <td className="numeric">
                       <button type="button" className="clients-link" onClick={toggle} aria-expanded={open}>
-                        {campaign.flights.length}
+                        <Figure>{campaign.flights.length}</Figure>
                       </button>
                     </td>
                     <td>

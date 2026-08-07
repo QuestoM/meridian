@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, ArrowRight, Calculator, CheckCircle2, PinOff, Undo2 } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
+import { Figure, Code, Name } from '../../shell/bidi';
 import { clockOf, committedGap, exactCurrency } from './day-board-model';
 import { LIVE_PLAN, SAVED_PLAN, livePlanPointer, planBasisLabel, planBasisLead, scopeWithBasis } from './plan-basis';
 
@@ -97,23 +98,23 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
       <div className="day-readout-figures">
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</span>
-          <strong dir="ltr">{exactCurrency(current.revenue, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{exactCurrency(current.revenue, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Retention kept', 'שימור צפייה')}</span>
-          <strong dir="ltr">{formatPercent(current.retention * 100, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{formatPercent(current.retention * 100, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
-          <strong dir="ltr">{formatNumber(current.breaks, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
+          <strong><Figure>{formatNumber(current.breaks, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
           <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
-          <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
+          <strong><Figure>{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</Figure></strong>
+          <small className="day-figure-scope">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
         </div>
       </div>
 
@@ -138,8 +139,8 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
           {violations.map((violation, index) => (
             <li key={`${violation.code}-${violation.scope}-${index}`}>
               <strong>{violationLabel(violation.code, locale)}</strong>
-              <span dir="auto">{violation.scope}</span>
-              <span dir="ltr">{formatNumber(violation.observed, locale)} / {formatNumber(violation.limit, locale)}</span>
+              <span>{violation.scope}</span>
+              <Figure>{formatNumber(violation.observed, locale)} / {formatNumber(violation.limit, locale)}</Figure>
             </li>
           ))}
         </ul>
@@ -148,8 +149,8 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
       <SaveForecast forecast={forecast} locale={locale} editCount={editCount} />
 
       {score.engine_ms !== null && (
-        <p className="day-readout-engine" dir="ltr">
-          {label('scored in', 'חושב תוך')} {score.engine_ms} ms
+        <p className="day-readout-engine">
+          {label('scored in', 'חושב תוך')} <Figure>{score.engine_ms} ms</Figure>
         </p>
       )}
     </div>
@@ -178,21 +179,21 @@ export function CommittedPlanNote({ gap, locale }) {
   const live = planBasisLabel(LIVE_PLAN, locale);
   if (gap.state === 'unavailable') {
     return (
-      <p className="day-committed-note is-unknown" dir="auto">
+      <p className="day-committed-note is-unknown">
         {label(`No committed weekly plan is on file for this channel-day, so there is nothing to check ${live} against.`, `אין תוכנית שבועית שמורה ליום הערוץ הזה, ואין מול מה לבדוק את ${live}.`)}
       </p>
     );
   }
   if (gap.state === 'matches') {
     return (
-      <p className="day-committed-note is-matched" dir="auto">
+      <p className="day-committed-note is-matched">
         {label(`${planBasisLead(LIVE_PLAN, locale)} matches ${saved}: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks.`, `${live} תואמת את ${saved}: ${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים.`)}
       </p>
     );
   }
   const percentClause = gap.percent === null ? '' : ` (${gap.percent}%)`;
   return (
-    <p className="day-committed-note is-diverged" dir="auto">
+    <p className="day-committed-note is-diverged">
       {label(`This board re-planned this day live. It now differs from ${saved} (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} breaks): a gap of ${exactCurrency(gap.revenueGap, locale)}${percentClause}, and a gap of ${gap.breaksGap} breaks.`, `הלוח הזה תכנן את היום הזה מחדש בזמן אמת. הוא שונה כעת מ${saved} (${exactCurrency(gap.committed.revenue, locale)}, ${gap.committed.breaks} ברייקים): הפרש של ${exactCurrency(gap.revenueGap, locale)}${percentClause}, והפרש של ${gap.breaksGap} ברייקים.`)}
     </p>
   );
@@ -228,7 +229,7 @@ export function StrandedPlacements({ records, locale, busy, onRemove }) {
   return (
     <section className="day-stranded" aria-label={label('Saved placements with no break on the board', 'נעיצות שמורות שאין להן ברייק בלוח')}>
       <h4>{label('Saved placements the plan no longer shows a break for', 'נעיצות שמורות שאין להן ברייק בתוכנית')}</h4>
-      <p className="day-stranded-why" dir="auto">
+      <p className="day-stranded-why">
         {label(
           'Each was saved from this board, and the plan has since placed its programme differently, so no break carries it. Removing it deletes the restriction that carries it, exactly as the control on a break does.',
           'כל אחת נשמרה מהלוח הזה, ומאז התוכנית מיקמה את רצועת השידור שלה אחרת, ולכן אין ברייק שנושא אותה. ההסרה מוחקת את המגבלה שנושאת אותה, בדיוק כמו הפקד שעל ברייק.',
@@ -238,13 +239,13 @@ export function StrandedPlacements({ records, locale, busy, onRemove }) {
         {rows.map((record) => (
           <li key={record.break_id} className={`day-stranded-row is-${record.restriction ? record.restriction.state : 'unknown'}`}>
             <div className="day-stranded-identity">
-              <strong dir="auto">{record.programme}</strong>
-              <span dir="ltr">{record.break_id}</span>
+              <strong><Name>{record.programme}</Name></strong>
+              <Code>{record.break_id}</Code>
             </div>
-            <p dir="auto">{locale === 'he' ? record.reason_he : record.reason}</p>
-            <p dir="auto" className="day-stranded-rule">
+            <p>{locale === 'he' ? record.reason_he : record.reason}</p>
+            <p className="day-stranded-rule">
               {record.restriction ? (locale === 'he' ? record.restriction.reason_he : record.restriction.reason) : ''}
-              <span dir="ltr">{record.constraint_id}</span>
+              <Code>{record.constraint_id}</Code>
             </p>
             <button type="button" className="day-action is-inverse" onClick={() => onRemove(record)} disabled={busy}>
               <PinOff size={13} aria-hidden="true" />
@@ -276,7 +277,7 @@ export function SaveForecast({ forecast, locale, editCount }) {
   if (editCount === 0) return null;
   if (!forecast) {
     return (
-      <p className="day-readout-note" dir="auto">
+      <p className="day-readout-note">
         {label(
           'The change above holds the break counts the plan already chose. Saving writes a restriction and the engine plans the whole day again with it in force, so the day can move further than that. Check what saving would do to measure it before the click.',
           'השינוי שלמעלה מחזיק את מספר הברייקים שהתוכנית כבר בחרה. שמירה כותבת מגבלה, והמנוע מתכנן את כל היום מחדש כשהיא בתוקף, ולכן היום עשוי לזוז יותר מכך. בדקו מה תעשה השמירה כדי למדוד זאת לפני הלחיצה.',
@@ -291,31 +292,31 @@ export function SaveForecast({ forecast, locale, editCount }) {
       <div className="day-readout-figures">
         <div className={`day-figure ${forecast.delta.revenue > 0.005 ? 'is-gain' : forecast.delta.revenue < -0.005 ? 'is-loss' : 'is-flat'}`}>
           <span className="day-figure-label">{label('Change if you save', 'השינוי אם תשמרו')}</span>
-          <strong dir="ltr">{exactCurrency(forecast.delta.revenue, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{exactCurrency(forecast.delta.revenue, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</span>
-          <strong dir="ltr" className="day-settlement-pair">
-            {exactCurrency(forecast.before.revenue, locale)}
+          <strong className="day-settlement-pair">
+            <Figure>{exactCurrency(forecast.before.revenue, locale)}</Figure>
             <ArrowRight size={12} aria-hidden="true" />
-            {exactCurrency(forecast.after.revenue, locale)}
+            <Figure>{exactCurrency(forecast.after.revenue, locale)}</Figure>
           </strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
-          <strong dir="ltr" className="day-settlement-pair">
-            {formatNumber(forecast.before.breaks, locale)}
+          <strong className="day-settlement-pair">
+            <Figure>{formatNumber(forecast.before.breaks, locale)}</Figure>
             <ArrowRight size={12} aria-hidden="true" />
-            {formatNumber(forecast.after.breaks, locale)}
+            <Figure>{formatNumber(forecast.after.breaks, locale)}</Figure>
           </strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
       </div>
-      <p className="day-readout-note" dir="auto">{forecastSentence(forecast, locale)}</p>
-      <p className="day-readout-engine" dir="ltr">
-        {label('planned in', 'תוכנן תוך')} {forecast.engine_ms} ms
+      <p className="day-readout-note">{forecastSentence(forecast, locale)}</p>
+      <p className="day-readout-engine">
+        {label('planned in', 'תוכנן תוך')} <Figure>{forecast.engine_ms} ms</Figure>
       </p>
     </section>
   );

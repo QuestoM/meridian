@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Code, Name } from '../shell/bidi';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
 import { Power, RotateCcw, Save, X } from 'lucide-react';
 import {
@@ -217,13 +218,13 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
         <header className="amz-drawer-head">
           <div className="amz-drawer-title">
             <span className="amz-drawer-eyebrow">{pageText(locale, 'Agency record', 'כרטיס סוכנות')}</span>
-            <h2 dir="auto">{draft.display_name || draft.name || draft.agency_id}</h2>
+            <h2><Name>{draft.display_name || draft.name || draft.agency_id}</Name></h2>
             <div className="agz-head-chips">
-              <span className="agz-agency-id" dir="ltr">{row.agency_id}</span>
+              <Code className="agz-agency-id">{row.agency_id}</Code>
               <span className={`agz-status-chip ${status.tone}`}>{status.label}</span>
               {isSynthetic(row) && <SyntheticChip locale={locale} />}
               {row.onboarded_at && (
-                <span className="agz-subnote" dir="auto">{pageText(locale, `Onboarded ${row.onboarded_at}`, `הצטרפה ${row.onboarded_at}`)}</span>
+                <span className="agz-subnote">{pageText(locale, `Onboarded ${row.onboarded_at}`, `הצטרפה ${row.onboarded_at}`)}</span>
               )}
             </div>
           </div>

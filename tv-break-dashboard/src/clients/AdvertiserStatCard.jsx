@@ -1,4 +1,5 @@
 import React from 'react';
+import { Figure, Code, Name } from '../shell/bidi';
 import { Tooltip } from '@mui/material';
 import { ChevronLeft, ChevronRight, Info, Layers, TriangleAlert } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
@@ -30,8 +31,8 @@ function StatBlock({ label, value, provenance, tone, delta }) {
           </span>
         </Tooltip>
       </span>
-      <span className={`amz-stat-figure ${tone || ''}${isEmpty ? ' empty' : ''}`} dir="ltr">
-        {shown}
+      <span className={`amz-stat-figure ${tone || ''}${isEmpty ? ' empty' : ''}`}>
+        <Figure>{shown}</Figure>
         {delta && <span className="amz-stat-delta">{delta}</span>}
       </span>
     </div>
@@ -60,7 +61,7 @@ function EffectChips({ breakdown, locale }) {
       {active.map((meta) => (
         <span key={meta.key} className={`amz-effect-chip ${meta.tone}`} role="listitem">
           <span className="amz-effect-name">{pageText(locale, meta.en, meta.he)}</span>
-          <span className="amz-effect-count" dir="ltr">{breakdown[meta.key]}</span>
+          <Figure className="amz-effect-count">{breakdown[meta.key]}</Figure>
         </span>
       ))}
     </div>
@@ -104,8 +105,8 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
     >
       <header className="amz-card-head">
         <div className="amz-card-id-wrap">
-          <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`} dir="auto">
-            {shownName}
+          <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`}>
+            <Name>{shownName}</Name>
             {unnamed && (
               <Tooltip title={pageText(locale, 'This pricing row carries no advertiser name, so it prices nobody. A client gets its rule from its own record, under Clients.', 'שורת התמחור הזו אינה נושאת שם מפרסם, ולכן היא אינה מתמחרת אף אחד. לקוח מקבל את הכלל שלו מהכרטיס שלו, במסך הלקוחות.')} arrow placement="top">
                 <span className="amz-unnamed-chip">{pageText(locale, 'prices nobody', 'לא מתמחר אף אחד')}</span>
@@ -113,7 +114,7 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
             )}
           </span>
           {/* The raw id stays visible as a quiet secondary line whenever it differs from the shown name. */}
-          {showRawId && <span className="amz-card-rawid" dir="ltr">{row.advertiser_id}</span>}
+          {showRawId && <Code className="amz-card-rawid">{row.advertiser_id}</Code>}
           {/* Native title is a truncation echo of the ellipsised notes, not an explanation. */}
           {row.notes ? <span className="amz-card-notes" title={row.notes}>{row.notes}</span> : null}
         </div>
@@ -122,14 +123,14 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
 
       <div className="amz-card-rulecount">
         <Layers size={16} className="amz-rulecount-icon" aria-hidden="true" />
-        <span className="amz-rulecount-value" dir="ltr">{rules}</span>
+        <Figure className="amz-rulecount-value">{rules}</Figure>
         <span className="amz-rulecount-label">
           {rules === 1
             ? pageText(locale, 'scoped rule', 'כלל ממוקד')
             : pageText(locale, 'scoped rules', 'כללים ממוקדים')}
         </span>
         {conflicts > 0 && (
-          <span className="amz-conflict-flag" dir="ltr">
+          <span className="amz-conflict-flag">
             <TriangleAlert size={13} aria-hidden="true" />
             {conflicts === 1
               ? pageText(locale, '1 conflict', 'התנגשות אחת')

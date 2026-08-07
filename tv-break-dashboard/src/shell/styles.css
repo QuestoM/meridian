@@ -50,10 +50,6 @@ button {
   flex-direction: row;
 }
 
-.kairos-shell.rtl .nav-item,
-.kairos-shell.rtl .program-cell {
-  text-align: right;
-}
 
 .kairos-shell.rtl .nav-item.active {
   box-shadow: none;
@@ -64,17 +60,49 @@ button {
   direction: ltr;
 }
 
-.numeric {
+/* Direction and isolation live in shell/bidi.jsx and in the three rules below,
+   and nowhere else. verify-direction-rules.mjs fails the build on a surface that
+   states direction for itself. Read the header of bidi.jsx before changing any
+   of this: the override-versus-isolation distinction is the whole point. */
+
+/* An inline run whose internal order is left-to-right whatever the surrounding
+   language: a figure, a date, an identifier. Isolate protects that order without
+   re-anchoring anything, and direction only ever sits on this inline box, so the
+   block that contains it keeps the document direction and text-align: start
+   keeps meaning "the reading edge". */
+.bidi-figure {
   direction: ltr;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
 
-/* Table numeric cells let the content's own dir="auto" decide direction, so a
-   bare number stays left-to-right while a number plus a Hebrew unit (for example
-   "8 דק׳") reads right-to-left correctly. Forcing ltr here reversed the unit. */
-.numeric-cell {
+/* The same run, for a path or URL long enough that it must break inside itself
+   rather than push its container wide. */
+.bidi-code {
+  direction: ltr;
   unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+
+/* A name that arrives as data in either script. plaintext, not isolate: isolate
+   would protect the run but still lay it out in the direction it inherits, and
+   these names have no fixed direction to inherit. plaintext takes the direction
+   from the name's own first strong character, which is what the isolate function
+   in shell/bidi.jsx does with U+2068, so the component and the function agree.
+   A Hebrew channel stays Hebrew inside an English line and a Latin brand stays
+   Latin inside a Hebrew one. */
+.bidi-name {
+  unicode-bidi: plaintext;
+}
+
+/* Typography only. This class sits on table cells in 33 places, and a direction
+   here re-anchored every one of them: measured on the week-compare table, the
+   numeric cells sat 321px, 320px and 212px from the cell's right edge while the
+   row header sat at 8px, so the column stopped lining up. The run's order is the
+   job of .bidi-figure on an inline span inside the cell. Do not add direction or
+   unicode-bidi here. */
+.numeric,
+.numeric-cell {
   font-variant-numeric: tabular-nums;
 }
 
@@ -167,7 +195,7 @@ button {
   font-size: var(--text-base);
   font-weight: var(--weight-soft);
   line-height: 1;
-  text-align: left;
+  text-align: start;
   text-transform: none;
 }
 
@@ -216,10 +244,6 @@ button {
   white-space: nowrap;
 }
 
-.kairos-shell.rtl .side-rail .nav-item.MuiListItemButton-root {
-  direction: rtl;
-  text-align: right;
-}
 
 .operator-card {
   margin: auto 14px 18px;
@@ -236,9 +260,6 @@ button {
   grid-template-columns: 34px minmax(0, 1fr) 14px;
 }
 
-.kairos-shell.rtl .operator-card div {
-  text-align: right;
-}
 
 .operator-avatar {
   width: 34px;
@@ -754,7 +775,6 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-items: start;
   gap: 3px;
-  direction: ltr;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2081,7 +2101,6 @@ button {
 
 .ledger-row small {
   min-width: 120px;
-  unicode-bidi: isolate;
   color: var(--muted);
 }
 
@@ -2095,8 +2114,7 @@ button {
 }
 
 .ledger-values {
-  direction: ltr;
-  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
 }
 
 .ledger-unit,
@@ -2305,10 +2323,9 @@ button {
 
 .kairos-shell.rtl .decision-row > div:last-child,
 .kairos-shell.rtl .decision-row.MuiButton-root > div:last-child {
-  direction: ltr;
   justify-self: start;
   justify-items: start;
-  text-align: left;
+  text-align: end;
 }
 
 .control-list {
@@ -2357,8 +2374,8 @@ button {
 }
 
 .numeric-cell {
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: flex-start;
+  text-align: start;
 }
 
 .grid-loading {
@@ -2409,10 +2426,6 @@ button {
   white-space: nowrap;
 }
 
-.kairos-shell.rtl .MuiDataGrid-columnHeaderTitle,
-.kairos-shell.rtl .MuiDataGrid-cell {
-  text-align: right;
-}
 
 .kairos-shell.rtl .MuiDataGrid-columnHeader--alignRight .MuiDataGrid-columnHeaderTitleContainer,
 .kairos-shell.rtl .MuiDataGrid-cell--textRight {
@@ -3246,12 +3259,7 @@ button {
     width: 100%;
     max-width: 100%;
     min-height: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .kairos-shell.rtl .side-rail {
-    border-left: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
   }
 
@@ -3270,7 +3278,7 @@ button {
   }
 
   .brand-lockup > div:last-child {
-    text-align: left;
+    text-align: start;
   }
 
   .brand-lockup strong,
@@ -3366,7 +3374,7 @@ button {
   .metric {
     min-height: 58px;
     padding: 10px 12px;
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--line);
   }
 
@@ -4245,7 +4253,7 @@ button {
   max-height: 132px;
   overflow-y: auto;
   align-content: flex-start;
-  padding-right: 2px;
+  padding-inline-end: 2px;
 }
 
 .adv-chip-empty {
@@ -5734,21 +5742,17 @@ button {
 .mw-dot.cost { background: var(--amber-soft); border: 1px solid var(--amber); }
 .mw-dot.band { background: var(--amber); opacity: 0.35; border: 1px solid var(--amber); }
 
-/* The range numbers are one LTR run (currency amounts with a hyphen). Isolate
-   and forbid wrapping: an RTL line break inside the run visually scrambles it
-   into "2.2M6.09 - M". */
+/* The range is rendered through Figure, which supplies direction and
+   isolation. Wrapping stays forbidden here: an RTL line break inside the run
+   visually scrambles it into "2.2M6.09 - M". */
 .mw-band-range {
-  direction: ltr;
-  unicode-bidi: isolate;
   white-space: nowrap;
 }
 
-/* Shared LTR isolate for any Latin/number run embedded in RTL copy (unit
-   suffixes such as "ILS/s", formulas, X - Y ranges). Same recipe as
-   .mw-band-range, reusable outside the money waterfall. */
-.ltr-run {
-  direction: ltr;
-  unicode-bidi: isolate;
+/* Companion to .bidi-figure for a run that must not break across lines: an
+   RTL line break inside a range visually scrambles it into "2.2M6.09 - M".
+   Direction and isolation come from the primitive class beside it. */
+.figure-nowrap {
   white-space: nowrap;
 }
 
@@ -5992,7 +5996,6 @@ button {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  unicode-bidi: isolate;
 }
 
 .alog-user {
@@ -6008,7 +6011,6 @@ button {
   background: var(--surface-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-xs);
-  unicode-bidi: isolate;
   overflow-wrap: anywhere;
 }
 
@@ -6024,7 +6026,6 @@ button {
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   font-variant-numeric: tabular-nums;
-  unicode-bidi: isolate;
 }
 
 .alog-status.warn {

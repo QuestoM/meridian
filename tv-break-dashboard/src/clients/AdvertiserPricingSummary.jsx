@@ -129,7 +129,7 @@ export function ScopeMultiSelect({ label, options, value, onChange, locale, filt
               aria-pressed={active}
               onClick={() => onChange(serializeTokens(toggleToken(tokens, token)))}
             >
-              <span dir="auto">{isAny ? pageText(locale, 'Any', 'הכול') : tokenLabel(token, optionMap, locale)}</span>
+              <span>{isAny ? pageText(locale, 'Any', 'הכול') : tokenLabel(token, optionMap, locale)}</span>
             </button>
           );
         })}
@@ -160,7 +160,7 @@ export function WeekdayScope({ value, onChange, locale }) {
       <span className="adv-field-label">{label}</span>
       <div className="adv-chip-row" role="group" aria-label={label}>
         <button type="button" className={`adv-chip any${anyActive ? ' active' : ''}`} aria-pressed={anyActive} onClick={() => onChange('ANY')}>
-          <span dir="auto">{pageText(locale, 'Any', 'הכול')}</span>
+          <span>{pageText(locale, 'Any', 'הכול')}</span>
         </button>
         {WEEKDAY_OPTIONS.map((day) => {
           const active = !anyActive && tokens.includes(day.value);
@@ -174,7 +174,7 @@ export function WeekdayScope({ value, onChange, locale }) {
               aria-label={pageText(locale, full[0], full[1])}
               onClick={() => onChange(serializeTokens(toggleToken(tokens, day.value)))}
             >
-              <span dir="auto">{pageText(locale, day.en, day.he)}</span>
+              <span>{pageText(locale, day.en, day.he)}</span>
             </button>
           );
         })}
@@ -342,8 +342,8 @@ function LiveExample({ advertiserId, rule, maps, locale }) {
   const applied = Array.isArray(state.data.applied_overrides) && state.data.applied_overrides.length > 0;
   return (
     <div className="apz-example">
-      <span className="apz-example-line" dir="auto">{pageText(locale, `Worked example for the most specific rule (${slotName}): base price ${base.toFixed(2)}, final price ${final.toFixed(2)}.`, `דוגמה חיה לפי הכלל הממוקד ביותר (${slotName}): מחיר בסיס ${base.toFixed(2)}, מחיר סופי ${final.toFixed(2)}.`)}</span>
-      <span className="apz-example-note" dir="auto">{applied ? pageText(locale, 'Includes the targeted layer rules of this advertiser that match the slot.', 'כולל כללים ממוקדי שכבה של המפרסם החלים על המשבצת.') : pageText(locale, 'Rate-card layers only; scoped coefficient rules apply on the per-spot daily pricing path, which this tester does not simulate.', 'שכבות המחירון בלבד; כללי מקדם ממוקדים חלים בנתיב התמחור היומי לכל תשדיר, שהבודק אינו מדמה.')}</span>
+      <span className="apz-example-line">{pageText(locale, `Worked example for the most specific rule (${slotName}): base price ${base.toFixed(2)}, final price ${final.toFixed(2)}.`, `דוגמה חיה לפי הכלל הממוקד ביותר (${slotName}): מחיר בסיס ${base.toFixed(2)}, מחיר סופי ${final.toFixed(2)}.`)}</span>
+      <span className="apz-example-note">{applied ? pageText(locale, 'Includes the targeted layer rules of this advertiser that match the slot.', 'כולל כללים ממוקדי שכבה של המפרסם החלים על המשבצת.') : pageText(locale, 'Rate-card layers only; scoped coefficient rules apply on the per-spot daily pricing path, which this tester does not simulate.', 'שכבות המחירון בלבד; כללי מקדם ממוקדים חלים בנתיב התמחור היומי לכל תשדיר, שהבודק אינו מדמה.')}</span>
     </div>
   );
 }
@@ -371,7 +371,7 @@ function AdvertiserPricingSummary({ advertiserId, conditions, scopeOptions, loca
           {moneyRules.map((rule) => (
             <li key={rule.rule_id}>
               <button type="button" className="apz-rule" onClick={() => onEditRule(rule.rule_id)} aria-label={pageText(locale, `Edit pricing rule ${rule.rule_id}`, `עריכת כלל תמחור ${rule.rule_id}`)}>
-                <span className="apz-rule-sentence" dir="auto">{ruleSentence(rule, maps, locale)}</span>
+                <span className="apz-rule-sentence">{ruleSentence(rule, maps, locale)}</span>
                 <Pencil size={13} className="apz-rule-icon" />
               </button>
             </li>

@@ -11,6 +11,7 @@ import {
   roleLabel,
   setAccountAffiliation,
 } from './Login';
+import { Code, DirectionRoot } from './bidi';
 
 // Admin-only account management over /api/auth/users*: list, create, delete
 // and reset passwords. Every failure surfaces honestly; nothing is optimistic.
@@ -146,7 +147,7 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
   }
 
   return (
-    <div className="auth-overlay" dir={locale === 'he' ? 'rtl' : 'ltr'} role="dialog" aria-modal="true">
+    <DirectionRoot locale={locale} className="auth-overlay" role="dialog" aria-modal="true">
       <div className="auth-dialog auth-dialog-wide">
         <button type="button" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
           ×
@@ -187,7 +188,7 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                 return (
                   <React.Fragment key={account.username}>
                     <tr>
-                      <td className="auth-mono">{account.username}</td>
+                      <td className="auth-mono"><Code>{account.username}</Code></td>
                       <td>{account.display_name}</td>
                       <td>
                         {roleLabel(account.role, locale)}
@@ -364,7 +365,7 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
           </form>
         )}
       </div>
-    </div>
+    </DirectionRoot>
   );
 }
 

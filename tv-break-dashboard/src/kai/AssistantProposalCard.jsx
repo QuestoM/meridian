@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@mui/material';
 import { Building2, CalendarClock, ExternalLink, Layers, Lock, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code, Name } from '../shell/bidi';
 import AssistantUndo from './AssistantUndo';
 import EffectView from './AssistantEffectView';
 import ProposalSummary from './AssistantProposalSummary';
@@ -71,13 +72,13 @@ function PermissionView({ permission, locale }) {
   const fields = Array.isArray(permission.fields) ? permission.fields : [];
   return (
     <div className={permission.may_change ? 'asst-permission' : 'asst-permission blocked'} role="note">
-      <p dir="auto"><Scale size={12} />{pageText(locale, permission.basis_en || '', permission.basis_he || '')}</p>
-      {fields.length ? <div className="asst-permission-fields">{fields.map((field) => <code dir="ltr" key={field}>{field}</code>)}</div> : null}
+      <p><Scale size={12} />{pageText(locale, permission.basis_en || '', permission.basis_he || '')}</p>
+      {fields.length ? <div className="asst-permission-fields">{fields.map((field) => <Code key={field}>{field}</Code>)}</div> : null}
       {permission.effective_date ? (
-        <p dir="auto">{pageText(locale, 'The limits in force took effect on ', 'המגבלות שבתוקף נכנסו לתוקף ב-')}<bdi dir="ltr">{permission.effective_date}</bdi>{'.'}</p>
+        <p>{pageText(locale, 'The limits in force took effect on ', 'המגבלות שבתוקף נכנסו לתוקף ב-')}<Figure>{permission.effective_date}</Figure>{'.'}</p>
       ) : null}
-      <p dir="auto">{pageText(locale, permission.record_en || '', permission.record_he || '')}</p>
-      {!permission.may_change && permission.reason ? <p dir="auto">{String(permission.reason)}</p> : null}
+      <p>{pageText(locale, permission.record_en || '', permission.record_he || '')}</p>
+      {!permission.may_change && permission.reason ? <p>{String(permission.reason)}</p> : null}
     </div>
   );
 }
@@ -115,11 +116,11 @@ function PayloadView({ item, locale }) {
       <div className="asst-fields">
         {shown.map((row) => (
           <div className="asst-field-row" key={row.field}>
-            <span className="asst-field-name" dir="ltr">{row.field}</span>
-            <span className="asst-field-value" dir="ltr">
+            <span className="asst-field-name"><Code>{row.field}</Code></span>
+            <span className="asst-field-value">
               {row.from !== null && row.from !== undefined
-                ? <><bdi dir="ltr">{shortValue(row.from)}</bdi>{' → '}<bdi dir="ltr">{shortValue(row.to)}</bdi></>
-                : <bdi dir="ltr">{shortValue(row.to)}</bdi>}
+                ? <><Figure>{shortValue(row.from)}</Figure>{' → '}<Figure>{shortValue(row.to)}</Figure></>
+                : <Figure>{shortValue(row.to)}</Figure>}
             </span>
           </div>
         ))}
@@ -136,8 +137,8 @@ function PayloadView({ item, locale }) {
     <div className="asst-fields">
       {entries.map(([key, value]) => (
         <div className="asst-field-row" key={key}>
-          <span className="asst-field-name" dir="ltr">{key}</span>
-          <span className="asst-field-value" dir="ltr">{shortValue(value)}</span>
+          <span className="asst-field-name"><Code>{key}</Code></span>
+          <span className="asst-field-value"><Figure>{shortValue(value)}</Figure></span>
         </div>
       ))}
     </div>
@@ -166,20 +167,20 @@ function DiffView({ item, locale }) {
   return (
     <div className="asst-pdiff">
       <div className="asst-pdiff-head">
-        <span dir="auto">{header}</span>
+        <Name>{header}</Name>
         {isCreation ? <span className="asst-pdiff-new">{pageText(locale, 'New', 'חדש')}</span> : null}
       </div>
       <div className="asst-pdiff-grid">
         <div className="asst-pdiff-row head">
-          <span dir="auto">{pageText(locale, 'Field', 'שדה')}</span>
-          <span dir="auto">{pageText(locale, 'Before', 'לפני')}</span>
-          <span dir="auto">{pageText(locale, 'After', 'אחרי')}</span>
+          <span>{pageText(locale, 'Field', 'שדה')}</span>
+          <span>{pageText(locale, 'Before', 'לפני')}</span>
+          <span>{pageText(locale, 'After', 'אחרי')}</span>
         </div>
         {rows.map((row, index) => (
           <div className="asst-pdiff-row" key={index}>
-            <span className="asst-pdiff-field" dir="ltr"><FieldName name={row.field} /></span>
-            <span className="asst-pdiff-before" dir="ltr">{row.before === null || row.before === undefined ? '-' : shortValue(row.before)}</span>
-            <span className="asst-pdiff-after" dir="ltr">{shortValue(row.after)}</span>
+            <span className="asst-pdiff-field"><FieldName name={row.field} /></span>
+            <span className="asst-pdiff-before">{row.before === null || row.before === undefined ? '-' : shortValue(row.before)}</span>
+            <span className="asst-pdiff-after">{shortValue(row.after)}</span>
           </div>
         ))}
       </div>
@@ -255,13 +256,13 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
     <div className="asst-proposal">
       <div className="asst-proposal-head">
         <span>{pageText(locale, 'Proposed actions', 'פעולות מוצעות')}</span>
-        <code dir="ltr">{String(batch.batch_id).slice(0, 8)}</code>
+        <Code>{String(batch.batch_id).slice(0, 8)}</Code>
       </div>
 
       {showBulkBanner ? (
         <div className="asst-bulk" role="note">
           <TriangleAlert size={13} />
-          <span dir="auto">{bulkText}</span>
+          <span>{bulkText}</span>
         </div>
       ) : null}
 
@@ -281,11 +282,11 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
             </div>
             <div className="asst-item-body">
               <div className="asst-item-head">
-                <span className="asst-kind"><KindIcon size={12} />{kind ? pageText(locale, kind.en, kind.he) : <code dir="ltr">{item.kind || '?'}</code>}</span>
-                <span className={`asst-status-chip ${statusClass}`}>{statusPair ? pageText(locale, statusPair[0], statusPair[1]) : <code dir="ltr">{item.status}</code>}</span>
+                <span className="asst-kind"><KindIcon size={12} />{kind ? pageText(locale, kind.en, kind.he) : <Code>{item.kind || '?'}</Code>}</span>
+                <span className={`asst-status-chip ${statusClass}`}>{statusPair ? pageText(locale, statusPair[0], statusPair[1]) : <Code>{item.status}</Code>}</span>
               </div>
               <ProposalSummary item={item} locale={locale} className="asst-item-summary" />
-              {item.reason ? <p className="asst-item-reason" dir="auto">{inApprovedWords(item.reason)}</p> : null}
+              {item.reason ? <p className="asst-item-reason">{inApprovedWords(item.reason)}</p> : null}
               {!item.summary && !item.reason && !item.payload ? (
                 <p className="asst-item-reason">{pageText(locale, 'No details were provided for this action.', 'לא סופקו פרטים לפעולה הזו.')}</p>
               ) : null}
@@ -293,13 +294,13 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               {item.kind === 'settings' && item.effect ? <EffectView effect={item.effect} basis={item.effect_basis} locale={locale} /> : null}
               {item.permission ? <PermissionView permission={item.permission} locale={locale} /> : null}
               {item.status === 'pending' && !MEASURED_EFFECT_KINDS.has(item.kind) ? (
-                <p className="asst-effect-note" dir="auto">{pageText(locale, 'A measured before and after is computed for settings changes only. The fields above are exactly what this would write.', 'לפני ואחרי נמדדים מחושבים לשינויי הגדרות בלבד. השדות שלמעלה הם בדיוק מה שייכתב.')}</p>
+                <p className="asst-effect-note">{pageText(locale, 'A measured before and after is computed for settings changes only. The fields above are exactly what this would write.', 'לפני ואחרי נמדדים מחושבים לשינויי הגדרות בלבד. השדות שלמעלה הם בדיוק מה שייכתב.')}</p>
               ) : null}
               {item.status === 'failed' && item.error ? (
                 <p className="asst-item-error">
                   <TriangleAlert size={12} />
-                  <span dir="auto">{pageText(locale, 'The action failed.', 'הפעולה נכשלה.')}</span>
-                  <bdi dir="auto">{String(item.error)}</bdi>
+                  <span>{pageText(locale, 'The action failed.', 'הפעולה נכשלה.')}</span>
+                  <Name>{String(item.error)}</Name>
                 </p>
               ) : null}
             </div>
@@ -346,7 +347,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
             {results.length > 1 && failedCount ? ` ${failedCount === 1 ? pageText(locale, 'One failed.', 'אחת נכשלה.') : pageText(locale, `${failedCount} failed.`, `${failedCount} נכשלו.`)}` : ''}
           </span>
           {jobIds.length ? (
-            <span className="asst-result-job">{pageText(locale, 'Background job started', 'הופעל תהליך רקע')} <code dir="ltr">{jobIds.join(', ')}</code></span>
+            <span className="asst-result-job">{pageText(locale, 'Background job started', 'הופעל תהליך רקע')} <Code>{jobIds.join(', ')}</Code></span>
           ) : null}
         </div>
       ) : null}
@@ -355,10 +356,10 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
         <div className="asst-restore-block">
           {restorePoints.map((point) => (
             <div className="asst-restore-point" key={point.restoreId}>
-              <p className="asst-restore-line" dir="auto">
+              <p className="asst-restore-line">
                 {pageText(locale, 'A restore point was created before this change.', 'נוצרה נקודת שחזור לפני השינוי הזה.')}
-                {point.appliedAt ? <time dir="ltr">{appliedLabel(point.appliedAt, locale)}</time> : null}
-                {point.appliedBy ? <span dir="auto">{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<bdi dir="auto">{point.appliedBy}</bdi></span> : null}
+                {point.appliedAt ? <time><Figure>{appliedLabel(point.appliedAt, locale)}</Figure></time> : null}
+                {point.appliedBy ? <span>{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<Name>{point.appliedBy}</Name></span> : null}
               </p>
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
             </div>

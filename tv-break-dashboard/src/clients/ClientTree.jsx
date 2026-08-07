@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { Building2, ChevronDown, ChevronUp, Plus, Search, UserPlus } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { basisLine, exactMoney, filterAgencies, filterClients, localized } from './clients-money-helpers';
+import { isolate } from '../shell/bidi';
 
 // The tree's own read carries no demo tally (it is a join of agencies, clients
 // and the priced ledger, none of which know about the campaign seed), but every
@@ -88,7 +90,7 @@ function Terms({ agency, locale }) {
           <dd>
             {item.value ? (
               <>
-                <span className="numeric" dir="ltr">{item.value}</span>
+                <Figure className="numeric">{item.value}</Figure>
                 <small>{item.basis}</small>
               </>
             ) : (
@@ -113,17 +115,17 @@ function ClientRow({ client, locale, onOpen }) {
           <span className="clients-flag">{pageText(locale, 'not seen on air yet', 'טרם נצפה בשידור')}</span>
         )}
       </td>
-      <td className="numeric" dir="ltr">{client.gross === null ? '-' : exactMoney(client.gross, locale)}</td>
-      <td className="numeric" dir="ltr">{client.net === null ? '-' : exactMoney(client.net, locale)}</td>
-      <td className="numeric" dir="ltr">{client.spots === null ? '-' : client.spots}</td>
-      <td className="numeric" dir="ltr">
-        {client.campaign_count}
+      <td className="numeric"><Figure>{client.gross === null ? '-' : exactMoney(client.gross, locale)}</Figure></td>
+      <td className="numeric"><Figure>{client.net === null ? '-' : exactMoney(client.net, locale)}</Figure></td>
+      <td className="numeric"><Figure>{client.spots === null ? '-' : client.spots}</Figure></td>
+      <td className="numeric">
+        <Figure>{client.campaign_count}</Figure>
         {demoCampaigns > 0 ? (
           <span className="clients-flag">
             {pageText(
               locale,
               demoCampaigns === client.campaign_count ? 'all demo' : `${demoCampaigns} demo`,
-              demoCampaigns === client.campaign_count ? 'כולם הדגמה' : `⁦${demoCampaigns}⁩ הדגמה`,
+              demoCampaigns === client.campaign_count ? 'כולם הדגמה' : `${isolate(demoCampaigns)} הדגמה`,
             )}
           </span>
         ) : null}
@@ -157,7 +159,7 @@ function FlatGroup({ title, note, clients, locale, onOpen }) {
           <small>{note}</small>
         </span>
         <span className="clients-agency-facts">
-          <span className="numeric" dir="ltr">{clients.length}</span>
+          <span className="numeric"><Figure>{clients.length}</Figure></span>
           <small>{clientsWord(clients.length, locale)}</small>
         </span>
       </div>
@@ -230,15 +232,15 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
     ? pageText(
       locale,
       `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord} (${demoCampaignCount} demo seed data)`,
-      `⁦${agencyCount}⁩ ${agencyWord}, ⁦${clientCount}⁩ ${clientsWord(clientCount, locale)}, ⁦${campaignCount}⁩ ${campaignWord} (⁦${demoCampaignCount}⁩ נתוני זרע הדגמה)`,
+      `${isolate(agencyCount)} ${agencyWord}, ${isolate(clientCount)} ${clientsWord(clientCount, locale)}, ${isolate(campaignCount)} ${campaignWord} (${isolate(demoCampaignCount)} נתוני זרע הדגמה)`,
     )
     : pageText(
       locale,
       `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord}`,
-      `⁦${agencyCount}⁩ ${agencyWord}, ⁦${clientCount}⁩ ${clientsWord(clientCount, locale)}, ⁦${campaignCount}⁩ ${campaignWord}`,
+      `${isolate(agencyCount)} ${agencyWord}, ${isolate(clientCount)} ${clientsWord(clientCount, locale)}, ${isolate(campaignCount)} ${campaignWord}`,
     );
   return (
-    <section className="clients-tree" dir={he ? 'rtl' : 'ltr'}>
+    <section className="clients-tree">
       <div className="clients-toolbar">
         <label className="clients-search">
           <Search size={14} aria-hidden="true" />
@@ -280,11 +282,11 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
                 ) : null}
               </span>
               <span className="clients-agency-facts">
-                <span className="numeric" dir="ltr">{agency.client_count}</span>
+                <span className="numeric"><Figure>{agency.client_count}</Figure></span>
                 <small>{clientsWord(agency.client_count, locale)}</small>
-                <span className="numeric" dir="ltr">{exactMoney(agency.gross, locale)}</span>
+                <span className="numeric"><Figure>{exactMoney(agency.gross, locale)}</Figure></span>
                 <small>{pageText(locale, 'gross', 'ברוטו')}</small>
-                <span className="numeric" dir="ltr">{exactMoney(agency.net, locale)}</span>
+                <span className="numeric"><Figure>{exactMoney(agency.net, locale)}</Figure></span>
                 <small>{pageText(locale, 'net', 'נטו')}</small>
               </span>
               {expanded ? <ChevronUp size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}
@@ -344,7 +346,7 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
           {pageText(
             locale,
             `Nothing here matches ${query}. The search reads agency names and ids, and client names and spellings.`,
-            `שום דבר כאן אינו תואם ל־⁦${query}⁩. החיפוש קורא שמות ומזהים של סוכנויות, ושמות וכתיבים של לקוחות.`,
+            `שום דבר כאן אינו תואם ל־${isolate(query)}. החיפוש קורא שמות ומזהים של סוכנויות, ושמות וכתיבים של לקוחות.`,
           )}
         </p>
       ) : null}

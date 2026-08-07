@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import HistoryRow from './HistoryRow';
 import { dayHeading, isWeekend, isoDay } from './history-labels';
 
@@ -37,9 +38,9 @@ export default function HistoryTimeline({ entries, locale, selectedId, onSelect,
         return (
           <section className="hist-group" key={group.day}>
             <header className={`hist-day${weekend ? ' weekend' : ''}`}>
-              <span className="hist-day-name" dir="auto">{dayHeading(group.day, locale)}</span>
+              <span className="hist-day-name">{dayHeading(group.day, locale)}</span>
               {weekend ? <span className="hist-day-mark">{pageText(locale, 'Weekend', 'סוף שבוע')}</span> : null}
-              <span className="hist-day-count" dir="ltr">{group.entries.length}</span>
+              <span className="hist-day-count"><Figure>{group.entries.length}</Figure></span>
             </header>
             {group.entries.map((entry) => {
               position += 1;

@@ -93,7 +93,6 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
     <section
       className="schedule-staleness-banner"
       role="status"
-      dir={locale === 'he' ? 'rtl' : 'ltr'}
       aria-label={heading}
     >
       <div className="schedule-staleness-text">

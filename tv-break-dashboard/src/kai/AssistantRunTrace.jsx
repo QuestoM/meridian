@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Square } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code, Name } from '../shell/bidi';
 
 // What Kai is doing right now, and what it did.
 //
@@ -120,7 +121,7 @@ export function sourceLabel(source, locale) {
   // Hebrew reading, where "report (1).csv" would otherwise flip its brackets.
   if (text.startsWith(UPLOADED_FILE_PREFIX)) {
     if (locale !== 'he') return text;
-    return <>{'קובץ שהעליתם: '}<bdi dir="auto">{text.slice(UPLOADED_FILE_PREFIX.length)}</bdi></>;
+    return <>{'קובץ שהעליתם: '}<Name>{text.slice(UPLOADED_FILE_PREFIX.length)}</Name></>;
   }
   return text;
 }
@@ -143,37 +144,37 @@ export function GroundedOn({ facts, locale }) {
   if (!facts || typeof facts !== 'object') return null;
   const status = PLAN_STATUS[String(facts.plan_status || '')] || null;
   const chips = [];
-  if (facts.channel) chips.push(<span className="asst-run-chip" key="channel" dir="auto">{String(facts.channel)}</span>);
+  if (facts.channel) chips.push(<span className="asst-run-chip" key="channel"><Name>{String(facts.channel)}</Name></span>);
   if (facts.date_from && facts.date_to) {
     chips.push(
-      <span className="asst-run-chip" key="window" dir="auto">
-        <bdi dir="ltr">{String(facts.date_from)}</bdi>
+      <span className="asst-run-chip" key="window">
+        <Figure>{String(facts.date_from)}</Figure>
         {pageText(locale, ' to ', ' עד ')}
-        <bdi dir="ltr">{String(facts.date_to)}</bdi>
+        <Figure>{String(facts.date_to)}</Figure>
       </span>,
     );
   }
   if (Number.isFinite(facts.breaks)) {
     chips.push(
-      <span className="asst-run-chip" key="breaks" dir="auto">
-        <bdi dir="ltr">{Number(facts.breaks).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')}</bdi>
+      <span className="asst-run-chip" key="breaks">
+        <Figure>{Number(facts.breaks).toLocaleString(locale === 'he' ? 'he-IL' : 'en-US')}</Figure>
         {pageText(locale, ' breaks', ' ברייקים')}
       </span>,
     );
   }
-  if (status) chips.push(<span className="asst-run-chip" key="status" dir="auto">{pageText(locale, status[0], status[1])}</span>);
+  if (status) chips.push(<span className="asst-run-chip" key="status">{pageText(locale, status[0], status[1])}</span>);
   const scope = SCOPE_REASON[String(facts.scope_reason_code || '')] || null;
   if (scope || facts.scope_reason) {
     chips.push(
-      <span className="asst-run-chip" key="scope" dir="auto">
-        {scope ? pageText(locale, scope[0], scope[1]) : <bdi dir="auto">{String(facts.scope_reason)}</bdi>}
+      <span className="asst-run-chip" key="scope">
+        {scope ? pageText(locale, scope[0], scope[1]) : <Name>{String(facts.scope_reason)}</Name>}
       </span>,
     );
   }
   if (!chips.length) return null;
   return (
     <div className="asst-run-grounded">
-      <span className="asst-run-grounded-label" dir="auto">{pageText(locale, 'Grounded on', 'מבוסס על')}</span>
+      <span className="asst-run-grounded-label">{pageText(locale, 'Grounded on', 'מבוסס על')}</span>
       {chips}
     </div>
   );
@@ -210,8 +211,8 @@ export default function AssistantRunTrace({ locale, live, elapsed, onStop }) {
         <button type="button" className="asst-run-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           <span className="asst-run-dots" aria-hidden="true"><span /><span /><span /></span>
-          <span dir="auto">{headline}</span>
-          <time dir="ltr" className="asst-run-clock">{seconds(elapsed)}</time>
+          <span>{headline}</span>
+          <time className="asst-run-clock"><Figure>{seconds(elapsed)}</Figure></time>
         </button>
         {onStop ? (
           <button type="button" className="asst-run-stop" onClick={onStop}>
@@ -225,12 +226,12 @@ export default function AssistantRunTrace({ locale, live, elapsed, onStop }) {
           run rather than flashing past, because the seconds it costs are the
           operator's and they are owed the reason for them. */}
       {live.verifying ? (
-        <p className="asst-run-long" dir="auto">
+        <p className="asst-run-long">
           {pageText(locale, 'The first draft said a proposal was recorded when nothing was, so it is being written again.', 'הטיוטה הראשונה אמרה שנרשמה הצעה בזמן שלא נרשמה דבר, ולכן היא נכתבת מחדש.')}
         </p>
       ) : null}
       {elapsed > LONG_RUN_SECONDS ? (
-        <p className="asst-run-long" dir="auto">
+        <p className="asst-run-long">
           {deadline
             ? pageText(locale, `This is taking longer than usual. It stops on its own after ${deadline} seconds, and Stop ends it now.`, `זה נמשך יותר מהרגיל. ההרצה נעצרת מעצמה אחרי ${deadline} שניות, וכפתור עצירה מסיים אותה עכשיו.`)
             : pageText(locale, 'This is taking longer than usual. Stop ends it now.', 'זה נמשך יותר מהרגיל. כפתור עצירה מסיים אותה עכשיו.')}
@@ -240,16 +241,16 @@ export default function AssistantRunTrace({ locale, live, elapsed, onStop }) {
         <ol className="asst-run-steps">
           {steps.map((step, index) => (
             <li key={`${step.tool}-${index}`} className={step.ok === false ? 'fail' : ''}>
-              <span dir="auto">{stepLabel(step.tool, locale) || pageText(locale, 'Reading saved data', 'קורא נתונים שמורים')}</span>
-              {stepLabel(step.tool, locale) ? null : <code dir="ltr">{String(step.tool || '')}</code>}
-              {step.source ? <span className="asst-run-source" dir="auto">{sourceLabel(step.source, locale)}</span> : null}
-              <time dir="ltr">{seconds(step.elapsed_seconds)}</time>
+              <span>{stepLabel(step.tool, locale) || pageText(locale, 'Reading saved data', 'קורא נתונים שמורים')}</span>
+              {stepLabel(step.tool, locale) ? null : <Code>{String(step.tool || '')}</Code>}
+              {step.source ? <span className="asst-run-source">{sourceLabel(step.source, locale)}</span> : null}
+              <time><Figure>{seconds(step.elapsed_seconds)}</Figure></time>
             </li>
           ))}
         </ol>
       ) : null}
       {open && !steps.length ? (
-        <p className="asst-run-empty" dir="auto">
+        <p className="asst-run-empty">
           {pageText(locale, 'No saved data has been read yet for this question.', 'עוד לא נקראו נתונים שמורים עבור השאלה הזו.')}
         </p>
       ) : null}

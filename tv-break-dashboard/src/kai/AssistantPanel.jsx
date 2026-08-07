@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@mui/material';
 import { Trash2 } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code, Name } from '../shell/bidi';
 import { postJson, requestJson, streamAsk } from './assistant-stream';
 import { keepPrefixWarm } from './kai-keep-warm';
 import { useConversations } from './AssistantConversationsApi';
@@ -16,7 +17,7 @@ import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
 import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
 import { unrecordedProposalClaim } from './kai-claimed-action';
 import { applyStage, noteStageLimits } from './kai-live-turn';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 import './assistant-console.css';
 
 // The assistant console, named Kai: a chat column grounded in the saved data
@@ -285,9 +286,9 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   const locationText = page ? (
     <>
       {pageText(locale, 'You are on the ', 'אתם בעמוד ')}
-      <bdi dir="auto">{page.label}</bdi>
+      <Name>{page.label}</Name>
       {pageText(locale, ' page', '')}
-      {entityLabel ? <>{', '}<bdi dir="auto">{entityLabel}</bdi></> : null}
+      {entityLabel ? <>{', '}<Name>{entityLabel}</Name></> : null}
     </>
   ) : null;
 
@@ -320,7 +321,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
     <div className="asst-status" role="status">
       <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
       <span>{statusText}</span>
-      {status && status.model ? <code dir="ltr">{status.model}</code> : null}
+      {status && status.model ? <Code>{status.model}</Code> : null}
       {actionPlane && actionPlane.enabled === true ? <span className="asst-chip on">{pageText(locale, 'Can propose changes', 'יכול להציע שינויים')}</span> : null}
       {actionPlane && actionPlane.enabled === false ? <span className="asst-chip" title={actionPlane.reason || ''}>{pageText(locale, 'Answers only', 'מענה בלבד')}</span> : null}
     </div>
@@ -331,11 +332,11 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       {dock ? (
         <div className="asst-dock-meta">
           {statusCluster}
-          {locationText ? <span className="asst-location" dir="auto">{locationText}</span> : null}
+          {locationText ? <span className="asst-location">{locationText}</span> : null}
           {!threadLoading && thread.length > 0 ? (
             <p className="asst-stats">
               <span>{thread.length === 1 ? pageText(locale, 'one question in this conversation', 'שאלה אחת בשיחה') : pageText(locale, `${thread.length} questions in this conversation`, `${thread.length} שאלות בשיחה`)}</span>
-              {startedAt ? <span dir="auto">{pageText(locale, 'started ', 'התחילה ב-')}<bdi dir="ltr">{startedAt}</bdi></span> : null}
+              {startedAt ? <span>{pageText(locale, 'started ', 'התחילה ב-')}<Figure>{startedAt}</Figure></span> : null}
               {appliedCount > 0 ? <span>{appliedCount === 1 ? pageText(locale, 'one change applied', 'הוחל שינוי אחד') : pageText(locale, `${appliedCount} changes applied`, `הוחלו ${appliedCount} שינויים`)}</span> : null}
             </p>
           ) : null}
@@ -356,7 +357,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             <div>
               <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
               <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
-              {actingUser ? <span className="asst-user" dir="auto">{pageText(locale, 'Acting user', 'מבצע')}: <b dir="ltr">{actingUser}</b></span> : null}
+              {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actingUser}</Name></b></span> : null}
             </div>
             {thread.length > 0 && !threadLoading ? (
               confirmClear ? (

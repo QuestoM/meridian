@@ -237,16 +237,16 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
 
       <div className="cb-section-label">{t(locale, 'When (filter conditions)', 'כאשר (תנאי סינון)')}</div>
       {optionsLoaded && scope && scope.scoped && (
-        <p className="cb-scope-note" dir="auto">
+        <p className="cb-scope-note">
           {t(locale, `The suggestions cover the ${hints.programme.length} programmes on ${scope.scope_channel}, the channel this operator owns.`, `ההצעות כוללות את ${hints.programme.length} התוכניות בערוץ ${scope.scope_channel}, הערוץ שבבעלות המפעיל.`)}
         </p>
       )}
       {optionsLoaded && scope && !scope.scoped && (
-        <p className="cb-scope-note empty" role="status" dir="auto">
+        <p className="cb-scope-note empty" role="status">
           {t(locale, 'No channel is declared, so there are no programme suggestions. Declare the channel you own under Rules, channel and model.', 'עדיין לא הוצהר ערוץ, ולכן אין הצעות תוכניות. הצהירו על הערוץ שלכם בכללים, ערוץ ומודל.')}
         </p>
       )}
-      <div className="cb-tree-root" dir={he ? 'rtl' : 'ltr'}>
+      <div className="cb-tree-root">
         <GroupNode
           group={whereTree}
           onUpdate={setWhereTree}
@@ -348,7 +348,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
                   <span className="constraint-chip">{effectLabel(item.effect, locale)}</span>
                   <span className="constraint-scope">{item.where ? t(locale, 'filter conditions', 'תנאי סינון') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
                   {rowSentence(item, sentences, locale) && (
-                    <span className="constraint-channel" dir="auto">{rowSentence(item, sentences, locale)}</span>
+                    <span className="constraint-channel">{rowSentence(item, sentences, locale)}</span>
                   )}
                   <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחיקת אילוץ')}>
                     <Trash2 size={14} />

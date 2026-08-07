@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@mui/material';
 import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 
 // The conversations section of the assistant rail: the saved conversations
 // newest first with title and last-activity time, a new-conversation button,
@@ -83,9 +84,9 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
                 ) : (
                   <div className="asst-conv-line">
                     <button type="button" className="asst-conv-open" onClick={() => conv.select(id)} disabled={busy}>
-                      <span className="asst-conv-title" dir="auto">{title}</span>
+                      <span className="asst-conv-title"><Name>{title}</Name></span>
                       <span className="asst-conv-meta">
-                        <time dir="ltr">{whenLabel(item.updated_at || item.created_at, locale)}</time>
+                        <time><Figure>{whenLabel(item.updated_at || item.created_at, locale)}</Figure></time>
                         <span>{count === 1 ? pageText(locale, 'one question', 'שאלה אחת') : pageText(locale, `${count} questions`, `${count} שאלות`)}</span>
                       </span>
                     </button>
@@ -97,12 +98,12 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
                 )}
                 {deletingId === id ? (
                   <div className="asst-conv-confirm" role="alertdialog">
-                    <p dir="auto">
+                    <p>
                       {pageText(locale, 'Delete the conversation ', 'למחוק את השיחה ')}
-                      <bdi dir="auto">{`"${title}"`}</bdi>
+                      <Name>{`"${title}"`}</Name>
                       {count === 1 ? pageText(locale, ' and the one question saved in it?', ' ואת השאלה האחת השמורה בה?') : pageText(locale, ` and the ${count} questions saved in it?`, ` ואת ${count} השאלות השמורות בה?`)}
                     </p>
-                    <p dir="auto">{pageText(locale, 'Applied changes and restore points are kept.', 'שינויים שהוחלו ונקודות שחזור נשמרים.')}</p>
+                    <p>{pageText(locale, 'Applied changes and restore points are kept.', 'שינויים שהוחלו ונקודות שחזור נשמרים.')}</p>
                     <div className="asst-confirm-actions">
                       <Button variant="contained" size="small" color="error" disabled={busy} onClick={async () => { setDeletingId(null); await conv.remove(id); }}>
                         {pageText(locale, 'Delete', 'מחיקה')}

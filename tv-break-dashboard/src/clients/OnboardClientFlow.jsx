@@ -4,6 +4,7 @@ import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
 import { localized, refusalText, vocabularyLabel } from './clients-money-helpers';
 import { weekdayCoverage } from './weekday-scope-helpers';
+import { isolate } from '../shell/bidi';
 
 // JS-5 in one form. The agency, the client under it, the campaign, its flights
 // and its terms are one submit, because the measured failure today is that two
@@ -71,7 +72,6 @@ function Field({ label, value, onChange, type = 'text', ltr = false, list, requi
 }
 
 export default function OnboardClientFlow({ locale, prefill, onClose, onDone, onOpenRefused }) {
-  const he = locale === 'he';
   const [options, setOptions] = useState(null);
   const [agencyMode, setAgencyMode] = useState('existing');
   const [agencyId, setAgencyId] = useState('');
@@ -201,7 +201,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   if (state.status === 'done') {
     const result = state.result;
     return (
-      <aside className="clients-record clients-onboard" dir={he ? 'rtl' : 'ltr'} role="dialog">
+      <aside className="clients-record clients-onboard" role="dialog">
         <header className="clients-record-head">
           <h3>{pageText(locale, 'The client is on file', 'הלקוח נקלט')}</h3>
           <button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
@@ -233,7 +233,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           <li>
             <Check size={13} aria-hidden="true" />
             <strong>{result.campaign.campaign_id}</strong>
-            <span>{pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ⁦${result.flights.length}⁩ טיסות שידור`)}</span>
+            <span>{pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ${isolate(result.flights.length)} טיסות שידור`)}</span>
           </li>
           <li>
             <Check size={13} aria-hidden="true" />
@@ -251,7 +251,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   }
 
   return (
-    <aside className="clients-record clients-onboard" dir={he ? 'rtl' : 'ltr'} role="dialog">
+    <aside className="clients-record clients-onboard" role="dialog">
       <header className="clients-record-head">
         <h3>{pageText(locale, 'Onboard a client', 'קליטת לקוח')}</h3>
         <button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { formatCurrency, formatPercent, pageText } from '../../shell/surface-helpers';
+import { Figure, Code } from '../../shell/bidi';
 import { asList, isNum, fmtNum, anchorText, isStale, runDayPlanJob, KINDS, kindLabel } from './override-console-lib';
 import { LIVE_PLAN, withBasis } from './plan-basis';
 import './override-console.css';
@@ -282,10 +283,10 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
               {selectedSeg && (
                 <div className="oc-seg-current">
                   <span><b>{pageText(locale, 'Channel', 'ערוץ')}:</b> {selectedSeg.channel || '-'}</span>
-                  <span><b>{pageText(locale, 'Breaks', 'ברייקים')}:</b> <span dir="ltr">{fmtNum(selectedSeg.state?.num_breaks, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Breaks', 'ברייקים')}:</b> <Figure>{fmtNum(selectedSeg.state?.num_breaks, locale)}</Figure></span>
                   <span><b>{pageText(locale, 'Gold', 'זהב')}:</b> {selectedSeg.state?.is_gold ? pageText(locale, 'Yes', 'כן') : pageText(locale, 'No', 'לא')}</span>
-                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <span dir="ltr">{formatCurrency(selectedSeg.state?.predicted_revenue, locale)}</span></span>
-                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <span dir="ltr">{formatPercent(selectedSeg.state?.retention, locale)}</span></span>
+                  <span><b>{pageText(locale, 'Revenue', 'הכנסה')}:</b> <Figure>{formatCurrency(selectedSeg.state?.predicted_revenue, locale)}</Figure></span>
+                  <span><b>{pageText(locale, 'Retention', 'שימור')}:</b> <Figure>{formatPercent(selectedSeg.state?.retention, locale)}</Figure></span>
                 </div>
               )}
 
@@ -337,11 +338,9 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                       {previewRows.map((row) => (
                         <div className="oc-preview-row" key={row.label}>
                           <span>{row.label}</span>
-                          <span className="num" dir="ltr">{fmtNum(row.a, locale)}</span>
-                          <span className="num" dir="ltr">{fmtNum(row.b, locale)}</span>
-                          <span className={`num oc-delta ${isNum(row.diff) && row.diff > 0 ? 'up' : isNum(row.diff) && row.diff < 0 ? 'down' : ''}`} dir="ltr">
-                            {isNum(row.diff) ? `${row.diff > 0 ? '+' : ''}${fmtNum(row.diff, locale)}` : '-'}
-                          </span>
+                          <Figure className="num">{fmtNum(row.a, locale)}</Figure>
+                          <Figure className="num">{fmtNum(row.b, locale)}</Figure>
+                          <Figure className={`num oc-delta ${isNum(row.diff) && row.diff > 0 ? 'up' : isNum(row.diff) && row.diff < 0 ? 'down' : ''}`}>{isNum(row.diff) ? `${row.diff > 0 ? '+' : ''}${fmtNum(row.diff, locale)}` : '-'}</Figure>
                         </div>
                       ))}
                       {Array.isArray(preview?.rejected_overrides) && preview.rejected_overrides.length > 0 && (
@@ -417,9 +416,9 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                         {fromRec && <span className="oc-chip rec">{pageText(locale, 'From recommendation', 'מהמלצה')}</span>}
                       </div>
                       <div className="oc-row-meta">
-                        {anchor && <span dir="ltr">{anchor}</span>}
+                        {anchor && <Code>{anchor}</Code>}
                         {anchor && <br />}
-                        {pageText(locale, 'Segment', 'משבצת')}: <span dir="ltr">{o.target_id}</span>
+                        {pageText(locale, 'Segment', 'משבצת')}: <Code>{o.target_id}</Code>
                         {o.notes ? ` - ${o.notes}` : ''}
                         {stale && (
                           <>

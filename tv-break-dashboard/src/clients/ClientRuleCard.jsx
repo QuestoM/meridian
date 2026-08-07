@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { Figure, Code, Name } from '../shell/bidi';
 import { Plus, SquareArrowOutUpRight } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { isolate } from '../shell/bidi';
 import {
   nextRuleId,
   parsePremium,
@@ -30,7 +32,7 @@ function Spellings({ entries, locale }) {
     <ul className="clients-spellings">
       {entries.map((entry) => (
         <li key={entry.text}>
-          <span dir="auto">{entry.text}</span>
+          <Name>{entry.text}</Name>
           <span className={`clients-spelling-source ${entry.source}`}>
             {entry.source === 'observed'
               ? pageText(locale, 'seen in the data', 'נצפה בנתונים')
@@ -73,13 +75,13 @@ function CreateRule({ client, rows, locale, busy, onCancel, onCreate }) {
           value={premium}
           onChange={(event) => setPremium(event.target.value)}
         />
-        <span className="numeric" dir="ltr">{shown.delta || pageText(locale, 'rate card', 'מחיר מחירון')}</span>
+        <Figure className="numeric">{shown.delta || pageText(locale, 'rate card', 'מחיר מחירון')}</Figure>
       </div>
       <p className="clients-reason">
         {pageText(
           locale,
           `The rule is stored as ${ruleId} and named for this client. From then on it prices this client's spots on the daily pricing path, and the weekly plan is untouched because it does not read advertiser rules.`,
-          `הכלל נשמר כ־⁦${ruleId}⁩ ועל שם הלקוח הזה. מרגע זה הוא מתמחר את התשדירים של הלקוח במסלול התמחור היומי, והתוכנית השבועית אינה משתנה משום שהיא אינה קוראת כללי מפרסם.`,
+          `הכלל נשמר כ־${isolate(ruleId)} ועל שם הלקוח הזה. מרגע זה הוא מתמחר את התשדירים של הלקוח במסלול התמחור היומי, והתוכנית השבועית אינה משתנה משום שהיא אינה קוראת כללי מפרסם.`,
         )}
       </p>
       <div className="clients-rule-actions">
@@ -200,16 +202,16 @@ export default function ClientRuleCard({
       {state === 'bound' ? (
         <>
           <p className="clients-rule-line">
-            <span className="numeric" dir="ltr">{premium.multiplier}</span>
-            {premium.delta ? <span className="numeric clients-rule-delta" dir="ltr">{premium.delta}</span> : null}
-            <span className="clients-rule-id" dir="ltr">{row.advertiser_id}</span>
+            <Figure className="numeric">{premium.multiplier}</Figure>
+            {premium.delta ? <Figure className="numeric clients-rule-delta">{premium.delta}</Figure> : null}
+            <Code className="clients-rule-id">{row.advertiser_id}</Code>
           </p>
           <p className="clients-reason">
             {scoped
               ? pageText(
                 locale,
                 `This rule prices this client's spots on the daily pricing path, and it carries ${scoped} scoped rules of its own.`,
-                `הכלל הזה מתמחר את התשדירים של הלקוח במסלול התמחור היומי, ויש בו ⁦${scoped}⁩ כללים ממוקדים משלו.`,
+                `הכלל הזה מתמחר את התשדירים של הלקוח במסלול התמחור היומי, ויש בו ${isolate(scoped)} כללים ממוקדים משלו.`,
               )
               : pageText(
                 locale,
@@ -227,7 +229,7 @@ export default function ClientRuleCard({
       {state === 'unbound' ? (
         <>
           <p className="clients-rule-line">
-            <span className="numeric" dir="ltr">{premium.multiplier}</span>
+            <Figure className="numeric">{premium.multiplier}</Figure>
             <span className="clients-rule-plain">{pageText(locale, 'rate card', 'מחיר מחירון')}</span>
           </p>
           <p className="clients-reason">

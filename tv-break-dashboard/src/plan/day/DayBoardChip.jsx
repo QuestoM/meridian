@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock, Star } from 'lucide-react';
+import { Figure } from '../../shell/bidi';
 import { chipLabels, clockOf } from './day-board-model';
 import './day-chip.css';
 
@@ -83,10 +84,10 @@ function DayBoardChip({
       <span className="day-chip-body">
         {live.isGold && <Star className="day-chip-gold" size={11} aria-hidden="true" />}
         {saved && <Lock className="day-chip-lock" size={11} aria-hidden="true" />}
-        {fits.clock && <span className="day-chip-clock" dir="ltr">{clock}</span>}
-        {fits.length && <span className="day-chip-length" dir="ltr">{lengthText}</span>}
+        {fits.clock && <Figure className="day-chip-clock">{clock}</Figure>}
+        {fits.length && <Figure className="day-chip-length">{lengthText}</Figure>}
       </span>
-      <span className="day-chip-readout" dir="ltr" aria-hidden="true">
+      <span className="day-chip-readout" aria-hidden="true">
         <span className="day-chip-readout-clock">{clock}</span>
         <span className="day-chip-readout-length">{lengthText}</span>
       </span>

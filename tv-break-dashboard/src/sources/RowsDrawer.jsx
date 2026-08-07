@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
+import { Code } from '../shell/bidi';
 import { serverText, text } from './sources-copy';
 import { fetchPreview } from './sources-api';
 
@@ -46,7 +47,7 @@ export function RowsDrawer({ input, position, total, locale, onStep, onClose }) 
       <header className="rows-drawer-head">
         <div>
           <strong>{name}</strong>
-          <span dir="ltr">{input.path}</span>
+          <Code>{input.path}</Code>
         </div>
         <div className="rows-drawer-walk">
           {walkable ? (

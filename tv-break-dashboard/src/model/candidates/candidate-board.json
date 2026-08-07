@@ -1,0 +1,818 @@
+{
+ "published_at": "2026-08-07T09:21:41.404474+00:00",
+ "measured_at": "2026-08-07T08:24:57.851714+00:00",
+ "rescore_state": {
+  "state": "current",
+  "measured_at": "2026-08-07T08:24:57.851714+00:00"
+ },
+ "fingerprint": "56798941ce3587ab47a81573b2ccc9749d6a53ed9f46e46263f0c473be8069fe",
+ "evaluation": {
+  "breaks": 2532,
+  "cells": 36,
+  "window": "2024-11-01 to 2024-11-30",
+  "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
+  "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
+  "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
+  "metric_he": "שורש שגיאת הריבוע הממוצעת מול אותו אפקט נמדד, על אותם ברייקים בכל שורה.",
+  "target_sd": 0.241378699,
+  "target_sd_en": "The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.",
+  "target_sd_he": "סטיית התקן של האפקט הנמדד עצמו. שגיאה קרובה למספר הזה היא מודל שמסביר מעט מעבר לממוצע.",
+  "folds": 5
+ },
+ "limit": {
+  "state": "in_sample",
+  "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
+  "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
+  "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
+  "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו."
+ },
+ "baselines": [
+  {
+   "id": "global_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.241474068,
+   "mae": 0.158958114,
+   "breaks": 2532,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים, לעולם לא מתוך עצמו."
+  },
+  {
+   "id": "cell_mean_loo",
+   "kind": "baseline",
+   "rmse": 0.242097429,
+   "mae": 0.159240951,
+   "breaks": 2532,
+   "out_of_sample": true,
+   "basis_en": "Predicts each break from the other breaks in its own cell, never from itself.",
+   "basis_he": "חוזה כל ברייק מתוך שאר הברייקים בתא שלו, לעולם לא מתוך עצמו."
+  }
+ ],
+ "cell_structure": {
+  "cell_mean_loo_rmse": 0.242097429,
+  "global_mean_loo_rmse": 0.241474068,
+  "rmse_delta": 0.000623361,
+  "earns_its_place": false,
+  "out_of_sample": true,
+  "reading_en": "Out of sample the per-cell split does not predict better than a single constant.",
+  "reading_he": "מחוץ למדגם החלוקה לתאים אינה חוזה טוב יותר מקבוע יחיד."
+ },
+ "structure_finding": {
+  "structure_cost_rmse": 0.000623361,
+  "largest_candidate_move_rmse": 0.000155699,
+  "times_the_largest_candidate_move": 4.0,
+  "earns_its_place": false,
+  "candidates_compared": 5,
+  "candidates_addressing_it": [],
+  "decision_owner_en": "the model owner, as a retraining decision",
+  "decision_owner_he": "בעל המודל, כהחלטת אימון מחדש"
+ },
+ "duplicate_groups": [
+  [
+   "afterwindow",
+   "calibrated"
+  ]
+ ],
+ "shipped": {
+  "rmse": 0.241160667,
+  "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
+  "short": "1e41d92b1a14",
+  "file": "models/tv_break_coefficients.json",
+  "cells": 36,
+  "version_id": "mv-2026-07-29-35cc2e21",
+  "version_name": "2026-07-29",
+  "version_short": "35cc2e21",
+  "computed_at": "2026-07-29T00:12:13.100043+00:00"
+ },
+ "candidates": [
+  {
+   "id": "spotclip",
+   "file": "models/candidates/tv_break_coefficients_spotclip.json",
+   "bytes": 12457,
+   "sha256": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
+   "short": "19bf30f1304f",
+   "computed_at": "2026-07-05T17:52:51.165302+00:00",
+   "breaks_fitted_on": 2336,
+   "rmse": 0.241004968,
+   "rmse_delta": -0.000155699,
+   "paired_statistic": -0.7756,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.000418291,
+   "breaks_improved": 1431,
+   "breaks_worsened": 1101,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.7756, movement -0.000156, dispersion 0.000418.",
+   "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.7756, תנועה -0.000156, פיזור 0.000418.",
+   "duplicate_of": [],
+   "adopted": false,
+   "money": {
+    "state": "stale",
+    "revenue_delta": null,
+    "last_known_revenue_delta": 902998.61,
+    "measured_at": "2026-08-01T08:53:05.583529+00:00",
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel",
+    "whole_plan_delta": null,
+    "reason_en": "The stored money measurement is not current. What changed: the saved settings.",
+    "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: ההגדרות השמורות."
+   },
+   "decision": {
+    "state": "not_shipped",
+    "recorded_at": "2026-08-02T02:13:22.813973+00:00",
+    "actor": "steward",
+    "count": 1,
+    "on_rescore": false
+   },
+   "cells": {
+    "compared": 36,
+    "moved": 36,
+    "added": [],
+    "dropped": [],
+    "max_abs_delta": 0.012751733,
+    "max_abs_delta_at": "PrimeShow2_first_short",
+    "cancelled_share": 0.789088,
+    "concentrated": false,
+    "carries_the_move": [
+     "Other_last_short",
+     "Other_first_long",
+     "News_last_standard",
+     "Other_middle_standard",
+     "Other_first_standard",
+     "PrimeShow2_first_short",
+     "Other_middle_long",
+     "PrimeShow1_last_standard",
+     "News_middle_long",
+     "News_last_short",
+     "Other_middle_short",
+     "News_middle_standard",
+     "PrimeShow2_last_long",
+     "PrimeShow2_last_standard",
+     "PrimeShow2_middle_standard"
+    ],
+    "carries_share": 0.8,
+    "reading_en": "36 of 36 cells hold a different number, and 78.9 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+    "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 78.9 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.",
+    "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+    "top": [
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.033148757,
+      "delta": 0.008158847,
+      "breaks": 146,
+      "squared_error_delta": -0.091879050512,
+      "share_of_absolute": 0.101947
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.050398067,
+      "delta": 0.011261809,
+      "breaks": 238,
+      "squared_error_delta": 0.08411001247,
+      "share_of_absolute": 0.093326
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.047722978,
+      "delta": 0.009970872,
+      "breaks": 58,
+      "squared_error_delta": 0.06629955753,
+      "share_of_absolute": 0.073564
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036929097,
+      "delta": 0.010461339,
+      "breaks": 255,
+      "squared_error_delta": -0.063953850364,
+      "share_of_absolute": 0.070962
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.034811603,
+      "delta": 0.010441451,
+      "breaks": 207,
+      "squared_error_delta": -0.062921759355,
+      "share_of_absolute": 0.069816
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.043727649,
+      "delta": 0.012751733,
+      "breaks": 14,
+      "squared_error_delta": 0.051139917015,
+      "share_of_absolute": 0.056744
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.036303792,
+      "delta": 0.010299977,
+      "breaks": 292,
+      "squared_error_delta": -0.048355669666,
+      "share_of_absolute": 0.053654
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.035050002,
+      "delta": 0.009005466,
+      "breaks": 23,
+      "squared_error_delta": -0.047901065756,
+      "share_of_absolute": 0.05315
+     }
+    ],
+    "top_of": 36
+   }
+  },
+  {
+   "id": "afterwindow",
+   "file": "models/candidates/tv_break_coefficients_afterwindow.json",
+   "bytes": 12410,
+   "sha256": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
+   "short": "c0da369034d4",
+   "computed_at": "2026-07-05T17:47:58.285153+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241046876,
+   "rmse_delta": -0.00011379,
+   "paired_statistic": -0.5212,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.000461744,
+   "breaks_improved": 1430,
+   "breaks_worsened": 1102,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+   "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
+   "duplicate_of": [
+    "calibrated"
+   ],
+   "adopted": false,
+   "money": {
+    "state": "measured",
+    "revenue_delta": 923843.08,
+    "last_known_revenue_delta": 923843.08,
+    "measured_at": "2026-08-07T02:42:07.179571+00:00",
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel",
+    "whole_plan_delta": 5290848.33,
+    "reason_en": null,
+    "reason_he": null
+   },
+   "decision": {
+    "state": "shipped",
+    "recorded_at": "2026-08-01T14:31:48.874771+00:00",
+    "actor": "unknown (login is not set up)",
+    "count": 1,
+    "on_rescore": false
+   },
+   "cells": {
+    "compared": 36,
+    "moved": 36,
+    "added": [],
+    "dropped": [],
+    "max_abs_delta": 0.014066885,
+    "max_abs_delta_at": "PrimeShow2_first_short",
+    "cancelled_share": 0.862227,
+    "concentrated": false,
+    "carries_the_move": [
+     "Other_first_long",
+     "Other_last_short",
+     "News_last_standard",
+     "Other_middle_standard",
+     "Other_first_standard",
+     "PrimeShow2_first_short",
+     "PrimeShow1_last_standard",
+     "News_middle_long",
+     "Other_middle_long",
+     "News_last_short",
+     "News_middle_standard",
+     "Other_middle_short",
+     "PrimeShow2_last_long",
+     "PrimeShow2_last_standard",
+     "PrimeShow2_first_standard"
+    ],
+    "carries_share": 0.8,
+    "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+    "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.",
+    "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+    "top": [
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.047711898,
+      "delta": 0.013947978,
+      "breaks": 238,
+      "squared_error_delta": 0.113089007771,
+      "share_of_absolute": 0.112145
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.03129168,
+      "delta": 0.010015923,
+      "breaks": 146,
+      "squared_error_delta": -0.110076459362,
+      "share_of_absolute": 0.109158
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.044979286,
+      "delta": 0.012714564,
+      "breaks": 58,
+      "squared_error_delta": 0.086566571276,
+      "share_of_absolute": 0.085844
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036286666,
+      "delta": 0.01110377,
+      "breaks": 255,
+      "squared_error_delta": -0.066062238153,
+      "share_of_absolute": 0.065511
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.035515293,
+      "delta": 0.009737761,
+      "breaks": 207,
+      "squared_error_delta": -0.060099656163,
+      "share_of_absolute": 0.059598
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.042412497,
+      "delta": 0.014066885,
+      "breaks": 14,
+      "squared_error_delta": 0.056673241844,
+      "share_of_absolute": 0.0562
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.034943371,
+      "delta": 0.009112097,
+      "breaks": 23,
+      "squared_error_delta": -0.048445900721,
+      "share_of_absolute": 0.048042
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.043031693,
+      "delta": 0.012481369,
+      "breaks": 105,
+      "squared_error_delta": 0.048261847066,
+      "share_of_absolute": 0.047859
+     }
+    ],
+    "top_of": 36
+   }
+  },
+  {
+   "id": "calibrated",
+   "file": "models/candidates/tv_break_coefficients_calibrated.json",
+   "bytes": 20682,
+   "sha256": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
+   "short": "4dd5c1fa50ef",
+   "computed_at": "2026-07-05T21:34:41.413211+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241046876,
+   "rmse_delta": -0.00011379,
+   "paired_statistic": -0.5212,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.000461744,
+   "breaks_improved": 1430,
+   "breaks_worsened": 1102,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.5212, movement -0.000114, dispersion 0.000462.",
+   "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
+   "duplicate_of": [
+    "afterwindow"
+   ],
+   "adopted": false,
+   "money": {
+    "state": "stale",
+    "revenue_delta": null,
+    "last_known_revenue_delta": 963477.37,
+    "measured_at": "2026-08-01T08:48:46.484343+00:00",
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel",
+    "whole_plan_delta": null,
+    "reason_en": "The stored money measurement is not current. What changed: the saved settings.",
+    "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: ההגדרות השמורות."
+   },
+   "decision": {
+    "state": "not_shipped",
+    "recorded_at": "2026-08-01T19:04:24.745372+00:00",
+    "actor": "unknown (login is not set up)",
+    "count": 2,
+    "on_rescore": false
+   },
+   "cells": {
+    "compared": 36,
+    "moved": 36,
+    "added": [],
+    "dropped": [],
+    "max_abs_delta": 0.014066885,
+    "max_abs_delta_at": "PrimeShow2_first_short",
+    "cancelled_share": 0.862227,
+    "concentrated": false,
+    "carries_the_move": [
+     "Other_first_long",
+     "Other_last_short",
+     "News_last_standard",
+     "Other_middle_standard",
+     "Other_first_standard",
+     "PrimeShow2_first_short",
+     "PrimeShow1_last_standard",
+     "News_middle_long",
+     "Other_middle_long",
+     "News_last_short",
+     "News_middle_standard",
+     "Other_middle_short",
+     "PrimeShow2_last_long",
+     "PrimeShow2_last_standard",
+     "PrimeShow2_first_standard"
+    ],
+    "carries_share": 0.8,
+    "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+    "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.",
+    "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+    "top": [
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.047711898,
+      "delta": 0.013947978,
+      "breaks": 238,
+      "squared_error_delta": 0.113089007771,
+      "share_of_absolute": 0.112145
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.03129168,
+      "delta": 0.010015923,
+      "breaks": 146,
+      "squared_error_delta": -0.110076459362,
+      "share_of_absolute": 0.109158
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.044979286,
+      "delta": 0.012714564,
+      "breaks": 58,
+      "squared_error_delta": 0.086566571276,
+      "share_of_absolute": 0.085844
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036286666,
+      "delta": 0.01110377,
+      "breaks": 255,
+      "squared_error_delta": -0.066062238153,
+      "share_of_absolute": 0.065511
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.035515293,
+      "delta": 0.009737761,
+      "breaks": 207,
+      "squared_error_delta": -0.060099656163,
+      "share_of_absolute": 0.059598
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.042412497,
+      "delta": 0.014066885,
+      "breaks": 14,
+      "squared_error_delta": 0.056673241844,
+      "share_of_absolute": 0.0562
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.034943371,
+      "delta": 0.009112097,
+      "breaks": 23,
+      "squared_error_delta": -0.048445900721,
+      "share_of_absolute": 0.048042
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.043031693,
+      "delta": 0.012481369,
+      "breaks": 105,
+      "squared_error_delta": 0.048261847066,
+      "share_of_absolute": 0.047859
+     }
+    ],
+    "top_of": 36
+   }
+  },
+  {
+   "id": "competitor",
+   "file": "models/candidates/tv_break_coefficients_competitor.json",
+   "bytes": 13917,
+   "sha256": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
+   "short": "a0e3f1c45e2a",
+   "computed_at": "2026-07-05T18:07:24.784743+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241150155,
+   "rmse_delta": -1.0511e-05,
+   "paired_statistic": -0.0488,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.000459413,
+   "breaks_improved": 1431,
+   "breaks_worsened": 1101,
+   "verdict": "not_distinguishable",
+   "verdict_en": "Not distinguishable from the shipped model on this evaluation. The movement is inside the noise this data carries.",
+   "verdict_he": "אינו ניתן להבחנה מהמודל המשודר במדידה הזו. התנועה נמצאת בתוך הרעש שהנתונים האלה נושאים.",
+   "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.0488, movement -0.000011, dispersion 0.000459.",
+   "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.0488, תנועה -0.000011, פיזור 0.000459.",
+   "duplicate_of": [],
+   "adopted": false,
+   "money": {
+    "state": "stale",
+    "revenue_delta": null,
+    "last_known_revenue_delta": 948456.21,
+    "measured_at": "2026-08-01T08:50:11.871980+00:00",
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel",
+    "whole_plan_delta": null,
+    "reason_en": "The stored money measurement is not current. What changed: the saved settings.",
+    "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: ההגדרות השמורות."
+   },
+   "decision": {
+    "state": "not_shipped",
+    "recorded_at": "2026-08-01T18:50:51.892000+00:00",
+    "actor": "unknown (login is not set up)",
+    "count": 1,
+    "on_rescore": false
+   },
+   "cells": {
+    "compared": 36,
+    "moved": 36,
+    "added": [],
+    "dropped": [],
+    "max_abs_delta": 0.015817128,
+    "max_abs_delta_at": "Other_first_long",
+    "cancelled_share": 0.98738,
+    "concentrated": false,
+    "carries_the_move": [
+     "Other_first_long",
+     "News_last_standard",
+     "Other_last_short",
+     "PrimeShow2_first_short",
+     "Other_middle_standard",
+     "News_middle_long",
+     "Other_first_standard",
+     "Other_middle_long",
+     "PrimeShow1_last_standard",
+     "News_middle_standard",
+     "News_last_short",
+     "Other_middle_short",
+     "PrimeShow2_last_long",
+     "PrimeShow2_last_standard",
+     "PrimeShow2_middle_standard",
+     "PrimeShow2_first_standard"
+    ],
+    "carries_share": 0.8,
+    "reading_en": "36 of 36 cells hold a different number, and 98.7 percent of the movement they make cancels between them. It takes 16 cells to reach 80 percent of it, so no small set of cells carries this.",
+    "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 98.7 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 16 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.",
+    "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+    "top": [
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.045842748,
+      "delta": 0.015817128,
+      "breaks": 238,
+      "squared_error_delta": 0.135280283854,
+      "share_of_absolute": 0.132993
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.042421206,
+      "delta": 0.015272644,
+      "breaks": 58,
+      "squared_error_delta": 0.106249136492,
+      "share_of_absolute": 0.104453
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.034379729,
+      "delta": 0.006927874,
+      "breaks": 146,
+      "squared_error_delta": -0.079261814816,
+      "share_of_absolute": 0.077922
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.041175151,
+      "delta": 0.015304231,
+      "breaks": 14,
+      "squared_error_delta": 0.061923427353,
+      "share_of_absolute": 0.060877
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.037873116,
+      "delta": 0.00951732,
+      "breaks": 255,
+      "squared_error_delta": -0.060473785857,
+      "share_of_absolute": 0.059451
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.041474183,
+      "delta": 0.014038879,
+      "breaks": 105,
+      "squared_error_delta": 0.056580184564,
+      "share_of_absolute": 0.055624
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.036521733,
+      "delta": 0.00873132,
+      "breaks": 207,
+      "squared_error_delta": -0.055707116429,
+      "share_of_absolute": 0.054765
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.037553849,
+      "delta": 0.00904992,
+      "breaks": 292,
+      "squared_error_delta": -0.045790354521,
+      "share_of_absolute": 0.045016
+     }
+    ],
+    "top_of": 36
+   }
+  },
+  {
+   "id": "placebo_corrected",
+   "file": "models/candidates/tv_break_coefficients_placebo_corrected.json",
+   "bytes": 15069,
+   "sha256": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
+   "short": "6c0b9bf656b3",
+   "computed_at": "2026-07-05T21:07:47.793580+00:00",
+   "breaks_fitted_on": 2532,
+   "rmse": 0.241160667,
+   "rmse_delta": 0.0,
+   "paired_statistic": 0.0,
+   "paired_bar": 2.0,
+   "fold_dispersion": 0.0,
+   "breaks_improved": 0,
+   "breaks_worsened": 0,
+   "verdict": "identical",
+   "verdict_en": "Predicts exactly what the shipped model predicts, break for break.",
+   "verdict_he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
+   "rule_en": "Both artifacts predict the same value for every break.",
+   "rule_he": "שני הקבצים חוזים את אותו ערך בכל ברייק.",
+   "duplicate_of": [],
+   "adopted": false,
+   "money": {
+    "state": "stale",
+    "revenue_delta": null,
+    "last_known_revenue_delta": 0.0,
+    "measured_at": "2026-08-01T08:51:38.335070+00:00",
+    "rows": 2540,
+    "basis": "the weekly plan the run path computes, summed over the operator's own channel",
+    "whole_plan_delta": null,
+    "reason_en": "The stored money measurement is not current. What changed: the saved settings.",
+    "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: ההגדרות השמורות."
+   },
+   "decision": {
+    "state": "not_shipped",
+    "recorded_at": "2026-08-01T18:51:33.198623+00:00",
+    "actor": "unknown (login is not set up)",
+    "count": 1,
+    "on_rescore": false
+   },
+   "cells": {
+    "compared": 36,
+    "moved": 0,
+    "added": [],
+    "dropped": [],
+    "max_abs_delta": null,
+    "max_abs_delta_at": null,
+    "cancelled_share": null,
+    "concentrated": false,
+    "carries_the_move": [],
+    "carries_share": 0.8,
+    "reading_en": "No coefficient moves. The two artifacts hold the same number in every cell they share.",
+    "reading_he": "אף מקדם אינו זז. שני הקבצים מחזיקים את אותו מספר בכל תא משותף.",
+    "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+    "top": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.048367312,
+      "delta": 0.0,
+      "breaks": 27,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.051512755,
+      "delta": 0.0,
+      "breaks": 21,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.049329373,
+      "delta": 0.0,
+      "breaks": 44,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.050077888,
+      "delta": 0.0,
+      "breaks": 96,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.046802176,
+      "delta": 0.0,
+      "breaks": 67,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.05769385,
+      "delta": 0.0,
+      "breaks": 58,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.055513062,
+      "delta": 0.0,
+      "breaks": 105,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.048998091,
+      "delta": 0.0,
+      "breaks": 20,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     }
+    ],
+    "top_of": 36
+   }
+  }
+ ]
+}

@@ -1,10 +1,12 @@
 import React from 'react';
+import { Figure } from '../shell/bidi';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import ClientRuleCard from './ClientRuleCard';
 import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, sourceLabel, step, vocabularyLabel, windowLabel } from './clients-money-helpers';
 import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
+import { isolate } from '../shell/bidi';
 
 // One client, opened without losing the set it came from. The counter and the
 // two arrows are Linear's device: a record page that knows it is the nth of a
@@ -58,15 +60,15 @@ function Figures({ client, locale }) {
     <>
       <span>
         <small>{pageText(locale, 'Gross', 'ברוטו')}</small>
-        <strong className="numeric" dir="ltr">{client.gross === null ? '-' : exactMoney(client.gross, locale)}</strong>
+        <strong className="numeric"><Figure>{client.gross === null ? '-' : exactMoney(client.gross, locale)}</Figure></strong>
       </span>
       <span>
         <small>{pageText(locale, 'Net after rebates', 'נטו אחרי רבייט')}</small>
-        <strong className="numeric" dir="ltr">{client.net === null ? '-' : exactMoney(client.net, locale)}</strong>
+        <strong className="numeric"><Figure>{client.net === null ? '-' : exactMoney(client.net, locale)}</Figure></strong>
       </span>
       <span>
         <small>{pageText(locale, 'Spots', 'תשדירים')}</small>
-        <strong className="numeric" dir="ltr">{client.spots === null ? '-' : client.spots}</strong>
+        <strong className="numeric"><Figure>{client.spots === null ? '-' : client.spots}</Figure></strong>
       </span>
     </>
   );
@@ -90,10 +92,10 @@ function Flights({ campaign, delivery, airStates, locale, goalWords }) {
         <li key={flight.flight_id}>
           <span className="clients-flight-id">{flight.flight_id}</span>
           <DemoBadge demo={flight.demo} locale={locale} />
-          <span className="numeric" dir="ltr">{windowLabel(flight.starts_on, flight.ends_on, locale)}</span>
+          <Figure className="numeric">{windowLabel(flight.starts_on, flight.ends_on, locale)}</Figure>
           <span className="clients-goal">
             <small>{pageText(locale, 'booked', 'הוזמן')}</small>
-            <span className="numeric" dir="ltr">{goalLabel(flight, locale, goalWords)}</span>
+            <Figure className="numeric">{goalLabel(flight, locale, goalWords)}</Figure>
           </span>
           <span className="clients-goal">
             <small>{pageText(locale, 'delivered', 'סופק')}</small>
@@ -145,7 +147,7 @@ export default function ClientRecord({
   const agencyLine = pageText(locale, `Buys through ${client.agency_name}`, `קונה דרך ${client.agency_name}`);
 
   return (
-    <aside className="clients-record" dir={he ? 'rtl' : 'ltr'} role="dialog" aria-label={client.shown_name || client.advertiser}>
+    <aside className="clients-record" role="dialog" aria-label={client.shown_name || client.advertiser}>
       <header className="clients-record-head">
         <div>
           <h3>{client.shown_name || client.advertiser}</h3>
@@ -168,7 +170,7 @@ export default function ClientRecord({
               <button type="button" onClick={() => onStep(step(rows, client.advertiser, -1))} aria-label={pageText(locale, 'Previous client', 'הלקוח הקודם')}>
                 <ChevronRight size={14} aria-hidden="true" />
               </button>
-              <span className="numeric" dir="ltr">{`${found.position} / ${found.total}`}</span>
+              <Figure className="numeric">{`${found.position} / ${found.total}`}</Figure>
               <button type="button" onClick={() => onStep(step(rows, client.advertiser, 1))} aria-label={pageText(locale, 'Next client', 'הלקוח הבא')}>
                 <ChevronLeft size={14} aria-hidden="true" />
               </button>
@@ -198,7 +200,7 @@ export default function ClientRecord({
             {pageText(
               locale,
               `The day being read is ${basis.day}, from ${basis.file}. A daily file carrying this client prices their spots and fills these figures.`,
-              `היום הנקרא הוא ⁦${basis.day}⁩, מתוך ⁦${basis.file}⁩. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.`,
+              `היום הנקרא הוא ${isolate(basis.day)}, מתוך ${isolate(basis.file)}. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.`,
             )}
             <button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
               {pageText(locale, 'Open Data', 'פתחו את מסך הנתונים')}
@@ -210,7 +212,7 @@ export default function ClientRecord({
             {pageText(
               locale,
               `${client.dropped_by_frequency} of this client's spots were removed by a rule, so their money is not above.`,
-              `⁦${client.dropped_by_frequency}⁩ מתשדירי הלקוח הוסרו על ידי כלל, ולכן הכסף שלהם אינו למעלה.`,
+              `${isolate(client.dropped_by_frequency)} מתשדירי הלקוח הוסרו על ידי כלל, ולכן הכסף שלהם אינו למעלה.`,
             )}
           </p>
         ) : null}
@@ -235,7 +237,7 @@ export default function ClientRecord({
             ? pageText(
               locale,
               demoCampaignCount > 0 ? `${client.campaign_count} (${demoCampaignCount} demo seed data)` : String(client.campaign_count),
-              demoCampaignCount > 0 ? `⁦${client.campaign_count}⁩ (⁦${demoCampaignCount}⁩ נתוני זרע הדגמה)` : String(client.campaign_count),
+              demoCampaignCount > 0 ? `${isolate(client.campaign_count)} (${isolate(demoCampaignCount)} נתוני זרע הדגמה)` : String(client.campaign_count),
             )
             : ''}
           action={canEdit
@@ -255,7 +257,7 @@ export default function ClientRecord({
                 <strong>{campaign.name}</strong>
                 <DemoBadge demo={campaign.demo} locale={locale} />
                 <span className="clients-campaign-id">{campaign.campaign_id}</span>
-                <span className="numeric" dir="ltr">{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</span>
+                <Figure className="numeric">{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</Figure>
                 <span className={`clients-state ${campaign.status}`}>{vocabularyLabel(statuses, campaign.status, locale)}</span>
               </header>
               <Flights

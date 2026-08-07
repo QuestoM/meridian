@@ -12,7 +12,7 @@ import TodayMoney from './TodayMoney';
 import TodayHealth from './TodayHealth';
 import TodayDecisions from './TodayDecisions';
 import JobPicker from './JobPicker';
-import { isolate } from './today-bidi';
+import { isolate } from '../shell/bidi';
 import { attributed, overviewScope } from './today-scope';
 import { clearTarget, fetchToday, saveTarget, takePrimedToday, todayFromOverview } from './today-data';
 import './today.css';

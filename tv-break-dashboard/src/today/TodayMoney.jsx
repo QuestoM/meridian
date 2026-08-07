@@ -5,7 +5,7 @@ import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPlanDate, pa
 import { WALLS } from '../session.js';
 import TargetForm from './TargetForm';
 import TodayDayDetail from './TodayDayDetail';
-import { isolate } from './today-bidi';
+import { isolate } from '../shell/bidi';
 import { DAY_COLUMNS, download, scopeComment, toCsv } from './today-export';
 
 // Answer one: is this window on plan.

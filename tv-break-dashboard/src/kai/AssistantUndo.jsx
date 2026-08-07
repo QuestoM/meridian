@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code, Name } from '../shell/bidi';
 import { postJson, requestJson } from './assistant-stream';
 import FieldName from './kai-field-name';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 
 // Undo, as an object you can open and read before you use it.
 //
@@ -49,11 +50,11 @@ function ReasonLine({ code, detail, fallback, locale }) {
   const said = reasonText(code, locale);
   if (!said && !fallback) return null;
   return (
-    <p className="asst-undo-note" dir="auto">
+    <p className="asst-undo-note">
       <TriangleAlert size={12} />
       {said || pageText(locale, 'This file cannot be read.', 'לא ניתן לקרוא את הקובץ הזה.')}
-      {detail ? <> <bdi dir="ltr">{String(detail)}</bdi></> : null}
-      {!said && fallback ? <> <bdi dir="auto">{String(fallback)}</bdi></> : null}
+      {detail ? <> <Figure>{String(detail)}</Figure></> : null}
+      {!said && fallback ? <> <Name>{String(fallback)}</Name></> : null}
     </p>
   );
 }
@@ -62,15 +63,15 @@ function FieldRows({ rows, locale }) {
   return (
     <div className="asst-undo-grid">
       <div className="asst-undo-row head">
-        <span dir="auto">{pageText(locale, 'Field', 'שדה')}</span>
-        <span dir="auto">{pageText(locale, 'Now', 'עכשיו')}</span>
-        <span dir="auto">{pageText(locale, 'After undo', 'אחרי הביטול')}</span>
+        <span>{pageText(locale, 'Field', 'שדה')}</span>
+        <span>{pageText(locale, 'Now', 'עכשיו')}</span>
+        <span>{pageText(locale, 'After undo', 'אחרי הביטול')}</span>
       </div>
       {rows.map((row, index) => (
         <div className="asst-undo-row" key={`${row.field}-${index}`}>
-          <span className="asst-undo-field" dir="ltr"><FieldName name={row.field} /></span>
-          <span className="asst-undo-now" dir="ltr">{shortValue(row.current)}</span>
-          <span className="asst-undo-after" dir="ltr">{shortValue(row.restored)}</span>
+          <span className="asst-undo-field"><FieldName name={row.field} /></span>
+          <span className="asst-undo-now"><Figure>{shortValue(row.current)}</Figure></span>
+          <span className="asst-undo-after"><Figure>{shortValue(row.restored)}</Figure></span>
         </div>
       ))}
     </div>
@@ -82,7 +83,7 @@ function FilePreview({ file, locale }) {
   if (effect === 'unavailable') {
     return (
       <div className="asst-undo-file">
-        <div className="asst-undo-file-head"><code dir="ltr">{String(file.file || '')}</code></div>
+        <div className="asst-undo-file-head"><Code>{String(file.file || '')}</Code></div>
         <ReasonLine code={file.reason_code} detail={file.reason_detail} fallback={file.reason} locale={locale} />
       </div>
     );
@@ -90,8 +91,8 @@ function FilePreview({ file, locale }) {
   if (effect === 'unchanged') {
     return (
       <div className="asst-undo-file">
-        <div className="asst-undo-file-head"><code dir="ltr">{String(file.file || '')}</code></div>
-        <p className="asst-undo-note" dir="auto">{pageText(locale, 'Unchanged since the restore point was taken.', 'לא השתנה מאז שנוצרה נקודת השחזור.')}</p>
+        <div className="asst-undo-file-head"><Code>{String(file.file || '')}</Code></div>
+        <p className="asst-undo-note">{pageText(locale, 'Unchanged since the restore point was taken.', 'לא השתנה מאז שנוצרה נקודת השחזור.')}</p>
       </div>
     );
   }
@@ -99,7 +100,7 @@ function FilePreview({ file, locale }) {
   return (
     <div className="asst-undo-file">
       <div className="asst-undo-file-head">
-        <code dir="ltr">{String(file.file || '')}</code>
+        <Code>{String(file.file || '')}</Code>
         {Number.isFinite(file.change_count) ? (
           <span className="asst-undo-count">{file.change_count === 1 ? pageText(locale, 'one change', 'שינוי אחד') : pageText(locale, `${file.change_count} changes`, `${file.change_count} שינויים`)}</span>
         ) : null}
@@ -109,7 +110,7 @@ function FilePreview({ file, locale }) {
         <div className="asst-undo-rows">
           {rows.map((row, index) => (
             <div className="asst-undo-rowline" key={`${row.row}-${index}`}>
-              <span className="asst-undo-rowkey" dir="auto">{String(row.row ?? '')}</span>
+              <span className="asst-undo-rowkey"><Name>{String(row.row ?? '')}</Name></span>
               <span className={`asst-undo-state ${String(row.state || '')}`}>
                 {row.state === 'added' ? pageText(locale, 'would be added back', 'יוחזר')
                   : row.state === 'removed' ? pageText(locale, 'would be removed', 'יוסר')
@@ -121,13 +122,13 @@ function FilePreview({ file, locale }) {
         </div>
       ) : null}
       {file.note_code || file.kind === 'absent_at_snapshot' ? (
-        <p className="asst-undo-note" dir="auto">{reasonText(file.note_code || 'absent_at_snapshot', locale)}</p>
+        <p className="asst-undo-note">{reasonText(file.note_code || 'absent_at_snapshot', locale)}</p>
       ) : null}
       {(file.kind === 'text' || file.kind === 'bytes') ? (
-        <p className="asst-undo-note" dir="auto">{pageText(locale, `Size now ${file.bytes_now} bytes, after undo ${file.bytes_after_restore} bytes. A field-level view is not available for this file.`, `הגודל עכשיו ${file.bytes_now} בתים, ואחרי הביטול ${file.bytes_after_restore} בתים. אין תצוגה ברמת שדה לקובץ הזה.`)}</p>
+        <p className="asst-undo-note">{pageText(locale, `Size now ${file.bytes_now} bytes, after undo ${file.bytes_after_restore} bytes. A field-level view is not available for this file.`, `הגודל עכשיו ${file.bytes_now} בתים, ואחרי הביטול ${file.bytes_after_restore} בתים. אין תצוגה ברמת שדה לקובץ הזה.`)}</p>
       ) : null}
       {Number.isFinite(file.changes_omitted) && file.changes_omitted > 0 ? (
-        <p className="asst-undo-note" dir="auto">{pageText(locale, `And ${file.changes_omitted} more changes not shown.`, `ועוד ${file.changes_omitted} שינויים שאינם מוצגים.`)}</p>
+        <p className="asst-undo-note">{pageText(locale, `And ${file.changes_omitted} more changes not shown.`, `ועוד ${file.changes_omitted} שינויים שאינם מוצגים.`)}</p>
       ) : null}
     </div>
   );
@@ -174,14 +175,14 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
       <button type="button" className="asst-undo-open" onClick={() => setState('open')}>
         <RotateCcw size={12} />
         {pageText(locale, 'Undo this change', 'ביטול השינוי')}
-        <code dir="ltr">{String(restoreId).slice(0, 8)}</code>
+        <Code>{String(restoreId).slice(0, 8)}</Code>
       </button>
     );
   }
 
   if (state === 'done') {
     return (
-      <p className="asst-undo-done" dir="auto">
+      <p className="asst-undo-done">
         {done && done.restored === 1
           ? pageText(locale, 'One file was put back. Run the plan so it reflects the restored data.', 'קובץ אחד הוחזר. הריצו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')
           : pageText(locale, `${done ? done.restored : 0} files were put back. Run the plan so it reflects the restored data.`, `${done ? done.restored : 0} קבצים הוחזרו. הריצו את התוכנית כדי שתשקף את הנתונים המשוחזרים.`)}
@@ -195,25 +196,25 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
   return (
     <div className="asst-undo">
       <div className="asst-undo-head">
-        <span dir="auto">{pageText(locale, 'What undoing would change', 'מה הביטול ישנה')}</span>
-        <code dir="ltr">{String(restoreId).slice(0, 8)}</code>
+        <span>{pageText(locale, 'What undoing would change', 'מה הביטול ישנה')}</span>
+        <Code>{String(restoreId).slice(0, 8)}</Code>
         <button type="button" className="asst-undo-close" onClick={() => setState('idle')}>
           {pageText(locale, 'Close', 'סגירה')}
         </button>
       </div>
       {state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Reading the restore point', 'קורא את נקודת השחזור')}</div> : null}
       {state === 'restoring' ? <div className="asst-loading">{pageText(locale, 'Putting the previous state back', 'מחזיר את המצב הקודם')}</div> : null}
-      {state === 'error' ? <div className="asst-error-note" dir="auto">{pageText(locale, 'The restore point could not be read (', 'לא ניתן לקרוא את נקודת השחזור (')}<bdi dir="auto">{error}</bdi>{').'}</div> : null}
+      {state === 'error' ? <div className="asst-error-note">{pageText(locale, 'The restore point could not be read (', 'לא ניתן לקרוא את נקודת השחזור (')}<Name>{error}</Name>{').'}</div> : null}
       {preview && state !== 'loading' ? (
         <>
           {files.map((file, index) => <FilePreview key={`${file.file}-${index}`} file={file} locale={locale} />)}
           {!restorable && preview.reason ? (
-            <p className="asst-undo-note" dir="auto">
-              {reasonText(preview.reason_code, locale) || <bdi dir="auto">{String(preview.reason)}</bdi>}
+            <p className="asst-undo-note">
+              {reasonText(preview.reason_code, locale) || <Name>{String(preview.reason)}</Name>}
             </p>
           ) : null}
           {preview.files_unavailable > 0 ? (
-            <p className="asst-undo-note" dir="auto">{pageText(locale, 'Part of this restore point cannot be read, so undoing is not offered.', 'חלק מנקודת השחזור אינו קריא, ולכן הביטול אינו מוצע.')}</p>
+            <p className="asst-undo-note">{pageText(locale, 'Part of this restore point cannot be read, so undoing is not offered.', 'חלק מנקודת השחזור אינו קריא, ולכן הביטול אינו מוצע.')}</p>
           ) : null}
           {restorable && !confirming && state === 'ready' ? (
             <div className="asst-undo-actions">
@@ -224,9 +225,9 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
           ) : null}
           {confirming ? (
             <div className="asst-confirm" role="alertdialog">
-              <p dir="auto">{pageText(locale, 'The files above go back to the state shown in the After undo column.', 'הקבצים שלמעלה יחזרו למצב שמוצג בעמודת אחרי הביטול.')}</p>
-              <p dir="auto">{pageText(locale, 'A whole-file undo also reverts manual edits made to the same file since.', 'ביטול ברמת קובץ מבטל גם עריכות ידניות שנעשו באותו קובץ מאז.')}</p>
-              <p dir="auto">{pageText(locale, 'A plan run cannot be un-run: the inputs go back, then run the plan again.', 'הרצת תוכנית אינה ניתנת לביטול: הנתונים חוזרים, ואז מריצים את התוכנית שוב.')}</p>
+              <p>{pageText(locale, 'The files above go back to the state shown in the After undo column.', 'הקבצים שלמעלה יחזרו למצב שמוצג בעמודת אחרי הביטול.')}</p>
+              <p>{pageText(locale, 'A whole-file undo also reverts manual edits made to the same file since.', 'ביטול ברמת קובץ מבטל גם עריכות ידניות שנעשו באותו קובץ מאז.')}</p>
+              <p>{pageText(locale, 'A plan run cannot be un-run: the inputs go back, then run the plan again.', 'הרצת תוכנית אינה ניתנת לביטול: הנתונים חוזרים, ואז מריצים את התוכנית שוב.')}</p>
               <div className="asst-confirm-actions">
                 <Button variant="contained" size="small" onClick={runUndo}>{pageText(locale, 'Undo now', 'בטלו עכשיו')}</Button>
                 <Button variant="outlined" size="small" onClick={() => setConfirming(false)}>{pageText(locale, 'Cancel', 'ביטול')}</Button>

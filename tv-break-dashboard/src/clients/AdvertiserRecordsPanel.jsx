@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { Button } from '@mui/material';
 import { Info, Plus, RefreshCcw, Search, Users, X } from 'lucide-react';
 import { normalizeRows, pageText, suggestNextId } from './advertisers-helpers';
@@ -218,7 +219,7 @@ export function AdvertiserRecordsPanel({
         <div className="amz-summary">
           {cards.map((card) => (
             <div className={`amz-summary-card${card.warn && card.value > 0 ? ' warn' : ''}`} key={card.key}>
-              <span className="amz-summary-value" dir="ltr">{card.value}</span>
+              <Figure className="amz-summary-value">{card.value}</Figure>
               <span className="amz-summary-label">{pageText(locale, card.en, card.he)}</span>
             </div>
           ))}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react';
 import { formatNumber, formatPlanDate, pageText } from '../shell/format';
+import { Name } from '../shell/bidi';
 import { word } from '../vocabulary.js';
 
 // Answer two: is anything broken.
@@ -147,7 +148,7 @@ export function TodayHealth({ today, locale, sourceFiles = null, onOpen }) {
               <span className={`today-health-icon ${check.status}`}><Icon size={16} strokeWidth={2} /></span>
               <span className="today-health-copy">
                 <strong>{copy.title}</strong>
-                <span dir="auto">{copy.detail}</span>
+                <Name>{copy.detail}</Name>
               </span>
               <span className="today-health-opens">{opens ? pageText(locale, opens[0], opens[1]) : ''}</span>
             </Button>

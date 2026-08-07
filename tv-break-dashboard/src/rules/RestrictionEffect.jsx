@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Figure as BidiFigure, Name } from '../shell/bidi';
 import { clock, collateralSentence, dayLabel, isolate, lengthLabel, money, pairLabel, valuePair } from './rules-lib';
 
 // The effect panel. It exists because a restriction is a decision about somebody
@@ -24,17 +25,16 @@ function ChangeRow({ change, locale }) {
     <li>
       <span className="rules-change-day">
         {dayLabel(change.day, locale)}
-        <small dir="ltr">{clock(change.start_seconds)}</small>
+        <small><BidiFigure>{clock(change.start_seconds)}</BidiFigure></small>
       </span>
-      <span className="rules-change-title" dir="auto">{change.title}</span>
-      <span className="rules-change-length" dir="ltr">{lengthLabel(change.duration_seconds, locale)}</span>
-      <span
+      <Name className="rules-change-title">{change.title}</Name>
+      <BidiFigure className="rules-change-length">{lengthLabel(change.duration_seconds, locale)}</BidiFigure>
+      <BidiFigure
         className="rules-change-breaks"
-        dir="ltr"
         aria-label={pairLabel(locale, change.before_breaks, change.after_breaks)}
       >
         {valuePair(change.before_breaks, change.after_breaks)}
-      </span>
+      </BidiFigure>
     </li>
   );
 }
@@ -66,12 +66,12 @@ function Figure({ locale, label, before, after, delta, scope, basis, startingPoi
   return (
     <div className="rules-figure">
       <span className="rules-figure-label">{label}</span>
-      <strong className={`rules-figure-delta${negative ? ' negative' : ' positive'}`} dir="ltr">
-        {isolate(money(delta, locale))}
+      <strong className={`rules-figure-delta${negative ? ' negative' : ' positive'}`}>
+        <BidiFigure>{isolate(money(delta, locale))}</BidiFigure>
       </strong>
-      <span className="rules-figure-pair" dir="ltr" aria-label={pairLabel(locale, from, to)}>
+      <BidiFigure className="rules-figure-pair" aria-label={pairLabel(locale, from, to)}>
         {valuePair(from, to)}
-      </span>
+      </BidiFigure>
       <span className="rules-figure-start">{startingPoint}</span>
       <span className="rules-figure-scope">{scope}</span>
       <span className="rules-figure-basis">{basis}</span>
@@ -136,7 +136,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
 
   return (
     <div className={`rules-effect${previewing ? ' rules-effect-stale' : ''}`}>
-      <p className="rules-effect-sentence" dir="auto">
+      <p className="rules-effect-sentence">
         {locale === 'he' ? preview.sentence_he : preview.sentence_en}
       </p>
 
@@ -172,7 +172,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
 
       {collateral.applies && Number(collateral.bound || 0) > 0 && (
         <div className="rules-effect-collateral">
-          <p className="rules-effect-collateral-note" role="status" dir="auto">
+          <p className="rules-effect-collateral-note" role="status">
             {collateralSentence(locale, collateral, collateralMoney)}
           </p>
           <ChangeList changes={surplus} locale={locale} limit={4} />
@@ -198,7 +198,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
         ) : (
           <div className="rules-figure rules-figure-empty">
             <span className="rules-figure-label">{pageText(locale, 'The breaks this removes were carrying', 'הברייקים שיוסרו נשאו')}</span>
-            <span className="rules-figure-reason" dir="auto">{reasonOf(scored)}</span>
+            <span className="rules-figure-reason">{reasonOf(scored)}</span>
           </div>
         )}
 
@@ -224,7 +224,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
         ) : (
           <div className="rules-figure rules-figure-empty">
             <span className="rules-figure-label">{pageText(locale, 'The plan after it is run with this rule', 'התוכנית אחרי הרצה עם הכלל הזה')}</span>
-            <span className="rules-figure-reason" dir="auto">{reasonOf(exact)}</span>
+            <span className="rules-figure-reason">{reasonOf(exact)}</span>
           </div>
         )}
       </div>
@@ -250,7 +250,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
       )}
 
       {starts.comparable && !starts.same_start && (
-        <p className="rules-effect-gap" dir="auto">
+        <p className="rules-effect-gap">
           {locale === 'he' ? starts.note_he : starts.note_en}
           {' '}
           {pageText(
@@ -262,7 +262,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
       )}
 
       {exact.available && Number.isFinite(Number(exact.retention_after)) && (
-        <p className="rules-effect-retention" dir="auto">
+        <p className="rules-effect-retention">
           {pageText(
             locale,
             `Viewer retention moves from ${(Number(exact.retention_before) * 100).toFixed(2)}% to ${(Number(exact.retention_after) * 100).toFixed(2)}% on those days.`,

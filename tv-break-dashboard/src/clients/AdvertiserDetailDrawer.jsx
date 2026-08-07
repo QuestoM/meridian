@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Figure, Code, Name } from '../shell/bidi';
 import { Button, Drawer, Switch, TextField, Tooltip } from '@mui/material';
 import { Info, RotateCcw, Save, Trash2, TriangleAlert, X } from 'lucide-react';
 import {
@@ -53,7 +54,7 @@ function ChipField({ label, presets, value, onChange, locale }) {
               aria-pressed={active}
               onClick={() => onChange(serializeTokens(toggleToken(tokens, option)))}
             >
-              <span dir="ltr">{isAny ? pageText(locale, 'Any', 'הכול') : option}</span>
+              <Figure>{isAny ? pageText(locale, 'Any', 'הכול') : option}</Figure>
             </button>
           );
         })}
@@ -92,8 +93,8 @@ function StatTile({ label, value, delta, tone, provenance }) {
           </span>
         </Tooltip>
       </span>
-      <span className={`amz-drawer-stat-value ${tone || ''}${isEmpty ? ' empty' : ''}`} dir="ltr">
-        {shown}
+      <span className={`amz-drawer-stat-value ${tone || ''}${isEmpty ? ' empty' : ''}`}>
+        <Figure>{shown}</Figure>
         {delta && <span className="amz-stat-delta">{delta}</span>}
       </span>
     </div>
@@ -134,7 +135,7 @@ function BaselineEditor({ row, locale, onSave }) {
               value={draft.default_premium ?? 1}
               onChange={(event) => update('default_premium', event.target.value === '' ? '' : Number(event.target.value))}
             />
-            <span className={`adv-premium-hint ${hint.tone}`} dir="ltr">{hint.text}</span>
+            <Figure className={`adv-premium-hint ${hint.tone}`}>{hint.text}</Figure>
           </div>
         </div>
         <ChipField
@@ -177,7 +178,7 @@ function BaselineEditor({ row, locale, onSave }) {
             value={draft.urgency_k ?? ''}
             onChange={(event) => update('urgency_k', event.target.value)}
           />
-          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard behind-schedule campaigns lean toward inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שמאחורי הלוז נמשכים למלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
+          <span className="adv-field-hint">{pageText(locale, 'How hard behind-schedule campaigns lean toward inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שמאחורי הלוז נמשכים למלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
         </div>
         <div className="amz-drawer-field">
           <InfoLabel
@@ -196,7 +197,7 @@ function BaselineEditor({ row, locale, onSave }) {
             value={draft.ahead_k ?? ''}
             onChange={(event) => update('ahead_k', event.target.value)}
           />
-          <span className="adv-field-hint" dir="auto">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
+          <span className="adv-field-hint">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
         </div>
         <div className="amz-drawer-field amz-drawer-notes">
           <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>
@@ -290,8 +291,8 @@ function AdvertiserDetailDrawer({
             </span>
             {/* A Hebrew trade name inside dir=ltr reads with its punctuation
                 flipped, so the name is auto and only the raw id is ltr. */}
-            <h2 dir="auto">{bound || row.advertiser_id}</h2>
-            {bound ? <span className="amz-drawer-rawid" dir="ltr">{row.advertiser_id}</span> : null}
+            <h2><Name>{bound || row.advertiser_id}</Name></h2>
+            {bound ? <Code className="amz-drawer-rawid">{row.advertiser_id}</Code> : null}
           </div>
           <button type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
             <X size={18} />

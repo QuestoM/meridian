@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { Lock, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Name } from '../shell/bidi';
 import { payloadCanEdit, WALLS } from '../session.js';
 import {
   detailWords,
@@ -109,7 +110,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
                 disabled={!channelGate.canEdit || pending || owned}
                 onClick={() => setConfirming(option)}
               >
-                <span dir="auto">{option}</span>
+                <Name>{option}</Name>
                 {owned && <small>{pageText(locale, 'Yours', 'שלכם')}</small>}
               </button>
             );
@@ -141,7 +142,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
                 an English reader verbatim. The translation is keyed off the
                 wall's own words, so a wall this page does not know still
                 renders the server's sentence rather than a guess. */}
-            <span dir="auto">{refusalSentence(channel?.can_edit_reason, locale) || pageText(locale, 'Only an administrator changes the channel.', 'רק מנהל המערכת משנה את הערוץ.')}</span>
+            <span>{refusalSentence(channel?.can_edit_reason, locale) || pageText(locale, 'Only an administrator changes the channel.', 'רק מנהל המערכת משנה את הערוץ.')}</span>
           </p>
         )}
         {channel && !channel.is_declared && (
@@ -213,7 +214,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
           ) : (
             <p className="rules-locked">
               <Lock size={13} aria-hidden="true" />
-              <span dir="auto">{refusalSentence(activationGate.reason, locale)}</span>
+              <span>{refusalSentence(activationGate.reason, locale)}</span>
             </p>
           )}
         </section>

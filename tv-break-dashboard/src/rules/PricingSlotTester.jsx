@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
 import { DAY_NAMES, DAY_ORDER, layerLabel, sourceLabel } from './pricing-layers-lib';
+import { Code, Figure } from '../shell/bidi';
 import { detailWords } from './rules-lib';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
@@ -130,14 +131,14 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         </label>
         <label>
           {pageText(locale, 'Position', 'מיקום')}
-          <input type="number" min="1" dir="ltr" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
+          <input type="number" min="1" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
           <span className="pricing-base-note">{pageText(locale,
             'Positions are 1 to 5 and L for last. A spot equal to the break size is the L position, so set the break size to test L.',
             'המיקומים הם 1 עד 5 ו-L לאחרון. ספוט ששווה לגודל הברייק הוא מיקום L, לכן הגדירו גודל ברייק כדי לבדוק את L.')}</span>
         </label>
         <label>
           {pageText(locale, 'Break size', 'גודל ברייק')}
-          <input type="number" min="1" dir="ltr" value={slot.break_size} onChange={(e) => setSlot({ ...slot, break_size: e.target.value })} />
+          <input type="number" min="1" value={slot.break_size} onChange={(e) => setSlot({ ...slot, break_size: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Ad type', 'סוג פרסומת')}
@@ -154,15 +155,15 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         </label>
         <label>
           {pageText(locale, 'Advertiser base', 'בסיס מפרסם')}
-          <input type="number" min="0" dir="ltr" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
+          <input type="number" min="0" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Advertiser (optional)', 'מפרסם (לא חובה)')}
-          <input dir="ltr" value={slot.advertiser} placeholder="ADV_01" onChange={(e) => setSlot({ ...slot, advertiser: e.target.value })} />
+          <input value={slot.advertiser} placeholder="ADV_01" onChange={(e) => setSlot({ ...slot, advertiser: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Campaign (optional)', 'קמפיין (לא חובה)')}
-          <input dir="ltr" value={slot.campaign} onChange={(e) => setSlot({ ...slot, campaign: e.target.value })} />
+          <input value={slot.campaign} onChange={(e) => setSlot({ ...slot, campaign: e.target.value })} />
         </label>
       </div>
 
@@ -178,18 +179,18 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         <div className="pricing-breakdown">
           <div className="pricing-break-row">
             <span>{pageText(locale, 'Base CPP', 'מחיר בסיס')}</span>
-            <span className="mult" dir="ltr">{Number(breakdown.base_cpp ?? 0).toFixed(2)}</span>
+            <Figure className="mult">{Number(breakdown.base_cpp ?? 0).toFixed(2)}</Figure>
           </div>
           {(breakdown.layers || []).map((layer, idx) => (
             <div className="pricing-break-row" key={`live-${layer.name}-${idx}`}>
               <span>x {layerLabel(layer.name, locale)} <span className="src">({sourceLabel(layer.source, locale)})</span></span>
-              <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
+              <Figure className="mult">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</Figure>
             </div>
           ))}
           {(breakdown.wired_off_layers || []).map((layer, idx) => (
             <div className="pricing-break-row off" key={`off-${layer.name}-${idx}`}>
               <span>x {layerLabel(layer.name, locale)} <span className="src">({pageText(locale, 'wired off', 'כבוי')})</span></span>
-              <span className="mult" dir="ltr">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</span>
+              <Figure className="mult">{Number.isFinite(layer.multiplier) ? Number(layer.multiplier).toFixed(3) : '-'}</Figure>
             </div>
           ))}
           {breakdown.position_key && (
@@ -197,12 +198,12 @@ function PricingSlotTester({ state, locale, notify, currency }) {
               <span className="src">{pageText(locale,
                 `Position resolved to ${breakdown.position_label_en || breakdown.position_key}`,
                 `המיקום נקבע כ${breakdown.position_label_he || breakdown.position_key}`)}</span>
-              <span className="mult" dir="ltr">{breakdown.position_key}</span>
+              <Code className="mult">{breakdown.position_key}</Code>
             </div>
           )}
           <div className="pricing-break-row total">
             <span>= {pageText(locale, 'Final CPP', 'מחיר סופי')} ({currency})</span>
-            <span dir="ltr">{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</span>
+            <Figure>{Number.isFinite(breakdown.final_cpp) ? Number(breakdown.final_cpp).toFixed(2) : '-'}</Figure>
           </div>
           <OverrideBlocks breakdown={breakdown} advertiser={slot.advertiser.trim()} locale={locale} />
         </div>
@@ -226,8 +227,8 @@ function OverrideBlocks({ breakdown, advertiser, locale }) {
           <p className="pricing-base-note">{pageText(locale, `Personal pricing rules of ${advertiser} applied to this slot:`, `כללי תמחור אישיים של ${advertiser} שהוחלו על המשבצת:`)}</p>
           {applied.map((entry, idx) => (
             <div className="pricing-break-row" key={`applied-${entry.rule_id}-${idx}`}>
-              <span dir="auto">{layerLabel(entry.target_layer || 'final', locale)} <span className="src" dir="ltr">({entry.rule_id})</span></span>
-              <span className="mult" dir="ltr">{Number.isFinite(entry.multiplier) ? `x ${Number(entry.multiplier).toFixed(3)}` : '-'}</span>
+              <span>{layerLabel(entry.target_layer || 'final', locale)} <Code className="src">({entry.rule_id})</Code></span>
+              <Figure className="mult">{Number.isFinite(entry.multiplier) ? `x ${Number(entry.multiplier).toFixed(3)}` : '-'}</Figure>
             </div>
           ))}
         </>
@@ -240,14 +241,14 @@ function OverrideBlocks({ breakdown, advertiser, locale }) {
           <p className="pricing-base-note">{pageText(locale, 'Rules not applied because a more specific rule wins the layer:', 'כללים שלא הוחלו כי כלל ממוקד יותר גובר באותה שכבה:')}</p>
           {shadowed.map((entry, idx) => (
             <div className="pricing-break-row off" key={`shadowed-${entry.rule_id}-${idx}`}>
-              <span dir="auto">{layerLabel(entry.target_layer || 'final', locale)} <span className="src" dir="ltr">({entry.rule_id})</span></span>
-              <span className="src" dir="auto">{pageText(locale, `${entry.winner_rule_id} wins`, `${entry.winner_rule_id} גובר`)}</span>
+              <span>{layerLabel(entry.target_layer || 'final', locale)} <Code className="src">({entry.rule_id})</Code></span>
+              <span className="src">{pageText(locale, `${entry.winner_rule_id} wins`, `${entry.winner_rule_id} גובר`)}</span>
             </div>
           ))}
         </>
       )}
       {warnings.map((warning, idx) => (
-        <p className="pricing-layer-warning" key={`guardrail-${warning.code || idx}`} dir="auto">
+        <p className="pricing-layer-warning" key={`guardrail-${warning.code || idx}`}>
           {pageText(locale, 'Price guardrail breached: ', 'חריגה מגבול מחיר: ')}
           {warning.message || warning.code}
         </p>

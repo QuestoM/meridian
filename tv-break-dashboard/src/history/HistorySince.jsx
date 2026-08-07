@@ -101,11 +101,11 @@ export default function HistorySince({ locale, landing, onShow }) {
       </label>
 
       {state === 'loading' ? <span className="hist-since-line">{pageText(locale, 'Reading the record', 'קורא את הרישום')}</span> : null}
-      {state === 'error' ? <span className="hist-since-line warn" dir="auto">{pageText(locale, `The record could not be read. ${error}`, `לא ניתן לקרוא את הרישום. ${error}`)}</span> : null}
+      {state === 'error' ? <span className="hist-since-line warn">{pageText(locale, `The record could not be read. ${error}`, `לא ניתן לקרוא את הרישום. ${error}`)}</span> : null}
 
       {state === 'ready' ? (
         <>
-          <span className="hist-since-line" dir="auto">
+          <span className="hist-since-line">
             {changeCount && counted
               ? pageText(locale, ...sinceCountLine(changeCount, counts.run || 0, scope, body))
               : null}
@@ -126,12 +126,12 @@ export default function HistorySince({ locale, landing, onShow }) {
           {/* What was attempted and did not happen, beside what did. A refusal is
               news of its own on this strip and it is never inside the count. */}
           {refusedCount ? (
-            <span className="hist-since-line warn" dir="auto">{pageText(locale, ...refusedSinceLine(refusedCount, scope))}</span>
+            <span className="hist-since-line warn">{pageText(locale, ...refusedSinceLine(refusedCount, scope))}</span>
           ) : null}
           {/* And the day that count is only as old as. A count of changes since a
               day is evidence for the days the record covers and for no others. */}
           {startLine ? (
-            <span className={`hist-since-line${covered ? '' : ' warn'}`} dir="auto">{pageText(locale, startLine[0], startLine[1])}</span>
+            <span className={`hist-since-line${covered ? '' : ' warn'}`}>{pageText(locale, startLine[0], startLine[1])}</span>
           ) : null}
           {/* The count opens the entries it counted. It sets the list's own From day
               to this day and drops every filter, so the tabs under it add up to the
@@ -143,26 +143,26 @@ export default function HistorySince({ locale, landing, onShow }) {
             </button>
           ) : null}
           {counted ? null : (
-            <span className="hist-since-line warn" dir="auto">{pageText(locale, ...runsCountLine(runsState))}</span>
+            <span className="hist-since-line warn">{pageText(locale, ...runsCountLine(runsState))}</span>
           )}
           {runsState === RUNS_WITHHELD ? <RunsRemedyLink locale={locale} /> : null}
           {guardrails.state === 'unchanged' ? (
-            <span className="hist-since-verdict ok" dir="auto">
+            <span className="hist-since-verdict ok">
               {pageText(locale, `No regulatory limit moved. The limits in force took effect on ${guardrails.effective_date}, and the regulatory limit record starts on ${guardrails.record_starts}.`, `אף מגבלת רגולציה לא זזה. המגבלות שבתוקף נכנסו לתוקף ב-${guardrails.effective_date}, ורישום מגבלות הרגולציה מתחיל ב-${guardrails.record_starts}.`)}
             </span>
           ) : null}
           {guardrails.state === 'changed' ? (
-            <span className="hist-since-verdict warn" dir="auto">
+            <span className="hist-since-verdict warn">
               {pageText(locale, `${guardrails.changes.length} regulatory limit changes were recorded since that day.`, `נרשמו ${guardrails.changes.length} שינויים במגבלות הרגולציה מאז אותו יום.`)}
             </span>
           ) : null}
           {guardrails.state === 'unknown' ? (
-            <span className="hist-since-verdict warn" dir="auto">
+            <span className="hist-since-verdict warn">
               {pageText(locale, 'The regulatory limit record could not be read, so no attestation can be made from this screen.', 'לא ניתן לקרוא את רישום מגבלות הרגולציה, ולכן אי אפשר להצהיר מהמסך הזה.')}
             </span>
           ) : null}
           {(guardrails.scheduled || []).length ? (
-            <span className="hist-since-verdict warn" dir="auto">
+            <span className="hist-since-verdict warn">
               {pageText(locale, `${guardrails.scheduled.length} limit changes are recorded for a future date.`, `${guardrails.scheduled.length} שינויי מגבלות רשומים לתאריך עתידי.`)}
             </span>
           ) : null}

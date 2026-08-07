@@ -3,6 +3,7 @@ import { Button, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, 
 import { Bell, Bot, CalendarDays, ChevronDown, GitCompare, Info, Languages, Play, RefreshCcw } from 'lucide-react';
 import { Numeric, pageText } from './format';
 import { planningWeekLabel } from './plan-model';
+import { Figure } from './bidi';
 
 export function renderTopBar({
   copy,
@@ -140,7 +141,7 @@ export function renderTopBar({
               <span className="bell-wrap">
                 <Bell size={15} />
                 {activeNotificationCount > 0 && (
-                  <span className="bell-badge" dir="ltr">{activeNotificationCount > 9 ? '9+' : activeNotificationCount}</span>
+                  <Figure className="bell-badge">{activeNotificationCount > 9 ? '9+' : activeNotificationCount}</Figure>
                 )}
               </span>
             </IconButton>

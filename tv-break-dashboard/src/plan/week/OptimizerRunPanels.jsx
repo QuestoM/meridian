@@ -1,5 +1,6 @@
 import React from 'react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../../shell/format';
+import { Name } from '../../shell/bidi';
 import { dayLabel, impactSegmentLabel } from '../../shell/labels';
 import { normalizeRows } from '../../shell/plan-model';
 
@@ -65,7 +66,7 @@ export function RetentionCostSegment({ segment, copy, locale }) {
   return (
     <div className={isAssumption ? 'retention-cost-row assumption' : 'retention-cost-row'}>
       <div className="retention-cost-row-head">
-        <strong dir="auto">{name}</strong>
+        <strong><Name>{name}</Name></strong>
         <span className={`retention-cost-confidence ${String(cost.confidence || '').toLowerCase()}`}>
           {isAssumption ? copy.retentionCostAssumption : confidenceWord || copy.retentionCostAssumption}
         </span>

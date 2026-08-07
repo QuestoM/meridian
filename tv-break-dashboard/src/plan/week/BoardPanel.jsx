@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { ArrowUpRight, CalendarDays, X } from 'lucide-react';
 import { formatNumber, pageText } from '../../shell/format';
+import { Figure } from '../../shell/bidi';
 import { useScheduleZoom } from '../day/schedule-track-view';
 import ScheduleEditor from '../day/ScheduleEditor';
 import { SAVED_PLAN, withBasis } from '../day/plan-basis';
@@ -57,7 +58,7 @@ function DayHeader({ board, focusDate, state, error, locale, onClear, weekday })
     <div className={`plan-board-day${reason ? ' is-empty' : ''}`}>
       <div className="plan-board-day-name">
         <CalendarDays size={15} aria-hidden="true" />
-        <strong className="numeric" dir="ltr">{date || '-'}</strong>
+        <strong className="numeric"><Figure>{date || '-'}</Figure></strong>
         {weekday ? <span>{weekdayLabel(weekday, locale)}</span> : null}
       </div>
       {reason ? (

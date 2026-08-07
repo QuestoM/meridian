@@ -237,7 +237,7 @@ export function ModelContextPanel({ context, locale }) {
                       return (
                         <span className="cal-weekday-cell" key={entry.iso_weekday}>
                           <small>{day ? pageText(locale, day[0], day[1]) : String(entry.iso_weekday)}</small>
-                          <span className="ltr-run">{value === null ? '-' : value.toFixed(2)}</span>
+                          <span className="bidi-figure figure-nowrap">{value === null ? '-' : value.toFixed(2)}</span>
                         </span>
                       );
                     })}
@@ -252,7 +252,7 @@ export function ModelContextPanel({ context, locale }) {
               label={pageText(locale, 'Retention measurement', 'מדידת השימור')}
               hint={pageText(locale, 'The coefficient file with the measurement metadata could not be read, so nothing is claimed about it.', 'קובץ המקדמים עם נתוני המדידה לא נקרא, ולכן לא נטען עליו דבר.')}
             >
-              <span>{ctx.measurementReason ? <span className="ltr-run">{ctx.measurementReason}</span> : pageText(locale, 'Measurement metadata unavailable.', 'נתוני המדידה אינם זמינים.')}</span>
+              <span>{ctx.measurementReason ? <span className="bidi-figure figure-nowrap">{ctx.measurementReason}</span> : pageText(locale, 'Measurement metadata unavailable.', 'נתוני המדידה אינם זמינים.')}</span>
             </ContextRow>
           )}
           {ctx.mode && (
@@ -260,7 +260,7 @@ export function ModelContextPanel({ context, locale }) {
               label={pageText(locale, 'Retention measurement mode', 'אופן מדידת השימור')}
               hint={pageText(locale, 'The baseline the retention measurement detrends against. Global means one baseline for the whole window, with no weekday, date or holiday term inside the measurement.', 'קו הבסיס שממנו מדידת השימור מנקה מגמות. גלובלי פירושו קו בסיס אחד לכל החלון, ללא רכיב יום בשבוע, תאריך או חג בתוך המדידה.')}
             >
-              <span>{ctx.mode === 'global' ? pageText(locale, 'Global baseline, calendar-blind', 'קו בסיס גלובלי, עיוור ללוח השנה') : <span className="ltr-run">{String(ctx.mode)}</span>}</span>
+              <span>{ctx.mode === 'global' ? pageText(locale, 'Global baseline, calendar-blind', 'קו בסיס גלובלי, עיוור ללוח השנה') : <span className="bidi-figure figure-nowrap">{String(ctx.mode)}</span>}</span>
             </ContextRow>
           )}
           {ctx.seasonalImprovement !== null && (
@@ -284,7 +284,7 @@ export function ModelContextPanel({ context, locale }) {
                 {finiteNumber(ctx.levelDrift.drift_per_week) !== null && (
                   <span>
                     {pageText(locale, 'Drift per week (log effect):', 'סחיפה לשבוע (אפקט לוג):')}
-                    <span className="ltr-run">{Number(ctx.levelDrift.drift_per_week).toFixed(4)}</span>
+                    <span className="bidi-figure figure-nowrap">{Number(ctx.levelDrift.drift_per_week).toFixed(4)}</span>
                   </span>
                 )}
                 {typeof ctx.levelDrift.binding === 'boolean' && (
@@ -304,9 +304,9 @@ export function ModelContextPanel({ context, locale }) {
                     <tbody>
                       {ctx.levelDrift.weekly_levels.map((row, index) => (
                         <tr key={row.week ?? index}>
-                          <td><span className="ltr-run">{formatNumber(row.week, locale)}</span></td>
-                          <td><span className="ltr-run">{formatNumber(row.n, locale)}</span></td>
-                          <td><span className="ltr-run">{finiteNumber(row.mean_log_effect) === null ? '-' : Number(row.mean_log_effect).toFixed(4)}</span></td>
+                          <td><span className="bidi-figure figure-nowrap">{formatNumber(row.week, locale)}</span></td>
+                          <td><span className="bidi-figure figure-nowrap">{formatNumber(row.n, locale)}</span></td>
+                          <td><span className="bidi-figure figure-nowrap">{finiteNumber(row.mean_log_effect) === null ? '-' : Number(row.mean_log_effect).toFixed(4)}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -321,7 +321,7 @@ export function ModelContextPanel({ context, locale }) {
               hint={pageText(locale, 'The exact calendar span of the history the retention coefficients were measured on. Conditions outside this span, such as holidays, were never seen by the model.', 'טווח התאריכים המדויק של ההיסטוריה שעליה נמדדו מקדמי השימור. תנאים מחוץ לטווח הזה, למשל חגים, מעולם לא נראו על ידי המודל.')}
             >
               <span>
-                <span className="ltr-run">{`${String(ctx.windowStart || '').slice(0, 10)} .. ${String(ctx.windowEnd || '').slice(0, 10)}`}</span>
+                <span className="bidi-figure figure-nowrap">{`${String(ctx.windowStart || '').slice(0, 10)} .. ${String(ctx.windowEnd || '').slice(0, 10)}`}</span>
                 {ctx.windowDays !== null && ctx.windowBreaks !== null && (
                   <span>{pageText(locale, ` (${formatNumber(ctx.windowDays, locale)} days, ${formatNumber(ctx.windowBreaks, locale)} measured breaks)`, ` (${formatNumber(ctx.windowDays, locale)} ימים, ${formatNumber(ctx.windowBreaks, locale)} ברייקים שנמדדו)`)}</span>
                 )}
@@ -333,7 +333,7 @@ export function ModelContextPanel({ context, locale }) {
               label={pageText(locale, 'Coefficients computed at', 'המקדמים חושבו בתאריך')}
               hint={pageText(locale, 'When the current retention coefficients were last rebuilt from the source data.', 'מתי מקדמי השימור הנוכחיים נבנו מחדש בפעם האחרונה מנתוני המקור.')}
             >
-              <span className="ltr-run">{new Date(ctx.computedAt).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
+              <span className="bidi-figure figure-nowrap">{new Date(ctx.computedAt).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
             </ContextRow>
           )}
           {wartimeText(ctx.wartime, locale) && (
@@ -390,7 +390,7 @@ export function OverlapPanel({ events, locale }) {
                     {planDates.length === 0
                       ? pageText(locale, 'No overlap with the saved plan', 'אין חפיפה עם התוכנית השמורה')
                       : planDates.map((date) => (
-                        <span className="cal-date-chip ltr-run" key={date}>{formatShortDate(date, locale)}</span>
+                        <span className="cal-date-chip bidi-figure figure-nowrap" key={date}>{formatShortDate(date, locale)}</span>
                       ))}
                   </span>
                 </div>

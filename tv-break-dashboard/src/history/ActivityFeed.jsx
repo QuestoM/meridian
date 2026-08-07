@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BellOff, RotateCcw, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure } from '../shell/bidi';
 import './activity-feed.css';
 
 // A persistent activity feed for the operator's own actions and alerts. Every
@@ -34,7 +35,7 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
   );
 
   return (
-    <aside className="activity-feed" role="dialog" aria-label={pageText(locale, 'Activity', 'פעילות')} dir={he ? 'rtl' : 'ltr'}>
+    <aside className="activity-feed" role="dialog" aria-label={pageText(locale, 'Activity', 'פעילות')}>
       <div className="af-head">
         <div>
           <span className="af-kicker">{pageText(locale, 'Activity', 'פעילות')}</span>
@@ -66,7 +67,7 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
         {active.map((n) => (
           <div className="af-item" key={n.id}>
             <div className="af-item-main">
-              <span className="af-item-time" dir="ltr">{timeLabel(n.ts, locale)}</span>
+              <span className="af-item-time"><Figure>{timeLabel(n.ts, locale)}</Figure></span>
               <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
             </div>
             <button type="button" className="af-item-btn" onClick={() => onDismiss(n.id)} aria-label={pageText(locale, 'Dismiss', 'סימון כנצפה')}>
@@ -86,7 +87,7 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
             {dismissed.map((n) => (
               <div className="af-item dismissed" key={n.id}>
                 <div className="af-item-main">
-                  <span className="af-item-time" dir="ltr">{timeLabel(n.ts, locale)}</span>
+                  <span className="af-item-time"><Figure>{timeLabel(n.ts, locale)}</Figure></span>
                   <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
                 </div>
                 <button type="button" className="af-item-btn restore" onClick={() => onRestore(n.id)} aria-label={pageText(locale, 'Restore', 'שחזור')}>

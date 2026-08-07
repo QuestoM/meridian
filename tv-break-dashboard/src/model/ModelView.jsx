@@ -22,6 +22,7 @@ import './console-mount.js';
 import { fallbackSettings } from '../shell/fallbacks';
 import { impactSegmentLabel, impactSourceLabel } from '../shell/labels';
 import { normalizeRows } from '../shell/plan-model';
+import { Code } from '../shell/bidi';
 
 export function normalizeImpactRows(rows, segmentKey) {
   return normalizeRows(rows)
@@ -76,7 +77,7 @@ export function ModelView({ impact, parameters, locale }) {
         {typeof measuredImpacts.pooling_note === 'string' && measuredImpacts.pooling_note.trim() && (
           <p className="data-basis-note">
             {pageText(locale, 'Model reliability note:', 'הערת מהימנות מהמודל:')}{' '}
-            <span dir="ltr">{measuredImpacts.pooling_note}</span>
+            <Code>{measuredImpacts.pooling_note}</Code>
           </p>
         )}
       </section>
@@ -156,7 +157,7 @@ export function DriftMonitorCard({ drift, locale }) {
           <small>{pageText(locale, 'Weekly monitor', 'ניטור שבועי')}</small>
         </header>
         <p className="drift-note">{pageText(locale, 'No level-drift measurement is available for the current coefficients.', 'מדידת סחיפת הרמה אינה זמינה עבור המקדמים הנוכחיים.')}</p>
-        {reason ? <p className="drift-reason" dir="ltr">{reason}</p> : null}
+        {reason ? <p className="drift-reason"><Code>{reason}</Code></p> : null}
       </div>
     );
   }
@@ -182,7 +183,7 @@ export function DriftMonitorCard({ drift, locale }) {
         </div>
         <Tooltip
           title={typeof block.criterion === 'string' && block.criterion
-            ? <span>{pageText(locale, 'The measured rule behind this verdict:', 'הכלל המדוד שמאחורי הקביעה הזו:')} <span dir="ltr">{block.criterion}</span></span>
+            ? <span>{pageText(locale, 'The measured rule behind this verdict:', 'הכלל המדוד שמאחורי הקביעה הזו:')} <Code>{block.criterion}</Code></span>
             : ''}
           arrow
           placement="bottom"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@mui/material';
+import { Figure } from '../../shell/bidi';
 import { Save } from 'lucide-react';
 import {
   secondsToClock,
@@ -50,19 +51,19 @@ function ScheduleEditorRow({
         <div className="editor-row-meta">
           {classLabel && <span className="editor-row-class">{classLabel}</span>}
           {range && (
-            <span className="editor-row-window" dir="ltr">{range}</span>
+            <Figure className="editor-row-window">{range}</Figure>
           )}
           {positionLabel && <span className="editor-row-slot">{positionLabel}</span>}
-          {sequence && <span className="editor-row-slot" dir="ltr">{sequence}</span>}
+          {sequence && <Figure className="editor-row-slot">{sequence}</Figure>}
         </div>
         <div className="editor-row-position">
-          <span className="editor-row-clock" dir="ltr">{secondsToClock(startSec)}</span>
+          <Figure className="editor-row-clock">{secondsToClock(startSec)}</Figure>
           <span className="editor-row-into">{intoLabel}</span>
         </div>
         <span className="editor-row-length">
-          {label('Length', 'אורך')} <span dir="ltr">{Math.round(durationSec)}s</span>
+          {label('Length', 'אורך')} <Figure>{Math.round(durationSec)}s</Figure>
         </span>
-        {scope && <span className="editor-row-scope" dir="auto">{scope}</span>}
+        {scope && <span className="editor-row-scope">{scope}</span>}
       </div>
       <Button
         type="button"

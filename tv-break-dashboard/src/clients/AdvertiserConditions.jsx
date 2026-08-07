@@ -153,7 +153,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                   value={draft.value ?? 1}
                   onChange={(event) => update('value', event.target.value === '' ? '' : Number(event.target.value))}
                 />
-                <span className={`adv-premium-hint ${hint.tone}`} dir="auto">{hint.text}</span>
+                <span className={`adv-premium-hint ${hint.tone}`}>{hint.text}</span>
               </div>
             </div>
           </>
@@ -182,7 +182,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                 value={draft.value ?? 0}
                 onChange={(event) => update('value', event.target.value === '' ? '' : Number(event.target.value))}
               />
-              <span className={`adv-premium-hint ${hint.tone}`} dir="auto">{hint.text}</span>
+              <span className={`adv-premium-hint ${hint.tone}`}>{hint.text}</span>
             </div>
           </div>
         )}

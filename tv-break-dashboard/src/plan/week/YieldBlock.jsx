@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { Coins } from 'lucide-react';
 import { finiteNumber, formatCurrency, formatNumber, pageText } from '../../shell/format';
+import { Code, Figure, Name } from '../../shell/bidi';
 import { DataTable } from '../../shell/primitives';
 import { daypartLabel as engineDaypartLabel } from '../../shell/surface-helpers';
 import {
@@ -63,16 +64,16 @@ function BasisBlock({ basis, bandBasis, locale }) {
         <summary>{pageText(locale, 'The wording the engine itself uses', 'הניסוח של המנוע עצמו')}</summary>
         <p className="numeric" lang="en">{formula}</p>
         {inputs.length > 0 && (
-          <dl className="plan-basis-inputs" lang="en" dir="ltr">
+          <dl className="plan-basis-inputs" lang="en">
             {inputs.map((input) => (
               <div key={input.name}>
-                <dt className="numeric">{input.name}</dt>
+                <dt className="numeric"><Code>{input.name}</Code></dt>
                 <dd>{input.note}</dd>
               </div>
             ))}
           </dl>
         )}
-        {bandBasis && <p lang="en" dir="ltr">{bandBasis}</p>}
+        {bandBasis && <p lang="en">{bandBasis}</p>}
       </details>
     </div>
   );
@@ -110,7 +111,7 @@ export function YieldBlock({ data, locale, words, planScope }) {
           'What a second of airtime is worth cannot be computed from the saved plan right now, so no figure is shown.',
           'לא ניתן לחשב כרגע מהתוכנית השמורה כמה שווה שנייה של זמן שידור, ולכן לא מוצג ערך.',
         )}
-        {data.reason ? <small className="plan-note-detail" dir="auto">{data.reason}</small> : null}
+        {data.reason ? <small className="plan-note-detail"><Name>{data.reason}</Name></small> : null}
       </p>
     );
   }
@@ -139,7 +140,7 @@ export function YieldBlock({ data, locale, words, planScope }) {
       <div className="plan-figure-row">
         <div className="plan-figure is-headline">
           <span>{pageText(locale, 'Per second, across the saved plan', 'לשנייה, על פני התוכנית השמורה')}</span>
-          <strong className="numeric" dir="ltr">{perSecond(totals.yield_per_second, locale)}</strong>
+          <strong className="numeric"><Figure>{perSecond(totals.yield_per_second, locale)}</Figure></strong>
           <small>
             {pageText(
               locale,
@@ -150,11 +151,11 @@ export function YieldBlock({ data, locale, words, planScope }) {
         </div>
         <div className="plan-figure">
           <span>{words.expectedRevenue}</span>
-          <strong className="numeric" dir="ltr">{formatCurrency(data.revenue_ils, locale)}</strong>
+          <strong className="numeric"><Figure>{formatCurrency(data.revenue_ils, locale)}</Figure></strong>
         </div>
         <div className="plan-figure">
           <span>{words.retentionCost}</span>
-          <strong className="numeric" dir="ltr">{formatCurrency(data.retention_cost_ils, locale)}</strong>
+          <strong className="numeric"><Figure>{formatCurrency(data.retention_cost_ils, locale)}</Figure></strong>
           {band ? (
             <small className="plan-band">
               {pageText(locale, 'band ', 'טווח ')}
@@ -166,7 +167,7 @@ export function YieldBlock({ data, locale, words, planScope }) {
         </div>
         <div className="plan-figure">
           <span>{pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור')}</span>
-          <strong className="numeric" dir="ltr">{formatCurrency(data.revenue_net_ils, locale)}</strong>
+          <strong className="numeric"><Figure>{formatCurrency(data.revenue_net_ils, locale)}</Figure></strong>
         </div>
       </div>
 

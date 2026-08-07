@@ -125,10 +125,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* Labels hold either Hebrew or Latin names (News, PrimeShow1). In an RTL panel a
-     Latin label would otherwise clip its meaningful start ("...imeShow1"); plaintext
-     lays each label out in its own natural direction so any clip lands at the end. */
-  unicode-bidi: plaintext;
 }
 
 .pricing-mult input {

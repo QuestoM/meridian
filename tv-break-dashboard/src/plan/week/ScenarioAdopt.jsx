@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { Target } from 'lucide-react';
 import { pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import { ADOPT_FIELDS, leverLabel, leverValueText, objectiveFromLevers } from './plan-week-model';
 
 // The act step 3 exists for: turn the leg that won into the plan's objective.
@@ -46,8 +47,10 @@ export function ScenarioAdopt({ leg, summary, locale, onAdopt }) {
         {ADOPT_FIELDS.map(([from, to]) => (
           <li key={to}>
             <span>{leverLabel(to, locale)}</span>
-            <strong className={to === 'objective_mode' ? '' : 'numeric'} dir={to === 'objective_mode' ? 'auto' : 'ltr'}>
-              {leverValueText(to, summary.levers[from], locale)}
+            <strong className={to === 'objective_mode' ? '' : 'numeric'}>
+              {to === 'objective_mode'
+                ? <Name>{leverValueText(to, summary.levers[from], locale)}</Name>
+                : <Figure>{leverValueText(to, summary.levers[from], locale)}</Figure>}
             </strong>
           </li>
         ))}

@@ -3,6 +3,7 @@ import { Button, Tooltip } from '@mui/material';
 import { Download, Rows3, TriangleAlert } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from '../shell/format';
 import { normalizeRows } from '../shell/plan-model';
+import { Code, Name } from '../shell/bidi';
 import {
   downloadComplianceReport,
   downloadDataQualityReport,
@@ -36,7 +37,7 @@ function Basis({ basis, locale }) {
       {facts.map((fact) => (
         <div key={fact.code}>
           <dt>{locale === 'he' ? fact.label_he : fact.label_en}</dt>
-          <dd dir="auto">{factValue(fact, locale)}</dd>
+          <dd><Name>{factValue(fact, locale)}</Name></dd>
         </div>
       ))}
     </dl>
@@ -58,9 +59,9 @@ function DownloadScope({ scope, locale }) {
   if (!words) return null;
   const mixed = Number(scope.rows_other) > 0;
   return (
-    <p className="report-card-scope" data-state={scope.state} data-mixed={mixed ? 'yes' : 'no'} dir="auto">
+    <p className="report-card-scope" data-state={scope.state} data-mixed={mixed ? 'yes' : 'no'}>
       {mixed ? <TriangleAlert size={13} aria-hidden="true" /> : null}
-      <span>{words}</span>
+      <Name>{words}</Name>
     </p>
   );
 }
@@ -207,7 +208,7 @@ export function DownloadsView({ reports, files, overview, locale, notify }) {
         <ul className="downloads-file-list">
           {fileRows.map((file) => (
             <li key={file.path}>
-              <span className="source-file-path" dir="ltr">{file.path}</span>
+              <Code className="source-file-path">{file.path}</Code>
               <span className={file.in_use ? 'source-state ok' : 'source-state warn'}>
                 {file.in_use ? text('fileYes', locale) : text('fileNo', locale)}
               </span>

@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
+import { Figure } from '../shell/bidi';
 import { ArrowLeft, Coins, Layers, Receipt } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { NO_DRILL, basisLine, exactMoney, goToView, localized, periodNote, scopeNote, widerPeriod } from './clients-money-helpers';
 import MoneyDetail from './MoneyDetail';
+import { isolate } from '../shell/bidi';
 
 // The analyst's surface: what each client delivered, gross and net of the
 // agency rebate, with every figure opening the rows behind it.
@@ -87,7 +89,7 @@ function Tile({ label, value, sub, icon: Icon, tone }) {
       <span className="clients-tile-icon"><Icon size={16} strokeWidth={1.8} /></span>
       <span className="clients-tile-copy">
         <span className="clients-tile-label">{label}</span>
-        <strong className="numeric" dir="ltr">{value}</strong>
+        <strong className="numeric"><Figure>{value}</Figure></strong>
         {sub ? <small>{sub}</small> : null}
       </span>
     </div>
@@ -148,7 +150,7 @@ export default function MoneyBoard({
   const basis = money.basis;
 
   return (
-    <section className="clients-money" dir={he ? 'rtl' : 'ltr'}>
+    <section className="clients-money">
       <div className="clients-answer">
         <p className="clients-answer-question">
           {pageText(locale, definition.questionEn, definition.questionHe)}
@@ -160,9 +162,9 @@ export default function MoneyBoard({
             onClick={() => onDrill({ group, key: String(leader[definition.field]) })}
           >
             <strong>{leader[definition.field] || pageText(locale, 'Unnamed', 'ללא שם')}</strong>
-            <span className="numeric" dir="ltr">{exactMoney(leader.gross, locale)}</span>
+            <Figure className="numeric">{exactMoney(leader.gross, locale)}</Figure>
             <small>{pageText(locale, 'gross', 'ברוטו')}</small>
-            <span className="numeric" dir="ltr">{exactMoney(leader.net, locale)}</span>
+            <Figure className="numeric">{exactMoney(leader.net, locale)}</Figure>
             <small>{pageText(locale, 'net after rebates', 'נטו אחרי רבייט')}</small>
           </button>
         ) : null}
@@ -181,7 +183,7 @@ export default function MoneyBoard({
         <Tile
           label={pageText(locale, 'Gross', 'ברוטו')}
           value={exactMoney(totals.gross, locale)}
-          sub={pageText(locale, `${totals.spots} priced spots`, `⁦${totals.spots}⁩ תשדירים מתומחרים`)}
+          sub={pageText(locale, `${totals.spots} priced spots`, `${isolate(totals.spots)} תשדירים מתומחרים`)}
           icon={Coins}
         />
         <Tile
@@ -193,7 +195,7 @@ export default function MoneyBoard({
         <Tile
           label={pageText(locale, 'Net after rebates', 'נטו אחרי רבייט')}
           value={exactMoney(totals.net, locale)}
-          sub={pageText(locale, `${totals.dropped_by_frequency} spots dropped by a rule`, `⁦${totals.dropped_by_frequency}⁩ תשדירים הוסרו על ידי כלל`)}
+          sub={pageText(locale, `${totals.dropped_by_frequency} spots dropped by a rule`, `${isolate(totals.dropped_by_frequency)} תשדירים הוסרו על ידי כלל`)}
           icon={Layers}
           tone="net"
         />
@@ -213,7 +215,7 @@ export default function MoneyBoard({
           </button>
         ))}
         <span className="clients-group-count">
-          {pageText(locale, `${rows.length} rows, same ledger`, `⁦${rows.length}⁩ שורות, אותו ספר`)}
+          {pageText(locale, `${rows.length} rows, same ledger`, `${isolate(rows.length)} שורות, אותו ספר`)}
         </span>
       </div>
 
@@ -247,7 +249,7 @@ export default function MoneyBoard({
             {pageText(
               locale,
               `${openKey} has no row in the ledger this board is reading, so there is nothing to open behind it.`,
-              `ל⁦${openKey}⁩ אין שורה בספר שהלוח הזה קורא, ולכן אין מה לפתוח מאחוריו.`,
+              `ל${isolate(openKey)} אין שורה בספר שהלוח הזה קורא, ולכן אין מה לפתוח מאחוריו.`,
             )}
           </p>
           <p className="clients-basis-note">{basisLine(basis, locale)}</p>
@@ -270,17 +272,17 @@ export default function MoneyBoard({
           <tbody>
             {ranked.map((row) => (
               <tr key={String(row[definition.field])}>
-                <td className="numeric" dir="ltr">{row.rank}</td>
+                <td className="numeric"><Figure>{row.rank}</Figure></td>
                 <td>
                   <button type="button" className="clients-link" onClick={() => onDrill({ group, key: String(row[definition.field]) })}>
                     {String(row[definition.field]) || pageText(locale, 'Unnamed', 'ללא שם')}
                   </button>
                 </td>
-                <td className="numeric" dir="ltr">{exactMoney(row.gross, locale)}</td>
-                <td className="numeric" dir="ltr">{exactMoney(row.rebates, locale)}</td>
-                <td className="numeric" dir="ltr">{exactMoney(row.net, locale)}</td>
-                <td className="numeric" dir="ltr">{(row.share_of_gross * 100).toFixed(2)}%</td>
-                <td className="numeric" dir="ltr">{row.spots}</td>
+                <td className="numeric"><Figure>{exactMoney(row.gross, locale)}</Figure></td>
+                <td className="numeric"><Figure>{exactMoney(row.rebates, locale)}</Figure></td>
+                <td className="numeric"><Figure>{exactMoney(row.net, locale)}</Figure></td>
+                <td className="numeric"><Figure>{(row.share_of_gross * 100).toFixed(2)}%</Figure></td>
+                <td className="numeric"><Figure>{row.spots}</Figure></td>
               </tr>
             ))}
           </tbody>

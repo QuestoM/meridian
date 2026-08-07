@@ -365,7 +365,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale}>
         {({ width, minWidth, ticks }) => lanes.map((lane) => (
           <div className="timeline-row" key={lane.lane} style={{ minWidth }}>
-            <div className="timeline-lane" dir={he ? 'rtl' : 'ltr'}>
+            <div className="timeline-lane">
               <strong>{lane.label || lane.lane}</strong>
               <LaneCount shown={lane.items.length} planned={coverage.plannedByLane[lane.lane]} locale={locale} />
             </div>

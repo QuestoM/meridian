@@ -40,6 +40,7 @@ import './clients-tree.css';
 import './clients-record.css';
 import './clients-rule-card.css';
 import './clients-delivery.css';
+import { isolate } from '../shell/bidi';
 
 // Clients: one destination for the commercial spine, agency to advertiser to
 // campaign to flight, reached from any of the three navigation entries that
@@ -249,12 +250,12 @@ export default function ClientsWorkspace({
       onGlobalRefresh();
       notify(
         `Pricing rule ${draft.advertiser_id} created for ${draft.name}.`,
-        `כלל התמחור ⁦${draft.advertiser_id}⁩ נוצר עבור ⁦${draft.name}⁩.`,
+        `כלל התמחור ${isolate(draft.advertiser_id)} נוצר עבור ${isolate(draft.name)}.`,
       );
     } catch (error) {
       notify(
         `The pricing rule could not be created. ${refusalText(error, 'en')}`,
-        `לא ניתן היה ליצור את כלל התמחור. ⁦${refusalText(error, 'he')}⁩`,
+        `לא ניתן היה ליצור את כלל התמחור. ${isolate(refusalText(error, 'he'))}`,
       );
     } finally {
       setRuleBusy(false);
@@ -274,12 +275,12 @@ export default function ClientsWorkspace({
       reload();
       notify(
         `${spelling} is now priced as ${row.name}.`,
-        `⁦${spelling}⁩ מתומחר מעכשיו כ⁦${row.name}⁩.`,
+        `${isolate(spelling)} מתומחר מעכשיו כ${isolate(row.name)}.`,
       );
     } catch (error) {
       notify(
         `The spelling could not be added. ${refusalText(error, 'en')}`,
-        `לא ניתן היה להוסיף את הכתיב. ⁦${refusalText(error, 'he')}⁩`,
+        `לא ניתן היה להוסיף את הכתיב. ${isolate(refusalText(error, 'he'))}`,
       );
     } finally {
       setRuleBusy(false);
@@ -287,7 +288,7 @@ export default function ClientsWorkspace({
   }
 
   return (
-    <section className="page-workspace clients-workspace" dir={he ? 'rtl' : 'ltr'}>
+    <section className="page-workspace clients-workspace">
       <ClientsHeader locale={locale} gate={gate} onOnboard={() => setOnboarding({})} />
       <ClientsViewStrip locale={locale} active={active} onSelect={setActive} />
       <ClientsLoadFailure locale={locale} failed={failed} onRetry={reload} />

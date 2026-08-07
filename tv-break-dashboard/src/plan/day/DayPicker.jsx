@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import {
   WEEKDAY_NAMES_EN,
   WEEKDAY_NAMES_HE,
@@ -24,11 +25,11 @@ function DayPicker({ days, value, onChange, locale, channel }) {
   const weeks = weeksOf(days);
   if (!days || !days.length) return null;
   return (
-    <div className="day-picker" dir={he ? 'rtl' : 'ltr'}>
+    <div className="day-picker">
       <div className="day-picker-head">
         <span className="day-picker-label">{pageText(locale, 'Broadcast day', 'יום שידור')}</span>
-        {channel && <span className="day-picker-channel" dir="auto">{channel}</span>}
-        <span className="day-picker-count" dir="ltr">{days.length}</span>
+        {channel && <Name className="day-picker-channel">{channel}</Name>}
+        <Figure className="day-picker-count">{days.length}</Figure>
       </div>
       <div className="day-picker-weeks">
         {weeks.map((week) => (
@@ -48,7 +49,7 @@ function DayPicker({ days, value, onChange, locale, channel }) {
                   onClick={() => onChange(iso)}
                 >
                   <b>{shorts[index] || ''}</b>
-                  <span dir="ltr">{iso.slice(8)}</span>
+                  <Figure>{iso.slice(8)}</Figure>
                 </button>
               );
             })}

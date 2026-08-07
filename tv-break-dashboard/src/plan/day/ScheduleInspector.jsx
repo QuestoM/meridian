@@ -4,6 +4,7 @@ import { Download, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
 import { pageText } from '../../shell/surface-helpers';
 import { programTypeLabel } from '../../shell/surface-helpers';
 import { KINDS, kindLabel, runDayPlanJob, isNum } from './override-console-lib';
+import { Figure, Code } from '../../shell/bidi';
 import { weekdayName } from './day-board-model';
 import { LIVE_PLAN, SAVED_PLAN, withBasis } from './plan-basis';
 import './schedule-inspector.css';
@@ -51,9 +52,9 @@ function dateLine(identity, locale) {
   if (!named) return date;
   return (
     <>
-      <span dir="ltr">{date}</span>
+      <Figure>{date}</Figure>
       {' '}
-      <span dir="auto">({named})</span>
+      <span>({named})</span>
     </>
   );
 }
@@ -62,7 +63,7 @@ function Row({ label, value }) {
   return (
     <div className="si-row">
       <span className="si-row-label">{label}</span>
-      <span className="si-row-value" dir="ltr">{value}</span>
+      <Figure className="si-row-value">{value}</Figure>
     </div>
   );
 }
@@ -235,7 +236,7 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
   const overrides = Array.isArray(detail?.overrides) ? detail.overrides : [];
 
   return (
-    <aside className="schedule-inspector" role="dialog" aria-label={pageText(locale, 'Programme inspector', 'מפקח תוכנית')} dir={he ? 'rtl' : 'ltr'}>
+    <aside className="schedule-inspector" role="dialog" aria-label={pageText(locale, 'Programme inspector', 'מפקח תוכנית')}>
       <div className="si-head">
         <div>
           <span className="si-kicker">{pageText(locale, 'Programme inspector', 'מפקח תוכנית')}</span>
@@ -334,11 +335,11 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
                   {previewRows.map((r) => (
                     <div className="si-preview-row" key={r.label}>
                       <span>{r.label}</span>
-                      <span className="num" dir="ltr">{r.money ? fmtMoney(r.a, locale) : fmtNum2(r.a, locale)}</span>
-                      <span className="num" dir="ltr">{r.money ? fmtMoney(r.b, locale) : fmtNum2(r.b, locale)}</span>
-                      <span className={`num si-delta ${isNum(r.diff) && r.diff > 0 ? 'up' : isNum(r.diff) && r.diff < 0 ? 'down' : ''}`} dir="ltr">
+                      <Figure className="num">{r.money ? fmtMoney(r.a, locale) : fmtNum2(r.a, locale)}</Figure>
+                      <Figure className="num">{r.money ? fmtMoney(r.b, locale) : fmtNum2(r.b, locale)}</Figure>
+                      <Figure className={`num si-delta ${isNum(r.diff) && r.diff > 0 ? 'up' : isNum(r.diff) && r.diff < 0 ? 'down' : ''}`}>
                         {isNum(r.diff) ? `${r.diff > 0 ? '+' : ''}${r.money ? fmtMoney(r.diff, locale) : fmtNum2(r.diff, locale)}` : '-'}
-                      </span>
+                      </Figure>
                     </div>
                   ))}
                 </>

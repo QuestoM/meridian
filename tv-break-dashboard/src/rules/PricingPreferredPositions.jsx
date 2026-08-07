@@ -49,7 +49,7 @@ function PricingPreferredPositions({ state, locale }) {
         'Any preferred-position percentage must name the method that counted it:',
         'כל אחוז מיקומים מועדפים חייב לנקוב בשיטה שלפיה נספר:')}</p>
       {methods.map((method) => (
-        <p className="pricing-base-note" key={`method-${method.key}`} dir="auto">
+        <p className="pricing-base-note" key={`method-${method.key}`}>
           {locale === 'he' ? method.he : method.en}
         </p>
       ))}

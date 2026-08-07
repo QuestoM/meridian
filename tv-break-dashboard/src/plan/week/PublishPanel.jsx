@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, TextField } from '@mui/material';
 import { ChevronDown, ChevronUp, History, Lock, RotateCcw } from 'lucide-react';
 import { Numeric, formatCurrency, formatNumber, formatPlanDate, pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import { diffReason, scopeLine } from './plan-week-model';
 
 // Step four: freeze the plan under a name.
@@ -21,11 +22,11 @@ function VersionRow({ version, locale, selected, canEdit, onSelect, onDiff, onRe
   return (
     <div className={`plan-version-row${selected ? ' is-selected' : ''}`}>
       <button type="button" className="plan-version-main" onClick={() => onSelect(version.version_id)}>
-        <span className="plan-version-name" dir="auto">{version.name}</span>
+        <Name className="plan-version-name">{version.name}</Name>
         <span className="plan-version-meta">
           <Numeric>{formatPlanDate(version.created_at, locale) || version.created_at}</Numeric>
           {' · '}
-          <span dir="auto">{version.actor}</span>
+          <Name>{version.actor}</Name>
         </span>
         <span className="plan-version-figures">
           <Numeric>{formatNumber(owned.breaks, locale)}</Numeric>
@@ -101,7 +102,7 @@ export function PublishPanel({
       </div>
 
       {!canEdit && canEditReason && (
-        <p className="plan-note plan-note-amber" role="status" dir="auto">{canEditReason}</p>
+        <p className="plan-note plan-note-amber" role="status">{canEditReason}</p>
       )}
 
       {live?.exists === false ? (
@@ -150,11 +151,11 @@ export function PublishPanel({
             'The plan on disk right now is already frozen, byte for byte, as ',
             'התוכנית שעל הדיסק כרגע כבר מוקפאת, בית אחר בית, בשם ',
           )}
-          <strong dir="auto">{frozenVersion?.name || live.frozen_as}</strong>
+          <strong><Name>{frozenVersion?.name || live.frozen_as}</Name></strong>
         </p>
       )}
       {publishError && (
-        <p className="plan-note plan-note-red" role="alert" dir="auto">{publishError}</p>
+        <p className="plan-note plan-note-red" role="alert"><Name>{publishError}</Name></p>
       )}
 
       <div className="plan-version-list">
@@ -164,7 +165,7 @@ export function PublishPanel({
               from, so the whole list can be walked without going back to it. */}
           {selectedIndex >= 0 ? (
             <span className="plan-version-walk">
-              <span className="numeric" dir="ltr">{selectedIndex + 1} / {versions.length}</span>
+              <Figure className="numeric">{selectedIndex + 1} / {versions.length}</Figure>
               <button
                 type="button"
                 aria-label={pageText(locale, 'The version before this one', 'הגרסה שלפני זו')}
@@ -215,9 +216,9 @@ export function PublishPanel({
           <div className="plan-section-subhead">
             <h3>
               {pageText(locale, 'What changed', 'מה השתנה')}
-              <span dir="auto"> {diff.version_name} </span>
+              {' '}<Name>{diff.version_name}</Name>{' '}
               {pageText(locale, 'against', 'מול')}
-              <span dir="auto"> {diff.against_name || diff.against}</span>
+              {' '}<Name>{diff.against_name || diff.against}</Name>
             </h3>
             {scopeLine(diff.scope, locale) ? <span>{scopeLine(diff.scope, locale)}</span> : null}
           </div>
@@ -261,7 +262,7 @@ export function PublishPanel({
         </div>
       )}
       {diff && diff.available === false && (
-        <p className="plan-note plan-note-amber" role="status" dir="auto">{diffReason(diff, locale)}</p>
+        <p className="plan-note plan-note-amber" role="status">{diffReason(diff, locale)}</p>
       )}
     </section>
   );

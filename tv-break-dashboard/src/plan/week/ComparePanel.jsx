@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { ArrowLeft, ArrowRight, Check, GitCompare, RefreshCcw, X } from 'lucide-react';
 import { finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import ScenarioLegForm from './ScenarioLegForm';
 import CompareWeekTable from './CompareWeekTable';
 import { leverLabel } from './plan-week-model';
@@ -43,7 +44,7 @@ function MoneyRow({ label, value, locale, tone }) {
   return (
     <div className={`plan-money-row${tone ? ` ${tone}` : ''}`}>
       <span>{label}</span>
-      <strong className="numeric" dir="ltr">{formatCurrency(value, locale)}</strong>
+      <strong className="numeric"><Figure>{formatCurrency(value, locale)}</Figure></strong>
     </div>
   );
 }
@@ -55,9 +56,9 @@ export function ScenarioCard({ leg, title, summary, accent, locale, words, scope
     <div className={`plan-scenario-card${accent ? ` ${accent}` : ''}`}>
       <div className="plan-scenario-head">
         <strong>{title}</strong>
-        <span className="numeric" dir="ltr">
+        <Figure className="numeric">
           {leverLabel('revenue_weight', locale)} {finiteNumber(summary.levers?.revenue_weight) ?? '-'}
-        </span>
+        </Figure>
       </div>
       {money ? (
         <div className="plan-money-block">
@@ -79,21 +80,21 @@ export function ScenarioCard({ leg, title, summary, accent, locale, words, scope
             'Net after retention cost cannot be computed for this run, so no money figure is shown.',
             'לא ניתן לחשב נטו אחרי עלות שימור עבור ההרצה הזאת, ולכן לא מוצג ערך כספי.',
           )}
-          {summary.money_reason ? <small className="plan-note-detail" dir="auto">{summary.money_reason}</small> : null}
+          {summary.money_reason ? <small className="plan-note-detail"><Name>{summary.money_reason}</Name></small> : null}
         </p>
       )}
       <dl className="plan-scenario-stats">
         <div>
           <dt>{pageText(locale, 'Average retention', 'שימור ממוצע')}</dt>
-          <dd className="numeric" dir="ltr">{formatPercent(summary.average_retention, locale)}</dd>
+          <dd className="numeric"><Figure>{formatPercent(summary.average_retention, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{words.breaks}</dt>
-          <dd className="numeric" dir="ltr">{formatNumber(summary.total_breaks, locale)}</dd>
+          <dd className="numeric"><Figure>{formatNumber(summary.total_breaks, locale)}</Figure></dd>
         </div>
         <div>
           <dt>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</dt>
-          <dd className="numeric" dir="ltr">{formatNumber(summary.total_ad_seconds, locale)}</dd>
+          <dd className="numeric"><Figure>{formatNumber(summary.total_ad_seconds, locale)}</Figure></dd>
         </div>
         <div>
           <dt>
@@ -101,7 +102,7 @@ export function ScenarioCard({ leg, title, summary, accent, locale, words, scope
               ? pageText(locale, 'Blended score, mean of the days', 'ציון משוקלל, ממוצע הימים')
               : pageText(locale, 'Blended score', 'ציון משוקלל')}
           </dt>
-          <dd className="numeric" dir="ltr">{blendedScore(summary.objective, locale)}</dd>
+          <dd className="numeric"><Figure>{blendedScore(summary.objective, locale)}</Figure></dd>
         </div>
       </dl>
       <span className={`plan-compliance${summary.compliant ? ' ok' : ' warn'}`}>
@@ -129,7 +130,7 @@ function DeltaRow({ label, value, locale, formatter, suffix, emphasis }) {
   return (
     <div className={`plan-delta-row${emphasis ? ' is-headline' : ''}`}>
       <span>{label}</span>
-      <strong className={`numeric ${tone}`} dir="ltr">{sign}{formatter(number, locale)}{suffix || ''}</strong>
+      <strong className={`numeric ${tone}`}><Figure>{sign}{formatter(number, locale)}{suffix || ''}</Figure></strong>
     </div>
   );
 }
@@ -337,7 +338,7 @@ export function ComparePanel({
           {!week && (
             <p className="plan-note plan-note-amber" role="status">
               {pageText(locale, 'One representative broadcast day, not the week.', 'יום שידור מייצג אחד, ולא השבוע.')}
-              {scope?.day_reason ? <small className="plan-note-detail" dir="auto">{scope.day_reason}</small> : null}
+              {scope?.day_reason ? <small className="plan-note-detail"><Name>{scope.day_reason}</Name></small> : null}
               <small className="plan-note-detail">
                 {pageText(
                   locale,

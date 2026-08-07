@@ -174,7 +174,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         )}
       </p>
 
-      <p className="rules-sentence" dir={he ? 'rtl' : 'ltr'}>
+      <p className="rules-sentence">
         <Slot label={pageText(locale, 'What the restriction does', 'מה ההגבלה עושה')}>
           <select value={kind} onChange={(event) => {
             const next = event.target.value;
@@ -189,7 +189,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         {meta.param === 'protected_minutes' && (
           <Slot label={pageText(locale, 'Minutes protected', 'דקות מוגנות')}>
             <input
-              type="number" min="1" max="120" dir="ltr"
+              type="number" min="1" max="120"
               value={params.protected_minutes ?? 8}
               onChange={(event) => setParams({ protected_minutes: Number(event.target.value) })}
             />
@@ -199,7 +199,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         {meta.param === 'count' && (
           <Slot label={pageText(locale, 'Number of breaks', 'מספר ברייקים')}>
             <input
-              type="number" min="0" max="20" dir="ltr"
+              type="number" min="0" max="20"
               value={params.count ?? 1}
               onChange={(event) => setParams({ count: Number(event.target.value) })}
             />
@@ -209,7 +209,7 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         {meta.param === 'offset_seconds' && (
           <Slot label={pageText(locale, 'Minute into the programme', 'דקה בתוך התוכנית')}>
             <input
-              type="number" min="0" max="240" dir="ltr"
+              type="number" min="0" max="240"
               value={minutes(params.offset_seconds ?? 1320)}
               onChange={(event) => setParams({ offset_seconds: Number(event.target.value) * 60 })}
             />
@@ -225,7 +225,6 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
               value={query}
               placeholder={pageText(locale, 'Start typing a programme', 'התחילו להקליד שם תוכנית')}
               onChange={(event) => { setQuery(event.target.value); setTitle(''); setAirings(null); }}
-              dir="auto"
             />
           </span>
         </Slot>
@@ -253,11 +252,11 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
       <div className="rules-attribution">
         <label>
           <span>{pageText(locale, 'Who is asking', 'מי מבקש')}</span>
-          <input type="text" value={author} onChange={(event) => setAuthor(event.target.value)} dir="auto" />
+          <input type="text" value={author} onChange={(event) => setAuthor(event.target.value)} />
         </label>
         <label>
           <span>{pageText(locale, 'Why', 'סיבה')}</span>
-          <input type="text" value={reason} onChange={(event) => setReason(event.target.value)} dir="auto" />
+          <input type="text" value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
         <label>
           <span>{pageText(locale, 'Starts applying on', 'מתחיל לחול בתאריך')}</span>

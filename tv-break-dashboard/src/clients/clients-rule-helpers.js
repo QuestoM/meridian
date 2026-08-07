@@ -1,3 +1,4 @@
+import { isolate } from '../shell/bidi';
 // The client's own pricing rule: which stored row prices this client, what that
 // row is worth, and every spelling that resolves to it.
 //
@@ -145,7 +146,7 @@ export function spellingRefusal(candidate, client, row, rows, locale) {
   );
   if (other) {
     return he
-      ? `הכתיב הזה כבר שייך לשורת תמחור אחרת (⁦${other.advertiser_id}⁩).`
+      ? `הכתיב הזה כבר שייך לשורת תמחור אחרת (${isolate(other.advertiser_id)}).`
       : `Another pricing row already holds this spelling (${other.advertiser_id}).`;
   }
   return '';

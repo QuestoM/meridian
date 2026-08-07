@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './login.css';
+import { DirectionRoot } from './bidi';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -137,7 +138,7 @@ export default function Login({ onLoggedIn }) {
   }
 
   return (
-    <div className="login-screen" dir="rtl" lang="he">
+    <DirectionRoot locale="he" className="login-screen" lang="he">
       <form className="login-card" onSubmit={submit}>
         <div className="login-brand">
           <div className="login-brand-mark" aria-hidden="true">
@@ -181,7 +182,7 @@ export default function Login({ onLoggedIn }) {
           {busy ? 'רק רגע...' : 'כניסה'}
         </button>
       </form>
-    </div>
+    </DirectionRoot>
   );
 }
 
@@ -223,7 +224,7 @@ export function ChangePasswordDialog({ locale = 'he', forced = false, onClose, o
   }
 
   return (
-    <div className="auth-overlay" dir={locale === 'he' ? 'rtl' : 'ltr'} role="dialog" aria-modal="true">
+    <DirectionRoot locale={locale} className="auth-overlay" role="dialog" aria-modal="true">
       <form className="auth-dialog" onSubmit={submit}>
         {forced ? null : (
           <button type="button" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
@@ -296,6 +297,6 @@ export function ChangePasswordDialog({ locale = 'he', forced = false, onClose, o
           </button>
         </div>
       </form>
-    </div>
+    </DirectionRoot>
   );
 }

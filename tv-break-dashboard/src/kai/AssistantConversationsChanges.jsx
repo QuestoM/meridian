@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Code, Name } from '../shell/bidi';
 import { fetchConversationChanges, restoreConversation } from './AssistantConversationsApi';
 import { KINDS } from './AssistantProposalCard';
 import ProposalSummary from './AssistantProposalSummary';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 
 // The per-conversation applied-changes view: every proposal batch the active
 // conversation produced, with kind, summary, status, who resolved it and when,
@@ -50,7 +51,7 @@ function StatusChip({ locale, status }) {
   const pair = STATUS_LABELS[status] || null;
   return (
     <span className={`asst-status-chip ${pair ? status : 'unknown'}`}>
-      {pair ? pageText(locale, pair[0], pair[1]) : <code dir="ltr">{String(status || '?')}</code>}
+      {pair ? pageText(locale, pair[0], pair[1]) : <Code>{String(status || '?')}</Code>}
     </span>
   );
 }
@@ -110,7 +111,7 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
 
   if (!conversationId) return <div className="asst-empty">{pageText(locale, 'No active conversation yet.', 'אין עדיין שיחה פעילה.')}</div>;
   if (state === 'loading') return <div className="asst-loading">{pageText(locale, 'Loading the conversation changes', 'טוען את שינויי השיחה')}</div>;
-  if (state === 'error') return <div className="asst-error-note">{pageText(locale, 'The conversation changes could not be loaded (', 'לא ניתן לטעון את שינויי השיחה (')}<bdi dir="auto">{error}</bdi>{').'}</div>;
+  if (state === 'error') return <div className="asst-error-note">{pageText(locale, 'The conversation changes could not be loaded (', 'לא ניתן לטעון את שינויי השיחה (')}<Name>{error}</Name>{').'}</div>;
   if (!batches.length) return <div className="asst-empty">{pageText(locale, 'The assistant has not proposed changes in this conversation yet.', 'העוזר עוד לא הציע שינויים בשיחה הזו.')}</div>;
 
   return (
@@ -131,10 +132,10 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
 
       {confirming ? (
         <div className="asst-confirm" role="alertdialog">
-          <p dir="auto">{pageText(locale, 'The files this conversation changed will be returned to their state before its first applied change.', 'הקבצים שהשיחה שינתה יוחזרו למצבם שלפני השינוי הראשון שהוחל בה.')}</p>
-          <p dir="auto">{pageText(locale, 'A plan run cannot be un-run: the inputs go back, then the plan is offered again.', 'הרצת תוכנית אינה ניתנת לביטול: הנתונים חוזרים, ואז מוצעת הרצה חדשה.')}</p>
-          <p dir="auto">{pageText(locale, 'A whole-file restore also reverts manual edits made to the same file after the conversation.', 'שחזור קובץ שלם מבטל גם עריכות ידניות שנעשו באותו קובץ אחרי השיחה.')}</p>
-          <p dir="auto">{pageText(locale, 'The restore itself is undoable from the restore page: a pre-restore snapshot is saved first.', 'השחזור עצמו ניתן לביטול מעמוד השחזור: נשמר תחילה צילום מצב שלפני השחזור.')}</p>
+          <p>{pageText(locale, 'The files this conversation changed will be returned to their state before its first applied change.', 'הקבצים שהשיחה שינתה יוחזרו למצבם שלפני השינוי הראשון שהוחל בה.')}</p>
+          <p>{pageText(locale, 'A plan run cannot be un-run: the inputs go back, then the plan is offered again.', 'הרצת תוכנית אינה ניתנת לביטול: הנתונים חוזרים, ואז מוצעת הרצה חדשה.')}</p>
+          <p>{pageText(locale, 'A whole-file restore also reverts manual edits made to the same file after the conversation.', 'שחזור קובץ שלם מבטל גם עריכות ידניות שנעשו באותו קובץ אחרי השיחה.')}</p>
+          <p>{pageText(locale, 'The restore itself is undoable from the restore page: a pre-restore snapshot is saved first.', 'השחזור עצמו ניתן לביטול מעמוד השחזור: נשמר תחילה צילום מצב שלפני השחזור.')}</p>
           <div className="asst-confirm-actions">
             <Button variant="contained" size="small" onClick={runRestore}>{pageText(locale, 'Restore', 'שחזור')}</Button>
             <Button variant="outlined" size="small" onClick={() => setConfirming(false)}>{pageText(locale, 'Cancel', 'ביטול')}</Button>
@@ -147,14 +148,14 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
       ) : null}
       {restoreResult && !restoreResult.none ? (
         <div className="asst-chg-result">
-          <p dir="auto">{restoreResult.files.length === 1 ? pageText(locale, 'One file was restored.', 'שוחזר קובץ אחד.') : pageText(locale, `${restoreResult.files.length} files were restored.`, `שוחזרו ${restoreResult.files.length} קבצים.`)}</p>
+          <p>{restoreResult.files.length === 1 ? pageText(locale, 'One file was restored.', 'שוחזר קובץ אחד.') : pageText(locale, `${restoreResult.files.length} files were restored.`, `שוחזרו ${restoreResult.files.length} קבצים.`)}</p>
           {restoreResult.files.length ? (
-            <div className="asst-chg-files">{restoreResult.files.map((file) => <code dir="ltr" key={file}>{file}</code>)}</div>
+            <div className="asst-chg-files">{restoreResult.files.map((file) => <Code key={file}>{file}</Code>)}</div>
           ) : null}
           {restoreResult.preId ? (
-            <p dir="auto">{pageText(locale, 'A pre-restore snapshot was saved, so this restore is undoable from the restore page.', 'נשמר צילום מצב שלפני השחזור, ולכן אפשר לבטל את השחזור הזה מעמוד השחזור.')}</p>
+            <p>{pageText(locale, 'A pre-restore snapshot was saved, so this restore is undoable from the restore page.', 'נשמר צילום מצב שלפני השחזור, ולכן אפשר לבטל את השחזור הזה מעמוד השחזור.')}</p>
           ) : null}
-          <p dir="auto">{pageText(locale, 'Run the plan now so it reflects the restored data.', 'הריצו עכשיו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')}</p>
+          <p>{pageText(locale, 'Run the plan now so it reflects the restored data.', 'הריצו עכשיו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')}</p>
           <button type="button" className="asst-ver-toggle" onClick={() => onShowRestore(restoreResult.preId)}>
             <ExternalLink size={12} />
             {pageText(locale, 'Restore page', 'עמוד השחזור')}
@@ -167,26 +168,26 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
         return (
           <div className="asst-chg-batch" key={String(batch.batch_id)}>
             <div className="asst-chg-head">
-              <span className="asst-chg-q" dir="auto">{batch.question ? String(batch.question) : pageText(locale, 'Actions batch', 'אצוות פעולות')}</span>
-              <code dir="ltr">{String(batch.batch_id).slice(0, 8)}</code>
+              <span className="asst-chg-q">{batch.question ? <Name>{String(batch.question)}</Name> : pageText(locale, 'Actions batch', 'אצוות פעולות')}</span>
+              <Code>{String(batch.batch_id).slice(0, 8)}</Code>
             </div>
             <div className="asst-chg-meta">
               {batch.status ? <StatusChip locale={locale} status={String(batch.status)} /> : null}
-              {batch.created_by ? <span dir="auto">{pageText(locale, 'Asked by ', 'נשאל על ידי ')}<bdi dir="auto">{batch.created_by}</bdi></span> : null}
-              {batch.created_at ? <time dir="ltr">{timeLabel(batch.created_at, locale)}</time> : null}
+              {batch.created_by ? <span>{pageText(locale, 'Asked by ', 'נשאל על ידי ')}<Name>{batch.created_by}</Name></span> : null}
+              {batch.created_at ? <time><Figure>{timeLabel(batch.created_at, locale)}</Figure></time> : null}
             </div>
             {items.map((item, index) => {
               const pair = kindPair(item.kind);
               return (
                 <div className="asst-chg-item" key={item.id != null ? String(item.id) : `row-${index}`}>
                   <div className="asst-chg-item-head">
-                    <span className="asst-kind">{pair ? pageText(locale, pair[0], pair[1]) : <code dir="ltr">{String(item.kind || '?')}</code>}</span>
+                    <span className="asst-kind">{pair ? pageText(locale, pair[0], pair[1]) : <Code>{String(item.kind || '?')}</Code>}</span>
                     <StatusChip locale={locale} status={String(item.status || '')} />
                   </div>
                   <ProposalSummary item={withTerms(item, batch)} locale={locale} className="asst-chg-summary" />
 
                   {item.resolved_by ? (
-                    <p className="asst-chg-resolved" dir="auto">{pageText(locale, 'Resolved by ', 'מבצע: ')}<bdi dir="auto">{item.resolved_by}</bdi>{item.resolved_at ? <>{' · '}<bdi dir="ltr">{timeLabel(item.resolved_at, locale)}</bdi></> : null}</p>
+                    <p className="asst-chg-resolved">{pageText(locale, 'Resolved by ', 'מבצע: ')}<Name>{item.resolved_by}</Name>{item.resolved_at ? <>{' · '}<Figure>{timeLabel(item.resolved_at, locale)}</Figure></> : null}</p>
                   ) : null}
                 </div>
               );

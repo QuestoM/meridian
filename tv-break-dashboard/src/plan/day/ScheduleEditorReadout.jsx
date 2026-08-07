@@ -37,7 +37,7 @@ function ScheduleEditorReadout({
 }) {
   const he = locale === 'he';
   return (
-    <div className="schedule-editor-readout" dir={he ? 'rtl' : 'ltr'}>
+    <div className="schedule-editor-readout">
       <ScheduleEditorMoney money={money} locale={locale} editCount={Object.keys(edits).length} />
       <DayBoardSettlement
         settlement={money.settlement}

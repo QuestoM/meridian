@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import { complianceDisclaimer, complianceUnitLabel } from '../shell/labels';
 import { complianceScopeSentence, complianceViewState, fetchCompliance } from './rules-lib';
 import './rules-panels.css';
@@ -21,7 +22,7 @@ function BasisNote({ copy, locale, children }) {
       <div className="panel-head">
         <h2>{copy.compliance}</h2>
       </div>
-      <p className="ledger-basis-missing" role="status" dir="auto">{children}</p>
+      <p className="ledger-basis-missing" role="status">{children}</p>
     </div>
   );
 }
@@ -80,7 +81,7 @@ export function ComplianceLedger({ compliance, copy, locale }) {
         <h2>{copy.compliance}</h2>
         <span>{checks.length} {copy.activeRules}</span>
       </div>
-      <p className="ledger-scope-line" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+      <p className="ledger-scope-line">
         <Tv size={12} aria-hidden="true" />
         <span>{complianceScopeSentence(locale, scope)}</span>
       </p>
@@ -98,8 +99,8 @@ export function ComplianceLedger({ compliance, copy, locale }) {
               <strong className={check.status === 'at_risk' ? 'at-risk' : ''}>
                 {check.status === 'at_risk' ? copy.atRisk : copy.compliant}
               </strong>
-              <small className="ledger-measure" dir={locale === 'he' ? 'rtl' : 'ltr'}>
-                <span className="ledger-values" dir="ltr">{observed} / {limit}</span>
+              <small className="ledger-measure">
+                <Figure className="ledger-values">{observed} / {limit}</Figure>
                 {!isPercent && unitLabel && <span className="ledger-unit">{unitLabel}</span>}
                 {violationCount > 0 && (
                   <span className="ledger-violations">

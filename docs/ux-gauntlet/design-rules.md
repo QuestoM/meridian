@@ -79,7 +79,64 @@ cannot tell which act is primary.
 One string, one line in the source, and let the layout wrap it. A manual break
 becomes a wrong break at the next width.
 
-## 6. What to do when a rule is missing
+## 6. Direction: a column aligns to the reading edge, always
+
+Right in Hebrew, left in English. That is `text-align: start`, the logical
+value, and it is already what almost every stylesheet says.
+
+What broke it was not the alignment but the direction underneath it. A `dir`
+attribute, or a `direction` property, is an OVERRIDE: it fixes the internal
+order of a run, which is usually what the author wanted, and it also re-anchors
+the element's own alignment, which is never what they wanted. `text-align:
+start` resolves against the element's own direction, so a cell carrying
+`dir="ltr"` in a Hebrew table aligns left while its neighbours align right.
+
+Measured on the week-compare table before the fix: the row header sat 8px from
+the cell's right edge and the three numeric cells sat 86px, 85px and 55px from
+it, a 78px spread across one row. After: every cell at 8px, spread 0.
+
+**Isolation, not override.** `unicode-bidi: isolate` protects a run's internal
+order without touching alignment. Never put direction on a block or a cell; put
+an isolating inline element inside it.
+
+```jsx
+/* banned */ <td className="numeric" dir="ltr">{money}</td>
+/* correct */ <td className="numeric"><Figure>{money}</Figure></td>
+```
+
+Use `Figure` for a quantity or the date it is measured on, `Code` for a string
+read literally (a path, a URL, an engine key, a log line), and `Name` for a name
+that arrives as data and may be Hebrew or Latin. For a value being joined into a
+plain string where no element can go, use the `isolate` function.
+
+`DirectionRoot` is the one element that SHOULD carry a direction, because it is
+establishing one rather than escaping one. There are three: the app shell, a
+screen rendered before a locale exists, and an overlay rendered through a portal
+which lands outside the shell's subtree and inherits nothing. Everything below a
+root inherits from it. A panel writing `dir={locale === 'he' ? 'rtl' : 'ltr'}`
+is not a root, it is the disease, and it should simply be deleted.
+
+## 7. Which file to edit, by kind of change
+
+The owner's actual ask: a change should happen in ONE place and not require
+hunting. This is that map. Where a kind of change has no single home yet, this
+table says so rather than implying coverage.
+
+| To change | Edit | Enforced by |
+|---|---|---|
+| Direction, isolation, how a figure or name sits in a line | `tv-break-dashboard/src/shell/bidi.jsx`, and the `.bidi-figure` / `.bidi-code` / `.bidi-name` rules in `shell/styles.css` | `npm run test:direction` |
+| Colour, spacing, radius, shadow, typography scale | `tv-break-dashboard/src/tokens.css`, the only place a token may be defined | not enforced |
+| State colours and their soft twins | `tokens.css`, applied per rule 2 above | not enforced |
+| Number, currency, percent and date formatting | `tv-break-dashboard/src/shell/format.jsx` | not enforced |
+| Shared components: metric, page header, status badge, data table | `tv-break-dashboard/src/shell/primitives.jsx` | not enforced |
+| Wording and bilingual copy | `tv-break-dashboard/src/shell/copy.js` and the per-surface copy modules | not enforced |
+
+Only the first row has a guard. **Everything below it is convention held by
+review alone**, and the accent-bar rule in section 1 is the proof that
+convention alone does not hold: it had to be swept twice. If you are adding a
+rule here, add a test with it or say plainly that you did not.
+
+## 8. What to do when a rule is missing
 
 Add it here first, then apply it. A pattern that exists in one file and nowhere
 else is not a rule, it is an accident waiting to be copied.

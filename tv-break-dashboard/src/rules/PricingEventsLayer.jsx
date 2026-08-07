@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
 import { ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 import { LAYER_TEXT, eventDatesLabel, readEventsLayer } from './pricing-layers-lib';
 
 // The expandable per-event list under the count line. When the server payload
@@ -23,12 +24,12 @@ function EventsList({ events, locale }) {
     <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0 }}>
       {events.map((entry, index) => (
         <li key={`${entry.name || 'event'}-${entry.start || ''}-${index}`} className="pricing-break-row">
-          <span dir="auto">
-            {entry.name || pageText(locale, 'Unnamed event', 'אירוע ללא שם')}
+          <span>
+            <Name>{entry.name || pageText(locale, 'Unnamed event', 'אירוע ללא שם')}</Name>
             {' '}
-            <span className="src" dir="ltr">{eventDatesLabel(entry, locale)}</span>
+            <Figure className="src">{eventDatesLabel(entry, locale)}</Figure>
           </span>
-          <span className="mult" dir="ltr">x {entry.multiplier.toFixed(2)}</span>
+          <Figure className="mult">x {entry.multiplier.toFixed(2)}</Figure>
         </li>
       ))}
     </ul>

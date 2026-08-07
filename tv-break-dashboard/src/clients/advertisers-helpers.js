@@ -1,3 +1,4 @@
+import { isolate } from '../shell/bidi';
 // Pure helpers for the Advertisers management page.
 // Kept framework-free so they are trivially testable and reusable.
 
@@ -361,8 +362,9 @@ export function coefficientHint(value, mode, locale) {
     if (amount === 0) {
       return { text: pageText(locale, 'no discount', 'ללא הנחה'), tone: 'muted' };
     }
-    // The isolate marks (U+2066/U+2069) keep the signed percent one LTR run in RTL.
-    return { text: pageText(locale, `surcharge −${amount}%`, `⁦−${amount}%⁩ מהתוספת בלבד`), tone: 'amber' };
+    // isolate keeps the signed percent one run, so the sign is not shuffled
+    // to the wrong side of the digits in RTL.
+    return { text: pageText(locale, `surcharge −${amount}%`, `${isolate(`−${amount}%`)} מהתוספת בלבד`), tone: 'amber' };
   }
   // multiplier
   return premiumHint(amount, locale);
@@ -376,10 +378,10 @@ export function pressureHint(value, locale) {
     return { text: pageText(locale, 'no steer', 'ללא הטיה'), tone: 'muted' };
   }
   const sign = amount > 0 ? '+' : '−';
-  // The Hebrew string isolates the signed percent as one LTR run (U+2066/U+2069)
-  // so the sign is not bidi-shuffled to the wrong side of the digits in RTL.
+  // The Hebrew string isolates the signed percent as one run, so the sign is
+  // not bidi-shuffled to the wrong side of the digits in RTL.
   return {
-    text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `⁦${sign}${Math.abs(amount)}%⁩ שיבוץ בלבד`),
+    text: pageText(locale, `${sign}${Math.abs(amount)}% placement only`, `${isolate(`${sign}${Math.abs(amount)}%`)} שיבוץ בלבד`),
     tone: 'muted',
   };
 }

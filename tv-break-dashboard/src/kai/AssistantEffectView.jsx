@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText, formatCurrency, formatNumber, finiteNumber } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 
 // The measured before and after a settings change would produce, and the basis
 // those two figures were computed on. Split out of AssistantProposalCard, which
@@ -53,13 +54,13 @@ function EffectRow({ label, cells, net }) {
   const both = cells.before !== '' && cells.after !== '';
   return (
     <div className={`asst-effect-row${net ? ' net' : ''}`}>
-      <span className="asst-effect-label" dir="auto">{label}</span>
-      <span className="asst-effect-flow" dir="ltr">
-        <bdi dir="ltr">{cells.before || cells.after || '-'}</bdi>
+      <span className="asst-effect-label">{label}</span>
+      <span className="asst-effect-flow">
+        <Figure>{cells.before || cells.after || '-'}</Figure>
         {both ? ' → ' : null}
-        {both ? <bdi dir="ltr">{cells.after}</bdi> : null}
+        {both ? <Figure>{cells.after}</Figure> : null}
       </span>
-      <span className="asst-effect-delta" dir="ltr"><bdi dir="ltr">{cells.delta}</bdi></span>
+      <span className="asst-effect-delta"><Figure>{cells.delta}</Figure></span>
     </div>
   );
 }
@@ -87,7 +88,7 @@ function EffectBasis({ basis, locale }) {
   const day = basis && basis.day ? String(basis.day) : '';
   if (!channel || !day) {
     return (
-      <p className="asst-effect-basis unknown" dir="auto">
+      <p className="asst-effect-basis unknown">
         {pageText(locale, 'The simulation runs one representative channel-day, not the weekly total. The channel and the date were not recorded on this item. Ask Kai for the proposal again to get them.', 'הסימולציה רצה על יום-ערוץ מייצג אחד, לא על הסך השבועי. הערוץ והתאריך לא נשמרו בפריט הזה. אפשר לבקש מקאי את ההצעה מחדש כדי לקבל אותם.')}
       </p>
     );
@@ -101,11 +102,11 @@ function EffectBasis({ basis, locale }) {
   // take the other's characters. Measured in a browser, both readings.
   const said = locale === 'he' ? BASIS_HE : BASIS_EN;
   return (
-    <p className="asst-effect-basis" dir="auto">
+    <p className="asst-effect-basis">
       {said.lead}
-      <bdi dir="auto">{channel}</bdi>
+      <Name>{channel}</Name>
       {said.mid}
-      <bdi dir="ltr">{day}</bdi>
+      <Figure>{day}</Figure>
       {said.tail}
     </p>
   );
@@ -116,7 +117,7 @@ export default function EffectView({ effect, basis, locale }) {
   const header = pageText(locale, 'What this change would do', 'מה השינוי הזה יעשה');
   if (effect.status === 'unavailable') {
     const reason = effect.reason ? String(effect.reason) : pageText(locale, 'A preview is not available for this change.', 'אין תצוגה מקדימה לשינוי הזה.');
-    return <div className="asst-effect"><span className="asst-effect-head">{header}</span><p className="asst-effect-note" dir="auto">{reason}</p></div>;
+    return <div className="asst-effect"><span className="asst-effect-head">{header}</span><p className="asst-effect-note">{reason}</p></div>;
   }
   const before = effect.before && typeof effect.before === 'object' ? effect.before : {};
   const after = effect.after && typeof effect.after === 'object' ? effect.after : {};

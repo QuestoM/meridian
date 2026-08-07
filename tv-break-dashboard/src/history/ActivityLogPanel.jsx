@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { Activity, RefreshCcw } from 'lucide-react';
 import { API_BASE } from '../shell/api';
+import { Code, Figure } from '../shell/bidi';
 import { SIGN_IN_LABELS, pair } from './history-labels';
 import { actLabel, outcomeOf } from './history-refused';
 
@@ -154,13 +155,13 @@ export function ActivityLogPanel({ locale }) {
                 const hasStatus = Number.isFinite(status) && status > 0;
                 return (
                   <tr key={`${entry.ts || 'entry'}-${index}`}>
-                    <td><span className="alog-time" dir="ltr">{activityTimeLabel(entry.ts, he)}</span></td>
+                    <td><span className="alog-time"><Figure>{activityTimeLabel(entry.ts, he)}</Figure></span></td>
                     {showUserColumn && <td><span className="alog-user">{entry.user || ''}</span></td>}
                     <td>
-                      {label ? <span>{label}</span> : <code className="alog-code" dir="ltr">{`${entry.method || ''} ${entry.path || ''}`.trim()}</code>}
+                      {label ? <span>{label}</span> : <code className="alog-code"><Code>{`${entry.method || ''} ${entry.path || ''}`.trim()}</Code></code>}
                       {entry.via === 'assistant' && <span className="alog-via">{he ? 'עוזר AI' : 'AI assistant'}</span>}
                     </td>
-                    <td>{hasStatus ? <span className={`alog-status${status >= 400 ? ' warn' : ''}`} dir="ltr">{status}</span> : null}</td>
+                    <td>{hasStatus ? <span className={`alog-status${status >= 400 ? ' warn' : ''}`}><Figure>{status}</Figure></span> : null}</td>
                   </tr>
                 );
               })}

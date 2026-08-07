@@ -77,7 +77,7 @@ export function AudienceModelBlock({ locale, refreshKey }) {
         {typeof payload.computed_at === 'string' && payload.computed_at ? (
           <span className="aud-fact">
             {pageText(locale, 'Model version, trained at:', 'גרסת מודל, אומנה ב:')}
-            <span className="ltr-run">{new Date(payload.computed_at).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
+            <span className="bidi-figure figure-nowrap">{new Date(payload.computed_at).toLocaleString(locale === 'he' ? 'he-IL' : 'en-GB')}</span>
           </span>
         ) : null}
       </div>

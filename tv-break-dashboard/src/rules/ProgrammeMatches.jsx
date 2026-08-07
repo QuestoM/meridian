@@ -1,5 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/format';
+import { Name } from '../shell/bidi';
 import { moreProgrammesSentence } from './rules-lib';
 
 // Which programme this restriction is about. A type-ahead rather than a full
@@ -35,7 +36,7 @@ export default function ProgrammeMatches({ locale, titles, matchCount, onPick })
       {shown.map((row) => (
         <li key={row.title}>
           <button type="button" onClick={() => onPick(row.title)}>
-            <span dir="auto">{row.title}</span>
+            <Name>{row.title}</Name>
             <small>
               {pageText(
                 locale,

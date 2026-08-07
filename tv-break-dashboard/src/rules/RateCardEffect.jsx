@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { Loader2 } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import { basisReason, detailWords, fetchPricingEffect, isolate, money, pairLabel, rate, valuePair } from './rules-lib';
 
 // What a rate-card edit does, before it is saved. The two figures are the ones
@@ -73,10 +74,10 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
           <span>{pageText(locale, 'Re-pricing the plan', 'מתמחר מחדש את התוכנית')}</span>
         </p>
       )}
-      {error && <p className="rules-inline-error" role="status" dir="auto">{error}</p>}
+      {error && <p className="rules-inline-error" role="status">{error}</p>}
 
       {effect && effect.available === false && (
-        <p className="rules-figure-reason" dir="auto">{basisReason(effect.reason, locale)}</p>
+        <p className="rules-figure-reason">{basisReason(effect.reason, locale)}</p>
       )}
 
       {effect && effect.available && (
@@ -86,10 +87,9 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
               <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
               <strong
                 className="rules-figure-delta"
-                dir="ltr"
                 aria-label={pairLabel(locale, rate(effect.saved.yield_per_second, locale), rate(effect.draft.yield_per_second, locale))}
               >
-                {valuePair(rate(effect.saved.yield_per_second, locale), rate(effect.draft.yield_per_second, locale))}
+                <Figure>{valuePair(rate(effect.saved.yield_per_second, locale), rate(effect.draft.yield_per_second, locale))}</Figure>
               </strong>
               <span className="rules-figure-scope">{scopeText}</span>
               <span className="rules-figure-basis">
@@ -102,16 +102,15 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
             </div>
             <div className="rules-figure">
               <span className="rules-figure-label">{pageText(locale, 'Projected revenue on this plan', 'הכנסה צפויה בתוכנית הזו')}</span>
-              <strong className={`rules-figure-delta${Number(effect.delta.revenue) < 0 ? ' negative' : ' positive'}`} dir="ltr">
-                {isolate(money(effect.delta.revenue, locale))}
+              <strong className={`rules-figure-delta${Number(effect.delta.revenue) < 0 ? ' negative' : ' positive'}`}>
+                <Figure>{isolate(money(effect.delta.revenue, locale))}</Figure>
               </strong>
-              <span
+              <Figure
                 className="rules-figure-pair"
-                dir="ltr"
                 aria-label={pairLabel(locale, money(effect.saved.revenue, locale), money(effect.draft.revenue, locale))}
               >
                 {valuePair(money(effect.saved.revenue, locale), money(effect.draft.revenue, locale))}
-              </span>
+              </Figure>
               <span className="rules-figure-scope">{scopeText}</span>
               <span className="rules-figure-basis">
                 {effect.delta.percent === null

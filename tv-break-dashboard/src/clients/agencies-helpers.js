@@ -6,6 +6,7 @@
 // status, onboarded_at, notes, data_source.
 
 import { pageText } from './advertisers-helpers';
+import { isolate } from '../shell/bidi';
 
 export { pageText };
 
@@ -121,7 +122,7 @@ export function linksWord(count, locale) {
 // other embedded run on this destination is, or the sentence's own full stop
 // renders as part of the file name.
 export function linkBasisNote(sourceFile, locale) {
-  return pageText(locale, `Observed in the daily spot file ${sourceFile}.`, `נצפו בקובץ הספוטים היומי ⁦${sourceFile}⁩.`);
+  return pageText(locale, `Observed in the daily spot file ${sourceFile}.`, `נצפו בקובץ הספוטים היומי ${isolate(sourceFile)}.`);
 }
 
 // The honest empty state. It names the file that was read and found nothing, or
@@ -129,7 +130,7 @@ export function linkBasisNote(sourceFile, locale) {
 // agency with advertisers has none.
 export function linkEmptyNote(sourceFile, locale) {
   if (sourceFile) {
-    return pageText(locale, `No advertiser in the daily spot file ${sourceFile} books through this agency, and none is linked by hand.`, `אף מפרסם בקובץ הספוטים היומי ⁦${sourceFile}⁩ אינו מזמין דרך סוכנות זו, ואין קישור ידני.`);
+    return pageText(locale, `No advertiser in the daily spot file ${sourceFile} books through this agency, and none is linked by hand.`, `אף מפרסם בקובץ הספוטים היומי ${isolate(sourceFile)} אינו מזמין דרך סוכנות זו, ואין קישור ידני.`);
   }
   return pageText(locale, 'No daily spot file is loaded, so observed links cannot be read. Load one on the Data page.', 'לא טעון קובץ ספוטים יומי, ולכן לא ניתן לקרוא קישורים נצפים. אפשר לטעון אותו בעמוד הנתונים.');
 }

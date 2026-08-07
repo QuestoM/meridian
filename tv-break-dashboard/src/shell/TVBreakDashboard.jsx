@@ -24,6 +24,7 @@ import { RefreshCcw } from 'lucide-react';
 import ActivityFeed from '../history/ActivityFeed';
 import AssistantDock from '../kai/AssistantDock';
 import { usePlanEvents } from '../rules/CalendarEventsModel';
+import { DirectionRoot } from './bidi';
 
 function TVBreakDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -302,7 +303,7 @@ function TVBreakDashboard() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
     <AssistantPageProvider page={{ view: activeView, label: copy.nav[activeView] || activeView }}>
-    <div className={`kairos-shell ${isHebrew ? 'rtl' : 'ltr'}`} dir={isHebrew ? 'rtl' : 'ltr'} lang={locale}>
+    <DirectionRoot locale={locale} className={`kairos-shell ${isHebrew ? 'rtl' : 'ltr'}`} lang={locale}>
       {renderSideRail({
         copy, locale, activeView, setActiveView, assistantOpen, auth,
         userMenuAnchor, setUserMenuAnchor, setPasswordDialogOpen, setAccountsDialogOpen, handleLogout,
@@ -384,7 +385,7 @@ function TVBreakDashboard() {
       {assistantOpen && (
         <AssistantDock locale={locale} notify={notify} onClose={() => setAssistantOpen(false)} />
       )}
-    </div>
+    </DirectionRoot>
     </AssistantPageProvider>
       </ThemeProvider>
     </CacheProvider>

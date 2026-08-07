@@ -1,4 +1,5 @@
 import React from 'react';
+import { Figure, Name } from '../shell/bidi';
 import { Link2 } from 'lucide-react';
 import {
   linkBasisNote,
@@ -27,7 +28,7 @@ export function LinkedAdvertisers({ state, locale }) {
         <h3>{pageText(locale, 'Linked advertisers', 'מפרסמים מקושרים')}</h3>
         {ready && count > 0 && (
           <span className="agz-link-count">
-            <span className="numeric" dir="ltr">{count}</span>
+            <Figure className="numeric">{count}</Figure>
             <small>{linksWord(count, locale)}</small>
           </span>
         )}
@@ -39,7 +40,7 @@ export function LinkedAdvertisers({ state, locale }) {
         <p className="agz-inline-warn" role="note">{pageText(locale, 'Advertiser links could not be loaded. This is a load failure, not an empty list.', 'קישורי המפרסמים לא נטענו. זהו כשל טעינה, לא רשימה ריקה.')}</p>
       )}
       {ready && count === 0 && (
-        <p className="agz-subnote" dir="auto">{linkEmptyNote(state.sourceFile, locale)}</p>
+        <p className="agz-subnote">{linkEmptyNote(state.sourceFile, locale)}</p>
       )}
       {ready && count > 0 && (
         <>
@@ -47,13 +48,13 @@ export function LinkedAdvertisers({ state, locale }) {
             {state.links.map((link) => (
               <li key={link.advertiser} className="agz-link-row">
                 <Link2 size={13} aria-hidden="true" />
-                <span className="agz-link-name" dir="auto">{link.advertiser}</span>
+                <Name className="agz-link-name">{link.advertiser}</Name>
                 <span className={`agz-status-chip ${link.source === 'manual' ? 'blue' : 'teal'}`}>{linkSourceLabel(link.source, locale)}</span>
               </li>
             ))}
           </ul>
           {state.sourceFile && (
-            <p className="agz-subnote" dir="auto">{linkBasisNote(state.sourceFile, locale)}</p>
+            <p className="agz-subnote">{linkBasisNote(state.sourceFile, locale)}</p>
           )}
         </>
       )}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@mui/material';
 import { Minus, Plus } from 'lucide-react';
+import { Figure } from '../../shell/bidi';
 import {
   LANE_GUTTER,
   MIN_PX_PER_MIN,
@@ -131,7 +132,7 @@ export function ZoomControl({ pxPerMin, onZoom, onStep, locale, min = MIN_PX_PER
       >
         <Plus size={14} />
       </Button>
-      <span className="track-zoom-readout" dir="ltr">{relativeText}</span>
+      <Figure className="track-zoom-readout">{relativeText}</Figure>
     </div>
   );
 }
@@ -217,7 +218,7 @@ export function ProgrammeBand({
       <span className="timeline-program-title">{title}</span>
       <span className="timeline-program-meta">
         {classLabel && <span className="timeline-program-class">{classLabel}</span>}
-        {windowText && <span className="timeline-program-window" dir="ltr">{windowText}</span>}
+        {windowText && <Figure className="timeline-program-window">{windowText}</Figure>}
       </span>
       {children}
     </>

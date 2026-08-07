@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { pageText } from '../../shell/format';
+import { Code } from '../../shell/bidi';
 
 // The command palette, taken from Linear's mechanic rather than its look.
 //
@@ -149,7 +150,7 @@ export function CommandPalette({ open, commands, locale, onClose }) {
                       <small className="plan-palette-reason">{command.disabledReason(locale)}</small>
                     )}
                   </span>
-                  <kbd className="plan-palette-keys" dir="ltr">{shortcutText(command.shortcut, locale)}</kbd>
+                  <kbd className="plan-palette-keys"><Code>{shortcutText(command.shortcut, locale)}</Code></kbd>
                 </button>
               ))}
             </div>

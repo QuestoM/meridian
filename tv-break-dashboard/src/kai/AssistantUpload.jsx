@@ -2,8 +2,9 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Tooltip } from '@mui/material';
 import { FileSpreadsheet, Paperclip, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Figure, Name } from '../shell/bidi';
 import { requestJson } from './assistant-stream';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 
 // Agreement upload for the composer: a paperclip attaches an .xlsx/.xls/.csv
 // agreement, which the server parses in memory and keeps only as a summary keyed
@@ -113,7 +114,7 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
         <span className="asst-upload-chip">
           <button type="button" className="asst-upload-chip-open" onClick={toggleList} aria-expanded={listOpen}>
             <FileSpreadsheet size={13} />
-            <span dir="auto">{last.filename}</span>
+            <Name>{last.filename}</Name>
           </button>
           <button type="button" className="asst-upload-chip-x" onClick={() => setLast(null)} aria-label={pageText(locale, 'Dismiss', 'הסתרה')}>
             <X size={12} />
@@ -128,7 +129,7 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
             <button type="button" onClick={() => setListOpen(false)} aria-label={pageText(locale, 'Close', 'סגירה')}><X size={13} /></button>
           </div>
           {list.state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Loading files', 'טוען קבצים')}</div> : null}
-          {list.state === 'error' ? <div className="asst-error-note">{pageText(locale, 'Files could not be loaded (', 'לא ניתן לטעון את הקבצים (')}<bdi dir="auto">{list.error}</bdi>{').'}</div> : null}
+          {list.state === 'error' ? <div className="asst-error-note">{pageText(locale, 'Files could not be loaded (', 'לא ניתן לטעון את הקבצים (')}<Name>{list.error}</Name>{').'}</div> : null}
           {list.state === 'ready' && list.items.length === 0 ? <div className="asst-empty">{pageText(locale, 'No uploaded files. Attach an agreement to check it against the advertisers.', 'אין קבצים שהועלו. צרפו הסכם כדי לבדוק אותו מול המפרסמים.')}</div> : null}
           {list.state === 'ready' ? list.items.map((item, index) => {
             const id = uploadId(item);
@@ -136,8 +137,8 @@ export default function AssistantUpload({ locale, notify, disabled, onSuggest })
             return (
               <div className="asst-upload-item" key={id || `up-${index}`}>
                 <div className="asst-upload-item-main">
-                  <span className="asst-upload-name" dir="auto">{String((item && item.filename) || '')}</span>
-                  {meta ? <span className="asst-upload-meta" dir="ltr">{meta}</span> : null}
+                  <span className="asst-upload-name"><Name>{String((item && item.filename) || '')}</Name></span>
+                  {meta ? <span className="asst-upload-meta"><Figure>{meta}</Figure></span> : null}
                 </div>
                 <button type="button" className="asst-upload-del" onClick={() => removeUpload(id)} disabled={!id} aria-label={pageText(locale, 'Delete file', 'מחיקת קובץ')}><Trash2 size={13} /></button>
               </div>

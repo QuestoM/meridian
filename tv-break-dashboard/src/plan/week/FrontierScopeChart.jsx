@@ -11,6 +11,7 @@ import {
   normalizeRows,
   pageText,
 } from '../../shell/surface-helpers';
+import { Figure } from '../../shell/bidi';
 
 // FrontierScopeChart: the revenue-vs-retention panel, upgraded with
 //  (a) a SCOPE bar that DEFAULTS to the operator's owned channel whenever one is
@@ -250,7 +251,7 @@ export default function FrontierScopeChart({
         <span>{copy.frontierMode}</span>
       </div>
 
-      <div className="frontier-scope-bar" dir={he ? 'rtl' : 'ltr'}>
+      <div className="frontier-scope-bar">
         {scopeOptions.length > 0 && (
           <div className="frontier-scope-control" role="group" aria-label={he ? 'היקף החזית' : 'Frontier scope'}>
             {scopeOptions.map((option) => {
@@ -365,12 +366,12 @@ export default function FrontierScopeChart({
             <span>{pageText(locale, 'Y: revenue (representative day)', 'ציר Y: הכנסה (יום מייצג)')}</span>
           </div>
 
-          <p className="frontier-scope-hint frontier-basis-note" dir={he ? 'rtl' : 'ltr'}>
+          <p className="frontier-scope-hint frontier-basis-note">
             {basisDisclosure}
           </p>
 
           {focusPoint && (
-            <div className="frontier-point-readout" dir={he ? 'rtl' : 'ltr'}>
+            <div className="frontier-point-readout">
               {/* Four stat tiles in one row, each with a one-line explanation
                   tooltip, replacing the old two-column grid whose empty gray
                   cells read as missing data and whose boundaries were unclear. */}
@@ -378,25 +379,25 @@ export default function FrontierScopeChart({
                 <Tooltip title={pageText(locale, 'The constraint this point was optimized under: no break in the plan may fall below this retention floor.', 'האילוץ שתחתיו הנקודה חושבה: אף ברייק בתוכנית אינו רשאי לרדת מתחת לרף השימור הזה.')} arrow placement="bottom">
                   <div className="frontier-point-tile">
                     <span>{pageText(locale, 'Retention floor tested', 'רף שימור שנבדק')}</span>
-                    <strong className="numeric" dir="ltr">{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</strong>
+                    <strong className="numeric"><Figure>{focusPoint.floor !== null ? `${Math.round(focusPoint.floor * 100)}%` : '-'}</Figure></strong>
                   </div>
                 </Tooltip>
                 <Tooltip title={pageText(locale, 'What the resulting plan actually averaged, naturally far above the floor because the floor only blocks the worst breaks.', 'הממוצע שהתוכנית שהתקבלה השיגה בפועל, גבוה בהרבה מהרף באופן טבעי כי הרף חוסם רק את הברייקים הגרועים ביותר.')} arrow placement="bottom">
                   <div className="frontier-point-tile">
                     <span>{pageText(locale, 'Retention achieved', 'שימור שהושג')}</span>
-                    <strong className="numeric" dir="ltr">{formatPercent(focusPoint.retention, locale)}</strong>
+                    <strong className="numeric"><Figure>{formatPercent(focusPoint.retention, locale)}</Figure></strong>
                   </div>
                 </Tooltip>
                 <Tooltip title={pageText(locale, 'Projected revenue for a single representative day in this scope, not the saved weekly total.', 'הכנסה צפויה ליום מייצג יחיד בהיקף הזה, לא הסך השבועי השמור.')} arrow placement="bottom">
                   <div className="frontier-point-tile">
                     <span>{pageText(locale, 'Revenue (representative day)', 'הכנסה (יום מייצג)')}</span>
-                    <strong className="numeric" dir="ltr">{formatCurrency(focusPoint.revenue, locale)}</strong>
+                    <strong className="numeric"><Figure>{formatCurrency(focusPoint.revenue, locale)}</Figure></strong>
                   </div>
                 </Tooltip>
                 <Tooltip title={pageText(locale, 'How many breaks the plan of this point airs on the representative day.', 'כמה ברייקים משדרת התוכנית של הנקודה הזו ביום המייצג.')} arrow placement="bottom">
                   <div className="frontier-point-tile">
                     <span>{pageText(locale, 'Breaks', 'ברייקים')}</span>
-                    <strong className="numeric" dir="ltr">{focusPoint.breaks !== null ? formatNumber(focusPoint.breaks, locale) : '-'}</strong>
+                    <strong className="numeric"><Figure>{focusPoint.breaks !== null ? formatNumber(focusPoint.breaks, locale) : '-'}</Figure></strong>
                   </div>
                 </Tooltip>
               </div>

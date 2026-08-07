@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
 import { Plus } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Name } from '../shell/bidi';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import { eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 import { EventEditor } from './CalendarEventsList';
@@ -34,12 +35,12 @@ function barClass(segment) {
 function DayEventRow({ event, locale, busy, canEdit, onEdit }) {
   return (
     <div className="cal-mg-dayevent">
-      <span className="cal-event-name" dir="auto">{event.name}</span>
+      <Name className="cal-event-name">{event.name}</Name>
       <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
       <span className="cal-mg-dayevent-facts">
-        <span className="ltr-run">{formatEventDate(event.start_date, locale)}</span>
+        <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>
         {event.end_date
-          ? <span className="ltr-run">{`- ${formatEventDate(event.end_date, locale)}`}</span>
+          ? <span className="bidi-figure figure-nowrap">{`- ${formatEventDate(event.end_date, locale)}`}</span>
           : <span>{pageText(locale, 'no end date, treated as ongoing', 'ללא תאריך סיום, נחשב מתמשך')}</span>}
         <span>{pageText(locale, `intensity ${event.intensity}/5`, `עוצמה ${event.intensity}/5`)}</span>
       </span>
@@ -143,7 +144,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                     aria-label={formatEventDate(day, locale)}
                     onClick={() => pickDay(day)}
                   >
-                    <span className="cal-mg-daynum ltr-run">{Number(day.slice(8, 10))}</span>
+                    <span className="cal-mg-daynum bidi-figure figure-nowrap">{Number(day.slice(8, 10))}</span>
                   </button>
                 );
               })}
@@ -155,7 +156,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                     style={{ gridColumn: `${segment.startCol} / span ${segment.endCol - segment.startCol + 1}`, gridRow: laneIndex + 2 }}
                     onClick={() => openEvent(segment.event, week[segment.startCol - 1])}
                   >
-                    <span className="cal-mg-bar-label" dir="auto">{segment.event.name}</span>
+                    <Name className="cal-mg-bar-label">{segment.event.name}</Name>
                   </button>
                 </Tooltip>
               )))}

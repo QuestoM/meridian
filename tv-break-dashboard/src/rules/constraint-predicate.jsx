@@ -216,7 +216,6 @@ function ChipInput({ value, onChange, placeholder, options, locale, labelFor }) 
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => text.trim() && addChip(text)}
-          dir="ltr"
         />
       </div>
       {options.length > 0 && (

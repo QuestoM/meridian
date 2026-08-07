@@ -72,7 +72,7 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
         {header}
         <div className="day-board-empty">
           <h3>{pageText(locale, 'The day board is not reachable', 'לוח היום אינו זמין')}</h3>
-          <p dir="auto">{error}</p>
+          <p>{error}</p>
         </div>
       </section>
     );
@@ -84,7 +84,7 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
         {header}
         <div className="day-board-empty">
           <h3>{pageText(locale, 'There is no day to open yet', 'אין עדיין יום לפתיחה')}</h3>
-          <p dir="auto">{(locale === 'he' && days.reason_he) || days.reason}</p>
+          <p>{(locale === 'he' && days.reason_he) || days.reason}</p>
           <p>
             {pageText(
               locale,

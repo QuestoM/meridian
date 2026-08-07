@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Calculator, CheckCircle2 } from 'lucide-react';
+import { Figure } from '../../shell/bidi';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { CommittedPlanNote, SaveForecast, violationLabel } from './DayBoardReadout';
 import { committedGap, exactCurrency } from './day-board-model';
@@ -26,7 +27,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
   const notes = (
     <>
       {unaddressable && unaddressable.length > 0 && (
-        <p className="day-readout-note" dir="auto">
+        <p className="day-readout-note">
           {label(
             `These breaks have no addressable segment in the saved plan, so they are not in the figures above and cannot be saved: ${unaddressable.join(', ')}.`,
             `לברייקים האלה אין מקטע מזוהה בתוכנית השמורה, ולכן הם אינם נכללים בנתונים שלמעלה ולא ניתן לשמור אותם: ${unaddressable.join(', ')}.`,
@@ -34,7 +35,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
         </p>
       )}
       {otherDays && otherDays.length > 0 && (
-        <p className="day-readout-note" dir="auto">
+        <p className="day-readout-note">
           {label(
             `The figures above cover one broadcast day. Edits on ${otherDays.join(', ')} are not counted in them.`,
             `הנתונים שלמעלה מכסים יום שידור אחד. שינויים ב-${otherDays.join(', ')} אינם נכללים בהם.`,
@@ -47,7 +48,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
   if (!score) {
     return (
       <div className="day-readout is-idle">
-        <p dir="auto">{label('Reading what this day is worth.', 'קורא כמה שווה היום הזה.')}</p>
+        <p>{label('Reading what this day is worth.', 'קורא כמה שווה היום הזה.')}</p>
         {notes}
       </div>
     );
@@ -94,30 +95,30 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
       <div className="day-readout-figures">
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</span>
-          <strong dir="ltr">{exactCurrency(current.revenue, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{exactCurrency(current.revenue, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Retention kept', 'שימור צפייה')}</span>
-          <strong dir="ltr">{formatPercent(current.retention * 100, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeText}</small>
+          <strong><Figure>{formatPercent(current.retention * 100, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeText}</small>
         </div>
         <div className="day-figure">
           <span className="day-figure-label">{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</span>
-          <strong dir="ltr">{formatNumber(current.breaks, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
+          <strong><Figure>{formatNumber(current.breaks, locale)}</Figure></strong>
+          <small className="day-figure-scope">{scopeWithBasis(`${formatNumber(current.ad_seconds, locale)}s`, LIVE_PLAN, locale)}</small>
         </div>
         <div className={`day-figure${moneyMoved ? ' is-moved' : ''}`}>
           <span className="day-figure-label">{pageText(locale, 'Change from this session', 'שינוי מהמפגש הזה')}</span>
-          <strong dir="ltr">{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</strong>
-          <small className="day-figure-scope" dir="auto">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
+          <strong><Figure>{exactCurrency(moneyMoved ? delta.revenue : 0, locale)}</Figure></strong>
+          <small className="day-figure-scope">{gap.state === 'diverged' ? livePlanPointer(locale) : scopeWithBasis('', LIVE_PLAN, locale)}</small>
         </div>
       </div>
 
       <CommittedPlanNote gap={gap} locale={locale} />
 
       {editCount > 0 && onlyPlacement && !moneyMoved && (
-        <p className="day-readout-note" dir="auto">
+        <p className="day-readout-note">
           {label(
             'Moving a break inside its programme does not change what it earns. Its price follows the programme rating, the rate card and the break length, not the minute it starts at. Saving is a different question, and the check above measures it.',
             'הזזת ברייק בתוך התוכנית שלו אינה משנה את ההכנסה ממנו. המחיר נגזר מרייטינג התוכנית, מהמחירון ומאורך הברייק, ולא מהדקה שבה הוא מתחיל. השמירה היא שאלה אחרת, והבדיקה שלמעלה מודדת אותה.',
@@ -125,7 +126,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
         </p>
       )}
       {editCount > 0 && changed.duration && (
-        <p className="day-readout-note" dir="auto">
+        <p className="day-readout-note">
           {label('Length changed, so the money changed with it.', 'האורך השתנה, ולכן ההכנסה השתנתה איתו.')}
         </p>
       )}
@@ -135,8 +136,8 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
           {violations.map((violation, index) => (
             <li key={`${violation.code}-${violation.scope}-${index}`}>
               <strong>{violationLabel(violation.code, locale)}</strong>
-              <span dir="auto">{violation.scope}</span>
-              <span dir="ltr">{formatNumber(violation.observed, locale)} / {formatNumber(violation.limit, locale)}</span>
+              <span>{violation.scope}</span>
+              <Figure>{formatNumber(violation.observed, locale)} / {formatNumber(violation.limit, locale)}</Figure>
             </li>
           ))}
         </ul>
@@ -147,8 +148,8 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
       <SaveForecast forecast={money.forecast} locale={locale} editCount={money.moveCount} />
 
       {score.engine_ms !== null && score.engine_ms !== undefined && (
-        <p className="day-readout-engine" dir="ltr">
-          {label('scored in', 'חושב תוך')} {score.engine_ms} ms
+        <p className="day-readout-engine">
+          {label('scored in', 'חושב תוך')} <Figure>{score.engine_ms} ms</Figure>
         </p>
       )}
     </div>

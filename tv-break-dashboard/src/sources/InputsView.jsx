@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Numeric, formatNumber } from '../shell/format';
+import { Code } from '../shell/bidi';
 import {
   FILTER_LABELS,
   FILTER_ORDER,
@@ -39,14 +40,14 @@ function ModelPanel({ model, locale }) {
       <p className="model-strip-sources">
         <span>{text('modelMeasuredOn', locale)}</span>
         {(model.measured_on || []).map((source) => (
-          <span key={source} className="model-source" dir="ltr">{source}</span>
+          <Code key={source} className="model-source">{source}</Code>
         ))}
       </p>
       {(model.changed_sources || []).length > 0 ? (
         <p className="model-strip-sources">
           <span>{text('modelChanged', locale)}</span>
           {model.changed_sources.map((source) => (
-            <span key={source} className="model-source warn" dir="ltr">{source}</span>
+            <Code key={source} className="model-source warn">{source}</Code>
           ))}
         </p>
       ) : null}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import { ScheduleTrackSurface, ProgrammeBand, useScheduleZoom } from './schedule-track-view';
 import { timeWindow, spanStyle } from './schedule-track';
 import { createDragHandlers } from './day-board-drag';
@@ -292,7 +293,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     return (
       <div className="day-board-empty">
         <h3>{pageText(locale, 'This day could not be opened', 'לא ניתן לפתוח את היום הזה')}</h3>
-        <p dir="auto">{loadError}</p>
+        <p>{loadError}</p>
       </div>
     );
   }
@@ -310,13 +311,13 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     return (
       <div className="day-board-empty">
         <h3>{pageText(locale, 'There is no day to open yet', 'אין עדיין יום לפתיחה')}</h3>
-        <p dir="auto">{(he && board.reason_he) || board.reason}</p>
+        <p>{(he && board.reason_he) || board.reason}</p>
       </div>
     );
   }
 
   return (
-    <div className="day-board" dir={he ? 'rtl' : 'ltr'}>
+    <div className="day-board">
       <DayBoardToolbar
         board={board}
         locale={locale}
@@ -358,10 +359,9 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
       <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale} floor={floor}>
         {({ width, minWidth, ticks }) => (
           <div className="day-track-row" style={{ minWidth }}>
-            <div className="day-track-lane" dir={he ? 'rtl' : 'ltr'}>
-              <strong dir="auto">{board.operator_channel}</strong>
-              <span dir="ltr">{board.day}</span>
-              <span className="timeline-lane-count"><span dir="auto">{breakCountText(breaks.length, locale)}</span><small className="timeline-lane-basis" dir="auto">{planBasisLabel(LIVE_PLAN, locale)}</small></span>
+            <div className="day-track-lane">
+              <strong><Name>{board.operator_channel}</Name></strong><Figure>{board.day}</Figure>
+              <span className="timeline-lane-count"><span>{breakCountText(breaks.length, locale)}</span><small className="timeline-lane-basis">{planBasisLabel(LIVE_PLAN, locale)}</small></span>
             </div>
             <div className="day-track" style={{ width }} ref={trackRef}>
               {ticks.filter((tick) => tick.major).map((tick) => (

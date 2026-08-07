@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Code, Name } from '../shell/bidi';
 import { Button } from '@mui/material';
 import { Building2, ChevronLeft, ChevronRight, Info, RefreshCcw, Search } from 'lucide-react';
 import {
@@ -26,18 +27,18 @@ function AgencyCard({ row, locale, onOpen }) {
     <button type="button" className="amz-card agz-card" onClick={() => onOpen(row.agency_id)}>
       <div className="amz-card-head">
         <div className="amz-card-id-wrap">
-          <span className="amz-card-id" dir="auto">{agencyTitle(row)}</span>
-          <span className="agz-agency-id" dir="ltr">{row.agency_id}</span>
+          <Name className="amz-card-id">{agencyTitle(row)}</Name>
+          <Code className="agz-agency-id">{row.agency_id}</Code>
         </div>
         <Caret size={16} className="amz-card-caret" aria-hidden="true" />
       </div>
       <div className="agz-card-chips">
         <span className={`agz-status-chip ${status.tone}`}>{status.label}</span>
-        {row.agency_type && <span className="agz-type-chip" dir="auto">{row.agency_type}</span>}
+        {row.agency_type && <Name className="agz-type-chip">{row.agency_type}</Name>}
         {isSynthetic(row) && <SyntheticChip locale={locale} />}
       </div>
-      {contact && <span className="agz-card-contact" dir="auto">{contact}</span>}
-      {row.notes && <span className="amz-card-notes" dir="auto">{row.notes}</span>}
+      {contact && <Name className="agz-card-contact">{contact}</Name>}
+      {row.notes && <Name className="amz-card-notes">{row.notes}</Name>}
     </button>
   );
 }
@@ -77,22 +78,22 @@ function LedgerTotalsStrip({ summary, locale, setActiveView }) {
     <div className="agz-totals-strip" role="group" aria-label={pageText(locale, 'Daily ledger totals', 'סיכומי הלדג\'ר היומי')}>
       <div className="agz-total agz-total-net">
         <span className="agz-total-label">{pageText(locale, 'Net revenue after agency rebates', 'הכנסה נטו אחרי החזרי סוכנויות')}</span>
-        <span className="agz-total-value ltr-run">{formatCurrency(summary.net, locale)}</span>
+        <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.net, locale)}</span>
       </div>
       <div className="agz-total">
         <span className="agz-total-label">{pageText(locale, 'Gross revenue', 'הכנסה ברוטו')}</span>
-        <span className="agz-total-value ltr-run">{formatCurrency(summary.gross, locale)}</span>
+        <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.gross, locale)}</span>
       </div>
       <div className="agz-total">
         <span className="agz-total-label">{pageText(locale, 'Agency rebates', 'החזרי סוכנויות')}</span>
-        <span className="agz-total-value ltr-run">{formatCurrency(summary.rebate, locale)}</span>
+        <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.rebate, locale)}</span>
       </div>
       <div className="agz-total">
         <span className="agz-total-label">{pageText(locale, 'Priced spots', 'ספוטים מתומחרים')}</span>
-        <span className="agz-total-value ltr-run">{formatNumber(summary.spots, locale)}</span>
+        <span className="agz-total-value bidi-figure figure-nowrap">{formatNumber(summary.spots, locale)}</span>
       </div>
       <div className="agz-totals-basis">
-        <span className="agz-subnote" dir="auto">{basis}</span>
+        <span className="agz-subnote">{basis}</span>
         {typeof setActiveView === 'function' && (
           <button type="button" className="agz-totals-link" onClick={() => setActiveView('Reports')}>
             {pageText(locale, 'Open the ledger on the Reports page', "לצפייה בלדג'ר בעמוד הדוחות")}

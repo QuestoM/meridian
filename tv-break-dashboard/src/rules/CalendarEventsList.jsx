@@ -3,6 +3,7 @@ import { Button, TextField, Tooltip } from '@mui/material';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
+import { Name } from '../shell/bidi';
 import { useAssistantEntity } from '../shell/assistant-page-context';
 import { EVENT_TYPES, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 
@@ -109,7 +110,7 @@ export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
         <Tooltip title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the rate card.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בכרטיס התעריפים.')} arrow placement="bottom">
           <span className="cal-label-hint">{pageText(locale, 'Price multiplier', 'מכפיל תמחור')}</span>
         </Tooltip>
-        <input type="number" min="0.1" max="5" step="0.05" dir="ltr" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
+        <input type="number" min="0.1" max="5" step="0.05" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
       </label>
       <TextField
         label={pageText(locale, 'Notes', 'הערות')}
@@ -144,17 +145,17 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
     <div className={classes.join(' ')}>
       <button type="button" className="cal-event-head" aria-expanded={expanded} onClick={onToggle}>
         <ChevronDown size={14} className={`cal-row-caret${expanded ? ' open' : ''}`} aria-hidden="true" />
-        <span className="cal-event-name" dir="auto">{event.name}</span>
+        <Name className="cal-event-name">{event.name}</Name>
         <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
         {event.active === false && <span className="cal-chip off">{pageText(locale, 'Deactivated', 'מושבת')}</span>}
         <span className="cal-event-dates">
-          <span className="ltr-run">{formatEventDate(event.start_date, locale)}</span>
+          <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>
           {openEnded ? (
             <span className={event.type === 'war' ? 'cal-open-ended war' : 'cal-open-ended'}>
               {pageText(locale, 'no end date, treated as ongoing until you set one', 'ללא תאריך סיום, נחשב מתמשך עד שתקבעו תאריך')}
             </span>
           ) : (
-            <span className="ltr-run">{`- ${formatEventDate(event.end_date, locale)}`}</span>
+            <span className="bidi-figure figure-nowrap">{`- ${formatEventDate(event.end_date, locale)}`}</span>
           )}
         </span>
       </button>
@@ -168,7 +169,7 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
               </span>
             )}
           </div>
-          {event.notes && <p className="cal-event-notes" dir="auto">{event.notes}</p>}
+          {event.notes && <p className="cal-event-notes"><Name>{event.notes}</Name></p>}
           {canEdit && (
           <div className="cal-event-actions">
             {!confirming && (

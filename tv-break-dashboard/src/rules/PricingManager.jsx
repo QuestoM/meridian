@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Name } from '../shell/bidi';
 import { LAYER_TO_YAML, categoryList, keyLabel, layerDescription, layerEntries, layerLabel } from './pricing-layers-lib';
 import PricingEventsLayer from './PricingEventsLayer';
 import PricingPreferredPositions from './PricingPreferredPositions';
@@ -232,7 +233,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
               <span className="pricing-layer-title">{pageText(locale, 'Base CPP', 'מחיר בסיס')}</span>
               <span className="pricing-base-value">
                 <input
-                  type="number" min="0" step="1" dir="ltr"
+                  type="number" min="0" step="1"
                   defaultValue={shownBase}
                   key={`base-${shownBase}`}
                   onBlur={(event) => saveBase(event.target.value)}
@@ -308,9 +309,9 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                         const unset = shown === '';
                         return (
                           <div className={`pricing-mult${edited ? ' edited' : ''}${unset ? ' unset' : ''}`} key={key}>
-                            <span className="pricing-mult-label" title={label}>{label}</span>
+                            <Name className="pricing-mult-label" title={label}>{label}</Name>
                             <input
-                              type="number" min="0" step="0.01" dir="ltr"
+                              type="number" min="0" step="0.01"
                               defaultValue={shown}
                               placeholder={pageText(locale, 'not set', 'לא הוגדר')}
                               key={`${layer.name}-${key}-${shown}`}

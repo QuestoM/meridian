@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@mui/material';
 import { Check, Lock, Pencil, RotateCcw, X } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Figure } from '../shell/bidi';
 import HistoryDiff from './HistoryDiff';
 import { fetchVersionDiff, renameVersion, restoreVersion } from './history-api';
 import { FILE_LABELS, RESTORE_BLOCKS, SOURCE_LABELS, pair, stampLabel } from './history-labels';
@@ -89,11 +90,11 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
     <div className="hist-restore">
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'Saved', 'נשמרה')}</span>
-        <span dir="ltr">{stampLabel(entry.ts, locale)}</span>
+        <Figure>{stampLabel(entry.ts, locale)}</Figure>
       </div>
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'How', 'איך')}</span>
-        <span dir="auto">{pair(SOURCE_LABELS, facts.source, locale) || facts.source}</span>
+        <span>{pair(SOURCE_LABELS, facts.source, locale) || facts.source}</span>
       </div>
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'Name', 'שם')}</span>
@@ -102,7 +103,6 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
             <input
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              dir="auto"
               maxLength={120}
               aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')}
               disabled={busy}
@@ -112,7 +112,7 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
           </span>
         ) : (
           <span className="hist-rename">
-            <span dir="auto">{facts.label || pageText(locale, 'Unnamed', 'ללא שם')}</span>
+            <span>{facts.label || pageText(locale, 'Unnamed', 'ללא שם')}</span>
             {canEdit ? (
               <button type="button" className="hist-icon-btn" onClick={() => setEditing(true)} aria-label={pageText(locale, 'Rename restore point', 'שינוי שם נקודת השחזור')}><Pencil size={12} /></button>
             ) : null}
@@ -122,15 +122,15 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
 
       <h4 className="hist-detail-h">{pageText(locale, 'What restoring this would change', 'מה ישתנה אם נחזור לכאן')}</h4>
       {diff.state === 'loading' ? <p className="hist-empty">{pageText(locale, 'Reading the difference', 'קורא את ההבדל')}</p> : null}
-      {diff.state === 'error' ? <p className="hist-empty warn" dir="auto">{pageText(locale, `The difference could not be read. ${diff.error}`, `לא ניתן לקרוא את ההבדל. ${diff.error}`)}</p> : null}
+      {diff.state === 'error' ? <p className="hist-empty warn">{pageText(locale, `The difference could not be read. ${diff.error}`, `לא ניתן לקרוא את ההבדל. ${diff.error}`)}</p> : null}
       {diff.state === 'ready' ? <HistoryDiff diff={diff.data} locale={locale} /> : null}
 
       {facts.restorable === false ? (
-        <p className="hist-block" role="note" dir="auto">{block}</p>
+        <p className="hist-block" role="note">{block}</p>
       ) : null}
 
       {facts.restorable !== false && !canEdit ? (
-        <p className="hist-block" role="note" dir="auto">{canEditReason}</p>
+        <p className="hist-block" role="note">{canEditReason}</p>
       ) : null}
 
       {facts.restorable !== false && canEdit && diff.state === 'ready' ? (
@@ -152,15 +152,15 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
                 />
                 {pair(FILE_LABELS, file, locale) || file}
                 {permitted(file) ? null : (
-                  <span className="hist-file-why" dir="auto"><Lock size={11} />{refusal(file)}</span>
+                  <span className="hist-file-why"><Lock size={11} />{refusal(file)}</span>
                 )}
               </label>
             ))}
           </div>
           {withheld.length ? (
-            <p className="hist-note" dir="auto">{pageText(locale, `${withheld.length} of these files are not this account's to put back, so they stay exactly as they are and the rest still come back.`, `${withheld.length} מהקבצים האלה אינם של החשבון הזה להחזרה, ולכן הם יישארו בדיוק כפי שהם והשאר יוחזרו.`)}</p>
+            <p className="hist-note">{pageText(locale, `${withheld.length} of these files are not this account's to put back, so they stay exactly as they are and the rest still come back.`, `${withheld.length} מהקבצים האלה אינם של החשבון הזה להחזרה, ולכן הם יישארו בדיוק כפי שהם והשאר יוחזרו.`)}</p>
           ) : null}
-          <p className="hist-note" dir="auto">{pageText(locale, 'The current state is saved as a restore point first, so this restore can itself be undone.', 'המצב הנוכחי נשמר קודם כנקודת שחזור, כך שאפשר לבטל גם את השחזור הזה.')}</p>
+          <p className="hist-note">{pageText(locale, 'The current state is saved as a restore point first, so this restore can itself be undone.', 'המצב הנוכחי נשמר קודם כנקודת שחזור, כך שאפשר לבטל גם את השחזור הזה.')}</p>
           <Button variant="contained" size="small" startIcon={<RotateCcw size={13} />} disabled={busy || !chosen.length} onClick={applyRestore}>
             {busy ? pageText(locale, 'Putting back', 'מחזיר') : pageText(locale, 'Put back', 'החזרה')}
           </Button>

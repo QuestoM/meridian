@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postJson, requestJson } from './assistant-stream';
 import { unrecordedProposalClaim } from './kai-claimed-action';
-import { isolate } from './kai-bidi';
+import { isolate } from '../shell/bidi';
 import { writeAddress } from '../history/history-labels.js';
 import { pointAddress } from '../history/history-address.js';
 

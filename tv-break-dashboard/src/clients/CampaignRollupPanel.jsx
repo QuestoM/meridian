@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { ArrowLeft } from 'lucide-react';
 import { exactMoney } from './clients-money-helpers';
 import { formatCurrency, formatMinutes, formatNumber, pageText } from '../shell/format';
@@ -7,6 +8,7 @@ import { normalizeRows } from '../shell/plan-model';
 import { DataTable } from '../shell/primitives';
 import { loadRollup, loadRollupDetail } from './clients-api';
 import MakeGoodAlerts from './MakeGoodAlerts';
+import { isolate } from '../shell/bidi';
 
 // What aired, as the loaded spots source records it. This is the older of the
 // two campaign reads and it stays, because it answers a question the booked
@@ -63,7 +65,7 @@ function CampaignDrill({ open, locale, onBack }) {
           <p className="clients-basis-note">
             {detail.count > rows.length
               ? pageText(locale, `Showing the first ${rows.length} of ${detail.count} spots.`, `מוצגים ${rows.length} התשדירים הראשונים מתוך ${detail.count}.`)
-              : pageText(locale, `${detail.count} spots.`, `⁦${detail.count}⁩ תשדירים.`)}
+              : pageText(locale, `${detail.count} spots.`, `${isolate(detail.count)} תשדירים.`)}
           </p>
           <table className="clients-table clients-spots">
             <thead>
@@ -79,8 +81,8 @@ function CampaignDrill({ open, locale, onBack }) {
                 <tr key={`${row.Date}-${row.start_time}-${index}`}>
                   <td>{row.Date}</td>
                   <td>{row.start_time}</td>
-                  <td className="numeric" dir="ltr">{row.Duration}</td>
-                  <td className="numeric" dir="ltr">{revenueAvailable ? exactMoney(row.revenue_ils, locale) : '-'}</td>
+                  <td className="numeric"><Figure>{row.Duration}</Figure></td>
+                  <td className="numeric"><Figure>{revenueAvailable ? exactMoney(row.revenue_ils, locale) : '-'}</Figure></td>
                 </tr>
               ))}
             </tbody>

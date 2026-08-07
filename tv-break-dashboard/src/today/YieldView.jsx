@@ -12,6 +12,7 @@ import {
   pageText,
   programTypeLabel,
 } from '../shell/surface-helpers';
+import { Figure } from '../shell/bidi';
 import ChannelRefusal from './ChannelRefusal';
 import { scopeState, unattributed } from './today-scope';
 
@@ -40,8 +41,8 @@ function YieldBars({ rows, locale, labelKey, labelFor }) {
             {/* Native title is a truncation echo of the ellipsised label, not an explanation. */}
             <span className="yield-bar-label" title={String(label || '')}>{label || pageText(locale, 'Unknown', 'לא ידוע')}</span>
             <i style={{ '--bar': yps / maxYield }} />
-            <strong className="numeric" dir="ltr">{formatRate(yps, locale)}</strong>
-            <small className="numeric" dir="ltr">{formatCurrency(row.revenue, locale)}</small>
+            <Figure className="numeric">{formatRate(yps, locale)}</Figure>
+            <Figure className="numeric">{formatCurrency(row.revenue, locale)}</Figure>
           </div>
         );
       })}
@@ -50,7 +51,6 @@ function YieldBars({ rows, locale, labelKey, labelFor }) {
 }
 
 export default function YieldView({ locale, refreshKey = 0, onOpenSettings = null }) {
-  const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function YieldView({ locale, refreshKey = 0, onOpenSettings = nul
           {' '}
           {pageText(locale, 'For example, a 30 second spot earns on average about', 'לדוגמה, ספוט של 30 שניות מכניס בממוצע בערך')}
           {' '}
-          <span className="ltr-run">{spot30}</span>
+          <span className="bidi-figure figure-nowrap">{spot30}</span>
           {'.'}
         </>
       ) : null}
@@ -130,21 +130,21 @@ export default function YieldView({ locale, refreshKey = 0, onOpenSettings = nul
         />
       ) : (
         <>
-          <p className="yield-net-pointer" dir={he ? 'rtl' : 'ltr'}>
+          <p className="yield-net-pointer">
             {pageText(locale, 'Full net in the from gross to net card.', 'נטו מלא בכרטיס מברוטו לנטו.')}
           </p>
 
-          <div className="yield-totals" dir={he ? 'rtl' : 'ltr'}>
+          <div className="yield-totals">
             <Tooltip title={yieldTooltip} arrow placement="bottom">
               <div className="yield-total-card">
                 <span><Gauge size={13} /> {pageText(locale, 'Yield per second', 'תשואה לשנייה')}</span>
-                <strong className="numeric" dir="ltr">{formatRate(totals.yield_per_second, locale)}</strong>
+                <Figure className="numeric">{formatRate(totals.yield_per_second, locale)}</Figure>
                 <small className="yield-unit-line">{pageText(locale, `${currency} per ad second`, '₪ לשנ׳ פרסום')}</small>
               </div>
             </Tooltip>
             <div className="yield-total-card">
               <span>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</span>
-              <strong className="numeric" dir="ltr">{formatSeconds(totals.ad_seconds, locale)}</strong>
+              <Figure className="numeric">{formatSeconds(totals.ad_seconds, locale)}</Figure>
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export default function YieldView({ locale, refreshKey = 0, onOpenSettings = nul
           <p className="yield-foot-note">
             {pageText(locale, 'Yield per second = revenue / ad-seconds', 'תשואה לשנייה = הכנסה / שניות פרסום')}
             {' ('}
-            <span className="ltr-run">{`${currency}/s`}</span>
+            <span className="bidi-figure figure-nowrap">{`${currency}/s`}</span>
             {').'}
           </p>
         </>

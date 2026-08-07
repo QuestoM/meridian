@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Figure } from '../shell/bidi';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { changedFields, goalLabel, refusalText, vocabularyLabel, windowLabel } from './clients-money-helpers';
@@ -168,8 +169,8 @@ export default function CampaignFlights({
                       <small className="clients-flight-id">{flight.flight_id}</small>
                     </span>
                   </td>
-                  <td className="numeric" dir="ltr">{windowLabel(flight.starts_on, flight.ends_on, locale)}</td>
-                  <td className="numeric" dir="ltr">{goalLabel(flight, locale, goalWords)}</td>
+                  <td className="numeric"><Figure>{windowLabel(flight.starts_on, flight.ends_on, locale)}</Figure></td>
+                  <td className="numeric"><Figure>{goalLabel(flight, locale, goalWords)}</Figure></td>
                   <td>
                     <DeliveryCell
                       delivery={delivery}

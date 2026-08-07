@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
+import { Figure, Name } from '../shell/bidi';
 import { foldSize } from './history-fold';
 import { APPLIED, actLabel, outcomeOf, outcomeWord } from './history-refused';
 import {
@@ -112,18 +113,18 @@ export default function HistoryRow({ entry, locale, selected, onSelect, index })
         }
       }}
     >
-      <time className="hist-row-time" dir="ltr">{clockLabel(entry.ts, locale)}</time>
+      <time className="hist-row-time"><Figure>{clockLabel(entry.ts, locale)}</Figure></time>
       <span className={`hist-dot k-${entry.kind}`} aria-hidden="true" />
       <span className="hist-row-kind">{pair(KIND_LABELS, entry.kind, locale)}</span>
-      <span className="hist-row-actor" dir="auto">{actorLabel(entry.actor, locale)}</span>
-      <span className="hist-row-title" dir="auto">{view.title}</span>
-      {folded > 1 ? <span className="hist-fold" dir="ltr">{`x${formatNumber(folded, locale)}`}</span> : null}
-      {view.target ? <span className="hist-row-target" dir="auto">{view.target}</span> : null}
+      <span className="hist-row-actor"><Name>{actorLabel(entry.actor, locale)}</Name></span>
+      <span className="hist-row-title"><Name>{view.title}</Name></span>
+      {folded > 1 ? <span className="hist-fold"><Figure>{`x${formatNumber(folded, locale)}`}</Figure></span> : null}
+      {view.target ? <span className="hist-row-target"><Name>{view.target}</Name></span> : null}
       <span className="hist-row-tail">
-        {outcomeChip ? <span className="hist-chip refused" dir="auto">{outcomeChip}</span> : null}
-        {retention ? <span className="hist-chip quiet" dir="ltr">{retention}</span> : null}
-        {runFigure ? <span className="hist-chip quiet" dir="auto">{runFigure}</span> : null}
-        {view.figure ? <span className={`hist-figure ${view.figureTone}`} dir="ltr">{view.figure}</span> : null}
+        {outcomeChip ? <span className="hist-chip refused">{outcomeChip}</span> : null}
+        {retention ? <span className="hist-chip quiet"><Figure>{retention}</Figure></span> : null}
+        {runFigure ? <span className="hist-chip quiet">{runFigure}</span> : null}
+        {view.figure ? <span className={`hist-figure ${view.figureTone}`}><Figure>{view.figure}</Figure></span> : null}
         {via ? <span className="hist-chip via">{via}</span> : null}
         {blocked ? <span className="hist-chip warn">{pageText(locale, 'Not restorable', 'לא ניתן לשחזור')}</span> : null}
         <span className="hist-row-open">{pageText(locale, 'Open', 'פתיחה')}</span>

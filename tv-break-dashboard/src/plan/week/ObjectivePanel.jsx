@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Slider } from '@mui/material';
 import { Check, RotateCcw, Save } from 'lucide-react';
 import { finiteNumber, formatPercent, pageText } from '../../shell/format';
+import { Figure, Name } from '../../shell/bidi';
 import {
   OBJECTIVE_FOCUS,
   OBJECTIVE_TEMPLATES,
@@ -138,7 +139,7 @@ export function ObjectivePanel({
               onChange={(_event, value) => onChange('revenue_weight', Array.isArray(value) ? value[0] : value)}
             />
             <span>{pageText(locale, 'Revenue', 'הכנסה')}</span>
-            <strong className="numeric" dir="ltr">{weight}</strong>
+            <strong className="numeric"><Figure>{weight}</Figure></strong>
           </div>
         </LeverRow>
 
@@ -158,7 +159,7 @@ export function ObjectivePanel({
               aria-label={leverLabel('min_retention_floor', locale)}
               onChange={(_event, value) => onChange('min_retention_floor', (Array.isArray(value) ? value[0] : value) / 100)}
             />
-            <strong className="numeric" dir="ltr">{formatPercent(Math.round(floor * 100), locale)}</strong>
+            <strong className="numeric"><Figure>{formatPercent(Math.round(floor * 100), locale)}</Figure></strong>
           </div>
         </LeverRow>
 
@@ -175,7 +176,7 @@ export function ObjectivePanel({
               aria-label={leverLabel('max_breaks_per_hour', locale)}
               onChange={(_event, value) => onChange('max_breaks_per_hour', Array.isArray(value) ? value[0] : value)}
             />
-            <strong className="numeric" dir="ltr">{perHour}</strong>
+            <strong className="numeric"><Figure>{perHour}</Figure></strong>
           </div>
         </LeverRow>
 
@@ -195,7 +196,7 @@ export function ObjectivePanel({
               aria-label={leverLabel('risk_lambda', locale)}
               onChange={(_event, value) => onChange('risk_lambda', (Array.isArray(value) ? value[0] : value) / 100)}
             />
-            <strong className="numeric" dir="ltr">{caution}</strong>
+            <strong className="numeric"><Figure>{caution}</Figure></strong>
           </div>
         </LeverRow>
       </div>
@@ -249,8 +250,8 @@ export function ObjectivePanel({
                 {changes.map((change) => (
                   <tr key={change.field}>
                     <th scope="row">{change.label}</th>
-                    <td className={change.numeric ? 'numeric was' : 'was'} dir={change.numeric ? 'ltr' : 'auto'}>{change.was}</td>
-                    <td className={change.numeric ? 'numeric next' : 'next'} dir={change.numeric ? 'ltr' : 'auto'}>{change.next}</td>
+                    <td className={change.numeric ? 'numeric was' : 'was'}>{change.numeric ? <Figure>{change.was}</Figure> : <Name>{change.was}</Name>}</td>
+                    <td className={change.numeric ? 'numeric next' : 'next'}>{change.numeric ? <Figure>{change.next}</Figure> : <Name>{change.next}</Name>}</td>
                   </tr>
                 ))}
               </tbody>

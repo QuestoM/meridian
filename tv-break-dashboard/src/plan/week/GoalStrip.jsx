@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { Flag, Target } from 'lucide-react';
 import { EMPTY_VALUE, formatCurrency, formatNumber, pageText } from '../../shell/format';
+import { Figure } from '../../shell/bidi';
 
 // The goal and the progress against it, read together.
 //
@@ -115,24 +116,26 @@ export function GoalStrip({ progress, locale, words, onGo }) {
       <div className="plan-goal-figures">
         <div className="plan-goal-pair">
           <span className="plan-goal-label">{words.expectedRevenue}</span>
-          <strong className="numeric" dir="ltr">
-            {scoped ? formatCurrency(progress.projected?.revenue, locale) : EMPTY_VALUE}
+          <strong className="numeric">
+            <Figure>{scoped ? formatCurrency(progress.projected?.revenue, locale) : EMPTY_VALUE}</Figure>
           </strong>
         </div>
         {scoped && set && (
           <div className="plan-goal-pair">
             <span className="plan-goal-label">{pageText(locale, 'Target', 'יעד')}</span>
-            <strong className="numeric" dir="ltr">{formatCurrency(target.amount_ils, locale)}</strong>
+            <strong className="numeric"><Figure>{formatCurrency(target.amount_ils, locale)}</Figure></strong>
           </div>
         )}
         {scoped && set && (
           <div className="plan-goal-pair">
             <span className="plan-goal-label">{pageText(locale, 'Against the target', 'מול היעד')}</span>
-            <strong className={`numeric plan-goal-variance is-${state}`} dir="ltr">
-              {Number(verdict.variance_ils) > 0 ? '+' : ''}{formatCurrency(verdict.variance_ils, locale)}
-              {Number.isFinite(Number(verdict.variance_percent))
-                ? ` (${Number(verdict.variance_percent) > 0 ? '+' : ''}${Number(verdict.variance_percent).toFixed(2)}%)`
-                : ''}
+            <strong className={`numeric plan-goal-variance is-${state}`}>
+              <Figure>
+                {Number(verdict.variance_ils) > 0 ? '+' : ''}{formatCurrency(verdict.variance_ils, locale)}
+                {Number.isFinite(Number(verdict.variance_percent))
+                  ? ` (${Number(verdict.variance_percent) > 0 ? '+' : ''}${Number(verdict.variance_percent).toFixed(2)}%)`
+                  : ''}
+              </Figure>
             </strong>
           </div>
         )}

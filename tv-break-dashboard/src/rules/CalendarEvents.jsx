@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { Info, RefreshCcw } from 'lucide-react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
+import { Name } from '../shell/bidi';
 import { readEventsLayer } from './pricing-layers-lib';
 import { detailWords } from './rules-lib';
 import { ModelContextPanel, OverlapPanel, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
@@ -264,11 +265,11 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
           {upcoming.map((event) => (
             <button type="button" role="listitem" className="cal-upcoming-item" key={event.event_id || event.name} onClick={() => jumpToEvent(event)}>
               <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
-              <span dir="auto">{event.name}</span>
+              <Name>{event.name}</Name>
               <span className="cal-upcoming-dates">
                 {eventRange(event).start <= todayIso
                   ? pageText(locale, 'ongoing', 'מתמשך')
-                  : <span className="ltr-run">{formatEventDate(event.start_date, locale)}</span>}
+                  : <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date, locale)}</span>}
               </span>
             </button>
           ))}

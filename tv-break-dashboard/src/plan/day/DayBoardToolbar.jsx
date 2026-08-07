@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Focus, Maximize, Pin, PinOff, Star } from 'lucide-react';
+import { Figure, Code, Name } from '../../shell/bidi';
 import { pageText } from '../../shell/format';
 import { ZoomControl } from './schedule-track-view';
 import {
@@ -99,7 +100,7 @@ function DayBoardToolbar({
               aria-pressed={snapGrid === choice}
               onClick={() => onSnapGrid(choice)}
             >
-              <span dir="ltr">{choice}s</span>
+              <Figure>{choice}s</Figure>
             </button>
           ))}
         </div>
@@ -125,17 +126,17 @@ function DayBoardToolbar({
             <Focus size={13} aria-hidden="true" />
           </button>
         </div>
-        <span className="day-toolbar-basis" dir="auto">
-          {label('Figures are for', 'הנתונים מתייחסים ל')} {board.operator_channel}, <span dir="ltr">{board.day}</span>
+        <span className="day-toolbar-basis">
+          {label('Figures are for', 'הנתונים מתייחסים ל')} {board.operator_channel}, <Figure>{board.day}</Figure>
         </span>
       </div>
 
       {selectedItem && live ? (
         <div className="day-selection">
           <div className="day-selection-identity">
-            <strong dir="auto">{selectedItem.programme}</strong>
+            <strong><Name>{selectedItem.programme}</Name></strong>
             <span className="day-selection-ordinal">
-              {label('Break', 'ברייק')} <span dir="ltr">{selectedItem.ordinal}</span> {label('of', 'מתוך')} <span dir="ltr">{selectedItem.breaks_in_segment}</span>
+              {label('Break', 'ברייק')} <Figure>{selectedItem.ordinal}</Figure> {label('of', 'מתוך')} <Figure>{selectedItem.breaks_in_segment}</Figure>
             </span>
           </div>
           <label className="day-field">
@@ -183,7 +184,7 @@ function DayBoardToolbar({
             {label('Open this break', 'פתיחת הברייק')}
           </button>
           {programme && (
-            <span className="day-selection-scope" dir="auto">{scopeSentence(programme, locale, airingsBound(board.programmes, programme))}</span>
+            <span className="day-selection-scope">{scopeSentence(programme, locale, airingsBound(board.programmes, programme))}</span>
           )}
           {savedPin && (
             <div className="day-selection-pin">
@@ -191,12 +192,12 @@ function DayBoardToolbar({
                 <Pin size={12} aria-hidden="true" />
                 {label('This break is pinned by a saved placement', 'הברייק הזה נעוץ על ידי נעיצה שמורה')}
               </span>
-              <span className="day-pin-rule" dir="ltr" title={savedPin.savedAt}>{savedPin.constraintId || label('no restriction on record', 'אין מגבלה רשומה')}</span>
+              <Code className="day-pin-rule" title={savedPin.savedAt}>{savedPin.constraintId || label('no restriction on record', 'אין מגבלה רשומה')}</Code>
               <button type="button" className="day-chip-button is-inverse" onClick={onRemoveSaved} disabled={busy}>
                 <PinOff size={12} aria-hidden="true" />
                 {label('Remove the saved placement', 'הסרת הנעיצה השמורה')}
               </button>
-              <span className="day-pin-note" dir="auto">
+              <span className="day-pin-note">
                 {label(
                   'Removing it deletes the restriction that carries it, and the plan places this break itself again.',
                   'ההסרה מוחקת את המגבלה שנושאת אותה, והתוכנית חוזרת למקם את הברייק בעצמה.',

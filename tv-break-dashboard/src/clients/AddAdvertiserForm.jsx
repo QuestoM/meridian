@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Switch, TextField } from '@mui/material';
 import { Plus } from 'lucide-react';
+import { Figure } from '../shell/bidi';
 import {
   EMPTY_ADVERTISER,
   GENRE_PRESETS,
@@ -38,7 +39,7 @@ function ChipSelect({ label, presets, value, onChange, locale }) {
               aria-pressed={active}
               onClick={() => onChange(serializeTokens(toggleToken(tokens, option)))}
             >
-              <span dir="ltr">{isAny ? pageText(locale, 'Any', 'הכול') : option}</span>
+              <Figure>{isAny ? pageText(locale, 'Any', 'הכול') : option}</Figure>
             </button>
           );
         })}
@@ -110,7 +111,7 @@ function AddAdvertiserForm({ locale, suggestedId, existingIds, onCreate, onCance
               value={draft.default_premium ?? 1}
               onChange={(event) => update('default_premium', event.target.value === '' ? '' : Number(event.target.value))}
             />
-            <span className={`adv-premium-hint ${hint.tone}`} dir="ltr">{hint.text}</span>
+            <Figure className={`adv-premium-hint ${hint.tone}`}>{hint.text}</Figure>
           </div>
         </div>
         <ChipSelect

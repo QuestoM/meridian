@@ -20,7 +20,7 @@ export default function HistoryRunsSource({ locale, state, records, channel }) {
   const line = runsSourceLine(state, records, channel);
   return (
     <>
-      <span className={state === RUNS_WITHHELD ? 'warn' : undefined} dir="auto">
+      <span className={state === RUNS_WITHHELD ? 'warn' : undefined}>
         {pageText(locale, line[0], line[1])}
       </span>
       {state === RUNS_WITHHELD ? <RunsRemedyLink locale={locale} /> : null}

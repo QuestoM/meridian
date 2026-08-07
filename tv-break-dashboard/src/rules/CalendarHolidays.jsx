@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
 import { ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { Name } from '../shell/bidi';
 
 // The bundled-holidays panel of the Calendar page: the read-only reference list
 // grouped into per-year accordions, collapsed by default so 50+ holiday rows
@@ -19,7 +20,7 @@ function HolidayYearGroup({ year, rows, locale, busy, canEdit, open, onToggle, o
           onClick={onToggle}
         >
           <ChevronDown size={14} className={`cal-row-caret${open ? ' open' : ''}`} aria-hidden="true" />
-          <span className="ltr-run">{year}</span>
+          <span className="bidi-figure figure-nowrap">{year}</span>
           <span className="cal-count-note">{pageText(locale, `${rows.length} rows`, `${rows.length} שורות`)}</span>
         </button>
         {canEdit && (
@@ -34,8 +35,8 @@ function HolidayYearGroup({ year, rows, locale, busy, canEdit, open, onToggle, o
       </div>
       {open && rows.map((holiday) => (
         <div className="cal-holiday-row" key={`${holiday.date}-${holiday.name}`}>
-          <span className="ltr-run">{String(holiday.date || '').slice(0, 10)}</span>
-          <span className="cal-holiday-name" dir="auto">{holiday.name}</span>
+          <span className="bidi-figure figure-nowrap">{String(holiday.date || '').slice(0, 10)}</span>
+          <Name className="cal-holiday-name">{holiday.name}</Name>
           <span className="cal-chip">{holiday.kind === 'national' ? pageText(locale, 'National', 'לאומי') : pageText(locale, 'Religious', 'דתי')}</span>
           {holiday.is_school_holiday && <span className="cal-chip">{pageText(locale, 'School holiday', 'חופשת לימודים')}</span>}
         </div>

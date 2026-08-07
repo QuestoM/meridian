@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@mui/material';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Code } from '../shell/bidi';
 import { text } from './sources-copy';
 
 // What the door runs on a file of this kind, and the short list of things it
@@ -28,19 +29,19 @@ export function SourceChecks({ checks, locale }) {
           {required.length ? (
             <p className="source-checks-line">
               <span>{text('checksRequired', locale)}</span>
-              <span className="source-checks-columns" dir="ltr">{required.join(', ')}</span>
+              <Code className="source-checks-columns">{required.join(', ')}</Code>
             </p>
           ) : null}
           {checks.loader ? (
             <p className="source-checks-line">
               <span>{text('checksLoader', locale)}</span>
-              <span dir="ltr">{checks.loader}</span>
+              <Code>{checks.loader}</Code>
             </p>
           ) : null}
           {checks.contract ? (
             <p className="source-checks-line">
               <span>{text('checksContract', locale)}</span>
-              <span dir="ltr">{checks.contract}</span>
+              <Code>{checks.contract}</Code>
             </p>
           ) : null}
           <p className="source-checks-cannot-head">{text('checksCannot', locale)}</p>

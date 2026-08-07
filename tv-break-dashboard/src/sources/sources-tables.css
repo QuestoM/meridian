@@ -80,7 +80,7 @@
 .rows-drawer-table td {
   padding: var(--space-1) var(--space-2);
   border-block-end: 1px solid var(--line);
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
 }
 

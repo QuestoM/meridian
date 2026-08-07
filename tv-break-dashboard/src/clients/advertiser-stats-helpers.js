@@ -5,6 +5,7 @@
 
 import { pageText } from './advertisers-helpers';
 import { nameSearchHaystack, sortByDisplayName } from './advertiser-name-helpers';
+import { isolate } from '../shell/bidi';
 
 // The four scoped-rule effect types, each with a stable colour tone and a
 // bilingual label. Tones map to classes in advertiser-management.css. Order
@@ -210,7 +211,7 @@ export function revenueProvenance(row, locale) {
   return pageText(
     locale,
     `Source: the priced daily ledger, ${row.revenue_basis}, gross before the agency rebate`,
-    `מקור: הפנקס היומי המתומחר, ⁦${row.revenue_basis}⁩, ברוטו לפני רבייט הסוכנות`,
+    `מקור: הפנקס היומי המתומחר, ${isolate(row.revenue_basis)}, ברוטו לפני רבייט הסוכנות`,
   );
 }
 

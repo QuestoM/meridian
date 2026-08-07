@@ -1,4 +1,5 @@
 import { word } from '../../vocabulary.js';
+import { isolate } from '../../shell/bidi';
 
 // Plan, the week: the shape of the destination, in one place.
 //
@@ -285,13 +286,9 @@ export function diffReason(payload, locale) {
 // Hebrew sentence, reorders the punctuation around it unless it is isolated.
 // These are the Unicode isolate characters, which work inside a plain string
 // where a <bdi> element cannot go.
-const ISOLATE_START = '⁨';
-const ISOLATE_END = '⁩';
-
-export function isolate(value) {
-  const text = String(value ?? '').trim();
-  return text ? `${ISOLATE_START}${text}${ISOLATE_END}` : '';
-}
+// Defined once in shell/bidi.jsx, which is the single home for direction and
+// isolation. Re-exported so this module's existing callers keep their import.
+export { isolate };
 
 export function scopeLine(note, locale) {
   if (!note || typeof note !== 'object') return null;

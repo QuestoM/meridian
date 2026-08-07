@@ -7,6 +7,7 @@
 // rather than in a tooltip.
 
 import { pageText } from '../shell/format';
+import { isolate } from '../shell/bidi';
 
 export const VIEWS = ['clients', 'money', 'campaigns', 'advertisers', 'agencies'];
 
@@ -170,7 +171,7 @@ export function basisLine(basis, locale) {
   return pageText(
     locale,
     `${scope}, ${basis.day}, ${priced} priced spots of ${rows} in ${basis.file}`,
-    `${scope}, ${basis.day}, ⁦${priced}⁩ תשדירים מתומחרים מתוך ⁦${rows}⁩ בקובץ ${basis.file}`,
+    `${scope}, ${basis.day}, ${isolate(priced)} תשדירים מתומחרים מתוך ${isolate(rows)} בקובץ ${basis.file}`,
   );
 }
 
@@ -388,7 +389,7 @@ export function windowLabel(starts, ends, locale) {
   if (!starts && !ends) {
     return pageText(locale, 'No dates set', 'לא נקבעו תאריכים');
   }
-  return `⁦${starts || '?'} → ${ends || '?'}⁩`;
+  return `${isolate(`${starts || '?'} → ${ends || '?'}`)}`;
 }
 
 // A closed value set arrives from the endpoint that owns it, as records

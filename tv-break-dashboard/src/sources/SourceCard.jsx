@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
 import { AlertTriangle, CheckCircle2, FileWarning, Rows3, Upload } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
+import { Code, Name } from '../shell/bidi';
 import {
   CADENCE_LABELS,
   CADENCE_NOTES,
@@ -75,12 +76,12 @@ function Findings({ findings, locale, printed }) {
     <ul className="source-findings">
       {lines.map(({ finding, chip, message }, index) => (
         <li key={`${finding.code}-${index}`} className={`${finding.severity === 'error' ? 'finding bad' : 'finding warn'}${chip ? '' : ' no-chip'}`}>
-          {chip ? <span className="finding-column" dir={chip.dir}>{chip.text}</span> : null}
+          {chip ? <Name className="finding-column">{chip.text}</Name> : null}
           <span className="finding-detail">
             {/* The server's own words, quoted verbatim. dir auto so a sentence
                 that stayed English renders as one left-to-right run inside a
                 Hebrew card instead of being reordered around its punctuation. */}
-            {message ? <span className="finding-message" dir="auto">{message}</span> : null}
+            {message ? <Name className="finding-message">{message}</Name> : null}
             <FindingRows finding={finding} locale={locale} />
           </span>
         </li>
@@ -109,7 +110,7 @@ function StoredFiles({ input, locale, onOpenFile }) {
             <span className="source-stored-line">
               <Button className="link-figure" type="button" onClick={() => onOpenFile(file.path)}>
                 <FileWarning size={12} />
-                <span dir="ltr">{file.filename}</span>
+                <Code>{file.filename}</Code>
               </Button>
               {file.rows === null || file.rows === undefined ? null : (
                 <span className="source-stored-rows">
@@ -161,7 +162,7 @@ function fieldValue(key, input, locale, onOpenRows) {
     return <Numeric>{formatWhen(input.last_modified, locale)}</Numeric>;
   }
   if (key === 'path') {
-    return <span className="source-card-file" dir="ltr">{input.path}</span>;
+    return <Code className="source-card-file">{input.path}</Code>;
   }
   if (key === 'cadence') {
     return <span>{label(CADENCE_LABELS, input.cadence, locale)}</span>;
@@ -252,7 +253,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
       <header className="source-card-head">
         <div className="source-card-title">
           <strong>{name}</strong>
-          <span className="source-card-file" dir="ltr">{input.filename}</span>
+          <Code className="source-card-file">{input.filename}</Code>
         </div>
         <span className={`source-state ${tone}`}>{label(STATE_LABELS, state, locale)}</span>
       </header>
@@ -276,7 +277,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
         <span>{text('engineReads', locale)}</span>
         {input.engine_reads ? (
           <Button className="link-figure" type="button" onClick={() => onOpenFile(input.engine_reads)}>
-            <span dir="ltr">{input.engine_reads}</span>
+            <Code>{input.engine_reads}</Code>
           </Button>
         ) : (
           <span className="source-none">{text('engineReadsNone', locale)}</span>
@@ -316,7 +317,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
               checked. A timestamp with no filename beside it is how a check of
               one file reads as a check of the one the card names. */}
           {lastValidation.filename ? (
-            <span className="source-card-file" dir="ltr">{lastValidation.filename}</span>
+            <Code className="source-card-file">{lastValidation.filename}</Code>
           ) : null}
           <Findings findings={lastValidation.findings} locale={locale} />
         </div>
@@ -327,7 +328,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
           <FileWarning size={14} />
           <div>
             <strong>{text('refused', locale)}</strong>
-            {refusalDetail ? <p className="source-verdict-detail" dir="auto">{refusalDetail}</p> : null}
+            {refusalDetail ? <p className="source-verdict-detail"><Name>{refusalDetail}</Name></p> : null}
             <Findings findings={check.findings && check.findings.length ? check.findings : (check.errors || []).map((message) => ({ column: '', code: 'error', message, severity: 'error' }))} locale={locale} printed={refusalDetail} />
           </div>
         </div>
@@ -344,7 +345,7 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
             {check.saves_to ? (
               <p className="source-verdict-detail">
                 <span>{text('savesTo', locale)}</span>
-                <span className="source-card-file" dir="ltr">{check.saves_to}</span>
+                <Code className="source-card-file">{check.saves_to}</Code>
               </p>
             ) : null}
             <p className="source-verdict-detail">{serverText(check.consequence, locale)}</p>
