@@ -409,4 +409,17 @@ def write_weekly_schedule(
         write_schedule_meta(target, ROOT)
     except Exception:  # pragma: no cover - meta is best-effort, never blocks export
         logger.warning("Could not write schedule freshness sidecar for %s.", target, exc_info=True)
+    # And a COMMITTED fingerprint, which the sidecar above cannot be: output/
+    # *.meta.json is gitignored, so on a fresh checkout freshness reads unknown
+    # and nothing guards the artifact at all. This plan was silently overwritten
+    # twice with a stale copy from a temp mirror, caught both times only because
+    # a person hashed the file by hand. Same best-effort contract: a fingerprint
+    # failure never blocks the write, because the CSV is the critical path.
+    try:
+        from kairos.export.schedule_fingerprint import write_fingerprint
+        from kairos_api.server import _load_settings
+
+        write_fingerprint(target, _load_settings())
+    except Exception:  # pragma: no cover - fingerprint is best-effort, never blocks export
+        logger.warning("Could not write schedule fingerprint for %s.", target, exc_info=True)
     return target

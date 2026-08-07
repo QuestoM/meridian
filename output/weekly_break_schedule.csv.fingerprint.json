@@ -1,0 +1,12 @@
+{
+  "artifact": "weekly_break_schedule.csv",
+  "sha256": "26a59e3ae4f2b46cd30a8cdbbaab1a0d48427b6a439b93f3705a6daa591a92e7",
+  "rows": 8704,
+  "settings": {
+    "revenue_weight": 60,
+    "min_retention_floor": 0.72,
+    "operator_channel": "רשת 13",
+    "risk_lambda": 0.0
+  },
+  "note": "Committed on purpose. The freshness sidecar beside this file is gitignored and answers unknown on a fresh checkout, so it cannot guard the artifact. tests/test_plan_artifact_fingerprint.py compares this against the file and against data/kairos_settings.json."
+}
