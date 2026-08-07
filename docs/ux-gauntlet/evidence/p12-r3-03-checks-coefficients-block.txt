@@ -1,0 +1,18 @@
+P12 round 3 evidence 03: the adoption checks, points above intervals
+Command: python scripts/adopt_candidate.py checks afterwindow
+
+What its coefficients change
+  36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.
+  largest move 0.014066885 at PrimeShow2_first_short. kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.
+  mean absolute move, weighted by the breaks each cell was measured on: 0.010616886
+  A cell key is a programme class, a break position and a break length. It names no channel.
+
+What else the adopted artifact would change
+  credible bounds moved on 72 of the 72 bounds compared, across 36 cells
+  largest move 0.034514974 at PrimeShow2_first_short.ci_low. kairos/optimize/_segment_math.py:49 prices the risk_lambda decision
+  metadata keys dropped: before_after_window_minutes, between_cell_variance_tau2, bootstrap_B, channels, counterprogramming_active, counterprogramming_forward_features, counterprogramming_holdout, counterprogramming_reason, daily_input_dir, detrend_baseline_mode, detrend_seasonality_holdout, detrend_seasonality_reason, detrend_seasonality_recommended, detrended, event_layer_gate, first_break_active, first_break_mean_first, first_break_mean_later, first_break_multiplier, first_break_n_first, first_break_n_later, first_break_p_value, first_break_reason, interval_calibration_reason, interval_method, interval_seed, learned_pseudo_count, level_drift, moderated_variances, negative_cells, placebo_correction, placebo_correction_active, placebo_correction_reason, pooled, pooled_within_variance, pooling_method, prior_df, series_count, series_gate_holdout, series_gate_reason, series_layer, series_layer_active, source_data, width_factor_measured
+  metadata keys added: after_window_programme_start_pct, candidate, clip_dropped, clip_shortened, holdout_clean_test, max_abs_coefficient_diff_vs_shipped, purpose, residual_spot_overlap_breaks_pct, residual_spot_overlap_minutes_pct, unclipped_breaks, verification_matches_shipped
+  per-cell fields dropped: predictive_high, predictive_low
+
+This adoption is escalated and will not land.
+outcome: escalated

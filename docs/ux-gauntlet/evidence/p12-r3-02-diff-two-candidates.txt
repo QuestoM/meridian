@@ -1,0 +1,39 @@
+P12 round 3 evidence 02: the run diff, competitor, ranked by what each cell bought
+Command: python scripts/adopt_candidate.py diff competitor
+
+Coefficient delta, competitor against the shipped model
+  cell                               shipped   candidate       delta  breaks  squared error moved   share
+  Other_first_long                 -0.061660   -0.045843   +0.015817     238         +0.135280284  13.30%
+  News_last_standard               -0.057694   -0.042421   +0.015273      58         +0.106249136  10.45%
+  Other_last_short                 -0.041308   -0.034380   +0.006928     146         -0.079261815   7.79%
+  PrimeShow2_first_short           -0.056479   -0.041175   +0.015304      14         +0.061923427   6.09%
+  Other_middle_standard            -0.047390   -0.037873   +0.009517     255         -0.060473786   5.95%
+  News_middle_long                 -0.055513   -0.041474   +0.014039     105         +0.056580185   5.56%
+  Other_first_standard             -0.045253   -0.036522   +0.008731     207         -0.055707116   5.48%
+  Other_middle_long                -0.046604   -0.037554   +0.009050     292         -0.045790355   4.50%
+  PrimeShow1_last_standard         -0.044055   -0.036354   +0.007702      23         -0.041198290   4.05%
+  News_middle_standard             -0.053349   -0.040582   +0.012767      51         +0.039295297   3.86%
+  News_last_short                  -0.046802   -0.036408   +0.010394      67         -0.038392439   3.77%
+  Other_middle_short               -0.043699   -0.037991   +0.005708     134         -0.025772372   2.53%
+  24 further cells are not shown. Pass --all for every cell.
+
+  squared error moved is the candidate's squared error minus the shipped model's, summed over the breaks in that cell.
+  a negative figure is a cell where the candidate is closer to the measured effects than the shipped model.
+
+What its coefficients change
+  36 of 36 cells hold a different number, and 98.7 percent of the movement they make cancels between them. It takes 16 cells to reach 80 percent of it, so no small set of cells carries this.
+  largest move 0.015817128 at Other_first_long. kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.
+  mean absolute move, weighted by the breaks each cell was measured on: 0.010436076
+  A cell key is a programme class, a break position and a break length. It names no channel.
+
+
+Command: python scripts/adopt_candidate.py diff placebo_corrected
+The candidate whose points move on none of 36 cells while its credible bounds move on all 72.
+
+Coefficient delta, placebo_corrected against the shipped model
+  No coefficient moves. The two artifacts hold the same number in every cell they share.
+  every one of the 36 cells holds the same number in both artifacts
+  the credible bounds and the metadata are a separate comparison, and on this candidate they do move.
+  read them with: python scripts/adopt_candidate.py checks placebo_corrected
+  every cell and its value: python scripts/adopt_candidate.py diff placebo_corrected --all
+

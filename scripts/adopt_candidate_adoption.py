@@ -41,6 +41,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from scripts import adopt_candidate_ownership as ownership
 from scripts import adopt_candidate_words as words
 from scripts.adopt_candidate_state import (
     gate_evidence,
@@ -68,16 +69,24 @@ PREVIOUS_NAME = "previous.json"
 ADOPTED_NAME = "adopted.json"
 MANIFEST_NAME = "manifest.json"
 
-ESCALATION = {
-    "en": "This adoption would move a shipped figure, so it stops here. Record the measured movement and the reason with the owner, then place the owner's approval under models/releases/owner_approvals/ naming that exact movement in shekels.",
-    "he": "ההטמעה הזו תזיז מספר משודר, ולכן היא נעצרת כאן. יש לרשום מול הבעלים את התנועה הנמדדת ואת הסיבה, ואז להניח את אישור הבעלים תחת models/releases/owner_approvals/ עם אותה תנועה מדויקת בשקלים.",
-}
+# The sentence a money escalation prints, from the one table that holds both
+# halves of every authored string this piece emits.
+ESCALATION = words.ESCALATION
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _write_atomic(path: Path, text: str) -> None:
+def _write_atomic(path: Path, text: str, paths: Optional[Paths] = None) -> None:
+    """One write, and the only place this act touches the filesystem.
+
+    Guarded rather than trusted: the ownership row is checked here, at the line
+    that writes, so a later caller cannot reach a path outside it by forgetting
+    a check somewhere else.
+    """
+    if paths is not None:
+        ownership.guard(paths.root, path, paths.releases_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".tmp")
     with temporary.open("w", encoding="utf-8") as handle:
@@ -148,8 +157,6 @@ def _check(identifier: str, passed: bool, en: str, he: str, how: str = "",
             **words.pair(words.HOW, how, "how", **fields)}
 
 
-
-
 def preconditions(identifier: str, paths: Optional[Paths] = None,
                   approved_by: str = "", reason: str = "") -> dict[str, Any]:
     """Every condition an adoption must clear, each answered yes or no with why.
@@ -199,7 +206,7 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
         f"A ship verdict is recorded for this candidate: {decision['decision_id']}." if decision else
         f"The verdict on record for this candidate is no ship, taken {words.when((taken or {}).get('recorded_at'))}. Adopting it would contradict a decision somebody already took." if taken else
         "No verdict of any kind is recorded for this candidate against the model version on disk.",
-        "נרשמה הכרעת שיגור למועמד הזה." if decision else
+        "נרשמה הכרעה להשיק את המועמד הזה." if decision else
         "ההכרעה הרשומה למועמד הזה היא לא להשיק, והטמעה תסתור הכרעה שכבר התקבלה." if taken else
         "לא נרשמה שום הכרעה למועמד הזה מול גרסת המודל שעל הדיסק.",
         "record_verdict", id=identifier))
@@ -246,9 +253,23 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
             "התנועה הנמדדת היא אפס, ולכן שום מספר משודר אינו זז." if money["state"] == "measured" else
             "לא ידוע אם מספר משודר זז עד שהכסף נמדד."))
 
+    # The last write of this act lands on a path this piece's ownership row does
+    # not carry. It is a condition rather than a comment, because a rule nobody
+    # is stopped by is not a rule, and it is the last check because it is the
+    # last thing that happens.
+    owned = ownership.state(paths.root, paths.releases_dir)
+    checks.append(_check(
+        "write_target_is_owned", owned["ruled"],
+        f"The ruling on record puts {owned['path']} on this piece's ownership row." if owned["ruled"] else
+        f"Adopting writes {owned['path']}, which is absent from {owned['spec_row']}, so it is frozen by absence. Everything up to this point is on the row and has run.",
+        "הפסיקה הרשומה מציבה את הקובץ המשודר בשורת הבעלות של החלק הזה." if owned["ruled"] else
+        "ההטמעה כותבת אל הקובץ המשודר, שאינו נמצא בשורת הבעלות של החלק הזה, ולכן הוא קפוא בהיעדרו.",
+        "ownership_ruling", file=owned["ruling_file"], path=owned["path"]))
+
     return {
         "candidate_id": identifier,
         "checks": checks,
+        "ownership": owned,
         "passed": all(check["passed"] for check in checks),
         "blocked_on": [check["id"] for check in checks if not check["passed"]],
         "money": money,
@@ -259,18 +280,37 @@ def preconditions(identifier: str, paths: Optional[Paths] = None,
         # and its target asks for each with its held-out figure. Both are here
         # rather than one screen away, because the verdict is taken here.
         "gate_evidence": gate_evidence(shipped_payload, candidate_payload),
+        # The third of the three things JS-19's done condition names, beside the
+        # gate deltas and the money. Read from the stored re-score rather than
+        # recomputed, because attributing a cell needs the per-break errors and
+        # those cost the re-score's ten seconds of data loading.
+        "cell_deltas": _stored_cell_deltas(identifier, paths),
         "rescore_verdict": verdict,
         "model_version": version,
         "ship_decision": decision,
     }
 
 
-def _stored_verdict(identifier: str, paths: Paths) -> str:
+def _stored_row(identifier: str, paths: Paths) -> dict[str, Any]:
     stored = load_rescore(paths) or {}
     for row in stored.get("candidates") or []:
         if row.get("id") == identifier:
-            return str((row.get("verdict") or {}).get("state") or "unknown")
-    return "unknown"
+            return row
+    return {}
+
+
+def _stored_verdict(identifier: str, paths: Paths) -> str:
+    return str((_stored_row(identifier, paths).get("verdict") or {}).get("state") or "unknown")
+
+
+def _stored_cell_deltas(identifier: str, paths: Paths) -> dict[str, Any]:
+    """The coefficient delta as the re-score measured it, or nothing at all.
+
+    An empty answer is a real state: a re-score taken before this measurement
+    existed carries no cell rows, and the render says so rather than showing an
+    empty table that reads as "nothing moved".
+    """
+    return _stored_row(identifier, paths).get("cell_deltas") or {}
 
 
 def adopt(identifier: str, *, adopted_by: str, reason: str, release_note_he: str = "",
@@ -319,13 +359,19 @@ def adopt(identifier: str, *, adopted_by: str, reason: str, release_note_he: str
         "measured_revenue_delta": state["money"].get("revenue_delta"),
         "measured_revenue_scope": state["money"].get("scope"),
         "rescore_verdict": state["rescore_verdict"],
+        # JS-19's done condition, verbatim: the gate deltas, the coefficient
+        # deltas and the measured money movement, recorded against a new model
+        # version. All three are in this stamp, so a reader holding only the
+        # adopted file can see what was decided and on what.
+        "gate_deltas": (state["gate_evidence"] or {}).get("verdicts") or [],
+        "coefficient_deltas": (state["cell_deltas"] or {}).get("summary") or {},
         "revert_with": f"python scripts/adopt_candidate.py revert {adoption_id}",
     }
     metadata["adoption"] = stamp
     payload["metadata"] = metadata
     text = json.dumps(payload, ensure_ascii=False, indent=1) + "\n"
-    _write_atomic(directory / ADOPTED_NAME, text)
-    _write_atomic(paths.shipped, text)
+    _write_atomic(directory / ADOPTED_NAME, text, paths)
+    _write_atomic(paths.shipped, text, paths)
 
     record = {
         "adoption_id": adoption_id,
@@ -340,10 +386,11 @@ def adopt(identifier: str, *, adopted_by: str, reason: str, release_note_he: str
         "adopted_sha256": sha256_file(paths.shipped),
         "measured_revenue_delta": stamp["measured_revenue_delta"],
         "rescore_verdict": state["rescore_verdict"],
+        "coefficient_deltas": stamp["coefficient_deltas"],
         "ship_decision_id": stamp["ship_decision_id"],
         "directory": directory.relative_to(paths.root).as_posix(),
     }
-    _write_atomic(directory / MANIFEST_NAME, json.dumps(record, ensure_ascii=False, indent=1) + "\n")
+    _write_atomic(directory / MANIFEST_NAME, json.dumps(record, ensure_ascii=False, indent=1) + "\n", paths)
     _append(paths, record)
     plan.update({"adoption_id": adoption_id, "performed": True, "outcome": "adopted",
                  "record": record})
@@ -380,7 +427,7 @@ def revert(adoption_id: str, *, reverted_by: str, reason: str,
                 "restores_sha256": record.get("superseded_sha256"),
                 "reason_en": "Ready to revert. Nothing has been written.",
                 "reason_he": "מוכן לביטול. דבר לא נכתב."}
-    _write_atomic(paths.shipped, previous.read_text(encoding="utf-8"))
+    _write_atomic(paths.shipped, previous.read_text(encoding="utf-8"), paths)
     undo = {
         "adoption_id": adoption_id,
         "action": "reverted",

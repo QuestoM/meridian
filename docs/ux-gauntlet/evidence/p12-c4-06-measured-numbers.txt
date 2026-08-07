@@ -1,0 +1,73 @@
+P12 blind critic, wave two. Every number below was taken by this critic on this
+tree, by running the command that produces it. Nothing here is copied from the
+contract or from an earlier round.
+
+STOPWATCH, /usr/bin/time -p, before any edit
+  show                      0.31 s
+  checks afterwindow        0.26 s
+  diff afterwindow          0.20 s
+  decide afterwindow --perform  3.98 s   (recorded md-1c4973575ca4 against 2026-07-29)
+  whole JS-19 route         4.75 s against a 120 s target
+  show, after my edits      0.34 s
+  rescore --force           8.79 s wall, 2532 breaks, 36 cells, 5 candidates
+  measure afterwindow     168.1 s, not on the JS-19 route, announces its cost first
+  baseline in job-stories.md for JS-19: cannot start, nothing exists, no floor
+
+HONEST MATH, recomputed from source by this critic, sharing nothing with the
+piece except the frozen loaders. Script and output are files 04 and 05.
+  breaks 2532, cells 36, window 2024-11-01 to 2024-11-30
+  target sd            0.241378699   matches the stored 0.241378699
+  shipped rmse         0.241160667   matches
+  spotclip             0.241004968  stat -0.7756  disp 0.000418291  matches
+  afterwindow          0.241046876  stat -0.5212  disp 0.000461744  matches
+  calibrated           0.241046876  stat -0.5212  disp 0.000461744  matches
+  competitor           0.241150155  stat -0.0488  disp 0.000459413  matches
+  placebo_corrected    0.241160667  stat  0.0     disp 0.0          matches, identical
+  global_mean_loo      0.241474068   matches
+  cell_mean_loo        0.242097429   matches
+  cells moved          36, 36, 36, 0, 36 against 36 compared   matches
+  cancellation         0.789088, 0.862227, 0.862227, none, 0.98738   matches
+  largest move         0.014066885 at PrimeShow2_first_short on afterwindow   matches
+  cells not carried    0 on all six artifacts
+
+MONEY, re-measured by this critic against a copy of the store, 168.1 s
+  operator's own channel  +923,843.08 over 2,540 rows
+  whole plan              +5,290,848.33
+  identical to the figure on the tree, measured 2026-08-07T02:42:07
+
+THE TRAINING LINE, on a server this critic started on port 8063
+  openapi paths                       153
+  paths matching adopt                0
+  app.routes                          198
+  routes handled out of scripts/      0
+  kairos_api modules naming the act   0
+  frontend files naming the act       0
+  GET /api/model/candidates/afterwindow unauthenticated  401
+
+REGRESSION
+  P12 tests before my edits   116 passed in 5.47 s
+  P12 tests after my edits    126 passed in 4.92 s
+  P7 tests before my edits    105 passed in 223.55 s with -p no:randomly
+  P7 tests after my edits     105 passed in 218.45 s with -p no:randomly
+  P7 under random ordering    1 failed, 104 passed: console_bridge_session, an
+                              intermittent focus assertion, passes in isolation
+  npm run build before        green in 363 ms
+  npm run build after         green in 672 ms
+  models/tv_break_coefficients.json  1e41d92b1a14 before and after
+  models/releases/decisions.jsonl    7 records before and after
+  models/candidates/                 untouched, five artifacts
+
+LAWS
+  largest module              422 lines, cap 450
+  em dash, exclamation, emoji outside the test that holds the laws: none
+  the word forbidden by the vocabulary rule: absent
+  hard-wrapped display strings: none, by a token scan for cross-line concatenation
+  cell keys naming a channel: none, four classes, three positions, three lengths
+  Hebrew: 17 uses of the canonical singular, 8 of the canonical plural
+
+LIVE, through P7's own route, on my own server
+  GET /api/model/candidates/afterwindow
+    rescore.rmse 0.241046876 against shipped_rmse 0.241160667
+    cells_moved 36 of 36, cancelled_share 0.862227, evaluation.breaks 2532
+  GET /api/model/candidates/placebo_corrected, after my tri-state fix
+    cells_moved 0, cancelled_share null, max_abs_delta null

@@ -65,6 +65,15 @@ COUNTED_BASIS_HE = (
     "במנוע מאותו ספר תשדירים שלוח הכספים קורא. דבר אינו מחויב בחשבונית."
 )
 
+# The one sentence that has to be in front of the reader rather than behind the
+# disclosure, because it changes what every verdict on the board means. The long
+# basis above stays where it is; this is the half a reader cannot afford to miss.
+# Measured cause: a reader who never opened the disclosure could take an at-risk
+# verdict as a measured delivery shortfall, and the delivery ledger's own
+# figures_basis, which says the same thing, was rendered nowhere at all.
+COUNTED_IS_PLANNED_EN = "Counted means the spots the traffic log holds at their planned rating, not a measured delivery."
+COUNTED_IS_PLANNED_HE = "נספר פירושו התשדירים שיומן השידור מחזיק לפי הרייטינג המתוכנן שלהם, ולא אספקה נמדדת."
+
 NO_GOAL_EN = "This campaign carries no goal in this unit, so there is nothing to pace against."
 NO_GOAL_HE = "הקמפיין הזה אינו נושא יעד ביחידה הזו, ולכן אין מול מה למדוד קצב."
 NO_GOAL_PATH_EN = "Open the campaign and set a goal on its flight."
@@ -145,6 +154,28 @@ ACCEPT_MEANING_HE = (
     "קבלת הסיכון רושמת החלטה ואינה משנה שום נתון. הקמפיין נשאר בלוח עם אותו מצב, והשורה אומרת מעכשיו "
     "מי החליט ומתי."
 )
+
+# One rule for one act, published so no client can hold a second one.
+#
+# The measured defect this closes: the write path accepted a raise on the
+# ``to_date`` rung, which is the gap against the pace reference at the counted
+# day, while the surface offered that raise on none of its rows. Two rules for
+# one act means any other client, the assistant included, could put a debt in the
+# ledger that the product itself says is not owed. Measured on the shipped data,
+# 13 of 56 rows reached the ``to_date`` rung and 0 of 56 offered a raise.
+#
+# The rule kept is the surface's, and the trade says why. A make-good compensates
+# a spot that did not air or aired wrong. A flight that is merely behind on day
+# one of seven with unbooked days ahead has had no spot fail: it can still
+# deliver, and the remedy is to book the remaining days. The gap to date stays a
+# real measured figure and it is still what an accepted risk is stamped with; it
+# is not a debt.
+RAISE_RULE_EN = "A make-good is raised only against a shortfall that is owed: a flight that has closed with every broadcast day sourced, or a running flight whose remaining days all carry a source and still fall short."
+RAISE_RULE_HE = "פיצוי שידור נפתח רק מול חוסר שכבר חייבים אותו: טיסה שנסגרה ולכל יום שידור שלה יש מקור, או טיסה שרצה שלכל הימים שנותרו בה יש מקור והיא עדיין אינה מגיעה ליעד."
+NOT_OWED_YET_EN = "This campaign is behind the pace reference and nothing is owed yet, because broadcast days ahead of it carry no source and the flight can still reach the goal."
+NOT_OWED_YET_HE = "הקמפיין הזה מפגר אחרי ייחוס הקצב ועדיין אין חוב, כי לימי שידור שלפניו אין מקור והטיסה עדיין יכולה להגיע ליעד."
+NOT_OWED_YET_PATH_EN = "Book the remaining days or upload the traffic file that holds them, and the raise becomes available. Until then the decision to record is that the risk stands."
+NOT_OWED_YET_PATH_HE = "הזמינו את הימים שנותרו או העלו את קובץ השידור שמחזיק אותם, והפתיחה תתאפשר. עד אז ההחלטה שנרשמת היא שהסיכון נשאר."
 
 PACE_VERDICTS = (
     {
@@ -247,6 +278,52 @@ def trigger_block() -> dict[str, Any]:
         "not_a_commercial_term_en": TRIGGER_OWNER_EN,
         "not_a_commercial_term_he": TRIGGER_OWNER_HE,
     }
+
+
+def raise_rule_block(raisable_kinds: tuple[str, ...]) -> dict[str, Any]:
+    """The one rule that decides whether a make-good may be raised, published on the board.
+
+    The surface reads it and the write path enforces it, so a reader, a test and
+    any other client are looking at the same sentence rather than at two rules
+    that happen to agree today.
+    """
+    return {
+        "raisable_deficit_kinds": list(raisable_kinds),
+        "rule_en": RAISE_RULE_EN,
+        "rule_he": RAISE_RULE_HE,
+        "not_owed_yet_en": NOT_OWED_YET_EN,
+        "not_owed_yet_he": NOT_OWED_YET_HE,
+        "path_forward_en": NOT_OWED_YET_PATH_EN,
+        "path_forward_he": NOT_OWED_YET_PATH_HE,
+    }
+
+
+def forward_reason(state: str) -> dict[str, Any]:
+    """The prose one forward state carries, as the four strings a surface renders.
+
+    It is the same block ``_forward`` writes onto a row. Having it addressable by
+    state is what lets the wire publish it once instead of on every row: measured,
+    the forward prose alone was 51 copies of two paragraphs.
+    """
+    table = {
+        COVERED: (FORWARD_COVERED_EN, FORWARD_COVERED_HE, "", ""),
+        SHORT_CERTAIN: (FORWARD_SHORT_EN, FORWARD_SHORT_HE, "", ""),
+        NOT_BOOKED_YET: (FORWARD_OPEN_EN, FORWARD_OPEN_HE, FORWARD_OPEN_PATH_EN, FORWARD_OPEN_PATH_HE),
+    }
+    entry = table.get(state)
+    if entry is None:
+        return {"reason_en": "", "reason_he": "", "path_forward_en": "", "path_forward_he": ""}
+    return {
+        "reason_en": entry[0],
+        "reason_he": entry[1],
+        "path_forward_en": entry[2],
+        "path_forward_he": entry[3],
+    }
+
+
+def reference_rule() -> dict[str, str]:
+    """The even-share rule, which every row's reference block repeated verbatim."""
+    return {"rule_en": EVEN_REFERENCE_EN, "rule_he": EVEN_REFERENCE_HE}
 
 
 def vocabularies() -> dict[str, Any]:

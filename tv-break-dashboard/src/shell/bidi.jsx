@@ -105,23 +105,49 @@ export function documentDirection(locale) {
 
 // A DIRECTION ROOT is the one kind of element that SHOULD carry a direction
 // override, because it is establishing the direction rather than escaping one.
-// There are three of them and no more:
+// There are four of them and no more:
 //
 //   the application shell, which sets the direction the whole dashboard reads in;
 //   a screen rendered before a locale exists, such as the Hebrew login;
 //   an overlay or dialog rendered through a portal, which lands outside the
-//   shell's subtree in the DOM and so inherits nothing from it.
+//   shell's subtree in the DOM and so inherits nothing from it;
+//   a self-contained widget mounted into a host that is not the shell.
 //
-// That last case is why this cannot simply be deleted everywhere. A portalled
+// The portal case is why this cannot simply be deleted everywhere. A portalled
 // dialog with no direction root falls back to the document default and a Hebrew
 // dialog renders left-to-right.
 //
 // Everything BELOW a root inherits from it and must not restate it. A section,
 // a panel or a card writing dir={locale === 'he' ? 'rtl' : 'ltr'} is not a root:
 // it is the disease this file exists to cure, and it should simply be deleted.
-export function DirectionRoot({ locale, as: Element = 'div', children, ...rest }) {
+//
+// Refs are forwarded because a root is often the element a widget measures,
+// scrolls or focuses.
+export const DirectionRoot = React.forwardRef(
+  function DirectionRoot({ locale, as: Element = 'div', children, ...rest }, ref) {
+    return (
+      <Element dir={documentDirection(locale)} ref={ref} {...rest}>
+        {children}
+      </Element>
+    );
+  },
+);
+
+// A block of text whose language is not known until it arrives: a paragraph the
+// model wrote, an operator's free-text note, a message from the server. Each
+// block is its own direction root, taking both its order and its alignment from
+// its own first strong character, so a Hebrew paragraph reads right to left and
+// an English one beside it reads left to right.
+//
+// This is a deliberate override rather than an isolate. Isolation alone would
+// order the paragraph correctly and still align it to the direction it
+// inherited, which puts a Hebrew paragraph on the wrong edge of the thread.
+//
+// Use it only for text somebody else wrote. Interface copy already knows its
+// language and needs nothing.
+export function Prose({ as: Element = 'p', children, className, ...rest }) {
   return (
-    <Element dir={documentDirection(locale)} {...rest}>
+    <Element dir="auto" className={className} {...rest}>
       {children}
     </Element>
   );

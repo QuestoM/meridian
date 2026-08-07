@@ -1,4 +1,5 @@
 import React from 'react';
+import { Figure, Name } from '../../shell/bidi';
 import {
   AlertTriangle,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import {
   amount,
+  bare,
   barsFor,
   headlineLine,
   isolate,
@@ -59,10 +61,18 @@ function Verdict({ verdict, vocabulary, locale }) {
 }
 
 // The counted figure and the goal it is counted against, with the days it covers.
+//
+// The percentage is not the counted figure over the goal, it is the counted
+// figure over the even share of the goal that the counted days were owed. Both
+// operands of a number on a screen belong on the same screen: measured on the
+// shipped board, the row printed 4.4 of 35 and 88 percent and left the 5.0 that
+// makes 88 percent true only as the position of an unlabelled mark on the bar,
+// so a reader who divided what they could see got 12.6 percent.
 function Headline({ line, flight, locale }) {
   if (!line) return null;
   const figures = pair(line.counted.through_counted_day, line.goal, line.unit, locale);
   const ratio = line.pace ? percent(line.pace.ratio, locale) : null;
+  const reference = line.reference ? bare(line.reference.expected_through_counted_day, line.unit, locale) : null;
   return (
     <div className="pacing-headline">
       <strong className="pacing-figure">{figures}</strong>
@@ -74,7 +84,16 @@ function Headline({ line, flight, locale }) {
         )}
       </small>
       {ratio ? (
-        <span className={`pacing-ratio ${line.pace.verdict}`} dir="ltr">{ratio}</span>
+        <Figure className={`pacing-ratio ${line.pace.verdict}`}>{ratio}</Figure>
+      ) : null}
+      {ratio && reference !== null ? (
+        <small className="pacing-against">
+          {pick(
+            locale,
+            `against a reference of ${reference} by that day`,
+            `מול ייחוס של ${isolate(reference)} עד אותו יום`,
+          )}
+        </small>
       ) : null}
     </div>
   );
@@ -137,6 +156,41 @@ function Forward({ line, vocabulary, locale }) {
   );
 }
 
+// The sentence a remedy states, above the acts rather than inside them. It used
+// to sit in the act group, which is how a row came to hold a sentence, a filled
+// button, an outlined button and a bare link on one line at three weights.
+function RemedySentence({ remedy, locale }) {
+  if (remedy.kind !== 'book') return null;
+  const left = amount(remedy.remaining, remedy.unit, locale);
+  return (
+    <p className="pacing-remedy-note">
+      {pick(
+        locale,
+        `Book ${left} across the ${remedy.days.length} remaining broadcast days, or upload the traffic file that already holds them.`,
+        `הזמינו ${left} על פני ${isolate(remedy.days.length)} ימי השידור שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם.`,
+      )}
+    </p>
+  );
+}
+
+// The days a booking remedy names, behind a disclosure and on the disclosure
+// line, because a list that expands the card in place is not an act.
+function RemedyDays({ remedy, locale }) {
+  if (remedy.kind !== 'book' || !remedy.days.length) return null;
+  return (
+    <details className="pacing-remedy-days">
+      <summary>
+        {pick(
+          locale,
+          `The ${remedy.days.length} days with no source`,
+          `${isolate(remedy.days.length)} הימים שאין להם מקור`,
+        )}
+      </summary>
+      <Figure>{remedy.days.join(', ')}</Figure>
+    </details>
+  );
+}
+
 function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
   if (remedy.kind === 'raise') {
     const value = amount(remedy.value, remedy.unit, locale);
@@ -149,41 +203,20 @@ function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
   }
   if (remedy.kind === 'open') {
     return (
-      <button type="button" className="pacing-remedy open" onClick={() => onOpenMakeGood(remedy.makeGoodId)}>
+      <button type="button" className="pacing-remedy" onClick={() => onOpenMakeGood(remedy.makeGoodId)}>
         {pick(locale, `Open make-good ${remedy.makeGoodId}`, `פתחו את פיצוי ${isolate(remedy.makeGoodId)}`)}
       </button>
     );
   }
   // The statement carries the act. A remedy that names an upload and then leaves
   // the reader to find the upload themselves is a diagnosis, not a remedy, so the
-  // sentence ends in the control that performs it and the dates it names sit
-  // behind a disclosure rather than in front of the control.
+  // act this row offers is the one control that performs it.
   if (remedy.kind === 'book') {
-    const left = amount(remedy.remaining, remedy.unit, locale);
     return (
-      <div className="pacing-remedy-book">
-        <span className="pacing-remedy-note">
-          {pick(
-            locale,
-            `Book ${left} across the ${remedy.days.length} remaining broadcast days, or upload the traffic file that already holds them.`,
-            `הזמינו ${left} על פני ${isolate(remedy.days.length)} ימי השידור שנותרו, או העלו את קובץ השידור שכבר מחזיק אותם.`,
-          )}
-        </span>
-        <a className="pacing-remedy open" href={UPLOAD_HASH}>
-          <Upload size={13} aria-hidden="true" />
-          {pick(locale, 'Open Data to upload it', 'פתחו את נתונים כדי להעלות')}
-        </a>
-        <details className="pacing-remedy-days">
-          <summary>
-            {pick(
-              locale,
-              `The ${remedy.days.length} days with no source`,
-              `${isolate(remedy.days.length)} הימים שאין להם מקור`,
-            )}
-          </summary>
-          <span dir="ltr">{remedy.days.join(', ')}</span>
-        </details>
-      </div>
+      <a className="pacing-remedy" href={UPLOAD_HASH}>
+        <Upload size={13} aria-hidden="true" />
+        {pick(locale, 'Open Data to upload it', 'פתחו את נתונים כדי להעלות')}
+      </a>
     );
   }
   // A supply remedy is the same block the row already prints above the track,
@@ -241,10 +274,17 @@ export default function PacingRow({
     <article className={`pacing-row ${row.headline.verdict}`} aria-labelledby={`pacing-${row.campaign_id}`}>
       <div className="pacing-row-head">
         <Verdict verdict={row.headline.verdict} vocabulary={vocabulary} locale={locale} />
+        {/* A name is data and takes its own direction, never the surface's. The
+            campaign names in this store are a period, then the advertiser, then
+            the brand, and two of the three are Hebrew. Measured on the English
+            pass without this, the two Hebrew segments of
+            "2025-04 - עמותת מל"י - מל"י" painted in reverse order, so the screen
+            named the brand before the advertiser. dir=auto takes the direction
+            from the first strong character, which is the name's own. */}
         <div className="pacing-names">
-          <strong id={`pacing-${row.campaign_id}`}>{row.name || row.campaign_id}</strong>
+          <strong id={`pacing-${row.campaign_id}`}><Name>{row.name || row.campaign_id}</Name></strong>
           <small>
-            {row.advertiser}
+            <Name>{row.advertiser}</Name>
             {flight ? ` ${isolate(`${flight.starts_on} - ${flight.ends_on}`)}` : ''}
           </small>
         </div>
@@ -268,9 +308,14 @@ export default function PacingRow({
 
       <Forward line={line} vocabulary={vocabulary} locale={locale} />
 
+      {/* Acts on one line at one height, and the disclosure that expands the card
+          on its own below them. The owner reported the three weights and three
+          baselines this replaces, and design-rules.md section 4 states the rule. */}
+      {canEdit ? <RemedySentence remedy={remedy} locale={locale} /> : null}
+
       <div className="pacing-row-foot">
         {canEdit ? (
-          <>
+          <div className="pacing-row-acts">
             <Remedy
               remedy={remedy}
               locale={locale}
@@ -285,10 +330,14 @@ export default function PacingRow({
               onAccept={onAccept}
               onOpenLedger={onOpenMakeGood}
             />
-          </>
+          </div>
         ) : (
           <span className="pacing-remedy-note">{editRefusal}</span>
         )}
+      </div>
+
+      <div className="pacing-row-disclosure">
+        {canEdit ? <RemedyDays remedy={remedy} locale={locale} /> : null}
         {row.days_available ? (
           <button type="button" className="pacing-days-toggle" aria-expanded={expanded} onClick={onToggle}>
             <Chevron size={13} aria-hidden="true" />

@@ -29,6 +29,11 @@ OFFER_VALUE_HE = "הצעה נושאת ערך גדול מאפס ביחידה של
 NEEDS_OFFER_EN = "A make-good is settled or declined against an offer, and this one carries none yet."
 NEEDS_OFFER_HE = "פיצוי נסגר או נדחה מול הצעה, ולפיצוי הזה עדיין אין הצעה."
 
+REASON_MISSING_EN = "Closing a record without a delivery takes a reason, and this one carries none. Choose one of: {allowed}."
+REASON_MISSING_HE = "סגירת רשומה בלי שנעשתה השלמה מחייבת סיבה, ולזו אין אחת. בחרו אחת מתוך: {allowed}."
+REASON_NOTE_EN = "The reason chosen is the open one, so the note that says what actually happened is required."
+REASON_NOTE_HE = "הסיבה שנבחרה היא הפתוחה, ולכן נדרשת ההערה שאומרת מה קרה בפועל."
+
 NOWHERE_EN = "nowhere, it is finished"
 NOWHERE_HE = "לשום מצב, הוא סגור"
 UNKNOWN_STATE_EN = "a state this ledger does not hold"
@@ -84,6 +89,24 @@ def refuse_transition(current: str, target: str, kind: str) -> HTTPException:
     )
 
 
+def check_reason(target: str, reason: str, note: str) -> None:
+    """A closing transition carries a controlled reason, and the open one carries a note.
+
+    Two rules, both Stripe's on a refund. A record removed from the ledger with
+    no reason is a record nobody can answer for, and a reason of ``other`` with
+    no note says exactly as little as no reason at all.
+    """
+    if target not in ledger.REASON_REQUIRED:
+        return
+    if not ledger.reason_allowed(target, reason):
+        allowed_en = ", ".join(entry["label_en"] for entry in ledger.close_reasons(target))
+        allowed_he = ", ".join(entry["label_he"] for entry in ledger.close_reasons(target))
+        raise refuse(400, REASON_MISSING_EN.format(allowed=allowed_en),
+                     REASON_MISSING_HE.format(allowed=allowed_he))
+    if reason == ledger.OTHER and not note:
+        raise refuse(400, REASON_NOTE_EN, REASON_NOTE_HE)
+
+
 def new_row(record_id: str, kind: str, row: dict[str, Any], view: dict[str, Any],
             deficit: dict[str, Any], note: str, actor: str) -> dict[str, str]:
     """The ledger row an act writes, every figure taken from the board rather than the request."""
@@ -119,6 +142,9 @@ def new_row(record_id: str, kind: str, row: dict[str, Any], view: dict[str, Any]
 def apply_move(frame: Any, index: int, target: str, payload: Any, actor: str) -> None:
     """Write one transition onto the row, validating what the target state needs."""
     stamp = ledger.now_stamp()
+    reason = str(getattr(payload, "reason", "") or "").strip()
+    note = payload.note.strip()
+    check_reason(target, reason, note)
     if target == ledger.OFFERED:
         value = payload.offer_value
         if value is None or float(value) <= 0:
@@ -140,5 +166,6 @@ def apply_move(frame: Any, index: int, target: str, payload: Any, actor: str) ->
     if target in (ledger.SETTLED, ledger.DECLINED, ledger.WITHDRAWN):
         frame.at[index, "closed_at"] = stamp
         frame.at[index, "closed_by"] = actor
-        frame.at[index, "close_note"] = payload.note.strip()
+        frame.at[index, "close_reason"] = reason
+        frame.at[index, "close_note"] = note
     frame.at[index, "state"] = target

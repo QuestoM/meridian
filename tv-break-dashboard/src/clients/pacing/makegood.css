@@ -179,3 +179,49 @@
   color: var(--ink);
   border-color: var(--line-strong);
 }
+
+/* The confirmation that closes a record without a delivery. It is an amber card
+   and not a red one: the act is irreversible and it is not an error, and
+   design-rules.md section 2 gives one meaning per colour. A full border in the
+   state colour, never a one-sided accent. */
+.makegood-close-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+}
+
+.makegood-close-ask {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.makegood-close-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.makegood-close-form select,
+.makegood-close-form input {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.makegood-closure {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}

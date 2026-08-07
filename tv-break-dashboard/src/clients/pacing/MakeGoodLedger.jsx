@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { amount, instant, isolate, localized, pair, pick, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
+import { Figure, Name } from '../../shell/bidi';
+import { amount, instant, isolate, localized, pair, pick, unitWord, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
 
 // The decision ledger: what was measured, what was decided about it, and who
 // acted. Every row is a record with a state, and the states it may move to next
@@ -94,17 +95,28 @@ function OfferForm({ record, locale, busy, onSubmit, onCancel }) {
         });
       }}
     >
+      {/* The unit is named on the field rather than described. "In the shortfall
+          unit" makes a person look up the row to learn what they are typing. The
+          word comes from the same helper that puts a unit after a printed figure,
+          because the ledger read carries no unit vocabulary and reaching for one
+          that is not there put the store's key on a label. */}
       <label>
-        <span>{pick(locale, 'Offer, in the shortfall unit', 'ההצעה, ביחידת החוסר')}</span>
-        <input type="number" step="0.01" min="0" dir="ltr" value={value} onChange={(e) => setValue(e.target.value)} required />
+        <span>
+          {pick(
+            locale,
+            `Offer, in ${unitWord(record.shortfall.unit, locale)}`,
+            `ההצעה, ב${unitWord(record.shortfall.unit, locale)}`,
+          )}
+        </span>
+        <input type="number" step="0.01" min="0" className="bidi-figure" value={value} onChange={(e) => setValue(e.target.value)} required />
       </label>
       <label>
         <span>{pick(locale, 'Window opens', 'החלון נפתח')}</span>
-        <input type="date" dir="ltr" value={start} onChange={(e) => setStart(e.target.value)} />
+        <input type="date" className="bidi-figure" value={start} onChange={(e) => setStart(e.target.value)} />
       </label>
       <label>
         <span>{pick(locale, 'Window closes', 'החלון נסגר')}</span>
-        <input type="date" dir="ltr" value={end} onChange={(e) => setEnd(e.target.value)} />
+        <input type="date" className="bidi-figure" value={end} onChange={(e) => setEnd(e.target.value)} />
       </label>
       <label className="makegood-note">
         <span>{pick(locale, 'What was agreed', 'מה סוכם')}</span>
@@ -113,6 +125,60 @@ function OfferForm({ record, locale, busy, onSubmit, onCancel }) {
       <div className="makegood-offer-actions">
         <button type="submit" disabled={busy}>{pick(locale, 'Record the offer', 'רשמו את ההצעה')}</button>
         <button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Cancel', 'ביטול')}</button>
+      </div>
+    </form>
+  );
+}
+
+// Closing a record without a delivery is the one act here that cannot be undone,
+// so it is the one act that asks before it fires. The reference is Stripe, which
+// requires a reason on every refund, requires a note when that reason is the open
+// one, and confirms a cancellation with a button that names the act rather than
+// with the word Yes. Before this, Withdraw it and Revoke the decision fired on a
+// single click with an optional free-text note and no reason at all, and a
+// withdrawn record was unauditable.
+//
+// The reasons are the ledger's own published list, so this form offers exactly
+// what the store will accept and never a fifth option it would refuse.
+function CloseForm({ record, state, locale, busy, vocabulary, onSubmit, onCancel }) {
+  const offered = ((vocabulary.close_reasons || {})[state]) || [];
+  const openReason = vocabulary.reason_needing_a_note || 'other';
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const needsNote = reason === openReason;
+  return (
+    <form
+      className="makegood-close-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit({ state, reason, note });
+      }}
+    >
+      <p className="makegood-close-ask">
+        {pick(
+          locale,
+          'This closes the record and nothing reopens it. The ledger keeps the row and records who closed it and why.',
+          'הפעולה סוגרת את הרשומה ואין דרך לפתוח אותה מחדש. ספר ההחלטות שומר את השורה ורושם מי סגר אותה ומדוע.',
+        )}
+      </p>
+      <label>
+        <span>{pick(locale, 'Why', 'מדוע')}</span>
+        <select value={reason} required onChange={(e) => setReason(e.target.value)}>
+          <option value="">{pick(locale, 'Choose a reason', 'בחרו סיבה')}</option>
+          {offered.map((entry) => (
+            <option key={entry.value} value={entry.value}>{pick(locale, entry.label_en, entry.label_he)}</option>
+          ))}
+        </select>
+      </label>
+      <label className="makegood-note">
+        <span>{needsNote ? pick(locale, 'What happened', 'מה קרה') : pick(locale, 'What happened, if it helps', 'מה קרה, אם זה עוזר')}</span>
+        <input type="text" maxLength={500} required={needsNote} value={note} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <div className="makegood-offer-actions">
+        <button type="submit" disabled={busy}>
+          {pick(locale, `Yes, ${actWord(state, record.kind, 'en').toLowerCase()}`, `כן, ${actWord(state, record.kind, 'he')}`)}
+        </button>
+        <button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Keep it', 'השאירו אותה')}</button>
       </div>
     </form>
   );
@@ -135,16 +201,35 @@ function Offer({ record, locale }) {
         `הוצעו ${amount(record.offer.value, record.shortfall.unit, locale)}`,
       )}
       {window ? ' ' : ''}
-      {window ? <span dir="ltr">{window}</span> : null}
+      {window ? <Figure>{window}</Figure> : null}
       {record.offer.offered_by ? ` ${pick(locale, 'by', 'על ידי')} ${record.offer.offered_by}` : ''}
       {record.offer.note ? ` ${record.offer.note}` : ''}
     </p>
   );
 }
 
+// Why a record was closed, on the record. A reason the store now requires and
+// nothing rendered would be a field written for a database rather than for the
+// person who has to answer for the decision next quarter.
+function Closure({ record, locale, vocabulary }) {
+  if (!record.close_reason) return null;
+  const reasons = (vocabulary.close_reasons || {})[record.state] || [];
+  return (
+    <p className="makegood-closure">
+      {pick(locale, 'Closed as: ', 'נסגרה בתור: ')}
+      {vocabularyLabel(reasons, record.close_reason, locale)}
+      {record.closed_by ? ` ${pick(locale, 'by', 'על ידי')} ${record.closed_by}` : ''}
+    </p>
+  );
+}
+
 export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, busyId, onMove, onOpenCampaign }) {
   const [offering, setOffering] = useState('');
+  // Which record is being closed and into which state, so the confirmation is
+  // about one act on one row and never about the last button pressed.
+  const [closing, setClosing] = useState({ id: '', state: '' });
   const vocabulary = payload.vocabulary || {};
+  const asks = vocabulary.reason_required || [];
   // Both endings, in one timeline. Reading only make_goods was measured hiding
   // every recorded acceptance: the tab badge counted one record and the list said
   // no make-good had been raised, which is the exact pair of screens the second
@@ -168,10 +253,15 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
 
       {rows.length === 0 ? (
         <p className="pacing-empty">
+          {/* The old sentence promised a control this data does not carry.
+              Measured on the shipped board, 0 of 56 rows reach a raise, because a
+              make-good is owed only once the whole log is counted. Saying the
+              rule tells a reader why they will not find the control, instead of
+              sending them to look for it. */}
           {pick(
             locale,
-            'Nothing has been decided yet. A campaign with a measured shortfall carries the control that raises a make-good, and every campaign the board asks about carries the one that records the risk as taken on.',
-            'עדיין לא הוכרעה אף החלטה. קמפיין עם חוסר נמדד נושא את הפקד שפותח פיצוי שידור, וכל קמפיין שהלוח מבקש עליו החלטה נושא את הפקד שרושם את קבלת הסיכון.',
+            'Nothing has been decided yet. A make-good is offered on a campaign only once every remaining broadcast day carries a source and the flight still falls short, so a flight with unsourced days ahead of it offers the booking instead. Every campaign the board asks a decision about carries the control that records the risk as taken on.',
+            'עדיין לא הוכרעה אף החלטה. פיצוי שידור מוצע בקמפיין רק כשלכל יום שידור שנותר יש מקור והטיסה עדיין אינה מגיעה ליעד, ולכן טיסה שלפניה ימים בלי מקור מציעה במקומו את ההזמנה. כל קמפיין שהלוח מבקש עליו החלטה נושא את הפקד שרושם את קבלת הסיכון.',
           )}
         </p>
       ) : null}
@@ -189,17 +279,19 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
                   title={vocabularyMeaning(vocabulary.kinds, record.kind, locale)}>
               {vocabularyLabel(vocabulary.kinds, record.kind, locale)}
             </span>
-            <button type="button" className="makegood-campaign" onClick={() => onOpenCampaign(record.campaign_id)}>
-              {record.campaign_name || record.campaign_id}
+            <button type="button" className="makegood-campaign"
+                    onClick={() => onOpenCampaign(record.campaign_id)}>
+              <Name>{record.campaign_name || record.campaign_id}</Name>
             </button>
-            <small className="makegood-flight" dir="ltr">
-              {record.flight.starts_on} - {record.flight.ends_on}
+            <small className="makegood-flight">
+              <Figure>{record.flight.starts_on} - {record.flight.ends_on}</Figure>
             </small>
             {record.is_demo ? <span className="pacing-demo">{pick(locale, 'Demo', 'הדגמה')}</span> : null}
           </div>
 
           <Figures record={record} locale={locale} vocabulary={vocabulary} />
           <Offer record={record} locale={locale} />
+          <Closure record={record} locale={locale} vocabulary={vocabulary} />
 
           <small className="makegood-trail">
             {pick(
@@ -216,9 +308,11 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
                   key={state}
                   type="button"
                   disabled={busyId === record.make_good_id}
-                  onClick={() => (state === 'offered'
-                    ? setOffering(record.make_good_id)
-                    : onMove(record.make_good_id, { state }))}
+                  onClick={() => {
+                    if (state === 'offered') return setOffering(record.make_good_id);
+                    if (asks.indexOf(state) >= 0) return setClosing({ id: record.make_good_id, state });
+                    return onMove(record.make_good_id, { state });
+                  }}
                 >
                   {actWord(state, record.kind, locale)}
                 </button>
@@ -231,15 +325,33 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
             <span className="pacing-remedy-note">{editRefusal}</span>
           )}
 
+          {closing.id === record.make_good_id ? (
+            <CloseForm
+              record={record}
+              state={closing.state}
+              locale={locale}
+              vocabulary={vocabulary}
+              busy={busyId === record.make_good_id}
+              onCancel={() => setClosing({ id: '', state: '' })}
+              onSubmit={async (payloadOut) => {
+                const landed = await onMove(record.make_good_id, payloadOut);
+                if (landed) setClosing({ id: '', state: '' });
+              }}
+            />
+          ) : null}
+
           {offering === record.make_good_id ? (
             <OfferForm
               record={record}
               locale={locale}
               busy={busyId === record.make_good_id}
               onCancel={() => setOffering('')}
-              onSubmit={(payloadOut) => {
-                setOffering('');
-                onMove(record.make_good_id, payloadOut);
+              onSubmit={async (payloadOut) => {
+                // The form closes when the move landed, and only then. It used to
+                // close first, so a refused offer took the value, the window and
+                // the note down with it and the reader typed all three again.
+                const landed = await onMove(record.make_good_id, payloadOut);
+                if (landed) setOffering('');
               }}
             />
           ) : null}

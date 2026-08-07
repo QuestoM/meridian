@@ -1,0 +1,22 @@
+breaks 2532
+cells 36
+window 2024-11-01 to 2024-11-30
+target sd (numpy default ddof=0) 0.241378699
+target sd (ddof=1) 0.241426379
+shipped rmse 0.241160667 missing 0
+afterwindow {"rmse": 0.241046876, "delta": -0.00011379, "stat": -0.5212, "disp": 0.000461744, "missing": 0, "moved": 36, "of": 36, "largest": 0.014066885, "largest_at": "PrimeShow2_first_short", "cancelled": 0.862227, "identical": false}
+calibrated {"rmse": 0.241046876, "delta": -0.00011379, "stat": -0.5212, "disp": 0.000461744, "missing": 0, "moved": 36, "of": 36, "largest": 0.014066885, "largest_at": "PrimeShow2_first_short", "cancelled": 0.862227, "identical": false}
+competitor {"rmse": 0.241150155, "delta": -1.0511e-05, "stat": -0.0488, "disp": 0.000459413, "missing": 0, "moved": 36, "of": 36, "largest": 0.015817128, "largest_at": "Other_first_long", "cancelled": 0.98738, "identical": false}
+placebo_corrected {"rmse": 0.241160667, "delta": 0.0, "stat": 0.0, "disp": 0.0, "missing": 0, "moved": 0, "of": 36, "largest": 0.0, "largest_at": null, "cancelled": null, "identical": true}
+spotclip {"rmse": 0.241004968, "delta": -0.000155699, "stat": -0.7756, "disp": 0.000418291, "missing": 0, "moved": 36, "of": 36, "largest": 0.012751733, "largest_at": "PrimeShow2_first_short", "cancelled": 0.789088, "identical": false}
+global_mean_loo 0.241474068
+cell_mean_loo 0.242097429
+--- stored vs recomputed ---
+stored shipped rmse 0.241160667 mine 0.241160667 MATCH
+afterwindow stored 0.241046876 -0.5212 36 0.862227 | mine 0.241046876 -0.5212 36 0.862227 | MATCH
+calibrated stored 0.241046876 -0.5212 36 0.862227 | mine 0.241046876 -0.5212 36 0.862227 | MATCH
+competitor stored 0.241150155 -0.0488 36 0.98738 | mine 0.241150155 -0.0488 36 0.98738 | MATCH
+placebo_corrected stored 0.241160667 0.0 0 None | mine 0.241160667 0.0 0 None | MATCH
+spotclip stored 0.241004968 -0.7756 36 0.789088 | mine 0.241004968 -0.7756 36 0.789088 | MATCH
+stored target_sd 0.241378699
+stored baselines {'global_mean_loo': 0.241474068, 'cell_mean_loo': 0.242097429}

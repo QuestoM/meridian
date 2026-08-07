@@ -20,12 +20,16 @@ cells fitted on the same breaks, so the optimism is common-mode and the
 difference between two of them is still readable. Every payload this module
 emits carries that limit in words, plus the condition that would lift it.
 
-**The two baselines are genuinely out of sample and they are the point.** The
-leave-one-out cell mean predicts each break from the other breaks in its own
-cell, and the leave-one-out global mean predicts it from every other break.
-Neither has ever seen the break it predicts. They answer the question the
-artifacts cannot answer about themselves: does the 36-cell structure earn its
-place out of sample, or is a single constant as good.
+**The two baselines are genuinely out of sample and they are the point.** They
+live in ``adopt_candidate_baselines.py`` with the argument for them written out,
+and they answer the question the artifacts cannot answer about themselves: does
+the 36-cell structure earn its place out of sample, or is a single constant as
+good.
+
+**Every candidate row also carries its coefficient delta**, computed in
+``adopt_candidate_cells.py``, because this is the only place that holds both the
+coefficients and the per-break errors and so the only place a moved cell can be
+attributed to what it bought rather than merely listed.
 
 **A verdict needs two things, not one.** A paired test over 2,532 breaks can
 call a difference significant that is smaller than the dispersion between one
@@ -52,6 +56,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.adopt_candidate_baselines import (  # noqa: E402
+    cell_structure,
+    squared_errors as baseline_errors,
+)
+from scripts import adopt_candidate_cells as cells_module  # noqa: E402
 from scripts import adopt_candidate_words as words  # noqa: E402
 
 # Contiguous blocks in break_start order, the same fold construction and the
@@ -156,20 +165,6 @@ def _predictions(coefficients: dict[str, Any], cells: np.ndarray,
     return np.nan_to_num(values, nan=fallback), missing
 
 
-def _leave_one_out(y: np.ndarray, groups: Optional[np.ndarray]) -> np.ndarray:
-    """Predict each break from the others, globally or inside its own cell."""
-    total, count = y.sum(), len(y)
-    global_loo = (total - y) / (count - 1) if count > 1 else np.zeros_like(y)
-    if groups is None:
-        return global_loo
-    frame = pd.DataFrame({"g": groups, "y": y})
-    sums = frame.groupby("g")["y"].transform("sum").to_numpy(dtype=float)
-    sizes = frame.groupby("g")["y"].transform("size").to_numpy(dtype=float)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        inside = (sums - y) / (sizes - 1.0)
-    return np.where(sizes > 1.0, inside, global_loo)
-
-
 def _rmse(errors: np.ndarray) -> float:
     return float(np.sqrt(errors.mean())) if errors.size else 0.0
 
@@ -261,10 +256,8 @@ def rescore(paths: Optional[Paths] = None,
     cells = frame["channel_name"].to_numpy()
     folds = _fold_slices(len(y))
 
-    baselines = [
-        _row("global_mean_loo", "baseline", (y - _leave_one_out(y, None)) ** 2),
-        _row("cell_mean_loo", "baseline", (y - _leave_one_out(y, cells)) ** 2),
-    ]
+    baselines = [_row(name, "baseline", errors)
+                 for name, errors in baseline_errors(y, cells).items()]
     for row in baselines:
         row["out_of_sample"] = True
         row.update(words.pair(words.BASIS, row["id"], "basis"))
@@ -301,6 +294,12 @@ def rescore(paths: Optional[Paths] = None,
             "breaks_fitted_on": (payload.get("metadata") or {}).get("total_breaks_measured"),
             "paired": paired,
             "verdict": verdict(paired, identical),
+            # JS-19's done condition names the coefficient deltas beside the
+            # gate deltas and the money. Computed here because this is the only
+            # place that holds both the coefficients and the per-break errors,
+            # so every cell can be attributed rather than merely listed.
+            "cell_deltas": cells_module.cell_deltas(
+                shipped_coefficients, coefficients, cells, shipped_errors, errors),
         })
         signature = hashlib.sha256(predictions.tobytes()).hexdigest()
         signatures.setdefault(signature, []).append(identifier)
@@ -337,35 +336,7 @@ def rescore(paths: Optional[Paths] = None,
         "shipped": shipped_row,
         "candidates": rows,
         "duplicate_groups": duplicates,
-        "cell_structure": _cell_structure(baselines),
-    }
-
-
-def _cell_structure(baselines: list[dict[str, Any]]) -> dict[str, Any]:
-    """Does the 36-cell split beat one constant, out of sample and honestly.
-
-    This is the only figure on the whole surface that is free of the in-sample
-    limit, because both baselines predict each break from breaks that are not
-    it. It is reported whichever way it lands.
-    """
-    by_id = {row["id"]: row for row in baselines}
-    cell = float(by_id["cell_mean_loo"]["rmse"])
-    glob = float(by_id["global_mean_loo"]["rmse"])
-    moved = cell - glob
-    return {
-        "cell_mean_loo_rmse": round(cell, 9),
-        "global_mean_loo_rmse": round(glob, 9),
-        "rmse_delta": round(moved, 9),
-        "earns_its_place": bool(moved < 0),
-        "out_of_sample": True,
-        "reading_en": (
-            "Out of sample the per-cell split predicts better than a single constant."
-            if moved < 0 else
-            "Out of sample the per-cell split does not predict better than a single constant."),
-        "reading_he": (
-            "מחוץ למדגם החלוקה לתאים חוזה טוב יותר מקבוע יחיד."
-            if moved < 0 else
-            "מחוץ למדגם החלוקה לתאים אינה חוזה טוב יותר מקבוע יחיד."),
+        "cell_structure": cell_structure(baselines),
     }
 
 
@@ -407,6 +378,22 @@ def load_rescore(paths: Optional[Paths] = None) -> Optional[dict[str, Any]]:
         return None
     payload = read_artifact(path)
     return payload or None
+
+
+def candidate_row(identifier: str, paths: Optional[Paths] = None) -> Optional[dict[str, Any]]:
+    """One candidate's stored re-score row, or nothing when there is no such name.
+
+    Nothing rather than an empty row, because a name that is not a candidate and
+    a candidate that has not been scored are two different states and a caller
+    that cannot tell them apart will report the wrong one.
+    """
+    paths = paths or Paths()
+    if identifier not in {candidate_id(path) for path in candidate_files(paths)}:
+        return None
+    for row in (load_rescore(paths) or {}).get("candidates") or []:
+        if row.get("id") == identifier:
+            return row
+    return {"id": identifier}
 
 
 def rescore_state(paths: Optional[Paths] = None,

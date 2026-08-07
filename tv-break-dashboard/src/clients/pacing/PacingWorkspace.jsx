@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Figure } from '../../shell/bidi';
 import { WALLS, fetchSession, payloadCanEdit } from '../../session';
 import MakeGoodLedger from './MakeGoodLedger';
 import PacingBoard from './PacingBoard';
@@ -31,6 +32,15 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   const [ledger, setLedger] = useState({ status: 'loading', payload: null });
   const [session, setSession] = useState(null);
   const [busyId, setBusyId] = useState('');
+  // The refusal a write came back with, held here and printed on this surface.
+  // notify() is the product's own channel for this and it is a no-op at the
+  // address this panel is mounted at: measured, workspace-router.jsx renders the
+  // Campaigns destination without a notify prop, so every notice this panel sends
+  // is swallowed and a refused write said nothing at all for 2.5 s of polling. A
+  // refusal the server took the trouble to word in two languages has to reach the
+  // person who was refused, whatever the shell around it does.
+  const [refusal, setRefusal] = useState('');
+  const [focusCampaign, setFocusCampaign] = useState('');
 
   const reload = useCallback(() => {
     let active = true;
@@ -45,6 +55,20 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   }, []);
 
   useEffect(() => reload(), [reload, refreshKey]);
+
+  // A campaign named on a ledger record opens that campaign's own row. Without
+  // this the name went back to the board and left the reader on whichever row was
+  // first, which on this data is a different campaign from the one they clicked.
+  const clearFocus = useCallback(() => setFocusCampaign(''), []);
+  const openCampaign = useCallback((id) => {
+    if (onOpenCampaign) {
+      onOpenCampaign(id);
+      return;
+    }
+    setFocusCampaign(id);
+    setView(BOARD);
+  }, [onOpenCampaign]);
+
   useEffect(() => {
     let active = true;
     fetchSession().then((record) => { if (active) setSession(record); });
@@ -60,11 +84,22 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   const canEdit = gate.canEdit;
   const editRefusal = gate.reason || WALLS.readOnlyRole.detail;
 
+  // One place that words a refusal, so the three writes cannot state one three
+  // ways. A server that answered with no detail at all still leaves the reader a
+  // sentence, because a failure that says nothing is the worst of the three.
+  function refuse(error, en, he) {
+    const said = refusalText(error, locale === 'he' ? 'he' : 'en');
+    const opener = pick(locale, en, he);
+    setRefusal(said ? `${opener} ${said}` : opener);
+    notify(`${en} ${refusalText(error, 'en')}`, `${he} ⁦${refusalText(error, 'he')}⁩`);
+  }
+
   async function onRaise(row) {
     setBusyId(row.campaign_id);
     try {
       const answer = await raiseMakeGood(row.campaign_id, '');
       const record = answer.make_good;
+      setRefusal('');
       notify(
         `Make-good ${record.make_good_id} raised for ${row.name}.`,
         `פיצוי שידור ⁦${record.make_good_id}⁩ נפתח עבור ⁦${row.name}⁩.`,
@@ -72,9 +107,10 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
       reload();
       setView(LEDGER);
     } catch (error) {
-      notify(
-        `The make-good could not be raised. ${refusalText(error, 'en')}`,
-        `לא ניתן היה לפתוח את פיצוי השידור. ⁦${refusalText(error, 'he')}⁩`,
+      refuse(
+        error,
+        'The make-good could not be raised.',
+        'לא ניתן היה לפתוח את פיצוי השידור.',
       );
     } finally {
       setBusyId('');
@@ -88,21 +124,27 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     try {
       const answer = await acceptRisk(row.campaign_id, '');
       const record = answer.make_good;
+      setRefusal('');
       notify(
         `The risk on ${row.name} is recorded as taken on, ${record.make_good_id}.`,
         `הסיכון ב⁦${row.name}⁩ נרשם כמתקבל, ⁦${record.make_good_id}⁩.`,
       );
       reload();
     } catch (error) {
-      notify(
-        `The risk could not be recorded. ${refusalText(error, 'en')}`,
-        `לא ניתן היה לרשום את קבלת הסיכון. ⁦${refusalText(error, 'he')}⁩`,
+      refuse(
+        error,
+        'The risk could not be recorded.',
+        'לא ניתן היה לרשום את קבלת הסיכון.',
       );
     } finally {
       setBusyId('');
     }
   }
 
+  // Answers whether the move landed, so the form that raised it can keep what the
+  // reader typed when it did not. It used to close the offer form before the
+  // request had answered, which threw away a value, a window and a note on every
+  // refusal and made the reader type all three again.
   async function onMove(makeGoodId, payload) {
     setBusyId(makeGoodId);
     try {
@@ -114,16 +156,20 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
         ? ledger.payload.vocabulary.states
         : []);
       const landed = answer.make_good.state;
+      setRefusal('');
       notify(
         `Make-good ${makeGoodId} is now ${vocabularyLabel(states, landed, 'en')}.`,
         `פיצוי שידור ⁦${makeGoodId}⁩ נמצא כעת במצב ⁦${vocabularyLabel(states, landed, 'he')}⁩.`,
       );
       reload();
+      return true;
     } catch (error) {
-      notify(
-        `The make-good could not be moved. ${refusalText(error, 'en')}`,
-        `לא ניתן היה להעביר את פיצוי השידור. ⁦${refusalText(error, 'he')}⁩`,
+      refuse(
+        error,
+        'The make-good could not be moved.',
+        'לא ניתן היה להעביר את פיצוי השידור.',
       );
+      return false;
     } finally {
       setBusyId('');
     }
@@ -182,7 +228,7 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   }
 
   return (
-    <section className="page-workspace pacing-workspace" dir={he ? 'rtl' : 'ltr'}>
+    <section className="page-workspace pacing-workspace">
       {/* The heading is an h2 and the two view controls ride the same row as it.
           Mounted inside a destination that already carries an h1 and a view
           strip, a second h1 above a second strip is two documents on one page,
@@ -216,7 +262,7 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
             {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
             {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
               ? (
-                <span className="pacing-open-count" dir="ltr">
+                <Figure className="pacing-open-count">
                   {ledger.payload.open_count + ledger.payload.accepted_count}
                 </span>
               )
@@ -227,6 +273,13 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           </button>
         </nav>
       </div>
+
+      {refusal ? (
+        <div className="pacing-refusal" role="alert">
+          <p>{refusal}</p>
+          <button type="button" onClick={() => setRefusal('')}>{pick(locale, 'Dismiss', 'סגרו')}</button>
+        </div>
+      ) : null}
 
       {view === BOARD && board.status === 'loading' ? (
         <p className="pacing-loading">{pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב')}</p>
@@ -253,6 +306,8 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           onRaise={onRaise}
           onAccept={onAccept}
           onOpenMakeGood={() => setView(LEDGER)}
+          focusCampaignId={focusCampaign}
+          onFocused={clearFocus}
         />
       ) : null}
 
@@ -264,7 +319,7 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           editRefusal={editRefusal}
           busyId={busyId}
           onMove={onMove}
-          onOpenCampaign={(id) => (onOpenCampaign ? onOpenCampaign(id) : setView(BOARD))}
+          onOpenCampaign={openCampaign}
         />
       ) : null}
       {view === LEDGER && ledger.status === 'failed' ? (

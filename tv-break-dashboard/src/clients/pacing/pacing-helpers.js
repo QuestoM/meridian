@@ -80,18 +80,30 @@ export function pick(locale, en, he) {
   return locale === 'he' ? he : en;
 }
 
-// A number inside Hebrew prose, isolated so the digits never reorder around it.
+// A value joined into a line of prose, isolated so its own order survives the
+// direction around it.
 //
-// It takes a numeral, an ISO date or a Latin identifier, and nothing that holds
-// a Hebrew word. The isolate is a left-to-right one, so it lays its contents out
-// left to right: given a phrase that is already Hebrew it puts the words in the
-// wrong order. Measured on the shipped board, isolate(amount(35, rating_points,
-// he)) rendered the headline figure of every row as
-// "4.4 מתוך נקודות רייטינג 35", the unit ahead of its own number. A figure that
-// carries a unit isolates its numeral inside amount below and is never wrapped
-// again by a caller.
+// It takes a numeral, an ISO date, an identifier or a name, and never a phrase
+// that already reads as a sentence in the surrounding language: a caller that
+// isolates a figure which already carries its own unit puts the unit in front of
+// its own number, which was measured on every one of 56 rows.
+//
+// The pair is the FIRST-STRONG isolate, U+2068 and U+2069, which is exactly what
+// src/shell/bidi.jsx uses and what design-rules.md section 6 points a caller at.
+// It infers the run's direction from the run's own first strong character, so
+// one call is right for a numeral and right for the Hebrew channel name this
+// surface also passes it. The left-to-right isolate this replaced would have
+// laid that name out left to right.
+//
+// It is written here rather than imported because this module is executed
+// directly by node in tests/test_p11_surface_remedy.py and bidi.jsx holds JSX
+// that node cannot parse. The characters are escapes on purpose: they render as
+// nothing, so a literal pair is invisible to review.
+const FIRST_STRONG_ISOLATE = '⁨';
+const POP_DIRECTIONAL_ISOLATE = '⁩';
+
 export function isolate(text) {
-  return `⁦${text}⁩`;
+  return `${FIRST_STRONG_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`;
 }
 
 export function decimals(value, places, locale) {
@@ -116,6 +128,16 @@ export function amount(value, unit, locale) {
   }
   const points = decimals(Number(value), 1, locale);
   return pick(locale, `${points} rating points`, `${isolate(points)} נקודות רייטינג`);
+}
+
+// The unit on its own, for a field label that governs a number the reader types
+// rather than one this surface prints. It is the same word amount() puts after a
+// figure, so a form and the figures above it never name one quantity two ways.
+// The ledger read carries no unit vocabulary, and a label that fell back to the
+// store's key told a person to type an offer in "rating_points".
+export function unitWord(unit, locale) {
+  if (unit === ILS) return pick(locale, 'shekels', 'שקלים');
+  return pick(locale, 'rating points', 'נקודות רייטינג');
 }
 
 // The same figure without its unit, for the left half of a pair that already

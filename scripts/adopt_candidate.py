@@ -4,23 +4,35 @@
     PYTHONUTF8=1 python scripts/adopt_candidate.py rescore
     PYTHONUTF8=1 python scripts/adopt_candidate.py measure <candidate>
     PYTHONUTF8=1 python scripts/adopt_candidate.py checks <candidate>
+    PYTHONUTF8=1 python scripts/adopt_candidate.py diff <candidate>
     PYTHONUTF8=1 python scripts/adopt_candidate.py decide <candidate> --decision <shipped|not_shipped> --actor "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py adopt <candidate> --adopted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py revert <adoption id> --reverted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py report
+    PYTHONUTF8=1 python scripts/adopt_candidate.py publish
 
-**This is training and it is company staff only.** Its output lands under
+``--json`` prints the payload instead of the table on ``show``, ``checks``,
+``diff``, ``decide``, ``adopt`` and ``revert``, and it is accepted on either
+side of the subcommand.
+
+**This is training and it is company staff only.** Its acts write under
 ``models/``, which is the whole definition of training in section 4.1 of the
 specification, so it has no route, no button and no link. It runs here, at a
 terminal, in this repository, by the people who own the model. A test asserts
 that no endpoint the application publishes and no file the operator's interface
 ships can reach it.
 
-**Nothing expensive happens by accident.** ``show`` and ``report`` read what has
-been measured and never measure anything. ``rescore`` costs about ten seconds of
-data loading. ``measure`` costs about two hundred seconds of optimizer because it
-computes the weekly plan twice. ``adopt`` and ``decide`` without ``--perform``
-write nothing at all and print the distance to a landing.
+``publish`` is the one subcommand that writes outside ``models/``, and by that
+same test it is not training: it writes the comparison into this piece's own
+frontend row for its own panel to read, moves no model and produces no artifact.
+The payload it writes is refused if it names this act at all, because the panel
+is behind a route wall and the bundle it travels in is not.
+
+**Nothing expensive happens by accident.** ``show``, ``report`` and ``publish``
+read what has been measured and never measure anything. ``rescore`` costs about
+ten seconds of data loading. ``measure`` costs about two hundred seconds of
+optimizer because it computes the weekly plan twice. ``adopt`` and ``decide``
+without ``--perform`` write nothing at all and print the distance to a landing.
 
 **Deciding and adopting are two acts, and the order is fixed.** ``decide``
 records a ship or no-ship verdict into the model console's own decision store,
@@ -49,6 +61,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import adopt_candidate_adoption as adoption  # noqa: E402
+from scripts import adopt_candidate_board as board  # noqa: E402
+from scripts import adopt_candidate_cells as cells  # noqa: E402
 from scripts import adopt_candidate_decide as verdict  # noqa: E402
 from scripts import adopt_candidate_registry as registry  # noqa: E402
 from scripts import adopt_candidate_rescore as rescore  # noqa: E402
@@ -123,6 +137,28 @@ def command_checks(args: argparse.Namespace) -> int:
         print(json.dumps(state, ensure_ascii=False, indent=1))
         return 0
     _print(registry.render_checks(state))
+    return 0
+
+
+def command_diff(args: argparse.Namespace) -> int:
+    """Every cell one candidate moves, ranked by how much of the movement it carries.
+
+    The score table says a candidate is a thousandth closer. It cannot say
+    whether that came from one cell or from thirty-six that moved and cancelled,
+    and those are two different artifacts. This reads the stored re-score and
+    measures nothing, so it costs a file read.
+    """
+    row = rescore.candidate_row(args.candidate, _paths())
+    if row is None:
+        known = ", ".join(sorted(rescore.candidate_id(path)
+                                 for path in rescore.candidate_files(_paths())))
+        print(f"There is no candidate called {args.candidate}. Known: {known or 'none'}.")
+        return 2
+    deltas = row.get("cell_deltas") or {}
+    if args.json:
+        print(json.dumps(deltas, ensure_ascii=False, indent=1))
+        return 0
+    _print(cells.render_table(args.candidate, deltas, limit=0 if args.all else args.top))
     return 0
 
 
@@ -201,27 +237,62 @@ def command_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_publish(args: argparse.Namespace) -> int:
+    """Publish the comparison to the board this piece's own screen imports.
+
+    Writes one file, into this piece's frontend row, and nothing under
+    ``models/``, so publishing is not training by section 4.1's own test: it
+    moves no model and produces no artifact. The payload it writes carries no
+    command and no name that reaches the training act, and the write refuses if
+    one appears, because a browser bundle is not a walled surface.
+    """
+    paths = _paths()
+    payload = board.board(paths)
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=1))
+        return 0
+    written = board.save_board(payload, paths)
+    print(f"Written to {written.relative_to(paths.root).as_posix()}.")
+    print(f"{len(payload['candidates'])} candidates against the shipped artifact {payload['shipped']['short']}, re-score {(payload['rescore_state'] or {}).get('state')}.")
+    print(f"Measured {payload['measured_at']}, published {payload['published_at']}.")
+    print("The screen compares these digests with the ones the model console's own route serves, and says stale rather than showing a figure whose subject has moved.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="adopt_candidate",
         description="Compare candidate coefficient artifacts and adopt or reject one.")
     parser.add_argument("--json", action="store_true", help="print the payload instead of the table")
+    # The same flag on every subcommand, so the natural "show --json" is not an
+    # argparse error. SUPPRESS is what makes both placements work: without the
+    # flag the subparser leaves the namespace alone, so a --json typed before
+    # the subcommand survives instead of being overwritten by a default.
+    shared = argparse.ArgumentParser(add_help=False)
+    shared.add_argument("--json", action="store_true", default=argparse.SUPPRESS,
+                        help="print the payload instead of the table")
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("show", help="the registry: every artifact, its score, its money, its verdict")
+    subparsers.add_parser("show", parents=[shared],
+                          help="the registry: every artifact, its score, its money, its verdict")
 
-    rescore_parser = subparsers.add_parser("rescore", help="score every artifact on one common set of breaks")
+    rescore_parser = subparsers.add_parser("rescore", parents=[shared], help="score every artifact on one common set of breaks")
     rescore_parser.add_argument("--force", action="store_true", help="run again even when the stored score is current")
 
-    measure_parser = subparsers.add_parser("measure", help="measure the money one candidate would move")
+    measure_parser = subparsers.add_parser("measure", parents=[shared], help="measure the money one candidate would move")
     measure_parser.add_argument("candidate")
 
-    checks_parser = subparsers.add_parser("checks", help="the adoption checks for one candidate, writing nothing")
+    checks_parser = subparsers.add_parser("checks", parents=[shared], help="the adoption checks for one candidate, writing nothing")
     checks_parser.add_argument("candidate")
     checks_parser.add_argument("--adopted-by", default="")
     checks_parser.add_argument("--reason", default="")
 
-    decide_parser = subparsers.add_parser("decide", help="record a ship or no-ship verdict against the model version on disk")
+    diff_parser = subparsers.add_parser("diff", parents=[shared], help="every coefficient one candidate moves, and what each move bought")
+    diff_parser.add_argument("candidate")
+    diff_parser.add_argument("--top", type=int, default=12, help="how many cells to show, ranked by the movement they carry")
+    diff_parser.add_argument("--all", action="store_true", help="every cell, not only the top ones")
+
+    decide_parser = subparsers.add_parser("decide", parents=[shared], help="record a ship or no-ship verdict against the model version on disk")
     decide_parser.add_argument("candidate")
     decide_parser.add_argument("--decision", choices=verdict.DECISIONS, required=True)
     decide_parser.add_argument("--actor", default="", help="who is taking this verdict")
@@ -231,20 +302,22 @@ def build_parser() -> argparse.ArgumentParser:
     decide_parser.add_argument("--release-note-en", default="")
     decide_parser.add_argument("--perform", action="store_true", help="record it; without this nothing is written")
 
-    adopt_parser = subparsers.add_parser("adopt", help="adopt a candidate, or report why it cannot land")
+    adopt_parser = subparsers.add_parser("adopt", parents=[shared], help="adopt a candidate, or report why it cannot land")
     adopt_parser.add_argument("candidate")
     adopt_parser.add_argument("--adopted-by", default="", help="who is taking this decision")
     adopt_parser.add_argument("--reason", default="", help="why, in one sentence")
     adopt_parser.add_argument("--release-note-he", default="", help="the sentence the operator side reads")
     adopt_parser.add_argument("--perform", action="store_true", help="write it; without this nothing is written")
 
-    revert_parser = subparsers.add_parser("revert", help="put back the artifact an adoption replaced")
+    revert_parser = subparsers.add_parser("revert", parents=[shared], help="put back the artifact an adoption replaced")
     revert_parser.add_argument("adoption_id")
     revert_parser.add_argument("--reverted-by", default="")
     revert_parser.add_argument("--reason", default="")
     revert_parser.add_argument("--perform", action="store_true", help="write it; without this nothing is written")
 
-    subparsers.add_parser("report", help="write the whole registry payload to models/releases/")
+    subparsers.add_parser("report", parents=[shared], help="write the whole registry payload to models/releases/")
+
+    subparsers.add_parser("publish", parents=[shared], help="publish the comparison to the board the model steward reads on screen")
     return parser
 
 
@@ -253,10 +326,12 @@ COMMANDS = {
     "rescore": command_rescore,
     "measure": command_measure,
     "checks": command_checks,
+    "diff": command_diff,
     "decide": command_decide,
     "adopt": command_adopt,
     "revert": command_revert,
     "report": command_report,
+    "publish": command_publish,
 }
 
 

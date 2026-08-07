@@ -1,0 +1,28 @@
+P12 round 3 evidence 04: the verdict record carries the coefficient delta
+through P7's own frozen route, with no frozen file touched.
+
+Recorded against a COPY of models/releases under KAIROS_MODEL_RELEASES_DIR,
+because a decision log is append-only and which way a candidate goes is the
+steward's call, not this build's. The real models/releases/decisions.jsonl
+still holds the same 7 records it held before this round.
+
+GET http://127.0.0.1:8043/api/model/candidates/afterwindow
+  decision.decision_id      md-b0673bf1e1f1
+  decision.decision         not_shipped
+  evidence.rescore.rmse           0.241046876
+  evidence.rescore.shipped_rmse   0.241160667
+  evidence.rescore.cells.cells_moved      36
+  evidence.rescore.cells.cells_compared   36
+  evidence.rescore.cells.max_abs_delta    0.014066885
+  evidence.rescore.cells.max_abs_delta_at PrimeShow2_first_short
+  evidence.rescore.cells.cancelled_share  0.862227
+  evidence.rescore.cells.concentrated     false
+  evidence.rescore.cells.reading_he
+    ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם.
+    צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.
+  evidence.rescore.cells.key_shape_he
+    מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.
+
+CandidateVerdict.jsx renders record.evidence through RecordDrill
+(console-bits.jsx:117, JSON.stringify of the whole record), so the block
+above is on the screen where the verdict is taken.

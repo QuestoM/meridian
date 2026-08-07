@@ -1,6 +1,6 @@
 import React from 'react';
 import { pageText } from '../shell/surface-helpers';
-import { Figure, Code } from '../shell/bidi';
+import { Figure, Code, Prose } from '../shell/bidi';
 import { sourceLabel, stepLabel } from './AssistantRunTrace';
 import { inApprovedWords } from './kai-vocabulary';
 import { claimSegments } from './kai-claimed-action';
@@ -26,7 +26,7 @@ export function RichText({ text, className }) {
     <div className={className}>
       {lines.map((line, index) => (
         line.trim()
-          ? <p className="asst-para" dir="auto" key={index}>{line}</p>
+          ? <Prose className="asst-para" key={index}>{line}</Prose>
           : <div className="asst-para-gap" key={index} aria-hidden="true" />
       ))}
     </div>
@@ -53,13 +53,13 @@ function RetractedText({ text, locale }) {
       </span>
       {inApprovedWords(text).split('\n').map((line, index) => (
         line.trim() ? (
-          <p className="asst-para" dir="auto" key={index}>
+          <Prose className="asst-para" key={index}>
             {claimSegments(line).map((segment, part) => (
               segment.claim
                 ? <del className="asst-struck" key={part}>{segment.text}</del>
                 : <span key={part}>{segment.text}</span>
             ))}
-          </p>
+          </Prose>
         ) : <div className="asst-para-gap" key={index} aria-hidden="true" />
       ))}
     </blockquote>

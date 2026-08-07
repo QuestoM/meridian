@@ -1,5 +1,5 @@
 {
- "measured_at": "2026-08-07T03:51:19.829440+00:00",
+ "measured_at": "2026-08-07T08:24:57.851714+00:00",
  "evaluation": {
   "breaks": 2532,
   "cells": 36,
@@ -107,6 +107,408 @@
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },
+   "cell_deltas": {
+    "rows": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.038140124,
+      "delta": 0.010227188,
+      "state": "moved",
+      "breaks": 27,
+      "squared_error_delta": -0.014163694177,
+      "share_of_absolute": 0.014045
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.038552377,
+      "delta": 0.012960378,
+      "state": "moved",
+      "breaks": 21,
+      "squared_error_delta": -0.011328778415,
+      "share_of_absolute": 0.011234
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.040652724,
+      "delta": 0.008676649,
+      "state": "moved",
+      "breaks": 44,
+      "squared_error_delta": 0.014635304183,
+      "share_of_absolute": 0.014513
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.040912264,
+      "delta": 0.009165623,
+      "state": "moved",
+      "breaks": 96,
+      "squared_error_delta": 0.014703382083,
+      "share_of_absolute": 0.014581
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.036568585,
+      "delta": 0.010233591,
+      "state": "moved",
+      "breaks": 67,
+      "squared_error_delta": -0.03790979686,
+      "share_of_absolute": 0.037593
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.044979286,
+      "delta": 0.012714564,
+      "state": "moved",
+      "breaks": 58,
+      "squared_error_delta": 0.086566571276,
+      "share_of_absolute": 0.085844
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.043031693,
+      "delta": 0.012481369,
+      "state": "moved",
+      "breaks": 105,
+      "squared_error_delta": 0.048261847066,
+      "share_of_absolute": 0.047859
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.038027569,
+      "delta": 0.010970523,
+      "state": "moved",
+      "breaks": 20,
+      "squared_error_delta": -0.016229848766,
+      "share_of_absolute": 0.016094
+     },
+     {
+      "cell": "News_middle_standard",
+      "shipped": -0.053348581,
+      "candidate": -0.04185998,
+      "delta": 0.011488601,
+      "state": "moved",
+      "breaks": 51,
+      "squared_error_delta": 0.034612805165,
+      "share_of_absolute": 0.034324
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.047711898,
+      "delta": 0.013947978,
+      "state": "moved",
+      "breaks": 238,
+      "squared_error_delta": 0.113089007771,
+      "share_of_absolute": 0.112145
+     },
+     {
+      "cell": "Other_first_short",
+      "shipped": -0.051812309,
+      "candidate": -0.04016927,
+      "delta": 0.011643039,
+      "state": "moved",
+      "breaks": 100,
+      "squared_error_delta": 0.004539835757,
+      "share_of_absolute": 0.004502
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.035515293,
+      "delta": 0.009737761,
+      "state": "moved",
+      "breaks": 207,
+      "squared_error_delta": -0.060099656163,
+      "share_of_absolute": 0.059598
+     },
+     {
+      "cell": "Other_last_long",
+      "shipped": -0.046797068,
+      "candidate": -0.04024317,
+      "delta": 0.006553898,
+      "state": "moved",
+      "breaks": 159,
+      "squared_error_delta": 0.004610545504,
+      "share_of_absolute": 0.004572
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.03129168,
+      "delta": 0.010015923,
+      "state": "moved",
+      "breaks": 146,
+      "squared_error_delta": -0.110076459362,
+      "share_of_absolute": 0.109158
+     },
+     {
+      "cell": "Other_last_standard",
+      "shipped": -0.05364104,
+      "candidate": -0.041176637,
+      "delta": 0.012464403,
+      "state": "moved",
+      "breaks": 224,
+      "squared_error_delta": 0.003099423519,
+      "share_of_absolute": 0.003074
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.037037135,
+      "delta": 0.009566634,
+      "state": "moved",
+      "breaks": 292,
+      "squared_error_delta": -0.04696138039,
+      "share_of_absolute": 0.046569
+     },
+     {
+      "cell": "Other_middle_short",
+      "shipped": -0.043698523,
+      "candidate": -0.036278416,
+      "delta": 0.007420107,
+      "state": "moved",
+      "breaks": 134,
+      "squared_error_delta": -0.031802733889,
+      "share_of_absolute": 0.031537
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036286666,
+      "delta": 0.01110377,
+      "state": "moved",
+      "breaks": 255,
+      "squared_error_delta": -0.066062238153,
+      "share_of_absolute": 0.065511
+     },
+     {
+      "cell": "PrimeShow1_first_long",
+      "shipped": -0.051378741,
+      "candidate": -0.039080346,
+      "delta": 0.012298395,
+      "state": "moved",
+      "breaks": 12,
+      "squared_error_delta": -0.001263512655,
+      "share_of_absolute": 0.001253
+     },
+     {
+      "cell": "PrimeShow1_first_short",
+      "shipped": -0.049262286,
+      "candidate": -0.038320542,
+      "delta": 0.010941744,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.011448639715,
+      "share_of_absolute": 0.011353
+     },
+     {
+      "cell": "PrimeShow1_first_standard",
+      "shipped": -0.048158137,
+      "candidate": -0.03841644,
+      "delta": 0.009741697,
+      "state": "moved",
+      "breaks": 28,
+      "squared_error_delta": -0.01007493147,
+      "share_of_absolute": 0.009991
+     },
+     {
+      "cell": "PrimeShow1_last_long",
+      "shipped": -0.048229005,
+      "candidate": -0.038616581,
+      "delta": 0.009612425,
+      "state": "moved",
+      "breaks": 11,
+      "squared_error_delta": -0.006177296372,
+      "share_of_absolute": 0.006126
+     },
+     {
+      "cell": "PrimeShow1_last_short",
+      "shipped": -0.051853024,
+      "candidate": -0.040015521,
+      "delta": 0.011837503,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.013191920846,
+      "share_of_absolute": 0.013082
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.034943371,
+      "delta": 0.009112097,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.048445900721,
+      "share_of_absolute": 0.048042
+     },
+     {
+      "cell": "PrimeShow1_middle_long",
+      "shipped": -0.048450583,
+      "candidate": -0.038576884,
+      "delta": 0.009873699,
+      "state": "moved",
+      "breaks": 15,
+      "squared_error_delta": -0.007193411023,
+      "share_of_absolute": 0.007133
+     },
+     {
+      "cell": "PrimeShow1_middle_short",
+      "shipped": -0.048621523,
+      "candidate": -0.038392486,
+      "delta": 0.010229037,
+      "state": "moved",
+      "breaks": 18,
+      "squared_error_delta": -0.010133655492,
+      "share_of_absolute": 0.010049
+     },
+     {
+      "cell": "PrimeShow1_middle_standard",
+      "shipped": -0.045304089,
+      "candidate": -0.03783043,
+      "delta": 0.007473659,
+      "state": "moved",
+      "breaks": 22,
+      "squared_error_delta": -0.012466071624,
+      "share_of_absolute": 0.012362
+     },
+     {
+      "cell": "PrimeShow2_first_long",
+      "shipped": -0.049837276,
+      "candidate": -0.038853487,
+      "delta": 0.010983789,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": -0.005316441092,
+      "share_of_absolute": 0.005272
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.042412497,
+      "delta": 0.014066885,
+      "state": "moved",
+      "breaks": 14,
+      "squared_error_delta": 0.056673241844,
+      "share_of_absolute": 0.0562
+     },
+     {
+      "cell": "PrimeShow2_first_standard",
+      "shipped": -0.046666492,
+      "candidate": -0.037448618,
+      "delta": 0.009217874,
+      "state": "moved",
+      "breaks": 9,
+      "squared_error_delta": -0.019197228465,
+      "share_of_absolute": 0.019037
+     },
+     {
+      "cell": "PrimeShow2_last_long",
+      "shipped": -0.048553461,
+      "candidate": -0.037379931,
+      "delta": 0.011173529,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.024860636835,
+      "share_of_absolute": 0.024653
+     },
+     {
+      "cell": "PrimeShow2_last_short",
+      "shipped": -0.051203677,
+      "candidate": -0.039677839,
+      "delta": 0.011525839,
+      "state": "moved",
+      "breaks": 10,
+      "squared_error_delta": 0.007771729653,
+      "share_of_absolute": 0.007707
+     },
+     {
+      "cell": "PrimeShow2_last_standard",
+      "shipped": -0.049802646,
+      "candidate": -0.037761387,
+      "delta": 0.012041259,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.022461810952,
+      "share_of_absolute": 0.022274
+     },
+     {
+      "cell": "PrimeShow2_middle_long",
+      "shipped": -0.050699904,
+      "candidate": -0.039404253,
+      "delta": 0.011295651,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.003993068399,
+      "share_of_absolute": 0.00396
+     },
+     {
+      "cell": "PrimeShow2_middle_short",
+      "shipped": -0.053481603,
+      "candidate": -0.039796823,
+      "delta": 0.01368478,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": 0.010475786867,
+      "share_of_absolute": 0.010388
+     },
+     {
+      "cell": "PrimeShow2_middle_standard",
+      "shipped": -0.052921955,
+      "candidate": -0.04045329,
+      "delta": 0.012468665,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": 0.018517579077,
+      "share_of_absolute": 0.018363
+     }
+    ],
+    "summary": {
+     "cells_compared": 36,
+     "cells_moved": 36,
+     "cells_unchanged": 0,
+     "cells_added": [],
+     "cells_dropped": [],
+     "max_abs_delta": 0.014066885,
+     "max_abs_delta_at": "PrimeShow2_first_short",
+     "breaks_weighted_mean_abs_delta": 0.010616886,
+     "net_squared_error_delta": -0.138932073581,
+     "total_abs_squared_error_delta": 1.008416171601,
+     "cancelled_share": 0.862227,
+     "cells_improved": 21,
+     "cells_worsened": 15,
+     "carries_the_move": [
+      "Other_first_long",
+      "Other_last_short",
+      "News_last_standard",
+      "Other_middle_standard",
+      "Other_first_standard",
+      "PrimeShow2_first_short",
+      "PrimeShow1_last_standard",
+      "News_middle_long",
+      "Other_middle_long",
+      "News_last_short",
+      "News_middle_standard",
+      "Other_middle_short",
+      "PrimeShow2_last_long",
+      "PrimeShow2_last_standard",
+      "PrimeShow2_first_standard"
+     ],
+     "carries_share": 0.8,
+     "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+     "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+     "concentrated": false,
+     "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
+    }
+   },
    "prediction_signature": "c613b795afdf",
    "duplicate_of": [
     "calibrated"
@@ -151,6 +553,408 @@
     "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.5212, תנועה -0.000114, פיזור 0.000462.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
+   },
+   "cell_deltas": {
+    "rows": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.038140124,
+      "delta": 0.010227188,
+      "state": "moved",
+      "breaks": 27,
+      "squared_error_delta": -0.014163694177,
+      "share_of_absolute": 0.014045
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.038552377,
+      "delta": 0.012960378,
+      "state": "moved",
+      "breaks": 21,
+      "squared_error_delta": -0.011328778415,
+      "share_of_absolute": 0.011234
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.040652724,
+      "delta": 0.008676649,
+      "state": "moved",
+      "breaks": 44,
+      "squared_error_delta": 0.014635304183,
+      "share_of_absolute": 0.014513
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.040912264,
+      "delta": 0.009165623,
+      "state": "moved",
+      "breaks": 96,
+      "squared_error_delta": 0.014703382083,
+      "share_of_absolute": 0.014581
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.036568585,
+      "delta": 0.010233591,
+      "state": "moved",
+      "breaks": 67,
+      "squared_error_delta": -0.03790979686,
+      "share_of_absolute": 0.037593
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.044979286,
+      "delta": 0.012714564,
+      "state": "moved",
+      "breaks": 58,
+      "squared_error_delta": 0.086566571276,
+      "share_of_absolute": 0.085844
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.043031693,
+      "delta": 0.012481369,
+      "state": "moved",
+      "breaks": 105,
+      "squared_error_delta": 0.048261847066,
+      "share_of_absolute": 0.047859
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.038027569,
+      "delta": 0.010970523,
+      "state": "moved",
+      "breaks": 20,
+      "squared_error_delta": -0.016229848766,
+      "share_of_absolute": 0.016094
+     },
+     {
+      "cell": "News_middle_standard",
+      "shipped": -0.053348581,
+      "candidate": -0.04185998,
+      "delta": 0.011488601,
+      "state": "moved",
+      "breaks": 51,
+      "squared_error_delta": 0.034612805165,
+      "share_of_absolute": 0.034324
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.047711898,
+      "delta": 0.013947978,
+      "state": "moved",
+      "breaks": 238,
+      "squared_error_delta": 0.113089007771,
+      "share_of_absolute": 0.112145
+     },
+     {
+      "cell": "Other_first_short",
+      "shipped": -0.051812309,
+      "candidate": -0.04016927,
+      "delta": 0.011643039,
+      "state": "moved",
+      "breaks": 100,
+      "squared_error_delta": 0.004539835757,
+      "share_of_absolute": 0.004502
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.035515293,
+      "delta": 0.009737761,
+      "state": "moved",
+      "breaks": 207,
+      "squared_error_delta": -0.060099656163,
+      "share_of_absolute": 0.059598
+     },
+     {
+      "cell": "Other_last_long",
+      "shipped": -0.046797068,
+      "candidate": -0.04024317,
+      "delta": 0.006553898,
+      "state": "moved",
+      "breaks": 159,
+      "squared_error_delta": 0.004610545504,
+      "share_of_absolute": 0.004572
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.03129168,
+      "delta": 0.010015923,
+      "state": "moved",
+      "breaks": 146,
+      "squared_error_delta": -0.110076459362,
+      "share_of_absolute": 0.109158
+     },
+     {
+      "cell": "Other_last_standard",
+      "shipped": -0.05364104,
+      "candidate": -0.041176637,
+      "delta": 0.012464403,
+      "state": "moved",
+      "breaks": 224,
+      "squared_error_delta": 0.003099423519,
+      "share_of_absolute": 0.003074
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.037037135,
+      "delta": 0.009566634,
+      "state": "moved",
+      "breaks": 292,
+      "squared_error_delta": -0.04696138039,
+      "share_of_absolute": 0.046569
+     },
+     {
+      "cell": "Other_middle_short",
+      "shipped": -0.043698523,
+      "candidate": -0.036278416,
+      "delta": 0.007420107,
+      "state": "moved",
+      "breaks": 134,
+      "squared_error_delta": -0.031802733889,
+      "share_of_absolute": 0.031537
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036286666,
+      "delta": 0.01110377,
+      "state": "moved",
+      "breaks": 255,
+      "squared_error_delta": -0.066062238153,
+      "share_of_absolute": 0.065511
+     },
+     {
+      "cell": "PrimeShow1_first_long",
+      "shipped": -0.051378741,
+      "candidate": -0.039080346,
+      "delta": 0.012298395,
+      "state": "moved",
+      "breaks": 12,
+      "squared_error_delta": -0.001263512655,
+      "share_of_absolute": 0.001253
+     },
+     {
+      "cell": "PrimeShow1_first_short",
+      "shipped": -0.049262286,
+      "candidate": -0.038320542,
+      "delta": 0.010941744,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.011448639715,
+      "share_of_absolute": 0.011353
+     },
+     {
+      "cell": "PrimeShow1_first_standard",
+      "shipped": -0.048158137,
+      "candidate": -0.03841644,
+      "delta": 0.009741697,
+      "state": "moved",
+      "breaks": 28,
+      "squared_error_delta": -0.01007493147,
+      "share_of_absolute": 0.009991
+     },
+     {
+      "cell": "PrimeShow1_last_long",
+      "shipped": -0.048229005,
+      "candidate": -0.038616581,
+      "delta": 0.009612425,
+      "state": "moved",
+      "breaks": 11,
+      "squared_error_delta": -0.006177296372,
+      "share_of_absolute": 0.006126
+     },
+     {
+      "cell": "PrimeShow1_last_short",
+      "shipped": -0.051853024,
+      "candidate": -0.040015521,
+      "delta": 0.011837503,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.013191920846,
+      "share_of_absolute": 0.013082
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.034943371,
+      "delta": 0.009112097,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.048445900721,
+      "share_of_absolute": 0.048042
+     },
+     {
+      "cell": "PrimeShow1_middle_long",
+      "shipped": -0.048450583,
+      "candidate": -0.038576884,
+      "delta": 0.009873699,
+      "state": "moved",
+      "breaks": 15,
+      "squared_error_delta": -0.007193411023,
+      "share_of_absolute": 0.007133
+     },
+     {
+      "cell": "PrimeShow1_middle_short",
+      "shipped": -0.048621523,
+      "candidate": -0.038392486,
+      "delta": 0.010229037,
+      "state": "moved",
+      "breaks": 18,
+      "squared_error_delta": -0.010133655492,
+      "share_of_absolute": 0.010049
+     },
+     {
+      "cell": "PrimeShow1_middle_standard",
+      "shipped": -0.045304089,
+      "candidate": -0.03783043,
+      "delta": 0.007473659,
+      "state": "moved",
+      "breaks": 22,
+      "squared_error_delta": -0.012466071624,
+      "share_of_absolute": 0.012362
+     },
+     {
+      "cell": "PrimeShow2_first_long",
+      "shipped": -0.049837276,
+      "candidate": -0.038853487,
+      "delta": 0.010983789,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": -0.005316441092,
+      "share_of_absolute": 0.005272
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.042412497,
+      "delta": 0.014066885,
+      "state": "moved",
+      "breaks": 14,
+      "squared_error_delta": 0.056673241844,
+      "share_of_absolute": 0.0562
+     },
+     {
+      "cell": "PrimeShow2_first_standard",
+      "shipped": -0.046666492,
+      "candidate": -0.037448618,
+      "delta": 0.009217874,
+      "state": "moved",
+      "breaks": 9,
+      "squared_error_delta": -0.019197228465,
+      "share_of_absolute": 0.019037
+     },
+     {
+      "cell": "PrimeShow2_last_long",
+      "shipped": -0.048553461,
+      "candidate": -0.037379931,
+      "delta": 0.011173529,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.024860636835,
+      "share_of_absolute": 0.024653
+     },
+     {
+      "cell": "PrimeShow2_last_short",
+      "shipped": -0.051203677,
+      "candidate": -0.039677839,
+      "delta": 0.011525839,
+      "state": "moved",
+      "breaks": 10,
+      "squared_error_delta": 0.007771729653,
+      "share_of_absolute": 0.007707
+     },
+     {
+      "cell": "PrimeShow2_last_standard",
+      "shipped": -0.049802646,
+      "candidate": -0.037761387,
+      "delta": 0.012041259,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.022461810952,
+      "share_of_absolute": 0.022274
+     },
+     {
+      "cell": "PrimeShow2_middle_long",
+      "shipped": -0.050699904,
+      "candidate": -0.039404253,
+      "delta": 0.011295651,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.003993068399,
+      "share_of_absolute": 0.00396
+     },
+     {
+      "cell": "PrimeShow2_middle_short",
+      "shipped": -0.053481603,
+      "candidate": -0.039796823,
+      "delta": 0.01368478,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": 0.010475786867,
+      "share_of_absolute": 0.010388
+     },
+     {
+      "cell": "PrimeShow2_middle_standard",
+      "shipped": -0.052921955,
+      "candidate": -0.04045329,
+      "delta": 0.012468665,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": 0.018517579077,
+      "share_of_absolute": 0.018363
+     }
+    ],
+    "summary": {
+     "cells_compared": 36,
+     "cells_moved": 36,
+     "cells_unchanged": 0,
+     "cells_added": [],
+     "cells_dropped": [],
+     "max_abs_delta": 0.014066885,
+     "max_abs_delta_at": "PrimeShow2_first_short",
+     "breaks_weighted_mean_abs_delta": 0.010616886,
+     "net_squared_error_delta": -0.138932073581,
+     "total_abs_squared_error_delta": 1.008416171601,
+     "cancelled_share": 0.862227,
+     "cells_improved": 21,
+     "cells_worsened": 15,
+     "carries_the_move": [
+      "Other_first_long",
+      "Other_last_short",
+      "News_last_standard",
+      "Other_middle_standard",
+      "Other_first_standard",
+      "PrimeShow2_first_short",
+      "PrimeShow1_last_standard",
+      "News_middle_long",
+      "Other_middle_long",
+      "News_last_short",
+      "News_middle_standard",
+      "Other_middle_short",
+      "PrimeShow2_last_long",
+      "PrimeShow2_last_standard",
+      "PrimeShow2_first_standard"
+     ],
+     "carries_share": 0.8,
+     "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+     "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+     "concentrated": false,
+     "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
+    }
    },
    "prediction_signature": "c613b795afdf",
    "duplicate_of": [
@@ -197,6 +1001,409 @@
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
    },
+   "cell_deltas": {
+    "rows": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.0385314,
+      "delta": 0.009835912,
+      "state": "moved",
+      "breaks": 27,
+      "squared_error_delta": -0.013725724312,
+      "share_of_absolute": 0.013494
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.038605857,
+      "delta": 0.012906898,
+      "state": "moved",
+      "breaks": 21,
+      "squared_error_delta": -0.011296526416,
+      "share_of_absolute": 0.011106
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.039848722,
+      "delta": 0.009480651,
+      "state": "moved",
+      "breaks": 44,
+      "squared_error_delta": 0.016326841173,
+      "share_of_absolute": 0.016051
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.039921488,
+      "delta": 0.0101564,
+      "state": "moved",
+      "breaks": 96,
+      "squared_error_delta": 0.017258795128,
+      "share_of_absolute": 0.016967
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.036408134,
+      "delta": 0.010394041,
+      "state": "moved",
+      "breaks": 67,
+      "squared_error_delta": -0.038392439037,
+      "share_of_absolute": 0.037743
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.042421206,
+      "delta": 0.015272644,
+      "state": "moved",
+      "breaks": 58,
+      "squared_error_delta": 0.106249136492,
+      "share_of_absolute": 0.104453
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.041474183,
+      "delta": 0.014038879,
+      "state": "moved",
+      "breaks": 105,
+      "squared_error_delta": 0.056580184564,
+      "share_of_absolute": 0.055624
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.038527487,
+      "delta": 0.010470604,
+      "state": "moved",
+      "breaks": 20,
+      "squared_error_delta": -0.015594955294,
+      "share_of_absolute": 0.015331
+     },
+     {
+      "cell": "News_middle_standard",
+      "shipped": -0.053348581,
+      "candidate": -0.040581969,
+      "delta": 0.012766611,
+      "state": "moved",
+      "breaks": 51,
+      "squared_error_delta": 0.03929529721,
+      "share_of_absolute": 0.038631
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.045842748,
+      "delta": 0.015817128,
+      "state": "moved",
+      "breaks": 238,
+      "squared_error_delta": 0.135280283854,
+      "share_of_absolute": 0.132993
+     },
+     {
+      "cell": "Other_first_short",
+      "shipped": -0.051812309,
+      "candidate": -0.040120276,
+      "delta": 0.011692033,
+      "state": "moved",
+      "breaks": 100,
+      "squared_error_delta": 0.0046162232,
+      "share_of_absolute": 0.004538
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.036521733,
+      "delta": 0.00873132,
+      "state": "moved",
+      "breaks": 207,
+      "squared_error_delta": -0.055707116429,
+      "share_of_absolute": 0.054765
+     },
+     {
+      "cell": "Other_last_long",
+      "shipped": -0.046797068,
+      "candidate": -0.039918395,
+      "delta": 0.006878673,
+      "state": "moved",
+      "breaks": 159,
+      "squared_error_delta": 0.005194228016,
+      "share_of_absolute": 0.005106
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.034379729,
+      "delta": 0.006927874,
+      "state": "moved",
+      "breaks": 146,
+      "squared_error_delta": -0.079261814816,
+      "share_of_absolute": 0.077922
+     },
+     {
+      "cell": "Other_last_standard",
+      "shipped": -0.05364104,
+      "candidate": -0.041163852,
+      "delta": 0.012477188,
+      "state": "moved",
+      "breaks": 224,
+      "squared_error_delta": 0.003138334998,
+      "share_of_absolute": 0.003085
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.037553849,
+      "delta": 0.00904992,
+      "state": "moved",
+      "breaks": 292,
+      "squared_error_delta": -0.045790354521,
+      "share_of_absolute": 0.045016
+     },
+     {
+      "cell": "Other_middle_short",
+      "shipped": -0.043698523,
+      "candidate": -0.037990997,
+      "delta": 0.005707526,
+      "state": "moved",
+      "breaks": 134,
+      "squared_error_delta": -0.025772371591,
+      "share_of_absolute": 0.025337
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.037873116,
+      "delta": 0.00951732,
+      "state": "moved",
+      "breaks": 255,
+      "squared_error_delta": -0.060473785857,
+      "share_of_absolute": 0.059451
+     },
+     {
+      "cell": "PrimeShow1_first_long",
+      "shipped": -0.051378741,
+      "candidate": -0.039225808,
+      "delta": 0.012152932,
+      "state": "moved",
+      "breaks": 12,
+      "squared_error_delta": -0.001269781671,
+      "share_of_absolute": 0.001248
+     },
+     {
+      "cell": "PrimeShow1_first_short",
+      "shipped": -0.049262286,
+      "candidate": -0.038620461,
+      "delta": 0.010641825,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.011176318611,
+      "share_of_absolute": 0.010987
+     },
+     {
+      "cell": "PrimeShow1_first_standard",
+      "shipped": -0.048158137,
+      "candidate": -0.038258839,
+      "delta": 0.009899299,
+      "state": "moved",
+      "breaks": 28,
+      "squared_error_delta": -0.010194239875,
+      "share_of_absolute": 0.010022
+     },
+     {
+      "cell": "PrimeShow1_last_long",
+      "shipped": -0.048229005,
+      "candidate": -0.038912361,
+      "delta": 0.009316644,
+      "state": "moved",
+      "breaks": 11,
+      "squared_error_delta": -0.006017529647,
+      "share_of_absolute": 0.005916
+     },
+     {
+      "cell": "PrimeShow1_last_short",
+      "shipped": -0.051853024,
+      "candidate": -0.039694319,
+      "delta": 0.012158705,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.013581117037,
+      "share_of_absolute": 0.013352
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.036353546,
+      "delta": 0.007701922,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.04119829011,
+      "share_of_absolute": 0.040502
+     },
+     {
+      "cell": "PrimeShow1_middle_long",
+      "shipped": -0.048450583,
+      "candidate": -0.038924167,
+      "delta": 0.009526416,
+      "state": "moved",
+      "breaks": 15,
+      "squared_error_delta": -0.006990026033,
+      "share_of_absolute": 0.006872
+     },
+     {
+      "cell": "PrimeShow1_middle_short",
+      "shipped": -0.048621523,
+      "candidate": -0.038804787,
+      "delta": 0.009816737,
+      "state": "moved",
+      "breaks": 18,
+      "squared_error_delta": -0.009798053279,
+      "share_of_absolute": 0.009632
+     },
+     {
+      "cell": "PrimeShow1_middle_standard",
+      "shipped": -0.045304089,
+      "candidate": -0.038225407,
+      "delta": 0.007078683,
+      "state": "moved",
+      "breaks": 22,
+      "squared_error_delta": -0.011868760252,
+      "share_of_absolute": 0.011668
+     },
+     {
+      "cell": "PrimeShow2_first_long",
+      "shipped": -0.049837276,
+      "candidate": -0.038743621,
+      "delta": 0.011093655,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": -0.005340367669,
+      "share_of_absolute": 0.00525
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.041175151,
+      "delta": 0.015304231,
+      "state": "moved",
+      "breaks": 14,
+      "squared_error_delta": 0.061923427353,
+      "share_of_absolute": 0.060877
+     },
+     {
+      "cell": "PrimeShow2_first_standard",
+      "shipped": -0.046666492,
+      "candidate": -0.037955756,
+      "delta": 0.008710736,
+      "state": "moved",
+      "breaks": 9,
+      "squared_error_delta": -0.01818081539,
+      "share_of_absolute": 0.017873
+     },
+     {
+      "cell": "PrimeShow2_last_long",
+      "shipped": -0.048553461,
+      "candidate": -0.037595115,
+      "delta": 0.010958346,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.024412517786,
+      "share_of_absolute": 0.024
+     },
+     {
+      "cell": "PrimeShow2_last_short",
+      "shipped": -0.051203677,
+      "candidate": -0.039460433,
+      "delta": 0.011743245,
+      "state": "moved",
+      "breaks": 10,
+      "squared_error_delta": 0.007943854304,
+      "share_of_absolute": 0.00781
+     },
+     {
+      "cell": "PrimeShow2_last_standard",
+      "shipped": -0.049802646,
+      "candidate": -0.037703022,
+      "delta": 0.012099624,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.022554442782,
+      "share_of_absolute": 0.022173
+     },
+     {
+      "cell": "PrimeShow2_middle_long",
+      "shipped": -0.050699904,
+      "candidate": -0.039074412,
+      "delta": 0.011625493,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.004140345619,
+      "share_of_absolute": 0.00407
+     },
+     {
+      "cell": "PrimeShow2_middle_short",
+      "shipped": -0.053481603,
+      "candidate": -0.039219931,
+      "delta": 0.014261673,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": 0.011024358616,
+      "share_of_absolute": 0.010838
+     },
+     {
+      "cell": "PrimeShow2_middle_standard",
+      "shipped": -0.052921955,
+      "candidate": -0.039836506,
+      "delta": 0.013085448,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": 0.019627283955,
+      "share_of_absolute": 0.019295
+     }
+    ],
+    "summary": {
+     "cells_compared": 36,
+     "cells_moved": 36,
+     "cells_unchanged": 0,
+     "cells_added": [],
+     "cells_dropped": [],
+     "max_abs_delta": 0.015817128,
+     "max_abs_delta_at": "Other_first_long",
+     "breaks_weighted_mean_abs_delta": 0.010436076,
+     "net_squared_error_delta": -0.012836519859,
+     "total_abs_squared_error_delta": 1.017195942897,
+     "cancelled_share": 0.98738,
+     "cells_improved": 21,
+     "cells_worsened": 15,
+     "carries_the_move": [
+      "Other_first_long",
+      "News_last_standard",
+      "Other_last_short",
+      "PrimeShow2_first_short",
+      "Other_middle_standard",
+      "News_middle_long",
+      "Other_first_standard",
+      "Other_middle_long",
+      "PrimeShow1_last_standard",
+      "News_middle_standard",
+      "News_last_short",
+      "Other_middle_short",
+      "PrimeShow2_last_long",
+      "PrimeShow2_last_standard",
+      "PrimeShow2_middle_standard",
+      "PrimeShow2_first_standard"
+     ],
+     "carries_share": 0.8,
+     "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+     "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+     "concentrated": false,
+     "reading_en": "36 of 36 cells hold a different number, and 98.7 percent of the movement they make cancels between them. It takes 16 cells to reach 80 percent of it, so no small set of cells carries this.",
+     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 98.7 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 16 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
+    }
+   },
    "prediction_signature": "f1910d550687",
    "duplicate_of": []
   },
@@ -237,6 +1444,392 @@
     "he": "חוזה בדיוק את מה שהמודל המשודר חוזה, ברייק אחר ברייק.",
     "rule_en": "Both artifacts predict the same value for every break.",
     "rule_he": "שני הקבצים חוזים את אותו ערך בכל ברייק."
+   },
+   "cell_deltas": {
+    "rows": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.048367312,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 27,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.051512755,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 21,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.049329373,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 44,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.050077888,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 96,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.046802176,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 67,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.05769385,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 58,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.055513062,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 105,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.048998091,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 20,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "News_middle_standard",
+      "shipped": -0.053348581,
+      "candidate": -0.053348581,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 51,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.061659876,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 238,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_first_short",
+      "shipped": -0.051812309,
+      "candidate": -0.051812309,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 100,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.045253054,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 207,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_last_long",
+      "shipped": -0.046797068,
+      "candidate": -0.046797068,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 159,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.041307603,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 146,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_last_standard",
+      "shipped": -0.05364104,
+      "candidate": -0.05364104,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 224,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.046603769,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 292,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_middle_short",
+      "shipped": -0.043698523,
+      "candidate": -0.043698523,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 134,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.047390436,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 255,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_first_long",
+      "shipped": -0.051378741,
+      "candidate": -0.051378741,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 12,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_first_short",
+      "shipped": -0.049262286,
+      "candidate": -0.049262286,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 13,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_first_standard",
+      "shipped": -0.048158137,
+      "candidate": -0.048158137,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 28,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_last_long",
+      "shipped": -0.048229005,
+      "candidate": -0.048229005,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 11,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_last_short",
+      "shipped": -0.051853024,
+      "candidate": -0.051853024,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 8,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.044055468,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 23,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_middle_long",
+      "shipped": -0.048450583,
+      "candidate": -0.048450583,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 15,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_middle_short",
+      "shipped": -0.048621523,
+      "candidate": -0.048621523,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 18,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow1_middle_standard",
+      "shipped": -0.045304089,
+      "candidate": -0.045304089,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 22,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_first_long",
+      "shipped": -0.049837276,
+      "candidate": -0.049837276,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 24,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.056479382,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 14,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_first_standard",
+      "shipped": -0.046666492,
+      "candidate": -0.046666492,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 9,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_last_long",
+      "shipped": -0.048553461,
+      "candidate": -0.048553461,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 13,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_last_short",
+      "shipped": -0.051203677,
+      "candidate": -0.051203677,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 10,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_last_standard",
+      "shipped": -0.049802646,
+      "candidate": -0.049802646,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 23,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_middle_long",
+      "shipped": -0.050699904,
+      "candidate": -0.050699904,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 8,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_middle_short",
+      "shipped": -0.053481603,
+      "candidate": -0.053481603,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 13,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     },
+     {
+      "cell": "PrimeShow2_middle_standard",
+      "shipped": -0.052921955,
+      "candidate": -0.052921955,
+      "delta": 0.0,
+      "state": "unchanged",
+      "breaks": 24,
+      "squared_error_delta": 0.0,
+      "share_of_absolute": 0.0
+     }
+    ],
+    "summary": {
+     "cells_compared": 36,
+     "cells_moved": 0,
+     "cells_unchanged": 36,
+     "cells_added": [],
+     "cells_dropped": [],
+     "max_abs_delta": null,
+     "max_abs_delta_at": null,
+     "breaks_weighted_mean_abs_delta": 0.0,
+     "net_squared_error_delta": 0.0,
+     "total_abs_squared_error_delta": 0.0,
+     "cancelled_share": null,
+     "cells_improved": 0,
+     "cells_worsened": 0,
+     "carries_the_move": [],
+     "carries_share": 0.8,
+     "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+     "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+     "concentrated": false,
+     "reading_en": "No coefficient moves. The two artifacts hold the same number in every cell they share.",
+     "reading_he": "אף מקדם אינו זז. שני הקבצים מחזיקים את אותו מספר בכל תא משותף."
+    }
    },
    "prediction_signature": "1e76c1c24620",
    "duplicate_of": []
@@ -280,6 +1873,408 @@
     "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.7756, תנועה -0.000156, פיזור 0.000418.",
     "clears_paired_bar": false,
     "clears_fold_dispersion": false
+   },
+   "cell_deltas": {
+    "rows": [
+     {
+      "cell": "News_first_long",
+      "shipped": -0.048367312,
+      "candidate": -0.038690501,
+      "delta": 0.009676811,
+      "state": "moved",
+      "breaks": 27,
+      "squared_error_delta": -0.013545272412,
+      "share_of_absolute": 0.015029
+     },
+     {
+      "cell": "News_first_short",
+      "shipped": -0.051512755,
+      "candidate": -0.040248986,
+      "delta": 0.011263769,
+      "state": "moved",
+      "breaks": 21,
+      "squared_error_delta": -0.010247072332,
+      "share_of_absolute": 0.01137
+     },
+     {
+      "cell": "News_first_standard",
+      "shipped": -0.049329373,
+      "candidate": -0.041229242,
+      "delta": 0.008100131,
+      "state": "moved",
+      "breaks": 44,
+      "squared_error_delta": 0.013457391347,
+      "share_of_absolute": 0.014932
+     },
+     {
+      "cell": "News_last_long",
+      "shipped": -0.050077888,
+      "candidate": -0.041812525,
+      "delta": 0.008265362,
+      "state": "moved",
+      "breaks": 96,
+      "squared_error_delta": 0.012544860206,
+      "share_of_absolute": 0.013919
+     },
+     {
+      "cell": "News_last_short",
+      "shipped": -0.046802176,
+      "candidate": -0.036020324,
+      "delta": 0.010781851,
+      "state": "moved",
+      "breaks": 67,
+      "squared_error_delta": -0.039544744037,
+      "share_of_absolute": 0.043878
+     },
+     {
+      "cell": "News_last_standard",
+      "shipped": -0.05769385,
+      "candidate": -0.047722978,
+      "delta": 0.009970872,
+      "state": "moved",
+      "breaks": 58,
+      "squared_error_delta": 0.06629955753,
+      "share_of_absolute": 0.073564
+     },
+     {
+      "cell": "News_middle_long",
+      "shipped": -0.055513062,
+      "candidate": -0.043850046,
+      "delta": 0.011663016,
+      "state": "moved",
+      "breaks": 105,
+      "squared_error_delta": 0.044095345614,
+      "share_of_absolute": 0.048927
+     },
+     {
+      "cell": "News_middle_short",
+      "shipped": -0.048998091,
+      "candidate": -0.03875525,
+      "delta": 0.010242842,
+      "state": "moved",
+      "breaks": 20,
+      "squared_error_delta": -0.01530238409,
+      "share_of_absolute": 0.016979
+     },
+     {
+      "cell": "News_middle_standard",
+      "shipped": -0.053348581,
+      "candidate": -0.04337073,
+      "delta": 0.00997785,
+      "state": "moved",
+      "breaks": 51,
+      "squared_error_delta": 0.029292446079,
+      "share_of_absolute": 0.032502
+     },
+     {
+      "cell": "Other_first_long",
+      "shipped": -0.061659876,
+      "candidate": -0.050398067,
+      "delta": 0.011261809,
+      "state": "moved",
+      "breaks": 238,
+      "squared_error_delta": 0.08411001247,
+      "share_of_absolute": 0.093326
+     },
+     {
+      "cell": "Other_first_short",
+      "shipped": -0.051812309,
+      "candidate": -0.04205228,
+      "delta": 0.009760029,
+      "state": "moved",
+      "breaks": 100,
+      "squared_error_delta": 0.001967792593,
+      "share_of_absolute": 0.002183
+     },
+     {
+      "cell": "Other_first_standard",
+      "shipped": -0.045253054,
+      "candidate": -0.034811603,
+      "delta": 0.010441451,
+      "state": "moved",
+      "breaks": 207,
+      "squared_error_delta": -0.062921759355,
+      "share_of_absolute": 0.069816
+     },
+     {
+      "cell": "Other_last_long",
+      "shipped": -0.046797068,
+      "candidate": -0.040848143,
+      "delta": 0.005948925,
+      "state": "moved",
+      "breaks": 159,
+      "squared_error_delta": 0.003612727916,
+      "share_of_absolute": 0.004009
+     },
+     {
+      "cell": "Other_last_short",
+      "shipped": -0.041307603,
+      "candidate": -0.033148757,
+      "delta": 0.008158847,
+      "state": "moved",
+      "breaks": 146,
+      "squared_error_delta": -0.091879050512,
+      "share_of_absolute": 0.101947
+     },
+     {
+      "cell": "Other_last_standard",
+      "shipped": -0.05364104,
+      "candidate": -0.042183022,
+      "delta": 0.011458018,
+      "state": "moved",
+      "breaks": 224,
+      "squared_error_delta": 0.000266189204,
+      "share_of_absolute": 0.000295
+     },
+     {
+      "cell": "Other_middle_long",
+      "shipped": -0.046603769,
+      "candidate": -0.036303792,
+      "delta": 0.010299977,
+      "state": "moved",
+      "breaks": 292,
+      "squared_error_delta": -0.048355669666,
+      "share_of_absolute": 0.053654
+     },
+     {
+      "cell": "Other_middle_short",
+      "shipped": -0.043698523,
+      "candidate": -0.036466573,
+      "delta": 0.00723195,
+      "state": "moved",
+      "breaks": 134,
+      "squared_error_delta": -0.03117862684,
+      "share_of_absolute": 0.034595
+     },
+     {
+      "cell": "Other_middle_standard",
+      "shipped": -0.047390436,
+      "candidate": -0.036929097,
+      "delta": 0.010461339,
+      "state": "moved",
+      "breaks": 255,
+      "squared_error_delta": -0.063953850364,
+      "share_of_absolute": 0.070962
+     },
+     {
+      "cell": "PrimeShow1_first_long",
+      "shipped": -0.051378741,
+      "candidate": -0.040668022,
+      "delta": 0.010710719,
+      "state": "moved",
+      "breaks": 12,
+      "squared_error_delta": -0.001304459782,
+      "share_of_absolute": 0.001447
+     },
+     {
+      "cell": "PrimeShow1_first_short",
+      "shipped": -0.049262286,
+      "candidate": -0.039590488,
+      "delta": 0.009671797,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.010279535309,
+      "share_of_absolute": 0.011406
+     },
+     {
+      "cell": "PrimeShow1_first_standard",
+      "shipped": -0.048158137,
+      "candidate": -0.039300294,
+      "delta": 0.008857844,
+      "state": "moved",
+      "breaks": 28,
+      "squared_error_delta": -0.009380056955,
+      "share_of_absolute": 0.010408
+     },
+     {
+      "cell": "PrimeShow1_last_long",
+      "shipped": -0.048229005,
+      "candidate": -0.039422278,
+      "delta": 0.008806728,
+      "state": "moved",
+      "breaks": 11,
+      "squared_error_delta": -0.00573757712,
+      "share_of_absolute": 0.006366
+     },
+     {
+      "cell": "PrimeShow1_last_short",
+      "shipped": -0.051853024,
+      "candidate": -0.041091953,
+      "delta": 0.010761071,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.011899657109,
+      "share_of_absolute": 0.013204
+     },
+     {
+      "cell": "PrimeShow1_last_standard",
+      "shipped": -0.044055468,
+      "candidate": -0.035050002,
+      "delta": 0.009005466,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.047901065756,
+      "share_of_absolute": 0.05315
+     },
+     {
+      "cell": "PrimeShow1_middle_long",
+      "shipped": -0.048450583,
+      "candidate": -0.039368909,
+      "delta": 0.009081674,
+      "state": "moved",
+      "breaks": 15,
+      "squared_error_delta": -0.006724280735,
+      "share_of_absolute": 0.007461
+     },
+     {
+      "cell": "PrimeShow1_middle_short",
+      "shipped": -0.048621523,
+      "candidate": -0.039761755,
+      "delta": 0.008859768,
+      "state": "moved",
+      "breaks": 18,
+      "squared_error_delta": -0.00899551958,
+      "share_of_absolute": 0.009981
+     },
+     {
+      "cell": "PrimeShow1_middle_standard",
+      "shipped": -0.045304089,
+      "candidate": -0.038743226,
+      "delta": 0.006560863,
+      "state": "moved",
+      "breaks": 22,
+      "squared_error_delta": -0.011075279076,
+      "share_of_absolute": 0.012289
+     },
+     {
+      "cell": "PrimeShow2_first_long",
+      "shipped": -0.049837276,
+      "candidate": -0.03968303,
+      "delta": 0.010154246,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": -0.005117081713,
+      "share_of_absolute": 0.005678
+     },
+     {
+      "cell": "PrimeShow2_first_short",
+      "shipped": -0.056479382,
+      "candidate": -0.043727649,
+      "delta": 0.012751733,
+      "state": "moved",
+      "breaks": 14,
+      "squared_error_delta": 0.051139917015,
+      "share_of_absolute": 0.056744
+     },
+     {
+      "cell": "PrimeShow2_first_standard",
+      "shipped": -0.046666492,
+      "candidate": -0.038997482,
+      "delta": 0.00766901,
+      "state": "moved",
+      "breaks": 9,
+      "squared_error_delta": -0.016078454577,
+      "share_of_absolute": 0.01784
+     },
+     {
+      "cell": "PrimeShow2_last_long",
+      "shipped": -0.048553461,
+      "candidate": -0.037949253,
+      "delta": 0.010604208,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": -0.023672403343,
+      "share_of_absolute": 0.026266
+     },
+     {
+      "cell": "PrimeShow2_last_short",
+      "shipped": -0.051203677,
+      "candidate": -0.040183045,
+      "delta": 0.011020632,
+      "state": "moved",
+      "breaks": 10,
+      "squared_error_delta": 0.007375398484,
+      "share_of_absolute": 0.008184
+     },
+     {
+      "cell": "PrimeShow2_last_standard",
+      "shipped": -0.049802646,
+      "candidate": -0.037755621,
+      "delta": 0.012047025,
+      "state": "moved",
+      "breaks": 23,
+      "squared_error_delta": -0.022470969266,
+      "share_of_absolute": 0.024933
+     },
+     {
+      "cell": "PrimeShow2_middle_long",
+      "shipped": -0.050699904,
+      "candidate": -0.040364511,
+      "delta": 0.010335394,
+      "state": "moved",
+      "breaks": 8,
+      "squared_error_delta": 0.003574215569,
+      "share_of_absolute": 0.003966
+     },
+     {
+      "cell": "PrimeShow2_middle_short",
+      "shipped": -0.053481603,
+      "candidate": -0.040951108,
+      "delta": 0.012530495,
+      "state": "moved",
+      "breaks": 13,
+      "squared_error_delta": 0.009404145518,
+      "share_of_absolute": 0.010435
+     },
+     {
+      "cell": "PrimeShow2_middle_standard",
+      "shipped": -0.052921955,
+      "candidate": -0.041577684,
+      "delta": 0.01134427,
+      "state": "moved",
+      "breaks": 24,
+      "squared_error_delta": 0.016541577166,
+      "share_of_absolute": 0.018354
+     }
+    ],
+    "summary": {
+     "cells_compared": 36,
+     "cells_moved": 36,
+     "cells_unchanged": 0,
+     "cells_added": [],
+     "cells_dropped": [],
+     "max_abs_delta": 0.012751733,
+     "max_abs_delta_at": "PrimeShow2_first_short",
+     "breaks_weighted_mean_abs_delta": 0.009841647,
+     "net_squared_error_delta": -0.190083879,
+     "total_abs_squared_error_delta": 0.90124634664,
+     "cancelled_share": 0.789088,
+     "cells_improved": 21,
+     "cells_worsened": 15,
+     "carries_the_move": [
+      "Other_last_short",
+      "Other_first_long",
+      "News_last_standard",
+      "Other_middle_standard",
+      "Other_first_standard",
+      "PrimeShow2_first_short",
+      "Other_middle_long",
+      "PrimeShow1_last_standard",
+      "News_middle_long",
+      "News_last_short",
+      "Other_middle_short",
+      "News_middle_standard",
+      "PrimeShow2_last_long",
+      "PrimeShow2_last_standard",
+      "PrimeShow2_middle_standard"
+     ],
+     "carries_share": 0.8,
+     "key_shape_en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+     "key_shape_he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+     "concentrated": false,
+     "reading_en": "36 of 36 cells hold a different number, and 78.9 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
+     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 78.9 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
+    }
    },
    "prediction_signature": "9e0e5a7a10dc",
    "duplicate_of": []

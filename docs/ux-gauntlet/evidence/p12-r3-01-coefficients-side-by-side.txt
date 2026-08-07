@@ -1,0 +1,11 @@
+P12 round 3 evidence 01: the coefficient delta on the comparison screen
+Command: python scripts/adopt_candidate.py show
+
+Coefficients, what each candidate changes against the shipped model
+  artifact               cells moved  largest move where                           cancels
+  spotclip                  36 of 36   0.012751733 PrimeShow2_first_short            78.9%
+  afterwindow               36 of 36   0.014066885 PrimeShow2_first_short            86.2%
+  calibrated                36 of 36   0.014066885 PrimeShow2_first_short            86.2%
+  competitor                36 of 36   0.015817128 Other_first_long                  98.7%
+  placebo_corrected          0 of 36          none                                 no move
+

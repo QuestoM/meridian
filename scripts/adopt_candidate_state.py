@@ -51,6 +51,14 @@ def money_state(identifier: str) -> dict[str, Any]:
     steward sees here is the state the model console shows, computed by the same
     code, and this piece never has a second opinion about a figure it did not
     measure.
+
+    **One function, and it used to be two.** The registry carried its own copy
+    with different semantics for the stale case: this one refused to return a
+    stale figure and that one returned it, so a third caller written against
+    either got the other's behaviour. The refusal is the correct half and it is
+    kept, under ``revenue_delta``, which is what a record and an artifact stamp
+    read. The magnitude moves to ``last_known_revenue_delta``, which is what a
+    screen reads, and the two names say which is which.
     """
     from kairos_api import model_console_candidates as console
     from kairos_api import model_version_store as store
@@ -58,13 +66,22 @@ def money_state(identifier: str) -> dict[str, Any]:
     stored = store.measurement(identifier)
     path = console.candidate_path(identifier)
     if stored is None:
-        return {"state": "not_measured", "revenue_delta": None, "how": "measure",
+        return {"state": "not_measured", "revenue_delta": None,
+                "last_known_revenue_delta": None, "scope": {}, "how": "measure",
                 "reason_en": "The money this would move has not been measured.",
                 "reason_he": "הכסף שזה יזיז לא נמדד."}
     if path is None or str(stored.get("fingerprint") or "") != console.measurement_fingerprint(path):
         moved = console.changed_inputs(path, stored) if path is not None else []
-        return {"state": "stale", "revenue_delta": None, "changed": moved, "how": "measure",
+        # ``revenue_delta`` stays None so no stale figure can be carried into a
+        # decision record or into an artifact stamp. The magnitude is not thrown
+        # away with it: a check that says only "stale" cannot say whether the
+        # figure it is refusing to use is a rounding error or a million shekels,
+        # and a steward needs to know which before deciding what to re-measure.
+        return {"state": "stale", "revenue_delta": None,
+                "last_known_revenue_delta": (stored.get("operator_channel_delta") or {}).get("revenue_delta"),
+                "changed": moved, "how": "measure",
                 "measured_at": stored.get("measured_at"),
+                "scope": (stored.get("scope") or {}).get("operator_channel") or {},
                 "reason_en": "The stored money measurement is not current. What changed: " + moved_inputs(moved) + ".",
                 "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: " + moved_inputs(moved, "he") + "."}
     own = stored.get("operator_channel_delta") or {}
@@ -77,6 +94,7 @@ def money_state(identifier: str) -> dict[str, Any]:
         for key in ("revenue_delta", "retention_sum_delta", "breaks_delta")
         if isinstance(source.get(key), (int, float)) and abs(float(source[key])) > 0)
     return {"state": "measured", "revenue_delta": own.get("revenue_delta"),
+            "last_known_revenue_delta": own.get("revenue_delta"),
             "revenue_delta_pct": own.get("revenue_delta_pct"),
             "measured_at": stored.get("measured_at"),
             "scope": (stored.get("scope") or {}).get("operator_channel"),

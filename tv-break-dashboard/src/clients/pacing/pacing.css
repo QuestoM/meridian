@@ -142,9 +142,54 @@
 
 /* The disclosure that most of the counted rows are the seed's, in the same
    paragraph as the count it qualifies. A count and its qualification in two
-   separate blocks reads as two facts, and the second one is about the first. */
+   separate blocks reads as two facts, and the second one is about the first.
+
+   It keeps --muted and not --subtle. Measured on the header's own background,
+   --subtle at this size is 4.46:1, under the 4.5:1 AA floor, and --muted is
+   5.56:1. This sentence is the one that says most of the figures above it were
+   written by a seed, so it is the last text on the surface that may be the
+   quietest thing on it. */
 .pacing-seeded {
-  color: var(--subtle);
+  color: var(--muted);
+  font-style: normal;
+}
+
+/* A write the server refused, said on the surface that asked for it. The shell's
+   toast is the product's own channel and it does not reach this panel at the
+   address it is mounted at, so the refusal is printed here as well. */
+.pacing-refusal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.pacing-refusal p {
+  margin: 0;
+  max-inline-size: 88ch;
+}
+
+.pacing-refusal button {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.pacing-refusal button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 /* The strip, then the table. What sits between them is one line of basis and one
@@ -161,6 +206,15 @@
 
 .pacing-basis-line {
   margin: 0;
+}
+
+/* What the counted figure is. It sits above the disclosure and not inside it,
+   so it reads at the same weight as the instant beside it rather than as an
+   aside. --ink on --surface measures 15.87:1. */
+.pacing-basis-planned {
+  margin: 0;
+  color: var(--ink);
+  max-inline-size: 68ch;
 }
 
 .pacing-basis-details summary {
@@ -221,8 +275,9 @@
 }
 
 /* A sentence quoted out of a store that writes in one language only. It is set
-   apart so a reader can tell the source's words from this surface's own. */
+   apart so a reader can tell the source's words from this surface's own. The
+   run's own order is the job of the Name primitive inside the quote, per
+   design-rules.md section 6: a direction here would re-anchor the paragraph. */
 .pacing-source-quote q {
-  unicode-bidi: isolate;
   color: var(--subtle);
 }

@@ -128,6 +128,17 @@ HOW: dict[str, dict[str, str]] = {
         "en": "models/releases/owner_approvals/{id}.json with approved_revenue_delta set to the measured figure.",
         "he": "models/releases/owner_approvals/{id}.json עם approved_revenue_delta שנקוב בדיוק במספר הנמדד.",
     },
+    "ownership_ruling": {
+        "en": "The lead adds {path} to the row, and records the ruling at {file} with path set to that exact path.",
+        "he": "ראש הריצה מוסיף את הקובץ לשורת הבעלות, ורושם את הפסיקה בקובץ {file} עם path שנקוב בדיוק באותו נתיב.",
+    },
+}
+
+# What a money escalation says. It lives here with every other authored pair,
+# and the act module reads it under its old name.
+ESCALATION: dict[str, str] = {
+    "en": "This adoption would move a shipped figure, so it stops here. Record the measured movement and the reason with the owner, then place the owner's approval under models/releases/owner_approvals/ naming that exact movement in shekels.",
+    "he": "ההטמעה הזו תזיז מספר משודר, ולכן היא נעצרת כאן. יש לרשום מול הבעלים את התנועה הנמדדת ואת הסיבה, ואז להניח את אישור הבעלים תחת models/releases/owner_approvals/ עם אותה תנועה מדויקת בשקלים.",
 }
 
 # The one act that would move a candidate forward, per state it is in. Never a
@@ -146,7 +157,7 @@ NEXT_ACT: dict[str, dict[str, str]] = {
     },
     "decide": {
         "en": "Record a ship or no-ship verdict against the model version on disk.",
-        "he": "יש לרשום הכרעת שיגור או אי שיגור מול גרסת המודל שעל הדיסק.",
+        "he": "יש לרשום הכרעה להשיק או לא להשיק מול גרסת המודל שעל הדיסק.",
         "command": "python scripts/adopt_candidate.py decide {id} --decision <shipped|not_shipped> --actor \"<name>\" --reason \"<sentence>\"",
     },
     "redecide": {
@@ -166,6 +177,76 @@ NEXT_ACT: dict[str, dict[str, str]] = {
 DECISION_BASIS: dict[str, str] = {
     "en": "Taken on the common-basis re-score: every artifact scored on one identical set of breaks with one metric, not on each artifact's own self-reported held-out figures, which come from different splits and are not comparable.",
     "he": "התקבלה על בסיס המדידה המשותפת: כל קובץ נמדד על אותה קבוצת ברייקים בדיוק ובאותו מדד, ולא על המספרים המוחזקים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.",
+}
+
+
+# The two verdicts as words rather than as the store's keys. ``shipped`` and
+# ``not_shipped`` are what the decision log holds and what the flag takes, and
+# they were being printed back on the one screen where a steward is choosing
+# between exactly these two, with the English key sitting inside the Hebrew
+# sentence.
+#
+# **The Hebrew is the console's, verbatim, and it used to be this piece's own.**
+# This terminal said שיגור and אי שיגור while the model console it writes into
+# says להשיק and לא להשיק on its own controls and הושקה and לא הושקה on the
+# record, at ``console-words.js:180`` and ``:190``. Two surfaces naming one act
+# two ways is a divergence a steward walks straight into inside one session,
+# because the verdict recorded here is the verdict that console renders. The
+# console's file is frozen, so this piece adopts the console's pair rather than
+# asking for an edit to a file it may not write.
+DECISION_WORDS: dict[str, dict[str, str]] = {
+    "shipped": {"en": "ship", "he": "להשיק"},
+    "not_shipped": {"en": "no ship", "he": "לא להשיק"},
+}
+
+
+# What the stat column is and what would have to happen for a row to be called
+# better or worse. The rule was computed on every row and rendered nowhere, so
+# the table carried a bare statistic with no bar beside it and a word, "no
+# difference", with nothing on screen saying what decided it.
+PAIRED_LEGEND: dict[str, str] = {
+    "en": "stat is the paired statistic on the per-break squared error. A row is called better or worse only when it reaches {bar} and its movement in rmse also exceeds its own fold dispersion, and anything else reads as no difference.",
+    "he": "stat הוא הסטטיסטי המזווג על שגיאת הריבוע לכל ברייק. שורה נקראת טובה יותר או גרועה יותר רק כאשר הוא מגיע ל {bar} והתנועה בשגיאה עולה גם על פיזור הקיפולים שלה, וכל מצב אחר נקרא ללא הבדל.",
+}
+
+
+# What a cell key is, said wherever one is printed. The keys look like
+# PrimeShow2_first_short and a reader who has not been told will read the first
+# part as a channel. Measured on this tree: 36 keys, four programme classes,
+# three break positions, three break lengths, and no channel name in any of them.
+CELL_KEY_SHAPE: dict[str, str] = {
+    "en": "A cell key is a programme class, a break position and a break length. It names no channel.",
+    "he": "מפתח תא הוא סוג תוכנית, מיקום ברייק ואורך ברייק. הוא אינו נוקב בשום ערוץ.",
+}
+
+# The line that reads the point coefficient, so a moved number is reported with
+# what moving it does, exactly as the credible bound already is.
+CELL_READ_BY: dict[str, str] = {
+    "en": "kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.",
+    "he": "השורה kairos/model/impact.py:321 קוראת את המקדם עצמו כעלות השימור.",
+}
+
+# What the coefficient delta amounts to. The cancelling reading is the one this
+# whole block exists for: thirty-six cells that each move and net almost nothing
+# is a different artifact from one cell that was fixed, and the metric alone
+# cannot tell them apart.
+CELL_READING: dict[str, dict[str, str]] = {
+    "none": {
+        "en": "No coefficient moves. The two artifacts hold the same number in every cell they share.",
+        "he": "אף מקדם אינו זז. שני הקבצים מחזיקים את אותו מספר בכל תא משותף.",
+    },
+    "no_effect": {
+        "en": "{moved} of {compared} cells hold a different number and none of them changes the squared error on any break scored here.",
+        "he": "ב {moved} מתוך {compared} תאים יש מספר אחר, ואף אחד מהם אינו משנה את שגיאת הריבוע באף ברייק שנמדד כאן.",
+    },
+    "cancelling": {
+        "en": "{moved} of {compared} cells hold a different number, and {cancelled} percent of the movement they make cancels between them. {named} cells carry {share} percent of it.",
+        "he": "ב {moved} מתוך {compared} תאים יש מספר אחר, ו {cancelled} אחוזים מהתנועה שהם עושים מתקזזים ביניהם. {named} תאים נושאים {share} אחוזים ממנה.",
+    },
+    "spread": {
+        "en": "{moved} of {compared} cells hold a different number, and {cancelled} percent of the movement they make cancels between them. It takes {named} cells to reach {share} percent of it, so no small set of cells carries this.",
+        "he": "ב {moved} מתוך {compared} תאים יש מספר אחר, ו {cancelled} אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך {named} תאים כדי להגיע ל {share} אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה.",
+    },
 }
 
 

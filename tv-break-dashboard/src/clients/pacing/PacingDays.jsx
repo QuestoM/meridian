@@ -1,4 +1,5 @@
 import React from 'react';
+import { Code, Figure, Name } from '../../shell/bidi';
 import { amount, isWeekend, pair, pick, weekday } from './pacing-helpers';
 
 // The broadcast days behind a figure, which is the second level of the drill: a
@@ -14,10 +15,27 @@ import { amount, isWeekend, pair, pick, weekday } from './pacing-helpers';
 // and the sentence the ledger wrote beside it, because a day dropped from the
 // table would read as a flight that is shorter than it is.
 
+// The three words are the delivery ledger's own, quoted rather than re-authored.
+// campaigns_delivery.py publishes AIR_STATE_VOCABULARY and says "Scheduled, not
+// aired yet" where this file had drifted to "Booked, not aired yet", so one
+// product had two words for one state across two of its own destinations. The
+// meaning under each word is the ledger's too: aired here means the traffic log
+// records those spots and their time has passed, which is not the same claim as
+// a delivery feed confirming they ran.
 function stateWord(state, locale) {
   if (state === 'aired') return pick(locale, 'Aired', 'שודר');
-  if (state === 'scheduled') return pick(locale, 'Booked, not aired yet', 'מוזמן, טרם שודר');
+  if (state === 'scheduled') return pick(locale, 'Scheduled, not aired yet', 'מתוזמן, טרם שודר');
   return pick(locale, 'Unknown', 'לא ידוע');
+}
+
+function stateMeaning(state, locale) {
+  if (state === 'aired') {
+    return pick(locale, 'The traffic log records these spots and their time has passed.', 'יומן השידור רושם את התשדירים האלה והשעה שלהם עברה.');
+  }
+  if (state === 'scheduled') {
+    return pick(locale, 'The traffic log records these spots and their time is still ahead.', 'יומן השידור רושם את התשדירים האלה והשעה שלהם עוד לפנינו.');
+  }
+  return pick(locale, 'This day is inside the flight and no per-spot source exists for it.', 'היום הזה נמצא בתוך הטיסה ואין עבורו מקור ברמת התשדיר.');
 }
 
 function figure(day, locale) {
@@ -28,8 +46,8 @@ function figure(day, locale) {
   const money = amount(day.spend_ils, 'ils', locale);
   return (
     <span className="pacing-day-figures">
-      <span dir="auto">{points}</span>
-      <span dir="auto">{money}</span>
+      <Name>{points}</Name>
+      <Name>{money}</Name>
     </span>
   );
 }
@@ -82,11 +100,11 @@ export default function PacingDays({ drill, second, locale, onRetry }) {
             <tr key={`${day.broadcast_date}-${day.air_state}`}
                 className={`${day.air_state}${isWeekend(day.broadcast_date) ? ' weekend' : ''}`}>
               <th scope="row">
-                <span dir="ltr">{day.broadcast_date}</span>
+                <Figure>{day.broadcast_date}</Figure>
                 <small className="pacing-day-weekday">{weekday(day.broadcast_date, locale)}</small>
               </th>
-              <td>{stateWord(day.air_state, locale)}</td>
-              <td dir="ltr">{day.spots === null || day.spots === undefined ? '' : day.spots}</td>
+              <td title={stateMeaning(day.air_state, locale)}>{stateWord(day.air_state, locale)}</td>
+              <td><Figure>{day.spots === null || day.spots === undefined ? '' : day.spots}</Figure></td>
               <td>{figure(day, locale)}</td>
             </tr>
           ))}
@@ -106,7 +124,7 @@ export default function PacingDays({ drill, second, locale, onRetry }) {
       {sources.length ? (
         <p className="pacing-days-source">
           {pick(locale, 'Read from ', 'נקרא מתוך ')}
-          <span dir="ltr">{sources.join(', ')}</span>
+          <Code>{sources.join(', ')}</Code>
         </p>
       ) : null}
     </div>

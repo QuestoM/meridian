@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Figure, Name } from '../../shell/bidi';
 import PacingRow from './PacingRow';
 import { loadDays } from './pacing-api';
-import { VERDICT_ORDER, acceptanceFor, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
+import { VERDICT_ORDER, acceptanceFor, instant, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
 
 // The board an account manager opens in the morning.
 //
@@ -33,7 +34,7 @@ function Strip({ counts, active, vocabulary, locale, onPick }) {
           aria-pressed={active === verdict}
           onClick={() => onPick(active === verdict ? '' : verdict)}
         >
-          <span className="pacing-chip-count" dir="ltr">{counts[verdict] || 0}</span>
+          <Figure className="pacing-chip-count">{counts[verdict] || 0}</Figure>
           {vocabularyLabel(vocabulary.pace_verdicts, verdict, locale)}
         </button>
       ))}
@@ -44,11 +45,15 @@ function Strip({ counts, active, vocabulary, locale, onPick }) {
 function Basis({ payload, locale }) {
   const asOf = payload.as_of || {};
   const trigger = payload.trigger || {};
+  const raiseRule = payload.raise_rule || {};
   const channel = payload.scope ? payload.scope.scope_channel : '';
   return (
     <div className="pacing-basis">
+      {/* The instant goes through the same reader the ledger's does. It was the
+          store's raw ISO stamp here and a readable one two screens away, which is
+          one product speaking two ways about one clock. */}
       <p className="pacing-basis-line">
-        {pick(locale, `Counted through ${asOf.instant}.`, `נספר עד ${isolate(asOf.instant)}.`)}
+        {pick(locale, `Counted through ${instant(asOf.instant)}.`, `נספר עד ${isolate(instant(asOf.instant))}.`)}
         {channel ? ' ' : ''}
         {channel ? pick(
           locale,
@@ -56,6 +61,12 @@ function Basis({ payload, locale }) {
           `הלוח מכסה את ${isolate(channel)} ולא ערוץ אחר.`,
         ) : ''}
       </p>
+      {/* What the counted figure is, in front of the reader rather than behind
+          the disclosure. Every verdict on this board is against a planned rating
+          the traffic log holds and not against a measured delivery, and a reader
+          who never opened the disclosure could take an at-risk verdict for a
+          delivery shortfall. The long basis stays where it was. */}
+      <p className="pacing-basis-planned">{localized(payload, 'counted_is_planned', locale)}</p>
       <details className="pacing-basis-details">
         <summary>{pick(locale, 'How this is counted', 'איך זה נספר')}</summary>
         <p>{localized(payload, 'counted_basis', locale)}</p>
@@ -64,14 +75,26 @@ function Basis({ payload, locale }) {
           {' '}
           {localized(trigger, 'not_a_commercial_term', locale)}
         </p>
+        {/* When a make-good may be raised at all. It is the rule the write path
+            enforces, published here so the board, the ledger and any other
+            client are reading one sentence. On this data it is why no row on the
+            board offers the raise. */}
+        <p>{localized(raiseRule, 'rule', locale)}</p>
+        {/* The delivery ledger writes these two sentences in one language only,
+            so they are quoted as the source's own words rather than presented as
+            this surface's copy. A reader is told where the instant and the
+            figures came from either way, and a Hebrew reader now meets the
+            English of them only on asking. */}
         {asOf.basis ? (
-          // The delivery ledger writes this sentence in one language only, so it
-          // is quoted as the source's own words rather than presented as this
-          // surface's copy. A reader is told where the instant came from either
-          // way, and a Hebrew reader now meets the English of it only on asking.
           <p className="pacing-source-quote">
-            {pick(locale, 'The ledger states: ', 'ספר האספקה אומר: ')}
-            <q lang="en" dir="ltr">{asOf.basis}</q>
+            {pick(locale, 'The ledger dates itself: ', 'ספר האספקה מתארך את עצמו: ')}
+            <q lang="en"><Name>{asOf.basis}</Name></q>
+          </p>
+        ) : null}
+        {asOf.figures_basis ? (
+          <p className="pacing-source-quote">
+            {pick(locale, 'The ledger states its figures: ', 'ספר האספקה אומר מהם נתוניו: ')}
+            <q lang="en"><Name>{asOf.figures_basis}</Name></q>
           </p>
         ) : null}
       </details>
@@ -88,6 +111,8 @@ export default function PacingBoard({
   onRaise,
   onAccept,
   onOpenMakeGood,
+  focusCampaignId = '',
+  onFocused = () => {},
 }) {
   const [filter, setFilter] = useState('');
   const [expanded, setExpanded] = useState('');
@@ -103,6 +128,28 @@ export default function PacingBoard({
   useEffect(() => {
     setFocused(0);
   }, [filter]);
+
+  // A name somebody clicked in the ledger lands on its own row, not on whichever
+  // row happens to be first. Measured before this: opening a ledger record for a
+  // campaign sitting at index 6 of 56 returned to the board with row 0 focused,
+  // unscrolled and unmarked, so a name that looks like a link went nowhere. Any
+  // verdict filter is cleared first, because a row filtered out of the list
+  // cannot be the row a reader was sent to.
+  useEffect(() => {
+    if (!focusCampaignId) return;
+    const all = payload.rows || [];
+    const index = all.findIndex((row) => row.campaign_id === focusCampaignId);
+    if (index < 0) return;
+    // Clearing the filter is its own pass. The effect above resets the focus
+    // whenever the filter moves, and it is declared first, so focusing in the
+    // same pass would be overwritten by it.
+    if (filter) {
+      setFilter('');
+      return;
+    }
+    setFocused(index);
+    onFocused();
+  }, [focusCampaignId, payload.rows, filter, onFocused]);
 
   // A drill is a read of the same ledger the board was counted from, so a board
   // counted at a new instant invalidates every day already on screen rather than

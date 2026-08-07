@@ -1,0 +1,58 @@
+P12 round 5, the builder's own measurements. Every figure here was taken on this
+tree during this round, and each line names how.
+
+THE SCREEN, MEASURED IN A REAL BROWSER
+  Headless Chrome, the product's own bundler, the console's own candidate route
+  answered by the stand-in with the digests each scenario asks for. Full report
+  in p12-r5-03-board-measured-in-a-browser.json.
+  current   table 51.3 ms, freshness verdict 63.4 ms, one artifact's evidence open 77.1 ms
+  stale     table 28.4 ms, freshness verdict 32.9 ms, evidence open 39.5 ms, one moved artifact named
+  unknown   table 36.9 ms, freshness verdict 37.0 ms, evidence open 43.0 ms, no artifact named
+  JS-19 target 120 s. Whole reading route 0.077 s on the slowest of the three.
+  Direction rtl, 5 artifact rows, 8 cell rows in the opened artifact.
+
+THE TERMINAL, SAME TREE
+  show     0.25 s
+  checks   0.24 s
+  diff     0.21 s
+  publish  0.24 s
+  decide without --perform, whole check list and evidence: ready, nothing written
+
+THE FIGURES THE BOARD PUBLISHES, AGAINST THE STORED MEASUREMENT
+  Asserted key by key in tests/test_p12_board.py rather than quoted here: rmse,
+  sha256, rmse_delta, paired_statistic, fold_dispersion, verdict, cells moved,
+  cells compared and cancelled share, for all five candidates and the shipped
+  artifact, all equal to models/releases/holdout_rescores.json to the last digit.
+  2,532 breaks, 36 cells, 2024-11-01 to 2024-11-30, 5 temporal folds.
+  shipped rmse 0.241160667, target spread 0.241378699.
+  cell split minus one constant, out of sample: 0.000623361 rmse worse.
+  largest movement any candidate makes: 0.000155699 rmse. Ratio 4.0.
+  candidates that change the set of cells at all: 0 of 5, counted from the
+  coefficient delta rather than claimed.
+
+REGRESSION
+  P12 tests   167 passed (was 126 at the end of round 4)
+  P7 tests    105 passed in 231.30 s, unchanged count
+  npm run build   green in 529 ms
+  models/tv_break_coefficients.json   1e41d92b1a14, unchanged
+  models/releases/decisions.jsonl     7 records, unchanged
+  models/candidates/                  five artifacts, untouched
+
+THE TRAINING LINE
+  openapi paths 158, paths matching adopt 0
+  app routes 202, routes handled out of scripts/ 0
+  files under tv-break-dashboard/src naming the act 0
+  modules under kairos_api naming the act 0
+  the published board file names the act 0 times, and the write refuses if it does
+  publishing writes one file and it is not under models/, so it is not training
+  by section 4.1's own test, asserted in tests/test_p12_board.py
+
+  Not re-measured this round: the 401 on an unauthenticated console route. The
+  server this round ran with KAIROS_AUTH_DISABLED=1, so the figure it would give
+  is not a measurement of the wall. P7's own 105 tests cover it and they pass.
+
+THE COMPETITOR BOUNDARY
+  Rival channels read from the reference data rather than typed: three, against
+  the operator's own one from settings. None of the three appears in the
+  published board file or anywhere in the rendered screen, asserted twice, once
+  on the file and once on the browser's own innerText.

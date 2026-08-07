@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Numeric } from '../../shell/format';
-import { Figure as BidiFigure, Code, Name } from '../../shell/bidi';
+import { Figure as BidiFigure, Code, DirectionRoot, Name } from '../../shell/bidi';
 import { read } from '../console/console-api';
 import BOARD from './candidate-board.json';
 import { freshness, sortRows, SORTS } from './board-compare';
@@ -315,7 +315,7 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
   }
 
   return (
-    <div className={`cb-board ${dir}`} dir={dir} lang={locale} ref={region} onKeyDown={onKeyDown} tabIndex={-1}>
+    <DirectionRoot locale={locale} className={`cb-board ${dir}`} lang={locale} ref={region} onKeyDown={onKeyDown} tabIndex={-1}>
       <header className="cb-head">
         <h2>{t('board.title', locale)}</h2>
         <p>{t('board.sub', locale)}</p>
@@ -327,6 +327,6 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
         onSelect={setSelected} sort={sort} onSort={onSort} />
       <BoardDetail candidate={current} board={board} locale={locale} />
       <Baselines board={board} locale={locale} />
-    </div>
+    </DirectionRoot>
   );
 }

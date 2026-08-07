@@ -194,8 +194,7 @@ const EXCEPTIONS = [
   // Each paragraph needs its own direction from its first strong character because
   // the model writes in both Hebrew and English. Name is an inline <span> and
   // cannot replace a block-level <p>; dir="auto" is the only per-line mechanism.
-  { file: 'src/kai/AssistantThread.jsx', rule: 'jsx-dir', count: 2 },
-  // <Dialog> renders into a MUI portal outside the document root, so it cannot
+    // <Dialog> renders into a MUI portal outside the document root, so it cannot
   // inherit the root-level direction. dir must be stated explicitly on the Dialog
   // itself or the confirm panel renders as LTR inside an RTL page.
   { file: 'src/clients/AgencyDetailDrawer.jsx', rule: 'jsx-dir', count: 1 },
@@ -221,8 +220,7 @@ const EXCEPTIONS = [
   // the outermost div is the only way to establish the direction context for the
   // entire widget tree. The bidi primitive renders an inline span and cannot
   // replace a container-level direction root.
-  { file: 'src/model/candidates/CandidateBoard.jsx', rule: 'jsx-dir', count: 1 },
-];
+  ];
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {

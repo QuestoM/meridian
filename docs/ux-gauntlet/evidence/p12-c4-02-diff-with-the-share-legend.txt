@@ -1,0 +1,26 @@
+Coefficient delta, afterwindow against the shipped model
+  cell                               shipped   candidate       delta  breaks  squared error moved   share
+  Other_first_long                 -0.061660   -0.047712   +0.013948     238         +0.113089008  11.21%
+  Other_last_short                 -0.041308   -0.031292   +0.010016     146         -0.110076459  10.92%
+  News_last_standard               -0.057694   -0.044979   +0.012715      58         +0.086566571   8.58%
+  Other_middle_standard            -0.047390   -0.036287   +0.011104     255         -0.066062238   6.55%
+  Other_first_standard             -0.045253   -0.035515   +0.009738     207         -0.060099656   5.96%
+  PrimeShow2_first_short           -0.056479   -0.042412   +0.014067      14         +0.056673242   5.62%
+  PrimeShow1_last_standard         -0.044055   -0.034943   +0.009112      23         -0.048445901   4.80%
+  News_middle_long                 -0.055513   -0.043032   +0.012481     105         +0.048261847   4.79%
+  Other_middle_long                -0.046604   -0.037037   +0.009567     292         -0.046961380   4.66%
+  News_last_short                  -0.046802   -0.036569   +0.010234      67         -0.037909797   3.76%
+  News_middle_standard             -0.053349   -0.041860   +0.011489      51         +0.034612805   3.43%
+  Other_middle_short               -0.043699   -0.036278   +0.007420     134         -0.031802734   3.15%
+  24 further cells are not shown. Pass --all for every cell.
+
+  squared error moved is the candidate's squared error minus the shipped model's, summed over the breaks in that cell.
+  a negative figure is a cell where the candidate is closer to the measured effects than the shipped model.
+  share is that cell's part of the total absolute squared error moved, and the rows are ranked by it, so a cell that moved the metric the wrong way still ranks high.
+
+What its coefficients change
+  36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.
+  largest move 0.014066885 at PrimeShow2_first_short. kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.
+  mean absolute move, weighted by the breaks each cell was measured on: 0.010616886
+  A cell key is a programme class, a break position and a break length. It names no channel.
+

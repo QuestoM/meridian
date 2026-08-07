@@ -1,0 +1,47 @@
+P12 round 3: every number this round claims, and how it was taken.
+
+THE MEASURED ABSENCE THIS ROUND CLOSED
+  shipped vs afterwindow, coefficients that differ   36 of 36
+  largest point move                                 0.014066885 at PrimeShow2_first_short
+  keys in artifact_surface() output naming a point   0
+  what the checks reported instead                   credible bounds moved on 72 of 72
+  taken by: python -c reading both artifacts and calling surface.artifact_surface
+
+THE COEFFICIENT DELTA, ALL FIVE CANDIDATES, ON ONE COMMON SET OF 2,532 BREAKS
+  candidate           cells moved   largest move    cancelled share   concentrated
+  spotclip               36 of 36    0.012751733             0.7890          false
+  afterwindow            36 of 36    0.014066885             0.8622          false
+  calibrated             36 of 36    0.014066885             0.8622          false
+  competitor             36 of 36    0.015817128             0.9871          false
+  placebo_corrected       0 of 36           none               none          false
+  taken by: python scripts/adopt_candidate.py rescore --force, 9.7 s wall
+
+STOPWATCH, JS-19 TARGET 120 s
+  show                          0.32 s
+  diff <candidate>              0.18 s
+  checks <candidate>            0.18 s
+  whole route, four commands    5.24 s   (decide carries P7's 3.9 s gate ledger warm)
+  taken by: /usr/bin/time -p on each command and on the four in sequence
+
+REGRESSION
+  P12 tests        110 pass   (was 91 at the close of round 2)
+  P7 tests         105 pass   in 218.85 s
+  npm run build    green      in 305 ms
+  openapi paths    155        none matching adopt
+  operator interface and kairos_api mentions of this act   0
+  models/tv_break_coefficients.json   1e41d92b1a14, byte identical
+  models/releases/decisions.jsonl     7 records, unchanged
+
+FILE SIZES, CAP 450, MEASURED AFTER THE LAST EDIT
+       306 scripts/adopt_candidate.py
+       422 scripts/adopt_candidate_adoption.py
+        85 scripts/adopt_candidate_baselines.py
+       266 scripts/adopt_candidate_cells.py
+       308 scripts/adopt_candidate_decide.py
+       171 scripts/adopt_candidate_registry.py
+       356 scripts/adopt_candidate_render.py
+       415 scripts/adopt_candidate_rescore.py
+       181 scripts/adopt_candidate_state.py
+       143 scripts/adopt_candidate_surface.py
+       287 scripts/adopt_candidate_words.py
+      2940 total

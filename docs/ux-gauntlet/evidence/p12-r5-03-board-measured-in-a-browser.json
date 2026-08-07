@@ -1,0 +1,74 @@
+{
+ "taken_by": "P12 builder, round 5, headless Chrome through the product's own bundler",
+ "target_seconds_js19": 120,
+ "scenarios": {
+  "current": {
+   "marks": {
+    "table": 51.30000019073486,
+    "state": 63.40000009536743,
+    "clicked": 77.10000014305115,
+    "picked": 77.10000014305115
+   },
+   "state_word": "עדכנית",
+   "state_class": "cb-state cb-teal",
+   "state_reason": "כל קובץ שהשרת מגיש נושא את טביעת האצבע שההשוואה הזו נמדדה עליה.",
+   "moved": [],
+   "rows": [
+    "spotclip",
+    "afterwindow",
+    "calibrated",
+    "competitor",
+    "placebo_corrected"
+   ],
+   "opened": "spotclip",
+   "dir": "rtl",
+   "cells_rows": 8
+  },
+  "stale": {
+   "marks": {
+    "table": 28.40000009536743,
+    "state": 32.90000009536743,
+    "clicked": 39.5,
+    "picked": 39.5
+   },
+   "state_word": "לא עדכנית",
+   "state_class": "cb-state cb-amber",
+   "state_reason": "השרת מגיש קובץ אחר מזה שנמדד כאן, ולכן המספרים למטה עוסקים בקובץ שהשתנה מאז.",
+   "moved": [
+    "מה זזafterwindowc0da369034d4 -> 000000000000"
+   ],
+   "rows": [
+    "spotclip",
+    "afterwindow",
+    "calibrated",
+    "competitor",
+    "placebo_corrected"
+   ],
+   "opened": "spotclip",
+   "dir": "rtl",
+   "cells_rows": 8
+  },
+  "unknown": {
+   "marks": {
+    "table": 36.90000009536743,
+    "state": 37,
+    "clicked": 43,
+    "picked": 43
+   },
+   "state_word": "לא ידוע",
+   "state_class": "cb-state cb-blue",
+   "state_reason": "המסלול של המועמדים לא השיב, ולכן לא ניתן לבדוק מכאן אם המספרים האלה עוסקים בקבצים שעל הדיסק עכשיו.",
+   "moved": [],
+   "rows": [
+    "spotclip",
+    "afterwindow",
+    "calibrated",
+    "competitor",
+    "placebo_corrected"
+   ],
+   "opened": "spotclip",
+   "dir": "rtl",
+   "cells_rows": 8
+  }
+ }
+}

@@ -34,6 +34,7 @@ from pydantic import BaseModel, Field
 from kairos_api import makegood_store as ledger
 from kairos_api import pacing_alerts_api_board as board
 from kairos_api import pacing_alerts_api_read as read
+from kairos_api import pacing_alerts_api_wire as wire
 from kairos_api import pacing_alerts_api_words as words
 from kairos_api import pacing_alerts_api_write as write
 from kairos_api.affiliation_wall import Wall
@@ -106,6 +107,10 @@ class MoveMakeGood(BaseModel):
     offer_value: Optional[float] = None
     offer_window_start: str = Field(default="", max_length=32)
     offer_window_end: str = Field(default="", max_length=32)
+    # A transition that closes a record without a delivery carries a controlled
+    # reason from the ledger's own published list. The store refuses the move
+    # without one, so it is optional here and required there.
+    reason: str = Field(default="", max_length=64)
     note: str = Field(default="", max_length=500)
 
 
@@ -196,6 +201,17 @@ DUPLICATES = {
     ledger.ACCEPTANCE: (DUPLICATE_ACCEPT_EN, DUPLICATE_ACCEPT_HE, "acceptance"),
 }
 
+# Why a raise was refused, in the words the board publishes for the same rule. A
+# row that reaches no rung at all and a row that reaches only the gap to date are
+# two different facts and they send the reader to two different places.
+REFUSED_RAISE = {
+    "nothing_measured": (read.NOTHING_TO_RAISE_EN, read.NOTHING_TO_RAISE_HE),
+    "not_owed_yet": (
+        f"{words.NOT_OWED_YET_EN} {words.NOT_OWED_YET_PATH_EN}",
+        f"{words.NOT_OWED_YET_HE} {words.NOT_OWED_YET_PATH_HE}",
+    ),
+}
+
 
 def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | None") -> dict[str, Any]:
     """One act on one campaign, measured from the board and written to the ledger.
@@ -204,7 +220,9 @@ def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | 
     stamp a figure the other would not have. What differs between them is only
     which rows they are allowed on, which is decided by the reader below.
     """
-    view = read.board_payload()
+    # The board a write measures from is the full shape, never the wire's
+    # collapsed one, so an act is never decided on a row a reader could not read.
+    view = wire.expand(read.board_payload())
     row = read.find_row(view, campaign_id)
     if row is None:
         raise refuse(404, read.UNKNOWN_CAMPAIGN_EN, read.UNKNOWN_CAMPAIGN_HE)
@@ -213,8 +231,11 @@ def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | 
         deficit = read.acceptance_figures(row, as_of_day)
         refusal = (words.ACCEPT_NOT_AT_RISK_EN, words.ACCEPT_NOT_AT_RISK_HE)
     else:
-        deficit = read.deficit_for(row, as_of_day)
-        refusal = (read.NOTHING_TO_RAISE_EN, read.NOTHING_TO_RAISE_HE)
+        # One rule for one act. A gap to date is a measured figure and not a
+        # debt, so it is refused here in the same words the board publishes and
+        # with the path that makes the raise available.
+        deficit, why = read.raisable_deficit(row, as_of_day)
+        refusal = REFUSED_RAISE.get(why, (read.NOTHING_TO_RAISE_EN, read.NOTHING_TO_RAISE_HE))
     if deficit is None:
         raise refuse(409, refusal[0], refusal[1], opens={"kind": "campaign", "id": campaign_id})
 

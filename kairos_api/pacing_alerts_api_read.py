@@ -19,6 +19,7 @@ from typing import Any, Optional
 from kairos_api import channel_scope
 from kairos_api import makegood_store as ledger
 from kairos_api import pacing_alerts_api_board as board
+from kairos_api import pacing_alerts_api_wire as wire
 from kairos_api import pacing_alerts_api_words as words
 
 NOTHING_TO_RAISE_EN = (
@@ -31,6 +32,13 @@ NOTHING_TO_RAISE_HE = (
 )
 UNKNOWN_CAMPAIGN_EN = "No campaign on this operator's channel carries that id."
 UNKNOWN_CAMPAIGN_HE = "אין קמפיין בערוץ של המפעיל הזה שנושא את המזהה הזה."
+
+# The rungs of the ladder a make-good may be raised against. The third rung,
+# ``to_date``, is a measured figure and is not a debt: it is the gap against the
+# pace reference at the counted day on a flight that can still deliver. It is
+# what an accepted risk is stamped with and it is refused for a raise, which is
+# the rule the surface has always applied and the one the trade states.
+RAISABLE_KINDS = (ledger.MEASURED_CLOSED, ledger.BOOKED_SHORT)
 
 
 def _campaigns() -> list[dict[str, Any]]:
@@ -51,9 +59,15 @@ def _delivery() -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
     frame = delivery.load_frame()
     stamps = [str(value).strip() for value in frame.get("counted_as_of", []) if str(value).strip()]
     bases = [str(value).strip() for value in frame.get("counted_as_of_basis", []) if str(value).strip()]
+    # The ledger's own sentence about what its figures are. It says the counted
+    # rating is the planned break rating from the traffic file, which is the one
+    # fact that decides what an at-risk verdict means, and it was carried in the
+    # store and rendered on no screen in the product.
+    figures = [str(value).strip() for value in frame.get("figures_basis", []) if str(value).strip()]
     return delivery.days_by_campaign(), {
         "instant": max(stamps) if stamps else "",
         "basis": bases[0] if bases else "",
+        "figures_basis": figures[0] if figures else "",
     }
 
 
@@ -71,7 +85,7 @@ def board_payload() -> dict[str, Any]:
     rows = board.build_rows(campaigns, grouped, as_of_day)
     sourced = sum(1 for row in rows if row.get("flight") and row["flight"]["days_sourced"])
     marking = board.collapse_demo(rows)
-    return {
+    payload = {
         "available": bool(rows),
         "rows": rows,
         "counts": board.counts(rows),
@@ -80,14 +94,18 @@ def board_payload() -> dict[str, Any]:
         "as_of": as_of,
         "scope": scope,
         "trigger": words.trigger_block(),
+        "raise_rule": words.raise_rule_block(RAISABLE_KINDS),
         "counted_basis_en": words.COUNTED_BASIS_EN,
         "counted_basis_he": words.COUNTED_BASIS_HE,
+        "counted_is_planned_en": words.COUNTED_IS_PLANNED_EN,
+        "counted_is_planned_he": words.COUNTED_IS_PLANNED_HE,
         "no_source_en": words.NO_SOURCE_EN,
         "no_source_he": words.NO_SOURCE_HE,
         "path_forward_en": words.NO_SOURCE_PATH_EN,
         "path_forward_he": words.NO_SOURCE_PATH_HE,
         "vocabulary": words.vocabularies(),
     }
+    return wire.collapse(payload)
 
 
 def days_payload(campaign_id: str) -> Optional[dict[str, Any]]:
@@ -172,6 +190,27 @@ def _deficit(line: dict[str, Any], goal: float, counted: float, deficit: float,
         "deficit_kind": kind,
         "unsourced_days": unsourced,
     }
+
+
+def raisable_deficit(row: dict[str, Any], as_of_day: Optional[date]) -> tuple[Optional[dict[str, Any]], str]:
+    """The shortfall a make-good may actually be raised against, and why not when it may not.
+
+    One rule for one act. The write path used the whole ladder and the surface
+    offered a raise on the top two rungs only, so the API accepted a debt on 13
+    of 56 shipped rows that no screen in the product offered. Whichever of the
+    two rules is right, holding both means any other client can put a figure in
+    the ledger that this product says is not owed.
+
+    Returns the deficit and an empty string, or ``None`` and the code that says
+    which refusal to word: ``nothing_measured`` when the row reaches no rung at
+    all, ``not_owed_yet`` when it reaches only the gap to date.
+    """
+    deficit = deficit_for(row, as_of_day)
+    if deficit is None:
+        return None, "nothing_measured"
+    if deficit["deficit_kind"] not in RAISABLE_KINDS:
+        return None, "not_owed_yet"
+    return deficit, ""
 
 
 def acceptance_figures(row: dict[str, Any], as_of_day: Optional[date]) -> Optional[dict[str, Any]]:

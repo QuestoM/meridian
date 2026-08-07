@@ -1,0 +1,54 @@
+Adoption checks for spotclip
+  [pass] candidate_exists                 The candidate spotclip is in models/candidates/.
+  [pass] rescore_current                  The held-out re-score is current.
+  [pass] not_measured_worse               The re-score does not call this candidate worse than the shipped model.
+  [STOP] money_current                    The stored money measurement is not current. What changed: the saved settings.
+                                          python scripts/adopt_candidate.py measure spotclip
+  [STOP] ship_decision_recorded           The verdict on record for this candidate is no ship, taken 2026-08-02T02:13:22. Adopting it would contradict a decision somebody already took.
+                                          python scripts/adopt_candidate.py decide spotclip --decision shipped --actor "<name>" --reason "<sentence>" --release-note-he "<sentence>"
+  [STOP] steward_named                    Nobody is named as taking this decision.
+                                          --adopted-by "<name>"
+  [STOP] reason_given                     The adoption carries no reason, and a verdict with no reason is not a record.
+                                          --reason "<sentence>"
+  [STOP] no_engine_input_dropped          The candidate drops fields the engine reads: first_break_multiplier (shipped value 1.0).
+                                          Rebuild the candidate with the layers the shipped artifact carries.
+  [STOP] no_shipped_figure_moves          Whether a shipped figure moves is unknown until the money is measured.
+  [STOP] write_target_is_owned            Adopting writes models/tv_break_coefficients.json, which is absent from docs/ux-gauntlet/spec.md section 8.2, wave-two table, row P12, so it is frozen by absence. Everything up to this point is on the row and has run.
+                                          The lead adds models/tv_break_coefficients.json to the row, and records the ruling at models/releases/ownership/shipped_artifact.json with path set to that exact path.
+
+Money if adopted: stale
+  last measured 2026-08-01T08:53:05. What moved since: the saved settings
+  the figure it last measured was +902,998.61 on the operator's own channel, and this check will not carry it into a record or an artifact stamp because its inputs have since moved
+
+What its gates decide differently
+  series_layer_active                shipped false                  candidate does not carry it
+  counterprogramming_active          shipped false                  candidate does not carry it
+  first_break_active                 shipped false                  candidate does not carry it
+  first_break_multiplier             shipped 1.0                    candidate does not carry it
+  first_break_p_value                shipped 0.203419               candidate does not carry it
+  placebo_correction_active          shipped true                   candidate does not carry it
+  detrend_seasonality_recommended    shipped false                  candidate does not carry it
+  moderated_variances                shipped false                  candidate does not carry it
+  interval_method                    shipped bootstrap              candidate does not carry it
+  detrend_baseline_mode              shipped global                 candidate does not carry it
+  how much each gate was decided on, as each artifact reports it about itself
+  counterprogramming_holdout         shipped 2,532 breaks           candidate does not carry it
+  detrend_seasonality_holdout        shipped 34,560 minutes         candidate does not carry it
+  holdout_clean_test                 shipped does not carry it      candidate 461 breaks
+  series_gate_holdout                shipped 2,532 breaks           candidate does not carry it
+  two sides measured on different amounts are not comparable, which is why show scores every artifact again on one common set.
+
+What its coefficients change
+  36 of 36 cells hold a different number, and 78.9 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.
+  largest move 0.012751733 at PrimeShow2_first_short. kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.
+  mean absolute move, weighted by the breaks each cell was measured on: 0.009841647
+  A cell key is a programme class, a break position and a break length. It names no channel.
+
+What else the adopted artifact would change
+  credible bounds moved on 72 of the 72 bounds compared, across 36 cells
+  largest move 0.031269209 at PrimeShow2_first_short.ci_low. kairos/optimize/_segment_math.py:49 prices the risk_lambda decision
+  metadata keys dropped: before_after_window_minutes, between_cell_variance_tau2, bootstrap_B, channels, counterprogramming_active, counterprogramming_forward_features, counterprogramming_holdout, counterprogramming_reason, daily_input_dir, detrend_baseline_mode, detrend_seasonality_holdout, detrend_seasonality_reason, detrend_seasonality_recommended, detrended, event_layer_gate, first_break_active, first_break_mean_first, first_break_mean_later, first_break_multiplier, first_break_n_first, first_break_n_later, first_break_p_value, first_break_reason, interval_calibration_reason, interval_method, interval_seed, learned_pseudo_count, level_drift, moderated_variances, negative_cells, placebo_correction, placebo_correction_active, placebo_correction_reason, pooled, pooled_within_variance, pooling_method, prior_df, series_count, series_gate_holdout, series_gate_reason, series_layer, series_layer_active, source_data, width_factor_measured
+  metadata keys added: base_breaks, candidate, dropped_by_spot_clip, first_break_multiplier_variant, first_break_p_value_variant, holdout_clean_test, pooled_log_effect_base, pooled_log_effect_variant, purpose, residual_spot_overlap_breaks_pct, shortened_by_spot_clip
+  per-cell fields dropped: predictive_high, predictive_low
+
+outcome: refused

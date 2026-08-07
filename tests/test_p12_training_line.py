@@ -43,6 +43,13 @@ def _tree(tmp_path):
         json.dumps(artifact, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     (tmp_path / "models" / "candidates" / "tv_break_coefficients_twin.json").write_text(
         json.dumps(artifact, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    # The last write of an adoption is guarded on the ownership row and the
+    # shipped artifact is not on it, so a tree that is about what the act writes
+    # has to settle that question first. tests/test_p12_ownership.py is where
+    # the guard itself is measured.
+    ruling = tmp_path / "models" / "releases" / "ownership" / "shipped_artifact.json"
+    ruling.parent.mkdir(parents=True, exist_ok=True)
+    ruling.write_text(json.dumps({"path": "models/tv_break_coefficients.json"}), encoding="utf-8")
     return rescore.Paths(root=tmp_path)
 
 
@@ -161,19 +168,26 @@ def test_the_entry_point_states_that_it_is_training_and_company_only():
     assert "models/" in text
 
 
-@pytest.mark.parametrize("module", ["adopt_candidate", "adopt_candidate_rescore",
-                                    "adopt_candidate_registry", "adopt_candidate_adoption",
-                                    "adopt_candidate_surface", "adopt_candidate_words",
-                                    "adopt_candidate_state", "adopt_candidate_decide"])
+# Discovered from disk rather than listed. Both of these were hardcoded lists of
+# eight names, and the three helpers the 450-line cap forced this piece to create
+# in round 3 were covered by neither, so the two laws they hold stopped applying
+# to new code at exactly the moment new code appeared. A glob cannot go stale.
+MODULES = sorted(path.stem for path in (ROOT / "scripts").glob("adopt_candidate*.py"))
+
+
+def test_the_module_list_these_two_laws_are_held_against_is_the_one_on_disk():
+    """A guard on the guard, because a glob that matches nothing passes silently."""
+    assert len(MODULES) >= 8
+    assert "adopt_candidate" in MODULES
+
+
+@pytest.mark.parametrize("module", MODULES)
 def test_every_module_of_this_piece_stays_under_the_file_size_cap(module):
     lines = (ROOT / "scripts" / f"{module}.py").read_text(encoding="utf-8").splitlines()
-    assert len(lines) <= 450, f"{module}.py is {len(lines)} lines"
+    assert len(lines) < 450, f"{module}.py is {len(lines)} lines"
 
 
-@pytest.mark.parametrize("module", ["adopt_candidate", "adopt_candidate_rescore",
-                                    "adopt_candidate_registry", "adopt_candidate_adoption",
-                                    "adopt_candidate_surface", "adopt_candidate_words",
-                                    "adopt_candidate_state", "adopt_candidate_decide"])
+@pytest.mark.parametrize("module", MODULES)
 def test_no_module_of_this_piece_carries_an_em_dash_an_emoji_or_an_exclamation(module):
     text = (ROOT / "scripts" / f"{module}.py").read_text(encoding="utf-8")
     assert "—" not in text

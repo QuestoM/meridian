@@ -198,12 +198,14 @@ def test_an_offer_is_a_persons_number_and_settling_needs_one(client) -> None:
 
 def test_a_settled_make_good_frees_the_campaign_and_a_withdrawn_one_is_not_deleted(client) -> None:
     first = client.post("/api/make-goods", json={"campaign_id": "CMP_BEHIND"}).json()["make_good"]
-    client.post(f"/api/make-goods/{first['make_good_id']}/state", json={"state": "withdrawn", "note": "raised in error"})
+    client.post(f"/api/make-goods/{first['make_good_id']}/state",
+                json={"state": "withdrawn", "reason": "opened_in_error", "note": "raised in error"})
 
     ledger_body = client.get("/api/make-goods").json()
     assert ledger_body["count"] == 1
     assert ledger_body["open_count"] == 0
     assert ledger_body["make_goods"][0]["state"] == ledger.WITHDRAWN
+    assert ledger_body["make_goods"][0]["close_reason"] == "opened_in_error"
     assert ledger_body["make_goods"][0]["close_note"] == "raised in error"
 
     second = client.post("/api/make-goods", json={"campaign_id": "CMP_BEHIND"})
@@ -217,9 +219,79 @@ def test_the_ledger_publishes_what_it_does_not_decide(client) -> None:
     assert body["sign_off"]["reason_he"] and body["sign_off"]["path_forward_he"]
     assert body["sign_off"]["offer_reserves_nothing_en"]
     states = {entry["value"] for entry in body["vocabulary"]["states"]}
-    assert states == {"raised", "offered", "settled", "declined", "withdrawn"}
+    assert states == {"raised", "offered", "settled", "declined", "withdrawn", "accepted"}
+    kinds = {entry["value"] for entry in body["vocabulary"]["kinds"]}
+    assert kinds == {ledger.MAKE_GOOD, ledger.ACCEPTANCE}
     for entry in body["vocabulary"]["states"]:
         assert entry["label_he"] and entry["meaning_he"]
+    for entry in body["vocabulary"]["kinds"]:
+        assert entry["label_he"] and entry["meaning_he"]
+
+
+def test_the_second_ending_is_recordable_and_only_on_a_row_the_board_asks_about(client) -> None:
+    """JS-6 is done when an at-risk campaign has an act taken or the risk accepted.
+
+    Without the second one a campaign somebody read and accepted is indistinguishable
+    from one nobody opened, so both endings are written and both carry the figures
+    the board measured at the instant of the decision.
+    """
+    taken = client.post("/api/pacing/CMP_BEHIND/accept", json={"note": "client agreed to ride it out"})
+    assert taken.status_code == 201, taken.text
+    record = taken.json()["make_good"]
+    assert record["kind"] == ledger.ACCEPTANCE
+    assert record["state"] == ledger.ACCEPTED
+    assert record["next_states"] == [ledger.WITHDRAWN]
+    # The figures are measured, never supplied, and are the same ones a raise takes.
+    assert record["shortfall"]["deficit_value"] == 60.0
+    assert record["shortfall"]["counted_as_of"] == "2025-04-29T23:00:00"
+    assert record["raised_note"] == "client agreed to ride it out"
+
+    # A campaign the board is not asking a decision about cannot have one recorded.
+    refused = client.post("/api/pacing/CMP_OK/accept", json={"note": ""})
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["message_he"]
+
+    # And the boundary holds on this route exactly as it does on the others.
+    rival = client.post("/api/pacing/CMP_RIVAL/accept", json={"note": ""})
+    assert rival.status_code == 404
+    assert "קשת 12" not in rival.text
+
+
+def test_an_accepted_risk_does_not_block_the_make_good_the_shortfall_later_owes(client) -> None:
+    """The duplicate check is per kind, because the two endings are not the same act.
+
+    A shared check would have silently forbidden raising a make-good against a
+    campaign whose risk somebody took on last week, which is the ordinary case.
+    """
+    client.post("/api/pacing/CMP_BEHIND/accept", json={"note": ""})
+    raised = client.post("/api/make-goods", json={"campaign_id": "CMP_BEHIND"})
+    assert raised.status_code == 201, raised.text
+
+    # A second acceptance is still refused by name, and it names the first record.
+    again = client.post("/api/pacing/CMP_BEHIND/accept", json={"note": ""})
+    assert again.status_code == 409
+    assert again.json()["detail"]["opens"]["kind"] == "acceptance"
+
+
+def test_both_endings_ride_one_ledger_read_so_a_surface_can_show_one_timeline(client) -> None:
+    """Reading only ``make_goods`` hid every acceptance.
+
+    Measured on the shipped surface before the fix: the view tab counted one
+    record and the list under it said no make-good had been raised. The read
+    publishes the joined timeline, and the two kind-specific lists beside it.
+    """
+    client.post("/api/pacing/CMP_BEHIND/accept", json={"note": ""})
+    body = client.get("/api/make-goods").json()
+    assert body["count"] == 1
+    assert body["accepted_count"] == 1
+    assert body["open_count"] == 0
+    assert len(body["decisions"]) == 1
+    assert len(body["acceptances"]) == 1
+    assert body["make_goods"] == []
+    assert body["acceptance_means_he"]
+    board_body = client.get("/api/pacing").json()
+    assert board_body["acceptances"] == {"CMP_BEHIND": [body["decisions"][0]["make_good_id"]]}
+    assert board_body["needs_a_decision"] == ["behind", "at_risk"]
 
 
 def test_the_board_names_the_campaigns_that_already_carry_an_open_make_good(client) -> None:
@@ -233,3 +305,67 @@ def test_the_ledger_row_survives_a_reload_from_disk_exactly(client, tmp_path) ->
     reread = client.get("/api/make-goods").json()["make_goods"][0]
     assert reread == written
     assert (tmp_path / "make_goods.csv").exists()
+
+
+def test_closing_a_record_without_a_delivery_takes_a_reason_and_the_open_one_takes_a_note(client) -> None:
+    """The reference is Stripe, which requires a reason on every refund.
+
+    Measured before this: ``Withdraw it`` and ``Revoke the decision`` fired on one
+    click, took an optional free-text note and no reason at all, and could not be
+    undone, so a record removed from the ledger was unauditable.
+    """
+    record = client.post("/api/make-goods", json={"campaign_id": "CMP_BEHIND"}).json()["make_good"]
+    make_good_id = record["make_good_id"]
+
+    bare = client.post(f"/api/make-goods/{make_good_id}/state", json={"state": "withdrawn"})
+    assert bare.status_code == 400, bare.text
+    detail = bare.json()["detail"]
+    assert detail["message_en"] and detail["message_he"]
+    # The refusal names the reasons in the words the ledger publishes for them.
+    for entry in ledger.close_reasons(ledger.WITHDRAWN):
+        assert entry["label_en"] in detail["message_en"]
+        assert entry["label_he"] in detail["message_he"]
+
+    invented = client.post(f"/api/make-goods/{make_good_id}/state",
+                           json={"state": "withdrawn", "reason": "because_i_said_so"})
+    assert invented.status_code == 400
+
+    open_reason = client.post(f"/api/make-goods/{make_good_id}/state",
+                              json={"state": "withdrawn", "reason": ledger.OTHER})
+    assert open_reason.status_code == 400
+    assert open_reason.json()["detail"]["message_he"]
+
+    landed = client.post(f"/api/make-goods/{make_good_id}/state",
+                         json={"state": "withdrawn", "reason": ledger.OTHER, "note": "the client moved the flight"})
+    assert landed.status_code == 200, landed.text
+    stored = landed.json()["make_good"]
+    assert stored["close_reason"] == ledger.OTHER
+    assert stored["close_note"] == "the client moved the flight"
+    assert stored["closed_at"]
+
+
+def test_an_offer_and_a_settlement_take_no_reason_because_neither_closes_without_a_delivery(client) -> None:
+    """Only the two transitions that end a record with nothing delivered ask why."""
+    record = client.post("/api/make-goods", json={"campaign_id": "CMP_BEHIND"}).json()["make_good"]
+    make_good_id = record["make_good_id"]
+    offered = client.post(f"/api/make-goods/{make_good_id}/state", json={
+        "state": "offered", "offer_value": 60,
+        "offer_window_start": "2025-05-04", "offer_window_end": "2025-05-10",
+    })
+    assert offered.status_code == 200, offered.text
+    settled = client.post(f"/api/make-goods/{make_good_id}/state", json={"state": "settled"})
+    assert settled.status_code == 200, settled.text
+    assert settled.json()["make_good"]["close_reason"] == ""
+    assert sorted(ledger.REASON_REQUIRED) == [ledger.DECLINED, ledger.WITHDRAWN]
+
+
+def test_the_close_reasons_are_published_beside_the_states_a_surface_offers(client) -> None:
+    body = client.get("/api/make-goods").json()
+    published = body["vocabulary"]["close_reasons"]
+    assert set(published) == {ledger.DECLINED, ledger.WITHDRAWN}
+    assert body["vocabulary"]["reason_needing_a_note"] == ledger.OTHER
+    assert body["vocabulary"]["reason_required"] == sorted(ledger.REASON_REQUIRED)
+    for state, entries in published.items():
+        assert entries, state
+        for entry in entries:
+            assert entry["label_en"] and entry["label_he"], (state, entry["value"])

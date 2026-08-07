@@ -18,6 +18,7 @@ import json
 import pytest
 
 from scripts import adopt_candidate_adoption as adoption
+from scripts import adopt_candidate_ownership as ownership
 from scripts import adopt_candidate_rescore as rescore
 
 VERSION = {"id": "mv-test-1", "name": "2026-08-07", "short": "abc12345"}
@@ -43,6 +44,21 @@ def _candidate(coefficients=None, metadata=None):
     return payload
 
 
+def _rule_the_shipped_artifact_onto_the_row(paths):
+    """The ruling that releases the one write this piece's row does not carry.
+
+    ``models/tv_break_coefficients.json`` is absent from the P12 row of section
+    8.2, so the last step of an adoption is guarded and refuses without a
+    recorded ruling. Every scenario below is about what happens after that
+    question is settled, so the ruling is placed here once and the tests that
+    are about the guard itself write their own tree.
+    """
+    path = ownership.ruling_path(paths.releases_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"path": ownership.PENDING_PATH, "granted_by": "test"}),
+                    encoding="utf-8")
+
+
 @pytest.fixture()
 def tree(tmp_path, monkeypatch):
     (tmp_path / "models" / "candidates").mkdir(parents=True)
@@ -55,6 +71,7 @@ def tree(tmp_path, monkeypatch):
         json.dumps(_candidate({"News_first_long": -0.09, "Other_last_short": -0.02}),
                    ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     paths = rescore.Paths(root=tmp_path)
+    _rule_the_shipped_artifact_onto_the_row(paths)
 
     stored = rescore.rescore(paths, _frame())
     rescore.save_rescore(stored, paths)
@@ -152,6 +169,33 @@ def test_an_adoption_that_lands_stamps_its_verdict_into_the_artifact(tree):
     assert stamp["rescore_verdict"] == "identical"
     assert stamp["measured_revenue_delta"] == 0.0
     assert stamp["revert_with"].endswith(plan["adoption_id"])
+
+
+def test_the_stamp_carries_all_three_things_the_done_condition_names(tree):
+    """JS-19 names the gate deltas, the coefficient deltas and the money.
+
+    Two of the three were in the stamp and the third was in no payload at all,
+    so a reader holding the adopted file could see which gates moved and what
+    the money did and nothing about the numbers themselves. The mover candidate
+    moves one of its two cells, and that is what the stamp must say.
+    """
+    (tree.releases_dir / "owner_approvals").mkdir(parents=True, exist_ok=True)
+    (tree.releases_dir / "owner_approvals" / "mover.json").write_text(
+        json.dumps({"approved_revenue_delta": 963477.37, "approved_by": "owner"}),
+        encoding="utf-8")
+    plan = adoption.adopt("mover", adopted_by="steward", reason="one cell moved",
+                          release_note_he="עודכן קובץ המודל", paths=tree, perform=True)
+    assert plan["outcome"] == "adopted"
+    stamp = json.loads(tree.shipped.read_text(encoding="utf-8"))["metadata"]["adoption"]
+    assert isinstance(stamp["gate_deltas"], list)
+    assert stamp["measured_revenue_delta"] == 963477.37
+    coefficients = stamp["coefficient_deltas"]
+    assert coefficients["cells_compared"] == 2 and coefficients["cells_moved"] == 1
+    assert coefficients["max_abs_delta_at"] == "News_first_long"
+    assert coefficients["reading_en"].strip() and coefficients["reading_he"].strip()
+    # And the adoption record beside it says the same thing, so the file and the
+    # log cannot disagree about what was adopted.
+    assert plan["record"]["coefficient_deltas"] == coefficients
 
 
 def test_the_replaced_artifact_is_kept_whole_beside_the_adoption(tree):

@@ -1,0 +1,145 @@
+P11, blind critic, wave-two round. Raw measurements taken BEFORE any edit of mine.
+Tree: working tree on top of d7fc73ce, 2026-08-07. My own uvicorn on 127.0.0.1:8062
+hosting the repo API plus a scratch dashboard build under /private/tmp/p11-critic-scratch
+that carries the three-line mount from contracts/P11.md section 5. Ports 8000, 3000
+and 8010 were never touched. Auth store pointed at a scratch dir so data/auth is untouched.
+
+OWNERSHIP
+  git status paths attributable to P11, all inside the wave-two row plus the reserved
+  test prefix:
+    tv-break-dashboard/src/clients/pacing/{MakeGoodLedger,PacingBoard,PacingRow,PacingWorkspace}.jsx
+    tv-break-dashboard/src/clients/pacing/{pacing,makegood,pacing-row,pacing-days}.css
+    tv-break-dashboard/src/clients/pacing/pacing-helpers.js
+    tests/test_p11_make_good_ledger.py, tests/test_p11_regression.py
+    docs/ux-gauntlet/contracts/P11.md, docs/ux-gauntlet/state/P11.json
+  Backend, from the two checkpoints: kairos_api/pacing_alerts_api{,_board,_read,_words,_write}.py,
+    kairos_api/makegood_store.py, data/make_goods.csv. All declared in the contract.
+  No write outside the row.
+
+REACHABILITY, the shipped tree
+  npm run build in tv-break-dashboard: dist/assets/index-DrjQIIWW.js 1,614.29 kB.
+  occurrences of pacing-workspace 0, makegood-kindmark 0, pacing-row 0, pacing-strip 0,
+  "Decision ledger" 0. One hit for "קצב אספקה" and it is vocabulary.js, not this piece.
+  grep for any importer of src/clients/pacing outside that folder: none.
+  The surface ships to nobody.
+
+STOPWATCH, JS-6, with the published mount applied to a scratch copy
+  target                60 s to the worst-pacing campaign, three-state verdict, published
+                        numeric trigger, remedy on the row, 0 derivation by the reader
+  baseline 06-baseline  6.61 to 8.26 s, 1 click, 1 screen, 1 dead end, no pacing field
+  measured, 3 runs      Today to the Clients destination 40, 41, 38 ms
+                        tab to first row painted 209, 222, 155 ms
+                        total 249, 262, 193 ms, 2 clicks, 1 screen, 0 dead ends on the board
+  drill                 Enter or the row control opens 7 broadcast days in 239 ms
+  second ending         Take the risk on, pressed to the row restating it: 164 ms
+  keyboard              j and k step, Enter opens the days, a records the decision.
+                        The legend names only the keys that can fire: with a Behind filter
+                        that leaves 0 rows it reads "j and k step." and nothing else.
+  derivation            NOT zero. See the finding below on the reference figure.
+
+API, warm, logged in as an admin
+  GET /api/pacing            184,610 B; 24.4, 17.2, 17.6 ms after two cold reads of 424 and 443 ms
+  GET /api/make-goods        4,851 B; 2.3, 2.1, 2.5 ms
+  GET /api/pacing/{id}/days  2,838 B; 7 day rows
+  GET /api/make-good-alerts  134 B; data_available false, reason "campaign_flights.csv has no
+                             campaign rows yet (header-only seed)." unchanged from wave one
+  openapi                    155 paths, 193 operations, 92 writes. Six pacing paths, exactly the
+                             six the contract published. Route table has zero (method, path)
+                             duplicates, so nothing is shadowed.
+
+HONEST MATH, reproduced by hand from the files
+  worst row CMP_D040. data/campaigns.csv gives rating_goal_points 35.00, budget_ils 37000.00,
+  flight 2025-04-27 to 2025-05-03, is_demo true.
+  data/campaign_delivery.csv gives one aired day 2025-04-27 with rating_points_planned 4.4000
+  and spend_ils 5280.00 from Wally_Prime_Reshet_Example_2025-04-27.csv, and six days marked
+  unknown with every figure blank.
+  reference 35 * 1/7 = 5.0; 4.4 / 5.0 = 0.88 -> at risk. money 37000 * 1/7 = 5285.71;
+  5280 / 5285.71 = 0.9989 -> on pace. Both match the payload to the digit.
+  Every one of the six unsourced days prints "no source" and is listed by date. None is zero.
+  counted_basis states in both languages that the rating figure is the PLANNED break rating
+  the traffic log carries and that nothing is invoiced.
+
+COMPETITOR BOUNDARY
+  scope_channel רשת 13, scoped true, rows_in 56, rows_out 56, competitor_rows_excluded 0,
+  competitor_channels_excluded 0. Occurrences of קשת 12, כאן 11 and עכשיו 14 across
+  /api/pacing, /api/make-goods and the day drill: 0, 0, 0. The one hit for עכשיו is the
+  Hebrew adverb inside "והשורה אומרת מעכשיו מי החליט ומתי".
+  The scope is applied in pacing_alerts_api_read.py for both the board and the drill.
+
+TRAINING LINE
+  grep for models/, train, אימון across every P11 file: no hit. The only write this piece
+  performs is data/make_goods.csv. No training act is reachable.
+
+THE WALL
+  admin    can_edit true
+  viewer   can_edit false, can_edit_reason "לחשבון צפייה אין הרשאת עריכה", POST refused 403
+  The refusal string is Hebrew-only and comes from affiliation_wall.py:87 and session.js:213,
+  both frozen wave-zero modules, so it is not this piece's to fix.
+
+CONTRAST, computed in the browser from the effective background
+  ratio at_risk 6.39   ratio on_pace 6.39   verdict at_risk 5.91   verdict on_pace 5.68
+  verdict unknown 5.75   forward word 17.74   forward figure 5.91   remedy note 5.91
+  demo chip 5.95   chip count 5.09   keys 5.56   basis line 5.56   figure 17.74
+  days toggle 6.83   accept 17.74   summary 6.43   scope 4.74
+  FAILS AA: .pacing-seeded 4.46 at 11 px, 400 weight. That is the demo disclosure sentence.
+
+LAWS
+  em-dashes 0, emojis 0, exclamation marks in copy 0, משתמש 0, recompute/rebuild 0.
+  Largest file 419 lines (makegood_store.py); every P11 file under 450.
+  No literal \n inside any display string.
+  21 display strings are split across two source lines by adjacent-literal concatenation in
+  pacing_alerts_api_words.py, pacing_alerts_api_read.py and makegood_store.py. Measured
+  repo-wide the same pattern appears 365 times across 33 kairos_api modules, so it is a
+  codebase convention rather than a P11 novelty, and none of the results contains a newline.
+
+DEFECTS I MEASURED BEFORE TOUCHING ANYTHING
+  1. The reference figure is not on the row. The row prints "4.4 of 35 rating points",
+     "counted over 1 of 7 broadcast days" and "88%". 88% is 4.4 / 5.0 and 5.0 appears nowhere
+     as a number; it is only the position of an unlabelled mark on the bar whose title gives
+     the rule and not the value. A reader who divides what is on the screen gets 12.6%.
+  2. A refused write says nothing. Submitting an offer whose window closes before it opens:
+     the API answers 400 with a bilingual refusal, the form closes immediately and discards
+     what was typed, and polling the whole document every 100 ms for 2.5 s finds no toast and
+     no refusal text anywhere. Root cause outside this piece: workspace-router.jsx:152 renders
+     CampaignsPage without a notify prop, so ClientsWorkspace falls back to its no-op default
+     and every notice this piece emits at its published address is swallowed.
+  3. A campaign name in the ledger is a dead end. Clicking "2025-04 - עוגן הלוואות חברתיות"
+     returns to the board with focus on row 0, a different campaign; the wanted row is index 6
+     of 56, unscrolled and unmarked.
+  4. Bidi: in the English pass the campaign name element computes direction ltr, so a reader
+     scanning left to right meets its three parts out of order. Logical
+     "2025-04 - עמותת מל"י - מל"י"; measured paint positions x=359 for the period, x=430 for the
+     trailing מל"י and x=502 for עמותת, so a left-to-right scan reads period, brand, advertiser.
+     Stated precisely: the Hebrew run's internal layout was always right, and what was wrong was
+     the element's own direction, which put the name's parts in front of the reader in an order
+     the name does not have.
+  5. The board's basis line prints the raw ISO instant 2025-04-27T22:59:00 while the ledger
+     prints 2025-04-27 22:59 through the piece's own instant() helper.
+  6. The day drill re-authors words campaigns_delivery.py already publishes: it says
+     "Booked, not aired yet" / "מוזמן, טרם שודר" where AIR_STATE_VOCABULARY says
+     "Scheduled, not aired yet" / "מתוזמן, טרם שודר".
+  7. The ledger's empty state promises a control no row on this data carries: "A campaign with
+     a measured shortfall carries the control that raises a make-good". Measured: 0 of 56 rows
+     reach remedyFor kind raise, because every flight has unsourced remaining days.
+  8. The surface and the API disagree about when a make-good may be raised. POST /api/make-goods
+     on CMP_D040 returns 201 with deficit_kind to_date and deficit_value 0.6; the surface never
+     offers that raise on any row.
+  9. The offer input is labelled "Offer, in the shortfall unit" and never names the unit.
+ 10. Withdraw and revoke fire on one click with no confirm and no reason, against Stripe's
+     required reason and "Yes, cancel refund" confirm.
+
+TESTS, before my edits
+  tests/test_p11_*.py                                       56 passed
+  shared tests that touch pacing, make-good and campaigns    79 passed
+    (test_api_surface_qa, test_campaign_entity, test_insights_endpoints,
+     test_inventory_pacing_signals, test_p4_form_field_semantics)
+  output/weekly_break_schedule.csv sha256 unchanged before and after those runs:
+    26a59e3ae4f2b46cd30a8cdbbaab1a0d48427b6a439b93f3705a6daa591a92e7
+
+SIDE EFFECTS I CAUSED AND WHAT I DID
+  data/make_goods.csv  three probe records written through the API while exercising the write
+                       path. Restored to the header-only seed, sha256
+                       456e620dd2763606851445f1f3e507caab6c8e29710c36b863722ff67750ca11
+  data/auth/users.json untouched, still one account. My accounts live in a scratch KAIROS_AUTH_DIR.
+  data/kairos_settings.json untouched. The English pass was taken by forcing the locale in the
+                       scratch build, never by the shell language control that writes the store.

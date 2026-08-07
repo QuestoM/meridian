@@ -35,6 +35,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from scripts import adopt_candidate_words as words
+from scripts.adopt_candidate_render import DECISION_TAGS, VERDICT_TAGS
 from scripts.adopt_candidate_state import live_version, money_state
 from scripts.adopt_candidate_rescore import (
     Paths,
@@ -118,6 +119,11 @@ def evidence_for(identifier: str, paths: Optional[Paths] = None) -> dict[str, An
         "rule_en": verdict.get("rule_en"),
         "rule_he": verdict.get("rule_he"),
         "duplicate_of": row.get("duplicate_of") or [],
+        # The coefficient delta travels with the verdict for the same reason the
+        # re-score does: JS-19's done condition names it, and the console has no
+        # route of its own that can serve it. Attached as the summary rather
+        # than the 36 rows, because a decision record is read and not queried.
+        "cells": (row.get("cell_deltas") or {}).get("summary") or {},
         "sha256": row.get("sha256"),
         "file": row.get("file"),
         "measured_at": stored.get("measured_at"),
@@ -156,11 +162,12 @@ def preconditions(identifier: str, *, decision: str, actor: str, reason: str,
         f"There is no candidate called {identifier}. Known: {', '.join(sorted(known)) or 'none'}.",
         "המועמד נמצא בתיקיית המועמדים." if identifier in known else "אין מועמד בשם הזה.")]
 
+    named = words.DECISION_WORDS.get(decision) or {}
     checks.append(_check(
         "decision_is_a_verdict", decision in DECISIONS,
-        f"The verdict is {decision}." if decision in DECISIONS else
+        f"The verdict is {named.get('en')}." if decision in DECISIONS else
         f"A verdict is one of {', '.join(DECISIONS)}, and {decision or 'nothing'} is neither.",
-        f"ההכרעה היא {decision}." if decision in DECISIONS else "הכרעה היא שיגור או אי שיגור בלבד."))
+        f"ההכרעה היא {named.get('he')}." if decision in DECISIONS else "ההכרעה היא להשיק או לא להשיק בלבד."))
 
     # A verdict with no common-basis comparison behind it is the defect this
     # whole piece exists to close, so it is a condition and not a warning.
@@ -192,8 +199,8 @@ def preconditions(identifier: str, *, decision: str, actor: str, reason: str,
             "The ship verdict carries the sentence the operator side reads."
             if release_note_he else
             "A ship verdict needs a release note in Hebrew, because it is the one training-side sentence an operator reads.",
-            "הכרעת השיגור נושאת את המשפט שהצד התפעולי קורא." if release_note_he else
-            "הכרעת שיגור מחייבת הערת גרסה בעברית, כי זה המשפט היחיד מצד האימון שמפעיל קורא.",
+            "ההכרעה להשיק נושאת את המשפט שהצד התפעולי קורא." if release_note_he else
+            "הכרעה להשיק מחייבת הערת גרסה בעברית, כי זה המשפט היחיד מצד האימון שמפעיל קורא.",
             "release_note"))
         checks.append(_check(
             "money_measured", money.get("state") == "measured",
@@ -255,8 +262,15 @@ def decide(identifier: str, *, decision: str, actor: str, reason: str,
 
 
 def render(result: dict[str, Any]) -> list[str]:
-    """The verdict act as a terminal reads it, planned or recorded."""
-    lines = [f"Verdict for {result.get('candidate_id')}: {result.get('decision')}"]
+    """The verdict act as a terminal reads it, planned or recorded.
+
+    The two words this screen is about are read from the same tables the
+    registry reads them from. ``not_shipped`` and ``not_distinguishable`` are
+    the store's own keys, and printing either of them is a key on a display
+    line, on the one screen where the steward is deciding which of them to take.
+    """
+    decision = str(result.get("decision") or "")
+    lines = [f"Verdict for {result.get('candidate_id')}: {DECISION_TAGS.get(decision, decision or 'none')}"]
     for check in result.get("checks") or []:
         mark = "pass" if check["passed"] else "STOP"
         lines.append(f"  [{mark}] {check['id']:24s} {check['reason_en']}")
@@ -279,9 +293,14 @@ def render(result: dict[str, Any]) -> list[str]:
         lines.append(f"Money {carried}: {MONEY_STATES.get(str(money.get('state')), 'unknown')}, so the record states that rather than carrying a figure")
     else:
         lines.append(f"Money {carried}: {MONEY_STATES.get(str(money.get('state')), 'unknown')}")
-    lines.append(f"Re-score verdict {carried}: {result.get('rescore_verdict')}")
+    scored = str(result.get("rescore_verdict") or "unknown")
+    lines.append(f"Re-score verdict {carried}: {VERDICT_TAGS.get(scored, scored)}")
     if landing:
         lines.append(f"  {words.DECISION_BASIS['en']}")
+    summary = ((result.get("evidence") or {}).get("rescore") or {}).get("cells") or {}
+    if summary.get("cells_compared"):
+        lines.append(f"Coefficient delta {carried}: {summary['cells_moved']} of {summary['cells_compared']} cells hold a different number")
+        lines.append(f"  {summary.get('reading_en')}")
     if landing and not result.get("reason_is_hebrew"):
         lines.append("")
         lines.append("Note: the model console renders this reason verbatim inside a right-to-left card and the store carries no language for it, so a Hebrew reader will get English prose. Pass the Hebrew sentence as --reason and the English as --reason-en.")
