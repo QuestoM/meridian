@@ -115,7 +115,6 @@ export default function ClientRecord({
   rows,
   locale,
   basis = null,
-  delivery,
   deliveryByCampaign = {},
   airStates = [],
   statuses = [],
@@ -274,7 +273,6 @@ export default function ClientRecord({
             {pageText(locale, 'Nothing is booked for this client yet.', 'לא הוזמן דבר עבור הלקוח הזה עדיין.')}
           </p>
         )}
-        {delivery && !delivery.available ? <DeliveryBasis delivery={delivery} locale={locale} /> : null}
       </section>
 
       {client.observed_campaigns && client.observed_campaigns.length ? (

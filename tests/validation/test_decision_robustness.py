@@ -71,16 +71,31 @@ def test_replay_reproduces_the_shipped_plan(ctx):
     reproduce the plan. Stale: the inputs moved after the plan was written, so
     the review numbers are stale, and the answer is to recompute the plan and
     re-run scripts/validation/decision_sensitivity.py and friends.
+
+    Staleness is its own loud failure here and it is never an excuse for a count
+    difference. An earlier version skipped when the counts differed AND the plan
+    was stale, which was measured to be an accommodation on three grounds. The
+    same commit that added the skip moved revenue_weight from 60 to 35 and
+    min_retention_floor from 0.72 to 0.78, so it shipped the escape hatch for
+    the staleness it had just caused. The counts differ even when freshness
+    reports fresh with nothing changed, so staleness never explained the
+    divergence, it only hid it whenever some input happened to have moved. And
+    any one of twelve input groups going stale, several of which do not drive
+    weekly break counts at all, excused any difference including a real
+    optimizer regression that merely coincided with an unrelated edit. A skip is
+    also invisible without -rs. The repairer's real concern is kept in full: a
+    stale plan still fails with the recompute instruction rather than sending a
+    repair after correct code, because the message says which inputs moved.
     """
     counts, payload = lib.reoptimize(ctx)
     assert not payload["violations"], "shipped replay must be guardrail-compliant"
     freshness = lib.shipped_plan_freshness()
-    if counts != ctx.shipped_counts and freshness["status"] == "stale":
-        pytest.skip(
-            f"the saved plan was written {freshness['computed_at']} and its "
-            f"{', '.join(freshness['changed'])} inputs have moved since, so it is not this "
-            "process's plan; recompute the plan before reading the difference as a regression"
-        )
+    assert freshness["status"] != "stale", (
+        f"the saved plan was written {freshness['computed_at']} and its "
+        f"{', '.join(freshness['changed'])} inputs have moved since, so it is not this "
+        "process's plan; recompute it and re-run scripts/validation/decision_sensitivity.py "
+        "before reading this suite"
+    )
     assert counts == ctx.shipped_counts
 
 

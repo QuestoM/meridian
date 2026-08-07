@@ -1,6 +1,7 @@
-"""Every count on the day surfaces names the plan it counts, and the sentence is true.
+"""What the editor's timeline draws against what the saved weekly plan holds.
 
-THIS FILE GUARDS A CLASS, NOT AN INSTANCE, AND IT IS THE SECOND ATTEMPT AT IT.
+The arithmetic of one sentence. Its vocabulary, and every other count on these
+surfaces, is guarded as a class in ``test_p3_basis_class.py``.
 
 Two plans answer "how many breaks does this day have" on these surfaces.
 ``output/weekly_break_schedule.csv`` is the SAVED weekly plan, the artifact the
@@ -19,19 +20,17 @@ breaks in the 12 programmes the timeline draws against the 8 it draws, so 5
 breaks inside programmes already on screen were counted as part of the 72 "rest"
 and routed to a board that holds neither them nor the 8.
 
-The previous version of this file asserted the editor's sentence and nothing
-else, so it stayed green through all of that. The tests below assert instead that
-EVERY count-bearing site reads its wording from ``plan-basis.js``, that the basis
-words are spelled in that one file and nowhere else, and that the sentence's
-arithmetic holds against the routes the page calls. A fifth site that forgets
-fails here. The shipped modules are executed in node rather than re-implemented,
-because a re-implementation would only prove two pieces of test code agree.
+The previous version of this file asserted the rendered sentence and nothing
+else, so it stayed green through all of that. The tests below assert every state
+the sentence can land in, including the three it must refuse to fill with a
+figure it does not have yet, and check its arithmetic against the routes the page
+calls. The shipped module is executed in node rather than re-implemented, because
+a re-implementation would only prove two pieces of test code agree.
 """
 
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -42,38 +41,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tv-break-dashboard" / "src"
 DAY = SRC / "plan" / "day"
 SCOPE_JS = DAY / "schedule-editor-scope.js"
-BASIS_JS = DAY / "plan-basis.js"
-
-# The words that name a plan. They live in plan-basis.js and nowhere else, which
-# is the whole mechanism: a new surface cannot spell them slightly differently,
-# and changing one changes every site at once.
-BASIS_WORDS = (
-    "this live plan",
-    "the saved weekly plan",
-    "התוכנית החיה הזו",
-    "התוכנית השבועית השמורה",
-)
-
-BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
-LINE_COMMENT = re.compile(r"^\s*//.*$", re.M)
 
 
 def read(relative: str) -> str:
     return (SRC / relative).read_text(encoding="utf-8")
-
-
-def day_modules() -> dict[str, str]:
-    """Every javascript module on the day surfaces, by file name."""
-    return {
-        path.name: path.read_text(encoding="utf-8")
-        for path in sorted(DAY.iterdir())
-        if path.suffix in (".js", ".jsx")
-    }
-
-
-def code_only(text: str) -> str:
-    """The module with its prose stripped, so a comment about the class is not read as an instance of it."""
-    return LINE_COMMENT.sub("", BLOCK_COMMENT.sub("", text))
 
 
 def node_scope(body: str, module: Path = SCOPE_JS) -> dict:
@@ -110,84 +81,6 @@ MEASURED_DAY = """
     basis: { segments: 82, day: '2024-11-01', committed: { breaks: 80, segments: 82 } },
   };
 """
-
-
-def test_the_basis_words_are_spelled_in_exactly_one_module():
-    """The class guard. One vocabulary, one file, every site reading from it.
-
-    The assertion the previous version did not make, and its absence is why four
-    rounds each fixed one site. A surface that spells "this live plan" itself is
-    a site the next change to the wording will miss, which is how the money tile
-    and the coverage sentence came to disagree on one screen.
-    """
-    offenders = {}
-    for name, text in day_modules().items():
-        if name == BASIS_JS.name:
-            continue
-        body = code_only(text).lower()
-        hits = [word for word in BASIS_WORDS if word.lower() in body]
-        if hits:
-            offenders[name] = hits
-    assert not offenders, f"the basis words must come from plan-basis.js, not be re-spelled: {offenders}"
-
-    basis = BASIS_JS.read_text(encoding="utf-8")
-    for word in BASIS_WORDS:
-        assert word in basis, f"plan-basis.js is the one place {word!r} is defined"
-
-
-def test_every_figure_scope_on_these_surfaces_names_its_plan():
-    """Each money tile prints the plan behind its number, beside it and not in a tooltip.
-
-    Measured: the tile reading "Breaks in the day 76" carried a scope line of bare
-    ad seconds, so two answers to how many breaks the day holds stood 344 px apart
-    with only one of them attributed.
-    """
-    scope_tag = 'className="day-figure-scope"'
-    surfaces = {
-        name: text for name, text in day_modules().items() if scope_tag in text
-    }
-    assert surfaces, "the figure tiles moved; this guard has to move with them"
-    for name, text in surfaces.items():
-        body = code_only(text)
-        tiles = re.findall(r'className="day-figure-scope"[^>]*>\{(.+?)\}</small>', body, re.S)
-        assert tiles, f"{name} carries figure scopes this guard could not read"
-        for value in tiles:
-            assert re.search(r"scopeText|scopeWithBasis\(|livePlanPointer\(", value), (
-                f"{name} prints a figure scope that names no plan: {value.strip()!r}"
-            )
-        if "scopeText" in body:
-            assert re.search(r"scopeText = .*scopeWithBasis\(", body), (
-                f"{name} builds scopeText without naming the plan it was computed on"
-            )
-
-
-def test_no_lane_header_states_a_bare_break_count():
-    """A lane that says "8 breaks" claims the lane holds 8, and it holds what was drawn.
-
-    The editor's lane draws a capped slice of the saved plan, the day board's
-    draws the whole live plan, and both carried the same bare count.
-    """
-    bare = re.compile(r"\{[\w.]+\.length\}\s*\{\s*\w*[Pp]ageText\(locale,\s*'breaks'")
-    for name, text in day_modules().items():
-        assert not bare.search(code_only(text)), f"{name} still prints a lane count with no plan behind it"
-
-    assert 'className="timeline-lane-basis"' in read("plan/day/ScheduleEditorScope.jsx")
-    assert 'className="timeline-lane-basis"' in read("plan/day/DayBoard.jsx")
-    assert "drawnOfPlannedText(shown, planned, locale)" in read("plan/day/ScheduleEditorScope.jsx")
-    assert "breakCountText(breaks.length, locale)" in read("plan/day/DayBoard.jsx")
-
-
-def test_every_day_total_row_names_the_plan_it_previews():
-    """The two preview tables print day totals from the live engine, and say so."""
-    for module in ("plan/day/OverrideDecisions.jsx", "plan/day/ScheduleInspector.jsx"):
-        body = code_only(read(module))
-        assert "withBasis(pageText(locale, d.en, d.he), LIVE_PLAN, locale)" in body, (
-            f"{module} labels a day total without naming the plan behind it"
-        )
-    inspector = code_only(read("plan/day/ScheduleInspector.jsx"))
-    assert "withBasis(pageText(locale, 'Break plan', 'תוכנית ברייקים'), SAVED_PLAN, locale)" in inspector, (
-        "the drawer's break plan is the saved plan's row and has to say which plan it is"
-    )
 
 
 def test_the_sentence_covers_what_the_plan_places_in_the_programmes_it_shows():
@@ -365,27 +258,6 @@ def test_a_second_date_on_the_timeline_is_named_rather_than_absorbed():
     """)
     assert "The breaks drawn also fall on 2024-11-02." in measured["en"]
     assert "משתרעים גם על 2024-11-02." in measured["he"]
-
-
-def test_the_committed_note_prints_no_percentage_it_does_not_have():
-    """A saved plan of zero revenue has no percentage gap, and used to print "null%"."""
-    gap = node_scope("""
-      const zero = m.committedGap({ committed: { revenue: 0, breaks: 80 } }, { revenue: 10, breaks: 76 });
-      const real = m.committedGap({ committed: { revenue: 1067845.56, breaks: 80 } }, { revenue: 992668.69, breaks: 76 });
-      process.stdout.write(JSON.stringify({ zero, real }));
-    """, module=DAY / "day-board-model.js")
-    assert gap["zero"]["percent"] is None
-    assert gap["real"]["percent"] == -7.0
-    assert gap["real"]["breaksGap"] == -4
-
-    readout = code_only(read("plan/day/DayBoardReadout.jsx"))
-    assert "gap.percent === null ? '' : ` (${gap.percent}%)`" in readout, (
-        "the percentage clause is dropped when there is no percentage, not interpolated as null"
-    )
-    assert "ו-${gap.breaksGap}" not in readout, (
-        "the Hebrew conjunction hyphen immediately before a negative figure rendered as ו--4"
-    )
-    assert "והפרש של ${gap.breaksGap} ברייקים" in readout
 
 
 @pytest.mark.realdata

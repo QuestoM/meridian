@@ -150,7 +150,8 @@ def test_a_commit_carrying_a_rival_name_stores_the_same_notice_the_door_gave(
     live_finding = next(f for f in live["findings"] if f["code"] == "unknown_channel")
     later_finding = next(f for f in later["findings"] if f["code"] == "unknown_channel")
     assert live_finding["message"] == later_finding["message"], "the live check and the stored read disagree"
-    assert live_finding.get("message_he") == later_finding.get("message_he"), "the Hebrew halves disagree"
+    for half in ("message_en", "message_he"):
+        assert live_finding.get(half) == later_finding.get(half), f"the {half} halves disagree"
     assert _named(later, owned) == [], "the stored read named a channel this operator does not own"
 
 

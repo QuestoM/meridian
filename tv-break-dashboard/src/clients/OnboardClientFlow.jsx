@@ -3,6 +3,7 @@ import { Check, Plus, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
 import { localized, refusalText, vocabularyLabel } from './clients-money-helpers';
+import { weekdayCoverage } from './weekday-scope-helpers';
 
 // JS-5 in one form. The agency, the client under it, the campaign, its flights
 // and its terms are one submit, because the measured failure today is that two
@@ -17,36 +18,6 @@ import { localized, refusalText, vocabularyLabel } from './clients-money-helpers
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
 
 // An empty scope reads as ANY (agency rule) or nothing (campaign term).
-const NO_WEEKDAY_AGENCY = [
-  'No weekday is selected. Submitting like this is refused: an agency condition with no weekday scope covers every day.',
-  'לא נבחר יום בשבוע. שליחה כך תסורב: תנאי סוכנות ללא היקף ימים חל על כל יום.',
-];
-const NO_WEEKDAY_TERM = [
-  'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
-  'לא נבחר יום בשבוע. שליחה כך תסורב: אחוז ההנחה יהיה ללא יום שהוא חל עליו.',
-];
-const NO_DISCOUNT_TO_SCOPE = [
-  'No weekday is selected. Nothing is refused, because there is no discount percent to give a day to.',
-  'לא נבחר יום בשבוע. דבר אינו נדחה, כיוון שאין אחוז הנחה שצריך לתת לו יום.',
-];
-
-// The percent is half of the rule the endpoint enforces: check_weekday_scope
-// returns without refusing anything when it is zero or blank. So a flow carrying
-// no discount is told nothing is refused, because nothing is, and the refusal
-// sentence is kept for the case that really raises it.
-function weekdayCoverage(selected, options, locale, asAgencyRule, percent) {
-  const amount = Number(percent);
-  const discounting = Number.isFinite(amount) && amount !== 0;
-  if (!selected.length) {
-    if (!discounting) {
-      return pageText(locale, ...NO_DISCOUNT_TO_SCOPE);
-    }
-    return pageText(locale, ...(asAgencyRule ? NO_WEEKDAY_AGENCY : NO_WEEKDAY_TERM));
-  }
-  const names = options.filter((day) => selected.includes(day.key)).map((day) => (locale === 'he' ? day.he : day.en));
-  return pageText(locale, `Covers ${names.join(', ')}.`, `חל על ${names.join(', ')}.`);
-}
-
 // The word for the object a refusal names. Two of the refusals this flow can
 // raise name a record that already exists and tell the reader to open it, and
 // both of them arrived as a sentence with no way to the thing they named. A kind

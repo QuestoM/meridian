@@ -37,26 +37,53 @@ def isolated(tmp_path, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
+def _dayparts(*ratings: str) -> bytes:
+    """A dayparts export carrying one channel column and these ratings in it."""
+    days = [f"{index + 1:02d}/05/2025" for index in range(len(ratings))]
+    bands = [f"20:{index:02d}" for index in range(len(ratings))]
+    frame = pd.DataFrame({"Dates": days, "Timebands": bands, "רשת 13": list(ratings)})
+    return frame.to_csv(index=False).encode("utf-8")
+
+
+def _negative(isolated: TestClient, *ratings: str) -> dict:
+    """The below-zero finding a dayparts file of these ratings comes back with."""
+    body = isolated.post(
+        "/api/uploads/dayparts/check",
+        files={"file": ("Dayparts.csv", _dayparts(*ratings), "text/csv")},
+    ).json()
+    return next(f for f in body["findings"] if f["code"] == "negative_values")
+
+
 def test_a_melted_kind_still_gets_its_hebrew(isolated: TestClient) -> None:
-    """No row number may print off a melted frame, but a Hebrew count still can.
+    """No row number may print off a melted frame, but a count still can.
 
     The measured gap: this exact request answered with the English
     ``"1 value(s) below zero"`` and a null ``message_he``, because the count
     the Hebrew needed was read off ``rows_total``, which a melted kind never
     carries. The count is now recomputed on the loaded frame directly,
-    independent of whether ``rows`` may ever be printed for this kind.
+    independent of whether ``rows`` may ever be printed for this kind, so two
+    values below zero are counted as two on a frame no row number prints off.
     """
-    frame = pd.DataFrame(
-        {"Dates": ["01/05/2025", "02/05/2025"], "Timebands": ["20:00", "20:01"], "רשת 13": ["1.0", "-2.0"]}
-    )
-    body = isolated.post(
-        "/api/uploads/dayparts/check",
-        files={"file": ("Dayparts.csv", frame.to_csv(index=False).encode("utf-8"), "text/csv")},
-    ).json()
-    finding = next(f for f in body["findings"] if f["code"] == "negative_values")
+    finding = _negative(isolated, "1.0", "-2.0", "-3.0")
     assert "rows" not in finding, "a melted frame must still invent no row number"
     assert HEBREW.search(finding.get("message_he") or ""), "a melted kind's refusal still reads English"
-    assert "1" in finding["message_he"], "the one value below zero is not the count in the Hebrew sentence"
+    assert "2" in finding["message_he"], "the two values below zero are not the count in the Hebrew sentence"
+    assert "2" in finding["message_en"], "the two values below zero are not the count in the English sentence"
+
+
+def test_a_count_of_one_is_said_as_one_and_not_as_a_numeral(isolated: TestClient) -> None:
+    """Round six's rule, on the halves authored for a frozen contract's code.
+
+    Measured live before this: one value below zero read ``1 ערכים בעמודה הזאת
+    מתחת לאפס``, plural around a 1, and the English beside it hedged with
+    ``value(s)``. Both languages now have a sentence for one thing.
+    """
+    finding = _negative(isolated, "1.0", "-2.0")
+    for half in ("message_en", "message_he"):
+        assert "1" not in finding[half], f"{half} said one as a numeral: {finding[half]}"
+        assert "(s)" not in finding[half], f"{half} hedged the plural instead of saying one"
+    assert HEBREW.search(finding["message_he"]), "the singular Hebrew has no Hebrew in it"
+    assert finding["message"] == "1 value(s) below zero", "the contract's own detail must stay verbatim"
 
 
 def test_unknown_channel_hebrew_counts_names_not_rows(isolated: TestClient) -> None:

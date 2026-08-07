@@ -365,7 +365,6 @@ export default function ClientsWorkspace({
             rows={rows}
             locale={locale}
             basis={tree ? tree.basis : null}
-            delivery={board ? board.delivery : null}
             deliveryByCampaign={deliveryByCampaign}
             airStates={board && board.delivery ? board.delivery.air_state_vocabulary : []}
             statuses={board ? board.status_vocabulary : []}

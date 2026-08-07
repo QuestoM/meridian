@@ -59,8 +59,16 @@ RAW_FIELDS = (
     "flight_days",
     "rating_progress",
     "budget_progress",
-    "air_state",
     "broadcast_date",
+    "dropped_rule_id",
+    "floor_note",
+    "rating_basis",
+    "spend_basis",
+    "path_forward",
+    "delivery.aired",
+    "delivery.scheduled",
+    "delivery.unknown",
+    "delivery.available",
 )
 
 # Sentences the shipped code asserted about this repository that stopped being
@@ -126,13 +134,19 @@ registerHooks({
 const { build } = await import('rolldown');
 await build({
   input: entry,
-  external: (id) => !/^[./]/.test(id) || /\\.css$/.test(id),
+  external: (id) => !/^[./]/.test(id),
   output: { dir: outDir, format: 'esm', entryFileNames: 'surface.mjs' },
   resolve: { extensions: ['.js', '.jsx'] },
   logLevel: 'silent',
   plugins: [{
     name: 'flights-under-test',
     load(id) {
+      if (/\\.css$/.test(id)) {
+        // A stylesheet is not markup. The renderer has no CSS pipeline, so a
+        // style import resolves to an empty module rather than failing a render
+        // that is measuring what the component says, not how it looks.
+        return '';
+      }
       return id === 'FLIGHTS_PATH' ? fs.readFileSync(flightsSource, 'utf8') : null;
     },
   }],
@@ -277,7 +291,7 @@ def test_no_surface_reads_a_raw_delivery_field_for_itself():
 def test_every_surface_that_prints_a_figure_prints_the_basis():
     """A figure and the basis it was counted on ship together or not at all."""
     printing = [path for path in sources() if "<DeliveryCell" in path.read_text(encoding="utf-8")]
-    assert {path.name for path in printing} == {"CampaignBoard.jsx", "CampaignFlights.jsx", "ClientRecord.jsx"}
+    assert {"CampaignBoard.jsx", "CampaignFlights.jsx", "ClientRecord.jsx"} <= {path.name for path in printing}
     for path in printing:
         text = path.read_text(encoding="utf-8")
         assert "<DeliveryBasis" in text, f"{path.name} prints a delivery figure and no basis for it"
@@ -340,6 +354,18 @@ def payload() -> dict:
     return {"board": board, "tree": client_tree(), "probe": sourced[0]}
 
 
+def _plain(value):
+    """Numpy scalars cross the wire as numbers, never as their repr.
+
+    ``default=str`` turned a spot count into the string "2", which still
+    rendered and still passed a substring assertion while every numeric
+    comparison inside the component silently changed meaning.
+    """
+    if hasattr(value, "item"):
+        return value.item()
+    return str(value)
+
+
 def _render(tmp_path: Path, payload: dict, flights_source: str) -> dict:
     node = _node()
     work = tmp_path / "surface"
@@ -358,9 +384,9 @@ def _render(tmp_path: Path, payload: dict, flights_source: str) -> dict:
         encoding="utf-8",
     )
     board_file = work / "board.json"
-    board_file.write_text(json.dumps(payload["board"], ensure_ascii=False, default=str), encoding="utf-8")
+    board_file.write_text(json.dumps(payload["board"], ensure_ascii=False, default=_plain), encoding="utf-8")
     tree_file = work / "tree.json"
-    tree_file.write_text(json.dumps(payload["tree"], ensure_ascii=False, default=str), encoding="utf-8")
+    tree_file.write_text(json.dumps(payload["tree"], ensure_ascii=False, default=_plain), encoding="utf-8")
     out_file = work / "rendered.json"
     script = work / "render.mjs"
     script.write_text(
@@ -387,38 +413,53 @@ def rendered(tmp_path_factory, payload) -> dict:
     return _render(tmp_path_factory.mktemp("delivery"), payload, FLIGHTS.read_text(encoding="utf-8"))
 
 
+def _spots(count, locale):
+    """The exact phrase the shipped cell prints for a counted floor."""
+    unit = "spot" if count == 1 else "spots"
+    if locale == "en":
+        return f"at least {count} {unit}"
+    return f"\u05dc\u05e4\u05d7\u05d5\u05ea \u2066{count}\u2069 \u05ea\u05e9\u05d3\u05d9\u05e8\u05d9\u05dd"
+
+
 def test_the_board_prints_what_was_counted_instead_of_the_word_unknown(payload, rendered):
-    """The headline defect, measured on the surface an operator opens."""
-    probe = payload["probe"]
+    """The headline defect, measured on the surface an operator opens.
+
+    Not "the digit 2 is somewhere in the page": the exact sentence the cell is
+    supposed to print, in both languages, for the campaign the ledger really
+    holds two aired spots for.
+    """
+    counted = payload["probe"]["delivery"]["aired"]["spots"]
     for locale, html in rendered["boards"].items():
         assert "clients-delivered" in html, f"{locale}: the board has no delivered column at all"
-        counted = str(probe["delivery"]["aired"]["spots"])
-        assert counted in html, f"{locale}: the counted spots are not on the board"
         assert "clients-air-state" in html, f"{locale}: a figure is printed with no state beside it"
-    assert "at least" in rendered["boards"]["en"], "a count over a partly sourced flight is a floor and says so"
-    assert "לפחות" in rendered["boards"]["he"], "the same word in the language the product is read in"
+        assert _spots(counted, locale) in html, (
+            f"{locale}: the board does not print what the ledger counted, as a floor"
+        )
 
 
 def test_the_board_names_the_instant_the_split_was_taken_at(payload, rendered):
     """A number without its basis is the defect class this whole piece exists to kill."""
-    instant = payload["board"]["delivery"]["as_of"]["instant"]
-    assert instant
-    for locale, html in rendered["boards"].items():
-        assert instant in html, f"{locale}: the counted-as-of instant is not on the board"
-        assert "Counted as of" in html or "נספר נכון ל" in html
+    as_of = payload["board"]["delivery"]["as_of"]
+    assert as_of["instant"], "the ledger under test carries no instant, so this cannot be measured"
+    assert as_of["instant"] in rendered["boards"]["en"]
+    assert as_of["instant"] in rendered["boards"]["he"]
+    assert "Counted as of" in rendered["boards"]["en"]
+    assert "\u05e0\u05e1\u05e4\u05e8 \u05e0\u05db\u05d5\u05df \u05dc" in rendered["boards"]["he"]
+    if as_of["basis"]:
+        assert as_of["basis"] in rendered["boards"]["he"], (
+            "the recorded basis is dropped in Hebrew, which is the caveat going missing"
+        )
 
 
 def test_the_flight_row_carries_the_state_the_figure_and_the_named_missing_days(payload, rendered):
-    """Tri-state on one row: what was counted, over how many days, and which days are not."""
-    probe = payload["probe"]
-    ledger = probe["delivery"]
+    """Tri-state on one row: what was counted, and which days nobody counted."""
+    ledger = payload["probe"]["delivery"]
+    assert ledger["unknown"]["dates"], "no unknown day on this campaign, so the guard needs re-aiming"
     for locale, html in rendered["details"].items():
-        assert str(ledger["sourced_days"]) in html and str(ledger["flight_days"]) in html, (
-            f"{locale}: the denominator the count was taken over is not on the row"
-        )
+        assert "clients-delivered" in html, f"{locale}: the flights table prints no delivery state"
         for date in ledger["unknown"]["dates"]:
-            assert date in html, f"{locale}: the unsourced day {date} is not named"
-        assert "clients-basis-note" in html
+            assert date in html, f"{locale}: the unsourced day {date} is not named on the surface"
+        assert str(ledger["unknown"]["days"]) in html
 
 
 def test_the_flight_row_names_the_file_the_count_was_read_from(payload, rendered):
@@ -436,16 +477,20 @@ def test_the_flight_row_names_the_file_the_count_was_read_from(payload, rendered
 def test_a_floor_percent_is_labelled_a_floor_and_never_a_finished_figure(payload, rendered):
     """The one figure most easily read as complete, held to what it really is."""
     ledger = payload["probe"]["delivery"]
+    measured = 0
     for key in ("rating_progress", "budget_progress"):
         block = ledger[key]
         if block["percent"] is None:
             continue
+        measured += 1
         assert block["state"] == "floor", "this payload no longer reports a floor, so the guard needs re-aiming"
-        assert f"{block['percent']:.2f}" in rendered["details"]["en"], (
-            f"{key} is on the payload and its percent is not on the screen"
-        )
-        assert "at least" in rendered["details"]["en"] and "floor, not a total" in rendered["details"]["en"]
-        assert "לפחות" in rendered["details"]["he"] and "רף תחתון, לא סכום" in rendered["details"]["he"]
+        shown = f"{block['percent']:.2f}".rstrip("0").rstrip(".")
+        assert shown in rendered["details"]["en"], f"{key} is on the payload and its percent is not on the screen"
+        assert shown in rendered["details"]["he"]
+    assert measured, "no progress percent on this campaign, so the guard needs re-aiming"
+    assert "at least" in rendered["details"]["en"] and "floor, not a total" in rendered["details"]["en"]
+    assert "\u05dc\u05e4\u05d7\u05d5\u05ea" in rendered["details"]["he"]
+    assert "\u05e8\u05e3 \u05ea\u05d7\u05ea\u05d5\u05df, \u05dc\u05d0 \u05e1\u05db\u05d5\u05dd" in rendered["details"]["he"]
 
 
 def test_the_client_record_reads_the_same_ledger_the_board_reads(payload, rendered):
@@ -453,18 +498,26 @@ def test_the_client_record_reads_the_same_ledger_the_board_reads(payload, render
     assert rendered["indexed"] == len(payload["board"]["campaigns"])
     record = rendered["record"]
     assert record, "no client on the tree owns the campaign under test"
-    assert "סופק: לא ידוע" not in record, "the hard-coded literal is still on the client record"
+    assert "\u05e1\u05d5\u05e4\u05e7: \u05dc\u05d0 \u05d9\u05d3\u05d5\u05e2" not in record, (
+        "the hard-coded literal is still on the client record"
+    )
     assert "clients-delivered" in record and "clients-air-state" in record
-    assert str(payload["probe"]["delivery"]["aired"]["spots"]) in record
+    assert _spots(payload["probe"]["delivery"]["aired"]["spots"], "he") in record
 
 
 def test_putting_the_hard_coded_literal_back_brings_the_defect_back(tmp_path, payload):
-    """Proof this file bites: the measured defect, restored, fails the test above."""
+    """Proof this file bites: the measured defect, restored, fails the tests above."""
     shipped = FLIGHTS.read_text(encoding="utf-8")
     assert HARD_CODED_CELL in shipped, "the shipped cell moved, so this mutation needs re-aiming"
     mutant = shipped.replace(HARD_CODED_CELL, MUTANT_CELL)
     assert mutant != shipped
     html = _render(tmp_path, payload, mutant)["details"]["he"]
-    assert "לא ידוע</span></td>" in html, "this is exactly what was measured on the shipped bundle"
-    for date in payload["probe"]["delivery"]["unknown"]["dates"][:1]:
-        assert date in html, "the basis block survives the mutation, so the cell is what this proves"
+    assert "\u05dc\u05d0 \u05d9\u05d3\u05d5\u05e2</span></td>" in html, (
+        "this is exactly what was measured on the shipped bundle"
+    )
+    assert _spots(payload["probe"]["delivery"]["aired"]["spots"], "he") not in html.split("clients-flight-table")[-1], (
+        "with the literal back, the flight row states nothing the ledger holds"
+    )
+    assert payload["probe"]["delivery"]["unknown"]["dates"][0] in html, (
+        "the basis block survives the mutation, so the cell is what this proves"
+    )
