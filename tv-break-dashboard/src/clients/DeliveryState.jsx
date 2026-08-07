@@ -176,7 +176,7 @@ export function DeliveryBasis({ delivery, locale }) {
       ) : null}
       {files.length ? (
         <p className="clients-basis-note">
-          <span>{pageText(locale, 'Counted from', 'נספר מתוך')}</span>
+          <span>{pageText(locale, 'The file these counts were read out of:', 'הקובץ שממנו נקראו הספירות האלה:')}</span>
           {' '}
           <span dir="ltr">{files.join(', ')}</span>
         </p>

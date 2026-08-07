@@ -21,7 +21,8 @@ from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.requests import Request as StarletteRequest
 
 import kairos_api.uploads as uploads
-from kairos.data.loaders import DAILY_COLUMN_MAP, count_ambiguous_daily_dates
+from kairos_api import channel_scope
+from kairos.data.loaders import CHANNELS, DAILY_COLUMN_MAP, count_ambiguous_daily_dates
 
 ROOT = uploads.ROOT
 
@@ -172,14 +173,35 @@ def test_newest_daily_prefers_airing_date_over_mtime(isolated) -> None:
 
 
 # --- dayparts: renamed channel columns can no longer validate green --------------
-def test_dayparts_with_unrecognized_channel_columns_is_rejected(isolated) -> None:
+def test_dayparts_with_unrecognized_channel_columns_is_rejected(isolated, monkeypatch) -> None:
+    """A refusal must DISCLOSE the contract it enforced, not merely deny.
+
+    The subject this test defends is real and keeps a test. Its means were
+    wrong: it demanded one literal channel name in the body, which for most
+    operators is a competitor, and the refusal correctly stopped naming those.
+    So that name is pinned as the operator's OWN, which proves the honest
+    distinction directly rather than by coincidence: the name is not forbidden,
+    being somebody else's is.
+
+    Pinning also keeps this out of shared writable state. Read off the settings
+    file, an unset operator channel leaves every assertion below either vacuous
+    or red for a reason that has nothing to do with this code.
+    """
+    owned = CHANNELS[0]
+    monkeypatch.setattr(channel_scope, "operator_channel", lambda settings=None: owned)
     data = "Dates,Timebands,Channel_A,Channel_B\n01/11/2024,20:00 - 20:01,5.1,4.2\n".encode("utf-8")
     response = _post(isolated, "dayparts", "Dayparts.csv", data)
     assert response.status_code == 400, response.text
     detail = response.json()["detail"]
     assert "zero audience rows" in detail
     assert "Channel_A" in detail, "the unrecognized headers must be named"
-    assert "קשת 12" in detail, "the recognized channel set must be named"
+    assert owned, "the operator channel is unset, so every assertion below is vacuous"
+    assert owned in detail, "the refusal must name the operator's own channel"
+    # Counted on a body the owned name has been taken out of, or a channel whose
+    # own name carries that digit would answer this question for free.
+    assert str(len(CHANNELS)) in detail.replace(owned, ""), "the size of the recognized set must be stated"
+    for rival in (name for name in CHANNELS if name != owned):
+        assert rival not in detail, f"the rejection named {rival}, which this operator does not own"
 
 
 def test_dayparts_with_a_real_channel_column_is_accepted(isolated) -> None:

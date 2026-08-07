@@ -146,6 +146,14 @@ await build({
     resolveId(source) {
       return /\\.css$/.test(source) ? { id: '\\0no-styles.js', moduleSideEffects: false } : null;
     },
+    // Vite's import.meta.env does not exist in node, and the API module on this
+    // destination reads it the moment it is imported. It is pointed at a plain
+    // object so a render measures the surface rather than the build tool.
+    transform(code) {
+      return code.includes('import.meta.env')
+        ? { code: code.split('import.meta.env').join('globalThis.__viteEnv') }
+        : null;
+    },
     load(id) {
       if (id === '\\0no-styles.js') {
         return 'export default {};';
@@ -155,6 +163,7 @@ await build({
   }],
 });
 
+globalThis.__viteEnv = {};
 const React = (await import('react')).default;
 const { renderToStaticMarkup: markup } = await import('react-dom/server');
 const { CacheProvider } = await import('@emotion/react');
@@ -319,12 +328,23 @@ def test_no_shipped_comment_asserts_something_false_about_this_repository():
 
 
 def test_the_weekday_line_claims_a_refusal_only_when_one_would_happen():
-    """check_weekday_scope returns early on a zero percent, so the line must too."""
+    """check_weekday_scope returns early on a zero percent, so the line must too.
+
+    Both screens that carry this pair held their own copy of the sentence, both
+    copies were wrong the same way, and the correction had to be made twice. The
+    sentence lives in one module now and neither screen may hold a copy.
+    """
+    shared = (CLIENTS / "weekday-scope-helpers.js").read_text(encoding="utf-8")
+    assert "export function wouldRefuse(selected, percent)" in shared
+    assert "Number.isFinite(amount) && amount !== 0" in shared
+    no_refusal = "Nothing is refused, because there is no discount percent to give a day to."
+    assert no_refusal in shared
+    assert "דבר אינו נדחה" in shared
     for name in ("CampaignTerms.jsx", "OnboardClientFlow.jsx"):
         text = (CLIENTS / name).read_text(encoding="utf-8")
-        assert "const discounting = Number.isFinite(amount) && amount !== 0;" in text
-        assert "Nothing is refused, because there is no discount percent to give a day to." in text
-        assert "דבר אינו נדחה, כיוון שאין אחוז הנחה שצריך לתת לו יום." in text
+        assert "from './weekday-scope-helpers'" in text, f"{name} does not use the shared sentence"
+        assert "function weekdayCoverage" not in text, f"{name} still holds its own copy"
+        assert no_refusal not in text
 
 
 def test_no_source_file_on_this_destination_is_over_the_cap():

@@ -106,7 +106,7 @@ const req = createRequire(pathToFileURL(path.join(DASH, 'package.json')));
 const { transformWithOxc } = await import(pathToFileURL(req.resolve('vite')).href);
 const plan = JSON.parse(fs.readFileSync(PAYLOAD, 'utf8'));
 
-const MODULES = ['OnboardClientFlow.jsx', 'clients-api.js', 'clients-money-helpers.js'];
+const MODULES = ['OnboardClientFlow.jsx', 'clients-api.js', 'clients-money-helpers.js', 'weekday-scope-helpers.js'];
 const built = new Map();
 const icons = new Set();
 

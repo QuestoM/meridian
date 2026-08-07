@@ -196,6 +196,12 @@ const ICONS = pathToFileURL(join(here, 'icons.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
 const API = pathToFileURL(join(here, 'clients-api.mjs')).href;
 const HELPERS = pathToFileURL(helpersPath).href;
+// The weekday coverage sentence lives in one shared module now, because two
+// screens carried a copy of it and both copies were wrong the same way. It is
+// plain JS, so it only has to be given an extension node will treat as ESM.
+const WEEKDAYS_OUT = join(here, 'weekday-scope-helpers.mjs');
+writeFileSync(WEEKDAYS_OUT, readFileSync(join(dirname(helpersPath), 'weekday-scope-helpers.js'), 'utf8'), 'utf8');
+const WEEKDAYS = pathToFileURL(WEEKDAYS_OUT).href;
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -204,6 +210,7 @@ registerHooks({
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
+    if (specifier.endsWith('weekday-scope-helpers')) return { url: WEEKDAYS, shortCircuit: true };
     return nextResolve(specifier, context);
   },
 });

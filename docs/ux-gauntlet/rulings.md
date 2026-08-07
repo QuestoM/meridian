@@ -438,3 +438,47 @@ moves from allowed nowhere to allowed at two positions. It is inert today only
 because no advertiser is bound to a rules row. No test asserts that. A
 money-affecting flip whose only protection is an accident of the current data
 needs a test before that accident changes.
+
+## Ruling 009. The schedule download and the competitor boundary. NOT RULED, escalated
+
+**Test paths.** `tests/test_p6_downloads.py::test_the_downloads_of_this_destination_name_no_channel_the_operator_does_not_own`, red for five rounds, against `tests/test_p2_bar3.py::test_the_export_this_board_refuses_to_serve_really_does_carry_every_channel`, green, plus two more that assert the download carries every row.
+
+**The contradiction, measured.** `/api/export/schedule.csv` streams the saved
+plan whole. Counted on this tree: 5,454 rows naming one rival, 4,338 naming
+another, 5,080 the operator's own. The route applies no scope. It is also not
+behind the affiliation wall, so any authenticated operator reaches it.
+
+**Why this is not a simple breach.** P2 did not overlook the boundary here, it
+designed against it and tested the design. It removed the download control from
+the week board entirely, and `test_the_plan_download_control_is_gone` asserts
+nothing in that destination's tree even reaches the shell downloader. It then
+made the board state, before the operator goes looking, that the file holds
+"every channel in the source" and "מכל הערוצים שבמקור", with both counts read
+from the payload's own scope note so the sentence cannot outlive the figure. And
+it points at the door where the file lives. So the market-wide content is
+disclosed rather than leaked.
+
+**Why P6 still has force.** The rule as written is that no rival channel name or
+figure reaches an operator surface. A file sitting on an operator's disk naming
+three rivals is that, whatever the screen said beforehand. A warning is a
+mitigation, not compliance.
+
+**What I did, and it was wrong.** I scoped the export to the operator's channel
+and made it refuse when no channel is configured. It closed the P6 red and broke
+four tests, one of which is named for the deliberate design above. I had acted on
+a single red without checking whether another piece had designed the opposite,
+which is the exact failure this document spent the night cataloguing. Reverted
+at once; the tree is back to one pre-existing red.
+
+**Why this is escalated rather than ruled.** Both readings are defensible and the
+choice is the owner's, not a repairer's at three in the morning. It is also not
+free either way: scoping the file makes P2's board copy false, and that copy is
+not the exporter's to change.
+
+**The synthesis worth considering when it is ruled.** One route cannot serve two
+purposes. The full-market plan is an engine artifact, because the retention model
+is measured against the competitive lineup, and engine artifacts are company
+business. The operator's own plan is an operator artifact. Splitting the route,
+company-walled for the market file and scoped for the operator file, satisfies
+both tests and both pieces. That is a design change, not a repair, so it is
+proposed here and not made.
