@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { pageText } from '../shell/format';
 import { changedFields, localized, refusalText } from './clients-money-helpers';
 import { createCampaign, updateCampaign } from './clients-api';
+// This screen never writes an agency condition, only the campaign's own term,
+// so the coverage line below is always the term wording and never the
+// ANY-widening the onboarding flow can raise.
+import { weekdayCoverage } from './weekday-scope-helpers';
 
 // The campaign's own two editable halves: the window it runs in and the terms
 // that were agreed for it. One form serves booking a second campaign for a
@@ -57,36 +61,6 @@ function toggleWeekday(scope, key) {
   return next.sort().join(',');
 }
 
-// This screen never writes an agency condition, only the campaign's own term,
-// so an empty scope here always means the discount percent would be stored
-// with no day it covers, never the onboarding flow's ANY-widening. The line
-// says that consequence plainly, the same rule the endpoint itself enforces,
-// so a chip change and a refused submit never disagree about what happens.
-//
-// The percent is half of that rule and the line has to carry it. check_weekday_scope
-// returns without refusing anything when the percent is zero or blank, so an
-// operator amending only the notes of a campaign that has no discount was being
-// promised a refusal that never came. No percent means no scope to state.
-function weekdayCoverage(selected, options, locale, percent) {
-  const amount = Number(percent);
-  const discounting = Number.isFinite(amount) && amount !== 0;
-  if (!selected.length) {
-    if (!discounting) {
-      return pageText(
-        locale,
-        'No weekday is selected. Nothing is refused, because there is no discount percent to give a day to.',
-        'לא נבחר יום בשבוע. דבר אינו נדחה, כיוון שאין אחוז הנחה שצריך לתת לו יום.',
-      );
-    }
-    return pageText(
-      locale,
-      'No weekday is selected. Submitting like this is refused: the discount percent would have no day it covers.',
-      'לא נבחר יום בשבוע. שליחה כך תסורב: אחוז ההנחה יהיה ללא יום שהוא חל עליו.',
-    );
-  }
-  const names = options.filter((day) => selected.includes(day.key)).map((day) => (locale === 'he' ? day.he : day.en));
-  return pageText(locale, `Covers ${names.join(', ')}.`, `חל על ${names.join(', ')}.`);
-}
 
 export default function CampaignTerms({
   mode,
@@ -269,7 +243,7 @@ export default function CampaignTerms({
             String(draft.surcharge_weekdays || '').split(',').filter(Boolean),
             weekdays,
             locale,
-            draft.surcharge_discount_percent,
+            { percent: draft.surcharge_discount_percent },
           )}
         </p>
         <p className="clients-basis-note">{localized(terms, 'reason', locale)}</p>

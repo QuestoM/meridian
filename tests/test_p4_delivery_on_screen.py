@@ -140,12 +140,15 @@ await build({
   logLevel: 'silent',
   plugins: [{
     name: 'flights-under-test',
+    // A stylesheet is not markup and this bundler refuses to carry one. Every
+    // style import is redirected to one empty JS module, so a render measures
+    // what the component says rather than dying on how it looks.
+    resolveId(source) {
+      return /\\.css$/.test(source) ? { id: '\\0no-styles.js', moduleSideEffects: false } : null;
+    },
     load(id) {
-      if (/\\.css$/.test(id)) {
-        // A stylesheet is not markup. The renderer has no CSS pipeline, so a
-        // style import resolves to an empty module rather than failing a render
-        // that is measuring what the component says, not how it looks.
-        return '';
+      if (id === '\\0no-styles.js') {
+        return 'export default {};';
       }
       return id === 'FLIGHTS_PATH' ? fs.readFileSync(flightsSource, 'utf8') : null;
     },

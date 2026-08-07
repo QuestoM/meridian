@@ -17,7 +17,6 @@ import { weekdayCoverage } from './weekday-scope-helpers';
 
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
 
-// An empty scope reads as ANY (agency rule) or nothing (campaign term).
 // The word for the object a refusal names. Two of the refusals this flow can
 // raise name a record that already exists and tell the reader to open it, and
 // both of them arrived as a sentence with no way to the thing they named. A kind
@@ -368,7 +367,10 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             ))}
           </div>
           <p className="clients-basis-note" role="status">
-            {weekdayCoverage(discount.weekdays, weekdays, locale, discount.asAgencyRule, discount.percent)}
+            {weekdayCoverage(discount.weekdays, weekdays, locale, {
+              asAgencyRule: discount.asAgencyRule,
+              percent: discount.percent,
+            })}
           </p>
           <label className="clients-checkbox">
             <input type="checkbox" checked={discount.asAgencyRule} onChange={(event) => setDiscount({ ...discount, asAgencyRule: event.target.checked })} />
