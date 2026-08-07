@@ -45,6 +45,23 @@ FINGERPRINT_SUFFIX = ".fingerprint.json"
 # without a re-export means the saved plan is not this configuration's plan.
 STAMPED_SETTINGS = ("revenue_weight", "min_retention_floor", "operator_channel", "risk_lambda")
 
+# Settings that do NOT change the plan, and are guarded anyway, because they are
+# in the same shared writable file and an agent that walks the UI writes them.
+#
+# This list exists because the guard above shipped without it and the very next
+# commit walked through the hole: locale and direction were committed as en and
+# ltr, which would have shipped an Israeli Hebrew right-to-left product booting
+# in English. That is the third time this one file has been polluted in a day,
+# and the second time by these two fields specifically.
+#
+# The lesson is not "add locale". It is that a guard scoped to what the author
+# was thinking about at the time protects only that, and the file is the unit of
+# risk, not the field. Anything here must hold its expected value exactly.
+PINNED_SETTINGS = {
+    "locale": "he",
+    "direction": "rtl",
+}
+
 
 def csv_sha256(path: str | Path) -> str:
     """The hash of the artifact exactly as it sits on disk, bytes in, no parsing."""

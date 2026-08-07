@@ -31,6 +31,7 @@ from pathlib import Path
 import pytest
 
 from kairos.export.schedule_fingerprint import (
+    PINNED_SETTINGS,
     STAMPED_SETTINGS,
     csv_sha256,
     fingerprint_path,
@@ -101,4 +102,31 @@ def test_the_artifact_was_produced_under_the_settings_on_disk():
         + "\n".join(f"  {k}: plan has {was!r}, settings say {now!r}" for k, was, now in drifted)
         + "\nRe-export with scripts/export_schedule.py, or restore the settings. Do not "
         "edit the fingerprint."
+    )
+
+
+def test_the_shipping_locale_is_not_a_test_leftover():
+    """locale and direction do not change the plan, and are guarded anyway.
+
+    This test exists because the guard above shipped without it and the very next
+    commit walked through the hole: a critic switched the product to English
+    left-to-right to measure something, never switched back, and it was committed.
+    That would have shipped an Israeli Hebrew right-to-left product booting in
+    English. Third pollution of this one file in a day, second by these two
+    fields.
+
+    The lesson is not "also check locale". It is that a guard scoped to whatever
+    the author had in mind protects only that. The FILE is the unit of risk, not
+    the field, because any agent that walks the UI writes the whole thing back.
+    """
+    live = _settings_on_disk()
+    wrong = [
+        (key, want, live.get(key)) for key, want in PINNED_SETTINGS.items() if live.get(key) != want
+    ]
+    assert not wrong, (
+        "data/kairos_settings.json is a shared writable store and an agent left a test "
+        "value in it:\n"
+        + "\n".join(f"  {k}: expected {want!r}, found {got!r}" for k, want, got in wrong)
+        + "\nThis is almost always a browser walk that measured in the other locale and "
+        "did not restore. Restore it; do not change the expected value."
     )
