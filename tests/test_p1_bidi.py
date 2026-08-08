@@ -36,7 +36,20 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 TODAY = ROOT / "tv-break-dashboard" / "src" / "today"
-HELPER = TODAY / "today-bidi.js"
+# The helper moved and this file had to follow it.
+#
+# It was src/today/today-bidi.js, one destination's own copy. On 2026-08-08 the
+# isolation primitive was consolidated into src/shell/bidi.jsx as the single home
+# for the whole product, and the per-destination copy was deleted. Today's call
+# sites now import isolate from ../shell/bidi and nothing in this destination
+# writes the characters at all.
+#
+# The point this file was written to defend is unchanged and is now defended
+# over a wider area: ONE definition, because a second copy is how two lines drift
+# apart later. So the home test below asserts the marks live in the primitive and
+# nowhere in today/, which is strictly stronger than asserting they live in one
+# named file inside today/.
+HELPER = ROOT / "tv-break-dashboard" / "src" / "shell" / "bidi.jsx"
 
 FIRST_STRONG_ISOLATE = "⁨"
 POP_DIRECTIONAL_ISOLATE = "⁩"
@@ -57,7 +70,7 @@ def _source(name: str) -> str:
 
 def test_the_helper_emits_the_first_strong_isolate_pair_and_nothing_else():
     """First strong, not left to right: the name's direction is the name's own."""
-    source = _source("today-bidi.js")
+    source = HELPER.read_text(encoding="utf-8")
     assert "'\\u2068'" in source, "the opening mark is not the first-strong isolate"
     assert "'\\u2069'" in source, "the closing mark is not the pop-directional isolate"
     assert "⁦" not in source and "⁧" not in source
@@ -68,18 +81,43 @@ def test_the_helper_wraps_a_real_name_and_stays_silent_on_an_absent_one(tmp_path
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not installed, so the helper cannot be executed here")
-    module = tmp_path / "today-bidi.mjs"
-    module.write_text(HELPER.read_text(encoding="utf-8"), encoding="utf-8")
+    # The helper is JSX now, and node cannot parse JSX. It is still the same
+    # bytes that ship: the file is compiled with the bundler's own transform,
+    # the one the product builds with, rather than hand-copied or reduced to the
+    # function under test. A stub of isolate would prove nothing, since the whole
+    # claim of this test is that the shipped definition really emits the pair.
+    # The compiled copy goes INSIDE the dashboard, not into pytest's tmp_path.
+    # It still imports react at the top, and an ES module resolves a bare
+    # specifier from the importing FILE's own location rather than from the
+    # working directory, so a copy anywhere else cannot find node_modules.
+    dashboard = ROOT / "tv-break-dashboard"
+    module = dashboard / f".bidi-probe-{tmp_path.name}.mjs"
+    compile_script = (
+        "import { readFileSync, writeFileSync } from 'node:fs';"
+        "const { transformWithOxc } = await import('vite');"
+        f"const src = readFileSync({json.dumps(str(HELPER))}, 'utf8');"
+        f"const out = await transformWithOxc(src, {json.dumps(str(HELPER))});"
+        f"writeFileSync({json.dumps(str(module))}, out.code);"
+    )
+    compiled = subprocess.run(
+        [node, "--input-type=module", "-e", compile_script],
+        capture_output=True, text=True, cwd=str(dashboard), check=False,
+    )
+    if compiled.returncode != 0:
+        pytest.skip(f"the dashboard's bundler is not installed here: {compiled.stderr[:200]}")
     script = (
         f"import {{ isolate }} from {json.dumps(str(module))};"
         "const out = {channel: isolate('רשת 13'), latin: isolate('Channel 13'),"
         " empty: isolate(''), missing: isolate(null), padded: isolate('  רשת 13  ')};"
         "process.stdout.write(JSON.stringify(out));"
     )
-    done = subprocess.run(
-        [node, "--input-type=module", "-e", script],
-        capture_output=True, text=True, check=True,
-    )
+    try:
+        done = subprocess.run(
+            [node, "--input-type=module", "-e", script],
+            capture_output=True, text=True, cwd=str(dashboard), check=True,
+        )
+    finally:
+        module.unlink(missing_ok=True)
     out = json.loads(done.stdout)
     assert out["channel"] == f"{FIRST_STRONG_ISOLATE}רשת 13{POP_DIRECTIONAL_ISOLATE}"
     assert out["latin"] == f"{FIRST_STRONG_ISOLATE}Channel 13{POP_DIRECTIONAL_ISOLATE}"
@@ -105,7 +143,14 @@ def test_the_helper_is_the_only_source_of_the_marks_in_this_destination():
         for path in sorted(TODAY.iterdir())
         if path.suffix in {".js", ".jsx"} and "\\u2068" in path.read_text(encoding="utf-8")
     ]
-    assert carriers == ["today-bidi.js"], f"the isolate marks are also written by {carriers}"
+    assert carriers == [], (
+        f"the isolate marks are written inside today/ by {carriers}. They belong in "
+        f"{HELPER.name} and nowhere else; import isolate from ../shell/bidi instead of "
+        "restating the characters."
+    )
+    assert "\\u2068" in HELPER.read_text(encoding="utf-8"), (
+        f"{HELPER.name} no longer defines the isolate pair, so this guard is stale"
+    )
 
 
 def test_the_downloaded_file_never_carries_the_marks():
