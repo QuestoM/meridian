@@ -53,11 +53,38 @@ def test_every_frozen_door_has_a_destination_decided_for_it():
     assert set(views) == doors
 
 
+def _routable_labels() -> set[str]:
+    """Every label a person can actually arrive at, which is more than the rail.
+
+    Pricing and Calendar were folded into other destinations as tabs. They are
+    off the rail and the workspace router still honours them: the Pricing hash
+    activates Settings AND sets ?rules=rate_card, so it lands on the rate card
+    rather than on the top of the workspace.
+
+    That matters for the door this test guards. The rate-card door pointing at
+    'Pricing' is the BETTER answer, not a stale one: pointing it at 'Settings'
+    would drop the person at the top of the Rules workspace and make them find
+    the tab. So the question here is whether a door names somewhere a person can
+    arrive, not whether it names a rail entry, and the router's own list is what
+    answers it.
+    """
+    text = NAV.read_text(encoding="utf-8")
+    folded = re.search(r"export const removedRoutes = \[([^\]]*)\]", text)
+    return _nav_labels() | set(re.findall(r"'([^']+)'", folded.group(1)) if folded else [])
+
+
 def test_every_named_destination_is_a_surface_the_product_actually_has():
-    labels = _nav_labels()
+    labels = _routable_labels()
+    router = (SRC / "shell" / "workspace-router.jsx").read_text(encoding="utf-8")
     for door, view in _door_views().items():
-        if view is not None:
-            assert view in labels, f"{door} points at {view!r}, which is not a navigation entry"
+        if view is None:
+            continue
+        assert view in labels, f"{door} points at {view!r}, which the product cannot reach"
+        if view not in _nav_labels():
+            assert f"'{view}'" in router, (
+                f"{door} points at {view!r}, which is off the rail and which the router does "
+                "not redirect, so the door opens nothing"
+            )
 
 
 def test_the_two_doors_that_are_not_views_are_answered_rather_than_mis_routed():
