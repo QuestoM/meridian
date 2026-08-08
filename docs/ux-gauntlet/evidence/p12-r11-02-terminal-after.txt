@@ -1,0 +1,149 @@
+Live model version
+  2026-07-29  short 35cc2e21
+  retention  models/tv_break_coefficients.json  1e41d92b1a14  trained 2026-07-29T00:12:13.100043+00:00
+  audience   models/audience_model.json  862cf829bc0e  trained 2026-07-29T06:41:29.045699+00:00
+  verdicts on the shipped model itself: A verdict is on record on the shipped model itself, against the model version in force, and every candidate below is measured against that same version.
+    2026-08-02T01:57:36  by steward  no ship, in force, before this comparison existed
+      its own words: הסחיפה השבועית חצתה את הסף המחייב, ולכן אין להשיק לפני מדידה חוזרת על חלון עדכני.
+
+Held-out re-score: current
+  measured 2026-08-07T13:20:36
+  2532 breaks, 36 cells, 2024-11-01 to 2024-11-30, 5 temporal folds
+  metric: Root mean squared error against that measured effect, over the same breaks for every row.
+  target spread: 0.241379 standard deviation. The standard deviation of the measured effect itself. An rmse near this figure is a model that explains little beyond the mean.
+  limit: Not every artifact was fitted on all of these breaks, so the optimism is not the same in every row and a difference against one of the named rows carries a confound on top of the noise.
+    spotclip: fitted on 2336 of the 2532 breaks it is scored on, so 196 of them were never in its fit and are in the fit of every row it is compared against
+  lifted by: The identity of the breaks each artifact was fitted on, recorded in the artifact rather than the count alone. The counts are recorded here and the identities are not, so the size of this confound is not computable from anything on disk.
+
+What each artifact was built for, as its own producer recorded it
+  shipped (live)       no purpose recorded
+  spotclip             spot-level window clip (clip_to_all_ad_airtime=True) variant
+  afterwindow          after-window de-bias verification recompute (post-clip code, reference data)
+  calibrated           no purpose recorded
+  competitor           competition-adjusted coefficients (forward de-confounding) + counter-programming gate
+  placebo_corrected    no purpose recorded
+
+  What its producer recorded it was built for, in its own words.
+  This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.
+
+Artifacts, closest to the measured effects first
+  artifact                   rmse  vs shipped   stat       re-score  money on own channel  verdict on record
+  shipped (live)         0.241161                                                                           
+  spotclip               0.241005   -0.000156  -0.78  no difference      stale (+902,999)          no ship *
+  afterwindow            0.241047   -0.000114  -0.52  no difference      stale (+923,843)             ship *
+  calibrated             0.241047   -0.000114  -0.52  no difference      stale (+963,477)      no ship (2) *
+  competitor             0.241150   -0.000011  -0.05  no difference      stale (+948,456)          no ship *
+  placebo_corrected      0.241161   +0.000000  +0.00      identical            stale (+0)          no ship *
+
+  stat is the paired statistic on the per-break squared error. A row is called better or worse only when it reaches 2.0 and its movement in rmse also exceeds its own fold dispersion, and anything else reads as no difference.
+  money is the revenue movement on the operator's own channel, from the model console's own measurement. A cell marked stale names a figure whose inputs have since moved.
+  a verdict marked * was taken before this comparison existed, so it rests on each artifact's own held-out figures, which come from different splits and are not comparable.
+  spotclip             stale since it was measured. What moved: the saved settings
+  afterwindow          stale since it was measured. What moved: the saved settings
+  calibrated           stale since it was measured. What moved: the saved settings
+  competitor           stale since it was measured. What moved: the saved settings
+  placebo_corrected    stale since it was measured. What moved: the saved settings
+
+Gates, what each artifact decided against the shipped model
+  spotclip             No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.
+                       held-out amounts not comparable on: counterprogramming_holdout, detrend_seasonality_holdout, holdout_clean_test, series_gate_holdout
+  afterwindow          No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.
+                       held-out amounts not comparable on: counterprogramming_holdout, detrend_seasonality_holdout, holdout_clean_test, series_gate_holdout
+  calibrated           One gate key is carried by both artifacts and holds a different value, which is what a gate decided differently means here.
+                       placebo_correction_active: shipped true, candidate false
+  competitor           No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.
+                       held-out amounts not comparable on: counterprogramming_holdout, detrend_seasonality_holdout, series_gate_holdout
+  placebo_corrected    No gate key that both artifacts carry holds a different value. All 2 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.
+                       held-out amounts not comparable on: counterprogramming_holdout, series_gate_holdout
+
+  Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.
+  the held-out figures themselves, per gate: python scripts/adopt_candidate.py checks <candidate>
+
+Coefficients, what each candidate changes against the shipped model
+  artifact               cells moved  largest move where                           cancels
+  spotclip                  36 of 36   0.012751733 PrimeShow2_first_short            78.9%
+  afterwindow               36 of 36   0.014066885 PrimeShow2_first_short            86.2%
+  calibrated                36 of 36   0.014066885 PrimeShow2_first_short            86.2%
+  competitor                36 of 36   0.015817128 Other_first_long                  98.7%
+  placebo_corrected          0 of 36          none                                 no move
+
+  cancels is the share of the squared error each candidate moves that its own cells undo between them, so a high figure is a re-fit that landed elsewhere rather than a model that improved.
+  A cell key is a programme class, a break position and a break length. It names no channel.
+  the whole per-cell table: python scripts/adopt_candidate.py diff <candidate>
+
+What the artifact's own producer recorded about adopting it
+
+  spotclip             Whatever produced this artifact recorded its own out-of-sample test and advised against adopting it.
+                       its own words: variant rmse improves base by -0.38% (threshold 2%): keep OFF (within noise)
+                       taken on 461 breaks of its own choosing
+  afterwindow          This artifact records its own out-of-sample test and reaches no recommendation either way.
+                       taken on 452 breaks of its own choosing
+
+  A self-test is the artifact's own split under its own fit, so it is readable about that artifact alone and is never comparable with another row here.
+
+Verdicts on record, in the order they were taken
+  spotclip             One verdict on record.
+    2026-08-02T02:13:22  by steward  no ship, in force, before this comparison existed
+      its own words: ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון.
+  afterwindow          One verdict on record.
+    2026-08-01T14:31:48  by unknown (login is not set up)  ship, in force, before this comparison existed, carries a release note for the operator side
+      its own words: המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור.
+  calibrated           2 verdicts on record, all of them the same word, each for a different stated reason. The newest is the one in force and the earlier ones are what was tried before it.
+    2026-08-01T19:04:24  by unknown (login is not set up)  no ship, in force, before this comparison existed
+      its own words: the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded
+    2026-08-01T14:41:08  by unknown (login is not set up)  no ship, superseded by md-693f95698d4e, before this comparison existed
+      its own words: המדידה שעליה אפשר היה להסתמך אינה עדכנית מאז שההגדרות זזו, ולכן אין בסיס עדכני להשקה. יש למדוד שוב לפני הכרעה חוזרת.
+  competitor           One verdict on record.
+    2026-08-01T18:50:51  by unknown (login is not set up)  no ship, in force, before this comparison existed
+      its own words: the held-out figures do not move far enough to be worth the restatement
+  placebo_corrected    One verdict on record.
+    2026-08-01T18:51:33  by unknown (login is not set up)  no ship, in force, before this comparison existed
+      its own words: the held-out figures do not move far enough to be worth the restatement
+
+  7 records in the decision log: 6 on the artifacts above, 1 on the shipped model itself, 0 on artifacts that are not on this shelf
+
+Baselines, out of sample, no artifact involved
+  global_mean_loo        0.241474  Predicts each break from the other breaks, never from itself.
+  cell_mean_loo          0.242097  Predicts each break from the other breaks in its own cell, never from itself.
+  Out of sample the per-cell split does not predict better than a single constant.
+  cell split minus one constant: 0.000623 rmse
+
+  Standing finding, and no candidate on this shelf answers it
+  the cell split costs 0.000623 rmse out of sample, which is 4.0 times the largest movement any candidate makes, 0.000156
+  0 of the 5 candidates change the set of cells at all, so all of them are choices made inside a structure that does not pay for itself
+  whose decision this is: the model owner, as a retraining decision. This terminal has no command that changes it.
+
+Duplicate predictors: afterwindow, calibrated predict the same value for every break.
+
+Adopted and live
+  nothing has ever been adopted on this tree, so the live artifact is the one the training script wrote
+
+Next act, per candidate
+  spotclip             Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure spotclip
+  afterwindow          Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure afterwindow
+  calibrated           Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure calibrated
+  competitor           Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure competitor
+  placebo_corrected    Measure the money adopting it would move.
+                       python scripts/adopt_candidate.py measure placebo_corrected
+
+Artifact files
+  spotclip             models/candidates/tv_break_coefficients_spotclip.json  12,457 bytes  produced 2026-07-05T17:52:51
+  afterwindow          models/candidates/tv_break_coefficients_afterwindow.json  12,410 bytes  produced 2026-07-05T17:47:58
+  calibrated           models/candidates/tv_break_coefficients_calibrated.json  20,682 bytes  produced 2026-07-05T21:34:41
+  competitor           models/candidates/tv_break_coefficients_competitor.json  13,917 bytes  produced 2026-07-05T18:07:24
+  placebo_corrected    models/candidates/tv_break_coefficients_placebo_corrected.json  15,069 bytes  produced 2026-07-05T21:07:47
+
+What each artifact was fitted from
+  every one of the 6 artifacts here records the same 3 source files at the same digests
+    data/reference/Dayparts.xlsx  77f69dd25143  on disk: true, digest matches: true
+    data/reference/Programmes.xlsx  00e23da271e8  on disk: true, digest matches: true
+    data/reference/Spots.xlsx  a540fe3bee3f  on disk: true, digest matches: true
+  Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.
+  every candidate records the same source data as the shipped artifact, so the data is not one of the differences between any two rows above
+
+  What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.
+  lifted by: The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.

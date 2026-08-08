@@ -1,266 +1,260 @@
 {
   "piece": "P11",
-  "round": 2,
-  "round_note": "labelled round 1 by the wave-two re-run; it is the fourth recorded round on this piece. The third round did substantial work (the wire collapse, makegood_store_words, the reason-on-transition) and died before writing state, so this round began by reading that work off disk rather than rebuilding it.",
+  "round": 3,
+  "round_note": "wave two, critic round 3. Ninth recorded round. Measured all four bars before touching a byte, on my own uvicorn at 127.0.0.1:8062 serving the repo API with a scratch build of the current working tree carrying the published mount, same origin. Recomputed all 99 pace figures from the two CSVs myself with zero mismatches. Closed four mechanical findings inside this ownership row and wrote four guards, two of which execute the shipped module in node. The three items still open are the same three that have been open since round one and none of them is writable from inside this loop.",
   "passed": false,
-  "gap": "The surface still ships to nobody and that is still not P11's to close: nothing imports src/clients/pacing/**, so the operator bundle carries 0 occurrences of pacing-workspace, makegood-kindmark or pacing-open-count. The three-line patch is in contracts/P11.md section 5 and the files are P4's. What changed this round is that the patch would have FAILED on first application until now: PacingWorkspace.jsx opened a <Figure> and closed a </span>, so the whole tree failed to compile, and the repo build could not see it because it never parses a tree nothing imports. Fixed, and guarded by a test that runs the real bundler. The remaining open items are decision 4, which approval cannot lift, and the notify prop into CampaignsPage, which is the frozen shell's.",
+  "gap": "At HEAD the repository copy of this surface still does not compile. git show HEAD of PacingWorkspace.jsx opens <Figure> at :265 and closes </span> at :267, the one-word fix has now survived five rounds in a working tree, and five more files of this surface plus this round's guard exist only in a working tree too. Everything downstream of that commit is blocked by it, including the mount that would let a person use the piece at all. A critic cannot git add and neither can a builder.",
   "history": [
     "round 1: built the pacing board and the make-good ledger on P4's campaign store and derived delivery ledger, three new routes on the wave-zero router, the surface under src/clients/pacing, 41 tests green; the mount into the Clients destination is blocked on two P4 files and the exact patch is in contracts/P11.md section 5",
-    "round 1 critic: measured all four bars before editing. Board reaches the worst-pacing row in 1.36 s and 2 clicks with the published mount applied in a scratch copy, against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 28 to 32 ms warm, 366 KB, 56 rows, 0 rival names, 0 fabricated figures, every unsourced day stated rather than counted as zero. Closed nine mechanical findings inside the ownership row: the write gate read as a boolean, the ledger recording nobody, an offer of 0.6 rendering as 2025-05-100.6, 51 seeded rows counted as a morning's work with no disclosure, store keys inside a bilingual refusal, the view tabs ballooning to 158 px whenever the content was short, raw ISO instants, a unit printed twice, and a 3.99:1 count. Six new guards proven to fail against HEAD's code and pass against the fix. Suite 3262 passed, 11 failed, all 11 reproduced identically on a clean HEAD tree. Largest gap left open is the mount, which is not P11's to write.",
-    "round 2: finished the round the session limit killed mid-flight and closed every structural item in the queue that sits inside this ownership row. The second ending is now reachable end to end: the ledger renders payload.decisions rather than payload.make_goods, which had made every recorded acceptance invisible while the view tab counted it, and actWord takes the record's kind so a Hebrew reader stops being shown the English verb. Fixed a wrong figure on every one of 56 rows: a left-to-right isolate wrapped around a phrase that is already Hebrew, so the headline read '4.4 מתוך נקודות רייטינג 35' with the unit ahead of its own number; amount() now isolates its numeral and no caller wraps it again. Restored node execution of pacing-helpers.js by writing the extension on the vocabulary import, which had failed all six surface-remedy tests. Wrote the nine CSS classes the killed run referenced and nothing defined, split the sheet four ways on the component boundary under the size law, and inverted the two 4.29:1 pairs to 5.09:1 without asking for a token. Made the keyboard legend name only the keys that fire on the rows in front of the reader. Took the panel's h1 to an h2 and put its view controls on the heading row, which removed the second h1 and moved the first row from y=531 to y=441. Tests 37 passed 10 failed at the start, 56 passed 0 failed at the end, with four new guards proven to fail against a clean HEAD tree.",
-    "round 1 critic (wave-two re-run, third recorded round on this piece): measured every bar before editing anything, on my own uvicorn at 127.0.0.1:8062 hosting the repo API plus a scratch dashboard build carrying the published three-line mount. Board reaches the worst-pacing row in 193 to 262 ms and 2 clicks against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 17.2 to 24.4 ms warm, 184,610 B, 56 rows, 0 rival names, 0 fabricated figures, 4.4/5.0=0.88 reproduced by hand from data/campaigns.csv and data/campaign_delivery.csv, every unsourced day named rather than counted as zero. Closed thirteen findings inside the ownership row, including all three the owner reported on this card the same morning: the banned one-sided accent bar, the three facts with no separator, the three competing button weights. Also closed the percentage whose other operand was nowhere on the screen, a refused write that said nothing at all for 2.5 s of polling, an offer form that threw away what the reader typed on every refusal, a ledger campaign name that landed on the wrong row, a 4.46:1 disclosure sentence, a raw ISO instant, a re-authored delivery vocabulary, an empty state that promised a control no row carries, an offer field that never named its unit, and a name element that took the surface's direction instead of its own. Nine new guards across tests/test_p11_regression.py and the new tests/test_p11_design_rules.py, every one proven to fail against the code as reported and pass against the fix. 67 P11 tests and 79 shared tests green. Largest gap left open is still the mount, which is not P11's to write.",
-    "round 2 (fourth recorded): resumed rather than rebuilt. Read the third round's unrecorded work off disk and verified it complete and green (raisable_deficit closing the API-versus-surface split, the reason-and-confirm ladder on every closing transition, the wire collapse taking /api/pacing from 184,610 to 100,145 bytes, figures_basis and the plain-string refusal both reaching the surface). FOUND AND FIXED THE ONE DEFECT THAT MATTERED: src/clients/pacing/** did not compile. PacingWorkspace.jsx:265 opened <Figure> and closed </span>, so applying the published mount would have broken the Clients destination and the mount would have been blamed. npm run build transforms 3,510 modules and none is in this tree, so a green build was not evidence about it. Guarded with verify-parses.mjs plus a pytest that runs the real bundler, proven to fail against the defect and pass against the fix. Closed two law violations inside the row: 21 display strings hard-wrapped across two source lines joined to one line each, with all 81 module string constants proven byte-identical and all four API payloads byte-identical afterwards; and test_p11_regression.py at 664 lines split three ways on the boundary of what a test can see (API and stores, components as text, shipped JavaScript executed), with the size guard extended to cover the test files it had exempted. 81 P11 tests green, 79 shared green, repo build clean."
+    "round 1 critic: measured all four bars before editing. Board reaches the worst-pacing row in 1.36 s and 2 clicks with the published mount applied in a scratch copy, against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all; /api/pacing 28 to 32 ms warm, 366 KB, 56 rows, 0 rival names, 0 fabricated figures, every unsourced day stated rather than counted as zero. Closed nine mechanical findings inside the ownership row. Six new guards proven to fail against HEAD's code and pass against the fix. Suite 3262 passed, 11 failed, all 11 reproduced identically on a clean HEAD tree. Largest gap left open is the mount, which is not P11's to write.",
+    "round 2: finished the round the session limit killed mid-flight and closed every structural item in the queue that sits inside this ownership row. The second ending is reachable end to end, the ledger renders payload.decisions, actWord takes the record's kind, amount() isolates its numeral, node execution of pacing-helpers.js restored, nine CSS classes written, the sheet split four ways, two 4.29:1 pairs inverted to 5.09:1, the keyboard legend narrowed to the keys that fire, the h1 taken to an h2. Tests 37 passed 10 failed at the start, 56 passed 0 failed at the end.",
+    "round 1 critic (wave-two re-run, third recorded round): measured every bar before editing anything, on its own uvicorn at 127.0.0.1:8062. Closed thirteen findings inside the ownership row including all three the owner reported the same morning: the banned one-sided accent bar, the three facts with no separator, the three competing button weights. Nine new guards. 67 P11 tests and 79 shared tests green. Largest gap left open is still the mount.",
+    "round 2 (fourth recorded): resumed rather than rebuilt. Verified the third round's unrecorded work complete and green. Found and fixed the compile defect: PacingWorkspace.jsx:265 opened <Figure> and closed </span>. Guarded with verify-parses.mjs plus a pytest that runs the real bundler. Closed two law violations: 21 hard-wrapped display strings joined, and test_p11_regression.py at 664 lines split three ways. 81 P11 tests green, 79 shared green, repo build clean.",
+    "round 1 critic (wave two, fifth recorded round): measured all four bars before any edit on its own uvicorn at 127.0.0.1:8062 serving the repo API plus a scratch build carrying the published mount. Stopwatch 285 ms and 2 clicks from the shell nav to the worst-pacing row against a 60 s target and a 6.61 to 8.26 s baseline; /api/pacing 47.5 to 66.3 ms warm at 100,145 B for 56 rows; CMP_D040 reproduced by hand from the two CSVs, 35*1/7=5.0 and 4.4/5.0=0.88 at risk; 0 rival names, 0 fabricated figures. Found and closed seven mechanical findings, the largest being that the row hid the aired-against-scheduled split the payload has always carried, on 18 of the 51 rows that hold a goal and on 5 that read at risk having aired nothing. Three new guards. 84 P11 tests and 79 shared tests green, PARSE_OK, direction and date guards hold, data/make_goods.csv restored byte-identical. Largest gap left open: at HEAD the surface does not compile and its guard is untracked, which a critic cannot close because it cannot git add.",
+    "round 2 (sixth recorded): worked the queue down by severity and closed every structural item that sits inside this ownership row. The untracked guard is gone: the bundler driver lives in the tracked test and reproduces PARSE_FAIL against a git archive of HEAD, and a new guard asserts nothing under src/clients/pacing may exist only in a working tree. A write that lands now says so on this panel rather than only through the shell's swallowed channel. The wall's read-only refusal is published as a bilingual pair with the Hebrew taken from the wall's own constant. The headline states that 13 of the 13 rows needing a decision are the seed's. Two defects found in the browser and closed: a close form went on offering an act the record no longer allowed, and an English notice dropped a Hebrew campaign name in unisolated. 90 P11 tests and 79 shared tests green.",
+    "round 2 critic (wave two, seventh recorded round): measured all four bars before touching a byte, on my own uvicorn at 127.0.0.1:8062 serving the repo API with a scratch build carrying the published mount, same origin so no CORS. Stopwatch 2 clicks and 562 ms from the shell nav to the worst-pacing row, 864 ms to all 56 painted, against a 60 s target and a 6.61 to 8.26 s baseline with no pacing at all. Reproduced CMP_D040 by hand from the two CSVs. Ran both references myself. Closed seven mechanical findings and corrected one of my own claims after measuring it and finding it false. 98 P11 tests and 79 shared tests green, direction guard holds, repo bundle byte-identical. Largest gap open is still that at HEAD the surface does not compile and nobody can commit the one-word fix.",
+    "round 3 (eighth recorded): closed all seven queue items that sit inside this ownership row, on my own uvicorn at 127.0.0.1:8042 serving the repo API with a scratch build carrying the published mount. The largest is the money goal: 48 of the 56 rows carry two goal lines and on 10 of them the verdicts disagree, all 10 rows the board asks a decision about, and the row printed one. One component now states the other goal on the row and under the drill, and the English board went from 0 occurrences of ILS to 48. A decision written by one keystroke can be taken back from the banner that confirms it, through a withdrawal the ledger publishes on the answer to the write. A control that names a record now opens that record, marked and scrolled, 6th of 7 measured. The five rows that cannot be paced offer the campaign their path forward names. The figure is the way into the days behind it. The keyboard legend names the focus it needs. The row a reader leaves by is the row they come back to. 107 P11 tests and 79 shared tests green, direction and date guards hold, data/make_goods.csv restored byte-identical.",
+    "round 3 critic (wave two, ninth recorded round): measured all four bars before any edit, on my own uvicorn at 127.0.0.1:8062 with a scratch build of the working tree carrying the section 5 mount. Stopwatch 2 clicks, 3,514 ms cold and 1,000 to 3,663 ms warm to the worst-pacing row, against a 60 s target and a 6.61 to 8.26 s baseline. Recomputed all 99 goal lines independently from data/campaigns.csv and data/campaign_delivery.csv with the plain csv module: 0 mismatches on days, references, counted figures, ratios and verdicts. Ran both references myself. Found and closed four mechanical findings, the largest being that 38 of the 99 pace ratios printed 100% while every one of them was short of its reference, indistinguishable from the 7 that are exactly level. Four new guards, two executing the shipped module in node, both proven against HEAD's code. 111 P11 tests and 79 shared tests green, direction and date guards hold, data/make_goods.csv restored byte-identical. Largest gap open is still the commit."
+  ],
+  "previous_queue_item_by_item": [
+    {
+      "was": "blocking, structural: the one-word compile fix is in the working tree and not in the repository",
+      "now": "STILL OPEN. Re-verified by reading HEAD directly this round: git show HEAD of PacingWorkspace.jsx opens <Figure> at :265 and closes </span> at :267. Nobody in this loop may commit."
+    },
+    {
+      "was": "blocking, structural: the surface ships to nobody, the mount is P4's three files",
+      "now": "STILL OPEN. Re-measured by content, not inherited: a fresh repo build holds 0 occurrences of pacing-goal-line, pacing-figure-open, Decision ledger and The money goal, and my scratch build carrying the mount holds all four. clients-money-helpers.js:13 VIEWS still has no pacing entry and nothing outside src/clients/pacing imports the tree."
+    },
+    {
+      "was": "blocking, structural: owner decision 4, no current week and no delivery feed",
+      "now": "STILL OPEN and still correctly handled. data/campaign_flights.csv is header-only, 0 rows. Nothing on the screen is a delivered figure: I reconstructed every counted figure on the board from data/campaign_delivery.csv and each one is a sum over sourced days only, with every unsourced day printed as a row that says no source rather than counted as zero."
+    },
+    {
+      "was": "serious, mechanical: the money goal line never appears on a board row",
+      "now": "CLOSED and re-verified in a browser. 48 rows carry the second goal line, and I confirmed independently that exactly 48 of 56 rows carry a money goal and that 10 of the 48 hold two disagreeing verdicts. CMP_D040 reads 88% on rating beside the money line on the same row."
+    },
+    {
+      "was": "serious, mechanical: a single keystroke writes a decision with no confirmation and no undo",
+      "now": "CLOSED and re-verified. Pressed a on a focused row, MG_0001 was written, the banner carried בטלו at the primary weight beside סגרו, and the ledger's own control opened a reason form. Withdrawing set state withdrawn, close_reason opened_in_error and closed_at, kept the row, and returned the board to 13 rows needing a decision."
+    },
+    {
+      "was": "serious, mechanical: a control that names a record loses the record",
+      "now": "CLOSED. The ledger record is marked and scrolled, and the mirror works too: Open the campaign on an unknown row lands on the Campaigns tab filtered to that one campaign, and the return trip focused row 13 of 56 through the place marker, which was then consumed."
+    },
+    {
+      "was": "minor, mechanical: the keyboard legend does not say the list must be focused",
+      "now": "CLOSED. The legend leads with the condition and narrows to the keys that can fire, which I confirmed by filtering to a verdict with 0 rows and watching Enter and a drop out of it."
+    },
+    {
+      "was": "minor, mechanical: the five unknown rows offer no control for their path forward",
+      "now": "CLOSED. All 5 carry Open the campaign and it lands."
+    },
+    {
+      "was": "minor, mechanical: the amounts are not the link to the rows behind them",
+      "now": "CLOSED for the headline figure, which opens the drill with aria-expanded and the act in its accessible name. NOT closed for the second goal line's figure, which is still inert text. Reopened below as a new finding."
+    },
+    {
+      "was": "minor, structural: leaving the board by a campaign name loses the reader's place",
+      "now": "CLOSED. meridian.pacing.return-to-campaign held CMP_001, the return cleared the filter and focused that row, and the mark was consumed."
+    },
+    {
+      "was": "minor, structural: the delivery ledger's two basis columns are English only",
+      "now": "STILL OPEN and P4's. Verified on the Hebrew board: the quote renders inside <q lang=\"en\"> attributed to the ledger, which is the honest handling."
+    },
+    {
+      "was": "minor, structural: dropped_rule_id is an engine key with no reader's word",
+      "now": "STILL OPEN and P4's. The drill states the count and cannot name the rule. The one value on this data is DEFAULT_ONE_PER_BREAK."
+    },
+    {
+      "was": "minor, structural: every pacing write reaches History unnamed",
+      "now": "STILL OPEN, re-verified: kairos_api/history_api_actions.py contains zero occurrences of pacing, make-good or make_good. P8's."
+    },
+    {
+      "was": "minor, structural: assistant.py DEFAULT_MODEL is claude-opus-4-8 while the brief says claude-opus-5",
+      "now": "STILL OPEN, re-read at kairos_api/assistant.py:55. P9's."
+    },
+    {
+      "was": "minor, structural: job-stories.md names JS-8 as the traffic operator and the brief names JS-8 as the account manager",
+      "now": "STILL OPEN. Re-read job-stories.md: JS-6 at line 252 is the pacing board with a 60 s target, JS-8 at line 325 is the traffic operator verifying media. The brief for this piece names JS-8. This piece serves JS-6 and I graded it against JS-6. The lead owns which label is wrong."
+    },
+    {
+      "was": "minor, structural: data/kairos_settings.json is modified by a trailing newline",
+      "now": "STILL OPEN and re-confirmed as the settings writer's own newline. I snapshotted the file before my English pass and diffed it after switching back to Hebrew through the same UI control: identical to my snapshot, and still one trailing newline away from HEAD."
+    }
+  ],
+  "fixed_myself": [
+    {
+      "what": "A percentage rounded a short figure up to the one it missed. Of the 99 pace ratios the payload carries, 38 sit between 0.995 and 1 and every one printed 100%, beside the 7 that are exactly 1 and printed the same string. A campaign short of its reference and a campaign level with it were one number on the screen, and the percentage is the number a reader on this row takes at face value.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing-helpers.js percent()",
+      "how": "Whole percent is kept everywhere, except that a value below 100 which would round to 100 is floored to one decimal, so the residual rounding only ever goes down and a figure that is short says so. Proven against HEAD's own module in node: HEAD answers 100% for 0.9989 and 0.9996, the fix answers 99.8% and 99.9%, and 1 still answers 100%, 1.04 still 104%, 0.88 still 88%. Measured on the shipped Hebrew board: occurrences of 100% fell from 46 to 7, and 99.6%, 99.7%, 99.8% and 99.9% appeared where a hundred used to be. CMP_D040's money line now reads 99.8% בקצב."
+    },
+    {
+      "what": "The ledger's own sign-off sentence says this product records who acted, and the trail printed the actor only when the store had one. On a server with an uninitialised account store, which is how this product runs before an operator creates the first account, every record was written with raised_by empty and the trail said when and quietly dropped who. Tri-state was broken: the unknown was omitted rather than stated.",
+      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx, the trail line and Closure",
+      "how": "One actorClause(who, locale) used by both sites, which names the actor when there is one and otherwise says so. Driven in a browser: the trail reads נרשמה 08/08/2026, 18:46 UTC על ידי חשבון שהמוצר לא רשם. נספר נכון ל-27/04/2025, 22:59, and the closure line reads the same clause under its reason."
+    },
+    {
+      "what": "The drill's dropped-spots sentence disagreed with its own number in its commonest case. Of the 32 sourced day rows in data/campaign_delivery.csv that carry a dropped count, 21 carry exactly 1, so the sentence a reader met most often was 1 מתוכם הושמטו, a plural verb on a single spot, and 1 of them left out by a booking rule, which is not a sentence. The Hebrew numeral was also unisolated at the head of a right-to-left run.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
+      "how": "droppedSentence(count, locale) picks the clause by the count and isolates the numeral in the plural branch. Measured in the drill: אחד מתוכם הושמט בגלל כלל הזמנה."
+    },
+    {
+      "what": "The row the keyboard is on was a colour and nothing else. After the place marker returned a reader to row 13 of 56, the marked row carried aria-current null, id null and tabindex null, and the list carries role=list with no aria-activedescendant, so the only signal that j and k had moved was the 2 px ring the sheet draws.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
+      "how": "aria-current on the focused listitem, which is valid there and moves no focus, so the list keeps the key handler it owns. Measured in a browser: exactly one element carries aria-current=true and it moves with j. The remaining half, a roving tabindex that announces the move as it happens, is left in the queue because it changes which element the keydown starts from and I will not ship an unmeasured focus change."
+    }
   ],
   "queue": [
     {
-      "what": "A tree that nothing imports is not covered by the build, whatever the build says. This is the general form of the compile defect found this round, and it is not only P11's: any piece shipping a destination subtree behind an unapplied mount is in the same position, P13 under P10 next. A green npm run build is not evidence about an unimported tree.",
-      "where": "the run, and every piece whose mount is still open",
-      "kind": "structural",
-      "severity": "serious"
-    },
-    {
-      "what": "The surface ships to nobody. Nothing in the repo imports src/clients/pacing/**, so npm run build produces an operator bundle with zero occurrences of it and JS-6 cannot be started in the running product. Re-measured this round on dist/assets/index-DrjQIIWW.js: pacing-workspace 0, makegood-kindmark 0, pacing-row 0, pacing-strip 0, \"Decision ledger\" 0. The one hit for קצב אספקה is vocabulary.js. The patch is three lines and is in contracts/P11.md section 5; applied to a scratch copy and driven in a browser it reaches the worst-pacing row in 193 to 262 ms and 2 clicks.",
-      "where": "tv-break-dashboard/src/clients/ClientsChrome.jsx VIEW_LABELS, tv-break-dashboard/src/clients/clients-money-helpers.js:11 VIEWS, tv-break-dashboard/src/clients/ClientsWorkspace.jsx, all three P4's",
+      "what": "At HEAD the repository copy of this surface does not compile. git show HEAD of PacingWorkspace.jsx opens <Figure> at :265 and closes </span> at :267. The one-word fix and five files of this surface exist only in a working tree, and so does this round's guard file. Nobody in this loop may run git add.",
+      "where": "HEAD versus the working tree, tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx:265-267",
       "kind": "structural",
       "severity": "blocking"
     },
     {
-      "what": "Owner decision 4 stands and approval cannot lift it. There is no current broadcast week, campaign_flights.csv is header-only and there is no delivery feed, so GET /api/make-good-alerts still answers data_available false with its own reason, unchanged from wave one. The board reads P4's derived delivery ledger instead, which is real for the one sourced broadcast day of every flight and honestly unknown for the other six. Nothing on the surface states a delivered figure from anything else.",
+      "what": "The surface ships to nobody. A fresh repo build holds 0 occurrences of pacing-goal-line, pacing-figure-open, Decision ledger and The money goal; my scratch build carrying the mount holds all four. Nothing outside src/clients/pacing imports the tree and clients-money-helpers.js:13 VIEWS has no pacing entry. The mount is the three files in contracts/P11.md section 5 and all three are P4's.",
+      "where": "tv-break-dashboard/src/clients/ClientsChrome.jsx VIEW_LABELS, tv-break-dashboard/src/clients/clients-money-helpers.js:13 VIEWS, tv-break-dashboard/src/clients/ClientsWorkspace.jsx",
+      "kind": "structural",
+      "severity": "blocking"
+    },
+    {
+      "what": "Owner decision 4. data/campaign_flights.csv is header-only, there is no current broadcast week and no delivery feed. Every figure on this board is a plan figure counted off the traffic log and the screen says so in both languages, but the delivered half of this piece cannot exist until the owner supplies the feed.",
       "where": "data/campaign_flights.csv, the delivery feed, the owner",
       "kind": "structural",
       "severity": "blocking"
     },
     {
-      "what": "Every notice this panel emits is swallowed at its own published address. workspace-router.jsx:152 renders CampaignsPage without a notify prop, so ClientsWorkspace falls back to its no-op default. Measured before my fix: a refused offer produced a 400 with a bilingual detail, the form closed, and polling the whole document every 100 ms for 2.5 s found no refusal text anywhere. I mitigated inside my own row with an inline alert, but the product's own toast and its persistent activity feed still record nothing for any pacing write, including the successful ones.",
-      "where": "tv-break-dashboard/src/shell/workspace-router.jsx:152 (frozen shell) and tv-break-dashboard/src/clients/CampaignsPage.jsx (P4)",
-      "kind": "structural",
-      "severity": "serious"
-    },
-    {
-      "what": "The make-good half of the piece is unreachable from the screen on the shipped data. 0 of 56 rows reach remedyFor kind raise, so the raise control, the offer form and every state after it are exercised by tests and by curl and never by a person. This is correct behaviour on this data rather than a defect, and it means the ledger cannot be assessed against Stripe on real traffic until a flight has every remaining day sourced.",
-      "where": "tv-break-dashboard/src/clients/pacing/pacing-helpers.js remedyFor, on the shipped delivery ledger",
-      "kind": "structural",
-      "severity": "serious"
-    },
-    {
-      "what": "The percentage on every row had no second operand on the screen. The row printed 4.4 of 35 rating points, counted over 1 of 7 broadcast days, and 88 percent; the 5.0 that makes 88 percent true existed only as the position of an unlabelled mark on the bar whose title gives the rule and not the value. A reader who divided what they could see got 12.6 percent. FIXED: the row now prints 'against a reference of 5 by that day' under the ratio, from reference.expected_through_counted_day.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingRow.jsx Headline, pacing-row.css .pacing-against",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "A refused write said nothing at all. FIXED inside this row: PacingWorkspace holds the server's own bilingual refusal and prints it in a role=alert banner with a dismiss control, and all four writes state it through one function. Measured after: 'The make-good could not be moved. The offer window ends before it starts.' at 14.95:1.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx, pacing.css .pacing-refusal",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "The offer form closed before its request answered, so a refusal threw away the value, the window and the note and the reader typed all three again. FIXED: onMove answers whether the move landed and the form closes only then. Measured after a refused inverted window: the form is still open with 0.6, 2025-05-20, 2025-05-01 and the typed note intact.",
-      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx OfferForm onSubmit, PacingWorkspace.jsx onMove",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "A campaign name in the ledger was a dead end. Clicking it returned to the board with row 0 focused; measured, the wanted campaign sat at index 6 of 56, unscrolled and unmarked. FIXED: the name focuses and scrolls to its own row, clearing any verdict filter first. Measured after: a record for a campaign at index 10 of 56 lands on that row, in the viewport, with the focus ring on it, including from an On pace filter that had hidden it.",
-      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx, PacingWorkspace.jsx, PacingBoard.jsx",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "A one-sided accent bar, banned outright by design-rules.md section 1 and reported by the owner with a screenshot of this exact card. FIXED: the verdict now colours the whole 1px frame. Measured after: at_risk rgb(184,110,0) on all four sides, on_pace rgb(15,139,126), unknown rgb(221,226,232), one width, which is exactly the section 2 palette.",
-      "where": "tv-break-dashboard/src/clients/pacing/pacing-row.css:18, the site named in owner-reported.md",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "Three facts run together with only whitespace between them, reported by the owner and worse in Hebrew where the eye has no capitals to find the boundaries. FIXED per design-rules.md section 3: a 1px --line rule leads each fact after the first, so a wrap can never strand a separator at the end of a line.",
-      "where": "tv-break-dashboard/src/clients/pacing/pacing-row.css .pacing-forward",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "Three competing button weights on one row, reported by the owner: a filled button, an outlined one and a bare text link with a chevron, on different baselines, wrapping mid-group. FIXED per design-rules.md section 4: the remedy sentence moved above the acts, the act group holds one filled primary and one outlined secondary at 28 px on one baseline and does not wrap, and both disclosures moved to their own line below. Measured after: two acts, both 28 px, both at y=630, exactly one filled.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingRow.jsx foot, pacing-row.css .pacing-row-acts and .pacing-row-disclosure",
-      "kind": "mechanical",
-      "severity": "serious"
-    },
-    {
-      "what": "The sentence disclosing that 51 of 56 rows are the demo seed's was the quietest text on the surface and failed AA at 4.46:1 on 11 px. FIXED to --muted, measured 5.56:1. The new reference line measures 5.91:1 and the refusal banner 14.95:1.",
-      "where": "tv-break-dashboard/src/clients/pacing/pacing.css .pacing-seeded",
+      "what": "The second goal's figure is inert while the first goal's figure is a control. 5,280 of ILS 37,000 is plain text on the row and 4.4 of 35 rating points opens the seven days behind it, so Stripe's transferable mechanic, the amount being the way into the rows it was summed from, was applied to one of the two amounts on the same row. The fix threads an opener into PacingGoalLine and has to decide what the line does when it renders under the drill it would open, which is why I left it: the wrong version puts two disclosure controls on one row.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingGoalLine.jsx, rendered from PacingRow.jsx and PacingDays.jsx",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "The board's basis line printed the store's raw ISO stamp, 2025-04-27T22:59:00, while the ledger two clicks away printed 2025-04-27 22:59 through this piece's own instant() reader. FIXED: one product, one clock, one reading.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx Basis",
+      "what": "j and k still announce nothing as they move. aria-current now marks the row, which a reader hears on arriving at it, but nothing tells assistive technology that the keyboard moved. The complete fix is a roving tabindex: give the focused article tabIndex -1 and focus it in the effect that currently calls scrollIntoView. keydown bubbles, so the list's handler still fires, but it changes which element the event starts from and wants measuring in a screen reader.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx, the focus effect and the list role",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "The day drill re-authored words campaigns_delivery.py already publishes, and had drifted: it said 'Booked, not aired yet' and 'מוזמן, טרם שודר' where AIR_STATE_VOCABULARY says 'Scheduled, not aired yet' and 'מתוזמן, טרם שודר'. FIXED: the three labels are the ledger's own, and each state cell now carries the ledger's meaning, which is the honest one: the traffic log records these spots and their time has passed.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingDays.jsx stateWord",
+      "what": "Two meanings on the ledger are reachable only by hovering. The deficit-kind chip and the record-kind chip carry vocabularyMeaning in a title attribute and nothing else, so a keyboard or touch reader never gets them. This piece's own comment in PacingBoard.jsx says a control discoverable only by hovering is not discoverable, and פער עד כה is the exact distinction the raise rule turns on: it is a watch signal and not a debt.",
+      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx Figures and the kindmark span",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "The ledger's empty state promised a control no row on this data carries: 'A campaign with a measured shortfall carries the control that raises a make-good'. Measured, 0 of 56 rows reach it. FIXED: the copy states the rule instead, so a reader learns why they will not find the control rather than going to look for it.",
-      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx empty state",
+      "what": "The board costs about a second of client render for 56 rows and the server is not the reason. Measured four times: /api/pacing answered in 78 to 99 ms at 100,474 B and the first row painted 1,000, 2,408, 3,141 and 3,663 ms after the tab click. Well inside the 60 s target and faster than the 6.61 to 8.26 s baseline, so the stopwatch passes, but it is the slowest thing on this screen and all of it is in the browser.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx, 56 PacingRow instances rendered in one pass",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "The offer field was labelled 'Offer, in the shortfall unit' and never named the unit, against Stripe's refund form which names the currency at the input. FIXED with unitWord() in pacing-helpers, the same words amount() puts after a figure. Recorded against myself: my first attempt reached for vocabulary.units, which the ledger read does not carry, and put the store key on the label as 'Offer, in rating_points'. Caught in the browser and closed; a guard now pins it.",
-      "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx OfferForm, pacing-helpers.js unitWord",
+      "what": "The strongest verdict cannot be seen on this data. behind is 0 of 56 rows, so its chip colour, its row treatment and the act it offers are covered by guards and by nothing a person has looked at. Somebody should render one against a fixture and put the screenshot in evidence before the piece is signed off.",
+      "where": "the shipped data, and docs/ux-gauntlet/evidence",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "A campaign name took the surface's direction rather than its own. In the English pass the element computed ltr, so a left-to-right scan met the name's three parts as period, brand, advertiser; measured paint positions 359, 430 and 502. FIXED with dir=auto on the name and on the advertiser, and on the ledger's campaign button. Measured after: computed rtl, and right to left the parts read period, advertiser, brand, which is the name.",
-      "where": "tv-break-dashboard/src/clients/pacing/PacingRow.jsx names, MakeGoodLedger.jsx .makegood-campaign",
+      "what": "The verdict word runs into the ratio in English. The money line reads 100% On pace, a capitalised vocabulary label concatenated after a figure, which reads as a title rather than as a sentence. The Hebrew form בקצב has no equivalent problem.",
+      "where": "tv-break-dashboard/src/clients/pacing/PacingGoalLine.jsx, the ratio and verdict pair",
       "kind": "mechanical",
       "severity": "minor"
     },
     {
-      "what": "The read-only refusal is Hebrew-only, so an English reader meets 'לחשבון צפייה אין הרשאת עריכה'. It is hard-coded in two frozen wave-zero modules and P11 consumes it correctly through the published accessor, so it is not this piece's to fix, but it reaches this surface.",
-      "where": "kairos_api/affiliation_wall.py:87 READ_ONLY_ROLE_DETAIL and tv-break-dashboard/src/session.js:213, both frozen",
+      "what": "The keyboard legend floats at the far edge of the chrome row, opposite the basis prose, about 440 px from the list it describes in a 1512 px viewport. It is tied to the list by aria-describedby so nothing is lost to a screen reader, but on screen it reads as an unattached caption.",
+      "where": "tv-break-dashboard/src/clients/pacing/pacing.css .pacing-chrome and .pacing-keys",
+      "kind": "mechanical",
+      "severity": "minor"
+    },
+    {
+      "what": "The delivery ledger's counted_as_of_basis and figures_basis are English only. Quoted correctly on the Hebrew board inside <q lang=\"en\"> and attributed to the ledger, so a Hebrew reader meets English only on asking. The columns are P4's.",
+      "where": "data/campaign_delivery.csv, rendered at PacingBoard.jsx .pacing-source-quote",
       "kind": "structural",
       "severity": "minor"
     },
     {
-      "what": "The panel's two view controls and its Read again control wrap to a second line at 1440 px, below the heading rather than on its row: measured, the first tab at y=263 and the other two at y=299. The contract says they ride the heading row. It costs 36 px of the fold and the fold count is unchanged at 2 rows, so it is cosmetic.",
-      "where": "tv-break-dashboard/src/clients/pacing/pacing.css .pacing-header and .pacing-views",
-      "kind": "mechanical",
-      "severity": "minor"
-    },
-    {
-      "what": "The delivery ledger's counted_as_of_basis and figures_basis columns are English-only, so a Hebrew reader meets English on asking. This surface handles it correctly, quoting the sentence with lang=en behind the disclosure and attributing it to the ledger, but the underlying columns are P4's and are still monolingual.",
-      "where": "data/campaign_delivery.csv counted_as_of_basis, rendered at tv-break-dashboard/src/clients/pacing/PacingBoard.jsx .pacing-source-quote",
+      "what": "The drill states how many spots a booking rule left out and cannot name the rule, because the ledger carries only dropped_rule_id. The one value on this data is DEFAULT_ONE_PER_BREAK. A reader's word for it belongs beside the key and the catalogue is P4's.",
+      "where": "data/campaign_delivery.csv dropped_rule_id",
       "kind": "structural",
       "severity": "minor"
     },
     {
-      "what": "Not P11's, reported because I measured it: the assistant's default model is claude-opus-4-8 in code, and the running Kai dock prints that string, while the wave-two brief states the default is claude-opus-5. Either the brief is stale or the model was reverted.",
-      "where": "kairos_api/assistant.py:55 DEFAULT_MODEL, and the Kai dock chip in the running shell",
+      "what": "Every pacing write reaches the product's activity log unnamed. Re-verified this round: kairos_api/history_api_actions.py holds zero occurrences of pacing, make-good or make_good, so action_for answers other for all three pacing paths. Two rows in P8's table close it and tests/test_p11_regression.py pins the current answer so the change is visible when it lands.",
+      "where": "kairos_api/history_api_actions.py (P8)",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "kairos_api/assistant.py:55 DEFAULT_MODEL is claude-opus-4-8 while the wave-two brief asserts the assistant runs on claude-opus-5. Re-read in code this round. Fifth round in a row this has been reported.",
+      "where": "kairos_api/assistant.py:55 (P9)",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "The brief for this piece names JS-8, which job-stories.md:325 defines as the traffic operator verifying media, the story P13 serves and the one the media-feed blocker stops. The job this piece serves is JS-6 at job-stories.md:252, target 60 s, and that is what I graded it against. The lead owns which label is wrong.",
+      "where": "docs/ux-gauntlet/job-stories.md JS-6 and JS-8 versus the P11 brief",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "Not this piece's: data/kairos_settings.json differs from HEAD by a trailing newline. Snapshotted before my English pass and diffed after switching back through the same UI control: identical to my snapshot, so it is the settings writer's own behaviour and not a content change. Three pieces drive that control this session.",
+      "where": "data/kairos_settings.json",
+      "kind": "structural",
+      "severity": "minor"
+    },
+    {
+      "what": "Not this piece's: tv-break-dashboard/index.html declares <html lang=\"en\"> and the shell sets lang=he dir=rtl on .kairos-shell instead. Nothing inside the app is mislabelled because the nearest lang wins, but the document's own declaration is wrong for a Hebrew operator.",
+      "where": "tv-break-dashboard/index.html (shell, wave zero)",
       "kind": "structural",
       "severity": "minor"
     }
   ],
-  "fixed_myself": [
-    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx: the row prints the reference the percentage is against, the campaign name and the advertiser take dir=auto, the remedy sentence moved above the acts, the two disclosures moved below them, and the act group holds one filled primary and one outlined secondary",
-    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx: one refuse() that words every failed write, a role=alert banner that prints it with a dismiss control, onMove answers whether the move landed, and a campaign named in the ledger opens its own row",
-    "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx: the basis instant goes through instant(), and the board accepts a campaign to focus, clearing any verdict filter first",
-    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx: the offer form closes only when the move landed, the offer field names its unit through unitWord, the empty state states the rule instead of promising a control no row carries, and the campaign button takes dir=auto",
-    "tv-break-dashboard/src/clients/pacing/PacingDays.jsx: the three air-state words are campaigns_delivery.py's published ones and each cell carries that module's meaning",
-    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js: unitWord(), the same words amount() puts after a figure",
-    "tv-break-dashboard/src/clients/pacing/pacing.css: .pacing-seeded to --muted at 5.56:1, and the .pacing-refusal banner",
-    "tv-break-dashboard/src/clients/pacing/pacing-row.css: the one-sided accent bar replaced by a full border in the state colour, a 1px --line rule between the three facts, one height and one baseline for the act group, and .pacing-against",
-    "tests/test_p11_regression.py: six new guards, all proven to fail against the pre-edit code and pass against the fix",
-    "tests/test_p11_design_rules.py: new, five guards on the three owner-reported defects and on design-rules.md itself"
-  ],
   "evidence": {
-    "server": "my own uvicorn on 127.0.0.1:8042, started and killed by me. Ports 8000, 3000 and 8010 were not listening at any point in this round and nothing of mine touched them.",
-    "tests": "81 P11 tests green across seven files, 79 shared green (test_api_surface_qa, test_campaign_entity, test_insights_endpoints, test_inventory_pacing_signals, test_p4_form_field_semantics). The new compile guard proven to fail against the defect and pass against the fix, through pytest.",
-    "api": "/api/pacing 100,145 B and 23.8 to 25.9 ms warm over 10 samples, 56 rows, down from 184,610 B. /api/make-goods 5,764 B and 4.2 ms. /api/pacing/{id}/days 3,031 B. /api/make-good-alerts 134 B, data_available false with the campaign_flights.csv reason, unchanged.",
-    "honest_math": "CMP_D040 reproduced by hand from the CSVs: goal 35.00 from data/campaigns.csv, one aired day at rating_points_planned 4.4000 sourced to Wally_Prime_Reshet_Example_2025-04-27.csv, six unknown days with every figure blank. 35*1/7=5.0 and 4.4/5.0=0.88, at risk, exactly what the payload states. The six unsourced days are named on the row, never counted as zero.",
-    "boundary": "scope_channel רשת 13, competitor_rows_excluded 0, exactly one distinct channel across all 56 rows, and 0 occurrences of קשת 12, כאן 11, עכשיו 14, Keshet or Kan in the board, the ledger or the day drill.",
-    "build": "repo npm run build clean, 3,510 modules, and 0 occurrences of this surface in the operator bundle because the mount is not applied. Scratch copy carrying the section 5 mount builds clean and the surface reaches the bundle: pacing-workspace 1, makegood-kindmark 1, pacing-open-count 1, ספר ההחלטות 5, קצב אספקה 3 in the JS, pacing-row 9 and makegood-close-form 4 in the CSS.",
-    "size_law": "every file in the ownership row at or under 450 lines, tests included, which was not true at the start of the round.",
-    "payload_identity": "all four API payloads byte-identical before and after the string edits, and all 81 module string constants compared equal."
+    "server": "my own uvicorn on 127.0.0.1:8062, started and killed by me, KAIROS_AUTH_DIR pointed at an empty scratch directory so the product answered auth_disabled true and can_edit true. The dashboard came from a scratch build of the current working tree with the contracts/P11.md section 5 mount applied, served by the same process through a scratchpad module that swaps the repo dashboard mount, so the API and the page were same origin. Ports 8000 and 3000 were listening before and after and nothing of mine touched either. I could not exercise the authenticated path, because that needs a password and a critic may not enter one.",
+    "stopwatch": "2 clicks from the shell nav to the worst-pacing row. Cold journey 3,514 ms. Three warm runs 3,141 / 2,408 / 3,663 ms, a fourth with fetch instrumented 1,000 ms of which /api/pacing occupied 96 ms. First row at y=481 in a 907 px viewport, all 56 rows in the same frame. Target 60 s for JS-6, baseline 6.61 to 8.26 s for a screen with no pacing at all. 0 dead ends, 0 moments I had to guess.",
+    "api": "/api/pacing 89 / 81 / 92 / 99 ms in the browser, 100,474 B on the wire, 56 rows. Sort violations against worst-first: 0.",
+    "honest_math": "I reconstructed every pace figure on the board from data/campaigns.csv and data/campaign_delivery.csv with the plain csv module rather than trusting the payload: days in flight, distinct days counted, unsourced elapsed days, counted through the counted day, the even-share reference, the ratio and the verdict against the published 0.95 and 0.85. 99 goal lines checked, 0 mismatches. CMP_D040 by hand: rating 35*1/7=5.0, 4.4/5.0=0.88 at risk; money 37,000*1/7=5,285.71, 5,280/5,285.71=0.9989 on pace. 48 of 56 rows carry both goals and 10 of the 48 disagree. data/campaign_flights.csv is header-only, 0 rows, and nothing on the screen is a delivery figure.",
+    "boundary": "scope_channel רשת 13, scoped true, rows_in 56, rows_out 56, channels_in 1, competitor_rows_excluded 0. Zero occurrences of קשת 12, כאן 11, עכשיו 14, Keshet, Channel 12, Channel 11 or Reshet 13 in 34,333 characters of rendered text in both languages.",
+    "laws": "Swept all 31 files of this piece before and after my edits: 0 em-dashes, 0 en-dashes, 0 emoji, 0 exclamation marks, 0 occurrences of משתמש outside the guard's own character class at tests/test_p11_regression.py:127 and its banned-word tuple at :138. No file over 450 lines after my edits; largest are PacingWorkspace.jsx 450, tests/test_p11_surface_javascript.py 443, MakeGoodLedger.jsx 431. The 31 em-dashes on the rendered screen are all inside advertiser names in data/campaigns.csv, which holds 62 of them, and none is copy. Day drill Sunday first, dd/mm/yyyy, Hebrew weekday names, in both languages. No path under models/ is read or written and no operator control on this surface trains anything.",
+    "build": "repo build clean, 3,512 modules, index-By8UUfzD.js 1,637.14 kB. Scratch build with the mount 3,527 modules, index-rUzOOhOQ.js 1,679.71 kB and index-iTsCajcI.css 326.87 kB, written under the session scratchpad so the repo dist was never the artifact. npm run test:direction and npm run test:dates both hold.",
+    "tests": "111 P11 tests green across eight files, up from 107, the four new ones being the guards for this round's fixes. Two of them execute the shipped module in node and both were proven against HEAD's code: HEAD's percent answers 100% for 0.9989 and 0.9996 where the fix answers 99.8% and 99.9%. 79 shared tests green: test_api_surface_qa, test_campaign_entity, test_insights_endpoints, test_inventory_pacing_signals, test_p4_form_field_semantics.",
+    "references": "Both run by me. Google Ads: support.google.com/google-ads/answer/9061546, optimization score, which publishes a three-state status icon table and quantifies each recommendation's impact but does not publish the formula behind the score at all. Stripe: docs.stripe.com/invoicing/overview invoice statuses, which publishes STATUS, DESCRIPTION and POSSIBLE ACTIONS for every state in one table, and docs.stripe.com/billing/revenue-recovery. Screenshot of the Stripe table in evidence.",
+    "ledger_untouched": "data/make_goods.csv restored byte-identical twice, sha256 1668aef670385b5521e11cad8b1749abb80fbcbf2e1b4dec50a7a915a4794406, verified at the start, in the middle and at the end. Four records were written through the surface during the two walks and the file was restored from a copy taken before any of them. The four backup files those writes left in data/_backups, which is gitignored, were removed.",
+    "screens": [
+      "docs/ux-gauntlet/evidence/p11-c3r3-01-board-he-before.jpg",
+      "docs/ux-gauntlet/evidence/p11-c3r3-02-board-en-drill-before.jpg",
+      "docs/ux-gauntlet/evidence/p11-c3r3-03-reference-stripe-invoice-statuses.jpg",
+      "docs/ux-gauntlet/evidence/p11-c3r3-04-independent-recompute.txt",
+      "docs/ux-gauntlet/evidence/p11-c3r3-05-law-sweep.txt",
+      "docs/ux-gauntlet/evidence/p11-c3r3-06-measured-before-edits.txt",
+      "docs/ux-gauntlet/evidence/p11-c3r3-07-board-he-after-critic-fixes.jpg"
+    ]
   },
-  "blockers": [
-    "The mount, still the only thing between this piece and a person using it, and still P4's three files: ClientsChrome.jsx VIEW_LABELS, clients-money-helpers.js:11 VIEWS, ClientsWorkspace.jsx. Exact patch in contracts/P11.md section 5. It is now verified to compile, which it did not before this round.",
-    "The same patch must pass notify into CampaignsPage, or every notice this panel sends stays swallowed by the shell (workspace-router.jsx:152, frozen).",
-    "Owner decision 4. No current broadcast week, no populated campaign_flights.csv and no delivery feed. The delivered half of pacing has no input and GET /api/make-good-alerts stays honestly data-pending. Not lifted and not worked around."
-  ],
-  "files_touched_by_critic": [
-    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
+  "blind_ab": "Google Ads for pacing against a flight, Stripe for how a shortfall states its remedy, both opened and read this round. Where this board wins: it publishes its trigger. The pace verdict is decided at 0.95 and 0.85, both on the payload with the sentence that they are the product's rule and not a commercial term, while Google's optimization score is described as calculated in real-time from statistics, settings and recent recommendation history and the formula is never given. It also refuses where the references would guess: a flight with one elapsed day unsourced returns unknown with gap_in_elapsed and lists the missing dates, where a budget board would divide by the days it has. And every figure prints the scope it was counted over on the same line, which neither reference does. Where Stripe wins: its invoice status table publishes, for every state, what you may do from it, so the machine is legible before you own a record in it. This ledger shows the acts only on the record in front of you, and its two kind chips hide their meaning in a title attribute. Where Google Ads wins, and it is the sharper loss: a recommendation is applied on the row with its impact quantified, while the primary remedy on 51 of the 56 rows here is a link to another screen to upload a file. That is honest, because the delivery feed does not exist, but the do-the-recommended-thing leg of JS-6 completes on this board only through the acceptance. Where they draw: both offer a reversal that keeps a record rather than deleting one, Google through change history and this through the published withdrawal, and this one is better published because the reason and the state come off the store on the answer to the write instead of being a constant the client holds.",
+  "regression_verdict": "Nothing I changed removed a working answer. 111 P11 tests green, up from 107 with four added; 79 shared tests green after my edits as well as before, including the two that pin GET /api/make-good-alerts to data_available false with the campaign_flights.csv reason. Direction and date guards hold. The repo build is clean and still contains none of this surface. The write path was driven end to end twice in a browser, an acceptance and a withdrawal each time, and the board returned to 13 rows needing a decision both times. The verdict strip, the day drill, the campaign handover, the place marker, the honest empty state on a verdict with no rows and the Data-screen remedy link were each exercised by hand. percent() is the only shared formatter I touched and its behaviour is unchanged for every value that is not below 100 and rounding to 100: 88% is still 88%, 91% still 91%, 100% still 100% at exactly one, 104% still 104%. data/make_goods.csv is byte-identical to HEAD.",
+  "fixed_paths": [
+    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
     "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
     "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
-    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
-    "tv-break-dashboard/src/clients/pacing/pacing.css",
-    "tv-break-dashboard/src/clients/pacing/pacing-row.css",
-    "tests/test_p11_regression.py",
-    "tests/test_p11_design_rules.py",
-    "docs/ux-gauntlet/evidence/p11-c1-*",
-    "docs/ux-gauntlet/state/P11.json"
-  ],
-  "side_effects": [
-    "data/make_goods.csv unchanged, sha256 1668aef670385b5521e11cad8b1749abb80fbcbf2e1b4dec50a7a915a4794406, verified at the start and the end of the round. No write path was exercised against it.",
-    "No frozen path written. The section 5 mount was applied only to a throwaway copy under /tmp/p11-scratch, never to the repo tree."
-  ],
-  "previous_gap_closed": false,
-  "previous_gap_note": "The gap was the mount and it is still not P11's to close. What this round did instead was make the mount actually work: it would have failed to compile on first application.",
-  "closed_this_round": [
-    "src/clients/pacing/** did not compile. PacingWorkspace.jsx opened <Figure> and closed </span>. The repo build never parses this tree because nothing imports it, so the error was invisible to the build, and every existing guard read components as text, so it was invisible to the tests. Measured after the fix on a scratch copy carrying the section 5 mount: the tree compiles and the bundle grows 1,623.16 to 1,659.43 kB of JavaScript and 305.75 to 319.41 kB of CSS.",
-    "21 display strings were hard-wrapped across two source lines by adjacent-literal concatenation, against design-rules.md section 5. Joined programmatically in pacing_alerts_api_words.py (15), makegood_store_words.py (4) and pacing_alerts_api_read.py (2). Proven safe: all 81 module string constants compared byte-identical, and /api/pacing, /api/make-goods, /api/make-good-alerts and the day drill all byte-identical before and after. The queue asked for a lead ruling because the pattern appears 365 times across 33 modules; this fixes only the three files in this ownership row, which the piece's own brief requires either way.",
-    "tests/test_p11_regression.py was 664 lines, over the 450-line law, under a guard that read the modules and the surface and never the tests. Split three ways: test_p11_regression.py (304) reads the API, the stores and the words; test_p11_surface_regression.py (227) reads the components as text; test_p11_surface_javascript.py (263) executes the shipped module in node. The size guard now includes tests/test_p11_*.py, so the law covers its own enforcement.",
-    "A new guard pins the split-string law on every module in the row, proven against the 21 occurrences it now forbids."
-  ],
-  "files_touched": [
-    "kairos_api/pacing_alerts_api.py",
-    "kairos_api/pacing_alerts_api_board.py",
-    "kairos_api/pacing_alerts_api_read.py",
-    "kairos_api/pacing_alerts_api_words.py",
-    "kairos_api/pacing_alerts_api_write.py",
-    "kairos_api/makegood_store.py",
-    "data/make_goods.csv",
-    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
     "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
-    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
-    "tv-break-dashboard/src/clients/pacing/pacing-api.js",
-    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
-    "tv-break-dashboard/src/clients/pacing/pacing.css",
-    "tv-break-dashboard/src/clients/pacing/pacing-row.css",
-    "tv-break-dashboard/src/clients/pacing/pacing-days.css",
-    "tv-break-dashboard/src/clients/pacing/makegood.css",
-    "tests/test_p11_pacing_board.py",
-    "tests/test_p11_make_good_ledger.py",
-    "tests/test_p11_regression.py",
-    "tests/test_p11_surface_remedy.py",
-    "docs/ux-gauntlet/contracts/P11.md",
-    "docs/ux-gauntlet/state/P11.json",
-    "kairos_api/makegood_store_words.py",
-    "tv-break-dashboard/src/clients/pacing/verify-parses.mjs",
-    "tests/test_p11_surface_regression.py",
-    "tests/test_p11_surface_javascript.py"
-  ],
-  "files_touched_this_round": [
-    "kairos_api/pacing_alerts_api_words.py",
-    "kairos_api/makegood_store_words.py",
-    "kairos_api/pacing_alerts_api_read.py",
-    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
-    "tv-break-dashboard/src/clients/pacing/verify-parses.mjs",
-    "tests/test_p11_regression.py",
-    "tests/test_p11_surface_regression.py",
     "tests/test_p11_surface_javascript.py",
-    "docs/ux-gauntlet/contracts/P11.md",
+    "tests/test_p11_surface_reach.py",
+    "docs/ux-gauntlet/evidence/p11-c3r3-01-board-he-before.jpg",
+    "docs/ux-gauntlet/evidence/p11-c3r3-02-board-en-drill-before.jpg",
+    "docs/ux-gauntlet/evidence/p11-c3r3-03-reference-stripe-invoice-statuses.jpg",
+    "docs/ux-gauntlet/evidence/p11-c3r3-04-independent-recompute.txt",
+    "docs/ux-gauntlet/evidence/p11-c3r3-05-law-sweep.txt",
+    "docs/ux-gauntlet/evidence/p11-c3r3-06-measured-before-edits.txt",
+    "docs/ux-gauntlet/evidence/p11-c3r3-07-board-he-after-critic-fixes.jpg",
     "docs/ux-gauntlet/state/P11.json"
   ],
-  "files_touched_by_builder": [
-    "kairos_api/pacing_alerts_api.py",
-    "kairos_api/pacing_alerts_api_board.py",
-    "kairos_api/pacing_alerts_api_read.py",
-    "kairos_api/pacing_alerts_api_words.py",
-    "kairos_api/makegood_store.py",
-    "data/make_goods.csv",
-    "tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingRow.jsx",
-    "tv-break-dashboard/src/clients/pacing/PacingDays.jsx",
-    "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx",
-    "tv-break-dashboard/src/clients/pacing/pacing-api.js",
-    "tv-break-dashboard/src/clients/pacing/pacing-helpers.js",
-    "tv-break-dashboard/src/clients/pacing/pacing.css",
-    "tv-break-dashboard/src/clients/pacing/makegood.css",
-    "tests/test_p11_pacing_board.py",
-    "tests/test_p11_make_good_ledger.py",
-    "tests/test_p11_regression.py",
-    "tests/test_p11_surface_remedy.py",
-    "docs/ux-gauntlet/contracts/P11.md",
-    "docs/ux-gauntlet/state/P11.json"
+  "ownership_check": "Every path I wrote is in the section 8.2 wave-two row for P11, tv-break-dashboard/src/clients/pacing/**, or the reserved tests/test_p11_ prefix, or this piece's evidence and state files. No frozen path was written. The section 5 mount was applied only to a copy of the frontend tree under the session scratchpad; the three P4 files in the repo are untouched. data/make_goods.csv is restored byte-identical. data/kairos_settings.json was moved to English and back to Hebrew through the product's own control and is identical to the snapshot I took before doing it.",
+  "previous_gap_closed": false,
+  "previous_gap_note": "The previous gap was that the three items still open are all outside this row, and it is unchanged and re-verified rather than inherited. HEAD still does not compile, the surface still ships to nobody, and there is still no delivery feed. What did change is that the builder's claim that everything a builder could reach was closed turned out to be nearly but not quite true: measuring the artifact rather than the diff found five more things inside this row, four of which I closed and one of which, the inert second figure, is the unfinished half of a fix the last round recorded as complete.",
+  "blockers": [
+    "One commit of the P11 ownership row. It carries the compile fix at PacingWorkspace.jsx:267 and six files that exist only in this working tree: tv-break-dashboard/src/clients/pacing/PacingActs.jsx, PacingGoalLine.jsx, pacing-summary.js, pacing-place.js, and tests/test_p11_surface_reach.py. Nobody in this loop may commit.",
+    "The mount, still the only thing between this piece and a person using it, and still P4's three files. Exact patch in contracts/P11.md section 5, including onOpenCampaign, which I applied to a scratch tree and drove for the whole of this round.",
+    "The same patch must pass notify into CampaignsPage and CampaignsPage must forward it.",
+    "Two rows in P8's history_api_actions table, without which every pacing write is filed in History under the word other.",
+    "Owner decision 4. No current broadcast week, no populated campaign_flights.csv and no delivery feed."
   ]
 }

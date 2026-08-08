@@ -1,0 +1,34 @@
+{
+ "he": {
+  "marks_ms": {
+   "table": 10.599999997764826,
+   "state": 103.09999999776483,
+   "clicked": 118.89999999850988,
+   "picked": 118.89999999850988
+  },
+  "wall_s": 3.77,
+  "dir": "rtl",
+  "live_rows_on_screen": 1,
+  "live_class": "cb-live-verdict cb-amber",
+  "live_block": "הכרעות רשומות על המודל המשודר עצמו\n\nרשומה הכרעה על המודל המשודר עצמו, מול גרסת המודל שבתוקף, וכל מועמד למטה נמדד מול אותה גרסה בדיוק.\n\nנרשמה\tעל ידי\tהכרעה\tבתוקף\tעל מה היא נשענת\n⁨02/08/2026, 04:57⁩\tsteward\tלא להשיק\tבתוקף\tלפני שהתקיימה\n\nהתקבלה לפני שההשוואה הזו התקיימה, ולכן היא נשענת על המספרים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.\n\nהמשפט שבגללו התקבלה כל הכרעה נשמר עם הרשומה ונקרא במסך גרסאות מודל של המסוף הזה. הוא אינו מועתק לקובץ הזה.\n\n7\nרשומות ביומן ההכרעות\n.\n6\nעל הקבצים למטה\n.\n1\nעל המודל המשודר עצמו\n.\n0\nעל קבצים שאינם על המדף הזה\n\nמול גרסת מודל\n2026-07-29",
+  "history_rows_on_screen": 2,
+  "history_block": "הכרעות רשומות, החדשה תחילה\n\n2 הכרעות רשומות, כולן אותה מילה, כל אחת מנימוק רשום אחר. החדשה היא זו שבתוקף והקודמות הן מה שנוסה לפניה.\n\nנרשמה\tעל ידי\tהכרעה\tבתוקף\tעל מה היא נשענת\n⁨01/08/2026, 22:04⁩\tunknown (login is not set up)\tלא להשיק\tבתוקף\tלפני שהתקיימה\n⁨01/08/2026, 17:41⁩\tunknown (login is not set up)\tלא להשיק\tהוחלפה בהכרעה מאוחרת יותר\tלפני שהתקיימה\n\nהתקבלה לפני שההשוואה הזו התקיימה, ולכן היא נשענת על המספרים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.\n\n1\nהכרעות שעמודה המציגה רק את החדשה אינה מציגה\n\nהמשפט שבגללו התקבלה כל הכרעה נשמר עם הרשומה ונקרא במסך גרסאות מודל של המסוף הזה. הוא אינו מועתק לקובץ הזה.",
+  "opened": "calibrated"
+ },
+ "en": {
+  "marks_ms": {
+   "table": 34.69999999925494,
+   "state": 45.69999999925494,
+   "clicked": 54.399999998509884,
+   "picked": 54.399999998509884
+  },
+  "wall_s": 2.25,
+  "dir": "ltr",
+  "live_rows_on_screen": 1,
+  "live_class": "cb-live-verdict cb-amber",
+  "live_block": "Verdicts on record about the shipped model itself\n\nA verdict is on record on the shipped model itself, against the model version in force, and every candidate below is measured against that same version.\n\nRecorded\tBy\tVerdict\tIn force\tWhat it rests on\n⁨02/08/2026, 04:57⁩\tsteward\tno ship\tIn force\tBefore it existed\n\nTaken before this comparison existed, so it rests on each artifact reading its own held-out figures, which come from different splits and are not comparable.\n\nThe sentence each verdict was taken for is stored with the record and is read on the model versions screen of this console. It is not copied into this file.\n\n7\nrecords in the decision log\n.\n6\non the artifacts below\n.\n1\non the shipped model itself\n.\n0\non artifacts that are not on this shelf\n\nAgainst model version\n2026-07-29",
+  "history_rows_on_screen": 2,
+  "history_block": "Verdicts on record, newest first\n\n2 verdicts on record, all of them the same word, each for a different stated reason. The newest is the one in force and the earlier ones are what was tried before it.\n\nRecorded\tBy\tVerdict\tIn force\tWhat it rests on\n⁨01/08/2026, 22:04⁩\tunknown (login is not set up)\tno ship\tIn force\tBefore it existed\n⁨01/08/2026, 17:41⁩\tunknown (login is not set up)\tno ship\tSuperseded by a later verdict\tBefore it existed\n\nTaken before this comparison existed, so it rests on each artifact reading its own held-out figures, which come from different splits and are not comparable.\n\n1\nverdicts a column showing only the newest does not show\n\nThe sentence each verdict was taken for is stored with the record and is read on the model versions screen of this console. It is not copied into this file.",
+  "opened": "calibrated"
+ }
+}

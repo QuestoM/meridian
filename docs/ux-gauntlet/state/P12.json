@@ -1,193 +1,276 @@
 {
  "piece": "P12",
  "name": "Model improvement",
- "round": 5,
- "round_label": "wave-two re-run, round 2 of this orchestration, fifth round recorded on this file",
+ "round": 10,
+ "round_label": "builder of the wave-two re-run, round 3 of this brief and the tenth round recorded on this file. The brief said round 3; the file said round 9 and 247 tests, and the file was right.",
  "passed": false,
- "gap": "One thing remains and it is two lines in two frozen files. The frontend row is no longer empty: tv-break-dashboard/src/model/candidates/** now holds the board, six source files and a published measurement, and it is measured in a real browser through the product's own bundler at 77.1 ms for the whole JS-19 reading route against a 120 s target. The route the last three rounds said was needed turned out not to be: the board imports its own published measurement and asks /api/model/candidates, which P7 already publishes and already walls, for the digests the server is serving now, so the freshness question is answered from an existing route and the three-line unblocking is a two-line one. What the lead adds, verbatim: an import of ../candidates/CandidateBoard in ModelConsole.jsx beside the other seven panels and a branch for it in Body, plus 'board' in SECTIONS and SECTION_ROUTE in console-api.js and a section.board label in console-words.js. Every one of those files is P7's.",
+ "gap": "The blocking gap is unchanged and is the lead's: two lines in two P7 files mount this board on the model console, and no route is needed. Everything a builder could reach on the round-9 queue is closed. What is left for a builder is smaller than what was closed: the shipped row still prints the model version name as a raw ISO day and cannot be reformatted here alone because P7's console renders the same stored value raw in two places, so that one needs P7 and this row to move together. The data bar this round introduced has no entry in docs/ux-gauntlet/design-rules.md, whose section 8 says to write the rule before applying it; that file is not on this piece's row, so the rule an entry would carry is written out in the contract instead and it is the lead's to place.",
  "history": [
   "round 1 builder: built the whole piece from zero. scripts/adopt_candidate.py plus four declared helpers (rescore, registry, adoption, surface), 62 tests in four files under tests/test_p12_*. Held-out re-score of all six artifacts on one common set of 2,532 breaks with two out-of-sample baselines, a two-bar verdict rule, an adoption act that escalates rather than lands when money moves, a byte-exact revert, and an artifact-surface check that caught the ship-verdict candidate dropping first_break_multiplier. Measured afterwindow money live at +923,843.08 on the operator's own channel in 179.6 s. models/tv_break_coefficients.json byte identical throughout, digest 1e41d92b1a14. P7's model-console tests still pass. Frontend tree not built and reported as a blocker.",
   "round 1 critic: measured all four bars first, then closed nine mechanical findings inside P12's five owned script files. Re-score reproduced from source in 10.5 s and every figure in the contract matched to the last digit, so honest math passes on my own arithmetic and not the builder's. Terminal route 0.824 s for three commands against a 120 s target, but the route cannot reach JS-19's done condition because no verdict can be recorded from it. Sharpest defect found: the refusal said 'No ship verdict is recorded' on four candidates that each carry a recorded no-ship, inviting a steward to record a second contradicting verdict; now tri-state and dated. Also closed: the dropped engine field now names the value being dropped (first_break_multiplier, shipped value 1.0, which service.py:112 documents as a no-op, so the refusal was unreadable), the registry table now shows the verdict on record instead of a count of decisions, the checks output now states the money in shekels with its scope and basis as JS-19's target words require, moved_fields no longer emits duplicated scope-free field names, the credible-bounds line gained its denominator, the Hebrew for fold is now the console's own KYPWLYM rather than an invented second word, an honest empty state was added for 'nothing has ever been adopted', and the entry-point usage block now lists all seven subcommands. 62 P12 tests, 105 P7 tests and npm run build all green after the edits. models/ untouched. Not passed: the largest gap is structural and is the lead's.",
   "round 2 builder: closed every structural item that did not require a frozen path, and closed the four open mechanical ones. THE ACT: new scripts/adopt_candidate_decide.py and a decide subcommand, so JS-19's done condition (record the verdict) is reachable from P12's own surface for the first time; it records through P7's own model_version_store.record_decision, so the terminal and the console cannot hold different verdicts, and the money_direction is computed from the measurement rather than hardcoded 'unknown' the way the console form does it. THE EVIDENCE: the common-basis re-score now rides inside the verdict record, so it reaches the screen where the verdict is taken. Proven live on port 8043 against a COPY of models/releases: GET /api/model/candidates/afterwindow returned evidence.rescore.rmse 0.241046876 against shipped_rmse 0.241160667 with evaluation.breaks 2532, which is what CandidateVerdict.jsx renders. THE MARK: the registry now stamps every verdict taken before the comparison existed with a *, and all five on this tree carry it. THE LANGUAGE: new scripts/adopt_candidate_words.py holds every authored string in both halves, closing rule_he, metric_he, basis_he, how_he and next_act.he, with a test that walks the table. THE HONEST LINE: target_sd was computed on every row and rendered nowhere; it is now one figure per evaluation and on screen, and it says the shipped model's 0.241161 sits 0.000218 under the target's own spread of 0.241379. Also: adoption.py passed 450 so the store readers split into scripts/adopt_candidate_state.py, the registry now renders the rows behind each money figure and the named reason a stale one is stale, the artifact paths are on screen, and the channel_name column that is really a cell key is explained where it is read. 91 P12 tests (was 62), 105 P7 tests, npm build green, 153 routes with none matching adopt, models/tv_break_coefficients.json still 1e41d92b1a14 and decisions.jsonl still 7 records. Two blockers remain and both are the lead's.",
   "round 3 builder: found and closed the third of JS-19's three recorded things. Its done condition names the gate deltas, the COEFFICIENT deltas and the money; two were built and the third was in no payload at all. Measured before building: shipped against afterwindow differ in ALL 36 OF 36 coefficients, largest 0.014066885 at PrimeShow2_first_short, and artifact_surface() emitted no key naming any of it. What the checks printed instead was 'credible bounds moved on 72 of 72', which reads as 'the intervals moved and the points did not'. Every point moved. New scripts/adopt_candidate_cells.py attributes every cell: the breaks it was measured on, the squared error it moved, its share, and the figure a metric delta cannot state, the cancellation. competitor cancels 98.7 percent of its own movement, which is why its rmse delta is 0.000011; it is a re-fit that landed elsewhere, not a model that did nothing. Wired to four places with no frozen file touched: the show table gained a five-artifact coefficient comparison, a new diff subcommand ranks all 36 cells by what each bought (0.18 s), the verdict evidence carries the summary so P7's own route serves it to the console (proven live on 8043, cells_moved 36 of 36, cancelled_share 0.862227, Hebrew reading intact), and metadata.adoption now stamps gate_deltas and coefficient_deltas so JS-19's done condition is literal. Also split _registry (448) and _rescore (451) under the cap into _render and _baselines, and replaced two HARDCODED module lists in the training-line tests with a glob: they named eight modules, had gone stale by three, and both laws they hold, the size cap and the no-em-dash rule, had silently stopped applying to new code. 116 P12 tests (was 91), 105 P7 tests in 218.85 s, npm build green, 155 routes none matching adopt, zero mentions of this act in the operator interface or kairos_api, shipped artifact still 1e41d92b1a14 and decisions.jsonl still 7 records. Whole JS-19 route 5.24 s against 120 s.",
   "round 4, blind critic of the wave-two re-run: measured all four bars before touching a file, then closed six mechanical findings. HONEST MATH VERIFIED INDEPENDENTLY: I rebuilt the 2,532 measured breaks from the frozen loaders in my own script and recomputed every figure this surface prints. All of them reproduce to the last digit, including the paired statistics, the fold dispersions, the 36-of-36 cell counts, the cancellation shares, both out-of-sample baselines and the target standard deviation. I also re-ran the optimizer myself for 168.1 s and reproduced the money exactly: +923,843.08 on the operator's own channel over 2,540 rows and +5,290,848.33 on the whole plan. Nothing on this surface is a number that was not computed from real data. STOPWATCH: show 0.31 s, checks 0.26 s, diff 0.20 s, decide --perform 3.98 s, whole JS-19 route 4.75 s against a 120 s target and against a recorded baseline of cannot start. TRAINING LINE HELD FOUR WAYS on a server I started on 8063: 153 openapi paths and zero matching adopt, zero routes handled out of scripts/, zero mentions in kairos_api or the frontend, 401 unauthenticated on the console route. I also traced what an adoption would leak once one lands: assistant_model_disclosure.py:253 reads the artifact metadata through a seven-key allowlist behind actor_is_company, so the adoption stamp's steward name and free-text reason cannot reach an operator or the assistant. WHAT I FIXED: cancelled_share was 0.0 in the published payload for the candidate that moves nothing, a share of a movement never made, while the terminal correctly said 'no move'; the stat column had no bar and the verdict word no rule, both measured on every row and rendered nowhere; the diff table's share column had no denominator; the verdict screen printed not_shipped and not_distinguishable, the store's own keys, on the one screen where the steward chooses between exactly those two, with the English key inside a Hebrew sentence; and --json was an argparse error after the subcommand, so the payload this piece publishes was reachable only by guessing the flag order. 126 P12 tests (was 116), 105 P7 tests in 218.45 s, npm build green in 672 ms, shipped artifact still 1e41d92b1a14, decisions.jsonl still 7 records, every verdict I recorded went to a copy under KAIROS_MODEL_RELEASES_DIR. NOT PASSED: the frontend row is still empty and still unmountable, and I verified that myself rather than inheriting it.",
-  "round 5 builder: closed every structural item that a builder could close, and the largest one is now two lines rather than a piece with nothing in it. THE SCREEN: built the whole frontend row, CandidateBoard.jsx, board-detail.jsx, board-compare.js, board-words.js, board-mount.jsx and candidate-board.css, plus a new publish subcommand and scripts/adopt_candidate_board.py that writes the measurement into that row. It is honest without a new route because it carries the digest of every artifact each figure was measured on and asks P7's own /api/model/candidates what the server is serving now: current, stale naming the artifact that moved, or unknown when the route does not answer, and unknown is not stale. Measured in headless Chrome through the product's own bundler, three scenarios, table 51.3 ms, freshness 63.4 ms, one artifact's evidence open 77.1 ms. THE WRITE: the latent ownership violation is closed structurally. Every write the adoption act makes now goes through one guard at the line that writes, scripts/adopt_candidate_ownership.py, which refuses any target outside the row; models/tv_break_coefficients.json is named there as the single pending path and is released by a ruling the LEAD records at models/releases/ownership/shipped_artifact.json, the same shape as the owner approval one step earlier. adopt now stops at a check called write_target_is_owned that names the path, the spec section and the file that would clear it. THE FINDING: the out-of-sample cell-structure result is a named standing finding sized against the candidates, 0.000623 rmse against the largest candidate movement of 0.000156, ratio 4.0, and 0 of 5 candidates change the set of cells at all, counted from the coefficient delta. Stated with whose decision it is and never as a next act. ALSO: registry._money_state deleted so one money_state serves every caller, stale magnitude under its own name last_known_revenue_delta with revenue_delta still null, rule_en, rule_he and sha256 joined onto every registry row, and the Hebrew for the two verdicts is now the console's own pair from console-words.js:180 instead of this terminal's own. 167 P12 tests (was 126), 105 P7 tests in 231.30 s, npm build green in 310 ms, 158 openapi paths with none matching adopt, shipped artifact still 1e41d92b1a14, decisions.jsonl still 7 records, models/candidates untouched."
- ],
- "fixed_this_round_by_the_critic": [
-  "MECHANICAL, serious. cancelled_share was 0.0 in every published payload for placebo_corrected, which moves no coefficient at all. It is a share of a movement, so with no movement it is not a zero, and 0.0 states that none of its movement cancelled rather than that there was none to cancel. It came from a 0/0 guard. Now None. The terminal already read 'no move' and the payload did not, so the same figure was stated two ways on two surfaces. Verified live through P7's own route: GET /api/model/candidates/placebo_corrected returns cancelled_share null. scripts/adopt_candidate_cells.py, and scripts/adopt_candidate_render.py where the render is now driven by the figure rather than by the count of moved cells, so a moved cell scored on no break cannot crash it.",
-  "MECHANICAL, serious. The artifacts table printed a stat column of -0.78 to +0.00 and a verdict word of 'no difference' with no bar and no rule anywhere on screen. Both were measured on every row and rendered nowhere: paired_bar was in holdout_rescores.json and dropped by the registry join, and rule_en was computed on every verdict and never printed. The legend now names the paired statistic, the bar read off a measured row rather than typed into the sentence, and the two-bar rule. scripts/adopt_candidate_words.py PAIRED_LEGEND in both halves, scripts/adopt_candidate_registry.py joins paired_bar onto the row, scripts/adopt_candidate_render.py renders it.",
-  "MECHANICAL, minor. The diff table's share column had no denominator on screen and the ranking basis lived only in a docstring, so a reader had to guess what the percentages were a share of and why a cell that moved the metric the wrong way sits at the top. One footnote. scripts/adopt_candidate_cells.py.",
-  "MECHANICAL, serious. Raw store keys on the verdict screen. The header printed 'not_shipped', the re-score line printed 'not_distinguishable', and the decision_is_a_verdict check printed the English key inside a Hebrew sentence, all on the one screen where the steward is choosing between exactly those two things, while the registry three commands earlier renders the same two as 'no ship' and 'no difference'. scripts/adopt_candidate_decide.py now reads DECISION_TAGS and VERDICT_TAGS from the render module, and scripts/adopt_candidate_words.py gains DECISION_WORDS in both halves for the check sentence.",
-  "MECHANICAL, serious. A dead end in the terminal's own affordance. --json was a top-level flag only, so the natural 'show --json' and 'diff afterwindow --json' were argparse errors, and the usage block that round 1's critic said it completed never named the flag at all. The payload this piece publishes as the shape a route would serve was reachable only by guessing that the flag goes before the subcommand. Now accepted on either side of all nine subcommands, through a shared parent parser with an argparse.SUPPRESS default so neither placement overwrites the other, and named in the usage block. scripts/adopt_candidate.py.",
-  "MECHANICAL, minor. The two published payloads were regenerated so a reader of the file gets the corrected tri-state and the bar rather than the pre-fix values. models/releases/holdout_rescores.json and models/releases/candidate_registry.json, both P12's by handover. Every figure in them re-verified against my own independent recomputation after the regeneration: nothing moved.",
-  "TESTS. Ten new assertions under the reserved prefix, pinning all of the above: tests/test_p12_terminal.py is new with nine tests (the bar is rendered, the bar is read from the measurement and not typed, a row with no measured bar prints no legend rather than a default, the legend carries both halves, the verdict screen prints no raw store key, the two verdict words carry both halves, the flag works on either side, every subcommand takes it, the usage block names it) and tests/test_p12_cells.py gains the tri-state assertion the existing no-move test was missing plus a test that walks the published file itself."
+  "round 5 builder: closed every structural item that a builder could close, and the largest one is now two lines rather than a piece with nothing in it. THE SCREEN: built the whole frontend row, CandidateBoard.jsx, board-detail.jsx, board-compare.js, board-words.js, board-mount.jsx and candidate-board.css, plus a new publish subcommand and scripts/adopt_candidate_board.py that writes the measurement into that row. It is honest without a new route because it carries the digest of every artifact each figure was measured on and asks P7's own /api/model/candidates what the server is serving now: current, stale naming the artifact that moved, or unknown when the route does not answer, and unknown is not stale. Measured in headless Chrome through the product's own bundler, three scenarios, table 51.3 ms, freshness 63.4 ms, one artifact's evidence open 77.1 ms. THE WRITE: the latent ownership violation is closed structurally. Every write the adoption act makes now goes through one guard at the line that writes, scripts/adopt_candidate_ownership.py, which refuses any target outside the row; models/tv_break_coefficients.json is named there as the single pending path and is released by a ruling the LEAD records at models/releases/ownership/shipped_artifact.json, the same shape as the owner approval one step earlier. adopt now stops at a check called write_target_is_owned that names the path, the spec section and the file that would clear it. THE FINDING: the out-of-sample cell-structure result is a named standing finding sized against the candidates, 0.000623 rmse against the largest candidate movement of 0.000156, ratio 4.0, and 0 of 5 candidates change the set of cells at all, counted from the coefficient delta. Stated with whose decision it is and never as a next act. ALSO: registry._money_state deleted so one money_state serves every caller, stale magnitude under its own name last_known_revenue_delta with revenue_delta still null, rule_en, rule_he and sha256 joined onto every registry row, and the Hebrew for the two verdicts is now the console's own pair from console-words.js:180 instead of this terminal's own. 167 P12 tests (was 126), 105 P7 tests in 231.30 s, npm build green in 310 ms, 158 openapi paths with none matching adopt, shipped artifact still 1e41d92b1a14, decisions.jsonl still 7 records, models/candidates untouched.",
+  "round 6 builder: arrived to a RED TEST and left with a finding that changes how every figure on this surface may be read. THE RED TEST: the lead's isolation sweep 1e302156 correctly rewired this board onto src/shell/bidi.jsx and this piece's own import guard did not know, so test_p12_board.py failed on the delivered tree. The allowance was the small half. The large half: the guard matched from '<target>' only, so every side-effect import was invisible to it, ../../tokens.css had sat on the allowed list without the pattern ever matching it once, and ../../shell/styles.css had entered the row unseen. Both shapes now match, a test injects one of each and asserts both are caught, and a third refuses any allowance the row does not exercise. THE FINDING: the limit sentence, which decides how every figure on this surface may be read, was a constant asserting that every artifact was fitted on all the breaks it is scored on so the optimism is common-mode. Measured: spotclip records total_breaks_measured 2336 against base_breaks 2532 and dropped_by_spot_clip 196, while the other five record 2532, and all six are scored on the same 2532. So 196 breaks (7.74 percent) are out of sample for spotclip and in sample for every row it is compared against, the optimism is NOT common-mode, and the row it is true of is the row the table ranks FIRST at 0.241005. The figure that falsifies the sentence was already computed on every candidate row and compared to nothing. New scripts/adopt_candidate_basis.py makes the sentence a measurement with three states; the count is stated because a count is what artifacts record, the identity of the breaks is recorded nowhere, so the size of the confound is reported as not computable from disk rather than guessed. SECOND FINDING, same row: spotclip.metadata.holdout_clean_test carries adopt_recommended false, 'keep OFF (within noise)', on 461 breaks, and no payload carried it. Now carried per row, never sorted, never a column, with the sentence that stops it reading as a rank every time it prints, because ranking two self-tests is the exact mistake this piece exists to replace. Wired to five places: the terminal, the published payload, the board file, the board screen (row mark plus limit block plus detail block) and the verdict record, proven against a COPY of the store. ALSO: the bilingual walker's hardcoded five-table list was round 3's module-list defect one file over and both new tables would have escaped it, so it discovers now with a floor; the board root's dead rtl/ltr class, a third statement of direction that no stylesheet selects on, is gone; and a numeric line that would have read '2532 . 196' as one decimal was restructured so a word carries every figure boundary while design rule 3 keeps its dot between fact groups. 199 P12 tests (was 167 with one red), 105 P7 tests in 496.78 s, npm run build green in 656 ms, verify-direction-rules green, 158 openapi paths none matching adopt, 0 mentions in kairos_api or the operator interface, shipped artifact still 1e41d92b1a14, decisions.jsonl still 7 records, models/candidates untouched. Board in a browser: he 102.1 ms, en 117.8 ms to evidence open against 120 s.",
+  "round 7, blind critic of the wave-two re-run: measured all four bars before touching a file, then closed ten mechanical findings. HONEST MATH VERIFIED INDEPENDENTLY, importing nothing from scripts/: I rebuilt the 2,532 measured breaks from the frozen loaders and kairos.model.measure.break_effects in my own script and re-scored the shipped artifact and all five candidates myself. Every published figure reproduces to the last digit, including shipped rmse 0.241160667, all five candidate rmses, all five rmse deltas, all five paired statistics, all five fold dispersions, the improved and worsened counts, the target standard deviation 0.241378699 and every sha256 short digest. STOPWATCH, clean run with no browser contention: show 0.57 s, diff 0.42 s, checks 0.35 s, decide --perform 8.31 s against a copy of the store, whole JS-19 route 9.65 s against a 120 s target and a recorded baseline of cannot start. Board in a real browser through the product's own bundler, both locales, table plus freshness plus one artifact's evidence opened. TRAINING LINE HELD ON MY OWN MEASUREMENT: 158 openapi paths, zero matching adopt, zero routes handled out of scripts/, zero mentions in kairos_api or the operator interface, and the published board file names no path into the act. COMPETITOR BOUNDARY: the three rival names read from the sources appear zero times in the board file, the board source, the terminal source and the terminal's own output. WHAT I FIXED, all inside the row: the verdict act printed one sentence about the money for all three states and on stale it was FALSE, because the record it writes carries the console's own revenue_delta 948456.21 beside money_state stale; the * beside every recorded verdict carried its meaning in a title attribute only, on five of five rows; the board never said whether anything had been adopted while the column beside it said Shipped of a DECISION; --decision took the store's two raw keys only, so the word the screen showed was an argparse error, which I hit myself on my first invocation; four ISO instants sliced to nineteen characters against a design rule that says dd/mm/yyyy in both locales and names one file that decides it; the artifact name was the only way into an artifact and had no resting affordance at all; a figure and a cell key rendered as one token; a Hebrew chip read as one token where English read correctly; the file-size unit was a hardcoded English word not in the words table; a possessive was missing from one English sentence; and the em-dash literal sat in two of this piece's three guard files. 219 P12 tests (was 199), npm run build green, verify-direction-rules green, shipped artifact still 1e41d92b1a1476, decisions.jsonl still 7 records, every verdict I recorded went to a copy under KAIROS_MODEL_RELEASES_DIR. NOT PASSED: the largest gap is unchanged and is the lead's, and I verified the diagnosis myself rather than inheriting it.",
+  "round 8 builder: found the one thing JS-19 names that this piece had never put on a screen, and a reading defect underneath it that would have shipped as a column. THE GAP: JS-19's sequence reads the gates BEFORE it reads the money and its target asks for every gate delta with its held-out figure. Measured before building: the board carried NO gate key at all, and the only surface that had them was the checks command, the last one a steward runs. THE DEFECT UNDERNEATH: model_console_candidates.gate_deltas returns every key two artifacts do not agree on, and a key the candidate does not carry comes back as one of them. Measured: afterwindow, competitor and spotclip each return TEN rows and hold a different value on NONE of them; placebo_corrected returns two, both absences. Counting the rows reads as ten gates decided the other way when the truth is none. Across the whole shelf exactly ONE key on ONE candidate is a real disagreement, placebo_correction_active, true shipped and false on calibrated. New scripts/adopt_candidate_gates.py splits not_identical into differing, absent-on-candidate and absent-on-shipped and picks the sentence from the split, with a singular form so a count of one is never printed as a plural, and it states no share of all gate keys because the key list is a constant inside a frozen module it does not read. Wired to five places with no frozen file touched: the registry's own side-by-side across all five candidates, the checks output, the board payload, the board screen (a gate table plus a held-out table under the verdict and above the money), and the verdict record, where the console's own gate_counts had been carrying the LIVE ledger of the shipped model and nothing at all about the candidate being decided on. Also into the adoption stamp beside round 3's gate_deltas rows. SECOND FINDING, same block: the held-out sentence was a constant asserting that the amounts disagree, and on calibrated all THREE blocks are reported by both artifacts at the same amount, so the surface was stating a confound that pair does not carry. The rule and whether it bit are two sentences now and the second is measured; on competitor it is real and it is the argument for the whole piece, 2,532 breaks against 506 on the same counter-programming gate. THE QUEUE ITEM: evaluation.window shipped pre-joined as '2024-11-01 to 2024-11-30', an English preposition inside a machine date rendered verbatim into a Hebrew line. It is two calendar days now, window_from and window_to, joined in English by words.window_line at the terminal and by shell/dates formatSpan on the screen, measured live in both locales as 01/11/2024-30/11/2024 with no ISO left anywhere on the board. ALSO, three open queue items the critic left: the board now prints the decision COUNT (calibrated holds two no-ship verdicts and the column printed one word), it states in ink that a heading which is a button sorts and that up and down move the selection, and one stored value now reads the same on both surfaces (first_break_multiplier is 1.0 at the terminal and was 1 in the browser, because JavaScript has one number type; the text is rendered once on the side that knows the type). AND THE GUARD: the bilingual walker was round 3's module-list defect one level up. It walked ONE module, so an authored table put beside the arithmetic it belongs to was governed by nothing, and all ten strings this round added would have escaped. It walks every module of the piece now, with a floor and a named-known list. Five of the board's gate strings are the model console's own, verbatim from console-words.js lines 115, 116, 142, 144 and 145, on round 5's argument. 247 P12 tests (was 219), 105 P7 tests in 423.26 s, npm run build green in 2.35 s, verify-direction-rules green, test:dates green on every file of this row, 159 openapi paths with none matching adopt and none handled out of scripts/, 0 mentions in kairos_api or the operator interface, 0 of the three rival names in the board file or any output, shipped artifact still 1e41d92b1a1476, decisions.jsonl still 7 records, models/candidates untouched. Whole JS-19 route 10.69 s against 120 s; board in a real browser, gates open, he 452.4 ms and en 49.4 ms.",
+  "round 9, blind critic of the wave-two re-run: measured all four bars before touching a file, then closed four mechanical findings. HONEST MATH RE-DERIVED INDEPENDENTLY, importing nothing from scripts/: I rebuilt the 2,532 measured breaks from the frozen loaders and kairos.model.measure.break_effects in my own script and re-scored all six artifacts myself. Every published figure reproduces to the last digit: shipped 0.241160667, spotclip 0.241004968, afterwindow and calibrated 0.241046876, competitor 0.241150155, placebo_corrected identical, all five paired statistics, all five fold dispersions, the improved and worsened counts and target_sd 0.241378699. I also re-derived round 8's gate reading against kairos_api GATE_KEYS without going through adopt_candidate_gates.py and got its numbers exactly: three candidates at ten rows and zero disagreements, placebo_corrected at two, and exactly one real disagreement on the whole shelf, placebo_correction_active true shipped and false on calibrated. AND I re-ran the optimizer twice myself: +923,843.08 on the operator's own channel over 2,540 rows, whole plan +5,290,848.33, the stored figure to the cent, in 361.0 s on a loaded machine. STOPWATCH: show 0.60 s, checks 0.40 s, diff 0.56 s, decide --perform 8.39 s against a copy of the store, whole terminal route 9.96 s against a 120 s target and a recorded baseline of cannot start. TRAINING LINE: 159 openapi paths, zero matching adopt, zero routes handled out of scripts/, zero mentions of the act in kairos_api, in the operator interface or in the published board file. COMPETITOR BOUNDARY: operator channel read from settings, the three rivals read from the sources appear zero times in the board file and in every terminal output I took. WHAT I FIXED, all inside the row: the verdict count added in round 8 rendered as one token in both locales, '2hakhraot rshumot' and '2verdicts on record', on the one row this tree refused twice, because .cb-cancels was display block with no gap; every candidate row has carried computed_at since the board was built and no surface rendered it, so nobody could see that all five candidates were produced on 05/07/2026 and the live artifact on 29/07/2026, meaning the whole shelf predates the model it is compared against, and it now reads through the one file that decides what a date looks like on the screen and through words.when at the terminal; picking an artifact opened its evidence at 900.5 px in a 907 px viewport, so a click tinted a row and changed nothing a reader could see, and a pointer pick now reveals the panel while the arrow keys deliberately do not; and this file and the detail carried byte-identical Shekels renderers, which I collapsed to one because CandidateBoard.jsx was at 448 of a 450 cap and had no room for a three-line fix. I also re-took all 21 line counts in this piece's own published contract table and 13 of them were wrong, 7 of those before I had edited anything, under a sentence promising every number was taken after the last edit. 247 P12 tests, 105 P7 tests in 410.34 s including the session test round 8 saw fail once under contention, npm run build green, verify-direction-rules green, and the terminal registry diffed against its before capture differs on exactly the five lines I added. NOT PASSED: the blocking gap is still the lead's two lines, and the largest one a builder can close is that every candidate's own stated purpose is on disk and on no screen.",
+  "round 10 builder: closed every item on the round-9 queue that a builder could reach, four of them structural. THE LARGEST: what each artifact was BUILT FOR was on disk and on no screen. Measured before building: afterwindow records 'after-window de-bias verification recompute (post-clip code, reference data)' and that sentence appeared 0 times in the board, 0 in show, 0 in checks and 0 in diff, while the word purpose appeared once on the whole surface as one of forty-three metadata key NAMES. New scripts/adopt_candidate_origin.py carries it onto the rescore row, the registry row, the board row and the checks payload, and onto five places a person reads: a block above the ranked table, one line at the top of checks, a line under every artifact name in the browser table, a block at the top of the evidence panel and a source table at the bottom of it. THE THING IT REFUSED TO DO: three of the six artifacts, the LIVE MODEL among them, record no purpose, and everything needed to write a convincing one is already on the row. None of it became a purpose; the absence is on the screen as an absence naming the metadata field that would fill it, and a test asserts no other candidate's purpose appears in the block of a candidate that has none. THE SECOND MEASUREMENT: every artifact records the data it read and nothing checked it. All six record the same three files at the same digests, all three are on disk with those exact bytes, and those are the bytes the evaluation rebuilds its breaks from, so the source data is NOT one of the differences between any two rows. The half that cannot be answered is stated: not one metadata key on any of the six names a script, a flag or a command line, so an artifact here can be identified exactly and rebuilt from nothing it carries. THE STOPWATCH FINDING: the first version reused kairos.model.freshness, the engine's own guard, and importing anything under kairos.model costs 17 s because that package's init probes TensorFlow. Measured with that import in place: show 20.87 s, diff 27.89 s, checks 19.57 s, against a baseline of about 0.6 s. The comparison is four lines here now over the guard's own hasher, one test asserts the two agree in all three of the guard's states, and a second imports the registry in a clean interpreter and fails if kairos.model comes with it. ALSO: CandidateBoard.jsx had one line of headroom and is 380 now, its evaluation header split into board-evaluation.jsx on the seam 'on what' against 'which of these'; and the board had no visual encoding at all, where the reference is built on plots. Three bars now draw a share of a denominator named in words beside them, the largest being the live model's error against the spread of the effect it predicts, which fills to 99.91 percent. A browser test reads each bar's drawn width out of the real layout and compares it with the share the payload carries. 281 P12 tests (was 247), npm run build green, test:direction green, test:dates green, 159 openapi paths with none matching adopt, 0 mentions in kairos_api or the operator interface, 0 of the three rival names in the board file, shipped artifact still 1e41d92b1a1476, decisions.jsonl still 7 records, models/candidates untouched. The registry diffed against a capture taken before my first edit differs on exactly the two blocks I added. Terminal after the change: show 1.07 s, diff 0.96 s, checks 1.26 s against 120 s."
  ],
  "queue": [
   {
-   "what": "The two-line mount. The board exists and cannot be reached from the console. An import of ../candidates/CandidateBoard in ModelConsole.jsx and a branch for it in Body, plus 'board' in SECTIONS and SECTION_ROUTE in console-api.js and a section.board label in console-words.js. No route is needed. Verified this round in a browser: the panel reads /api/model/candidates for its freshness cross-check and needs no other server change.",
+   "what": "The two-line mount. The board exists and cannot be reached from the console. Re-verified myself this round from source: console-api.js:10 SECTIONS is ['gates','coverage','drift','candidates','training','versions','provenance'] with no 'board', ModelConsole.jsx has no import of ../candidates/CandidateBoard and no branch for it in Body, and console-words.js has no section.board label. No route is needed: the panel's only server read is /api/model/candidates, which the console already publishes.",
    "where": "tv-break-dashboard/src/model/console/ModelConsole.jsx, console-api.js, console-words.js, all P7 and frozen",
    "kind": "structural",
    "severity": "blocking",
-   "status": "open, the lead's"
+   "status": "open, the lead's, unchanged since round 5"
   },
   {
-   "what": "The ownership ruling that would let an adoption's last write land. Nothing is blocked today, because no candidate on this tree clears the earlier checks either, but the guard now refuses it explicitly and names the file that clears it.",
+   "what": "THE LARGEST GAP A BUILDER CAN CLOSE. Every candidate's own metadata carries a one-line purpose and no surface carries it. Measured: afterwindow records 'after-window de-bias verification recompute (post-clip code, reference data)' and the string appears 0 times in candidate-board.json, 0 times in show, 0 times in checks, 0 times in diff. checks prints the word 'purpose' only as one of forty-three metadata key NAMES. So a steward reads five opaque identifiers and infers what each candidate was for from its coefficient table. The reference puts this first: W&B's run overview leads with Notes. Needs purpose onto the rescore row, the registry row and the board row, then one line at the terminal and one in the board detail. A payload-shape change, so the builder's.",
+   "where": "scripts/adopt_candidate_rescore.py candidate row, adopt_candidate_registry.py, adopt_candidate_board.py, then board-detail.jsx and adopt_candidate_render.py",
+   "kind": "structural",
+   "severity": "serious",
+   "status": "CLOSED by the builder this round. scripts/adopt_candidate_origin.py carries the purpose onto the rescore row, the registry row, the board row and the checks payload, and onto five surfaces a person reads. The three artifacts that record none, the live model among them, say so with the field that would fill it and no inference from the numbers beside them."
+  },
+  {
+   "what": "The ownership ruling that would let an adoption's last write land. Nothing is blocked today because no candidate on this tree clears the earlier checks either, and I confirmed that live: checks afterwindow stops on money_current, steward_named, reason_given, no_engine_input_dropped, no_shipped_figure_moves and write_target_is_owned.",
    "where": "docs/ux-gauntlet/spec.md section 8.2 row P12, then models/releases/ownership/shipped_artifact.json",
    "kind": "structural",
    "severity": "serious",
-   "status": "open, the lead's, and now refused rather than latent"
+   "status": "open, the lead's, unchanged"
   },
   {
-   "what": "Not P12's. tests/test_p7_console_bridge_session.py::test_the_operator_shell_is_out_of_reach_while_the_console_covers_it fails intermittently under pytest's random ordering. Not re-reproduced this round: P7's 105 tests were run with -p no:randomly and all passed in 231.30 s, so this round adds no evidence either way.",
-   "where": "tests/test_p7_console_bridge_session.py:370, P7",
+   "what": "Not P12's, and still red. npm run test:smoke dies with ENOENT on 'src/TVBreakDashboard.jsx', which wave zero moved to src/shell/. One of the product's three frontend guards has now been silently absent for two rounds.",
+   "where": "tv-break-dashboard/scripts/verify-dashboard-render.mjs, W0-2 or the lead",
    "kind": "structural",
    "severity": "serious",
-   "status": "open, unchanged, not re-measured"
+   "status": "still red, re-measured this round: npm run test:smoke dies with ENOENT on src/TVBreakDashboard.jsx. Not P12's."
   },
   {
-   "what": "Not P12's. The decision record carries one free-text reason and no language, so an English reason renders as English prose inside a right-to-left card. decide warns before the record lands and carries the English half in evidence.reason_en. The board does not repeat the reason at all, so this is now confined to P7's own card.",
+   "what": "Not P12's, and still red. npm run test:dates reports 3 date-part-arithmetic violations over a budget of zero, all in P10's src/plan/break/PodPage.jsx at line 16. My own row is clean and the guard confirms it.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx:16, P10",
+   "kind": "structural",
+   "severity": "serious",
+   "status": "CLOSED by whoever owns P10. npm run test:dates is green on the whole tree this round."
+  },
+  {
+   "what": "The date guard cannot see an instant, and this round produced two more proofs of the class. verify-date-rules.mjs enumerates calendar-DAY payload fields, so an INSTANT field passes untouched: computed_at sat on every board row for four rounds, rendered nowhere, and the guard had nothing to catch either way. And the one raw ISO still on the board, 2026-07-29, is a model version NAME, which is a calendar day the guard also has no rule for.",
+   "where": "tv-break-dashboard/scripts/verify-date-rules.mjs, the lead",
+   "kind": "structural",
+   "severity": "serious",
+   "status": "open, not P12's, unchanged since round 8"
+  },
+  {
+   "what": "The recorded-verdict count rendered as one token. .cb-cancels was display block with inline children and no gap, so the chip read '2hakhraot rshumot' in Hebrew and '2verdicts on record' in English on calibrated, the one row this tree refused twice. Same defect class the round-7 critic fixed for another chip; round 8 reintroduced it with a new chip.",
+   "where": "tv-break-dashboard/src/model/candidates/candidate-board.css .cb-cancels",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "CLOSED by the critic this round. Flex with a gap. Re-measured in a real browser in both locales: '2 | hakhraot rshumot' and '2 | verdicts on record'."
+  },
+  {
+   "what": "computed_at was carried on every candidate row of both published payloads and rendered on neither surface, so a steward could not tell an artifact made last week from one made a year ago. It is not a cosmetic absence: all five candidates were produced on 05/07/2026 and the live artifact on 29/07/2026, so the entire shelf predates the model it is being compared against, and nothing said so.",
+   "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx identity block, scripts/adopt_candidate_render.py artifact-files block",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "CLOSED by the critic this round. On the screen through shell/dates formatStamp as 'hupak 05/07/2026, 20:52' with a new bilingual words pair, and at the terminal through words.when as 'produced 2026-07-05T17:52:51'."
+  },
+  {
+   "what": "Picking an artifact opened its evidence entirely below the fold. Measured before the fix: the panel's top sat at 900.5 px in a 907 px viewport, so a click tinted a row and changed nothing else a reader could see, and the block it opened was a full screen away with no anchor and no scroll.",
+   "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx onPick, board-compare.js reveal",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "CLOSED by the critic this round, and measured after: a pointer pick lands the panel heading at top 0 on the first pick and on every later one, while an arrow key moves the selection and does not scroll, which is the intended split. Done on a microtask rather than a frame callback, because a frame callback is suspended in a window that is not in front, measured: mark.raf never fired at all in a background window while the same work on a timeout did."
+  },
+  {
+   "what": "Two byte-identical Shekels renderers, one in the table file and one in the detail file, so the sign, the separators and the locale could drift apart on two halves of one screen.",
+   "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx and board-detail.jsx",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "CLOSED by the critic this round. One renderer, exported from board-detail.jsx."
+  },
+  {
+   "what": "The contract's own file table was stale in 13 of its 21 rows, under an opening sentence that says every number in it was taken on the delivered tree after the last edit by wc -l. Seven were stale before I touched anything: adopt_candidate.py said 351 and was 355, _decide said 327 and was 376, _board said 221 and was 243, _registry said 189 and was 203, _adoption 443 against 448, _rescore 445 against 449, _words 394 against 405. The frontend rows were worse: CandidateBoard.jsx said 390 and was 449, board-detail.jsx said 243 and was 386, board-words.js said 128 and was 178, candidate-board.css said 271 and was 313. A published contract carrying wrong line counts is the same class of defect as a screen carrying a figure nobody measured, and it hides the one number that matters most here, that CandidateBoard.jsx has no headroom.",
+   "where": "docs/ux-gauntlet/contracts/P12.md section 2",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "CLOSED by the critic this round. All 21 rows re-taken by wc -l and written back, including the 6 my own edits moved."
+  },
+  {
+   "what": "CandidateBoard.jsx had no headroom at all. It arrived at 448 lines against a cap of 450, so a three-line behaviour fix could not land without also removing something. I paid for mine by collapsing the duplicate renderer and moving the scroll helper into board-compare.js, and it is 449 now. The next change to this file has one line of room and must split it. The obvious seam is the evaluation header, BasisRows plus Evaluation, about 84 lines that answer 'on what' rather than 'which of these'.",
+   "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "CLOSED by the builder this round. The evaluation header is board-evaluation.jsx, 131 lines, on the seam the critic named. CandidateBoard.jsx is 380 of 450."
+  },
+  {
+   "what": "The shipped row prints the model version NAME, which on this tree is the calendar day '2026-07-29', raw. It is the only raw ISO left on the board after my fixes. I did not change it: P7's own console renders the same field raw at CandidateVerdict.jsx:79 and VersionsPanel.jsx:128, and reformatting it here alone would make two surfaces of one model disagree about one stored value, which is the exact defect round 8 fixed for first_break_multiplier.",
+   "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx Table reference row, and P7's console",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open, found this round, needs P7 and this row to move together"
+  },
+  {
+   "what": "Against the reference: no reproduction provenance. W&B's run overview gives the git repository, the exact checkout command, the command line that produced the run, a patch file and the hardware. This board gives the file path, the digest and the byte count, which identifies the artifact but does not say how to make another one. source_fingerprints IS in every candidate's metadata, naming the exact Spots, Programmes and Dayparts files each was fitted from, and it reaches no surface.",
+   "where": "models/candidates/*.json metadata.source_fingerprints, then the board and the terminal",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "CLOSED by the builder this round, both halves. Every source file each artifact records is on screen with its digest and a tri-state saying whether those bytes are on disk now, checked over the engine's own hasher with a test holding this module and kairos.model.freshness equal. The half that cannot be answered, the command that produced the artifact, is stated as absent with the line that would supply it, because no metadata key on any of the six names one."
+  },
+  {
+   "what": "Against the reference: no visual encoding anywhere on the board. Every figure is a numeral. Two places have an obvious bar and neither has one: the share column of the 36-cell table, where the reader is looking for where the movement concentrated, and the rmse column of the five-row table against the target spread, where the whole point is that every candidate sits a thousandth from a model that explains little. W&B's core artefact is a plot.",
+   "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx Cells, CandidateBoard.jsx Table",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "CLOSED by the builder this round. Three bars, each a share of a denominator named in words beside it: a movement against that row's own fold dispersion, a cell's share of the whole absolute movement, and the live model's error against the target's own spread, which fills to 99.91 percent. A browser test reads each drawn width out of the real layout and compares it with the payload's share."
+  },
+  {
+   "what": "The ship half of JS-19 cannot meet its own 120 s target on this tree, honestly. A ship verdict requires money_measured current, the money is stale on all five rows because data/kairos_settings.json moved under them, and refreshing it means the measure command, which I ran and which cost 361.0 s wall clock on a loaded machine against a stated estimate of about two hundred seconds and a round-4 clean measurement of 168.1 s. The cost is disclosed in ink before the command runs, and the figure it produced was exact, so this is a real cost and not a defect. Recorded so a later reader does not read 9.96 s as the whole story.",
+   "where": "scripts/adopt_candidate.py command_measure, and JS-19's target",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open as a measured note, found this round"
+  },
+  {
+   "what": "Not P12's. The decision record carries one free-text reason and no language, and I saw the consequence on screen this round: the verdict card renders 'unknown (login is not set up)' as the actor, an English parenthetical inside a right-to-left Hebrew card. It is an honest unknown that names its missing input, which is the right content, in the wrong direction.",
    "where": "kairos_api/model_version_store.py record_decision and VersionsPanel.jsx, both P7",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, the lead's"
+   "status": "open, the lead's, unchanged"
   },
   {
-   "what": "decide costs about four seconds, of which the bulk is P7's gate ledger warming its artifacts on the first decision_evidence call. Well inside JS-19's 120 s and not this piece's to move without writing a frozen module.",
+   "what": "Not P12's, and it is a contract gap rather than a defect. A gate reading cannot state a share of ALL gate keys because GATE_KEYS is a module constant inside kairos_api/model_console_candidates.py and P7's contract publishes gate_deltas but not the list it walks. I re-derived the ten keys myself this round from the frozen source to check round 8's counts, which is exactly the reach the contract is supposed to make unnecessary.",
+   "where": "kairos_api/model_console_candidates.py GATE_KEYS:173, and docs/ux-gauntlet/contracts/P7.md",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open, not P12's, unchanged since round 8"
+  },
+  {
+   "what": "The identity of the breaks each artifact was fitted on. The counts are recorded and the identities are not, so the fit-basis confound is measured to exist and its effect cannot be sized from anything on disk. Confirmed again this round from the artifacts: spotclip records total_breaks_measured 2336, base_breaks 2532 and dropped_by_spot_clip 196, and no list of identifiers anywhere.",
+   "where": "whatever produces models/candidates/**, outside this piece",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open, named honestly on screen, not this piece's"
+  },
+  {
+   "what": "decide costs about eight seconds, of which the bulk is P7's gate ledger warming its artifacts on the first decision_evidence call. Measured 8.39 s this round against 8.31 s in round 7 and about 4 s in round 4. Well inside 120 s and not this piece's to move without writing a frozen module.",
    "where": "kairos_api/model_console_api_payloads.py decision_evidence, P7",
    "kind": "structural",
    "severity": "minor",
    "status": "open, unchanged"
   },
   {
-   "what": "In adopt_candidate_cells.py the CELL_READING branch key for a concentrated movement is 'cancelling' and for a spread one is 'spread', so the key and the payload field that selects it name the same fact two ways. Rendered sentences are correct in both directions. Left alone deliberately: the round-4 critic marked it mechanical and a builder redoing a critic's category is how a held fix gets undone.",
+   "what": "Money renders at two decimals when measured and at zero when stale, in the same block, so the exact stale figure (spotclip +902,998.61, printed +902,999) is on no screen. Defensible as a deliberate signal that a stale figure should not be read precisely, and the terminal carries the exact figure. Recorded rather than changed, because changing it would make a stale figure look as authoritative as a current one.",
+   "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx MoneyBlock, CandidateBoard.jsx Money",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "open as a considered absence, found this round"
+  },
+  {
+   "what": "The 'Next act, per candidate' block names the identical act for all five rows, measure the money, because all five money figures are stale. It is honest and it is also the one block on the registry that could rank and does not. Recorded rather than changed: the ranking a steward wants there is by re-score verdict, and on this tree every row reads no difference, so a rank would be a false one.",
+   "where": "scripts/adopt_candidate_render.py, the next-act block",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open as a considered absence, found this round"
+  },
+  {
+   "what": "Every figure on this board is wrapped twice. Numeric from shell/format IS Figure from shell/bidi (format.jsx:97), and the board writes <BidiFigure><Numeric>x</Numeric></BidiFigure> at more than forty sites. Harmless and redundant. I agree with round 8's call to leave it: changing forty sites in a critic pass trades a real regression risk for tidiness.",
+   "where": "CandidateBoard.jsx and board-detail.jsx, throughout",
+   "kind": "mechanical",
+   "severity": "minor",
+   "status": "open, deliberately left for the second round running"
+  },
+  {
+   "what": "In adopt_candidate_cells.py the CELL_READING branch key for a concentrated movement is 'cancelling' and for a spread one is 'spread', so the key and the payload field that selects it name the same fact two ways. Rendered sentences are correct in both directions.",
    "where": "scripts/adopt_candidate_cells.py _reading",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "open, deliberately untouched"
+   "status": "open, deliberately untouched for the third round running"
+  },
+  {
+   "what": "Against the reference: there is no search, no filter and no column picker, where W&B spends four named controls plus a column picker on exactly this. At five candidates that is the right call. It becomes a gap at roughly twenty rows.",
+   "where": "CandidateBoard.jsx",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open as a note, unchanged"
+  },
+  {
+   "what": "The gate block is in the detail and not in the table, deliberately, so a later round does not add a ninth column that would say 'ten differences' about an artifact that decided nothing. I checked the reasoning against my own re-derivation and it holds: three of five candidates return ten rows and disagree on none.",
+   "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx COLUMNS",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open as a note, unchanged"
+  },
+  {
+   "what": "A data bar is not in the design rules. docs/ux-gauntlet/design-rules.md has eight rules and none of them covers a meter, a share bar or a chart mark, and its own section 8 says to add the rule before applying it. This round applied one on three call sites. What an entry would say is written out in the contract: a bar is always a share of a denominator that is on the screen in words, it is sized by inline-size alone so it mirrors with the document, it spends no state colour on its track, and it is hidden from assistive technology because the figure it draws is always beside it in text.",
+   "where": "docs/ux-gauntlet/design-rules.md, the lead",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open, found this round, not on this piece's ownership row"
+  },
+  {
+   "what": "Anything imported from kairos.model costs 17 s because that package's __init__ probes TensorFlow through kairos.model.train. It is not this piece's to fix and it is a live trap for every piece that reaches into the model layer for a small function: this round walked into it and measured show at 20.87 s before backing out. A lazy import inside kairos/model/__init__.py, or moving freshness.py out from under it, would make the engine's own guard reusable at a terminal.",
+   "where": "kairos/model/__init__.py, outside every wave-two row",
+   "kind": "structural",
+   "severity": "minor",
+   "status": "open, measured this round, not this piece's"
   }
  ],
  "files_touched_by_this_round": [
-  "scripts/adopt_candidate.py",
-  "scripts/adopt_candidate_adoption.py",
-  "scripts/adopt_candidate_baselines.py",
-  "scripts/adopt_candidate_board.py",
-  "scripts/adopt_candidate_decide.py",
-  "scripts/adopt_candidate_ownership.py",
+  "scripts/adopt_candidate_origin.py (new, a declared helper under the section 8.2 naming rule)",
+  "scripts/adopt_candidate_rescore.py",
   "scripts/adopt_candidate_registry.py",
   "scripts/adopt_candidate_render.py",
-  "scripts/adopt_candidate_state.py",
-  "scripts/adopt_candidate_words.py",
+  "scripts/adopt_candidate_baselines.py",
+  "scripts/adopt_candidate_board.py",
+  "scripts/adopt_candidate.py",
   "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx",
-  "tv-break-dashboard/src/model/candidates/board-compare.js",
   "tv-break-dashboard/src/model/candidates/board-detail.jsx",
-  "tv-break-dashboard/src/model/candidates/board-mount.jsx",
+  "tv-break-dashboard/src/model/candidates/board-compare.js",
   "tv-break-dashboard/src/model/candidates/board-words.js",
   "tv-break-dashboard/src/model/candidates/candidate-board.css",
-  "tv-break-dashboard/src/model/candidates/candidate-board.json",
-  "tests/test_p12_adoption.py",
-  "tests/test_p12_board.py",
+  "tv-break-dashboard/src/model/candidates/board-evaluation.jsx (new)",
+  "tv-break-dashboard/src/model/candidates/board-origin.jsx (new)",
+  "tv-break-dashboard/src/model/candidates/board-meter.jsx (new)",
+  "tv-break-dashboard/src/model/candidates/candidate-board.json (republished by this piece's own publish command)",
+  "models/releases/holdout_rescores.json (re-scored by this piece's own rescore command)",
+  "tests/test_p12_origin.py (new)",
   "tests/test_p12_board_page.py",
-  "tests/test_p12_ownership.py",
-  "tests/test_p12_terminal.py",
-  "tests/test_p12_training_line.py",
-  "models/releases/candidate_registry.json",
   "docs/ux-gauntlet/contracts/P12.md",
-  "docs/ux-gauntlet/evidence/p12-r5-01-show-with-the-standing-finding.txt",
-  "docs/ux-gauntlet/evidence/p12-r5-02-checks-ownership-and-stale-money.txt",
-  "docs/ux-gauntlet/evidence/p12-r5-03-board-measured-in-a-browser.json",
-  "docs/ux-gauntlet/evidence/p12-r5-04-board-in-a-browser-he.png",
-  "docs/ux-gauntlet/evidence/p12-r5-05-measured-numbers.txt",
+  "docs/ux-gauntlet/evidence/p12-r10-*",
   "docs/ux-gauntlet/state/P12.json"
  ],
- "ownership_check": "Clean. Every path this round wrote is scripts/adopt_candidate*.py (the entry point is named in the row and the twelve helpers satisfy the section 8.2 naming rule of <parent stem>_<role>.py beside the parent, all declared in the contract), tv-break-dashboard/src/model/candidates/** (the frontend column of the row), tests/test_p12_*.py (the reserved prefix), models/releases/** (in the row by handover), or the piece's own contract, state and evidence files. models/candidates/** is untouched, models/tv_break_coefficients.json is untouched and is now refused by a guard rather than merely unwritten, no stanza was appended to server.py, and no file under src/model/console/ or kairos_api/ was written.",
+ "ownership_check": "Every path this round wrote is on P12's wave-two row of section 8.2. scripts/adopt_candidate_origin.py is a declared helper under the naming rule, <parent stem>_<role>.py beside its parent, and it is published in the contract. tv-break-dashboard/src/model/candidates/** is the frontend row and the three new files sit inside it. models/releases/holdout_rescores.json is held by handover from P7 and was written by this piece's own rescore command. Nothing else under models/ was written: models/tv_break_coefficients.json is still 1e41d92b1a1476, models/candidates/ is untouched, models/releases/decisions.jsonl still holds 7 records, and no adoption or verdict was performed at all this round. Frozen paths read and never written: kairos/model/freshness.py, kairos/observability/run_log.py, kairos_api/model_console_candidates.py, model_console_api_payloads.py, model_version_store.py, tv-break-dashboard/src/shell/*, src/model/console/*, tests/test_p7_console_bridge_harness.py. git status carries other modified paths written by agents running beside me and none of them are mine.",
  "evidence": [
-  "docs/ux-gauntlet/evidence/p12-r5-01-show-with-the-standing-finding.txt",
-  "docs/ux-gauntlet/evidence/p12-r5-02-checks-ownership-and-stale-money.txt",
-  "docs/ux-gauntlet/evidence/p12-r5-03-board-measured-in-a-browser.json",
-  "docs/ux-gauntlet/evidence/p12-r5-04-board-in-a-browser-he.png",
-  "docs/ux-gauntlet/evidence/p12-r5-05-measured-numbers.txt",
-  "docs/ux-gauntlet/evidence/p12-c4-01-show-after-the-critic-fixes.txt",
-  "docs/ux-gauntlet/evidence/p12-c4-02-diff-with-the-share-legend.txt",
-  "docs/ux-gauntlet/evidence/p12-c4-03-decide-with-no-raw-store-key.txt",
-  "docs/ux-gauntlet/evidence/p12-c4-04-independent-recomputation.py",
-  "docs/ux-gauntlet/evidence/p12-c4-05-independent-recomputation-output.txt",
-  "docs/ux-gauntlet/evidence/p12-c4-06-measured-numbers.txt",
-  "docs/ux-gauntlet/evidence/p12-r3-01-coefficients-side-by-side.txt",
-  "docs/ux-gauntlet/evidence/p12-r3-02-diff-two-candidates.txt",
-  "docs/ux-gauntlet/evidence/p12-r3-03-checks-coefficients-block.txt",
-  "docs/ux-gauntlet/evidence/p12-r3-04-verdict-carries-the-coefficient-delta.txt",
-  "docs/ux-gauntlet/evidence/p12-r3-05-measured-numbers.txt",
-  "docs/ux-gauntlet/evidence/p12-r2-01-registry-after-decide.txt",
-  "docs/ux-gauntlet/evidence/p12-r2-02-decide-three-states.txt",
-  "docs/ux-gauntlet/evidence/p12-r2-03-console-route-serves-the-common-basis-rescore.txt",
-  "docs/ux-gauntlet/evidence/p12-r2-04-measured-numbers.txt",
-  "docs/ux-gauntlet/evidence/p12-r1-01-registry-after-fixes.txt",
-  "docs/ux-gauntlet/evidence/p12-r1-02-checks-afterwindow-after-fixes.txt",
-  "docs/ux-gauntlet/evidence/p12-r1-03-checks-placebo-noship-wording.txt",
-  "docs/ux-gauntlet/evidence/p12-r1-04-measured-numbers.txt"
+  "docs/ux-gauntlet/evidence/p12-r10-01-purpose-on-the-shelf-he.png, the Hebrew shelf with every artifact's purpose under its name and the two absences saying so",
+  "docs/ux-gauntlet/evidence/p12-r10-02-evidence-panel-en.png, one artifact's evidence in English with the purpose at the top and the share bars in the cell table",
+  "docs/ux-gauntlet/evidence/p12-r10-03-spread-bar-top-en.png, the top of the board: the freshness strip, the evaluation, and the live model's error at 99.91 percent of the target's own spread with the bar",
+  "docs/ux-gauntlet/evidence/p12-r10-04-provenance-he.png, the Hebrew provenance block: three source files, their digests, whether the bytes on disk are the same, and the command nobody recorded",
+  "docs/ux-gauntlet/evidence/p12-r10-05-terminal-after.txt, the registry and the first two lines of checks after the change. Diffed against the pre-edit capture it differs on exactly the two blocks this round added"
  ],
  "measured_by_this_round": {
-  "taken_by": "the builder, on this tree, after the edits",
-  "browser_milliseconds": {
-   "current_table": 51.3,
-   "current_freshness": 63.4,
-   "current_evidence_open": 77.1,
-   "stale_table": 28.4,
-   "stale_freshness": 32.9,
-   "stale_evidence_open": 39.5,
-   "unknown_table": 36.9,
-   "unknown_freshness": 37.0,
-   "unknown_evidence_open": 43.0
-  },
-  "js19_target_seconds": 120,
-  "terminal_seconds": {
-   "show": 0.25,
-   "checks": 0.24,
-   "diff": 0.21,
-   "publish": 0.24
-  },
-  "standing_finding": {
-   "structure_cost_rmse": 0.000623361,
-   "largest_candidate_move_rmse": 0.000155699,
-   "ratio": 4.0,
-   "candidates_changing_the_cell_set": 0,
-   "candidates_compared": 5
-  },
-  "regression": {
-   "p12_tests_before": 126,
-   "p12_tests_after": 167,
-   "p7_tests": 105,
-   "p7_seconds": 231.3,
-   "frontend_build": "green in 310 ms",
-   "openapi_paths": 158,
-   "paths_matching_adopt": 0,
-   "app_routes": 202,
-   "routes_handled_out_of_scripts": 0,
-   "shipped_artifact_sha256_short": "1e41d92b1a14",
-   "decisions_jsonl_records": 7,
-   "candidates_dir": "untouched, five artifacts"
-  },
-  "laws": {
-   "largest_python_module_lines": 443,
-   "largest_frontend_source_lines": 331,
-   "file_size_cap": 450,
-   "em_dashes_exclamations_emoji": "none in code, comments or copy; the JavaScript negation operator is not an exclamation and the test says so",
-   "forbidden_vocabulary_word": "absent from the board, asserted on the browser's own innerText",
-   "rival_channels_on_the_screen": 0,
-   "rival_channels_in_the_published_file": 0
-  },
-  "not_measured_this_round": [
-   "The 401 on an unauthenticated console route. The server this round ran with KAIROS_AUTH_DISABLED=1, so that figure would not be a measurement of the wall. P7's own 105 tests cover it and they pass.",
-   "The P7 random-ordering flake. P7's suite was run with -p no:randomly."
-  ]
+  "the_absence_before_building": "the purpose string of afterwindow appeared 0 times in candidate-board.json, 0 times in show, 0 times in checks and 0 times in diff. The word purpose appeared once on the whole surface, at checks line 52, as one of forty-three metadata key names. No source file was named on any surface: 0 mentions of Spots.xlsx in show or checks.",
+  "purpose_on_this_tree": "recorded on spotclip, afterwindow and competitor. Absent on calibrated, placebo_corrected and the shipped artifact itself.",
+  "sources_on_this_tree": "all six artifacts record data/reference/Spots.xlsx a540fe3bee3f, Programmes.xlsx 00e23da271e8 and Dayparts.xlsx 77f69dd25143, and all three files are on disk with those exact digests. Every row reads verified and same. No metadata key on any of the six names a script, a flag or a command line.",
+  "figures_unchanged": "holdout_rescores.json re-run under the new code is identical to the old one apart from measured_at and the new origin key, including every rmse to the ninth decimal. The published board regenerated by the final code equals the file on disk apart from published_at.",
+  "stopwatch_terminal": "show 1.07 s, diff 0.96 s, checks 1.26 s, taken while the P7 suite was running beside them, against a 120 s target. With the engine's freshness guard imported instead: 20.87 s, 27.89 s, 19.57 s, which is why it is not imported.",
+  "stopwatch_screen": "the four browser scenarios this round added all report inside the harness budget, and the whole 20-test browser file runs in 106 s.",
+  "training_line": "159 openapi paths on a server I started on 8043, 0 matching adopt, 0 mentions of adopt_candidate in kairos_api/ or tv-break-dashboard/src/.",
+  "competitor_boundary": "operator channel read from settings, three rivals read from the sources, 0 occurrences in the published board file.",
+  "laws": "em-dash 0, en-dash 0, emoji 0 across all 41 files of this piece including the contract. Every owned source file under 450 lines, the largest being adopt_candidate_adoption.py at 448.",
+  "guards": "281 P12 tests pass, npm run build green, npm run test:direction green, npm run test:dates green on the whole tree this round. npm run test:smoke still red on a script that is not this piece's."
  },
  "closed_this_round": [
-  "BLOCKING, two thirds of it. The frontend row exists, is built, is measured in a browser, and needs no route. What is left is two lines in ModelConsole.jsx and two constants in console-api.js and console-words.js, all P7's, written out verbatim in the contract's section 2.",
-  "SERIOUS. The write outside the row is now refused by a guard at the line that writes, with a lead-recorded ruling as the release. tests/test_p12_ownership.py, 11 tests, including one that proves the guard stops a caller that bypasses the checks.",
-  "SERIOUS. The out-of-sample cell-structure finding is now a named standing finding, sized against the candidates and carrying whose decision it is, on the terminal and on the board.",
-  "MINOR. money_state and _money_state unified into one function. The registry now reads the same one the adoption act and the verdict act read.",
-  "MINOR. A stale money check now names the magnitude it is refusing to use, from last_known_revenue_delta, while revenue_delta stays null so no stale figure can reach a record or a stamp.",
-  "MINOR. rule_en, rule_he and sha256 are on every registry row, so the published payload no longer states a verdict without its rule or a figure without the bytes it was measured on.",
-  "MINOR. The Hebrew for the two verdicts is the console's own pair, adopted rather than diverged from, because the console's words file is frozen."
+  "the purpose absence, the largest gap a builder could close",
+  "the reproduction provenance, both the half that can be answered and the half that cannot",
+  "the absence of any visual encoding, three bars each with a stated denominator",
+  "CandidateBoard.jsx's missing headroom, split on the seam the critic named"
+ ],
+ "fixed_this_round_by_the_critic": [
+  "the verdict count chip rendered as one token in both locales, candidate-board.css",
+  "computed_at carried on every row and rendered nowhere, board-detail.jsx plus board-words.js plus adopt_candidate_render.py",
+  "picking an artifact opened its evidence entirely below the fold, CandidateBoard.jsx plus board-compare.js",
+  "two byte-identical Shekels renderers, CandidateBoard.jsx and board-detail.jsx",
+  "13 of 21 stale line counts in the piece's own published contract table, docs/ux-gauntlet/contracts/P12.md"
  ]
 }

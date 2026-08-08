@@ -1,0 +1,42 @@
+{
+ "target_seconds": 120,
+ "limit_state_on_screen": "in_sample_uneven",
+ "scenarios": {
+  "he": {
+   "marks_ms": {
+    "table": 80.5,
+    "state": 90.20000000018626,
+    "clicked": 102.10000000009313,
+    "picked": 102.10000000009313
+   },
+   "dir": "rtl",
+   "basis_marks": [
+    "אומן על פחות ברייקים מאלה שהוא נמדד עליהם"
+   ],
+   "basis_rows": [
+    "השורות שזה נכון לגביהן",
+    "spotclipעל מה הוא אומן2336מתוך2532ברייקים.196מהם מעולם לא היו באימון שלו"
+   ],
+   "opened": "spotclip",
+   "self_block": "מה שהמפיק שלו רשם על אימוצו\n\nהומלץ שלא\nמה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ שלא לאמץ אותו.\n\nבמילותיו שלו\nvariant rmse improves base by -0.38% (threshold 2%): keep OFF (within noise)\n\nנלקחה על\n461\nברייקים לבחירתו\n\nבדיקה עצמית היא הפיצול של הקובץ עצמו תחת האימון של עצמו, ולכן היא ניתנת לקריאה על אותו קובץ בלבד ולעולם אינה בת השוואה לשורה אחרת כאן."
+  },
+  "en": {
+   "marks_ms": {
+    "table": 57.3000000002794,
+    "state": 97,
+    "clicked": 117.8000000002794,
+    "picked": 117.8000000002794
+   },
+   "dir": "ltr",
+   "basis_marks": [
+    "Fitted on fewer breaks than it is scored on"
+   ],
+   "basis_rows": [
+    "The rows this is true of",
+    "spotclipWhat it was fitted on2336of2532breaks.196of them were never in its own fit"
+   ],
+   "opened": "spotclip",
+   "self_block": "What its own producer recorded about adopting it\n\nAdvised against\nWhatever produced this artifact recorded its own out-of-sample test and advised against adopting it.\n\nIts own words\nvariant rmse improves base by -0.38% (threshold 2%): keep OFF (within noise)\n\nTaken on\n461\nbreaks of its own choosing\n\nA self-test is the artifact own split under its own fit, so it is readable about that artifact alone and is never comparable with another row here."
+  }
+ }
+}

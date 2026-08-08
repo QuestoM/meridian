@@ -1,0 +1,18 @@
+/Users/home/.venvs/meridian/lib/python3.12/site-packages/arviz/__init__.py:110: MigrationWarning: arviz.InferenceData is no longer available on the arviz package; ArviZ now uses xarray's DataTree for the same role. See the migration guide: https://python.arviz.org/en/latest/user_guide/migration_guide.html#datatree
+  warnings.warn(
+Verdict for competitor: no ship
+  [pass] candidate_exists         The candidate competitor is in models/candidates/.
+  [pass] decision_is_a_verdict    The verdict is no ship.
+  [pass] rescore_current          The held-out re-score is current, so this verdict rests on every artifact scored on one common set of breaks.
+  [pass] actor_named              The steward taking this verdict is named.
+  [pass] reason_given             The verdict carries its reason.
+
+Money carried into the record: stale. The record carries the model console's own last measured figure under that state, and this act adds no figure of its own.
+Re-score verdict carried into the record: no difference
+  Taken on the common-basis re-score: every artifact scored on one identical set of breaks with one metric, not on each artifact's own self-reported held-out figures, which come from different splits and are not comparable.
+Coefficient delta carried into the record: 36 of 36 cells hold a different number
+  36 of 36 cells hold a different number, and 98.7 percent of the movement they make cancels between them. It takes 16 cells to reach 80 percent of it, so no small set of cells carries this.
+
+Recorded md-2f129c4d6b09 against 2026-07-29, by בודק.
+Written to /private/tmp/claude-501/-Users-home-Code-questo-meridian/82583077-5cf3-47de-a87d-8f926c5ad678/scratchpad/p12/releases/decisions.jsonl, which is the store the model console reads.
+outcome: recorded

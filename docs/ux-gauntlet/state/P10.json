@@ -1,93 +1,645 @@
 {
-  "piece": "P10",
-  "round": 1,
-  "passed": true,
-  "gap": null,
-  "history": [
-    "round 1: pod entity built end to end (break_api_pod.py/_math/_spots/_order + PodPage/PodBoard/pod-model), 28/28 tests green, passed.",
-    "resume 2026-08-07: re-invoked with a prompt claiming nothing was built. Checked disk first per the resume rule: all owned files present at their recorded line counts, committed at fdba013c with no later commits touching them, working tree clean. Reran python -m pytest tests/ -q -k p10: 28 passed, 0 failed, matching the round-1 record exactly, so no regression since the pass. Live-checked GET /api/breaks/pods on :8041 against the same 2025-04-27 traffic file: 10 pods, tri-state arithmetic, operator's own channel from settings, byte-for-byte consistent with the round-1 evidence. Bonus: the whole-app build (npm run build) now succeeds end to end (3510 modules, clean) because another builder fixed the HistoryDiff.jsx JSX-syntax error that had forced round 1's isolated-tree build; nothing in this piece changed to cause that. No edits made this session, since there was nothing to fix and every path outside break_api_pod*.py and src/plan/break/** is frozen."
-  ],
-  "title": "Break contents: the pod, its positions, and its arithmetic",
-  "summary": "The break's contents were a fixed unavailable state on every break in the product, with no input that could ever change it. They are an entity now. The pod is read from the daily traffic file, whose break_start column is the same value for every spot in one break, which is exactly the per-ad break identifier P3's path_forward asked for and which was already on disk. A pod carries its spots with an advertiser, a campaign, a creative, a house number, a declared duration and a position; it states the sum of its spots against its own span with the difference in seconds; it names Last as its own position rather than the fifth ordinal; and it can be reordered and put back.",
-
-  "what_i_built": [
-    "kairos_api/break_api_pod.py: the pod read, the pod identity <day>~<HH:MM:SS>, build_pod, pods_for_day, covered_days, contents_state, and four routes. GET /api/breaks/pods, GET /api/breaks/pod/{pod_id}, PUT /api/breaks/pod/{pod_id}/order, DELETE /api/breaks/pod/{pod_id}/order.",
-    "kairos_api/break_api_pod_math.py: the arithmetic. Declared load, span, the difference, the gaps and overlaps between consecutive spots, the plan-side declared break length, and the gap or overflow against it.",
-    "kairos_api/break_api_pod_spots.py: one spot and the position model. 1 to 5 plus L, where the file's 99 is L and its 0 is an unrequested position, and neither is returned as an ordinal. Also top_and_tail, the campaigns holding both position 1 and Last in one pod.",
-    "kairos_api/break_api_pod_order.py: the saved order register on data/break_pod_order.csv, with the same atomic-write discipline as the other operator stores, and a pod fingerprint so a saved order knows the traffic file moved under it.",
-    "kairos_api/break_api.py: includes the pod router as the first statement after the router, so /api/breaks/pods is matched before /api/breaks/{break_id} would swallow it.",
-    "kairos_api/break_api_detail.py: the contents field now calls pod.contents_state instead of returning a constant.",
-    "tv-break-dashboard/src/plan/break/pod-model.js: the pure model. The reorder move, the position labels, the arithmetic rows with their bases, and the declared verdict.",
-    "tv-break-dashboard/src/plan/break/PodBoard.jsx: one pod drawn. The three figures with their bases, the declared verdict, the spot list reorderable by drag and by Alt with the arrow keys, save, discard and back to the traffic file order.",
-    "tv-break-dashboard/src/plan/break/PodPage.jsx: the day's pods, the covered-day picker, and the honest state for a day no traffic file covers.",
-    "tv-break-dashboard/src/plan/break/break-pod.css: logical properties throughout so the whole surface mirrors in Hebrew.",
-    "tv-break-dashboard/src/plan/break/BreakInspector.jsx: the Break contents section renders the same PodBoard when the pod is real, and otherwise names the days a traffic file does cover. The reorder acts are absent there because that drawer is opened to read a break and a write with no inverse on the surface that performed it is the defect P3 spent a round closing.",
-    "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx: mounts PodPage, which is the door."
-  ],
-
-  "files_touched": [
-    "kairos_api/break_api_pod.py (new, 356)",
-    "kairos_api/break_api_pod_math.py (new, 167)",
-    "kairos_api/break_api_pod_spots.py (new, 179)",
-    "kairos_api/break_api_pod_order.py (new, 179)",
-    "kairos_api/break_api.py (edited, 435 to 444)",
-    "kairos_api/break_api_detail.py (edited, 223)",
-    "tv-break-dashboard/src/plan/break/pod-model.js (new, 173)",
-    "tv-break-dashboard/src/plan/break/PodBoard.jsx (new, 199)",
-    "tv-break-dashboard/src/plan/break/PodPage.jsx (new, 142)",
-    "tv-break-dashboard/src/plan/break/break-pod.css (new, 362)",
-    "tv-break-dashboard/src/plan/break/BreakInspector.jsx (edited, 348 to 365)",
-    "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx (edited, 106 to 113)",
-    "tests/test_p10_pod_arithmetic.py (new, 210)",
-    "tests/test_p10_pod_declared_length.py (new, 189)",
-    "tests/test_p10_pod_api.py (new, 242)",
-    "docs/ux-gauntlet/state/P10.json (new)"
-  ],
-
-  "evidence": {
-    "tests": "python -m pytest tests/ -q -k p10: 28 passed, 0 skipped, 0 failed, 6.51 s.",
-    "pod_arithmetic_on_real_data": "data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv declares 10 pods on 2025-04-27. The break at 20:40:09 holds 28 spots declaring 569 s between them; its last spot starts 20:50:37 and runs 6 s, so the pod ends 20:50:43, which is 634 s from the break's own declared start; 634 less 569 is 65 s that no spot covers. Two internal gaps, 13 s after the opening billboards and 10 s before the closing ones, 23 s in all, and 0 overlaps. Every one of the 10 pods closes span less load equals unfilled.",
-    "positions_on_real_data": "That pod carries ordinals 1 to 18, exactly one Last (the file's 99) and 9 unpositioned sponsorship billboards (the file's 0), 6 at the head and 3 at the tail. Last is returned with code L and no ordinal; unpositioned is returned with no code at all; neither is ever a number.",
-    "declared_length_today": "Unavailable on every real pod and it says why: the plan covers 2024-11-01 to 2024-11-30 and the one traffic file covers 2025-04-27, both windows named in the payload in both languages.",
-    "declared_length_proven_real": "tests/test_p10_pod_declared_length.py builds a traffic file on a day the plan does cover, over a break the plan really places, and drives the shipped path to a figure. The declared length is read from the plan rather than written into the fixture: 120 s declared against 85 s sold reads gap 35 s, against 165 s reads overflow 45 s, and against 120 s reads exact 0 s. The same fixture turns contents from unavailable into real with 3 spots and 85 s of load, which is the behaviour that did not exist before this piece.",
-    "why_the_pod_is_not_joined_to_a_planned_break_by_time": "Measured on רשת 13 / 2024-11-01: the plan's 80 breaks and the spot ledger's 72 pods sit a median 156 s apart, p25 52 s, p75 217 s, and only 21 of 72 fall within 60 s of each other. A proximity join would attach real spots to a break that did not carry them, so a planned break claims a pod only when that pod starts inside the break's own window.",
-    "reorder": "PUT with a reordered key list is applied and the sequence is restated with it, the arithmetic does not move because reordering changes no length, and a reread over HTTP returns the saved order. DELETE puts the pod back in the file's order and a second DELETE answers 404. A key list that is not exactly the pod's own keys, each once, is refused 422 on all four malformed shapes and the pod stays in the file order. A saved order whose pod fingerprint has moved is reported stale and is not applied.",
-    "competitor_boundary": "The traffic file carries no channel column at all, so no rival channel name can reach this surface from it. Asserted by greping the whole serialized /api/breaks/pods payload for every other channel name in the saved plan. The channel printed beside a pod is the operator's own from settings and the payload says that is where it came from.",
-    "route_ordering": "/api/breaks/pods and /api/breaks/{break_id} share a prefix. The pod router is included as the first statement after the router so the pod paths match first, and a test holds it there: without it the first route answers 422 with the word pods parsed as a break id.",
-    "frontend_build": "The whole-app build is blocked by a file that is not this piece's, so the pod tree was built in isolation with the project's own vite 8.0.16: PodPage.jsx entry, 7 modules transformed, pod.mjs 14.84 kB and pod.css 5.37 kB; BreakLibraryPage.jsx entry, 28 modules transformed, lib.mjs 77.71 kB and lib.css 13.78 kB. Both clean.",
-    "size_law": "Every file this piece owns is inside 450 lines, asserted by a test that enumerates them. break_api_pod.py was 602 on its first pass and was split by subject into the pod, the arithmetic and the spot.",
-    "stores_untouched": "The order tests point the register at a temporary path. data/ is byte-identical to its pre-run state and data/break_pod_order.csv does not exist.",
-    "voice": "0 em-dashes and 0 exclamation marks in any file this piece wrote. Every ! is a boolean negation."
+ "piece": "P10",
+ "round": 4,
+ "passed": false,
+ "gap": "Locking a pod whose saved operator order has gone stale destroys that order, its note and its saved_at, and says nothing. It is the exact mirror of the defect round 2 closed: that one invented an operator decision nobody made, this one deletes one somebody did make. The path, read in code and not reachable on today's data: break_api_pod.py:419 computes has_operator_order as pod['order']['state'] == 'operator', and a row whose fingerprint has moved reports state 'stale', never 'operator'. So lock() is told there is no operator order to protect, takes the else branch at break_api_pod_order.py:221-237, drops the existing row outright and writes a fresh one with an empty spot_keys and order_source 'file'. The operator's keys, their note and the moment they decided are gone from the register, and the surface shows a lock with no trace that anything was lost. Unlocking afterwards then removes the row entirely, because unlock() drops a file-sourced row, so the pod ends with no record at all of an order an operator genuinely saved. THE FIX is a decision about what a lock means on a stale row, and it needs a state on the payload, which is why it is structural and not mine to close. Three candidate answers, all inside break_api_pod_order.py and break_api_pod.py which P10 owns. Refuse the lock while the order is stale and say so, which is the honest reading of 'finalise' when the surface itself cannot say what would be frozen. Or freeze the file order and KEEP the stale row's spot_keys, saved_at, actor and note in place alongside order_source 'file', so the register still holds the decision that was made and applied() keeps reporting stale. Or write the lock as its own row and never touch an existing one. The second is the smallest and it also fixes the smaller half of the same bug: today a lock on a stale pod is indistinguishable in the register from a lock on a pod nobody ever touched. Pin whichever is chosen in tests/test_p10_pod_verification.py beside the two lock tests already there: save an order, move the pod's fingerprint underneath it, lock, and assert the operator's keys, note and saved_at are still readable through order_store.stored, then unlock and assert the same.",
+ "history": [
+  "round 1: pod entity built end to end (break_api_pod.py/_math/_spots/_order + PodPage/PodBoard/pod-model), 28/28 tests green, passed.",
+  "resume 2026-08-07: re-invoked with a prompt claiming nothing was built. Checked disk first per the resume rule: all owned files present at their recorded line counts, committed at fdba013c with no later commits touching them, working tree clean. Reran python -m pytest tests/ -q -k p10: 28 passed, 0 failed, matching the round-1 record exactly, so no regression since the pass. Live-checked GET /api/breaks/pods on :8041 against the same 2025-04-27 traffic file: 10 pods, tri-state arithmetic, operator's own channel from settings, byte-for-byte consistent with the round-1 evidence. Bonus: the whole-app build (npm run build) now succeeds end to end (3510 modules, clean) because another builder fixed the HistoryDiff.jsx JSX-syntax error that had forced round 1's isolated-tree build; nothing in this piece changed to cause that. No edits made this session, since there was nothing to fix and every path outside break_api_pod*.py and src/plan/break/** is frozen.",
+  "critic round 1: measured every bar myself on my own server on 8061 before touching a file. JS-7 runs: 2 clicks and 2.99 screens of scrolling from the door to the arithmetic, shell 292 ms, pod rows 493 ms, pod opens 62 ms, the real seven-ad break at 22:53:49 present with 212 s over 7 spots exactly as job-stories.md records, reorder working by drag and by Alt with an arrow with 0 dialogs and focus following the moved row. Against a baseline that could not start the job at all this is a large win on time. It fails on two of JS-7's done conditions: the copy version is never compared with the booked duration, and there is no lock. Regression clean and attributed against commits: P10's own commit fdba013c introduced zero new test failures, the 13 that fail predate it and the further 15 came from the two commits after it. Laws clean, competitor boundary held, no training act, no fabricated figure. Closed six mechanical findings myself inside src/plan/break/**: column headings on the spot list, the gaps and overlaps that were computed and never shown, the plan window on the no-declared-length card, singular and plural on the spot count, a label on the sum, and a disclosure that the clock column does not move with the order. Nineteen findings in the queue, six closed, thirteen left for the builder. Not passed.",
+  "round 2 (builder): closed all thirteen open queue items, structural before mechanical, blocking and serious first. Item 1 (copy_length): break_api_pod_spots.py parses a declared length out of the copy version by the stated narrow rule (digits immediately followed by a mark: quote, apostrophe or שניות, never a bare number even the sole token) and compares it to the booked duration; tri-state agrees/disagrees/none never a fourth. Pinned on the real file: 22:53:49 returns exactly one disagreement (spot 3, CID178977, copy 35' booked 36s) and 22:59:40 returns zero from the sale-days spot. Rendered as its own column between copy version and length, and the pod-level count lifted to the pod header and the day list row. Item 2 (lock + error list): break_api_pod_order.py gained a locked/locked_at/locked_by triple on the same register row; new PUT/DELETE /api/breaks/pod/{id}/lock routes freeze whichever order is on screen and refuse a further order write with 423 until unlocked; build_pod assembles a verification.errors list (copy_length disagreements, missing lengths, position-order violations) surfaced as its own list on the board. Item 3 (position violations): break_api_pod_math.position_violations ranks only the spots that carry a real ordinal or Last (unpositioned billboards are skipped, since the shipped 20:40:09 pod proved position 1 is the pod's seventh spot, not its first) and reports a disagreement as a verdict, never a silent accept; zero violations on every real pod's own file order, proven by a dedicated test. Item 4 (uncovered decomposition): pod_arithmetic now returns gap_before_first_spot alongside the existing internal gaps, and the span figure's label was corrected to say what it actually measures (declared start to last spot's end, dead air included) rather than implying commercial running time. Item 5 (door): PodPage moved above BreakBoard on BreakLibraryPage so the traffic operator's own door opens near the top, and PodPage now prefers today's own calendar date and names it honestly when no traffic file covers tonight. Item 6 (addressability): PodPage reads and writes day and pod query params via history.replaceState, so a bookmark reopens the same pod; BreakInspector's covered-days line is now buttons that navigate to Plan, the break with the day preselected via the existing hash router. Item 13 (read-only): PodBoard takes a readOnly prop (no drag, no keyboard, no acts, an explanatory hint) and BreakInspector now passes it instead of a hard-set busy. Item 14: break_type carries a title attribute naming it as the file's own untranslated code. Item 15: verified COVERAGE_FORWARD's 'Sources' destination is accurate against SourcesPage.jsx's own title; left unchanged. Item 16 (drag indicator): PodBoard tracks a dropTarget {index, edge} from cursor position and draws a logical-property insertion line before or after the target row; a new pure dropIndexFor helper makes the landing position direction-independent. Item 17 (severity): PodPage gained a Time order / Needs attention first sort toggle driven by podAttentionScore (errors first, then uncovered magnitude), plus a to-check badge on the pod row. Item 18: documented in break_api_pod_order.py's own docstring that its CSV is a declared helper module's own runtime output, not a section 8.2 table row. Item 19 (boundary): a boundary note naming שעת התחלת ברייק as the column that defines a pod, backend and on the PodBoard header, matching the channel note's existing pattern. Split tv-break-dashboard/src/plan/break/break-pod.css (would have reached 495) into break-pod.css (board) and break-pod-list.css (day list, new file). All 38 p10 tests green (28 prior + 10 new across two new test files), npm run build clean at 3512 modules, live-verified lock/unlock/423-refusal and the new payload fields on port 8041, then cleaned the runtime data/break_pod_order.csv the smoke test created and killed only 8041. Not self-certified passed; awaiting the next critic sweep.",
+  "critic round 2: measured all four bars on my own server on 8061 against the builder's own dist before touching a file. JS-7 runs in 2 clicks and 445 ms from the door to the arithmetic, 401 px of scroll against round 1's 2647, and the real 22:53:49 break returns 7 spots, 212 s and exactly the one copy disagreement job-stories.md names. Round 1's two blocking items are genuinely closed and the blind A/B against a professional traffic log now goes Meridian's way on verification and finalising, which was round 1's decisive loss. Bar 3 caught a real regression by three-tree attribution: HEAD 25 failures, HEAD plus P10's shipped round-2 diff 26, and the extra one is P3's own em-dash guard, broken by a literal em-dash the builder put into shipped copy at PodBoard.jsx:137. I fixed it and the failure set is now identical to HEAD, 25 failed 268 passed. Closed thirteen mechanical findings myself inside P10's row: the em-dash, the operator's channel rendering as 13 רשת in English, House Number in title case and untranslated, three different seconds marks on one screen, a continuity line headed Between the spots whose only item is before the first spot, a locked pod that still reordered freely on screen, a verification list that opened nothing, a row label that never spoke the copy check, the Bought position overclaim the data does not support, a path forward naming a Sources entry the sidebar does not carry, two color-mix backgrounds where the design system has soft twins, missing fact separators on two rows, and a lock with no timestamp and a silently missing actor. Also reopened round 1 item 15, which the round-2 builder marked verified-no-change-needed against the wrong artifact. Fifteen findings in the queue, thirteen closed, and the largest still open is that lock then unlock manufactures an operator order nobody made. Not passed.",
+  "round 3 (builder): resumed mid-round per the resume rule rather than starting over. Working tree already carried, uncommitted, a prior attempt's fix for queue items 1 and 6 (break_api_pod_order.py lock/unlock/order_source, exactly as the queue prescribed) and items 2 and 4 (liveVerificationErrors/verificationList in pod-model.js wired into PodBoard.jsx; requestedDay state channel from BreakLibraryPage through BreakBoard/BreakInspector into PodPage.jsx). Verified all four live rather than trusting the diff: lock then unlock on an untouched 2025-04-27 pod now leaves order.state file and the register holding no row at all (curled against the real repo data file, then cleaned); a keyboard reorder on 22:53:49 moved the verification count from 1 to 3 before any save; clicking a covered-day link inside the break drawer closed the drawer, scrolled the page and loaded 2025-04-27, none of which happened before. Closed the remaining structural items myself. Item 3 (dir sweep): rewrote PodBoard.jsx, PodPage.jsx and BreakInspector.jsx to carry zero raw dir attributes, replacing every one with Figure, Code, Name or Prose from the frozen shell/bidi.jsx, or removing it outright where the content was already known-language copy needing no isolation; 111 to 0 in exactly the three files and the exact count the queue named, confirmed by grepping the source and by a private copy of the direction guard with the plan/break quarantine line removed. BreakBoard.jsx, BreakChip.jsx and GoldBreakManager.jsx were outside the queue's own 111-count scope and were left as they were. This also closed item 7 (the verdict line's Hebrew words were trapped inside a forced dir=ltr span; now only the seconds figures are isolated and the Hebrew words sit in the surrounding flow). Item 8 (accessibility): the spot list is now role=table/row/columnheader/cell, verified live by counting ARIA nodes in the DOM (8 rows, 11 columnheaders, 77 cells on the real 7-spot break) rather than reading the JSX. Item 9 (elapsed-in-break column): a new pure elapsedSeconds() in pod-model.js sums the current on-screen order's own durations rather than reading the file's absolute clock, so it moves when a spot moves; verified live on 22:53:49 the column reads 0s,28s,63s,99s,133s,178s,192s against the shipped 28/35/36/34/45/14/20s spot lengths, which is the running sum. Item 10 (verification zero versus uncheckable): a new copyCheckCoverage() distinguishes them; verified live that a pod with 9 of 28 checkable spots and zero errors reads 'the copy check ran on 9 of 28 spots, the rest declare no length', and a pod with 0 of 1 checkable reads 'no spot here declares a length', two different sentences for two different facts that used to read as the same quiet badge. Items 5, 13, 14 and 15 were re-confirmed as genuinely outside this piece's reach (owner vocabulary, a spec.md ruling, another piece's settings writer, the frozen shell nav) and are restated in could_not_close rather than worked around. 39 of 39 p10 tests green (one more than round 2's 38, the crashed run's own lock-fabrication regression test), npm run build clean at 3512 modules and 800ms, node scripts/verify-direction-rules.mjs clean, size law green at the largest file (break-pod.css, 448), zero em-dashes/emoji/exclamation-as-punctuation across every file touched. Regression checked against the same three-tree method the round-2 critic used: -k 'p10 or p3 or break' at the current working tree reads 25 failed, 3 errors, 272 passed, 1 skipped; every one of the 25 failures is in a test_p3_*, test_p5_* or test_qa_adoption_integrity.py file, zero in anything P10 owns or touched, and the 3 new errors are a Node ESM module-resolution failure inside test_p4_every_name_opens.py's own render harness that reproduces in total isolation from any file this piece wrote (all 7 tests in that file error when run alone, not only the 3 that keyword-matched 'break'), so it is a P4/P5-owned test-harness fragility rather than anything caused here. Cleaned data/break_pod_order.csv and its own backup after every live check; the only pre-existing backup from round 2 is untouched. Not self-certified passed; awaiting the next critic sweep.",
+  "critic round 3: measured all four bars on my own servers (8061 and 3061) before editing a line. Round-2 queue items 1, 2, 4, 6, 7, 8, 9 and 10 are genuinely closed and I re-verified each live rather than trusting the builder's note: lock then unlock on an untouched pod leaves order.state file and an empty register, a keyboard move takes the verification tile from 1 to 3 before any write and labels it 'if saved', the covered-day link closes the drawer and scrolls the pod page to the top, a lock on a genuinely reordered pod keeps its note and saved_at, the spot list is a real ARIA table, elapsed reads 0/28/63/99/133/178/192 against the shipped lengths, and a zero-error pod now says the copy check ran on 16 of 38 spots. Item 3 is two thirds closed, 111 dir attributes gone and 33 left in the same owned tree. Item 15 closed by another piece, the shell navigation is Hebrew now. Bar 3 caught a real regression by three-tree attribution: npm run test:dates passes on a git archive of HEAD and fails on the working tree with 3 violations in PodPage.jsx, and I fixed it. I also found and fixed a lock bypass nobody had tested, DELETE /order on a locked pod returning 200 and wiping the frozen order and the lock together, and a lock timestamp printed in UTC on the audit banner. Six items closed by me, twelve left ranked. The largest open one is the mirror of round 2's: locking a pod whose saved order went stale deletes that order without a word.",
+  "round 4 (builder): worked the critic round 3 queue by severity, structural before mechanical, per the round's own instruction, and left every item the queue itself marked mechanical or FIXED THIS ROUND untouched. Item 1, the gap (rank 1, serious, structural): rewrote break_api_pod_order.lock() to derive whether an operator decision exists to preserve from the STORED ROW's own order_source column rather than from a boolean the caller computed off the pod's current order.state, which is what let a merely-stale row read as no-order-at-all. A row whose order_source is operator now keeps its spot_keys, saved_at, actor and note through a lock regardless of whether its fingerprint still matches, so applied() keeps reporting state stale, now carrying the lock, instead of losing the row. unlock() needed no change: it already read the row's own order_source, so it now correctly restores rather than deletes. Removed the has_operator_order parameter and its call-site derivation in break_api_pod.py entirely, since the register itself is now the single source of truth. Pinned in a new test, test_locking_a_stale_operator_order_keeps_it_rather_than_destroying_it in tests/test_p10_pod_verification.py: saves an order, moves the stored row's own fingerprint underneath it via the register's own load/write functions (no file on disk touched), locks, and asserts the operator's spot_keys, saved_at and note are still readable through order_store.stored while the served order reports state stale and locked true; then unlocks and asserts the same row survives with locked cleared. Item 2 (rank 2, serious, structural): swept the 33 remaining dir attributes in BreakBoard.jsx (22), GoldBreakManager.jsx (9) and BreakChip.jsx (2), all owned by this piece via the src/plan/break/** handover though outside what earlier rounds had touched. Every one replaced with Figure, Name or Prose from the frozen shell/bidi.jsx, or dropped outright where the content was already app-generated interface copy in the correct locale (matching the pattern already used for reason/reason_he sentences in PodPage.jsx, which carry no dir at all). One exception, kept rather than changed: GoldBreakManager.jsx line 92's div dir=\"ltr\" on a chart-ltr container is the same charting-contract convention already accepted product-wide in six other files including three outside this piece's ownership (today/YieldView.jsx, plan/week/FrontierPanel.jsx, plan/week/SupplyPanel.jsx, plan/day/schedule-track-view.jsx, plan/week/FrontierScopeChart.jsx), documented in scripts/verify-direction-rules.mjs's own EXCEPTIONS list for an equivalent case (DayBoardReadout.jsx's day-hours chart); rewriting only this one instance would diverge from an established pattern rather than fix a defect, and the file's own inner numeric child at line 96 that had needlessly restated dir=\"ltr\" under that same container was removed, since the shipped convention (verified against SupplyPanel.jsx) never restates it on children. Verified with a private scratch copy of verify-direction-rules.mjs with only the src/plan/break/ quarantine line removed: 33 violations in 3 files before, 1 violation in 1 file (the accepted chart-ltr exception) after; the shipped guard itself (which still quarantines the whole directory) reports 'Direction rules hold' before and after, unchanged. The quarantine line and an EXCEPTIONS entry for the one legitimate remaining case both live in that script, which is frozen and not this piece's to write; reported rather than edited. Item 16 (rank 16, minor, structural): PodPage.jsx's write() threw new Error with the raw HTTP status line on a refused act, discarding the plain-English sentence the API already sends as the response body's own detail field (This pod is locked, This pod is already locked, and so on). Now reads the JSON body and uses its detail when present, falling back to the status line only when the body cannot be parsed at all. Left items 9, 10, 11, 13, 17 and 18 exactly as the critic reasoned, all still genuinely outside this piece's reach: 9 needs a product-wide ruling on the Hebrew seconds mark that would otherwise split P10's own surface from P3's frozen break table; 10 is owner vocabulary; 11 needs a lead ruling on a frozen spec.md table; 13 is not a defect, only a latency note about which branch today's data exercises; 17 and 18 are other pieces' files. 41 of 41 p10 tests green (one more than round 3's 40), npm run build clean at 3512 modules in 1.63s, node scripts/verify-date-rules.mjs and node scripts/verify-direction-rules.mjs both hold, size law green (largest owned file break_pod.py at 444, then break-pod.css at exactly 450), zero em-dashes/emoji/exclamation-as-punctuation across every file touched. Regression checked against the same selection round 3's critic used, tests/ -k 'p10 or p3 or break' -p no:randomly: 25 failed, 3 errors, 274 passed, 1 skipped, and the failed and errored test names are byte-identical to round 3's own documented baseline (all 25 in test_p3_basis_class/test_p3_direct_manipulation/test_p3_editor_coverage/test_p3_editor_money/test_p3_framing/test_p3_save_scope/test_p3_surface_readout/test_p5_money_pair_bidi/test_qa_adoption_integrity, none owned by P10; all 3 errors in test_p4_every_name_opens.py, reproduced by running that file alone with 6 of 7 tests erroring on the identical pre-existing node:ERR_MODULE_NOT_FOUND resolving MoneyBoard.mjs's own import of shell/bidi in a copied build harness, confirmed unrelated to this round's own new import of the same module into BreakChip.jsx by reading the stack trace, which names MoneyBoard.mjs and never BreakChip). No live server was started this round; every check ran through pytest's own isolated tmp_path fixtures or npm run build, so data/break_pod_order.csv was never created and data/ carries no new diff from this round beyond the state file. Not self-certified passed; awaiting the next critic sweep."
+ ],
+ "title": "Break contents: the pod, its positions, and its arithmetic",
+ "summary": "The break's contents were a fixed unavailable state on every break in the product, with no input that could ever change it. They are an entity now. The pod is read from the daily traffic file, whose break_start column is the same value for every spot in one break, which is exactly the per-ad break identifier P3's path_forward asked for and which was already on disk. A pod carries its spots with an advertiser, a campaign, a creative, a house number, a declared duration and a position; it states the sum of its spots against its own span with the difference in seconds; it names Last as its own position rather than the fifth ordinal; and it can be reordered and put back.",
+ "what_i_built": [
+  "kairos_api/break_api_pod.py: the pod read, the pod identity <day>~<HH:MM:SS>, build_pod, pods_for_day, covered_days, contents_state, and four routes. GET /api/breaks/pods, GET /api/breaks/pod/{pod_id}, PUT /api/breaks/pod/{pod_id}/order, DELETE /api/breaks/pod/{pod_id}/order.",
+  "kairos_api/break_api_pod_math.py: the arithmetic. Declared load, span, the difference, the gaps and overlaps between consecutive spots, the plan-side declared break length, and the gap or overflow against it.",
+  "kairos_api/break_api_pod_spots.py: one spot and the position model. 1 to 5 plus L, where the file's 99 is L and its 0 is an unrequested position, and neither is returned as an ordinal. Also top_and_tail, the campaigns holding both position 1 and Last in one pod.",
+  "kairos_api/break_api_pod_order.py: the saved order register on data/break_pod_order.csv, with the same atomic-write discipline as the other operator stores, and a pod fingerprint so a saved order knows the traffic file moved under it.",
+  "kairos_api/break_api.py: includes the pod router as the first statement after the router, so /api/breaks/pods is matched before /api/breaks/{break_id} would swallow it.",
+  "kairos_api/break_api_detail.py: the contents field now calls pod.contents_state instead of returning a constant.",
+  "tv-break-dashboard/src/plan/break/pod-model.js: the pure model. The reorder move, the position labels, the arithmetic rows with their bases, and the declared verdict.",
+  "tv-break-dashboard/src/plan/break/PodBoard.jsx: one pod drawn. The three figures with their bases, the declared verdict, the spot list reorderable by drag and by Alt with the arrow keys, save, discard and back to the traffic file order.",
+  "tv-break-dashboard/src/plan/break/PodPage.jsx: the day's pods, the covered-day picker, and the honest state for a day no traffic file covers.",
+  "tv-break-dashboard/src/plan/break/break-pod.css: logical properties throughout so the whole surface mirrors in Hebrew.",
+  "tv-break-dashboard/src/plan/break/BreakInspector.jsx: the Break contents section renders the same PodBoard when the pod is real, and otherwise names the days a traffic file does cover. The reorder acts are absent there because that drawer is opened to read a break and a write with no inverse on the surface that performed it is the defect P3 spent a round closing.",
+  "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx: mounts PodPage, which is the door."
+ ],
+ "files_touched": [
+  "kairos_api/break_api_pod.py (new, 356)",
+  "kairos_api/break_api_pod_math.py (new, 167)",
+  "kairos_api/break_api_pod_spots.py (new, 179)",
+  "kairos_api/break_api_pod_order.py (new, 179)",
+  "kairos_api/break_api.py (edited, 435 to 444)",
+  "kairos_api/break_api_detail.py (edited, 223)",
+  "tv-break-dashboard/src/plan/break/pod-model.js (new, 173)",
+  "tv-break-dashboard/src/plan/break/PodBoard.jsx (new, 199)",
+  "tv-break-dashboard/src/plan/break/PodPage.jsx (new, 142)",
+  "tv-break-dashboard/src/plan/break/break-pod.css (new, 362)",
+  "tv-break-dashboard/src/plan/break/BreakInspector.jsx (edited, 348 to 365)",
+  "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx (edited, 106 to 113)",
+  "tests/test_p10_pod_arithmetic.py (new, 210)",
+  "tests/test_p10_pod_declared_length.py (new, 189)",
+  "tests/test_p10_pod_api.py (new, 242)",
+  "docs/ux-gauntlet/state/P10.json (new)",
+  "round 2: kairos_api/break_api_pod_spots.py (edited, 179 to 240, copy_declared_seconds/copy_length_check)",
+  "round 2: kairos_api/break_api_pod_math.py (edited, 167 to 252, gap_before_first_spot/position_violations/verification_errors)",
+  "round 2: kairos_api/break_api_pod.py (edited, 356 to 420, boundary note, lock/unlock routes, verification wiring, locked-refusal on order writes)",
+  "round 2: kairos_api/break_api_pod_order.py (edited, 179 to 248, lock/unlock, locked flag threaded through applied())",
+  "round 2: tv-break-dashboard/src/plan/break/pod-model.js (edited, 228 to 326)",
+  "round 2: tv-break-dashboard/src/plan/break/PodBoard.jsx (edited, 248 to 361)",
+  "round 2: tv-break-dashboard/src/plan/break/PodPage.jsx (edited, 142 to 235)",
+  "round 2: tv-break-dashboard/src/plan/break/BreakInspector.jsx (edited, 366 to 391)",
+  "round 2: tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx (edited, 113 to 114, panel order swap)",
+  "round 2: tv-break-dashboard/src/plan/break/break-pod.css (edited then split, 409 to 394)",
+  "round 2: tv-break-dashboard/src/plan/break/break-pod-list.css (new, 154, split out of break-pod.css)",
+  "round 2: tests/test_p10_pod_copy_length.py (new, 86)",
+  "round 2: tests/test_p10_pod_verification.py (new, 153)",
+  "round 3: kairos_api/break_api_pod_order.py (edited, 248 to 333, lock()/unlock()/_order_source() and order_source column so a lock never fabricates or overwrites an operator's own order; resumed from a prior crashed attempt and verified live rather than redone)",
+  "round 3: kairos_api/break_api_pod.py (edited, 424 to 432, lock_pod/unlock_pod routes and has_operator_order threading; resumed from the same prior attempt)",
+  "round 3: tv-break-dashboard/src/plan/break/pod-model.js (edited, 333 to 441; liveVerificationErrors/verificationList/positionViolationMap resumed from the prior attempt, elapsedSeconds and copyCheckCoverage new this round)",
+  "round 3: tv-break-dashboard/src/plan/break/PodBoard.jsx (rewritten, 392 to 434; every dir attribute replaced with Figure/Code/Name, role=table/row/columnheader/cell on the spot list, the elapsed column, the coverage-aware verification basis text, the verdict line's Hebrew words freed from a forced dir=ltr span)",
+  "round 3: tv-break-dashboard/src/plan/break/PodPage.jsx (edited, 235 to 250; every dir attribute replaced, requestedDay wiring resumed from the prior attempt)",
+  "round 3: tv-break-dashboard/src/plan/break/BreakInspector.jsx (edited, 391 to 410; every dir attribute replaced, onOpenPodDay wiring resumed from the prior attempt)",
+  "round 3: tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx (podDayRequest/openPodDay state channel, resumed from the prior attempt, unedited this round beyond what was already on disk)",
+  "round 3: tv-break-dashboard/src/plan/break/break-pod.css (edited, 427 to 448; pod-spot-table wrapper, pod-grip-cell, pod-elapsed, an 11th grid column, the stale dir-attribute comment corrected)",
+  "round 4: kairos_api/break_api_pod_order.py (lock() rewritten to read order_source off the stored row instead of a caller-supplied has_operator_order flag, so a stale operator row survives a lock and an unlock instead of being replaced; module and function docstrings updated to match)",
+  "round 4: kairos_api/break_api_pod.py (lock_pod route simplified to match lock()'s new self-sufficient signature; PodPage write() detail-surfacing is a frontend-only change, no backend edit needed for item 16)",
+  "round 4: tests/test_p10_pod_verification.py (new test test_locking_a_stale_operator_order_keeps_it_rather_than_destroying_it, 216 to 267)",
+  "round 4: tv-break-dashboard/src/plan/break/BreakBoard.jsx (22 dir attributes to 0; Figure/Name/Prose from shell/bidi replace every one, interface-copy paragraphs lost their dir=\"auto\" entirely, 229 to 236)",
+  "round 4: tv-break-dashboard/src/plan/break/GoldBreakManager.jsx (9 dir attributes to 1, the accepted chart-ltr exception; 157 to 157)",
+  "round 4: tv-break-dashboard/src/plan/break/BreakChip.jsx (2 dir attributes to 0; clock and meta now Figure; 31 to 32)",
+  "round 4: tv-break-dashboard/src/plan/break/PodPage.jsx (write() now reads the failed response's own JSON detail before falling back to the raw status line; 249 to 256)"
+ ],
+ "evidence": {
+  "tests": "python -m pytest tests/ -q -k p10: 28 passed, 0 skipped, 0 failed, 6.51 s.",
+  "pod_arithmetic_on_real_data": "data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv declares 10 pods on 2025-04-27. The break at 20:40:09 holds 28 spots declaring 569 s between them; its last spot starts 20:50:37 and runs 6 s, so the pod ends 20:50:43, which is 634 s from the break's own declared start; 634 less 569 is 65 s that no spot covers. Two internal gaps, 13 s after the opening billboards and 10 s before the closing ones, 23 s in all, and 0 overlaps. Every one of the 10 pods closes span less load equals unfilled.",
+  "positions_on_real_data": "That pod carries ordinals 1 to 18, exactly one Last (the file's 99) and 9 unpositioned sponsorship billboards (the file's 0), 6 at the head and 3 at the tail. Last is returned with code L and no ordinal; unpositioned is returned with no code at all; neither is ever a number.",
+  "declared_length_today": "Unavailable on every real pod and it says why: the plan covers 2024-11-01 to 2024-11-30 and the one traffic file covers 2025-04-27, both windows named in the payload in both languages.",
+  "declared_length_proven_real": "tests/test_p10_pod_declared_length.py builds a traffic file on a day the plan does cover, over a break the plan really places, and drives the shipped path to a figure. The declared length is read from the plan rather than written into the fixture: 120 s declared against 85 s sold reads gap 35 s, against 165 s reads overflow 45 s, and against 120 s reads exact 0 s. The same fixture turns contents from unavailable into real with 3 spots and 85 s of load, which is the behaviour that did not exist before this piece.",
+  "why_the_pod_is_not_joined_to_a_planned_break_by_time": "Measured on רשת 13 / 2024-11-01: the plan's 80 breaks and the spot ledger's 72 pods sit a median 156 s apart, p25 52 s, p75 217 s, and only 21 of 72 fall within 60 s of each other. A proximity join would attach real spots to a break that did not carry them, so a planned break claims a pod only when that pod starts inside the break's own window.",
+  "reorder": "PUT with a reordered key list is applied and the sequence is restated with it, the arithmetic does not move because reordering changes no length, and a reread over HTTP returns the saved order. DELETE puts the pod back in the file's order and a second DELETE answers 404. A key list that is not exactly the pod's own keys, each once, is refused 422 on all four malformed shapes and the pod stays in the file order. A saved order whose pod fingerprint has moved is reported stale and is not applied.",
+  "competitor_boundary": "The traffic file carries no channel column at all, so no rival channel name can reach this surface from it. Asserted by greping the whole serialized /api/breaks/pods payload for every other channel name in the saved plan. The channel printed beside a pod is the operator's own from settings and the payload says that is where it came from.",
+  "route_ordering": "/api/breaks/pods and /api/breaks/{break_id} share a prefix. The pod router is included as the first statement after the router so the pod paths match first, and a test holds it there: without it the first route answers 422 with the word pods parsed as a break id.",
+  "frontend_build": "The whole-app build is blocked by a file that is not this piece's, so the pod tree was built in isolation with the project's own vite 8.0.16: PodPage.jsx entry, 7 modules transformed, pod.mjs 14.84 kB and pod.css 5.37 kB; BreakLibraryPage.jsx entry, 28 modules transformed, lib.mjs 77.71 kB and lib.css 13.78 kB. Both clean.",
+  "size_law": "Every file this piece owns is inside 450 lines, asserted by a test that enumerates them. break_api_pod.py was 602 on its first pass and was split by subject into the pod, the arithmetic and the spot.",
+  "stores_untouched": "The order tests point the register at a temporary path. data/ is byte-identical to its pre-run state and data/break_pod_order.csv does not exist.",
+  "voice": "0 em-dashes and 0 exclamation marks in any file this piece wrote. Every ! is a boolean negation."
+ },
+ "could_not_close": [
+  {
+   "what": "The whole-app frontend build fails.",
+   "where": "tv-break-dashboard/src/history/HistoryDiff.jsx:75",
+   "detail": "The line reads {part.values.map((value, index) => ( {part.ltr ? <Code .../> : <Name .../>} ))}, and a parenthesis followed by a brace is an object literal rather than JSX, so rolldown reports Expected , or } but found . at 75:22. The file is modified in the working tree and src/history/** is frozen for this piece, so it is another builder's in-flight edit. Reported rather than fixed. The pod tree was verified by building it in isolation instead.",
+   "owner": "whoever is live in src/history/"
   },
-
-  "could_not_close": [
-    {
-      "what": "The whole-app frontend build fails.",
-      "where": "tv-break-dashboard/src/history/HistoryDiff.jsx:75",
-      "detail": "The line reads {part.values.map((value, index) => ( {part.ltr ? <Code .../> : <Name .../>} ))}, and a parenthesis followed by a brace is an object literal rather than JSX, so rolldown reports Expected , or } but found . at 75:22. The file is modified in the working tree and src/history/** is frozen for this piece, so it is another builder's in-flight edit. Reported rather than fixed. The pod tree was verified by building it in isolation instead.",
-      "owner": "whoever is live in src/history/"
-    },
-    {
-      "what": "Five tests in the P3 suite fail, none of them caused here.",
-      "detail": "117 pass, 1 skip, 5 fail. test_p3_boundary_and_regression size law reports DayBoard.jsx 451 and OverrideDecisions.jsx 451, both 450 at HEAD and both changed by another builder. test_p3_framing twice, test_p3_save_scope and test_p3_surface_readout are source-text assertions against plan/day/DayBoardChip.jsx, plan/day/ScheduleEditorRow.jsx and a day stylesheet rule. All are in plan/day/**, which this piece never writes, and all 34 files under plan/day and plan/week are modified in the working tree by other builders.",
-      "owner": "whoever is live in src/plan/day/"
-    },
-    {
-      "what": "A pod cannot yet be compared against a declared break length on real data.",
-      "detail": "Not a defect and not fakeable: the saved plan covers 2024-11-01 to 2024-11-30 and the only traffic file covers 2025-04-27, so the two overlap on zero dates. The comparison reports unavailable with both windows named, and it lights up with no code change the moment a traffic file lands on a planned day, which the declared-length tests prove by doing exactly that.",
-      "owner": "whoever supplies traffic files"
-    },
-    {
-      "what": "A saved pod order does not reach the optimizer.",
-      "detail": "It is a traffic decision recorded on the operator's own register, not a constraint. The plan prices a break on its programme's rating, rate, premium and length, so the order of spots inside a break moves no figure the engine computes. Stated here so a reader takes the absence as a decision rather than an oversight."
-    }
-  ],
-
-  "trade_facts_honoured": [
-    "Positions are 1 to 5 plus L, and L is its own thing rather than the fifth ordinal, because one campaign can hold both the first and the last spot of a break. The file's 99 is L and its 0 is an unrequested position; neither is returned as an ordinal, and top_and_tail reports the campaigns holding both 1 and L.",
-    "Which positions count as preferred is agreed per client, so the preferred set travels with the payload as a stated default and never as a reading of anybody's contract.",
-    "The two counting methods, agency and channel, give different percentages for one schedule, so no preferred-position percentage is computed here at all.",
-    "A creative carries a house number that differs per channel, and every spot carries its own house number from the file.",
-    "Length is in whole seconds. There are no milliseconds anywhere on this surface."
+  {
+   "what": "Five tests in the P3 suite fail, none of them caused here.",
+   "detail": "117 pass, 1 skip, 5 fail. test_p3_boundary_and_regression size law reports DayBoard.jsx 451 and OverrideDecisions.jsx 451, both 450 at HEAD and both changed by another builder. test_p3_framing twice, test_p3_save_scope and test_p3_surface_readout are source-text assertions against plan/day/DayBoardChip.jsx, plan/day/ScheduleEditorRow.jsx and a day stylesheet rule. All are in plan/day/**, which this piece never writes, and all 34 files under plan/day and plan/week are modified in the working tree by other builders.",
+   "owner": "whoever is live in src/plan/day/"
+  },
+  {
+   "what": "A pod cannot yet be compared against a declared break length on real data.",
+   "detail": "Not a defect and not fakeable: the saved plan covers 2024-11-01 to 2024-11-30 and the only traffic file covers 2025-04-27, so the two overlap on zero dates. The comparison reports unavailable with both windows named, and it lights up with no code change the moment a traffic file lands on a planned day, which the declared-length tests prove by doing exactly that.",
+   "owner": "whoever supplies traffic files"
+  },
+  {
+   "what": "A saved pod order does not reach the optimizer.",
+   "detail": "It is a traffic decision recorded on the operator's own register, not a constraint. The plan prices a break on its programme's rating, rate, premium and length, so the order of spots inside a break moves no figure the engine computes. Stated here so a reader takes the absence as a decision rather than an oversight."
+  }
+ ],
+ "trade_facts_honoured": [
+  "Positions are 1 to 5 plus L, and L is its own thing rather than the fifth ordinal, because one campaign can hold both the first and the last spot of a break. The file's 99 is L and its 0 is an unrequested position; neither is returned as an ordinal, and top_and_tail reports the campaigns holding both 1 and L.",
+  "Which positions count as preferred is agreed per client, so the preferred set travels with the payload as a stated default and never as a reading of anybody's contract.",
+  "The two counting methods, agency and channel, give different percentages for one schedule, so no preferred-position percentage is computed here at all.",
+  "A creative carries a house number that differs per channel, and every spot carries its own house number from the file.",
+  "Length is in whole seconds. There are no milliseconds anywhere on this surface."
+ ],
+ "critic_round": 2,
+ "critic_round_1": {
+  "measured_on": "own server on port 8061, KAIROS_AUTH_DISABLED=1, serving the dist bundle built from HEAD before any critic edit. Killed only 8061. Ports 8000, 3000 and 8010 untouched.",
+  "stopwatch": {
+   "job_story": "JS-7, the traffic operator assembles the pod, target 90 s for the real seven-ad break at 22:53:49, 0 dialogs for the reorder, the sum visible at all times",
+   "baseline": "06-baseline.md section 7: the Break Library is a ranked shelf of 80 breaks, a list of breaks and not a pod of ads. Durations summing to break length, drag reorder and lock: none of these exist. The job cannot be started, let alone finished in ninety seconds.",
+   "shell_paint_ms": 292,
+   "first_pod_row_ms": 493,
+   "pod_open_after_click_ms": 62,
+   "clicks_from_the_door_to_the_arithmetic": 2,
+   "scroll_before_the_first_pod_row_px": 2647,
+   "scroll_before_the_first_pod_row_screens": 2.99,
+   "page_height_px": 4831,
+   "break_board_height_above_it_px": 2434,
+   "seven_ad_break_matches_the_story": "22:53:49, 7 spots, 212 s declared, byte-for-byte the figures job-stories.md:312 records",
+   "reorder_keyboard": "Alt and the down arrow moved the focused spot one place in 1 keystroke, 0 dialogs, and focus followed the moved row (index 0 to 1 on one press, 0 to 3 on three presses)",
+   "reorder_drag": "dragged row 1 onto row 4 with a real pointer drag, 0 dialogs, order became 2,3,4,1,5,6,L",
+   "sum_visible_at_all_times": "yes, the three figures sit above the list and never scroll behind a click. The sum cannot move on a reorder because no length moves, which is correct and is now stated on screen",
+   "verdict": "the whole job is reachable and fast against a baseline that could not start it. It fails on two done conditions rather than on time: the copy against the booked duration, and the lock"
+  },
+  "blind_ab": {
+   "reference_1": "a professional broadcast traffic log, reached live and quoted rather than remembered. nexttv.com ABCs of Traffic defines the step this surface lacks by name: log verification ensures that the log is technically correct and shows any errors that need to be corrected by traffic prior to finalizing. yangaroo.com adds that traffic instructions specify spot lengths so the station does not cut off the spot in the middle, and that traffic is a checks and balance verifying the spot identifiers against the sales order. wikipedia Traffic (broadcasting) adds that the as-run copy of the log is what reconciliation and billing run on.",
+   "reference_2": "Figma's own help for direct manipulation of an ordered list, help.figma.com Arrange layers with Smart selection, fetched live: click and drag the layers to another location within the selection, a blue indicator shows you where you can move the layer to, releasing the mouse confirms the new position of the layers with no additional save step, and Cmd or Ctrl with the bracket keys moves one position.",
+   "keyboard_reorder": "TIE. Figma moves one position with Cmd and a bracket; Meridian moves one position with Alt and an arrow, focus follows the row, and each row carries a spoken label naming its order, advertiser, position and length, which Figma's panel does not.",
+   "drag_mechanics": "FIGMA WINS. Figma draws a blue insertion indicator at the destination before release. Meridian's only in-flight signifier is 0.5 opacity on the source row and there is no insertion line, which is also a miss against this campaign's own stolen device at 07-references.md:306, every drag has a named result, a distinct cursor and a live signifier while it is in flight.",
+   "commit_model": "SPLIT. Figma commits on drop with no save step, which is more direct. Meridian requires Save this order and offers Discard the change and Back to the traffic file order, three controls where Figma has none. For a broadcast log that is the right trade, because the register records the actor, the timestamp and a fingerprint of the pod as read, and a traffic decision that nobody can attribute is worse than one extra click. Meridian wins on auditability, Figma on directness.",
+   "verification_and_finalising": "THE TRAFFIC LOG WINS DECISIVELY, and this is the largest gap. The trade's own step is verification followed by finalising, an error list then a lock. Meridian computes arithmetic and prints it, but produces no error list and has no finalise. The one error genuinely present in the shipped data, 36 s booked against a copy version named 35', is on screen as two unrelated facts.",
+   "columns": "THE TRAFFIC LOG WON BEFORE THIS ROUND'S FIX. A traffic log is a headed table; the shipped spot list had nine columns, no headings, and two adjacent bare numbers meaning different things. Closed this round.",
+   "positions": "MERIDIAN WINS. Last is its own code rather than the fifth ordinal, an unrequested position is a dash rather than a zero, and the preferred set travels with the payload as a stated default rather than as a reading of anybody's contract. Neither reference has anything to say about this and the trade note demands it."
+  },
+  "regression": {
+   "attribution_method": "git archive of fdba013c and of its parent into /tmp, same interpreter, same selection, per the RESUME-HERE rule that a failure is attributed against a commit and never against the working tree",
+   "p10_suite": "28 passed, 0 failed, before my edits and again after them",
+   "selection_p3_or_break_or_p10_at_HEAD": "25 failed, 259 passed, 1 skipped, 3 errors",
+   "selection_at_fdba013c": "13 failed",
+   "selection_at_fdba013c_parent": "13 failed",
+   "verdict": "P10's own commit introduced ZERO new failures. The 13 failures predate it and the further 15 appeared in the two commits after it, 89073878 and 1e302156, which are other pieces' work in src/plan/day, src/history and the P4 and P5 trees. P10 is clean on Bar 3.",
+   "wave_one_capabilities_checked_by_hand": [
+    "GET /api/breaks/{break_id} still answers 200 and the drawer still opens from the ranked shelf and from the day board, so /api/breaks/pods does not shadow it. Verified live and by openapi.json, which lists both paths distinctly.",
+    "GET /api/breaks/pod/nonsense answers 422 rather than being swallowed by the break-id route.",
+    "The BreakInspector contents section still reads the honest unavailable state on a plan day and names the covered day, 2025-04-27.",
+    "The BreakBoard day board, its Sunday-first week rows with Friday and Saturday marked as the weekend, and the ranked break shelf with its CSV export all still render on the same page.",
+    "npm run build clean, 3510 modules, before and after my edits.",
+    "0 console errors and 0 console warnings across the whole session."
+   ]
+  },
+  "laws": {
+   "honest_math": "PASS. Every figure on the surface resolves to a subtraction over numbers the traffic file declares, and I re-derived all ten pods by hand from the CSV: span less load equals unfilled on every one. The declared break length is unavailable on every real pod and says why, and the plan window it names, 2024-11-01 to 2024-11-30, is now printed rather than only carried in the payload. No delivered figure, no pacing percentage, no codec, no aspect ratio, no loudness, no duration that was not read. A spot with no length is unknown and withholds the difference rather than absorbing it.",
+   "competitor_boundary": "PASS. The channel beside every pod is רשת 13 from settings and the payload says so in both languages. The traffic file carries no channel column. I greped the whole serialized /api/breaks/pods body for the three rival names in the saved plan and found none.",
+   "training_versus_runs": "PASS. Four routes, one write path, and it writes data/break_pod_order.csv. Nothing under models/ is reachable from this surface.",
+   "characters": "PASS. 0 em-dashes, 0 en-dashes, 0 emoji, 0 exclamation marks in any owned source file including the four I edited, checked by a quoted-string scan as well as a grep. The only em-dash anywhere near this surface is inside campaign names in the operator's own data file, which is data and not copy.",
+   "vocabulary": "PASS. משתמש absent, ברייק and ברייקים used, תשדיר for a spot per the vocabulary table, House Number left in English in both languages per the same table.",
+   "week": "PASS. Sunday-first week rows on the day picker with Friday and Saturday marked. The pod surface itself is a single ISO day and never orders weekdays.",
+   "file_sizes": "PASS. Largest owned file after my edits is break-pod.css at 409, then BreakInspector.jsx at 366, then break_api_pod.py at 356. The piece's own test enumerates the owned set and asserts the cap.",
+   "hard_wrapped_strings": "PASS. Every display string is one source line including the six I added.",
+   "dead_ends": "ONE OPEN, see the queue. The drawer's covered day is printed as text and opens nothing, and the pod itself carries no address."
+  },
+  "ownership": {
+   "p10_commit": "fdba013c touched break_api.py, break_api_detail.py, the four break_api_pod*.py helpers, six files under src/plan/break/, three tests under the reserved test_p10_ prefix and the state file. Every one is in P10's wave-two row of section 8.2 or under the helper naming rule or the reserved test prefix. No write outside the row.",
+   "critic_edits": "tv-break-dashboard/src/plan/break/PodBoard.jsx, PodPage.jsx, pod-model.js and break-pod.css, all four inside src/plan/break/**, plus this state file and eight evidence screenshots. Nothing else.",
+   "other_dirty_paths": "data/kairos_settings.json, docs/ux-gauntlet/contracts/P12.md, docs/ux-gauntlet/state/P12.json, tests/test_p12_basis.py, src/clients/pacing/** belong to P11 and P12 running concurrently. I wrote none of them.",
+   "note": "data/break_pod_order.csv is created at runtime by the order register and is not a path in P10's row. No save was performed against the repository store during this round; the round-trip was driven with the store pointed at a temporary directory, and data/ is byte-identical."
+  },
+  "evidence": [
+   "docs/ux-gauntlet/evidence/p10-c1-01-pod-list-he.png",
+   "docs/ux-gauntlet/evidence/p10-c1-02-pod-board-he-2253.png",
+   "docs/ux-gauntlet/evidence/p10-c1-03-after-drag-clock-out-of-order.png",
+   "docs/ux-gauntlet/evidence/p10-c1-04-pod-board-en.png",
+   "docs/ux-gauntlet/evidence/p10-c1-05-pod-2259-450s-unexplained.png",
+   "docs/ux-gauntlet/evidence/p10-c1-06-after-critic-fixes-he.png",
+   "docs/ux-gauntlet/evidence/p10-c1-07-after-critic-fixes-en.png",
+   "docs/ux-gauntlet/evidence/p10-c1-08-reorder-disclosure-en.png"
   ]
+ },
+ "critic_round_1_queue": [
+  {
+   "rank": 1,
+   "severity": "blocking",
+   "kind": "structural",
+   "what": "The copy version is never compared against the booked duration, which is JS-7's own done condition. The shipped file carries the case: 2025-04-27~22:53:49 spot 3, copy מחליפה - סרט מלא 35' booked at 36 s, while the other six spots in that pod agree with their own copy names.",
+   "where": "kairos_api/break_api_pod_spots.py spot(), tv-break-dashboard/src/plan/break/PodBoard.jsx spot row"
+  },
+  {
+   "rank": 2,
+   "severity": "blocking",
+   "kind": "structural",
+   "what": "There is no lock and no error list. JS-7's done condition is that the break is locked; the trade's own step is verification then finalising. Save this order records an order, refuses nothing, and nothing downstream reads it.",
+   "where": "kairos_api/break_api_pod_order.py, kairos_api/break_api_pod.py save_order, PodBoard.jsx acts"
+  },
+  {
+   "rank": 3,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "A saved reorder is applied with no check against the contracted positions. Measured: moving spot 1 to slot 4 leaves the position column reading 2,3,4,1,5,6,L, so a spot the campaign bought position 1 for now airs fourth, and the PUT accepts it and reads back as state operator with no verdict. This is the one error the surface exists to prevent.",
+   "where": "kairos_api/break_api_pod.py save_order, kairos_api/break_api_pod_order.py applied()"
+  },
+  {
+   "rank": 4,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "The uncovered figure is not decomposed and its largest part is invisible. Pod 2025-04-27~22:59:40 reports 450 s not covered; measured, 240 s of that sits before the first spot (declared start 22:59:40, first spot 23:03:40) and 210 s is the ten internal gaps. The head gap is computed nowhere. The label How long the pod runs, 882 s, is also wrong for a pod whose commercial block runs 642 s.",
+   "where": "kairos_api/break_api_pod_math.py pod_arithmetic"
+  },
+  {
+   "rank": 5,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "The traffic operator's own door does not open on the pod. session.js maps job traffic_operator to plan.tonight, Plan, tonight's breaks, and JobPicker sends it to Break Library, whose title is Plan, the break. Measured: the Break contents panel starts 2,647 px down a 4,831 px page, 2.99 viewport heights below a 2,434 px break board, and there is no tonight filter anywhere in the product.",
+   "where": "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx panel order, PodPage.jsx day selection"
+  },
+  {
+   "rank": 6,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "A pod is not addressable. openId is React state only, the address never changes, and the pod id is printed as an inert code element. Two operators cannot name the same break by link, and the drawer's A traffic file covers 2025-04-27 is a name that opens nothing.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx openId, BreakInspector.jsx covered-days line"
+  },
+  {
+   "rank": 7,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "The nine-column spot list had no column headings, and its two leading bare numbers, the running order and the position the campaign bought, were one number twice. CLOSED THIS ROUND.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx, pod-model.js spotColumns, break-pod.css .pod-spot-head"
+  },
+  {
+   "rank": 8,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "gaps_between_spots and overlaps_between_spots were computed on the server, covered by tests, and rendered nowhere, so the 22:59:40 pod showed 450 s uncovered with no account of the 210 s of holes inside it. CLOSED THIS ROUND.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx, pod-model.js continuityRows"
+  },
+  {
+   "rank": 9,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "The no-declared-length card dropped the plan window the payload carries, so the screen said there is no plan without saying which days the plan does cover. CLOSED THIS ROUND.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx verdict block"
+  },
+  {
+   "rank": 10,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "A pod of one spot read 1 תשדירים, on two of the ten pods on the only covered day. CLOSED THIS ROUND.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx, pod-model.js countLabel"
+  },
+  {
+   "rank": 11,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "The pod row printed the sum as a bare figure with no label between the spot count and the unfilled figure. CLOSED THIS ROUND.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx pod row"
+  },
+  {
+   "rank": 12,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "After a reorder nothing said that the start-time column is the file's declared time and does not move with the order, so the clock column silently ran out of sequence. CLOSED THIS ROUND, and the underlying validation is item 3 and stays open.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx"
+  },
+  {
+   "rank": 13,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "BreakInspector renders PodBoard with busy hard-set, so three act buttons render permanently disabled with no reason while the rows stay draggable and the reorder hint still invites a move that can never be saved. Latent today because contents is unavailable on every plan day, live the moment a traffic file lands on a planned day. Needs a read-only mode on PodBoard rather than a disabled one.",
+   "where": "tv-break-dashboard/src/plan/break/BreakInspector.jsx:307"
+  },
+  {
+   "rank": 14,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "break_type prints the file's raw code. 64 of 175 rows are EB and 111 are Regular, and the product has no word for either. I added the field label this round so a reader knows it is the file's own code; the vocabulary itself is the owner's to supply.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx header, break_api_pod.py break_type"
+  },
+  {
+   "rank": 15,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "The path forward says Upload the daily traffic file for this day through Sources, and the shipped shell has no Sources; the destination is called Data and נתונים. Not fixed here because the same sentence appears on other pieces' surfaces and renaming only P10's would split the vocabulary.",
+   "where": "kairos_api/break_api_pod.py COVERAGE_FORWARD"
+  },
+  {
+   "rank": 16,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "No insertion indicator during a drag. Figma draws a blue line at the destination before release; here the only in-flight signifier is 0.5 opacity on the source row, which misses this campaign's own rule at 07-references.md:306.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx onDragOver, break-pod.css .pod-spot-dragging"
+  },
+  {
+   "rank": 17,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "The day's pod list gives no severity signal and no ordering on the figure that matters. 450 s uncovered and 0 s uncovered render identically, and the list is fixed in time order with no way to bring the worst pod to the top.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx pod list"
+  },
+  {
+   "rank": 18,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "data/break_pod_order.csv is written at runtime and is not a path in P10's row of section 8.2. No git write happened and no save was performed against the repository store this round, but the first real save creates it. Worth a line in the contract or a ruling.",
+   "where": "kairos_api/break_api_pod_order.py ORDER_PATH"
+  },
+  {
+   "rank": 19,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "The pod never states which column defines its boundary, while decisions-for-owner.md section 2 records the pod boundary as an open owner decision that blocks this piece. Using the file's own שעת התחלת ברייק column is the right and honest choice and it should say so on the surface, one line, the way the channel already names its source.",
+   "where": "kairos_api/break_api_pod.py build_pod, PodPage.jsx page description"
+  }
+ ],
+ "critic_round_1_queue_status_after_round_2": {
+  "closed_this_round": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   13,
+   14,
+   16,
+   17,
+   18,
+   19
+  ],
+  "verified_no_change_needed": [
+   15
+  ],
+  "left_open": [],
+  "note": "Every item marked kind=structural is now closed or, for rank 15, verified accurate against SourcesPage.jsx's own title and left as is per the round-1 reasoning against splitting cross-piece vocabulary. Ranks 7 to 12 (kind=mechanical) were not touched again."
+ },
+ "critic_round_1_fixed_myself": {
+  "files": [
+   "tv-break-dashboard/src/plan/break/pod-model.js (173 to 228): added countLabel, continuityRows and spotColumns",
+   "tv-break-dashboard/src/plan/break/PodBoard.jsx (199 to 248): column heading row, the gaps and overlaps line, the plan window on the unavailable verdict, the break-type field label, the stale-clock disclosure on a changed order, and a title on each of the two bare numeric cells",
+   "tv-break-dashboard/src/plan/break/PodPage.jsx (142): singular and plural agreement on the spot count, and a label on the sum",
+   "tv-break-dashboard/src/plan/break/break-pod.css (362 to 409): .pod-spot-head on the same grid as a row, and .pod-continuity"
+  ],
+  "verification": "npm run build clean 3510 modules, tests/ -k p10 28 passed, all four files under the 450 cap, and every change confirmed live in both languages on port 8061 before the server was killed. Screenshots 06, 07 and 08."
+ },
+ "critic_round_2": {
+  "measured_on": "my own uvicorn on port 8061 with KAIROS_AUTH_DISABLED=1, serving the dist the P10 builder shipped at 14:22:33, which post-dates its last source edit at 14:21:58 so the bundle is exactly the artifact under judgement. Every number below was taken before I edited a single file. Killed only 8061. Ports 8000, 3000 and 8010 untouched.",
+  "stopwatch": {
+   "job_story": "JS-7, the traffic operator assembles the pod. Target 90 s for the real seven-ad break at 22:53:49, 0 dialogs for the reorder, the sum visible at all times.",
+   "baseline_06": "table row 7: Done = No, 6.01 s app time, 2 clicks, 1 dead end, 1 guess. Section 7: durations summing to break length, drag reorder and lock none of these exist, the job cannot be started.",
+   "clicks_from_the_door": 2,
+   "nav_click_to_pod_rows_painted_ms": 330,
+   "pod_row_click_to_board_painted_ms": 114,
+   "door_to_arithmetic_total_ms": 445,
+   "scroll_before_the_first_pod_row_px": 401,
+   "scroll_before_the_first_pod_row_screens": 0.45,
+   "round_1_scroll_for_the_same_thing": "2647 px, 2.99 screens. The door fix is real and is a 6.6x reduction.",
+   "the_break_the_story_names": "22:53:49, 7 spots, 212 s declared, 217 s span, 5 s uncovered, all four reproduced from the shipped CSV. 22:57:26 less 22:53:49 is 217, and 217 less 212 is 5, and the 5 is the head gap, so the decomposition closes.",
+   "the_one_real_error_is_named": "spot 3, קופ\"ח מאוחדת, copy version מחליפה - סרט מלא 35' booked at 36 s, house number CID178977. Exactly one disagreement on that pod and zero on 22:59:40, so the sale-days copy does not manufacture a false alarm.",
+   "reorder_keyboard": "Alt with the down arrow moved the focused spot one place in one keystroke, 0 dialogs, focus followed the row to index 1.",
+   "reorder_drag_indicator": "dragstart then dragover on the lower half of row 4 applied pod-spot-drop-after to that row, so the insertion line is real. Round 1's largest A/B loss against Figma is closed.",
+   "save_ms": 807,
+   "lock_ms": 246,
+   "lock_refusals": "PUT order on a locked pod answers 423, a second lock answers 409, DELETE lock answers 200 then 404.",
+   "verdict": "the whole job runs in about two seconds of app time and two clicks against a baseline that could not start it. The 90 s target is met with an order of magnitude to spare, and the two done conditions round 1 failed on, the copy against the booked duration and the lock, are both genuinely present."
+  },
+  "blind_ab": {
+   "reference_1": "a professional broadcast traffic log, fetched live rather than remembered. nexttv.com The ABCs of Traffic, quoted exactly: 'LOG VERIFICATION: Ensures that the log is technically correct and shows any errors that need to be corrected by traffic prior to finalizing.' Marketron Aspire adds that a traffic manager's own duties include 'reconciling logs, processing orders, building formats, balancing and maximizing spot placement on logs, and finalizing a daily log.'",
+   "reference_2": "Figma's own layer reordering, fetched live. help.figma.com Arrange layers with Smart selection: 'a blue indicator shows you where you can move the layer to'. Envato Tuts+ on layer stacking, quoted exactly: 'hold down CMD or CTRL and hit one of the square bracket keys [ or ]. The left square bracket will move an object down the stack, and the right square bracket will shift it upwards.' Neither source describes any save step.",
+   "verification_and_finalising": "MERIDIAN NOW WINS, and this reverses round 1's decisive loss. The trade's own pair is verification then finalising. Meridian has both: a verification list that names every copy-length disagreement, every spot with no declared length and every spot out of its declared rank, and a lock that freezes the order and refuses a further write with 423. The reference defines the step; Meridian performs it and prints the count on the pod row so a person scanning ten pods sees which to open.",
+   "drag_mechanics": "TIE, where round 1 was a loss. Figma draws a blue indicator before release; Meridian now draws a 2px logical-edge insertion line on the target row, before or after by which half of the row the cursor is on, and dropIndexFor makes the landing direction-independent. Figma's indicator floats between rows and does not perturb layout; Meridian's borrows the row's own border, which shifts the row 1px. That is the only remaining difference and it is cosmetic.",
+   "keyboard_reorder": "MERIDIAN WINS on this one. Figma moves one position with Cmd and a bracket. Meridian moves one position with Alt and an arrow, focus follows the moved row, and each row now carries a spoken label naming its order, advertiser, position, length, copy check and any rank disagreement. Figma's panel speaks none of that.",
+   "commit_model": "SPLIT, unchanged from round 1 and correctly so. Figma commits on drop with no save step, which is more direct. Meridian requires Save this order, because the register records the actor, the timestamp and a fingerprint of the pod as read. For a broadcast log that is the right trade. It is also where this round's largest gap lives: the register now records a decision nobody made.",
+   "columns": "MERIDIAN WINS. A traffic log is a headed table and this is one, ten headed columns on one grid, with Copy check sitting between the copy version and the length so the comparison is between the two figures it reports on. The reference logs I could reach do not publish their column sets, so this is judged against the trade's own description of what traffic checks rather than against a screenshot.",
+   "what_the_traffic_log_still_has_that_this_does_not": "a cumulative elapsed-in-break column, and a formal per-spot media check, which is JS-8 and P13's and is honestly blocked on the owner's media feed."
+  },
+  "regression": {
+   "method": "attribution against a commit, never against the working tree, per RESUME-HERE rule 4. Three trees, same interpreter, same selection, -p no:randomly. /tmp/p10ref = git archive HEAD. /tmp/p10cur = HEAD plus P10's thirteen uncommitted round-2 files and nothing else. /tmp/p10mine = HEAD plus those files after my critic fixes.",
+   "ref_HEAD": "25 failed, 258 passed, 7 skipped on -k 'p10 or p3 or break'",
+   "cur_as_the_builder_shipped_it": "26 failed, 267 passed, 7 skipped",
+   "the_one_new_failure": "tests/test_p3_boundary_and_regression.py::test_nothing_this_piece_wrote_carries_an_em_dash_an_emoji_or_a_shout. P10's round-2 diff put a literal em-dash into shipped copy at PodBoard.jsx:137 and turned P3's own voice guard red. It was both a hard-law violation and a genuine Bar 3 regression, and it shipped.",
+   "mine_after_my_fixes": "25 failed, 268 passed, 7 skipped. diff of the FAILED lists against ref is EMPTY: identical failure set. My fixes closed the one regression P10 caused and introduced none.",
+   "p10_suite": "38 passed, 0 failed, before my edits and again after them.",
+   "frontend_build": "npm run build clean, 788 ms, dist/assets/index-1-RmgOBU.js 1,633.29 kB. No isolated-tree fallback needed this round.",
+   "direction_guard": "node scripts/verify-direction-rules.mjs passes, but only because src/plan/break/ is quarantined in that script. See queue item 3.",
+   "wave_one_capabilities_checked_by_hand": [
+    "GET /api/breaks/{break_id} is not shadowed by /api/breaks/pods. The pods path answers 200 with the pods payload and a non-pod id answers 422, so the router order still holds.",
+    "The Break Library ranked shelf still renders 80 rows with status, channel, airing, programme type, position, type, length, revenue and retention, and the CSV export control is still there.",
+    "Breaks in the day still renders the 30-day strip and the 80-break table with gold breaks, unchanged.",
+    "The break inspector drawer still opens from the day board with all seven of its sections, and its Break contents section still reports the honest unavailable state naming the covered day rather than a fabricated pod.",
+    "The OpenAPI surface holds 159 paths and 199 operations with the four pod paths present and no existing path redefined.",
+    "The competitor boundary holds: greped the whole serialized /api/breaks/pods payload for קשת 12, כאן 11, עכשיו 14 and their Latin spellings, 0 hits each; the channel printed is רשת 13, which is data/kairos_settings.json's operator_channel.",
+    "No training act anywhere: 0 hits for models/, train, candidate or adopt across every file this piece owns."
+   ]
+  }
+ },
+ "queue": [
+  {
+   "rank": 1,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "Locking a pod whose saved operator order has gone stale silently destroys that order, its note and its saved_at. break_api_pod.py:419 sends has_operator_order=False for a stale row, because state reads 'stale' and never 'operator', so lock() drops the row at break_api_pod_order.py:222-223 and writes a file-sourced one. Unlocking then deletes that row too, leaving no record that an operator ever saved an order for this pod. Read in code, not reachable on today's data, because the one traffic file would have to change under a saved order. It is the mirror of the round-2 gap on the one surface whose purpose is attribution.",
+   "where": "kairos_api/break_api_pod.py lock_pod 419; kairos_api/break_api_pod_order.py lock 221-237, unlock 260-263"
+  },
+  {
+   "rank": 2,
+   "severity": "serious",
+   "kind": "structural",
+   "what": "33 dir attributes remain inside this piece's own tree and the direction guard still cannot see the directory. Counted this round: BreakBoard.jsx 22, GoldBreakManager.jsx 9, BreakChip.jsx 2. PodBoard.jsx, PodPage.jsx and BreakInspector.jsx are genuinely 0, down from 111, so the round-2 item is two thirds closed. Measured live in the DOM, not only in source: the break table renders <td dir=\"ltr\">00:28:24</td> and <td dir=\"auto\">, which is design-rules section 6's banned form verbatim. The quarantine of src/plan/break/ in verify-direction-rules.mjs:96-100 stays until all 33 go, and that line is in a frozen script, so the sweep and the ruling are two separate acts.",
+   "where": "tv-break-dashboard/src/plan/break/BreakBoard.jsx, GoldBreakManager.jsx, BreakChip.jsx; quarantine at tv-break-dashboard/scripts/verify-direction-rules.mjs:96-100"
+  },
+  {
+   "rank": 3,
+   "severity": "serious",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. npm run test:dates failed on this piece's own file. verify-date-rules.mjs reported 3 date-part-arithmetic violations in src/plan/break/PodPage.jsx line 16, a hand-rolled todayIso built from getFullYear/getMonth/getDate. Attributed by three trees: a git archive of HEAD passes the guard, the working tree fails it, and PodPage.jsx is the only file named. It also answered in the machine's own zone rather than Asia/Jerusalem, so a reader west of Israel would have opened yesterday's breaks.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx 14-17"
+  },
+  {
+   "rank": 4,
+   "severity": "serious",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. A locked pod refused PUT /order with 423 but accepted DELETE /order, which drops the whole register row including the lock. Measured live on 2025-04-27~22:53:49: save an order with a note, lock it, then DELETE the order returned 200 and left data/break_pod_order.csv holding only its header. The pod was unfinalised, the frozen order gone and the note gone, with no unlock ever pressed. The button is disabled on screen while locked, so only a direct call reaches it, but the guard existed one route above and not here.",
+   "where": "kairos_api/break_api_pod.py forget_order 384-392"
+  },
+  {
+   "rank": 5,
+   "severity": "serious",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. The lock time on the audit banner was rendered by lockedAt.slice(0, 16).replace('T', ' '), which prints the stored UTC instant with no zone said. Measured: a lock taken at 16:28 Israel time read '2026-08-07 12:59' earlier in the session and '07/08/2026, 16:28' after the fix, a three-hour error on the one line that records who finalised a pod and when.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-lock-tag 157"
+  },
+  {
+   "rank": 6,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. Every calendar day this piece printed was ISO, against design-rules section 7, which fixes dd/mm/yyyy in both locales and names shell/dates.js as the only home. Measured before: the day picker read 2025-04-27, the tonight line 2026-08-07, the plan-coverage line 2024-11-01 to 2024-11-30. After: 27/04/2025, 07/08/2026, 01/11/2024 to 30/11/2024.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx pod-days and pod-tonight; PodBoard.jsx verdict covers"
+  },
+  {
+   "rank": 7,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. Lock this pod is disabled while the order on screen is unsaved and said nothing about why. JS-7's sequence is reorder then lock, so this is the exact moment an operator meets the disabled button. One line now states the reason, and it appears only in that state.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-hint block"
+  },
+  {
+   "rank": 8,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "FIXED THIS ROUND. The eleven-column grid-template-columns was written verbatim twice, on .pod-spot-head and on .pod-spot, so a change to one would misalign every heading from the column it names. Now one grouped selector holds it. Carried from round-2 item 11. break-pod.css sits at exactly 450 lines after the fix, so the next addition to it needs a trim first.",
+   "where": "tv-break-dashboard/src/plan/break/break-pod.css 167-172"
+  },
+  {
+   "rank": 9,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "Hebrew prints seconds two ways on one screen. The copy-check badge, the elapsed column and the length column read 35s with a Latin s, while the verification error directly beneath them reads 'שם הגרסה נוקב ב-35 שנ''. pod-model.js's own comment at copyLengthBadge claims the badge uses the same mark the length column uses, and it does, but the server's Hebrew detail uses the trade's mark instead. Not mine to close: P3's break table and break inspector also print s, so making P10 alone say שנ' would split the product rather than settle it. Needs one ruling on the Hebrew seconds mark, then one sweep.",
+   "where": "tv-break-dashboard/src/plan/break/pod-model.js secondsLabel 32-36 and copyLengthBadge 215-229; kairos_api/break_api_pod_math.py verification detail_he"
+  },
+  {
+   "rank": 10,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "break_type still prints the traffic file's raw code. Measured on the shipped file: 64 rows EB, 111 Regular, and the header now says in its title attribute that this is the file's own code with no translated term yet, which is the right holding answer. The vocabulary is the owner's to supply. Carried unchanged from round 1 item 14 and round 2 item 5.",
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-when header 145-149; kairos_api/break_api_pod.py build_pod break_type"
+  },
+  {
+   "rank": 11,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "data/break_pod_order.csv is still not a row in spec section 8.2's table. break_api_pod_order.py's docstring argues, reasonably, that a declared helper module's own runtime output is the module's to place, but that is a builder's reading rather than a ruling. One line from the lead closes it. Carried from round 1 item 18 and round 2 item 13.",
+   "where": "kairos_api/break_api_pod_order.py ORDER_PATH 68; docs/ux-gauntlet/spec.md section 8.2"
+  },
+  {
+   "rank": 12,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "design-rules section 4: the four acts still share one visual weight, so no act is primary. The trade's sequence ends on finalising, so Lock this pod is the candidate. Left open deliberately, for the same reason round 2 left it: choosing the primary is a design decision rather than a defect, and break-pod.css now sits at exactly the 450-line cap, so whoever takes it must trim before adding a rule.",
+   "where": "tv-break-dashboard/src/plan/break/break-pod.css .pod-act, .pod-act-save, .pod-act-lock"
+  },
+  {
+   "rank": 13,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "The read-only pod inside the break drawer never renders on today's data. The plan on disk covers 2024-11-01 to 2024-11-30 and the only traffic file covers 2025-04-27, so every break opened from the day board reports the honest unavailable state and the shared PodBoard branch behind it is never exercised live. Verified by opening the drawer on the first break of the day board. Same latency as the declared-length verdict, and it means the claim that the drawer and the page draw one component is proven only by tests today.",
+   "where": "tv-break-dashboard/src/plan/break/BreakInspector.jsx contents section 305-352"
+  },
+  {
+   "rank": 14,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "Opening a pod low in the day list leaves the arithmetic below the fold. Measured at 1440x960 on the 22:53:49 row, the ninth of ten: after the click the three figures sat 46 px past the viewport bottom and nothing scrolled. Small here, larger for the tenth row and for any day with more pods. The page already scrolls itself for a covered-day request, so the mechanism exists.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx setOpenId 210"
+  },
+  {
+   "rank": 15,
+   "severity": "minor",
+   "kind": "mechanical",
+   "what": "The Break Library page header still describes the ranked shelf as what follows it, but this round moved the pod section above the break board, so the header now sits over a section it does not describe. Its body reads 'Every break in one broadcast day, with what the plan expects it to earn. Open one for its full detail, or use the ranked shelf below.' Not fixed by me because the page header is P3's own editorial voice and two shared P3 tests read this file.",
+   "where": "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx 55-63"
+  },
+  {
+   "rank": 16,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "A failed write surfaces the raw HTTP status line to the operator. PodPage throws new Error(`${response.status} ${response.statusText}`) and hands that to notify, so a refused act reads '423 Locked' or '409 Conflict' rather than the sentence the API already sends in detail. Every one of those details is written in plain English on the server and none of them reaches the screen.",
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx write 116-124"
+  },
+  {
+   "rank": 17,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "The locale lives in data/kairos_settings.json, a git-tracked file, so every agent measuring the product in the other language fights over it. Measured this round rather than reasoned: the file flipped from he to en and back underneath a live measurement while another agent was working, and one screenshot captured a different agent's page entirely. Not P10's path and not P10's bug. Carried from round 2 item 14.",
+   "where": "data/kairos_settings.json; kairos_api/settings_api.py, which is W0-4's"
+  },
+  {
+   "rank": 18,
+   "severity": "minor",
+   "kind": "structural",
+   "what": "npm run test:smoke has been dead since wave 0 and nobody owns the failure. verify-dashboard-render.mjs opens src/TVBreakDashboard.jsx, which W0-2 moved to src/shell/, so it exits ENOENT. Confirmed on both the working tree and a git archive of HEAD, so it is not this piece's doing, but one of the three shipped frontend guards has been answering nothing for the whole run.",
+   "where": "tv-break-dashboard/scripts/verify-dashboard-render.mjs"
+  }
+ ],
+ "fixed_myself": {
+  "summary": "Six findings closed, all inside paths P10 owns in the wave-two row of section 8.2, all measured before and after.",
+  "paths": [
+   "tv-break-dashboard/src/plan/break/PodPage.jsx",
+   "tv-break-dashboard/src/plan/break/PodBoard.jsx",
+   "tv-break-dashboard/src/plan/break/break-pod.css",
+   "kairos_api/break_api_pod.py",
+   "tests/test_p10_pod_verification.py"
+  ],
+  "items": [
+   "Queue 3, the date-guard regression. PodPage.jsx now imports todayIso and formatDay from shell/dates.js and the local getFullYear/getMonth/getDate function is gone. node scripts/verify-date-rules.mjs went from '3 violations over budget in 1 files' to 'Date rules hold.'",
+   "Queue 4, the lock bypass. forget_order in break_api_pod.py now refuses a locked pod with 423, the same guard save_order carries. Measured live: with a locked, noted, reordered pod, DELETE /api/breaks/pod/2025-04-27~22:53:49/order returned 423 and left the register row byte-identical; after DELETE /lock the same call returned 200. Pinned by the new test_a_locked_pod_refuses_the_revert_as_firmly_as_it_refuses_a_write.",
+   "Queue 5, the UTC lock stamp. PodBoard.jsx now renders formatStamp(lock.lockedAt), so the banner reads 07/08/2026, 16:28 in Asia/Jerusalem instead of the stored 13:28 UTC.",
+   "Queue 6, ISO dates. The day picker, the tonight line and the plan-coverage line now read 27/04/2025, 07/08/2026 and 01/11/2024 to 30/11/2024.",
+   "Queue 7, the silent disabled lock. One line now appears exactly when the order is unsaved and Lock is disabled: 'Save this order before locking the pod, so the order that is frozen is the order that is recorded.' Measured live, lockDisabled true and the hint present in the same DOM read.",
+   "Queue 8, the duplicated grid. One grouped selector now holds the eleven columns for the heading and the rows together."
+  ],
+  "not_closed_and_why": "Queue 1 needs a decision about what a lock means on a stale row and probably a payload state, which is a data-model change. Queue 2 needs 33 edits in three files plus a line deleted from a frozen guard script. Queue 9 needs a product-wide ruling on the Hebrew seconds mark. Queues 10, 11, 17 and 18 are owner, lead or other-piece decisions. Queues 12, 14, 15 and 16 are mechanical but each carries a judgement I did not want to make silently on somebody else's behalf: which act is primary, when a list scrolls itself, another piece's page copy, and which sentence a failed write should show."
+ },
+ "evidence_paths": [
+  "docs/ux-gauntlet/evidence/p10-c3-01-pod-locked-he.png",
+  "docs/ux-gauntlet/evidence/p10-c3-02-pod-en-before-critic-fixes.png",
+  "docs/ux-gauntlet/evidence/p10-c3-03-pod-he-after-critic-fixes.png"
+ ],
+ "ownership_check": {
+  "verdict": "clean",
+  "paths_written": "kairos_api/break_api_pod.py, break_api_pod_math.py, break_api_pod_order.py, break_api_pod_spots.py (break_api.py extensions by handover, under the section 8.2 helper naming rule <parent stem>_<role>.py); tv-break-dashboard/src/plan/break/{PodBoard.jsx, PodPage.jsx, pod-model.js, BreakInspector.jsx, BreakLibraryPage.jsx, break-pod.css, break-pod-list.css}; tests/test_p10_pod_*.py under the reserved prefix; docs/ux-gauntlet/state/P10.json. Every one is inside P10's wave-two row.",
+  "the_one_path_outside_the_row": "data/kairos_settings.json carries a trailing-newline-only diff, written by the running product's own settings API when I used the locale toggle to measure the Hebrew surface. locale and direction are byte-identical to HEAD. No source file outside the row was edited and no git add, commit, checkout or restore was run.",
+  "runtime_stores_restored": "data/break_pod_order.csv did not exist before this run and does not exist after it. The five data/_backups/break_pod_order_*.csv my writes created were removed; the one the round-2 builder left, 20260807T111907, is untouched."
+ },
+ "critic_round_1_queue_status_verified_by_round_2_critic": {
+  "1_copy_length": "GENUINELY CLOSED. Verified against the shipped file over HTTP, not against a test. 22:53:49 returns exactly one disagreement and it is the one job-stories.md names. The narrow parse rule holds on every trap in the data: the bare tokens 34 and 20 read as no length, and סרט 15 ימי מכירות on a 14 s spot reads as no length rather than a false alarm.",
+  "2_lock_and_error_list": "CLOSED IN SUBSTANCE, BROKEN IN ATTRIBUTION. The lock exists, refuses with 423 and 409, and the error list is real. But lock plus unlock leaves a fabricated operator order behind, which is this round's largest gap.",
+  "3_position_violations": "CLOSED SERVER-SIDE, and I drove it rather than trusting the test: saving a swap of the first two positioned spots took the verification count from 1 to 3 and marked both rows. Reopened in a smaller form as queue item 2, because the check only runs after a write.",
+  "4_uncovered_decomposition": "CLOSED. 22:59:40 reports 450 s uncovered, 240 s of it before the first spot and 210 s in ten internal gaps, and 240 plus 210 is 450, so the decomposition closes exactly. The span label now says it includes dead air.",
+  "5_the_door": "CLOSED. 401 px and 0.45 screens to the first pod row, down from 2647 px and 2.99 screens.",
+  "6_addressability": "HALF CLOSED, and the half that is open is the half that matters. The pod is genuinely addressable: a cold load of ?day=...&pod=... reopens the same pod, verified. But the covered-day button in the break drawer is dead on the Break Library page, which is the page the drawer is most often opened from. See queue item 4.",
+  "7_to_12_mechanical": "all still in place and all still correct, checked on screen in both locales.",
+  "13_read_only": "CLOSED. BreakInspector passes readOnly, the drawer's rows are not draggable and the acts are absent rather than disabled with no reason.",
+  "14_break_type": "NOT CLOSED and correctly so, it is owner vocabulary. Carried as queue item 5.",
+  "15_sources_destination": "REOPENED AND CLOSED BY ME. The round-2 builder marked this verified-no-change-needed against SourcesPage.jsx's own title. That is the wrong artifact: the operator navigates by the sidebar, which says Data and נתונים, and there is no Sources entry anywhere in it. This is exactly the class of miss a scoped judge cannot catch, and it is why the brief asks a full sweep to re-check them.",
+  "16_drag_indicator": "CLOSED. Verified by dispatching a real dragstart and dragover and reading the class back off the target row.",
+  "17_severity_and_sort": "CLOSED. The day list carries a to-check chip and a red border on the pod that needs one, and a Needs attention first sort.",
+  "18_order_csv_ownership": "DOCUMENTED, NOT RULED. Carried as queue item 13.",
+  "19_boundary_note": "CLOSED, and it is on screen in both languages. It carried the em-dash, which is how the law violation got in."
+ },
+ "round_3_builder": {
+  "resume_note": "docs/ux-gauntlet/state/P10.json was still round 2 when this round started, and the working tree already carried real, uncommitted work: break_api_pod_order.py's lock()/unlock() rewrite (queue items 1 and 6), pod-model.js's liveVerificationErrors/verificationList/positionViolationMap and their wiring into PodBoard.jsx (queue item 2), and the requestedDay/onOpenPodDay state channel across PodPage.jsx/BreakInspector.jsx/BreakBoard.jsx/BreakLibraryPage.jsx (queue item 4). Per the resume rule, this was inspected on disk and verified live rather than redone.",
+  "queue_status_this_round": {
+   "1_lock_fabrication": "CONFIRMED CLOSED, live. Lock then Unlock on an untouched 2025-04-27~22:53:49 pod, curled against the real repo data file: order.state reads file after the lock, the CSV holds locked=1/order_source=file/spot_keys empty, and after unlock the register holds only its header row, no data row, no actor. Also pinned in tests/test_p10_pod_verification.py::test_locking_an_untouched_pod_never_manufactures_an_operator_order.",
+   "2_live_verification": "CONFIRMED CLOSED, live. Dispatched a real Alt+ArrowDown keydown on the first spot of 22:53:49: the order changed (s0,s1 swapped) and the Verification tile read 3 immediately, labelled 'Verification if saved', before any write.",
+   "3_dir_sweep": "CLOSED this round, within the queue's own stated scope. PodBoard.jsx 48, BreakInspector.jsx 47, PodPage.jsx 17 (111 total, matching the queue's count) are now 0, 0, 0. Every site replaced with Figure, Code, Name or Prose from the frozen shell/bidi.jsx, or with nothing where the content was already known-language interface copy. BreakBoard.jsx (22), BreakChip.jsx (2) and GoldBreakManager.jsx (9) carry dir attributes of their own but were never named in the queue's 111 count and were left untouched; a private copy of the direction guard with the plan/break quarantine line removed confirms 33 remain there, informational only.",
+   "4_dead_covered_day_button": "CONFIRMED CLOSED, live. Opened a break drawer from a non-traffic day's row in the day board, clicked its 2025-04-27 covered-day link: the drawer closed, the page scrolled (scrollY went from 0 to 197.5), and the pod page reloaded to 2025-04-27, all three of which were no-ops before.",
+   "6_lock_overwrite": "CONFIRMED CLOSED, same fix as item 1. Pinned in tests/test_p10_pod_verification.py::test_unlocking_leaves_the_frozen_order_exactly_as_it_stood, which locks a genuinely reordered pod and asserts saved_at and note survive the lock untouched.",
+   "7_verdict_bidi": "CLOSED as part of item 3's sweep. The declared/sold/difference line no longer sits inside one forced dir=ltr span; each seconds figure is its own Figure and the Hebrew words either side of them sit in the surrounding flow. Not exercisable on today's real data (the plan and the traffic file share no date, so this branch never renders on disk today), so this is a code-correctness fix rather than a live-rendered one, same status as when the declared-length arithmetic itself was proven with a synthetic fixture in tests/test_p10_pod_declared_length.py.",
+   "8_accessibility": "CLOSED. The spot list is now a real ARIA table: role=table wraps the heading row and the list, role=row on the heading and every spot, role=columnheader on the eleven column headings, role=cell on every data cell including the drag-handle column. Verified live by counting ARIA nodes in the DOM on 22:53:49: 8 rows (1 heading + 7 spots), 11 columnheaders, 77 cells (11 x 7).",
+   "9_elapsed_column": "CLOSED. New column between Declared start and Length, computed client-side over the spots in whatever order the surface currently shows (elapsedSeconds in pod-model.js), so it moves when a spot moves, unlike the declared clock beside it. Verified live on 22:53:49: 0s, 28s, 63s, 99s, 133s, 178s, 192s against the shipped 28/35/36/34/45/14/20s lengths, the exact running sum. Reports unknown from the first spot with no declared length onward rather than a number that assumes the missing length was zero.",
+   "10_verification_zero_ambiguity": "CLOSED. New copyCheckCoverage() in pod-model.js. Verified live: the 20:40:09 pod (9 of 28 spots carry a checkable copy length, 0 errors) now reads 'the copy check ran on 9 of 28 spots. The rest declare no length in their copy version to check against.' The 20:24:23 pod (0 of 1 checkable, 0 errors) reads 'no spot here declares a length in its copy version to check against.' Two different sentences for two different facts.",
+   "5_break_type": "STILL NOT CLOSED, correctly. Re-confirmed as owner vocabulary; fabricating a translation for EB/Regular would be inventing the very vocabulary this piece is not the owner of.",
+   "13_order_csv_ownership": "STILL NOT RULED. docs/ux-gauntlet/spec.md section 8.2 is frozen; this piece can document its own reasoning (already does, in break_api_pod_order.py's own docstring) but cannot rule on the table itself.",
+   "14_settings_json_residue": "STILL NOT P10'S BUG. kairos_api/settings_api.py is W0-4's. Not touched this round; the toggle was not used this round's live checks (English locale check used the product's own language button, not the RTL/LTR direction toggle, so no settings write happened at all this time).",
+   "15_shell_nav_english": "STILL NOT P10'S PATH. src/shell/ remains frozen for this piece."
+  },
+  "evidence": {
+   "tests": "python -m pytest tests/ -q -k p10: 39 passed, 0 failed, 13.90s. python -m pytest tests/test_p10_pod_api.py::test_every_file_this_piece_owns_is_inside_the_size_law: 1 passed.",
+   "frontend_build": "npm run build: clean, 3512 modules transformed, 800ms, dist/assets/index-*.js 1,636.89 kB.",
+   "direction_guard": "node scripts/verify-direction-rules.mjs: 'Direction rules hold.' A private scratch copy with the plan/break quarantine line removed reports 0 violations in PodBoard.jsx, PodPage.jsx and BreakInspector.jsx and 33 remaining in BreakBoard.jsx/BreakChip.jsx/GoldBreakManager.jsx, which were outside this round's scope.",
+   "size_law": "Largest owned file after this round is break-pod.css at 448, then pod-model.js at 441, then PodBoard.jsx at 434, then break_api_pod.py at 432. All inside 450.",
+   "voice": "0 em-dashes, 0 en-dashes, 0 emoji, 0 exclamation-as-punctuation (every ! in the touched files is a boolean negation or !== operator), 0 occurrences of משתמש, across every file this round touched.",
+   "regression": "python -m pytest tests/ -q -k 'p10 or p3 or break' -p no:randomly: 25 failed, 3 errors, 272 passed, 1 skipped. Every failure is in test_p3_basis_class.py, test_p3_direct_manipulation.py, test_p3_editor_coverage.py, test_p3_editor_money.py, test_p3_framing.py, test_p3_save_scope.py, test_p3_surface_readout.py, test_p5_money_pair_bidi.py or test_qa_adoption_integrity.py, none of them P10's. The 3 errors are in test_p4_every_name_opens.py, all inside a node subprocess that fails to resolve 'shell/bidi' as an extensionless ES module import from a copied build of MoneyBoard.mjs; running that whole file alone reproduces all 7 of its tests erroring the same way, not only the 3 whose names happened to contain the word break, so it is a P4/P5-owned render-harness fragility rather than anything this piece wrote or caused.",
+   "runtime_stores_restored": "data/break_pod_order.csv did not exist before this round's live checks and does not exist after them. The one backup my checks created (break_pod_order_20260807T123532.csv) was removed; the round-2 builder's own backup (20260807T111907) is untouched. data/kairos_settings.json and data/make_goods.csv carry pre-existing diffs from before this session that this round did not add to or touch."
+  },
+  "ownership_check": "Every path written this round is inside kairos_api/break_api_pod_order.py, kairos_api/break_api_pod.py, tv-break-dashboard/src/plan/break/{PodBoard.jsx,PodPage.jsx,pod-model.js,BreakInspector.jsx,break-pod.css} and docs/ux-gauntlet/state/P10.json. No git add, commit, push, stash, checkout or restore was run. Servers touched: KAIROS_AUTH_DISABLED=1 uvicorn on :8041 (started and killed by this round) and vite dev on :3001 (chosen automatically by strictPort:false when :3000 was occupied; started and killed by this round). Ports 3000, 8000, 8010 and the pre-existing critic session on :8061 were never restarted, killed or written to."
+ },
+ "round_4_builder": {
+  "queue_status_this_round": {
+   "1_lock_fabrication_on_stale": "CLOSED. The gap named at the top of this file. break_api_pod_order.lock() no longer trusts a caller-supplied has_operator_order flag derived from a possibly-already-stale snapshot of order.state; it reads order_source directly off the row it is about to touch. A row whose order_source is operator keeps spot_keys, saved_at, actor and note through a lock and an unlock whether or not its fingerprint currently matches, so a stale row stays reported stale, now carrying the lock, rather than being replaced with an empty file-sourced row. Pinned in tests/test_p10_pod_verification.py::test_locking_a_stale_operator_order_keeps_it_rather_than_destroying_it, which simulates the file moving under a saved order by rewriting only the stored register's own fingerprint column (never a file on disk) and drives the full save, go-stale, lock, read, unlock, read sequence through the real HTTP routes.",
+   "2_dir_sweep_remainder": "CLOSED to 1 legitimate exception. BreakBoard.jsx 22 to 0, GoldBreakManager.jsx 9 to 1, BreakChip.jsx 2 to 0. The one survivor, GoldBreakManager.jsx's chart-ltr container, is the same accepted charting convention used in six files across the product including three this piece does not own, and is analogous to an existing EXCEPTIONS entry in the frozen guard script for DayBoardReadout.jsx's own day-hours chart. Verified with a private scratch copy of verify-direction-rules.mjs with the src/plan/break/ quarantine line removed: 33 violations in 3 files before this round, 1 violation in 1 file after. The quarantine's removal and a matching EXCEPTIONS entry both belong in that frozen script and are reported rather than edited.",
+   "16_raw_status_surfaced": "CLOSED. PodPage.jsx write() now awaits response.json() on a failed act and uses its own detail field (This pod is locked, This pod is already locked, The order must hold exactly this pod's own spot keys, and so on, all already written in plain English on the server) rather than the bare HTTP status line, falling back to the status line only if the body cannot be parsed.",
+   "9_hebrew_seconds_mark": "STILL NOT CLOSED, correctly. Re-confirmed as a cross-piece consistency question: three of the four places this piece prints seconds already agree with P3's frozen break table (Latin s), and the fourth is the trade mark quoted from docs/media-domain-from-the-trade.md. Picking a direction unilaterally would either split this piece's own surface internally or split it from P3's, and the critic's own reasoning already named the ruling and the sweep as two separate acts.",
+   "10_break_type_vocabulary": "STILL NOT CLOSED, correctly. Owner vocabulary, unchanged from rounds 1 through 3.",
+   "11_order_csv_ownership": "STILL NOT RULED. docs/ux-gauntlet/spec.md section 8.2 is frozen.",
+   "13_readonly_pod_unexercised": "NOT A DEFECT. Documented, not fixed, because there is nothing in code to fix: it is a fact about which branch today's one traffic file and one plan window happen to exercise, the same latency class as the declared-length arithmetic itself, which round 1 already proved correct with a synthetic fixture rather than waiting for the data to align.",
+   "17_settings_json_locale": "STILL NOT P10'S BUG. kairos_api/settings_api.py is W0-4's. Not touched this round; no locale toggle was used, since every check ran through pytest or npm run build rather than a live server.",
+   "18_dead_smoke_script": "STILL NOT P10'S BUG. tv-break-dashboard/scripts/verify-dashboard-render.mjs is broken on HEAD; not this piece's file."
+  },
+  "evidence": {
+   "tests": "python -m pytest tests/ -q -k p10: 41 passed, 0 failed (up from round 3's 40; the new stale-lock test is the +1).",
+   "frontend_build": "npm run build: clean, 3512 modules transformed, 1.63s, dist/assets/index-BRMj80mI.js 1,637.14 kB.",
+   "direction_guard": "node scripts/verify-direction-rules.mjs: 'Direction rules hold.' A private scratch copy with the plan/break quarantine line removed reports 1 violation in 1 file (GoldBreakManager.jsx line 92, the accepted chart-ltr exception), down from 33 violations in 3 files before this round.",
+   "date_guard": "node scripts/verify-date-rules.mjs: 'Date rules hold.'",
+   "size_law": "python -m pytest tests/test_p10_pod_api.py::test_every_file_this_piece_owns_is_inside_the_size_law: 1 passed. Largest owned file is break-pod.css at exactly 450, then PodBoard.jsx at 444, then break_api_pod.py at 436.",
+   "voice": "0 em-dashes, 0 en-dashes, 0 emoji, 0 exclamation-as-punctuation across every file this round touched, checked by a quoted-string scan as well as a grep; every ! in the touched JSX and Python is a boolean negation, a != comparison or a !== comparison.",
+   "regression": "python -m pytest tests/ -q -k 'p10 or p3 or break' -p no:randomly: 25 failed, 3 errors, 274 passed, 1 skipped, 3310 deselected, 194.79s. The failed and errored test names are byte-identical to critic round 3's own documented baseline: all 25 failures are in test_p3_basis_class.py, test_p3_direct_manipulation.py, test_p3_editor_coverage.py, test_p3_editor_money.py, test_p3_framing.py, test_p3_save_scope.py, test_p3_surface_readout.py, test_p5_money_pair_bidi.py or test_qa_adoption_integrity.py, none owned by P10 and all in src/plan/day/** or a cross-cutting law test, none of it touched this round. The 3 errors are in test_p4_every_name_opens.py; running that file alone reproduces 6 of its 7 tests erroring identically (1 passes), and the stack trace names node:ERR_MODULE_NOT_FOUND resolving shell/bidi from a copied build of MoneyBoard.mjs, a file this piece has never touched, confirming the failure predates and is unrelated to this round's own new import of shell/bidi into BreakChip.jsx."
+  },
+  "ownership_check": "Every path written this round is inside kairos_api/break_api_pod_order.py, kairos_api/break_api_pod.py, tv-break-dashboard/src/plan/break/{BreakBoard.jsx,GoldBreakManager.jsx,BreakChip.jsx,PodPage.jsx}, tests/test_p10_pod_verification.py under the reserved prefix, and docs/ux-gauntlet/state/P10.json. No git add, commit, push, stash, checkout or restore was run. No server was started or killed this round: every check ran through pytest's own fixtures (order_store.ORDER_PATH monkeypatched to a tmp_path, same as every prior round's isolated tests) or through npm run build and the two node guard scripts, so data/break_pod_order.csv was never created and data/ carries no new diff from this round. data/kairos_settings.json and data/make_goods.csv carry the same pre-existing diffs noted in round 3, untouched here."
+ },
+ "critic_round_3": {
+  "servers": "Mine only: uvicorn on 127.0.0.1:8061 (started, restarted once to pick up my own fix, and killed by me) and vite on 127.0.0.1:3061 with KAIROS_API_PROXY pointed at 8061 (started and killed by me). Ports 8000, 3000 and 8010 were never touched.",
+  "stopwatch": "JS-7, door to arithmetic: 2 clicks, 328 ms measured in the page (272 ms nav to the ten pod rows, 54 ms row to the open board), 46 px of scroll left to do. The real 22:53:49 break returns 7 spots, 212 s declared load, 217 s span, 5 s uncovered and exactly the one copy disagreement job-stories.md names, CID178977 booked 36 s against a copy version reading 35'. Full JS-7 including the reorder: one Alt with the down arrow, then Save, then Lock, 1.81 s of machine time and 0 dialogs. Target is 90 s and the baseline could not start at all.",
+  "blind_ab": "I could not open a real playout log screen, only vendor documentation, and I say so rather than inventing a comparison. mAirList's playlist manual names backtiming, artist and title, ramp duration and total remaining duration, and says items are rearranged by dragging with the mouse and nothing else; its own Editing Items section is marked TODO. Imagine's Nexio PlayList describes break containers that are expandable and re-orderable. Figma's documented list mechanics are drag with an insertion indicator plus Cmd/Ctrl with the bracket keys to move one place, and Cmd/Ctrl held while dragging to swap. Against those: Meridian wins on reorder input, because it offers both the drag with a live insertion edge and Alt with an arrow key, which is what Figma has and what the playout manual does not. It wins outright on verification, which neither reference documents at all: the copy version against the booked duration, the file's declared position against the current rank, both recomputed live before a save. It draws on backtiming, which both references have and Meridian now has as the elapsed column. It loses on one thing the playout log has and this does not: a remaining-to-fill readout against a target length, which cannot exist here because no plan covers the traffic file's day, and that absence is stated on screen rather than filled with a number.",
+  "regression": "Backend, 217 tests across every file that imports break_api or hits /api/breaks or /api/history: 146 passed on the first sweep and 71 passed again after my own edits to break_api_pod.py, 0 failed. Guards: verify-direction-rules.mjs holds, verify-date-rules.mjs now holds where it failed before my fix, npm run build is clean at 3512 modules. verify-dashboard-render.mjs is broken on HEAD as well and is queue item 18. The 18 failures in test_p3_editor_money, test_p3_direct_manipulation, test_p3_editor_coverage and test_p3_save_scope are source-text assertions against src/plan/day files, which this piece has never written; git status confirms nothing under src/plan/day is modified. A whole-suite number is not attributable to P10 in any case, because the working tree also carries P11's and P12's uncommitted diffs, and my full run had not finished at 89 percent when I stopped waiting on it.",
+  "laws": "No fabricated figure: every number on the surface traces to data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv, and the declared break length, which has no source, is an empty state naming the days the plan does cover. Competitor boundary: 0 occurrences of קשת 12, כאן 11, עכשיו 14, Keshet or Kan in the whole /api/breaks/pods payload, and the only channel named is רשת 13 from settings with its basis printed beside it. No training action anywhere on the surface. 0 em-dashes, 0 en-dashes, 0 emoji, 0 exclamation marks and 0 occurrences of משתמש in every file I touched. Every file P10 owns is inside 450 lines, break-pod.css exactly at it. The day board's weeks run Sunday first with the 2024-11-01 Friday and 11-02 Saturday as their own leading pair.",
+  "ownership": "Every path I wrote is in P10's wave-two row: kairos_api/break_api_pod.py, tv-break-dashboard/src/plan/break/{PodPage.jsx,PodBoard.jsx,break-pod.css}, the reserved test prefix tests/test_p10_pod_verification.py, three evidence PNGs and this state file. No git add, commit, push, stash, checkout or restore was run. data/break_pod_order.csv did not exist before this round and does not exist after it; the fifteen backups my live checks created are removed and the round-2 builder's 20260807T111907 is untouched."
+ }
 }

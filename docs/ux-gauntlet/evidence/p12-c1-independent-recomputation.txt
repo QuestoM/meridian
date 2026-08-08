@@ -1,0 +1,25 @@
+Independent recomputation of every headline figure the P12 board prints.
+Rebuilt from kairos.model.measure.break_effects and the frozen loaders, scored
+with my own code, importing nothing from scripts/. Every figure matches.
+
+breaks rebuilt: 2532 distinct cells: 36
+window: 2024-11-01 to 2024-11-30
+target sd: 0.241378699  (ddof=0)  ddof1: 0.241426379
+shipped artifact top keys: ['coefficients', 'detail', 'metadata', 'method']
+shipped rmse = 0.241160667  (missing cells 0)
+published shipped rmse = 0.241160667
+afterwindow          MINE {'rmse': 0.241046876, 'delta': -0.00011379, 'stat': -0.5212, 'disp': 0.000461744, 'improved': 1430, 'worsened': 1102}
+                     PUB  {'rmse': 0.241046876, 'delta': -0.00011379, 'stat': -0.5212, 'disp': 0.000461744, 'improved': 1430, 'worsened': 1102}   match=True
+                     sha256 mine c0da369034d4 pub c0da369034d4
+calibrated           MINE {'rmse': 0.241046876, 'delta': -0.00011379, 'stat': -0.5212, 'disp': 0.000461744, 'improved': 1430, 'worsened': 1102}
+                     PUB  {'rmse': 0.241046876, 'delta': -0.00011379, 'stat': -0.5212, 'disp': 0.000461744, 'improved': 1430, 'worsened': 1102}   match=True
+                     sha256 mine 4dd5c1fa50ef pub 4dd5c1fa50ef
+competitor           MINE {'rmse': 0.241150155, 'delta': -1.0511e-05, 'stat': -0.0488, 'disp': 0.000459413, 'improved': 1431, 'worsened': 1101}
+                     PUB  {'rmse': 0.241150155, 'delta': -1.0511e-05, 'stat': -0.0488, 'disp': 0.000459413, 'improved': 1431, 'worsened': 1101}   match=True
+                     sha256 mine a0e3f1c45e2a pub a0e3f1c45e2a
+placebo_corrected    MINE {'rmse': 0.241160667, 'delta': 0.0, 'stat': 0.0, 'disp': 0.0, 'improved': 0, 'worsened': 0}
+                     PUB  {'rmse': 0.241160667, 'delta': 0.0, 'stat': 0.0, 'disp': 0.0, 'improved': 0, 'worsened': 0}   match=True
+                     sha256 mine 6c0b9bf656b3 pub 6c0b9bf656b3
+spotclip             MINE {'rmse': 0.241004968, 'delta': -0.000155699, 'stat': -0.7756, 'disp': 0.000418291, 'improved': 1431, 'worsened': 1101}
+                     PUB  {'rmse': 0.241004968, 'delta': -0.000155699, 'stat': -0.7756, 'disp': 0.000418291, 'improved': 1431, 'worsened': 1101}   match=True
+                     sha256 mine 19bf30f1304f pub 19bf30f1304f

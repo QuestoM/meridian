@@ -1,0 +1,74 @@
+{
+ "he:calibrated": {
+  "gates_block": "הבדלי שערים מהמודל המשודר\n\nמפתח שער אחד נישא בשני הקבצים ומחזיק ערך שונה, וזו המשמעות של שער שהוכרע אחרת.\n\nשער\tמשודר\tמועמד\nplacebo_correction_active\ttrue\tfalse\n\nהמספרים מחוץ למדגם שמאחורי אותם שערים\n\nבלוק מחוץ למדגם\tמשודר\tמועמד\tהכרעת המדידה\ncounterprogramming_holdout\t\n2,532\nברייקים\n\t\n2,532\nברייקים\n\tאותה כמות בשני הצדדים\ndetrend_seasonality_holdout\t\n34,560\nדקות\n\t\n34,560\nדקות\n\tאותה כמות בשני הצדדים\nseries_gate_holdout\t\n2,532\nברייקים\n\t\n2,532\nברייקים\n\tאותה כמות בשני הצדדים\n\nכל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.\n\nכל בלוק שנשמר בצד ששני הקבצים מדווחים עליו נלקח על אותה כמות, ולכן בזוג הזה המספרים האלה ברי השוואה זה לזה. זו תכונה של הזוג הזה ולא של המדף.",
+  "gate_rows": 4,
+  "opened": "calibrated",
+  "dir": "rtl",
+  "marks": {
+   "table": 33.10000000055879,
+   "state": 361.5,
+   "clicked": 452.40000000037253,
+   "picked": 452.40000000037253
+  },
+  "notes": [
+   "*ליד הכרעה פירושוהתקבלה לפני שההשוואה הזו התקיימה, ולכן היא נשענת על המספרים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.",
+   "אומץ והוא החימעולם לא אומץ כאן דבר, ולכן הקובץ החי הוא עדיין זה שסקריפט האימון כתב. הכרעה רשומה היא החלטה, לא החלפה.",
+   "5קבצים בהשוואה, לצד המשודר",
+   "כותרת עמודה שהיא לחצן ממיינת את הטבלה, והסימן שלה מראה את הכיוון. מקשי מעלה ומטה מזיזים את הבחירה לאחר שהטבלה בפוקוס."
+  ]
+ },
+ "he:competitor": {
+  "gates_block": "הבדלי שערים מהמודל המשודר\n\nאין מפתח שער ששני הקבצים נושאים ובו ערך שונה. כל 10 המפתחות שהם נבדלים בהם הם מפתחות שהמועמד אינו נושא כלל, ולכן הוא אינו רושם הכרעה באף אחד מהם.\n\nשער\tמשודר\tמועמד\nseries_layer_active\tfalse\tאינו נישא\ncounterprogramming_active\tfalse\tאינו נישא\nfirst_break_active\tfalse\tאינו נישא\nfirst_break_multiplier\t1.0\tאינו נישא\nfirst_break_p_value\t0.203419\tאינו נישא\nplacebo_correction_active\ttrue\tאינו נישא\ndetrend_seasonality_recommended\tfalse\tאינו נישא\nmoderated_variances\tfalse\tאינו נישא\ninterval_method\tbootstrap\tאינו נישא\ndetrend_baseline_mode\tglobal\tאינו נישא\n\nהמועמד אינו רושם דבר עבור השער הזה, ולכן לא ניתן להשוות ביניהם עליו.\n\nהמספרים מחוץ למדגם שמאחורי אותם שערים\n\nבלוק מחוץ למדגם\tמשודר\tמועמד\tהכרעת המדידה\ncounterprogramming_holdout\t\n2,532\nברייקים\n\t\n506\nברייקים\n\tאינו בר השוואה\ndetrend_seasonality_holdout\t\n34,560\nדקות\n\tאינו נישא\tאינו בר השוואה\nseries_gate_holdout\t\n2,532\nברייקים\n\tאינו נישא\tאינו בר השוואה\n\nכל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.\n\nהכמויות האלה אינן תואמות, ולכן מספרי השערים שנלקחו עליהן אינם ברי השוואה זה לזה.",
+  "gate_rows": 13,
+  "opened": "competitor",
+  "dir": "rtl",
+  "marks": {
+   "table": 120.09999999962747,
+   "state": 138,
+   "clicked": 185.29999999981374,
+   "picked": 185.29999999981374
+  },
+  "notes": [
+   "*ליד הכרעה פירושוהתקבלה לפני שההשוואה הזו התקיימה, ולכן היא נשענת על המספרים שכל קובץ מדווח על עצמו, שמגיעים מפיצולים שונים ואינם ברי השוואה.",
+   "אומץ והוא החימעולם לא אומץ כאן דבר, ולכן הקובץ החי הוא עדיין זה שסקריפט האימון כתב. הכרעה רשומה היא החלטה, לא החלפה.",
+   "5קבצים בהשוואה, לצד המשודר",
+   "כותרת עמודה שהיא לחצן ממיינת את הטבלה, והסימן שלה מראה את הכיוון. מקשי מעלה ומטה מזיזים את הבחירה לאחר שהטבלה בפוקוס."
+  ]
+ },
+ "en:calibrated": {
+  "gates_block": "Gate differences from the shipped model\n\nOne gate key is carried by both artifacts and holds a different value, which is what a gate decided differently means here.\n\nGate\tShipped\tCandidate\nplacebo_correction_active\ttrue\tfalse\n\nThe held-out figures behind those gates\n\nHeld-out block\tShipped\tCandidate\tMeasured verdict\ncounterprogramming_holdout\t\n2,532\nbreaks\n\t\n2,532\nbreaks\n\tSame amount on both sides\ndetrend_seasonality_holdout\t\n34,560\nminutes\n\t\n34,560\nminutes\n\tSame amount on both sides\nseries_gate_holdout\t\n2,532\nbreaks\n\t\n2,532\nbreaks\n\tSame amount on both sides\n\nEach artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.\n\nEvery held-out block both artifacts report was taken on the same amount, so on this pair those figures are comparable with each other. That is a property of this pair and not of the shelf.",
+  "gate_rows": 4,
+  "opened": "calibrated",
+  "dir": "ltr",
+  "marks": {
+   "table": 29.399999999441206,
+   "state": 40.700000000186265,
+   "clicked": 49.39999999944121,
+   "picked": 49.39999999944121
+  },
+  "notes": [
+   "*against a verdict meansTaken before this comparison existed, so it rests on each artifact reading its own held-out figures, which come from different splits and are not comparable.",
+   "Adopted and liveNothing has ever been adopted here, so the live artifact is still the one the training script wrote. A verdict on record is a decision, not a replacement.",
+   "5artifacts compared, beside the shipped one",
+   "A column heading that is a button sorts the table, and its mark shows the direction. Up and down move the selection once the table has focus."
+  ]
+ },
+ "en:competitor": {
+  "gates_block": "Gate differences from the shipped model\n\nNo gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.\n\nGate\tShipped\tCandidate\nseries_layer_active\tfalse\tNot carried\ncounterprogramming_active\tfalse\tNot carried\nfirst_break_active\tfalse\tNot carried\nfirst_break_multiplier\t1.0\tNot carried\nfirst_break_p_value\t0.203419\tNot carried\nplacebo_correction_active\ttrue\tNot carried\ndetrend_seasonality_recommended\tfalse\tNot carried\nmoderated_variances\tfalse\tNot carried\ninterval_method\tbootstrap\tNot carried\ndetrend_baseline_mode\tglobal\tNot carried\n\nThe candidate records nothing for this gate, so the two cannot be compared on it.\n\nThe held-out figures behind those gates\n\nHeld-out block\tShipped\tCandidate\tMeasured verdict\ncounterprogramming_holdout\t\n2,532\nbreaks\n\t\n506\nbreaks\n\tNot comparable\ndetrend_seasonality_holdout\t\n34,560\nminutes\n\tNot carried\tNot comparable\nseries_gate_holdout\t\n2,532\nbreaks\n\tNot carried\tNot comparable\n\nEach artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.\n\nThese amounts do not agree, so the gate figures taken on them are not comparable with each other.",
+  "gate_rows": 13,
+  "opened": "competitor",
+  "dir": "ltr",
+  "marks": {
+   "table": 84.29999999981374,
+   "state": 107.70000000018626,
+   "clicked": 124,
+   "picked": 124
+  },
+  "notes": [
+   "*against a verdict meansTaken before this comparison existed, so it rests on each artifact reading its own held-out figures, which come from different splits and are not comparable.",
+   "Adopted and liveNothing has ever been adopted here, so the live artifact is still the one the training script wrote. A verdict on record is a decision, not a replacement.",
+   "5artifacts compared, beside the shipped one",
+   "A column heading that is a button sorts the table, and its mark shows the direction. Up and down move the selection once the table has focus."
+  ]
+ }
+}

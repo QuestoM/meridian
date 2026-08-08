@@ -1,0 +1,67 @@
+P12 round 9 blind critic, every figure taken before any edit.
+
+STOPWATCH, terminal, JS-19 route, clean tree
+  show                    0.596 s
+  checks afterwindow      0.403 s
+  diff afterwindow        0.564 s
+  decide afterwindow --perform (against a COPY of the store)  8.392 s
+  whole route            9.955 s against a 120 s target and a recorded baseline of cannot start
+
+STOPWATCH, board in a real browser through the product's own bundler
+  page load to a rendered table, he and en, both under 1 s
+  click one artifact to its evidence rendered      ~260 ms
+  arrow-down moves the selection: spotclip -> afterwindow, measured live
+  detail panel top at 900.5 px with a 907 px viewport, so it opens entirely below the fold
+
+HONEST MATH, re-derived by me from the frozen loaders, importing nothing from scripts/
+  2,532 breaks, 36 cells, window 2024-11-01 to 2024-11-30, 5 folds
+  target_sd            0.241378699
+  shipped rmse         0.241160667
+  spotclip             0.241004968  delta -0.000155699  stat -0.7756  disp 0.000418291  1431/1101
+  afterwindow          0.241046876  delta -0.000113790  stat -0.5212  disp 0.000461744  1430/1102
+  calibrated           0.241046876  delta -0.000113790  stat -0.5212  disp 0.000461744  1430/1102
+  competitor           0.241150155  delta -0.000010511  stat -0.0488  disp 0.000459413  1431/1101
+  placebo_corrected    0.241160667  delta +0.000000000  stat +0.0000  disp 0.000000000  0/0
+  every one reproduces the published figure to the last digit
+
+GATES, re-derived by me against kairos_api GATE_KEYS, not through scripts/adopt_candidate_gates.py
+  afterwindow        not_identical 10  differing 0  absent_on_candidate 10
+  calibrated         not_identical  1  differing 1  placebo_correction_active shipped True candidate False
+  competitor         not_identical 10  differing 0  absent_on_candidate 10
+  placebo_corrected  not_identical  2  differing 0  absent_on_candidate 2
+  spotclip           not_identical 10  differing 0  absent_on_candidate 10
+  round 8's claim holds exactly
+
+FIT BASIS, from the artifacts themselves
+  spotclip total_breaks_measured 2336, base_breaks 2532, dropped_by_spot_clip 196
+  every other artifact 2532
+  spotclip holdout_clean_test adopt_recommended false on 461 breaks
+  afterwindow holdout_clean_test n_test 452 with no recommendation
+
+MONEY, from models/releases/candidate_measurements.json, every figure a stored real measurement
+  afterwindow       +923,843.08 over 2,540 rows  measured 2026-08-07T02:42:07  whole plan +5,290,848.33
+  calibrated        +963,477.37 over 2,540 rows  measured 2026-08-01T08:48:46
+  competitor        +948,456.21 over 2,540 rows  measured 2026-08-01T08:50:11
+  placebo_corrected        +0.0 over 2,540 rows  measured 2026-08-01T08:51:38
+  spotclip          +902,998.61 over 2,540 rows  measured 2026-08-01T08:53:05
+  all five read stale on every surface, because data/kairos_settings.json moved under them
+
+TRAINING LINE
+  159 openapi paths, 0 matching adopt
+  0 routes handled out of scripts/
+  0 mentions of adopt_candidate in kairos_api/ and 0 in tv-break-dashboard/src/
+  0 mentions in the published candidate-board.json
+
+COMPETITOR BOUNDARY
+  operator channel from settings: reshet 13
+  three rivals read from the sources appear 0 times in candidate-board.json, show.txt, checks.txt, diff.txt
+
+LAWS, measured on the rendered page
+  em-dash 0, en-dash 0, exclamation 0, emoji 0, the banned word 0, dir rtl in he
+
+GUARDS
+  247 P12 tests pass in 66.8 s
+  npm run build green in 1.21 s
+  verify-direction-rules green
+  npm run test:dates RED, 3 violations, all in P10's src/plan/break/PodPage.jsx, none in this row
+  npm run test:smoke RED, ENOENT on src/TVBreakDashboard.jsx, not this piece's script

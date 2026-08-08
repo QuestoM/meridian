@@ -1,0 +1,13 @@
+emdash 1
+    ('tests/test_p11_regression.py', 127, 'banned = re.compile(r"[—–!\\U0001F300-\\U0001FAFF☀-➿]")')
+endash 1
+    ('tests/test_p11_regression.py', 127, 'banned = re.compile(r"[—–!\\U0001F300-\\U0001FAFF☀-➿]")')
+emoji 1
+    ('tests/test_p11_regression.py', 127, 'banned = re.compile(r"[—–!\\U0001F300-\\U0001FAFF☀-➿]")')
+bang 1
+    ('tests/test_p11_regression.py', 127, 'banned = re.compile(r"[—–!\\U0001F300-\\U0001FAFF☀-➿]")')
+mishtamesh 1
+    ('tests/test_p11_regression.py', 138, 'retired = ("recompute", "rebuild", "חישוב מחדש", "בנייה מחדש", "משתמש")')
+over450 0
+longline 0
+files scanned: 31

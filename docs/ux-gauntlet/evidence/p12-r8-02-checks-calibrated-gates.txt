@@ -1,0 +1,43 @@
+Adoption checks for calibrated
+  [pass] candidate_exists                 The candidate calibrated is in models/candidates/.
+  [pass] rescore_current                  The held-out re-score is current.
+  [pass] not_measured_worse               The re-score does not call this candidate worse than the shipped model.
+  [STOP] money_current                    The stored money measurement is not current. What changed: the saved settings.
+                                          python scripts/adopt_candidate.py measure calibrated
+  [STOP] ship_decision_recorded           The verdict on record for this candidate is no ship, taken 2026-08-01T19:04:24. Adopting it would contradict a decision somebody already took.
+                                          python scripts/adopt_candidate.py decide calibrated --decision shipped --actor "<name>" --reason "<sentence>" --release-note-he "<sentence>"
+  [STOP] steward_named                    Nobody is named as taking this decision.
+                                          --adopted-by "<name>"
+  [STOP] reason_given                     The adoption carries no reason, and a verdict with no reason is not a record.
+                                          --reason "<sentence>"
+  [pass] no_engine_input_dropped          The candidate carries every field the engine reads out of the shipped artifact.
+  [STOP] no_shipped_figure_moves          Whether a shipped figure moves is unknown until the money is measured.
+  [STOP] write_target_is_owned            Adopting writes models/tv_break_coefficients.json, which is absent from docs/ux-gauntlet/spec.md section 8.2, wave-two table, row P12, so it is frozen by absence. Everything up to this point is on the row and has run.
+                                          The lead adds models/tv_break_coefficients.json to the row, and records the ruling at models/releases/ownership/shipped_artifact.json with path set to that exact path.
+
+Money if adopted: stale
+  last measured 2026-08-01T08:48:46. What moved since: the saved settings
+  the figure it last measured was +963,477.37 on the operator's own channel, and this check will not carry it into a record or an artifact stamp because its inputs have since moved
+
+What its gates decide differently
+  One gate key is carried by both artifacts and holds a different value, which is what a gate decided differently means here.
+  placebo_correction_active          shipped true                   candidate false
+  how much each gate was decided on, as each artifact reports it about itself
+  counterprogramming_holdout         shipped 2,532 breaks           candidate 2,532 breaks
+  detrend_seasonality_holdout        shipped 34,560 minutes         candidate 34,560 minutes
+  series_gate_holdout                shipped 2,532 breaks           candidate 2,532 breaks
+  Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.
+  Every held-out block both artifacts report was taken on the same amount, so on this pair those figures are comparable with each other. That is a property of this pair and not of the shelf.
+
+What its coefficients change
+  36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.
+  largest move 0.014066885 at PrimeShow2_first_short. kairos/model/impact.py:321 reads the point coefficient as the retention cost itself.
+  mean absolute move, weighted by the breaks each cell was measured on: 0.010616886
+  A cell key is a programme class, a break position and a break length. It names no channel.
+
+What else the adopted artifact would change
+  credible bounds moved on 72 of the 72 bounds compared, across 36 cells
+  largest move 0.0215533 at PrimeShow2_middle_short.ci_low. kairos/optimize/_segment_math.py:49 prices the risk_lambda decision
+  metadata keys dropped: event_layer_gate
+
+outcome: refused

@@ -1,0 +1,98 @@
+P11 critic, wave two, round 3 (ninth recorded round). Every number below was
+measured before a single byte of the artifact was edited.
+
+Harness
+  My own uvicorn on 127.0.0.1:8062, started and killed by me. KAIROS_AUTH_DIR
+  pointed at an empty scratch directory, so the product answered auth_disabled
+  true and can_edit true. The dashboard came from a scratch build of the current
+  working tree with the contracts/P11.md section 5 mount applied, served by the
+  same process through a scratchpad module that swaps the repo dashboard mount,
+  so the API and the page were same origin. Ports 8000 and 3000 were listening
+  before and after and nothing of mine touched either.
+  Scratch build: 3,527 modules, index-D0Goib0Q.js 1,679.27 kB, index-Vw1j8aKy.css
+  325.88 kB. The repo tree builds 3,512 because nothing imports this surface.
+
+Stopwatch, JS-6, target 60 s, baseline 6.61 to 8.26 s for a screen with no pacing
+  2 clicks from the shell nav to the worst-pacing row.
+  Cold journey, nav click to first row painted: 3,514 ms.
+  Warm, tab click to first row painted, three runs: 3,141 / 2,408 / 3,663 ms.
+  A fourth run with fetch instrumented: 1,000 ms.
+  Of that, /api/pacing occupied 96 ms (start 2 ms, end 98 ms). The rest is the
+  client painting 56 rows.
+  First row at y=481 in a 907 px viewport. All 56 rows land in the same frame as
+  the first.
+  0 dead ends and 0 moments I had to guess.
+
+API
+  /api/pacing, four browser fetches: 89 / 81 / 92 / 99 ms, 100,474 B on the wire,
+  56 rows. Four curl reads earlier: 0.26 to 0.34 s including process start.
+
+Honest math, recomputed by me from the two CSVs rather than trusted
+  data/campaigns.csv and data/campaign_delivery.csv read with the plain csv
+  module. 99 goal lines reconstructed: days in flight, days counted, unsourced
+  elapsed days, counted through the counted day, the even-share reference, the
+  ratio and the verdict against the published 0.95 and 0.85 triggers.
+  MISMATCHES: 0. See p11-c3r3-04-independent-recompute.txt.
+  Worked by hand: CMP_D040 rating 35 * 1/7 = 5.0, 4.4/5.0 = 0.88, at risk.
+  Money 37,000 * 1/7 = 5,285.71, 5,280/5,285.71 = 0.9989, on pace.
+  data/campaign_flights.csv is header-only, 0 rows. Nothing on the screen is a
+  delivery figure and nothing is projected.
+
+Counts on the shipped board
+  behind 0, at_risk 13, unknown 5, on_pace 38, total 56, demo 51,
+  demo_needing_a_decision 13. 48 of 56 rows carry both goals and on 10 of those
+  the two verdicts disagree. Sort order violations against worst-first: 0.
+
+Competitor boundary
+  scope_channel רשת 13, scoped true, rows_in 56, rows_out 56, channels_in 1,
+  competitor_rows_excluded 0. Zero occurrences of קשת 12, כאן 11, עכשיו 14,
+  Keshet, Channel 12, Channel 11 or Reshet 13 in 34,333 characters of rendered
+  text, in both languages.
+
+Laws, over all 31 files of this piece
+  em-dashes 0, en-dashes 0, emoji 0, exclamation marks 0, משתמש 0. The single hit
+  in each class is the character class inside the guard in
+  tests/test_p11_regression.py:127 and its banned-word tuple at :138.
+  No file over 450 lines. Largest: PacingWorkspace.jsx 450, MakeGoodLedger.jsx
+  416, tests/test_p11_make_good_ledger.py 416.
+  31 em-dashes on the rendered screen, all of them inside advertiser names in
+  data/campaigns.csv, which holds 62. None is copy.
+  Day drill: Sunday first, dd/mm/yyyy, Hebrew weekday names, in both languages.
+  No path under models/ is read or written by this piece.
+
+Write path, driven end to end
+  Pressed a on a focused row: MG_0001 written, acceptance, state accepted,
+  deficit 0.26 rating points, kind to_date. Verified 20 * 1/7 = 2.857 against a
+  counted 2.6, gap 0.257.
+  The banner carried בטלו at the primary weight beside סגרו.
+  Withdrew it from the ledger through the reason form: state withdrawn,
+  close_reason opened_in_error, closed_at recorded, the row kept.
+  Board returned to 13 rows needing a decision.
+  data/make_goods.csv restored byte-identical, sha256
+  1668aef670385b5521e11cad8b1749abb80fbcbf2e1b4dec50a7a915a4794406.
+
+Reach, checked one control at a time
+  The verdict strip filters: 13 rows on at risk, 56 restored, 0 rows on behind
+  with an honest empty state, and the keyboard legend narrows to the keys that
+  can still fire.
+  The headline figure opens the day drill, aria-expanded, act in the accessible
+  name.
+  Open the campaign on an unknown row lands on the Campaigns tab filtered to that
+  one campaign.
+  Open Data to upload it lands on #Data, the sources screen.
+  The place marker meridian.pacing.return-to-campaign held CMP_001, the return
+  focused row 13 of 56 with the filter cleared, and the mark was consumed.
+
+Tests
+  107 P11 tests green across eight files.
+  79 shared tests green: test_api_surface_qa, test_campaign_entity,
+  test_insights_endpoints, test_inventory_pacing_signals,
+  test_p4_form_field_semantics.
+
+The three blocking items, re-verified rather than inherited
+  git show HEAD of PacingWorkspace.jsx still opens <Figure> at :265 and closes
+  </span> at :267. The repository copy of this surface does not compile.
+  Nothing outside src/clients/pacing imports it, and
+  clients-money-helpers.js:13 VIEWS still has no pacing entry, so the surface
+  ships to nobody.
+  data/campaign_flights.csv is header-only and there is no delivery feed.

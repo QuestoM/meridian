@@ -1,0 +1,3 @@
+checked goal lines: 99 unknown(gap) lines: 0 MISMATCHES: 0
+--- goal provenance sample ---
+{'campaign_id': 'CMP_D040', 'flight_id': 'CMP_D040_F1', 'goal_kind': 'grp', 'goal_value': '35.00', 'budget_ils': '', 'rating_goal_points': '', 'rating_goal_audience': ''}

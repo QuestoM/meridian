@@ -1,0 +1,132 @@
+P11 blind critic, wave two round 1. Everything below was measured before a single
+byte of product code was edited.
+
+HARNESS
+  My own uvicorn on 127.0.0.1:8062, started and killed by me. It serves the repo
+  API from the repo tree plus a scratch dashboard build under the session
+  scratchpad carrying the three-line mount published in contracts/P11.md section
+  5. Its auth store is a scratch directory, so the repo's own data/auth was never
+  written. Ports 8000, 3000 and 8010 were listening throughout and nothing of
+  mine restarted or killed either.
+
+STOPWATCH, JS-6, English pass, 1440x900
+  Instrumented in the page: a capture-phase click listener and a MutationObserver
+  on document.body, both armed before the first click.
+    click "Campaigns" in the shell nav        t = 75811 ms
+    click "Pacing" in the Clients view strip  t = 85882 ms
+    .pacing-workspace in the DOM              t = 85893 ms
+    .pacing-row in the DOM                    t = 86096 ms
+    .pacing-strip in the DOM                  t = 86096 ms
+  Product time from the first nav click to the worst-pacing row on screen: 285 ms
+  over 2 clicks, 0 keystrokes, 2 screens, 0 dead ends, 0 moments of guessing.
+  Click to row from the Clients destination: 214 ms.
+  Target in job-stories.md: 60 s. Baseline in 06-baseline.md: the Campaigns page
+  loads in 6.61 to 8.26 s and carries no pacing field at all.
+  Fold: viewport 907 px, first row card top at y=479, its two acts at y=647, so
+  the whole of the worst row including its remedy is above the fold.
+  Exactly one h1 in the document and one h2 in the panel. The h2 and the view
+  strip share a row: both computed top = 263.
+
+API, warm, 10 samples each
+  GET /api/pacing        47.5 to 66.3 ms, 100,145 B, 56 rows
+  GET /api/make-goods     4.2 ms,           5,764 B
+  GET /api/pacing/{id}/days                 3,031 B
+  GET /api/make-good-alerts  {"alerts":[],"data_available":false,
+    "reason":"campaign_flights.csv has no campaign rows yet (header-only seed).",
+    "as_of":"2026-06-14"}  unchanged from wave one.
+
+HONEST MATH, reproduced by hand from the CSVs
+  CMP_D040: data/campaigns.csv flight row rating goal 35.00; data/campaign_delivery.csv
+  holds one row for 2025-04-27, air_state aired, rating_points_planned 4.4000,
+  source Wally_Prime_Reshet_Example_2025-04-27.csv, and six rows for 2025-04-28
+  to 2025-05-03 with air_state unknown and every figure blank.
+  35 * 1 / 7 = 5.0 and 4.4 / 5.0 = 0.88, which is at risk under the published
+  0.95 and 0.85 triggers. The payload states exactly that. The six unsourced days
+  are named on the row and in the drill and are never counted as zero.
+
+COMPETITOR BOUNDARY
+  scope_channel רשת 13, scoped true, rows_in 56, rows_out 56, channels_in 1,
+  competitor_rows_excluded 0. Exactly one distinct channel across all 56 rows.
+  Zero occurrences of קשת 12, כאן 11, עכשיו 14, Keshet, Kan or Channel 12 in the
+  rendered workspace text.
+
+THE BOARD'S OWN POPULATION
+  counts {behind 0, at_risk 13, on_pace 38, unknown 5, total 56, demo 51}
+  days_counted: 1 on 51 rows, 0 on 5. days_in_flight: 7 on 51, 28 on 4, 2 on 1.
+  forward state: not_booked_yet on 56 of 56, so 0 of 56 rows can offer a raise.
+  at-risk ratios: 0.88, 0.909 x3, 0.911 x5, 0.936 x2, 0.945, 0.946.
+  on-pace ratios: 0.95 to 1.00.
+  The 5 unknown rows are the 5 non-demo campaigns, all code no_goal.
+
+THE SPLIT THE ROW DOES NOT PRINT
+  Of the 51 rows that carry a goal, the headline line's counted figure is
+    33 entirely aired
+    11 a mix of aired and scheduled-not-aired
+     7 entirely spots that have not aired
+  and of those 7, five carry an at-risk verdict: CMP_D030, CMP_D031, CMP_D039,
+  CMP_D011, CMP_D016. The payload carries counted.delivered and
+  counted.booked_not_aired separately on every line. The row prints only their
+  sum, so on those five rows the board says at risk about a campaign that has
+  aired nothing, and the only way to learn it is to open the drill and read the
+  State column.
+
+LAWS
+  Em-dash, emoji, exclamation mark, the word משתמש: zero in every file of the
+  ownership row. The 31 em-dashes in the rendered surface are all inside
+  .bidi-name and come from campaign names in data/campaigns.csv.
+  Every file at or under 450 lines, tests included. Largest: pacing_alerts_api_board.py 373.
+  One border-inline-start in the four stylesheets, 1px solid var(--line), which is
+  the structural divider design-rules.md section 1 explicitly keeps.
+  No hex or rgb literal and no token definition in any of the four stylesheets.
+  Weekdays start Sunday.
+
+CONTRAST, measured against the resolved background
+  .pacing-basis-planned 16.69  .pacing-figure 17.74  .pacing-refusal 14.95
+  .pacing-ratio 6.39  .pacing-against 5.91  .pacing-forward-figure 5.91
+  .pacing-verdict 5.91  .pacing-seeded 5.56  .pacing-basis-line 5.56
+  .pacing-keys 5.56  .pacing-scope 4.74 at 10px, the weakest on the board and the
+  one line the piece's own comment calls load-bearing.
+
+THE LEDGER, both endings driven in the browser
+  Take the risk on: one click, no dialog. The headline moved from
+  "13 of 56 ... 0 of the 13" to "12 of 56 ... 1 of the 13", the tab badge went to
+  1, and the row control became "Risk taken on, open the record".
+  The record reads: state chip "Risk taken on", kind chip "Risk taken on",
+  campaign name, flight, Demo, "0.6 rating points behind when the risk was taken
+  on", "counted 4.4 of 35 rating points", "Gap to date",
+  "Recorded 2026-08-07 10:32 UTC by admin. Counted as of 2025-04-27 22:59."
+  The two chips print identical English and resolve to identical colours,
+  rgb(12,107,95) on rgb(232,244,242), 11px and 10px.
+  Revoke the decision opens a confirm form with a required controlled reason and
+  a note that becomes required on the open reason, and a confirm button that
+  names the act. That is Stripe's documented refund flow, mechanic for mechanic.
+  Concurrency probe: with the form open I withdrew the same record over the API,
+  then submitted. The server refused 409, the banner printed the server's own
+  sentence, and the form kept the reason and the typed note.
+
+KEYBOARD
+  j j moved focus to index 2 with a 3px outline and an inset 2px ring, Enter
+  opened the drill, a recorded the acceptance on the focused row. The legend
+  named j, k, Enter and a, and correctly did not name r, which fires on no row.
+
+READ-ONLY ACCOUNT
+  A viewer session reads /api/pacing with can_edit false and is refused the write
+  with "A viewer session is read-only." The surface's own refusal string is
+  לחשבון צפייה אין הרשאת עריכה, Hebrew only, from two frozen wave-zero modules.
+
+TESTS, before any edit of mine
+  tests/test_p11_*.py                        81 passed
+  the five shared files this piece touches   79 passed
+  node verify-parses.mjs over the tree       PARSE_OK
+  npm run test:direction                     Direction rules hold
+  scratch build with the mount               3,522 modules, 1,658.01 kB JS,
+                                             319.41 kB CSS, clean
+
+AT HEAD, WHICH IS NOT WHAT IS ON DISK
+  git archive HEAD into /tmp/p11-head, then the real bundler over that tree:
+    PARSE_FAIL, Expected corresponding JSX closing tag for 'Figure',
+    PacingWorkspace.jsx:267
+  The one-word fix is in the working tree and uncommitted, and
+  tv-break-dashboard/src/clients/pacing/verify-parses.mjs, which the committed
+  test tests/test_p11_surface_javascript.py invokes by path, is untracked. So at
+  HEAD this surface does not compile and its guard does not exist.
