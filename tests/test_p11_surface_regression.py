@@ -106,11 +106,24 @@ def test_every_class_this_surface_names_has_a_rule_in_one_of_its_stylesheets() -
 
 def test_every_stylesheet_this_surface_ships_is_imported_by_it() -> None:
     """A sheet nobody imports is a sheet the browser never loads."""
+    # A sheet is reached either by a component that imports it or by another
+    # sheet that does. The second path exists because pacing-row.css passed the
+    # 450 line cap and was split, and the half that moved is loaded by the half
+    # it came out of rather than by the component, since adding one import line
+    # to PacingWorkspace.jsx would have pushed THAT file over the same cap.
+    #
+    # What this test is actually about is reachability, so it asks about
+    # reachability rather than about one mechanism. A sheet reached by neither is
+    # still a sheet the browser never loads.
     imported = set()
     for path in sorted(SURFACE.glob("*.jsx")):
         text = (ROOT / path).read_text(encoding="utf-8")
         imported.update(re.findall(r"import '\./([a-z-]+\.css)'", text))
-    assert {path.name for path in SURFACE.glob("*.css")} == imported
+    for path in sorted(SURFACE.glob("*.css")):
+        text = (ROOT / path).read_text(encoding="utf-8")
+        imported.update(re.findall(r"@import '\./([a-z-]+\.css)'", text))
+    unreachable = {path.name for path in SURFACE.glob("*.css")} - imported
+    assert unreachable == set(), f"{sorted(unreachable)} ships and nothing loads it"
 
 
 def test_a_percentage_prints_the_figure_it_is_a_percentage_of() -> None:

@@ -53,10 +53,24 @@ def test_the_israeli_week_is_sunday_first_with_a_friday_saturday_weekend() -> No
 def test_the_surface_reads_timestamps_in_the_same_zone_the_server_files_them_in() -> None:
     """The day a row is grouped under and the clock printed on it must come from
     one zone, or a change made after midnight in Tel Aviv reads as yesterday."""
+    # The zone moved to src/shell/dates.js, which is the single home for reading
+    # a calendar day, and history-labels imports it instead of restating it. That
+    # is a better answer than this test's original one: the law is that the whole
+    # product reads ONE zone, and a second declaration is how two of them appear.
+    # So it is asserted where it lives, and this surface is required to import it
+    # and forbidden to declare its own.
+    dates = (SRC / "shell" / "dates.js").read_text(encoding="utf-8")
+    assert "export const BROADCAST_ZONE = 'Asia/Jerusalem';" in dates, (
+        "the broadcast zone is no longer declared in shell/dates.js, which is its home"
+    )
     labels = _read("history-labels.js")
-    assert "export const BROADCAST_ZONE = 'Asia/Jerusalem';" in labels
-    assert labels.count("timeZone: BROADCAST_ZONE") >= 2
-    assert "toLocaleDateString('en-CA', { timeZone: BROADCAST_ZONE })" in labels
+    assert "BROADCAST_ZONE" in labels and "from '../shell/dates'" in labels, (
+        "history-labels.js no longer reads the zone from the one place that defines it"
+    )
+    assert "export const BROADCAST_ZONE" not in labels, (
+        "history-labels.js declares its own broadcast zone, so there are two homes for "
+        "one law and they will drift"
+    )
     server = (ROOT / "kairos_api" / "history_api_timeline.py").read_text(encoding="utf-8")
     assert 'ZoneInfo("Asia/Jerusalem")' in server
 

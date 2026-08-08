@@ -65,7 +65,13 @@ def test_the_facts_on_a_row_are_separated_by_a_rule_and_not_by_a_space() -> None
 def test_the_acts_on_a_row_share_one_group_one_height_and_one_primary() -> None:
     """Section 4. A filled button, an outlined one and a bare link is three weights."""
     markup = (SURFACE / "PacingRow.jsx").read_text(encoding="utf-8")
-    styles = (SURFACE / "pacing-row.css").read_text(encoding="utf-8")
+    # The row's styles live in a pair since pacing-row.css passed the 450 line
+    # cap: what the row says stayed, what a person can do about it moved to
+    # pacing-row-acts.css, which the first sheet imports. Both are the row.
+    styles = "\n".join(
+        (SURFACE / name).read_text(encoding="utf-8")
+        for name in ("pacing-row.css", "pacing-row-acts.css")
+    )
     assert "pacing-row-acts" in markup
     assert "pacing-row-disclosure" in markup
     # The disclosure lives outside the act group, in its own element.
@@ -231,7 +237,13 @@ def test_the_name_on_a_board_row_looks_like_the_control_it_is() -> None:
     in the control colour. A reader scanning the board had no way to know the
     name opened the campaign.
     """
-    styles = (SURFACE / "pacing-row.css").read_text(encoding="utf-8")
+    # The row's styles live in a pair since pacing-row.css passed the 450 line
+    # cap: what the row says stayed, what a person can do about it moved to
+    # pacing-row-acts.css, which the first sheet imports. Both are the row.
+    styles = "\n".join(
+        (SURFACE / name).read_text(encoding="utf-8")
+        for name in ("pacing-row.css", "pacing-row-acts.css")
+    )
     block = styles.split(".pacing-name-open {")[1].split("}")[0]
     assert "color: var(--blue);" in block
     ledger = (SURFACE / "makegood.css").read_text(encoding="utf-8")
