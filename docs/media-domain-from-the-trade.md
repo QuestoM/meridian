@@ -194,6 +194,23 @@ Cancellation rules are demand-dependent: a day before broadcast billing has
 started and cancellation is refused, but in high-demand periods a channel may
 welcome a cancellation because it can resell.
 
+## The words themselves, corrected by the owner
+
+The trade's own nouns, which outrank anything the code called them first. Each
+line here was a correction, not a preference, and each one is worth more than it
+looks: a term the product gets wrong is a term an operator does not recognise,
+and it costs trust on the first screen.
+
+**ברייק זהב, not ברייק זהוב.** A gold break. זהב is the noun and it names a thing
+the trade buys and sells; זהוב is the adjective and describes a colour. The
+product's own strings were right in all twelve places; the wrong form only ever
+appeared in writing ABOUT the product, which is exactly how a term drifts into
+the thing itself. Guarded now by
+`tests/test_w0_4_vocabulary.py::test_the_wrong_word_for_a_gold_break_is_nowhere_in_the_product`,
+which sweeps the whole source tree rather than the vocabulary file alone.
+
+**מפעיל, not משתמש.** The operator, never the user. Already guarded.
+
 ## What the product is missing, drawn from the above
 
 Ordered by how much of the business they block:

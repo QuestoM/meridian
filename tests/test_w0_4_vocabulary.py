@@ -94,11 +94,32 @@ def test_no_retired_word_survives_in_the_owned_files(path):
         assert word.lower() not in text, f"{word} is retired and may not appear in {path.name}"
 
 
-def test_the_vocabulary_holds_the_frozen_terms_and_not_the_forbidden_one():
+def test_the_vocabulary_holds_the_frozen_terms_and_not_the_forbidden_ones():
     text = _text(VOCABULARY)
     for term in FROZEN_TERMS:
         assert term in text, f"the frozen term {term} is missing from the vocabulary"
     assert "משתמש" not in text, "the product says מפעיל, never משתמש"
+    # The trade says ברייק זהב. It does NOT say ברייק זהוב, which is the
+    # adjective and reads as a description of the colour rather than the name of
+    # a thing the trade buys and sells. The owner corrected this on 2026-08-09.
+    # Every string in the product already had it right; the wrong form only ever
+    # appeared in writing ABOUT the product, which is how a term drifts.
+    assert "זהוב" not in text, "the trade says ברייק זהב, never ברייק זהוב"
+
+
+def test_the_wrong_word_for_a_gold_break_is_nowhere_in_the_product():
+    """Not only the vocabulary file: the whole tree, because a term drifts by use.
+
+    זהב is the noun the trade uses, and it is already in FROZEN_TERMS. This is
+    the other half of that: the adjective form must not appear anywhere, so a
+    string written far from the vocabulary cannot quietly introduce it.
+    """
+    carriers = [
+        path.relative_to(SRC).as_posix()
+        for path in sorted(SRC.rglob("*"))
+        if path.suffix in {".js", ".jsx", ".css"} and "זהוב" in path.read_text(encoding="utf-8")
+    ]
+    assert carriers == [], f"{carriers} say ברייק זהוב, and the trade says ברייק זהב"
 
 
 def test_every_concept_has_exactly_one_word_per_language():
