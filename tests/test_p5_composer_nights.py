@@ -61,6 +61,22 @@ CHIP = re.compile(r'<button(?P<attrs>[^>]*class="rules-airing-chip[^"]*"[^>]*)>(
 ATTR = re.compile(r'(?P<name>[a-z-]+)="(?P<value>[^"]*)"')
 TEXT = re.compile(r"<[^>]+>")
 
+# Escapes, because these two render as nothing and a literal pair is invisible.
+FIRST_STRONG_ISOLATE = "\u2068"
+POP_DIRECTIONAL_ISOLATE = "\u2069"
+
+
+def reads_as(iso: str) -> str:
+    """The exact run the product paints for one calendar day.
+
+    The date home moved to src/shell/dates.js and its law is dd/mm/yyyy in BOTH
+    locales, so a chip paints 01/11/2024 and never the ISO key behind it. The
+    isolate pair is the same law's: a Latin date run inside a Hebrew line would
+    otherwise be reordered. Do not put any expectation below back to ISO.
+    """
+    year, month, day = iso.split("-")
+    return f"{FIRST_STRONG_ISOLATE}{day}/{month}/{year}{POP_DIRECTIONAL_ISOLATE}"
+
 
 def _node() -> str:
     found = shutil.which("node")
@@ -149,6 +165,8 @@ def _chips(rendered: dict, locale: str, key: str = "nights") -> list[dict]:
     for match in CHIP.finditer(html):
         row = {name: value for name, value in ATTR.findall(match.group("attrs"))}
         row["label"] = row.get("aria-label", "")
+        # The label is weekday, day, detail, so the day a reader meets is second.
+        row["day_read"] = (row["label"].split(",") + [""])[1].strip()
         row["html"] = match.group("body")
         row["text"] = TEXT.sub(" ", match.group("body")).strip()
         out.append(row)
@@ -242,8 +260,8 @@ def test_every_night_the_programme_runs_is_selectable(shipped, payload):
     days = [row["day"] for row in payload["nights"]]
     for locale in ("he", "en"):
         chips = _nights(shipped, locale)
-        assert [chip["label"].split(",")[1].strip() for chip in chips] == days, (
-            "every night, in plan order, and nothing invented or dropped"
+        assert [chip["day_read"] for chip in chips] == [reads_as(day) for day in days], (
+            "every night, in plan order, read as dd/mm/yyyy, and nothing invented or dropped"
         )
         assert len(chips) == payload["night_count"]
 
@@ -253,11 +271,13 @@ def test_the_last_night_of_the_run_can_be_named(shipped, payload):
     last = payload["nights"][-1]["day"]
     for locale in ("he", "en"):
         labels = [chip["label"] for chip in _nights(shipped, locale)]
-        assert any(last in label for label in labels), f"the last night {last} has to be selectable"
+        assert any(reads_as(last) in label for label in labels), f"the last night has to be selectable: {last}"
+        assert not any(last in label for label in labels), "and read as a date, not printed as its key"
+    # The key the component picks by is still the ISO day: only the reading moved.
     assert shipped["picked_day"] == last
     picked = [row for row in _chips(shipped, "he", "picked") if "active" in row["class"]]
     assert len(picked) == 1, "choosing a night selects exactly one chip"
-    assert last in picked[0]["label"], "and it is the night that was chosen"
+    assert reads_as(last) in picked[0]["label"], "and it is the night that was chosen"
 
 
 def test_the_head_line_states_both_counts_and_they_are_the_real_ones(shipped, payload):
@@ -278,9 +298,9 @@ def test_a_night_with_two_airings_is_one_choice_and_says_so(shipped, payload):
     if not doubled:
         pytest.skip("no night of this programme carries more than one airing in the plan as it stands")
     night = doubled[0]
-    chips = {chip["label"].split(",")[1].strip(): chip for chip in _nights(shipped, "en")}
-    assert night["day"] in chips
-    assert f"{night['airings']} airings" in chips[night["day"]]["text"], (
+    chips = {chip["day_read"]: chip for chip in _nights(shipped, "en")}
+    assert reads_as(night["day"]) in chips
+    assert f"{night['airings']} airings" in chips[reads_as(night["day"])]["text"], (
         "a night that holds more than one airing has to say how many"
     )
 
@@ -292,10 +312,12 @@ def test_the_week_reads_sunday_first_in_both_locales(shipped, payload):
     sundays = [row["day"] for row in payload["nights"] if date.fromisoformat(row["day"]).weekday() == 6]
     if not sundays:
         pytest.skip("this programme runs on no Sunday in the plan as it stands")
-    for locale, word in (("he", "ראשון"), ("en", "Sunday")):
-        chips = {chip["label"].split(",")[1].strip(): chip["label"] for chip in _nights(shipped, locale)}
+    # The Hebrew reading carries the noun as well as the name now, "יום ראשון",
+    # because the one place that decides how a day reads writes the whole phrase.
+    for locale, word in (("he", "יום ראשון,"), ("en", "Sunday,")):
+        chips = {chip["day_read"]: chip["label"] for chip in _nights(shipped, locale)}
         for day in sundays:
-            assert chips[day].startswith(word), f"{day} is a Sunday and has to read as one in {locale}"
+            assert chips[reads_as(day)].startswith(word), f"{day} is a Sunday and has to read as one in {locale}"
 
 
 def test_no_rival_channel_name_reaches_the_picker(shipped, payload):
@@ -331,11 +353,18 @@ def test_no_engine_word_reaches_the_path_a_representative_walks(shipped):
 
 
 def test_the_picker_reads_in_the_direction_the_page_is_written_in(shipped):
-    """The chip's detail is a Latin-digit run inside Hebrew, so it is isolated."""
+    """The chip's detail is a Latin-digit run inside Hebrew, so it is isolated.
+
+    The direction home moved to src/shell/bidi.jsx beside the date home, and it
+    isolates with a Figure span rather than a dir override, because an override
+    also re-anchors the element's own alignment. So the shape here is the span.
+    """
     chips = _nights(shipped, "he")
     assert chips, "there is nothing to check the direction of"
     for chip in chips:
-        assert '<small dir="ltr">' in chip["html"], chip["html"]
+        assert '<small><span class="bidi-figure">' in chip["html"], chip["html"]
+        # And the date beside it is isolated too, so nothing pulls dd/mm/yyyy apart.
+        assert FIRST_STRONG_ISOLATE in chip["html"] and POP_DIRECTIONAL_ISOLATE in chip["html"], chip["html"]
     # And the state a screen reader is given is the pressed one, not a colour.
     assert all("aria-pressed" in chip for chip in _chips(shipped, "he"))
 
@@ -367,7 +396,8 @@ def test_a_night_the_plan_keeps_clean_says_so_and_offers_the_rule_that_does_bind
     for locale in ("he", "en"):
         html = shipped["widen"][locale]
         words = TEXT.sub(" ", html)
-        assert night in words, f"the note has to name the night that was chosen, {night}"
+        assert reads_as(night) in words, f"the note has to name the night that was chosen: {night}"
+        assert night not in words, "and name it as a date, not as the key it is stored under"
         assert str(breaching) in words and str(matched) in words, words
         assert "rules-widen-action" in html, "and it has to offer the wider rule as an act"
     assert "שום דבר בחלון התוכנית" not in shipped["widen"]["he"], (

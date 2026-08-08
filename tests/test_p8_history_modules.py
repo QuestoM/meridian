@@ -20,6 +20,14 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# WHY THE OCCURRENCES BELOW READ WITH SLASHES, AND MUST NOT BE PUT BACK TO DOTS.
+#
+# The date home moved to tv-break-dashboard/src/shell/dates.js, and its standing
+# law is dd/mm/yyyy in BOTH locales, because this is an Israeli operator's
+# product. This file's rows used to read 04.11.2024; the one place that decides
+# what a calendar day looks like now writes 04/11/2024, and a row identity has no
+# say in it. The stored value is still the ISO day; only the reading changed.
+
 
 ADDRESS_PROBE = """
 import { addressQuery, missedReason, pointAddress, isPointAddress }
@@ -285,9 +293,11 @@ def test_a_row_a_restore_would_add_or_remove_is_named_rather_than_dumped() -> No
     for line in measured["seven"]:
         assert '{"' not in line and "…" not in line, "no row is printed as a cut record"
         assert "משחקי השף עונה 7 ש.ח" in line, "the note the store carries is read in full"
-    assert "04.11.2024 13:00" in measured["seven"][0], (
+    assert "04/11/2024 13:00" in measured["seven"][0], (
         "and the occurrence that tells one from the next is the thing that differs")
-    assert "23.11.2024 02:00" in measured["seven"][4]
+    assert "23/11/2024 02:00" in measured["seven"][4]
+    for iso, line in (("2024-11-04", measured["seven"][0]), ("2024-11-23", measured["seven"][4])):
+        assert iso not in line, "the occurrence is read as a day, never dumped as the ISO key it is stored under"
 
     # The words are the surface's, in the reader's language, from one place.
     assert "השפעה איסור" in measured["seven"][0] and "Effect Forbid" not in measured["seven"][0]
@@ -303,7 +313,9 @@ def test_a_row_a_restore_would_add_or_remove_is_named_rather_than_dumped() -> No
     # The competitor boundary, by construction rather than by review.
     assert "רשת 13" not in measured["pinHe"] and "2024-11-01|" not in measured["pinHe"], (
         "a pin is identified by its programme, its day and its clock, never by target_id")
-    assert "01.11.2024" in measured["pinHe"] and "00:44" in measured["pinHe"]
+    assert "01/11/2024" in measured["pinHe"] and "00:44" in measured["pinHe"]
+    assert "2024-11-01" not in measured["pinHe"], (
+        "the pin's day is read as a day, which is also what keeps target_id off the line")
     assert "a rival name" not in measured["channelScope"], (
         "the one legacy scope that can carry a channel name is named without its value")
     assert "does not name" in measured["channelScope"]

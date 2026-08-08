@@ -35,7 +35,9 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -442,12 +444,70 @@ def rendered(tmp_path_factory, payload) -> dict:
     return _render(tmp_path_factory.mktemp("delivery"), payload, FLIGHTS.read_text(encoding="utf-8"))
 
 
+# Two shell primitives own these shapes now and no surface may decide either for
+# itself. src/shell/dates.js: a calendar day reads dd/mm/yyyy in BOTH locales,
+# and consecutive days collapse into one run rather than being spelled out, which
+# is the very defect it was built for. src/shell/bidi.jsx: a figure or a date in
+# a Hebrew line is isolated with the FIRST STRONG isolate U+2068, not the
+# left-to-right U+2066 this file used to expect. The ledger still carries ISO
+# days; only the reading changed, so do not put any expectation back to ISO.
+# Escapes, because the pair renders as nothing and a literal one is invisible.
+FIRST_STRONG_ISOLATE = "\u2068"
+POP_DIRECTIONAL_ISOLATE = "\u2069"
+
+# How many runs a day list prints before it states a count instead. Past it the
+# surface stops naming days, so nothing beyond it can be asserted present.
+MAX_RUNS = 6
+
+
+def _isolated(text: str) -> str:
+    return f"{FIRST_STRONG_ISOLATE}{text}{POP_DIRECTIONAL_ISOLATE}"
+
+
 def _spots(count, locale):
     """The exact phrase the shipped cell prints for a counted floor."""
     unit = "spot" if count == 1 else "spots"
     if locale == "en":
         return f"at least {count} {unit}"
-    return f"\u05dc\u05e4\u05d7\u05d5\u05ea \u2066{count}\u2069 \u05ea\u05e9\u05d3\u05d9\u05e8\u05d9\u05dd"
+    return f"\u05dc\u05e4\u05d7\u05d5\u05ea {_isolated(count)} \u05ea\u05e9\u05d3\u05d9\u05e8\u05d9\u05dd"
+
+
+def _day_runs(values) -> list[str]:
+    """The runs a list of days collapses into, each as the surface paints it.
+
+    Six consecutive unsourced days are one object on screen and not six, so a
+    test demanding each be named separately demands the defect back. Same
+    grouping groupConsecutiveDays does: sorted, de-duplicated, maximal runs,
+    both ends in full whether or not they share a month, each run isolated.
+    """
+    days = sorted({date.fromisoformat(str(value)) for value in values})
+    runs: list[list[date]] = []
+    for day in days:
+        if runs and day - runs[-1][1] == timedelta(days=1):
+            runs[-1][1] = day
+        else:
+            runs.append([day, day])
+    out = []
+    for start, end in runs:
+        head = start.strftime("%d/%m/%Y")
+        tail = end.strftime("%d/%m/%Y")
+        out.append(_isolated(head if head == tail else f"{head}-{tail}"))
+    return out
+
+
+def _stamp_reads_as(instant: str) -> str:
+    """The reading the surface gives one recorded instant.
+
+    A stamp is an INSTANT, not a calendar day, so it is read in the one declared
+    broadcast zone rather than in this machine's. An ISO string with no offset
+    means local time, which is what the browser's Date does with it, so the
+    naive case is anchored the same way here.
+    """
+    when = datetime.fromisoformat(str(instant))
+    if when.tzinfo is None:
+        when = when.astimezone()
+    local = when.astimezone(ZoneInfo("Asia/Jerusalem"))
+    return _isolated(local.strftime("%d/%m/%Y, %H:%M"))
 
 
 def test_the_board_prints_what_was_counted_instead_of_the_word_unknown(payload, rendered):
@@ -470,8 +530,14 @@ def test_the_board_names_the_instant_the_split_was_taken_at(payload, rendered):
     """A number without its basis is the defect class this whole piece exists to kill."""
     as_of = payload["board"]["delivery"]["as_of"]
     assert as_of["instant"], "the ledger under test carries no instant, so this cannot be measured"
-    assert as_of["instant"] in rendered["boards"]["en"]
-    assert as_of["instant"] in rendered["boards"]["he"]
+    reads_as = _stamp_reads_as(as_of["instant"])
+    for locale in ("en", "he"):
+        assert reads_as in rendered["boards"][locale], (
+            f"{locale}: the instant the split was taken at has to be on the board, as {reads_as}"
+        )
+        assert as_of["instant"] not in rendered["boards"][locale], (
+            f"{locale}: the recorded instant is a machine format and is read, never printed raw"
+        )
     assert "Counted as of" in rendered["boards"]["en"]
     assert "\u05e0\u05e1\u05e4\u05e8 \u05e0\u05db\u05d5\u05df \u05dc" in rendered["boards"]["he"]
     if as_of["basis"]:
@@ -484,10 +550,15 @@ def test_the_flight_row_carries_the_state_the_figure_and_the_named_missing_days(
     """Tri-state on one row: what was counted, and which days nobody counted."""
     ledger = payload["probe"]["delivery"]
     assert ledger["unknown"]["dates"], "no unknown day on this campaign, so the guard needs re-aiming"
+    runs = _day_runs(ledger["unknown"]["dates"])
     for locale, html in rendered["details"].items():
         assert "clients-delivered" in html, f"{locale}: the flights table prints no delivery state"
-        for date in ledger["unknown"]["dates"]:
-            assert date in html, f"{locale}: the unsourced day {date} is not named on the surface"
+        for run in runs[:MAX_RUNS]:
+            assert run in html, f"{locale}: the unsourced days {run} are not named on the surface"
+        for day in ledger["unknown"]["dates"]:
+            assert day not in html, (
+                f"{locale}: {day} is printed as the key it is filed under rather than read as a day"
+            )
         assert str(ledger["unknown"]["days"]) in html
 
 
@@ -547,6 +618,6 @@ def test_putting_the_hard_coded_literal_back_brings_the_defect_back(tmp_path, pa
     assert _spots(payload["probe"]["delivery"]["aired"]["spots"], "he") not in html.split("clients-flight-table")[-1], (
         "with the literal back, the flight row states nothing the ledger holds"
     )
-    assert payload["probe"]["delivery"]["unknown"]["dates"][0] in html, (
+    assert _day_runs(payload["probe"]["delivery"]["unknown"]["dates"])[0] in html, (
         "the basis block survives the mutation, so the cell is what this proves"
     )

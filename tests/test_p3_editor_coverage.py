@@ -47,6 +47,26 @@ def read(relative: str) -> str:
     return (SRC / relative).read_text(encoding="utf-8")
 
 
+# WHY THESE EXPECTATIONS ARE NOT ISO, AND MUST NOT BE PUT BACK.
+#
+# The date home moved to tv-break-dashboard/src/shell/dates.js and the product's
+# standing law is dd/mm/yyyy in BOTH locales, because this is an Israeli
+# operator's product. The stored value is still the ISO day; only the reading
+# changed, so the sentence names 01/11/2024 and never 2024-11-01. A date joined
+# into a sentence through formatDayList is also wrapped in the U+2068/U+2069
+# isolate pair, so a Hebrew line cannot pull its parts out of order.
+#
+# Every assertion below therefore states the dd/mm/yyyy form in full and asserts
+# the ISO key is absent, so a regression back to the machine format fails here.
+DAY_READS = "01/11/2024"
+DAY_ISO = "2024-11-01"
+# The second date arrives through formatDayList, which isolates each run. The
+# isolate pair is written as escapes because the characters render as nothing and
+# a literal pair in the source is invisible to review.
+STRADDLE_READS = "\u206802/11/2024\u2069"
+STRADDLE_ISO = "2024-11-02"
+
+
 def node_scope(body: str, module: Path = SCOPE_JS) -> dict:
     """Run a shipped module in node and return what it computed."""
     if shutil.which("node") is None:
@@ -109,7 +129,8 @@ def test_the_sentence_covers_what_the_plan_places_in_the_programmes_it_shows():
     assert "8 of the 13 breaks the saved weekly plan places in the 12 programmes it shows" in measured["en"]
     assert "out of the 80 that plan holds for this day" in measured["en"]
     assert "across 12 of its 82 programmes" in measured["en"]
-    assert "on 1 of its 30 days (2024-11-01)" in measured["en"]
+    assert f"on 1 of its 30 days ({DAY_READS})" in measured["en"]
+    assert DAY_ISO not in measured["en"], "the ISO key is a machine format and never reaches a reader"
     assert "8 מתוך 13 הברייקים שהתוכנית השבועית השמורה קובעת ל-12 התוכניות" in measured["he"]
     assert "מתוך 80" in measured["he"]
     assert "12 מתוך 82" in measured["he"]
@@ -189,7 +210,8 @@ def test_the_sentence_names_no_figure_it_does_not_have_yet():
         "the clause falls back to figures it does have, still naming the plan"
     )
     assert "of its 30 days" not in measured["noDays"], "no plan total was fetched yet, so none is named"
-    assert "2024-11-01" in measured["noDays"], "the day itself is still named on its own"
+    assert f"({DAY_READS})" in measured["noDays"], "the day itself is still named on its own"
+    assert DAY_ISO not in measured["noDays"], "and it is named as a reader reads it, not as the store keys it"
     assert measured["unscored"] == "Reading how much of the day this timeline draws."
 
 
@@ -208,7 +230,8 @@ def test_the_sentence_is_honest_when_no_plan_was_ever_committed_for_this_day():
     assert measured["coverage"]["committedUnavailable"] is True
     assert "76" not in measured["en"], "no figure from the live re-plan may stand in for the missing committed one"
     assert "The saved weekly plan carries no committed figures" in measured["en"]
-    assert "2024-11-01" in measured["en"]
+    assert f"for this day ({DAY_READS})" in measured["en"]
+    assert DAY_ISO not in measured["en"], "the day the plan is missing for is read, not keyed"
     assert "התוכנית השבועית השמורה אינה מחזיקה נתונים מחויבים" in measured["he"]
 
 
@@ -259,8 +282,12 @@ def test_a_second_date_on_the_timeline_is_named_rather_than_absorbed():
       });
       process.stdout.write(JSON.stringify({ en: m.coverageSentence(coverage, 'en'), he: m.coverageSentence(coverage, 'he') }));
     """)
-    assert "The breaks drawn also fall on 2024-11-02." in measured["en"]
-    assert "משתרעים גם על 2024-11-02." in measured["he"]
+    assert f"The breaks drawn also fall on {STRADDLE_READS}." in measured["en"]
+    assert f"משתרעים גם על {STRADDLE_READS}." in measured["he"]
+    for locale in ("en", "he"):
+        assert STRADDLE_ISO not in measured[locale], (
+            "the second date is read as a date, not printed as the key it is stored under"
+        )
 
 
 @pytest.mark.realdata
