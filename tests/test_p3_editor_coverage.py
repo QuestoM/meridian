@@ -53,7 +53,10 @@ def node_scope(body: str, module: Path = SCOPE_JS) -> dict:
         pytest.skip("node is not on PATH, so the shipped module cannot be executed")
     script = f"const m = await import({json.dumps(module.as_uri())});\n{body}"
     result = subprocess.run(
-        ["node", "--input-type=module", "-e", script],
+        # shell/bidi and shell/dates are real shell primitives the shipped module
+        # imports; this loader hook resolves them to the real compiled files.
+        ["node", "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         "--input-type=module", "-e", script],
         capture_output=True, text=True, timeout=120,
     )
     assert result.returncode == 0, result.stderr

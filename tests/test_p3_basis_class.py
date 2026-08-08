@@ -157,7 +157,10 @@ def test_the_committed_note_prints_no_percentage_it_does_not_have():
         "process.stdout.write(JSON.stringify({ zero, real }));"
     )
     result = subprocess.run(
-        ["node", "--input-type=module", "-e", script],
+        # shell/bidi and shell/dates are real shell primitives the shipped module
+        # imports; this loader hook resolves them to the real compiled files.
+        ["node", "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         "--input-type=module", "-e", script],
         capture_output=True, text=True, timeout=120,
     )
     assert result.returncode == 0, result.stderr

@@ -83,3 +83,4 @@ data/versions/
 /*.png
 .playwright-mcp/
 output/*.png
+tv-break-dashboard/.probe-shell/

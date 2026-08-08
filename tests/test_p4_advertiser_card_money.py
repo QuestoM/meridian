@@ -159,7 +159,12 @@ def _run(tmp_path: Path, stats_source: str) -> dict:
     payload.write_text(json.dumps(_payload(), ensure_ascii=False), encoding="utf-8")
     out = work / "out.json"
     result = subprocess.run(
-        [node, str(harness), str(stats), str(names), str(shared), str(payload), str(out)],
+        # shell/bidi is a real shell primitive advertiser-stats-helpers.js and
+        # advertisers-helpers.js import; the copies land outside the dashboard
+        # tree so plain node resolution cannot find it, and this loader hook
+        # resolves it to the real compiled module instead.
+        [node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         str(harness), str(stats), str(names), str(shared), str(payload), str(out)],
         capture_output=True, text=True, check=False, cwd=str(work),
     )
     if result.returncode != 0:
