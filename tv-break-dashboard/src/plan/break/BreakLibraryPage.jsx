@@ -17,6 +17,14 @@ export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalR
   // detail and edit affordances open in place on this page. A row without a
   // segment id (older saved plan) gets an honest notice instead of a dead click.
   const [inspect, setInspect] = useState(null);
+  // The state channel a covered-day link inside the break drawer below uses to
+  // open a day in the pod section above, on the same page. A hash assignment
+  // cannot do this, because the hash already names this page while the drawer
+  // is open on it, so this is a real channel rather than a link with nowhere
+  // to land. token forces the effect on PodPage to fire even for a day it is
+  // already showing, so the click always answers with a scroll and a reload.
+  const [podDayRequest, setPodDayRequest] = useState(null);
+  const openPodDay = (day) => setPodDayRequest({ day, token: Date.now() });
   const openBreak = (row) => {
     if (row && row.segment_id) {
       setInspect({ segmentId: row.segment_id, channel: row.channel, day: row.day });
@@ -49,16 +57,17 @@ export function BreakLibraryPage({ breakLibrary, copy, locale, notify, onGlobalR
         locale={locale}
         titleEn="Plan, the break"
         titleHe="תוכנית, הברייק"
-        bodyEn="Every break in one broadcast day, with what the plan expects it to earn. Open one for its full detail, or use the ranked shelf below to find the strongest breaks in the whole plan."
-        bodyHe="כל הברייקים ביום שידור אחד, עם ההכנסה שהתוכנית מייחסת לכל אחד. פתחו ברייק לפרטים המלאים, או השתמשו במדף המדורג שלמטה כדי למצוא את הברייקים החזקים בכל התוכנית."
+        bodyEn="The spots inside a break first, read from the daily traffic file. Below them, every break in one broadcast day with what the plan expects it to earn, and a ranked shelf of the strongest breaks in the whole plan."
+        bodyHe="קודם התשדירים שבתוך הברייק, כפי שנקראו מקובץ הטראפיק היומי. מתחתיהם כל הברייקים ביום שידור אחד עם ההכנסה שהתוכנית מייחסת לכל אחד, ומדף מדורג של הברייקים החזקים בכל התוכנית."
       />
-      <BreakBoard locale={locale} notify={notify} />
-      {/* The break's contents, which is the object below the break. It sits on
-          this page because this is the page a person reaches to work a break, and
-          it reads its own day from the traffic files rather than from the plan. */}
+      {/* The break's contents sits first on this page, because the traffic
+          operator this page also serves needs zero scroll to reach it: their
+          job is the pod, not the ranked shelf below. It reads its own day from
+          the traffic files rather than from the plan. */}
       <section className="page-panel">
-        <PodPage locale={locale} notify={notify} />
+        <PodPage locale={locale} notify={notify} requestedDay={podDayRequest} />
       </section>
+      <BreakBoard locale={locale} notify={notify} onOpenPodDay={openPodDay} />
       <section className="page-panel">
         <div className="panel-head">
           <h2>{pageText(locale, 'Ranked break candidates', 'ברייקים מדורגים')}</h2>

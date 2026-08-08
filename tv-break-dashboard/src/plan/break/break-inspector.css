@@ -113,18 +113,25 @@
 }
 
 /* The inputs that multiply back to the figure above them, set apart so the chain
-   reads as one piece of arithmetic rather than as six more facts. */
+   reads as one piece of arithmetic rather than as six more facts. Design rule 1
+   bans the one-sided rule that used to do this, so it is a full border and the
+   neutral soft background from rule 2's own table instead. */
 .break-inspector-body dl.break-price {
   font-size: var(--text-xs);
-  border-inline-start: 2px solid var(--line-strong);
-  padding-inline-start: var(--space-3);
+  border: 1px solid var(--line);
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
 }
 
+/* Design rule 2: an amber background carries the amber border with it, or the
+   state reads as a tint rather than as a thing that is true about the data. */
 .break-unavailable {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--amber-ink);
   background: var(--amber-soft);
+  border: 1px solid var(--amber);
   border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
 }

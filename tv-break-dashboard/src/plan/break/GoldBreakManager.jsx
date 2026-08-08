@@ -9,6 +9,7 @@ import {
   pageText,
   programTypeLabel,
 } from '../../shell/surface-helpers';
+import { Figure } from '../../shell/bidi';
 
 // GoldBreakManager: which breaks in the current plan are gold, and how many per
 // day, from GET /api/gold-breaks (a live optimizer run on the saved settings).
@@ -24,7 +25,6 @@ function programTypeText(value, locale) {
 }
 
 export default function GoldBreakManager({ locale, refreshKey = 0 }) {
-  const he = locale === 'he';
   const [state, setState] = useState({ status: 'loading', payload: null });
 
   useEffect(() => {
@@ -77,14 +77,14 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
     }
     return (
       <>
-        <div className="gold-summary" dir={he ? 'rtl' : 'ltr'}>
+        <div className="gold-summary">
           <div className="gold-summary-card">
             <span>{pageText(locale, 'Gold breaks', 'ברייקי זהב')}</span>
-            <strong className="numeric" dir="ltr">{formatNumber(payload?.count ?? breaks.length, locale)}</strong>
+            <strong className="numeric"><Figure>{formatNumber(payload?.count ?? breaks.length, locale)}</Figure></strong>
           </div>
           <div className="gold-summary-card">
             <span>{pageText(locale, 'Max per day', 'מקסימום ליום')}</span>
-            <strong className="numeric" dir="ltr">{payload?.max_per_day != null ? formatNumber(payload.max_per_day, locale) : '-'}</strong>
+            <strong className="numeric"><Figure>{payload?.max_per_day != null ? formatNumber(payload.max_per_day, locale) : '-'}</Figure></strong>
           </div>
         </div>
 
@@ -93,13 +93,13 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
             {byDay.map((row) => (
               <span className="gold-day-chip" key={row.day || 'unknown'}>
                 {row.day || pageText(locale, 'Unknown', 'לא ידוע')}
-                <strong className="numeric" dir="ltr">{formatNumber(row.count, locale)}</strong>
+                <strong className="numeric">{formatNumber(row.count, locale)}</strong>
               </span>
             ))}
           </div>
         )}
 
-        <div className="gold-table-wrap" dir={he ? 'rtl' : 'ltr'}>
+        <div className="gold-table-wrap">
           <table className="gold-table">
             <thead>
               <tr>
@@ -115,12 +115,12 @@ export default function GoldBreakManager({ locale, refreshKey = 0 }) {
               {breaks.map((row, index) => (
                 <tr key={row.segment_id || index}>
                   <td>{row.day || '-'}</td>
-                  <td className="numeric" dir="ltr">{row.start_time || '-'}</td>
+                  <td className="numeric"><Figure>{row.start_time || '-'}</Figure></td>
                   <td>{programTypeText(row.program_type, locale)}</td>
-                  <td className="numeric" dir="ltr">{formatSeconds(row.duration_seconds, locale)}</td>
-                  <td className="numeric" dir="ltr">
+                  <td className="numeric"><Figure>{formatSeconds(row.duration_seconds, locale)}</Figure></td>
+                  <td className="numeric">
                     {row.revenue != null && row.revenue !== '' && Number.isFinite(Number(row.revenue)) ? (
-                      formatCurrency(row.revenue, locale)
+                      <Figure>{formatCurrency(row.revenue, locale)}</Figure>
                     ) : (
                       <span className="gold-premium-pending">{pageText(locale, 'Pending', 'ממתין')}</span>
                     )}

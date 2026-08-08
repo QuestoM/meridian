@@ -1,117 +1,14 @@
-/* The pod: one break's spots, and the arithmetic between what they declare and
-   how long the break runs.
+/* One break's pod, opened: its spots, the arithmetic between what they declare
+   and how long the break runs, and the verification and lock that finalise it.
+   The day's pod list itself is styled in ./break-pod-list.css. Logical
+   properties throughout, so the surface mirrors in Hebrew without a second
+   stylesheet, and every clock, duration and house number is isolated in the
+   markup with Figure, Code or Name rather than a dir attribute. */
 
-   Logical properties throughout, so the whole surface mirrors in Hebrew without
-   a second stylesheet. Every clock, duration and house number is marked ltr in
-   the markup, because a time read right to left is a different time. */
-
-.pod-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.pod-page-head h2 {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-lg);
-  color: var(--ink);
-}
-
-.pod-page-head p {
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--text-sm);
-}
-
-.pod-days {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--muted);
-}
-
-.pod-day {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
-  cursor: pointer;
-}
-
-.pod-day-open {
-  border-color: var(--line-strong);
-  background: var(--surface-muted);
-  font-weight: var(--weight-medium);
-}
-
-.pod-empty {
-  border: 1px solid var(--amber);
-  background: var(--amber-soft);
-  color: var(--amber-ink);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  font-size: var(--text-sm);
-}
-
-.pod-empty p {
-  margin: 0 0 var(--space-1);
-}
-
-.pod-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.pod-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  text-align: start;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.pod-row span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pod-row-open {
-  border-color: var(--line-strong);
-  background: var(--surface-muted);
-}
-
-.pod-row:focus-visible,
-.pod-day:focus-visible,
 .pod-act:focus-visible,
 .pod-spot:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
-}
-
-.pod-tag {
-  border: 1px solid var(--blue);
-  color: var(--blue);
-  border-radius: var(--radius-sm);
-  padding: 0 var(--space-1);
-  font-size: var(--text-2xs);
 }
 
 .pod-board {
@@ -151,6 +48,22 @@
   flex-wrap: wrap;
   color: var(--muted);
   font-size: var(--text-xs);
+}
+
+/* Design rule 3, the same divider the pod list uses. */
+.pod-when > span + span {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
+}
+
+/* A frozen pod does not offer a grab cursor it will not honour. */
+.pod-spot-frozen {
+  cursor: default;
+}
+
+.pod-lock-when {
+  color: var(--muted);
+  font-weight: var(--weight-regular);
 }
 
 .pod-basis,
@@ -237,6 +150,72 @@
   color: var(--muted);
 }
 
+/* Wraps the heading row and the spot list as one role=table, so assistive
+   technology gets the same columns a sighted reader gets. */
+.pod-spot-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The eleven columns, declared once for the heading and the rows together, so a
+   heading can never drift off the column it names. */
+.pod-spot-head,
+.pod-spot {
+  grid-template-columns: 16px 28px 32px minmax(0, 1.4fr) minmax(0, 1.6fr) 96px 92px 72px 72px 64px 56px;
+}
+
+/* The heading stays with the list. Real pods run to 38 spots and 1.66 screens,
+   and two columns are bare numbers that mean different things, so a heading that
+   scrolls away turns them back into one number twice. */
+.pod-spot-head {
+  display: grid;
+  align-items: end;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.pod-spot-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pod-head-seq,
+.pod-head-pos {
+  text-align: center;
+}
+
+.pod-head-elapsed,
+.pod-head-len {
+  text-align: end;
+}
+
+.pod-continuity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+
+.pod-continuity-label {
+  color: var(--muted);
+}
+
+.pod-continuity-part {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+}
+
 .pod-spots {
   list-style: none;
   margin: 0;
@@ -248,7 +227,6 @@
 
 .pod-spot {
   display: grid;
-  grid-template-columns: 16px 28px 32px minmax(0, 1.4fr) minmax(0, 1.6fr) 92px 72px 72px 56px;
   align-items: center;
   gap: var(--space-2);
   border: 1px solid var(--line);
@@ -263,6 +241,22 @@
 .pod-spot-dragging {
   opacity: 0.5;
   border-color: var(--line-strong);
+}
+
+/* The insertion line a drag shows before release, so where a drop lands is read
+   rather than guessed. Logical border, so it flips correctly in RTL. */
+.pod-spot-drop-before {
+  border-block-start: 2px solid var(--blue);
+}
+
+.pod-spot-drop-after {
+  border-block-end: 2px solid var(--blue);
+}
+
+.pod-grip-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pod-grip {
@@ -305,7 +299,8 @@
 .pod-creative,
 .pod-house,
 .pod-type,
-.pod-clock {
+.pod-clock,
+.pod-elapsed {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -318,12 +313,14 @@
 .pod-creative,
 .pod-house,
 .pod-type,
-.pod-clock {
+.pod-clock,
+.pod-elapsed {
   color: var(--muted);
   font-weight: var(--weight-regular);
 }
 
-.pod-len {
+.pod-len,
+.pod-elapsed {
   text-align: end;
   font-variant-numeric: tabular-nums;
 }
@@ -333,6 +330,99 @@
   font-style: normal;
   font-size: var(--text-2xs);
   display: block;
+}
+
+.pod-copy {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}
+
+.pod-copy-agrees {
+  color: var(--muted);
+}
+
+.pod-copy-disagrees {
+  color: var(--red);
+  font-weight: var(--weight-medium);
+}
+
+.pod-pos-violated {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.pod-figure-checks-warning {
+  border-color: var(--red);
+}
+
+.pod-figure-checks-warning strong {
+  color: var(--red);
+}
+
+.pod-errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pod-error {
+  border: 1px solid var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+
+/* An error names a spot, so the whole row is the control that opens it. */
+.pod-error-open {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: start;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+}
+
+.pod-error-open:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pod-error-advertiser {
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.pod-lock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: var(--space-1) 0 0;
+  color: var(--blue);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+/* Design rule 4: one primary act per card, filled. This card ends on finalising. */
+.pod-act-lock,
+.pod-act-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: var(--teal);
+  background: var(--teal);
+  color: var(--surface);
 }
 
 .pod-acts {
@@ -351,12 +441,9 @@
   cursor: pointer;
 }
 
-.pod-act-save {
-  border-color: var(--line-strong);
-  font-weight: var(--weight-medium);
-}
-
 .pod-act:disabled {
+  border-color: var(--line);
+  background: var(--surface);
   color: var(--subtle);
   cursor: not-allowed;
 }

@@ -42,7 +42,13 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from kairos_api import read_cache
-from kairos_api.break_api_pod_math import against_declared, declared_length, pod_arithmetic
+from kairos_api.break_api_pod_math import (
+    against_declared,
+    declared_length,
+    pod_arithmetic,
+    position_violations,
+    verification_errors,
+)
 from kairos_api.break_api_pod_spots import (
     LAST_POSITION_CODE,
     PREFERRED_BASIS,
@@ -72,8 +78,12 @@ POD_ID_SEPARATOR = "~"
 
 NO_COVERAGE = "No traffic file on disk covers this broadcast day, so the breaks on it have no contents to read."
 NO_COVERAGE_HE = "אין קובץ טראפיק בדיסק המכסה את יום השידור הזה, ולכן אין תוכן לברייקים שבו."
-COVERAGE_FORWARD = "Upload the daily traffic file for this day through Sources."
-COVERAGE_FORWARD_HE = "העלו את קובץ הטראפיק היומי ליום הזה דרך מקורות."
+# Named by the door an operator actually clicks. The shell's own navigation
+# entry is Data, and the page behind it is titled Sources, so a path forward
+# that said only Sources sent a reader looking for a name the sidebar does not
+# carry.
+COVERAGE_FORWARD = "Upload the daily traffic file for this day on the Data page, under Sources."
+COVERAGE_FORWARD_HE = "העלו את קובץ הטראפיק היומי ליום הזה בעמוד נתונים, תחת מקורות."
 NO_BREAK_IN_WINDOW = "A traffic file covers this day, but it declares no break starting inside this one's window."
 NO_BREAK_IN_WINDOW_HE = "קובץ טראפיק מכסה את היום הזה, אך אינו מצהיר על ברייק שמתחיל בתוך החלון של הברייק הזה."
 
@@ -138,6 +148,22 @@ def _channel_note() -> dict[str, Any]:
     }
 
 
+def _boundary_note() -> dict[str, Any]:
+    """What column decides where one pod ends and the next begins, said once.
+
+    Named on the surface rather than only reasoned about here, per
+    ``decisions-for-owner.md`` section 2, which records the pod boundary as an
+    open owner decision blocking this piece. The file's own break-start column
+    is the same value for every spot in one break, which is the explicit
+    per-ad break identifier the boundary needs, so it is used as read.
+    """
+    return {
+        "value": "שעת התחלת ברייק",
+        "basis": "the traffic file's own break-start column, which carries the same value for every spot in one break",
+        "basis_he": "עמודת שעת התחלת הברייק בקובץ הטראפיק עצמו, הנושאת את אותו ערך לכל תשדיר בברייק אחד",
+    }
+
+
 def _read_days() -> dict[str, Any]:
     import pandas as pd
 
@@ -183,6 +209,9 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
     arithmetic = pod_arithmetic(break_start, spots)
     declared = declared_length(day, break_start)
     saved = order_store.applied(identifier, spots, _fingerprint_of(spots))
+    violations = position_violations(saved["spots"])
+    copy_disagreements = sum(1 for item in spots if item["copy_length"]["state"] == "disagrees")
+    errors = verification_errors(saved["spots"], violations)
     return {
         "pod_id": identifier,
         "day": day,
@@ -191,11 +220,13 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
         "programme": known(ordered.iloc[0].get("program"), "This break names no programme in the traffic file.", "הברייק הזה אינו נוקב בתוכנית בקובץ הטראפיק."),
         "break_type": text(ordered.iloc[0].get("break_type")),
         "channel": _channel_note(),
+        "boundary": _boundary_note(),
         "spots": saved["spots"],
         "order": saved["order"],
         "arithmetic": arithmetic,
         "declared_break_length": declared,
         "against_declared": against_declared(declared, arithmetic),
+        "copy_length_disagreements": copy_disagreements,
         "positions": {
             "preferred_set": list(PREFERRED_POSITIONS),
             "basis": PREFERRED_BASIS,
@@ -203,7 +234,10 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
             "last_held": any(item["position"].get("kind") == "last" for item in spots),
             "unpositioned": sum(1 for item in spots if item["position"].get("kind") == "unpositioned"),
             "top_and_tail": top_and_tail(spots),
+            "violations": violations,
+            "violation_count": len(violations),
         },
+        "verification": {"errors": errors, "count": len(errors)},
         "fingerprint": _fingerprint_of(spots),
     }
 
@@ -338,6 +372,8 @@ def save_order(pod_id: str, payload: PodOrder, request: Request = None) -> dict[
     from kairos_api import break_api_pod_order as order_store
 
     pod = _pod_or_404(pod_id)
+    if pod["order"].get("locked"):
+        raise HTTPException(status_code=423, detail="This pod is locked. Unlock it before changing the order.")
     keys = [item["spot_key"] for item in pod["spots"]]
     if sorted(payload.spot_keys) != sorted(keys):
         raise HTTPException(status_code=422, detail="The order must hold exactly this pod's own spot keys, each once")
@@ -347,10 +383,54 @@ def save_order(pod_id: str, payload: PodOrder, request: Request = None) -> dict[
 
 @router.delete("/api/breaks/pod/{pod_id}/order")
 def forget_order(pod_id: str) -> dict[str, Any]:
-    """Drop the saved order and put the pod back in the order the file declares."""
+    """Drop the saved order and put the pod back in the order the file declares.
+
+    A locked pod refuses this exactly as it refuses a write of a new order.
+    Dropping the row is the larger of the two changes, not the smaller: it takes
+    the frozen order away and clears the lock with it, so a route that allowed it
+    would be a way to unfinalise a pod without ever pressing unlock, and the
+    register would lose the fact that anybody had finalised it.
+    """
     from kairos_api import break_api_pod_order as order_store
 
+    pod = _pod_or_404(pod_id)
+    if pod["order"].get("locked"):
+        raise HTTPException(status_code=423, detail="This pod is locked. Unlock it before changing the order.")
     dropped = order_store.forget(pod_id)
     if dropped is None:
         raise HTTPException(status_code=404, detail="This pod carries no saved order")
     return {"forgotten": dropped, "pod": _pod_or_404(pod_id)}
+
+
+@router.put("/api/breaks/pod/{pod_id}/lock", status_code=200)
+def lock_pod(pod_id: str, request: Request = None) -> dict[str, Any]:
+    """Finalise this pod: freeze the order it is currently shown in.
+
+    The trade's own step is verification, then finalising. This is that second
+    step. Locking always pins whichever order is on screen, file or operator,
+    so the frozen order is never ambiguous, and a further order write is
+    refused until the pod is unlocked. Nothing here requires the verification
+    list to be clear first, because a traffic operator sometimes finalises a
+    pod that carries a known, already-handled disagreement. Locking never
+    invents an operator order: a pod nobody reordered is frozen as the file's
+    own order, and stays reported that way, rather than being recorded as a
+    decision an operator made.
+    """
+    from kairos_api import break_api_pod_order as order_store
+
+    pod = _pod_or_404(pod_id)
+    if pod["order"].get("locked"):
+        raise HTTPException(status_code=409, detail="This pod is already locked")
+    record = order_store.lock(pod_id, pod["fingerprint"], _actor(request))
+    return {"pod_id": pod_id, "locked": record, "pod": _pod_or_404(pod_id)}
+
+
+@router.delete("/api/breaks/pod/{pod_id}/lock")
+def unlock_pod(pod_id: str) -> dict[str, Any]:
+    """Clear a pod's lock. The order it carries is left exactly as it stood."""
+    from kairos_api import break_api_pod_order as order_store
+
+    dropped = order_store.unlock(pod_id)
+    if dropped is None:
+        raise HTTPException(status_code=404, detail="This pod is not locked")
+    return {"unlocked": dropped, "pod": _pod_or_404(pod_id)}

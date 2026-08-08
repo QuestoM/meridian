@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
-import { formatDayList } from '../../shell/dates';
+import { Code, Figure, Name, Prose } from '../../shell/bidi';
+import { formatDay } from '../../shell/dates';
 import { exactCurrency } from '../day/day-board-model';
 import { violationLabel } from '../day/DayBoardReadout';
 import ScheduleInspector, { confidenceLabel } from '../day/ScheduleInspector';
@@ -27,7 +28,7 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 // own record, the hour opens the breaks the plan puts in it, and a saved
 // placement opens the record naming who saved it and which restriction carries
 // it. A figure a person cannot walk from is a figure they have to take on trust.
-function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify, onGlobalRefresh }) {
+function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify, onGlobalRefresh, onOpenPodDay }) {
   const he = locale === 'he';
   const label = (en, hebrew) => (he ? hebrew : en);
   const [detail, setDetail] = useState(null);
@@ -93,15 +94,15 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
 
   return (
     <>
-    <aside className="break-inspector" dir={he ? 'rtl' : 'ltr'} role="dialog" aria-label={label('Break detail', 'פרטי הברייק')}>
+    <aside className="break-inspector" role="dialog" aria-label={label('Break detail', 'פרטי הברייק')}>
       <header className="break-inspector-head">
         <div>
           <h2>{label('Break', 'ברייק')}</h2>
-          <code dir="ltr">{breakId}</code>
+          <code><Code>{breakId}</Code></code>
         </div>
         {walkable && (
           <div className="break-inspector-walk">
-            <span dir="ltr">{index + 1} / {set.length}</span>
+            <Figure>{index + 1} / {set.length}</Figure>
             <button
               type="button"
               onClick={() => onNavigate(set[index - 1])}
@@ -125,7 +126,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
         </button>
       </header>
 
-      {error && <p className="break-inspector-error" dir="auto">{error}</p>}
+      {error && <Prose as="p" className="break-inspector-error">{error}</Prose>}
       {!detail && !error && <p>{label('Opening', 'פותח')}</p>}
 
       {detail && (
@@ -138,21 +139,20 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                 <button
                   type="button"
                   className="break-open"
-                  dir="auto"
                   onClick={() => setProgrammeOpen(true)}
                   aria-label={`${detail.programme.title}, ${label('open the programme record', 'פתיחת רשומת התוכנית')}`}
                 >
-                  {detail.programme.title}
+                  <Name>{detail.programme.title}</Name>
                 </button>
               </dd>
               <dt>{pageText(locale, 'Programme window', 'חלון התוכנית')}</dt>
-              <dd dir="ltr">{detail.programme.start_clock} - {detail.programme.end_clock}</dd>
+              <dd><Figure>{detail.programme.start_clock} - {detail.programme.end_clock}</Figure></dd>
               <dt>{pageText(locale, 'Break window', 'חלון הברייק')}</dt>
-              <dd dir="ltr">{detail.placement.start_clock} - {detail.placement.end_clock}</dd>
+              <dd><Figure>{detail.placement.start_clock} - {detail.placement.end_clock}</Figure></dd>
               <dt>{pageText(locale, 'Length', 'אורך')}</dt>
-              <dd dir="ltr">{formatNumber(detail.placement.duration_seconds, locale)}s</dd>
+              <dd><Figure>{formatNumber(detail.placement.duration_seconds, locale)}s</Figure></dd>
               <dt>{pageText(locale, 'Order in the programme', 'סדר בתוך התוכנית')}</dt>
-              <dd dir="ltr">{detail.identity.ordinal} / {detail.identity.breaks_in_programme}</dd>
+              <dd><Figure>{detail.identity.ordinal} / {detail.identity.breaks_in_programme}</Figure></dd>
               <dt>{pageText(locale, 'Placed by', 'נקבע על ידי')}</dt>
               <dd>{detail.placement.source === 'operator' ? label('the operator', 'המפעיל') : label('the plan', 'התוכנית')}</dd>
               {detail.placement.saved_placement && (
@@ -162,11 +162,12 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                     <button
                       type="button"
                       className="break-open"
-                      dir="ltr"
                       aria-expanded={pinOpen}
                       onClick={() => setPinOpen((open) => !open)}
                     >
-                      {detail.placement.saved_placement.constraint_id || label('none on record', 'לא רשומה')}
+                      {detail.placement.saved_placement.constraint_id
+                        ? <Code>{detail.placement.saved_placement.constraint_id}</Code>
+                        : label('none on record', 'לא רשומה')}
                     </button>
                   </dd>
                 </>
@@ -175,19 +176,21 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
             {detail.placement.saved_placement && pinOpen && (
               <dl className="break-price">
                 <dt>{label('Saved by', 'נשמרה על ידי')}</dt>
-                <dd dir="auto">{detail.placement.saved_placement.actor || label('no account recorded', 'לא נרשם חשבון')}</dd>
+                <dd>{detail.placement.saved_placement.actor ? <Name>{detail.placement.saved_placement.actor}</Name> : label('no account recorded', 'לא נרשם חשבון')}</dd>
                 <dt>{label('Saved at', 'נשמרה בתאריך')}</dt>
-                <dd dir="ltr">{detail.placement.saved_placement.saved_at || label('not recorded', 'לא נרשם')}</dd>
+                <dd>{detail.placement.saved_placement.saved_at ? <Figure>{detail.placement.saved_placement.saved_at}</Figure> : label('not recorded', 'לא נרשם')}</dd>
                 <dt>{label('Offset it holds', 'ההיסט שהיא מקבעת')}</dt>
-                <dd dir="ltr">{formatNumber(Number(detail.placement.saved_placement.offset_seconds), locale)}s</dd>
+                <dd><Figure>{formatNumber(Number(detail.placement.saved_placement.offset_seconds), locale)}s</Figure></dd>
                 <dt>{label('Length it holds', 'האורך שהיא מקבעת')}</dt>
-                <dd dir="ltr">{formatNumber(Number(detail.placement.saved_placement.duration_seconds), locale)}s</dd>
+                <dd><Figure>{formatNumber(Number(detail.placement.saved_placement.duration_seconds), locale)}s</Figure></dd>
                 <dt>{label('Note', 'הערה')}</dt>
-                <dd dir="auto">{detail.placement.saved_placement.note || label('none', 'אין')}</dd>
+                {detail.placement.saved_placement.note
+                  ? <Prose as="dd">{detail.placement.saved_placement.note}</Prose>
+                  : <dd>{label('none', 'אין')}</dd>}
               </dl>
             )}
             {detail.placement.saved_placement && (
-              <p className="break-basis" dir="auto">
+              <p className="break-basis">
                 {label(
                   'Select this break on the day board to remove the saved placement and let the plan place it again.',
                   'בחרו את הברייק הזה בלוח היום כדי להסיר את הנעיצה השמורה ולהחזיר את המיקום לתוכנית.',
@@ -198,28 +201,28 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
 
           <section>
             <h3>{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</h3>
-            <p className="break-money" dir="ltr">{exactCurrency(detail.money.projected.amount, locale)}</p>
-            <p className="break-basis" dir="auto">{say(detail.money.projected, 'basis', he)}</p>
+            <p className="break-money"><Figure>{exactCurrency(detail.money.projected.amount, locale)}</Figure></p>
+            <p className="break-basis">{say(detail.money.projected, 'basis', he)}</p>
             <dl className="break-price">
               <dt>{label('Rate per point', 'מחיר לנקודת רייטינג')}</dt>
-              <dd dir="ltr">{decimal(detail.programme.rate_per_point, 2)}</dd>
+              <dd><Figure>{decimal(detail.programme.rate_per_point, 2)}</Figure></dd>
               <dt>{label('Baseline rating of the programme', 'רייטינג הבסיס של התוכנית')}</dt>
-              <dd dir="ltr">{decimal(detail.programme.baseline_rating, 3)}</dd>
+              <dd><Figure>{decimal(detail.programme.baseline_rating, 3)}</Figure></dd>
               <dt>{label('Retention once this break is present', 'השימור ברגע שהברייק הזה קיים')}</dt>
-              <dd dir="ltr">{decimal(detail.money.projected.retention_at_this_break * 100, 4)}%</dd>
+              <dd><Figure>{decimal(detail.money.projected.retention_at_this_break * 100, 4)}%</Figure></dd>
               <dt>{label('Rating this break is priced at', 'הרייטינג שלפיו מתומחר הברייק')}</dt>
-              <dd dir="ltr">{decimal(detail.money.projected.rating_at_this_break, 6)}</dd>
+              <dd><Figure>{decimal(detail.money.projected.rating_at_this_break, 6)}</Figure></dd>
               <dt>{label('Length over the rate unit', 'האורך חלקי יחידת המחירון')}</dt>
-              <dd dir="ltr">{decimal(detail.placement.duration_seconds, 0)}s / {decimal(detail.programme.rate_unit_seconds, 0)}s</dd>
+              <dd><Figure>{decimal(detail.placement.duration_seconds, 0)}s / {decimal(detail.programme.rate_unit_seconds, 0)}s</Figure></dd>
               <dt>{label('Premium', 'פרמיה')}</dt>
-              <dd dir="ltr">{decimal(detail.programme.premium, 4)}</dd>
+              <dd><Figure>{decimal(detail.programme.premium, 4)}</Figure></dd>
             </dl>
-            <p className="break-basis" dir="auto">{say(detail.money.projected, 'formula', he)}</p>
-            <p className="break-basis" dir="auto">{say(detail.money.projected, 'rating_formula', he)}</p>
+            <p className="break-basis">{say(detail.money.projected, 'formula', he)}</p>
+            <p className="break-basis">{say(detail.money.projected, 'rating_formula', he)}</p>
             <h3>{label('Delivered', 'שסופק בפועל')}</h3>
-            <p className="break-unavailable" dir="auto">{say(detail.money.delivered, 'reason', he)}</p>
+            <p className="break-unavailable">{say(detail.money.delivered, 'reason', he)}</p>
             {detail.money.delivered.path_forward && (
-              <p className="break-basis" dir="auto">{say(detail.money.delivered, 'path_forward', he)}</p>
+              <p className="break-basis">{say(detail.money.delivered, 'path_forward', he)}</p>
             )}
           </section>
 
@@ -227,29 +230,33 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
             <h3>{pageText(locale, 'Retention cost', 'עלות שימור')}</h3>
             <dl>
               <dt>{label('Programme retention with this plan', 'שימור התוכנית בתוכנית הזו')}</dt>
-              <dd dir="ltr">{formatPercent(detail.retention.programme_retention * 100, locale)}</dd>
+              <dd><Figure>{formatPercent(detail.retention.programme_retention * 100, locale)}</Figure></dd>
               <dt>{label('Cost per break', 'עלות לכל ברייק')}</dt>
-              <dd dir="ltr">{formatPercent(detail.retention.cost_per_break * 100, locale)}</dd>
+              <dd><Figure>{formatPercent(detail.retention.cost_per_break * 100, locale)}</Figure></dd>
               <dt>{label('Credible interval', 'רווח סמך')}</dt>
-              <dd dir="ltr">
-                {detail.retention.ci_low === null
-                  ? label('point estimate only', 'אומדן נקודתי בלבד')
-                  : `${formatPercent(detail.retention.ci_low * 100, locale)} .. ${formatPercent(detail.retention.ci_high * 100, locale)}`}
+              <dd>
+                <Figure>
+                  {detail.retention.ci_low === null
+                    ? label('point estimate only', 'אומדן נקודתי בלבד')
+                    : `${formatPercent(detail.retention.ci_low * 100, locale)} .. ${formatPercent(detail.retention.ci_high * 100, locale)}`}
+                </Figure>
               </dd>
               <dt>{label('Measured on', 'נמדד על')}</dt>
-              <dd dir="ltr">{formatNumber(detail.retention.sample_breaks, locale)}</dd>
+              <dd><Figure>{formatNumber(detail.retention.sample_breaks, locale)}</Figure></dd>
               <dt>{label('Confidence', 'רמת ביטחון')}</dt>
-              <dd dir="auto">{confidenceLabel(detail.retention.confidence, locale)}</dd>
+              <dd>{confidenceLabel(detail.retention.confidence, locale)}</dd>
             </dl>
           </section>
 
           <section>
             <h3>{pageText(locale, 'Regulatory guardrail', 'מגבלת רגולציה')}</h3>
             {detail.guardrails.hour && (
-              <p dir="ltr">
-                {String(detail.guardrails.hour.hour % 24).padStart(2, '0')}:00 {' '}
-                {formatNumber(detail.guardrails.hour.ad_seconds, locale)}s / {formatNumber(detail.guardrails.hour.max_ad_seconds, locale)}s,
-                {' '}{detail.guardrails.hour.breaks} / {detail.guardrails.hour.max_breaks}
+              <p>
+                <Figure>
+                  {String(detail.guardrails.hour.hour % 24).padStart(2, '0')}:00 {' '}
+                  {formatNumber(detail.guardrails.hour.ad_seconds, locale)}s / {formatNumber(detail.guardrails.hour.max_ad_seconds, locale)}s,
+                  {' '}{detail.guardrails.hour.breaks} / {detail.guardrails.hour.max_breaks}
+                </Figure>
               </p>
             )}
             {hourBreaks.length > 0 && (
@@ -259,7 +266,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                 aria-expanded={hourOpen}
                 onClick={() => setHourOpen((open) => !open)}
               >
-                <span dir="auto">{label('The breaks in this hour', 'הברייקים בשעה הזו')} ({hourBreaks.length})</span>
+                <span>{label('The breaks in this hour', 'הברייקים בשעה הזו')} ({hourBreaks.length})</span>
                 {hourOpen ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
               </button>
             )}
@@ -273,24 +280,24 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                       disabled={row.break_id === breakId || typeof onNavigate !== 'function'}
                       onClick={() => onNavigate(row.break_id)}
                     >
-                      <span dir="ltr">{row.start_clock}</span>
-                      <span dir="auto">{row.programme}</span>
-                      <span dir="ltr">{formatNumber(row.duration_seconds, locale)}s</span>
+                      <Figure>{row.start_clock}</Figure>
+                      <span><Name>{row.programme}</Name></span>
+                      <Figure>{formatNumber(row.duration_seconds, locale)}s</Figure>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            <p dir="auto">
-              {label('Gap to the break before', 'מרווח מהברייק הקודם')}: <span dir="ltr">{gapText(detail.guardrails.spacing.gap_before_seconds, locale, label)}</span>
+            <p>
+              {label('Gap to the break before', 'מרווח מהברייק הקודם')}: <Figure>{gapText(detail.guardrails.spacing.gap_before_seconds, locale, label)}</Figure>
             </p>
-            <p dir="auto">
-              {label('Gap to the break after', 'מרווח לברייק הבא')}: <span dir="ltr">{gapText(detail.guardrails.spacing.gap_after_seconds, locale, label)}</span>
+            <p>
+              {label('Gap to the break after', 'מרווח לברייק הבא')}: <Figure>{gapText(detail.guardrails.spacing.gap_after_seconds, locale, label)}</Figure>
             </p>
             <ul className="break-violations">
               {(detail.compliance.violations || []).map((violation, index) => (
                 <li key={`${violation.code}-${index}`}>
-                  {violationLabel(violation.code, locale)} <span dir="ltr">{violation.observed} / {violation.limit}</span>
+                  {violationLabel(violation.code, locale)} <Figure>{violation.observed} / {violation.limit}</Figure>
                 </li>
               ))}
             </ul>
@@ -300,18 +307,45 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
             <h3>{pageText(locale, 'Break contents', 'תוכן הברייק')}</h3>
             {detail.contents.state === 'real' && detail.contents.pod ? (
               // The same component the contents page draws, given the same pod.
-              // The reorder acts are deliberately absent here: this drawer is
-              // opened from a plan board to read a break, and a write with no
-              // inverse on the surface that performed it is the defect P3 spent a
-              // round closing. The pod's own page carries the acts and the inverse.
-              <PodBoard pod={detail.contents.pod} locale={locale} busy onSaveOrder={noNotify} onRevertOrder={noNotify} />
+              // readOnly rather than a hard-set busy: this drawer is opened from
+              // a plan board to read a break, and a write with no inverse on the
+              // surface that performed it is the defect P3 spent a round closing.
+              // The pod's own page carries the acts and the inverse.
+              <PodBoard pod={detail.contents.pod} locale={locale} readOnly onSaveOrder={noNotify} onRevertOrder={noNotify} />
             ) : (
               <>
-                <p className="break-unavailable" dir="auto">{say(detail.contents, 'reason', he)}</p>
-                <p className="break-basis" dir="auto">{say(detail.contents, 'path_forward', he)}</p>
+                <p className="break-unavailable">{say(detail.contents, 'reason', he)}</p>
+                <p className="break-basis">{say(detail.contents, 'path_forward', he)}</p>
                 {(detail.contents.covered_days || []).length > 0 && (
-                  <p className="break-basis" dir="auto">
-                    {label('A traffic file covers', 'קובץ טראפיק מכסה')}: {formatDayList(detail.contents.covered_days, he ? 'he' : 'en')}
+                  <p className="break-basis">
+                    {label('A traffic file covers', 'קובץ טראפיק מכסה')}:
+                    {' '}
+                    {detail.contents.covered_days.map((covering, index) => (
+                      <React.Fragment key={covering}>
+                        {index > 0 && ', '}
+                        <button
+                          type="button"
+                          className="break-open"
+                          onClick={() => {
+                            // Break contents lives on this same page when this
+                            // drawer was opened from the ranked board here, and a
+                            // hash assignment to a hash that already names this
+                            // page is a no-op. onOpenPodDay is the real state
+                            // channel for that case; the hash fallback is only
+                            // for a caller on a different page entirely.
+                            if (onOpenPodDay) {
+                              onOpenPodDay(covering);
+                              onClose();
+                            } else {
+                              openPodDay(covering);
+                            }
+                          }}
+                          aria-label={`${formatDay(covering)}, ${label('open this day\'s breaks', 'פתיחת הברייקים של היום הזה')}`}
+                        >
+                          <Figure>{formatDay(covering)}</Figure>
+                        </button>
+                      </React.Fragment>
+                    ))}
                   </p>
                 )}
               </>
@@ -339,6 +373,17 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
 // notifier. The programme record still opens; its own messages have nowhere to
 // go, which is better than a click that throws.
 function noNotify() {}
+
+// A covered day is a real destination, not a name with nothing to open: Plan,
+// the break, is where a traffic file's pods are read, so a click there carries
+// the day in the address bar and lets the existing hash router open it.
+function openPodDay(day) {
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams(window.location.search);
+  params.set('day', day);
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+  window.location.hash = 'Break Library';
+}
 
 // A payload string in the reader's own language. Every honest empty state on
 // this surface ships both, so a Hebrew operator never reads an English excuse.

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Figure } from '../../shell/bidi';
 
 // The shared break chip body used by both the editor lane and the read-only
 // timeline. It is a pure presentation shell: three stacked lines with the exact
@@ -16,12 +17,12 @@ import React from 'react';
 function BreakChip({ clock, detail, meta, gold, goldLabel, children }) {
   return (
     <>
-      <span className="break-chip-clock" dir="ltr">{clock}</span>
+      <Figure className="break-chip-clock">{clock}</Figure>
       {detail != null && <strong className="break-chip-detail">{detail}</strong>}
       {gold ? (
         <em className="break-chip-gold">{goldLabel}</em>
       ) : (
-        meta != null && <em className="break-chip-meta" dir="ltr">{meta}</em>
+        meta != null && <Figure className="break-chip-meta">{meta}</Figure>
       )}
       {children}
     </>

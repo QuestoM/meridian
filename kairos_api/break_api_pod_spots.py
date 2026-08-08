@@ -1,4 +1,5 @@
-"""One spot inside a pod, and the position model the trade actually uses.
+"""One spot inside a pod, the position model the trade actually uses, and the
+check between a copy version's own declared length and its booked duration.
 
 Split out of :mod:`kairos_api.break_api_pod` under the 450-line cap. Everything
 here turns one row of a traffic file into one addressable spot, and every field it
@@ -22,6 +23,7 @@ rendered as nothing looks like a spot with no advertiser sold.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 LAST_POSITION_CODE = 99
@@ -29,6 +31,21 @@ UNPOSITIONED_CODE = 0
 PREFERRED_POSITIONS = ("1", "2", "3", "4", "5", "L")
 PREFERRED_BASIS = "The preferred set here is 1 to 5 and Last, which is the trade default. Which positions count as preferred is agreed per client, so this is a default and not a reading of any agreement."
 PREFERRED_BASIS_HE = "קבוצת המיקומים המועדפים כאן היא 1 עד 5 ואחרון, שהיא ברירת המחדל בענף. אילו מיקומים נחשבים מועדפים נקבע בהסכם מול כל לקוח, ולכן זו ברירת מחדל ולא קריאה של הסכם כלשהו."
+
+# A run of digits immediately followed by a seconds mark is a length. The three
+# marks really present in the shipped file are the double quote (28", 35"), the
+# apostrophe (35'), and the word שניות with at most one space before it (10
+# שניות). A bare number with no mark is never a length, even when it is the
+# whole field, because the 15 in "סרט 15 ימי מכירות" is a count of sale days on
+# a 14 s spot, and reading it as a duration would manufacture a false alarm on
+# the very first pod this surface reads.
+_COPY_LENGTH_MARK = re.compile(r"(\d+)(?:[\"']|\s?שניות)")
+NO_COPY_LENGTH = "The copy version names no length."
+NO_COPY_LENGTH_HE = "שם הגרסה אינו נוקב באורך."
+NO_BOOKED_LENGTH = "The copy version names a length, but this spot declares no booked duration to compare it against."
+NO_BOOKED_LENGTH_HE = "שם הגרסה נוקב באורך, אך לתשדיר הזה אין אורך מוצהר להשוואה."
+COPY_LENGTH_DISAGREES = "The copy version names a different length than the booked duration."
+COPY_LENGTH_DISAGREES_HE = "שם הגרסה נוקב באורך שונה מהאורך המוצהר בהזמנה."
 
 
 def clock_seconds(text: Any) -> Optional[float]:
@@ -132,10 +149,53 @@ def position_of(raw: Any) -> dict[str, Any]:
     }
 
 
+def copy_declared_seconds(creative_text: Any) -> Optional[float]:
+    """A length declared inside the copy version's own name, or ``None``."""
+    match = _COPY_LENGTH_MARK.search(str(creative_text or ""))
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def copy_length_check(creative: dict[str, Any], duration: dict[str, Any]) -> dict[str, Any]:
+    """The copy version's own declared length against this spot's booked duration.
+
+    JS-7's own done condition: any ad whose booked duration disagrees with its
+    copy must be impossible to miss. Three states and never a fourth: the copy
+    names a length and it agrees, it names one and it disagrees, or it names
+    none at all, which is the honest answer for most rows.
+    """
+    copy_seconds = copy_declared_seconds(creative.get("value") if isinstance(creative, dict) else None)
+    if copy_seconds is None:
+        return {"state": "none", "copy_seconds": None, "reason": NO_COPY_LENGTH, "reason_he": NO_COPY_LENGTH_HE}
+    booked = duration.get("seconds") if isinstance(duration, dict) else None
+    if booked is None:
+        return {
+            "state": "none",
+            "copy_seconds": copy_seconds,
+            "reason": NO_BOOKED_LENGTH,
+            "reason_he": NO_BOOKED_LENGTH_HE,
+        }
+    if round(copy_seconds, 1) == round(float(booked), 1):
+        return {"state": "agrees", "copy_seconds": copy_seconds, "booked_seconds": round(float(booked), 1)}
+    return {
+        "state": "disagrees",
+        "copy_seconds": copy_seconds,
+        "booked_seconds": round(float(booked), 1),
+        "difference_seconds": round(abs(copy_seconds - float(booked)), 1),
+        "reason": COPY_LENGTH_DISAGREES,
+        "reason_he": COPY_LENGTH_DISAGREES_HE,
+    }
+
+
 def spot(index: int, row: Any) -> dict[str, Any]:
     """One row of a traffic file as one addressable spot inside its pod."""
     start = clock_seconds(row.get("spot_time"))
     duration = duration_of(row.get("duration_sec"))
+    creative = known(row.get("creative"), "This spot names no creative version in the traffic file.", "התשדיר הזה אינו נוקב בגרסת קריאייטיב בקובץ הטראפיק.")
     end = None if start is None or duration["seconds"] is None else start + duration["seconds"]
     return {
         "spot_key": f"s{index}",
@@ -147,7 +207,8 @@ def spot(index: int, row: Any) -> dict[str, Any]:
         "position": position_of(row.get("position_in_break")),
         "advertiser": known(row.get("advertiser"), "This spot names no advertiser in the traffic file.", "התשדיר הזה אינו נוקב במפרסם בקובץ הטראפיק."),
         "campaign": known(row.get("campaign"), "This spot names no campaign in the traffic file.", "התשדיר הזה אינו נוקב בקמפיין בקובץ הטראפיק."),
-        "creative": known(row.get("creative"), "This spot names no creative version in the traffic file.", "התשדיר הזה אינו נוקב בגרסת קריאייטיב בקובץ הטראפיק."),
+        "creative": creative,
+        "copy_length": copy_length_check(creative, duration),
         "house_number": known(row.get("house_number"), "This creative carries no house number in the traffic file.", "לקריאייטיב הזה אין מספר בית בקובץ הטראפיק."),
         "agency": known(row.get("agency"), "This spot names no agency in the traffic file.", "התשדיר הזה אינו נוקב במשרד בקובץ הטראפיק."),
         "spot_type": text(row.get("spot_type")),

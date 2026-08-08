@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Star } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
+import { Figure, Name, Prose } from '../../shell/bidi';
 import DayPicker from '../day/DayPicker';
 import BreakInspector from './BreakInspector';
 import { clockOf, exactCurrency } from '../day/day-board-model';
@@ -30,7 +31,14 @@ import './break-board.css';
 // So the total is now the sum of what is displayed, the day's own total is a
 // second line that appears when a filter is on, and an emptied filter says which
 // mark is missing and where it is made.
-function BreakBoard({ locale, notify }) {
+//
+// Direction. This section carries no dir of its own: it renders inside the app
+// shell's own direction root and inherits it, the way every panel below a root
+// must. Every figure, name and free-text sentence below is isolated with the
+// primitives from shell/bidi.jsx rather than with a dir attribute, so a number
+// or a programme name keeps its own internal order without re-anchoring the
+// row or the cell it sits in.
+function BreakBoard({ locale, notify, onOpenPodDay }) {
   const he = locale === 'he';
   const label = (en, hebrew) => (he ? hebrew : en);
   const [days, setDays] = useState(null);
@@ -74,7 +82,7 @@ function BreakBoard({ locale, notify }) {
   if (error) {
     return (
       <section className="page-panel">
-        <p className="break-board-error" dir="auto">{error}</p>
+        <Prose as="p" className="break-board-error">{error}</Prose>
       </section>
     );
   }
@@ -83,13 +91,13 @@ function BreakBoard({ locale, notify }) {
     return (
       <section className="page-panel">
         <h2>{pageText(locale, 'No breaks to open yet', 'אין עדיין ברייקים לפתיחה')}</h2>
-        <p dir="auto">{(he && days.reason_he) || days.reason}</p>
+        <p>{(he && days.reason_he) || days.reason}</p>
       </section>
     );
   }
 
   return (
-    <section className="page-panel break-board" dir={he ? 'rtl' : 'ltr'}>
+    <section className="page-panel break-board">
       <div className="panel-head">
         <h2>{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</h2>
         <div className="panel-head-tools">
@@ -102,7 +110,7 @@ function BreakBoard({ locale, notify }) {
             <Star size={12} aria-hidden="true" />
             {pageText(locale, 'Gold breaks', 'ברייקי זהב')}
           </button>
-          <span dir="ltr">{goldOnly ? `${rows.length} / ${all.length}` : rows.length}</span>
+          <Figure>{goldOnly ? `${rows.length} / ${all.length}` : rows.length}</Figure>
         </div>
       </div>
       <DayPicker
@@ -136,15 +144,15 @@ function BreakBoard({ locale, notify }) {
                     if (event.key === 'Enter') setOpen(row.break_id);
                   }}
                 >
-                  <td dir="ltr">{clockOf(row.start_seconds)}</td>
-                  <td dir="auto">
+                  <td><Figure>{clockOf(row.start_seconds)}</Figure></td>
+                  <td>
                     {row.is_gold && <Star size={11} aria-hidden="true" />}
-                    {row.programme}
+                    <Name>{row.programme}</Name>
                   </td>
-                  <td dir="ltr">{row.ordinal} / {row.breaks_in_segment}</td>
-                  <td dir="ltr">{formatNumber(row.duration_seconds, locale)}s</td>
-                  <td dir="ltr">{exactCurrency(row.projected_revenue, locale)}</td>
-                  <td className="break-cell-muted" dir="auto">{(he && row.delivered.reason_he) || row.delivered.reason}</td>
+                  <td><Figure>{row.ordinal} / {row.breaks_in_segment}</Figure></td>
+                  <td><Figure>{formatNumber(row.duration_seconds, locale)}s</Figure></td>
+                  <td><Figure>{exactCurrency(row.projected_revenue, locale)}</Figure></td>
+                  <td className="break-cell-muted">{(he && row.delivered.reason_he) || row.delivered.reason}</td>
                 </tr>
               ))}
             </tbody>
@@ -152,22 +160,22 @@ function BreakBoard({ locale, notify }) {
               <tr>
                 <td colSpan={4}>
                   {label('Sum over these breaks', 'סכום על הברייקים האלה')}
-                  <span className="break-foot-count" dir="ltr">{rows.length} / {all.length}</span>
+                  <Figure className="break-foot-count">{rows.length} / {all.length}</Figure>
                 </td>
-                <td dir="ltr">{exactCurrency(shown, locale)}</td>
-                <td className="break-cell-muted" dir="auto">{board.basis.channel}, {board.basis.day}</td>
+                <td><Figure>{exactCurrency(shown, locale)}</Figure></td>
+                <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
               </tr>
               {goldOnly && (
                 <tr className="break-foot-day">
                   <td colSpan={4}>{label('The whole day, every break', 'כל היום, כל הברייקים')}</td>
-                  <td dir="ltr">{exactCurrency(dayRevenue, locale)}</td>
-                  <td className="break-cell-muted" dir="auto">{board.basis.channel}, {board.basis.day}</td>
+                  <td><Figure>{exactCurrency(dayRevenue, locale)}</Figure></td>
+                  <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
                 </tr>
               )}
             </tfoot>
           </table>
-          <p className="break-board-basis" dir="auto">{basisSentence({ goldOnly, shownCount: rows.length, total: all.length, portion: share === null ? null : formatPercent(share, locale), locale })}</p>
-          <p className="break-board-rounding" dir="auto">{roundingSentence(locale)}</p>
+          <p className="break-board-basis">{basisSentence({ goldOnly, shownCount: rows.length, total: all.length, portion: share === null ? null : formatPercent(share, locale), locale })}</p>
+          <p className="break-board-rounding">{roundingSentence(locale)}</p>
         </>
       )}
       {open && (
@@ -178,6 +186,7 @@ function BreakBoard({ locale, notify }) {
           onNavigate={setOpen}
           onClose={() => setOpen(null)}
           notify={notify}
+          onOpenPodDay={onOpenPodDay}
         />
       )}
     </section>
@@ -203,17 +212,17 @@ export function EmptyBoard({ board, goldOnly, locale, onClearFilter }) {
         : label('The plan places no break in this day', 'התוכנית לא מציבה ברייקים ביום הזה')}
       </h3>
       {goldOnly && goldOff && (
-        <p dir="auto">{label('Gold breaks are switched off in settings, so no break here can carry the mark. Switch them on in settings first.', 'ברייקי זהב כבויים בהגדרות, ולכן אף ברייק כאן אינו יכול לשאת את הסימון. הפעילו אותם בהגדרות תחילה.')}</p>
+        <p>{label('Gold breaks are switched off in settings, so no break here can carry the mark. Switch them on in settings first.', 'ברייקי זהב כבויים בהגדרות, ולכן אף ברייק כאן אינו יכול לשאת את הסימון. הפעילו אותם בהגדרות תחילה.')}</p>
       )}
       {goldOnly && !goldOff && (
-        <p dir="auto">{label(`Marking is done on the day board: open Plan, the day, select a break and press G, or use its Gold break button. Up to ${formatNumber(gold.max_per_day, locale)} gold breaks a day are allowed on this channel.`, `הסימון נעשה בלוח היום: פתחו את תוכנית, היום, בחרו ברייק והקישו G, או השתמשו בכפתור ברייק זהב שלו. מותרים בערוץ הזה עד ${formatNumber(gold.max_per_day, locale)} ברייקי זהב ביום.`)}</p>
+        <p>{label(`Marking is done on the day board: open Plan, the day, select a break and press G, or use its Gold break button. Up to ${formatNumber(gold.max_per_day, locale)} gold breaks a day are allowed on this channel.`, `הסימון נעשה בלוח היום: פתחו את תוכנית, היום, בחרו ברייק והקישו G, או השתמשו בכפתור ברייק זהב שלו. מותרים בערוץ הזה עד ${formatNumber(gold.max_per_day, locale)} ברייקי זהב ביום.`)}</p>
       )}
       {!goldOnly && (
-        <p dir="auto">{label('Every programme on this day was planned with zero breaks, so there is nothing to open at break zoom.', 'כל רצועות השידור ביום הזה תוכננו ללא ברייקים, ולכן אין מה לפתוח בזום הברייק.')}</p>
+        <p>{label('Every programme on this day was planned with zero breaks, so there is nothing to open at break zoom.', 'כל רצועות השידור ביום הזה תוכננו ללא ברייקים, ולכן אין מה לפתוח בזום הברייק.')}</p>
       )}
-      <p className="break-board-empty-day" dir="auto">
+      <p className="break-board-empty-day">
         {label(`The day itself holds ${formatNumber(board.totals.breaks, locale)} breaks worth ${exactCurrency(board.totals.revenue, locale)}`, `היום עצמו מחזיק ${formatNumber(board.totals.breaks, locale)} ברייקים בשווי ${exactCurrency(board.totals.revenue, locale)}`)}
-        <span className="break-cell-muted" dir="auto">{board.basis.channel}, {board.basis.day}</span>
+        <span className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></span>
       </p>
       {goldOnly && (
         <button type="button" className="break-filter" onClick={onClearFilter}>
