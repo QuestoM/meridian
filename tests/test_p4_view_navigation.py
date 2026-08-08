@@ -138,7 +138,13 @@ def _run(tmp_path: Path, source: str) -> dict[str, dict[str, str]]:
     harness = tmp_path / "harness.mjs"
     harness.write_text(HARNESS, encoding="utf-8")
     result = subprocess.run(
-        [_node(), str(harness), str(module), str(stub)],
+        [
+            _node(),
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the harness under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+            str(harness), str(module), str(stub),
+        ],
         capture_output=True,
         text=True,
         check=False,

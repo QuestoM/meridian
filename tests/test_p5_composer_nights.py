@@ -118,7 +118,13 @@ def _render(
     airings_file = work / "airings.json"
     airings_file.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
     out = work / "out.json"
-    command = [node, str(PROBE), str(work / "bundle"), str(out), str(under_test), str(airings_file)]
+    command = [
+        node,
+        # the shell moved bidi.jsx and dates.js under src/shell; this hook
+        # resolves both to the real modules so the probe under test can import them.
+        "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+        str(PROBE), str(work / "bundle"), str(out), str(under_test), str(airings_file),
+    ]
     if dead_end is not None:
         dead_end_file = work / "dead-end.json"
         dead_end_file.write_text(json.dumps(dead_end, ensure_ascii=False), encoding="utf-8")

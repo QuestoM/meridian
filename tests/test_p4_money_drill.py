@@ -215,6 +215,9 @@ def _run(tmp_path: Path, payload: dict, probes: list[str], source: str) -> dict:
     result = subprocess.run(
         [
             _node(),
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the module under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
             str(harness),
             str(module),
             str(stub),

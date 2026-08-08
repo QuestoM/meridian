@@ -120,6 +120,16 @@ export function useReducer(reducer, initial) {
   return [initial, () => {}];
 }
 
+// Not recorded, because it is not a hook and it is not called during a render.
+// It is here because the surface under test now reaches shell/bidi.jsx, which
+// calls React.forwardRef at module scope for DirectionRoot. This recorder is
+// substituted for the real react BEFORE that module evaluates, so a missing
+// forwardRef is a TypeError at import time rather than anything about hooks.
+// The identity passthrough is enough: nothing in these tests forwards a ref.
+export function forwardRef(render) {
+  return render;
+}
+
 export function createElement(type, props, ...children) {
   const merged = { ...(props || {}) };
   if (children.length === 1) merged.children = children[0];
@@ -131,6 +141,7 @@ export const Fragment = 'Fragment';
 
 export default {
   createElement,
+  forwardRef,
   Fragment,
   useState,
   useMemo,
@@ -271,7 +282,13 @@ def _render(tmp_path: Path, source: str, payload_path: Path) -> dict[str, dict]:
     component = tmp_path / "ClientTree.jsx"
     component.write_text(source, encoding="utf-8")
     result = subprocess.run(
-        [_node(), str(harness), str(component), str(HELPERS), str(payload_path), str(DASHBOARD)],
+        [
+            _node(),
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the harness under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+            str(harness), str(component), str(HELPERS), str(payload_path), str(DASHBOARD),
+        ],
         capture_output=True,
         text=True,
         check=False,

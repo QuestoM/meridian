@@ -419,8 +419,14 @@ def _render(tmp_path: Path, payload: dict, flights_source: str) -> dict:
         encoding="utf-8",
     )
     done = subprocess.run(
-        [node, str(script), str(entry), str(work / "out"), str(board_file), str(tree_file),
-         str(out_file), str(source)],
+        [
+            node,
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the bundle under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+            str(script), str(entry), str(work / "out"), str(board_file), str(tree_file),
+            str(out_file), str(source),
+        ],
         capture_output=True,
         text=True,
         cwd=str(APP),

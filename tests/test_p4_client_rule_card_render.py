@@ -184,7 +184,13 @@ def _render(tmp_path: Path, helpers_source: str) -> dict:
     cases.write_text(json.dumps(_cases(), ensure_ascii=False), encoding="utf-8")
     out = work / "out.json"
     result = subprocess.run(
-        [node, str(script), str(entry), str(work / "bundle"), str(cases), str(out), str(source)],
+        [
+            node,
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the bundle under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+            str(script), str(entry), str(work / "bundle"), str(cases), str(out), str(source),
+        ],
         capture_output=True, text=True, check=False, cwd=str(work),
     )
     assert result.returncode == 0, result.stderr[-2000:]

@@ -85,7 +85,13 @@ export function createElement(type, props, ...children) {
 }
 
 export const Fragment = 'Fragment';
-export default { createElement, Fragment, useState, useRef, useMemo, useCallback, useEffect };
+// shell/bidi.jsx calls React.forwardRef at module scope for DirectionRoot, and
+// this stub stands in for react before that module evaluates, so its absence is
+// a TypeError at import time rather than anything this file is about. Identity
+// is enough: nothing here forwards a ref.
+export function forwardRef(render) { return render; }
+
+export default { createElement, Fragment, useState, useRef, useMemo, useCallback, useEffect, forwardRef };
 """
 
 JSX_STUB = """
@@ -299,7 +305,13 @@ def _render(tmp_path: Path, status: int, body: dict, cut: str = "", instead: str
         encoding="utf-8",
     )
     result = subprocess.run(
-        [_node(), str(harness), str(DASH), str(CLIENTS), str(tmp_path / "build"), str(plan)],
+        [
+            _node(),
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the harness under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+            str(harness), str(DASH), str(CLIENTS), str(tmp_path / "build"), str(plan),
+        ],
         capture_output=True,
         text=True,
         check=False,

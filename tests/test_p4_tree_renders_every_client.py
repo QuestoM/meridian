@@ -251,6 +251,9 @@ def _render(tmp_path: Path, payload: dict, tree_source: str) -> dict:
     result = subprocess.run(
         [
             node,
+            # the shell moved bidi.jsx and dates.js under src/shell; this hook
+            # resolves both to the real modules so the bundle under test can import them.
+            "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
             str(script),
             str(entry),
             str(work / "bundle"),
