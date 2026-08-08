@@ -133,6 +133,29 @@ export const DirectionRoot = React.forwardRef(
   },
 );
 
+// The document itself is a direction root, and it is the one nobody was setting.
+//
+// index.html shipped <html lang="en"> with no dir at all, so the document
+// declared an English left-to-right page for a product that is Hebrew and right
+// to left. Two things follow from that and both are real. Assistive technology
+// announces the whole page in the wrong language, which is not a detail for an
+// operator using a screen reader in Hebrew. And the portal case named above
+// resolves against the DOCUMENT default: a dialog rendered outside the shell's
+// subtree with no root of its own inherits English left-to-right, which is
+// exactly the failure the paragraph above warns about.
+//
+// The static file now ships he and rtl, matching the settings the plan
+// fingerprint pins. This keeps it true when the operator uses the English
+// toggle, so the two never disagree.
+export function useDocumentDirection(locale) {
+  React.useEffect(() => {
+    const root = typeof document === 'undefined' ? null : document.documentElement;
+    if (!root) return;
+    root.lang = locale === 'he' ? 'he' : 'en';
+    root.dir = documentDirection(locale);
+  }, [locale]);
+}
+
 // A block of text whose language is not known until it arrives: a paragraph the
 // model wrote, an operator's free-text note, a message from the server. Each
 // block is its own direction root, taking both its order and its alignment from

@@ -195,6 +195,45 @@ def test_tokens_are_defined_in_tokens_css_and_nowhere_else() -> None:
         )
 
 
+def test_the_document_itself_declares_the_language_the_product_ships_in() -> None:
+    """index.html is a direction root and it was the one nobody set.
+
+    It shipped ``<html lang="en">`` with no dir for a product that is Hebrew and
+    right to left. Two real consequences, not one cosmetic one. Assistive
+    technology announces the whole page in the wrong language. And bidi.jsx's own
+    documentation names the other: a dialog rendered through a portal lands
+    outside the shell's subtree and resolves its direction against the DOCUMENT,
+    so with the document saying English a Hebrew dialog renders left to right.
+
+    he and rtl here match the values the plan fingerprint pins in
+    data/kairos_settings.json, so the static file and the shipping settings agree.
+    """
+    html = (SRC.parent / "index.html").read_text(encoding="utf-8")
+    opening = re.search(r"<html([^>]*)>", html)
+    assert opening, "index.html has no html element"
+    attributes = opening.group(1)
+    assert 'lang="he"' in attributes, f"index.html declares {attributes.strip()!r}, not Hebrew"
+    assert 'dir="rtl"' in attributes, (
+        f"index.html declares {attributes.strip()!r} and states no direction, so a portalled "
+        "dialog falls back to left to right"
+    )
+
+
+def test_the_shell_keeps_the_document_in_step_with_the_locale() -> None:
+    """A static default is only right until somebody uses the English toggle."""
+    bidi = _read("shell/bidi.jsx")
+    assert "export function useDocumentDirection" in bidi, (
+        "the hook that syncs document.documentElement is gone, so the document keeps "
+        "whatever index.html shipped no matter which locale the operator picks"
+    )
+    assert "document.documentElement" in bidi, "the hook no longer touches the document"
+    shell = _read("shell/TVBreakDashboard.jsx")
+    assert "useDocumentDirection(locale)" in shell, (
+        "the shell no longer calls useDocumentDirection, so the hook exists and nothing "
+        "runs it, which is the same as not having it"
+    )
+
+
 def test_tokens_css_is_loaded_before_the_shell_stylesheet() -> None:
     """The entry imports the tokens first, so no sheet renders before them."""
     entry = _read("index.jsx")

@@ -24,7 +24,7 @@ import { RefreshCcw } from 'lucide-react';
 import ActivityFeed from '../history/ActivityFeed';
 import AssistantDock from '../kai/AssistantDock';
 import { usePlanEvents } from '../rules/CalendarEventsModel';
-import { DirectionRoot } from './bidi';
+import { DirectionRoot, useDocumentDirection } from './bidi';
 
 function TVBreakDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -206,6 +206,10 @@ function TVBreakDashboard() {
 
   const locale = settings.locale === 'en' ? 'en' : 'he';
   const isHebrew = locale === 'he';
+  // The <html> element follows the operator's locale. Without this it keeps
+  // whatever index.html shipped, and a portalled dialog resolves its direction
+  // against the document rather than against this shell.
+  useDocumentDirection(locale);
   const copy = copyByLocale[locale];
   // The optimization command group (scenario, risk, run, apply, planning-week)
   // is only meaningful on the planning surfaces; hide it on Data, Pricing,
