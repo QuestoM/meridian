@@ -6,7 +6,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: var(--card-inset);
   background: var(--bg);
   color: var(--ink);
   z-index: 60;
@@ -18,7 +18,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 30px 28px 24px;
+  padding: 30px 28px var(--space-6);
 }
 
 .login-brand {
@@ -117,7 +117,7 @@
 .login-error,
 .auth-error {
   margin: 10px 0 0;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border: 1px solid var(--red);
   border-radius: var(--radius-sm);
   background: var(--red-soft);
@@ -140,7 +140,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   min-height: 36px;
-  padding: 0 16px;
+  padding: 0 var(--card-inset);
   background: var(--primary);
   color: var(--surface);
   font: inherit;
@@ -176,7 +176,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: var(--card-inset);
   background: rgba(13, 27, 42, 0.42);
   z-index: 70;
 }
@@ -190,7 +190,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .auth-dialog-wide {
@@ -211,7 +211,7 @@
 
 .auth-note {
   margin: 0 0 16px;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border: 1px solid var(--amber);
   border-radius: var(--radius-sm);
   background: var(--amber-soft);
@@ -232,7 +232,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   min-height: 36px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -251,7 +251,7 @@
   font-size: var(--text-xl);
   line-height: 1;
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
 }
 
 /* Accounts table */
@@ -267,12 +267,12 @@
   text-align: start;
   color: var(--muted);
   font-weight: var(--weight-medium);
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   border-bottom: 1px solid var(--line);
 }
 
 .auth-table td {
-  padding: 8px;
+  padding: var(--space-2);
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }

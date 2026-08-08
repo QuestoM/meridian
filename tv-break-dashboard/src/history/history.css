@@ -161,7 +161,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 4px var(--space-3);
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -199,7 +199,7 @@
 .hist-select input {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 4px var(--space-2);
+  padding: var(--space-1) var(--space-2);
   background: var(--surface);
 }
 
@@ -219,7 +219,7 @@
 .hist-rename input {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 4px var(--space-2);
+  padding: var(--space-1) var(--space-2);
   background: var(--surface);
 }
 

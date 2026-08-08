@@ -8,7 +8,7 @@
 /* Every calendar panel drops its content here so nothing sits flush against
    the panel border while the head keeps its own full-bleed 16px inset. */
 .cal-panel-body {
-  padding: var(--space-3) 16px 16px;
+  padding: var(--space-3) var(--card-inset) 16px;
 }
 
 .cal-view-bar {

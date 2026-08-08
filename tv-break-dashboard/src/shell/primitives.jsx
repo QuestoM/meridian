@@ -34,6 +34,55 @@ export function Metric({ label, value, delta, sub, icon: Icon, positive = false,
   return title ? <Tooltip title={title} arrow placement="bottom">{body}</Tooltip> : body;
 }
 
+// THE CARD, and the inset of everything inside it.
+//
+// One home, in two files: the shape and the rule are in shell/card.css, which
+// carries the measurement that produced them and is worth reading before you
+// change anything here. This is the component side of the same thing.
+//
+// A card is a bordered surface with a head and some content. Its inset is
+// --card-inset and the card does NOT apply it to itself, because the head's
+// rule and a table's row rules have to reach the card's border while their
+// content sits at the inset. So the inset belongs to the pieces, not the box.
+//
+//   <Card>
+//     <CardHead title="Ranked breaks" tools={<Export />} />
+//     <CardBody>prose, controls, a form</CardBody>
+//     <CardBleed><SomeTable /></CardBleed>
+//   </Card>
+//
+// CardBody is the default and CardBleed is the exception, deliberately: on
+// every surface the owner reported, the inset element read as correct and the
+// flush element read as broken. Reach for CardBleed only when the row rules of
+// a long table need to span the card, and know that it still aligns the
+// table's first column to the card's inset. See card.css.
+export function Card({ as: Tag = 'section', dense = false, className = '', children, ...rest }) {
+  const names = ['card', dense ? 'card-dense' : '', className].filter(Boolean).join(' ');
+  return <Tag className={names} {...rest}>{children}</Tag>;
+}
+
+// The head. `title` is the card's name; `sub` is a quiet fact about it, such as
+// a row count; `tools` is the acts, which sit at the far end of the line.
+export function CardHead({ title, sub, tools, className = '' }) {
+  return (
+    <div className={['card-head', className].filter(Boolean).join(' ')}>
+      <h2>{title}</h2>
+      {sub ? <span>{sub}</span> : null}
+      {tools ? <div className="panel-head-tools">{tools}</div> : null}
+    </div>
+  );
+}
+
+export function CardBody({ children, className = '' }) {
+  return <div className={['card-body', className].filter(Boolean).join(' ')}>{children}</div>;
+}
+
+// The named opt-in. A reader of the calling code can see that this content
+// reaches the card's edge on purpose, which is the whole point of the name.
+export function CardBleed({ children, className = '' }) {
+  return <div className={['card-bleed', className].filter(Boolean).join(' ')}>{children}</div>;
+}
+
 export function PageHeader({ locale, titleEn, titleHe, bodyEn, bodyHe, action }) {
   return (
     <div className="page-header">

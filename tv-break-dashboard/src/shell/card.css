@@ -1,0 +1,145 @@
+/* The card, and the inset of everything inside it.
+   ONE home. Nothing else in the product may build a card.
+
+   Written 2026-08-08, after the owner sent screenshots of the Break Library and
+   asked why, inside a single card, the header and the prose sit inset from the
+   card's edge while the rows run flush against the border. Measured on the
+   shipped tree, in Hebrew, before any of this existed:
+
+     Breaks in the day   card title 17px from the card edge, first cell 1px
+     Ranked breaks       card title 17px from the card edge, first cell 1px
+     Compliance ledger   card title 17px, its prose 1px
+     Revenue vs retention card title 17px, its prose 11px
+
+   A 16px misalignment on the tables and the ledger, 6px on the frontier, and
+   three different answers on one page. The cause was not any of those surfaces.
+   It was that a card owned no inset at all: `.page-panel` was a border, a radius
+   and a background with `padding: 0`, so every child had to invent its own, and
+   a child that invented none ran to the border. It looked like a bug because it
+   was one.
+
+   THE RULE, and it is two halves.
+
+   1. Content inside a card INHERITS the card's inset. That is the default, and
+      it is the default because on every surface the owner flagged, the inset
+      element was the one that read as correct and the flush element was the one
+      that read as broken. A card is right by omission now, and the accident that
+      produced this defect - forgetting to add padding - can no longer happen.
+
+   2. A table or list may BLEED to the card's edge, but bleeding is a named
+      opt-in that a reader of the code can see: `CardBleed`, or the
+      `.card-bleed` class. And a bleeding element STILL aligns its own content
+      to `--card-inset`. Its row rules span the whole card, which is what makes
+      a long table readable, while its first column sits directly under the card
+      title. Bleeding the background without aligning the content is not the
+      opt-in, it is the original defect with a class name on it.
+
+   The inset itself is --card-inset in tokens.css. It is not repeated here. */
+
+/* .page-panel and .analytics-panel are the two card classes the product already
+   had. They are the card, under their old names, so that every existing surface
+   gains the inset without a flag day. New code writes <Card>. */
+.card,
+.page-panel,
+.analytics-panel {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* A card nested inside another card, or one holding a dense list of rows rather
+   than a page section. Everything inside it follows, because the children read
+   the variable rather than restating a number. */
+.card-dense {
+  --card-inset: var(--card-inset-dense);
+}
+
+/* THE HEAD.
+   Its rule reaches both edges of the card, because a divider that stops short
+   of the border reads as a broken frame. Its content sits at the inset, which
+   is the line every other thing in the card aligns to. */
+.card-head,
+.panel-head,
+.inspector-head {
+  padding-inline: var(--card-inset);
+}
+
+/* THE BODY. The default: inherit the card's inset on all four sides. */
+.card-body {
+  padding: var(--card-inset);
+}
+
+/* Consecutive bodies should not double their gap at the seam, so a body that
+   follows another drops its leading edge. */
+.card-body + .card-body {
+  padding-block-start: 0;
+}
+
+/* THE BLEED, and its second half.
+   Zero inset on the container so backgrounds, row rules and hover bands reach
+   the card's border. Then the content inside is pushed back out to the inset so
+   the first column lines up under the card title. */
+.card-bleed {
+  padding-inline: 0;
+}
+
+/* A bare table carries the browser's default border-spacing: 2px, which puts
+   its first cell 2px inside the table and knocks the whole column 2px off the
+   card's inset. Measured, not assumed. Collapsing the borders here means the
+   alignment holds for a table whose own sheet never thought about it. */
+.card-bleed > table {
+  border-collapse: collapse;
+}
+
+/* Hand-rolled tables: the first and last cell of every row, header row and
+   footer row included, carry the card's inset on the outer side. The shorthand
+   is not used, so each cell keeps whatever vertical padding its own sheet set. */
+.card-bleed > table > * > tr > :first-child,
+.card-bleed table.card-bleed-table > * > tr > :first-child {
+  padding-inline-start: var(--card-inset);
+}
+
+.card-bleed > table > * > tr > :last-child,
+.card-bleed table.card-bleed-table > * > tr > :last-child {
+  padding-inline-end: var(--card-inset);
+}
+
+/* A list of rows rather than a table: each row is its own band, so the inset
+   goes on the row and the band still reaches the card's edge. */
+.card-bleed > .card-bleed-row {
+  padding-inline: var(--card-inset);
+}
+
+/* THE SHARED DATA GRID.
+   `.data-table-wrap` is what DataTable in shell/primitives.jsx renders, and it
+   is always the full-width grid of a card. It bleeds by definition, so it
+   carries the contract here rather than making every one of its thirty callers
+   type the opt-in. The alignment half of the rule still applies: the grid's
+   first and last column line up with the card's head above them.
+
+   The selectors reach the grid's own cell class because the cell padding comes
+   from the grid's stylesheet, not from ours, and a wrapper padding would clip
+   the horizontal scroll instead of insetting the columns.
+
+   The first column is addressed by its column index and NOT by :first-child or
+   :first-of-type. The grid renders a `.MuiDataGrid-cellOffsetLeft` spacer ahead
+   of the real cells, so both of those match the spacer and silently do nothing;
+   that is measured, not guessed. `data-colindex` on a cell and `aria-colindex`
+   on a header are the grid's own stable hooks for the same question. The last
+   column really is the last child in both rows, so it is addressed that way. */
+.data-table-wrap .MuiDataGrid-cell[data-colindex='0'],
+.data-table-wrap .MuiDataGrid-columnHeader[aria-colindex='1'] {
+  padding-inline-start: var(--card-inset);
+}
+
+.data-table-wrap .MuiDataGrid-cell:last-child,
+.data-table-wrap .MuiDataGrid-columnHeader:last-child {
+  padding-inline-end: var(--card-inset);
+}
+
+/* The grid's own footer sits on the same line as everything else in the card. */
+.data-table-wrap .MuiDataGrid-footerContainer {
+  padding-inline: var(--card-inset);
+}

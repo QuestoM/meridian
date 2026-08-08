@@ -13,7 +13,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
-  padding: 14px 16px;
+  padding: var(--space-4) var(--card-inset);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -123,7 +123,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
-  padding: 16px;
+  padding: var(--card-inset);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -261,7 +261,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   border-top: 1px solid var(--line);
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 /* The grid stretches every block to the row's height, and the value below carries
    margin-top:auto, so the value is bottom-anchored to a shared baseline. A label

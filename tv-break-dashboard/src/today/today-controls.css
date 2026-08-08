@@ -51,7 +51,7 @@
    figure this window is measured against. */
 .today-other-windows {
   margin-block-start: 9px;
-  padding-block-start: 8px;
+  padding-block-start: var(--space-2);
   border-block-start: 1px dashed var(--line);
 }
 
@@ -89,7 +89,7 @@
   text-transform: none;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  padding: 6px 14px;
+  padding: 6px var(--space-4);
   box-shadow: none;
 }
 
@@ -104,14 +104,14 @@
   text-transform: none;
   font-size: var(--text-sm);
   font-weight: var(--weight-regular);
-  padding: 5px 12px;
+  padding: 5px var(--space-3);
 }
 
 .today-target-form {
   display: grid;
   gap: 10px;
   margin-block-start: 14px;
-  padding-block-start: 12px;
+  padding-block-start: var(--space-3);
   border-block-start: 1px solid var(--line);
 }
 
@@ -231,7 +231,7 @@
   display: grid;
   gap: 4px;
   margin-block-end: 6px;
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
   border: 1px solid var(--teal);
   background: var(--surface-muted);
 }
@@ -265,14 +265,14 @@
 }
 
 .today-job-picker {
-  padding-block-end: 14px;
+  padding-block-end: var(--space-4);
 }
 
 .today-job-rows {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 8px;
-  padding: 12px 16px 0;
+  padding: var(--space-3) var(--card-inset) 0;
 }
 
 .today-job-row,
@@ -289,7 +289,7 @@
   justify-items: start;
   justify-content: start;
   text-align: start;
-  padding: 9px 12px;
+  padding: 9px var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -319,5 +319,5 @@
 }
 
 .today-job-picker .today-note {
-  padding-inline: 16px;
+  padding-inline: var(--card-inset);
 }

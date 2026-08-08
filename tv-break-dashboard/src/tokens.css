@@ -55,4 +55,33 @@
   --space-4: 14px;
   --space-5: 18px;
   --space-6: 24px;
+
+  /* The inset of content inside a card, and the only place it is stated. Every
+     card reads it, so does everything a card contains, and a table that reaches
+     the card's edge still aligns its first column to it. Change this one line
+     and every surface moves together.
+
+     It lives on :root rather than on the card so that it always resolves: a head
+     or a body rendered outside a card still lands on the scale instead of on
+     nothing. A card that wants the tighter figure sets the dense variant.
+
+     16px, and 16px is NOT on the scale above. That is deliberate and it is the
+     one value in this file that names its own number.
+
+     The product's real card inset is 16px: it is written out in sixty-two
+     declarations, nearly all of them in the inline position of a card's
+     content, and it is what the eye that built these surfaces settled on. The
+     scale omits it, along with 10px, which appears sixty-three times. Two of
+     the product's three most-used spacing values have no token, which is a gap
+     in the scale rather than a mistake in the surfaces.
+
+     So this token adopts the measured value instead of moving sixty
+     declarations by 2px to reach --space-5. The defect the owner reported was
+     never the value; it was that the value had no single home, so half of a
+     card's content got it and half ran to the border. Giving it a home fixes
+     that and moves nothing. Whether the SCALE should grow a 10px and a 16px
+     step is a real question and a visible one, and it belongs to the owner:
+     see docs/ux-gauntlet/design-rules.md section 8. */
+  --card-inset: 16px;
+  --card-inset-dense: var(--space-3);
 }

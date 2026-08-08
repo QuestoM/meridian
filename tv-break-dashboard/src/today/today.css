@@ -21,7 +21,7 @@
 
 .today-plan-stamp {
   align-self: center;
-  padding: 6px 12px;
+  padding: 6px var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--surface-muted);
@@ -32,7 +32,7 @@
 
 .today-reading {
   margin: 0;
-  padding: 22px 18px;
+  padding: 22px var(--space-5);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-muted);
@@ -42,7 +42,7 @@
 
 .today-degraded {
   margin: 0;
-  padding: 10px 14px;
+  padding: 10px var(--space-4);
   border: 1px solid var(--amber);
   border-radius: var(--radius-md);
   background: var(--amber-soft);
@@ -65,7 +65,7 @@
 }
 
 .today-answer {
-  padding: 13px 16px;
+  padding: 13px var(--card-inset);
 }
 
 .today-answer-head {
@@ -85,7 +85,7 @@
 }
 
 .today-verdict {
-  padding: 4px 11px;
+  padding: var(--space-1) 11px;
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
@@ -169,12 +169,15 @@
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.5;
-  padding-inline: 18px;
+  /* The card's inset, so this line starts where the card's title starts. It
+     used to say --space-5 here and 16px in the override below, two answers to
+     one question, and the decisions card printed its basis 2px off its own
+     heading. */
+  padding-inline: var(--card-inset);
 }
 
 .today-answer-decisions .today-basis {
-  padding-inline: 16px;
-  padding-block-end: 4px;
+  padding-block-end: var(--space-1);
 }
 
 /* The span the ranking was drawn from, in the same fact-list form the money
@@ -194,7 +197,7 @@
   display: grid;
   justify-items: start;
   gap: 4px;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--amber);
   border-radius: var(--radius-md);
   background: var(--amber-soft);
@@ -234,7 +237,7 @@
   gap: 10px;
   align-items: center;
   min-height: 34px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   border: 0;
   border-block-end: 1px solid var(--line);
   border-radius: 0;
@@ -303,7 +306,7 @@
 .today-day-detail {
   display: grid;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
   border: 1px solid var(--teal);
   background: var(--surface-muted);
 }
@@ -325,7 +328,7 @@
 }
 
 .today-day-position {
-  padding: 1px 8px;
+  padding: 1px var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   color: var(--muted);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { Card, CardBody } from '../shell/primitives';
 import { Figure } from '../shell/bidi';
 import { complianceDisclaimer, complianceUnitLabel } from '../shell/labels';
 import { complianceScopeSentence, complianceViewState, fetchCompliance } from './rules-lib';
@@ -16,14 +17,20 @@ import './rules-panels.css';
 // as the operator's own; the card states plainly that the basis is not
 // stated instead of printing a number nobody can place.
 
+// The card the ledger falls back to when it has no basis to print. The note is
+// wrapped in CardBody rather than sitting loose in the card, so it takes the
+// card's inset and starts on the same line as the heading above it. Before
+// that, it had no inset of any kind and printed hard against the card's border.
 function BasisNote({ copy, locale, children }) {
   return (
-    <div className="analytics-panel ledger-panel">
+    <Card as="div" className="analytics-panel ledger-panel">
       <div className="panel-head">
         <h2>{copy.compliance}</h2>
       </div>
-      <p className="ledger-basis-missing" role="status">{children}</p>
-    </div>
+      <CardBody>
+        <p className="ledger-basis-missing" role="status">{children}</p>
+      </CardBody>
+    </Card>
   );
 }
 

@@ -20,7 +20,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 20px 12px;
+  padding: var(--space-5) 20px var(--space-3);
   border-bottom: 1px solid var(--line);
 }
 .af-kicker {
@@ -29,7 +29,7 @@
   color: var(--muted);
 }
 .af-head h3 { margin: 4px 0 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--ink); }
-.af-close { border: none; background: transparent; cursor: pointer; color: var(--muted); padding: 4px; border-radius: var(--radius-md); }
+.af-close { border: none; background: transparent; cursor: pointer; color: var(--muted); padding: var(--space-1); border-radius: var(--radius-md); }
 .af-close:hover { background: var(--surface-muted); }
 
 .af-actions {
@@ -53,14 +53,14 @@
 .af-action:disabled { opacity: 0.45; cursor: default; }
 .af-action:not(:disabled):hover { background: var(--surface-muted); }
 
-.af-body { padding: 8px 14px 24px; overflow-y: auto; flex: 1; }
-.af-empty { padding: 24px 6px; font-size: var(--text-base); color: var(--muted); line-height: 1.45; }
+.af-body { padding: var(--space-2) var(--space-4) var(--space-6); overflow-y: auto; flex: 1; }
+.af-empty { padding: var(--space-6) 6px; font-size: var(--text-base); color: var(--muted); line-height: 1.45; }
 
 .af-item {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 8px;
+  padding: 10px var(--space-2);
   border-bottom: 1px solid var(--line);
 }
 .af-item.dismissed { opacity: 0.6; }
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 8px 6px;
+  padding: var(--space-4) var(--space-2) 6px;
   font-size: var(--text-xs);
   color: var(--muted);
 }

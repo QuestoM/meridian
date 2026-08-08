@@ -89,7 +89,7 @@
   border: 1px solid var(--line-strong);
   background: var(--surface-muted);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 10px var(--space-4);
   margin-bottom: 16px;
 }
 .agz-boundary-note svg {
@@ -113,11 +113,11 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-muted);
-  padding: 12px 16px;
+  padding: var(--space-3) var(--card-inset);
   margin-bottom: 16px;
 }
 .agz-totals-strip.empty {
-  padding: 10px 16px;
+  padding: 10px var(--card-inset);
 }
 .agz-total {
   display: flex;
@@ -185,7 +185,7 @@
 .agz-contact-block {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 12px 14px 14px;
+  padding: var(--space-3) var(--space-4) var(--space-4);
   margin: 0 0 12px;
 }
 .agz-contact-block legend {
@@ -257,7 +257,7 @@
   color: var(--amber-ink);
   background: var(--amber-soft);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 .agz-dialog-text {
   margin: 0;
