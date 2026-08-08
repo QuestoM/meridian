@@ -24,196 +24,252 @@
    "where": "tv-break-dashboard/src/model/console/ModelConsole.jsx, console-api.js, console-words.js, all P7 and frozen",
    "kind": "structural",
    "severity": "blocking",
-   "status": "open, the lead's, unchanged since round 5"
+   "status": "open, the lead's, unchanged since round 5",
+   "verified": "closed",
+   "verified_by": "grep tv-break-dashboard/src/model/console/ModelConsole.jsx: line 4 imports CandidateBoard from '../candidates/CandidateBoard.jsx', line 228 renders <CandidateBoard locale={locale} /> immediately above <CandidatesPanel ...> inside the candidates section body. The mount exists; this item's own status field is stale."
   },
   {
    "what": "THE LARGEST GAP A BUILDER CAN CLOSE. Every candidate's own metadata carries a one-line purpose and no surface carries it. Measured: afterwindow records 'after-window de-bias verification recompute (post-clip code, reference data)' and the string appears 0 times in candidate-board.json, 0 times in show, 0 times in checks, 0 times in diff. checks prints the word 'purpose' only as one of forty-three metadata key NAMES. So a steward reads five opaque identifiers and infers what each candidate was for from its coefficient table. The reference puts this first: W&B's run overview leads with Notes. Needs purpose onto the rescore row, the registry row and the board row, then one line at the terminal and one in the board detail. A payload-shape change, so the builder's.",
    "where": "scripts/adopt_candidate_rescore.py candidate row, adopt_candidate_registry.py, adopt_candidate_board.py, then board-detail.jsx and adopt_candidate_render.py",
    "kind": "structural",
    "severity": "serious",
-   "status": "CLOSED by the builder this round. scripts/adopt_candidate_origin.py carries the purpose onto the rescore row, the registry row, the board row and the checks payload, and onto five surfaces a person reads. The three artifacts that record none, the live model among them, say so with the field that would fill it and no inference from the numbers beside them."
+   "status": "CLOSED by the builder this round. scripts/adopt_candidate_origin.py carries the purpose onto the rescore row, the registry row, the board row and the checks payload, and onto five surfaces a person reads. The three artifacts that record none, the live model among them, say so with the field that would fill it and no inference from the numbers beside them.",
+   "verified": "closed",
+   "verified_by": "grep tv-break-dashboard/src/model/candidates/board-origin.jsx: renders a cb-purpose-block off origin.purpose; kairos_api/model_console_candidates.py:416 carries \"purpose\": metadata.get(\"purpose\") in the payload. Confirmed on disk, matches the pre-check the task instructions named."
   },
   {
    "what": "The ownership ruling that would let an adoption's last write land. Nothing is blocked today because no candidate on this tree clears the earlier checks either, and I confirmed that live: checks afterwindow stops on money_current, steward_named, reason_given, no_engine_input_dropped, no_shipped_figure_moves and write_target_is_owned.",
    "where": "docs/ux-gauntlet/spec.md section 8.2 row P12, then models/releases/ownership/shipped_artifact.json",
    "kind": "structural",
    "severity": "serious",
-   "status": "open, the lead's, unchanged"
+   "status": "open, the lead's, unchanged",
+   "verified": "lead-decision",
+   "verified_by": "Not attempted as a defect fix. What the ruling would have to decide: who may write models/releases/ownership/shipped_artifact.json (no such file or models/releases/ownership/ directory exists on disk today, confirmed by ls) to clear write_target_is_owned so an adoption's last write to models/tv_break_coefficients.json may land -- the lead's call under spec.md section 8.2, not a builder's."
   },
   {
    "what": "Not P12's, and still red. npm run test:smoke dies with ENOENT on 'src/TVBreakDashboard.jsx', which wave zero moved to src/shell/. One of the product's three frontend guards has now been silently absent for two rounds.",
    "where": "tv-break-dashboard/scripts/verify-dashboard-render.mjs, W0-2 or the lead",
    "kind": "structural",
    "severity": "serious",
-   "status": "still red, re-measured this round: npm run test:smoke dies with ENOENT on src/TVBreakDashboard.jsx. Not P12's."
+   "status": "still red, re-measured this round: npm run test:smoke dies with ENOENT on src/TVBreakDashboard.jsx. Not P12's.",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:smoke -> 'Kairos dashboard system smoke passed. Native controls at 384, and the budget only goes down.' The script no longer reads src/TVBreakDashboard.jsx; it now walks the whole src tree (read scripts/verify-dashboard-render.mjs in full, dated 2026-08-08 in its own comments). This item's own status field is stale."
   },
   {
    "what": "Not P12's, and still red. npm run test:dates reports 3 date-part-arithmetic violations over a budget of zero, all in P10's src/plan/break/PodPage.jsx at line 16. My own row is clean and the guard confirms it.",
    "where": "tv-break-dashboard/src/plan/break/PodPage.jsx:16, P10",
    "kind": "structural",
    "severity": "serious",
-   "status": "CLOSED by whoever owns P10. npm run test:dates is green on the whole tree this round."
+   "status": "CLOSED by whoever owns P10. npm run test:dates is green on the whole tree this round.",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:dates -> 'Date rules hold. A calendar day is read in src/shell/dates.js and nowhere else.' Zero violations tree-wide, PodPage.jsx included."
   },
   {
    "what": "The date guard cannot see an instant, and this round produced two more proofs of the class. verify-date-rules.mjs enumerates calendar-DAY payload fields, so an INSTANT field passes untouched: computed_at sat on every board row for four rounds, rendered nowhere, and the guard had nothing to catch either way. And the one raw ISO still on the board, 2026-07-29, is a model version NAME, which is a calendar day the guard also has no rule for.",
    "where": "tv-break-dashboard/scripts/verify-date-rules.mjs, the lead",
    "kind": "structural",
    "severity": "serious",
-   "status": "open, not P12's, unchanged since round 8"
+   "status": "open, not P12's, unchanged since round 8",
+   "verified": "open",
+   "verified_by": "Read tv-break-dashboard/scripts/verify-date-rules.mjs in full: its rules cover calendar-day parts arithmetic, toLocale*String calls and calendar construction; none matches an INSTANT-typed field or a version-name calendar day. Item 13 below (raw ISO version_name on the board) is the live instance of exactly this gap and is still open. Guard unchanged."
   },
   {
    "what": "The recorded-verdict count rendered as one token. .cb-cancels was display block with inline children and no gap, so the chip read '2hakhraot rshumot' in Hebrew and '2verdicts on record' in English on calibrated, the one row this tree refused twice. Same defect class the round-7 critic fixed for another chip; round 8 reintroduced it with a new chip.",
    "where": "tv-break-dashboard/src/model/candidates/candidate-board.css .cb-cancels",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "CLOSED by the critic this round. Flex with a gap. Re-measured in a real browser in both locales: '2 | hakhraot rshumot' and '2 | verdicts on record'."
+   "status": "CLOSED by the critic this round. Flex with a gap. Re-measured in a real browser in both locales: '2 | hakhraot rshumot' and '2 | verdicts on record'.",
+   "verified": "closed",
+   "verified_by": "tv-break-dashboard/src/model/candidates/candidate-board.css:206-211, .cb-cancels { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); ... }. Flex with a gap, as claimed. Not re-run in a live browser this round."
   },
   {
    "what": "computed_at was carried on every candidate row of both published payloads and rendered on neither surface, so a steward could not tell an artifact made last week from one made a year ago. It is not a cosmetic absence: all five candidates were produced on 05/07/2026 and the live artifact on 29/07/2026, so the entire shelf predates the model it is being compared against, and nothing said so.",
    "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx identity block, scripts/adopt_candidate_render.py artifact-files block",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "CLOSED by the critic this round. On the screen through shell/dates formatStamp as 'hupak 05/07/2026, 20:52' with a new bilingual words pair, and at the terminal through words.when as 'produced 2026-07-05T17:52:51'."
+   "status": "CLOSED by the critic this round. On the screen through shell/dates formatStamp as 'hupak 05/07/2026, 20:52' with a new bilingual words pair, and at the terminal through words.when as 'produced 2026-07-05T17:52:51'.",
+   "verified": "closed",
+   "verified_by": "board-detail.jsx:390-393 renders candidate.computed_at through formatStamp (imported from ../../shell/dates at line 3), likewise money.measured_at at line 216 and decision.recorded_at at line 360. All three route through the one formatter, none raw."
   },
   {
    "what": "Picking an artifact opened its evidence entirely below the fold. Measured before the fix: the panel's top sat at 900.5 px in a 907 px viewport, so a click tinted a row and changed nothing else a reader could see, and the block it opened was a full screen away with no anchor and no scroll.",
    "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx onPick, board-compare.js reveal",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "CLOSED by the critic this round, and measured after: a pointer pick lands the panel heading at top 0 on the first pick and on every later one, while an arrow key moves the selection and does not scroll, which is the intended split. Done on a microtask rather than a frame callback, because a frame callback is suspended in a window that is not in front, measured: mark.raf never fired at all in a background window while the same work on a timeout did."
+   "status": "CLOSED by the critic this round, and measured after: a pointer pick lands the panel heading at top 0 on the first pick and on every later one, while an arrow key moves the selection and does not scroll, which is the intended split. Done on a microtask rather than a frame callback, because a frame callback is suspended in a window that is not in front, measured: mark.raf never fired at all in a background window while the same work on a timeout did.",
+   "verified": "closed",
+   "verified_by": "board-compare.js:84-93 export function reveal(ref, selector) runs on queueMicrotask and calls node.scrollIntoView({block:'start'}); CandidateBoard.jsx:336 onPick calls reveal(region, '.cb-detail') on every pointer pick. CandidateBoard.jsx:349-357 onKeyDown for ArrowUp/ArrowDown calls setSelected(next) directly, never onPick or reveal -- confirmed the split is real, not just commented."
   },
   {
    "what": "Two byte-identical Shekels renderers, one in the table file and one in the detail file, so the sign, the separators and the locale could drift apart on two halves of one screen.",
    "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx and board-detail.jsx",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "CLOSED by the critic this round. One renderer, exported from board-detail.jsx."
+   "status": "CLOSED by the critic this round. One renderer, exported from board-detail.jsx.",
+   "verified": "closed",
+   "verified_by": "CandidateBoard.jsx:9 import BoardDetail, { Shekels } from './board-detail.jsx' with a comment explaining the dedup; board-detail.jsx:194 export function Shekels(...) is the sole definition. Single renderer confirmed."
   },
   {
    "what": "The contract's own file table was stale in 13 of its 21 rows, under an opening sentence that says every number in it was taken on the delivered tree after the last edit by wc -l. Seven were stale before I touched anything: adopt_candidate.py said 351 and was 355, _decide said 327 and was 376, _board said 221 and was 243, _registry said 189 and was 203, _adoption 443 against 448, _rescore 445 against 449, _words 394 against 405. The frontend rows were worse: CandidateBoard.jsx said 390 and was 449, board-detail.jsx said 243 and was 386, board-words.js said 128 and was 178, candidate-board.css said 271 and was 313. A published contract carrying wrong line counts is the same class of defect as a screen carrying a figure nobody measured, and it hides the one number that matters most here, that CandidateBoard.jsx has no headroom.",
    "where": "docs/ux-gauntlet/contracts/P12.md section 2",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "CLOSED by the critic this round. All 21 rows re-taken by wc -l and written back, including the 6 my own edits moved."
+   "status": "CLOSED by the critic this round. All 21 rows re-taken by wc -l and written back, including the 6 my own edits moved.",
+   "verified": "open",
+   "verified_by": "wc -l against docs/ux-gauntlet/contracts/P12.md section 2 today: adopt_candidate_decide.py table says 376, actual 406; adopt_candidate_board.py table says 248, actual 275; adopt_candidate_registry.py table says 236, actual 248; CandidateBoard.jsx table says 380, actual 388; board-detail.jsx table says 405, actual 411; board-words.js table says 200, actual 235; candidate-board.css table says 360, actual 412. The round-10 close is stale again: later uncommitted edits (git status shows all these files modified) moved the counts without updating the contract. Re-opened by measurement, not by prose."
   },
   {
    "what": "CandidateBoard.jsx had no headroom at all. It arrived at 448 lines against a cap of 450, so a three-line behaviour fix could not land without also removing something. I paid for mine by collapsing the duplicate renderer and moving the scroll helper into board-compare.js, and it is 449 now. The next change to this file has one line of room and must split it. The obvious seam is the evaluation header, BasisRows plus Evaluation, about 84 lines that answer 'on what' rather than 'which of these'.",
    "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx",
    "kind": "structural",
    "severity": "minor",
-   "status": "CLOSED by the builder this round. The evaluation header is board-evaluation.jsx, 131 lines, on the seam the critic named. CandidateBoard.jsx is 380 of 450."
+   "status": "CLOSED by the builder this round. The evaluation header is board-evaluation.jsx, 131 lines, on the seam the critic named. CandidateBoard.jsx is 380 of 450.",
+   "verified": "closed",
+   "verified_by": "ls + wc -l: tv-break-dashboard/src/model/candidates/board-evaluation.jsx exists, 135 lines today (contract said 131; see item 11's staleness). CandidateBoard.jsx is 388 lines today (contract said 380), still well under the 450 cap either way. The split itself is real and holding."
   },
   {
    "what": "The shipped row prints the model version NAME, which on this tree is the calendar day '2026-07-29', raw. It is the only raw ISO left on the board after my fixes. I did not change it: P7's own console renders the same field raw at CandidateVerdict.jsx:79 and VersionsPanel.jsx:128, and reformatting it here alone would make two surfaces of one model disagree about one stored value, which is the exact defect round 8 fixed for first_break_multiplier.",
    "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx Table reference row, and P7's console",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, found this round, needs P7 and this row to move together"
+   "status": "open, found this round, needs P7 and this row to move together",
+   "verified": "open",
+   "verified_by": "candidate-board.json on disk: model_version_name / version_name is '2026-07-29', a raw ISO calendar day. CandidateBoard.jsx:192 renders <BidiFigure><Numeric>{String(reference.version_name)}</Numeric></BidiFigure> with no date formatter. P7's VersionsPanel.jsx:124 <Numeric>{(payload.model_version||{}).name||''}</Numeric> and CandidateVerdict.jsx:80 <Numeric>{record.model_version_name||record.model_version_id||''}</Numeric> are likewise raw, both files frozen and unchanged. Confirmed still needs P7 and this row to move together."
   },
   {
    "what": "Against the reference: no reproduction provenance. W&B's run overview gives the git repository, the exact checkout command, the command line that produced the run, a patch file and the hardware. This board gives the file path, the digest and the byte count, which identifies the artifact but does not say how to make another one. source_fingerprints IS in every candidate's metadata, naming the exact Spots, Programmes and Dayparts files each was fitted from, and it reaches no surface.",
    "where": "models/candidates/*.json metadata.source_fingerprints, then the board and the terminal",
    "kind": "structural",
    "severity": "minor",
-   "status": "CLOSED by the builder this round, both halves. Every source file each artifact records is on screen with its digest and a tri-state saying whether those bytes are on disk now, checked over the engine's own hasher with a test holding this module and kairos.model.freshness equal. The half that cannot be answered, the command that produced the artifact, is stated as absent with the line that would supply it, because no metadata key on any of the six names one."
+   "status": "CLOSED by the builder this round, both halves. Every source file each artifact records is on screen with its digest and a tri-state saying whether those bytes are on disk now, checked over the engine's own hasher with a test holding this module and kairos.model.freshness equal. The half that cannot be answered, the command that produced the artifact, is stated as absent with the line that would supply it, because no metadata key on any of the six names one.",
+   "verified": "closed",
+   "verified_by": "board-detail.jsx:7 imports Provenance from board-origin.jsx and renders it at line 408; scripts/adopt_candidate_origin.py defines FINGERPRINTS_KEY, SOURCE_FILES and render_provenance(). Ran `python -m scripts.adopt_candidate checks afterwindow` live: prints 'What every artifact here records is the data it read, identified by digest... None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.' Both halves present on screen."
   },
   {
    "what": "Against the reference: no visual encoding anywhere on the board. Every figure is a numeral. Two places have an obvious bar and neither has one: the share column of the 36-cell table, where the reader is looking for where the movement concentrated, and the rmse column of the five-row table against the target spread, where the whole point is that every candidate sits a thousandth from a model that explains little. W&B's core artefact is a plot.",
    "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx Cells, CandidateBoard.jsx Table",
    "kind": "structural",
    "severity": "minor",
-   "status": "CLOSED by the builder this round. Three bars, each a share of a denominator named in words beside it: a movement against that row's own fold dispersion, a cell's share of the whole absolute movement, and the live model's error against the target's own spread, which fills to 99.91 percent. A browser test reads each drawn width out of the real layout and compares it with the payload's share."
+   "status": "CLOSED by the builder this round. Three bars, each a share of a denominator named in words beside it: a movement against that row's own fold dispersion, a cell's share of the whole absolute movement, and the live model's error against the target's own spread, which fills to 99.91 percent. A browser test reads each drawn width out of the real layout and compares it with the payload's share.",
+   "verified": "closed",
+   "verified_by": "tv-break-dashboard/src/model/candidates/board-meter.jsx defines Meter({share, tone}) rendering inlineSize: (filled*100).toFixed(1)+'%', aria-hidden='true'. Wired into CandidateBoard.jsx:221 (table rmse-vs-target bar) and board-detail.jsx:280 (cell share bar). Confirmed present on both surfaces."
   },
   {
    "what": "The ship half of JS-19 cannot meet its own 120 s target on this tree, honestly. A ship verdict requires money_measured current, the money is stale on all five rows because data/kairos_settings.json moved under them, and refreshing it means the measure command, which I ran and which cost 361.0 s wall clock on a loaded machine against a stated estimate of about two hundred seconds and a round-4 clean measurement of 168.1 s. The cost is disclosed in ink before the command runs, and the figure it produced was exact, so this is a real cost and not a defect. Recorded so a later reader does not read 9.96 s as the whole story.",
    "where": "scripts/adopt_candidate.py command_measure, and JS-19's target",
    "kind": "structural",
    "severity": "minor",
-   "status": "open as a measured note, found this round"
+   "status": "open as a measured note, found this round",
+   "verified": "open",
+   "verified_by": "Not re-run: the measure command took 361.0s in round 10 and re-running it here would cost several more minutes on a verification-only task. Code inspection confirms command_measure still exists at scripts/adopt_candidate.py:109 as the only path to a current money figure. Spot-checked the cheap terminal commands instead: show 0.29s, checks(afterwindow) 0.21s, both re-timed live and well inside 120s. The specific 361s figure for measure was not re-confirmed this round; left open per the honesty rule rather than assumed unchanged."
   },
   {
    "what": "Not P12's. The decision record carries one free-text reason and no language, and I saw the consequence on screen this round: the verdict card renders 'unknown (login is not set up)' as the actor, an English parenthetical inside a right-to-left Hebrew card. It is an honest unknown that names its missing input, which is the right content, in the wrong direction.",
    "where": "kairos_api/model_version_store.py record_decision and VersionsPanel.jsx, both P7",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, the lead's, unchanged"
+   "status": "open, the lead's, unchanged",
+   "verified": "open",
+   "verified_by": "kairos_api/model_version_store.py:238 still sets \"actor\": str(actor or \"\").strip() or \"unknown (login is not set up)\"; VersionsPanel.jsx:134 still renders <Name>{record.actor}</Name> verbatim inside the right-to-left card with no direction handling. Confirmed unchanged, P7's."
   },
   {
    "what": "Not P12's, and it is a contract gap rather than a defect. A gate reading cannot state a share of ALL gate keys because GATE_KEYS is a module constant inside kairos_api/model_console_candidates.py and P7's contract publishes gate_deltas but not the list it walks. I re-derived the ten keys myself this round from the frozen source to check round 8's counts, which is exactly the reach the contract is supposed to make unnecessary.",
    "where": "kairos_api/model_console_candidates.py GATE_KEYS:173, and docs/ux-gauntlet/contracts/P7.md",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, not P12's, unchanged since round 8"
+   "status": "open, not P12's, unchanged since round 8",
+   "verified": "open",
+   "verified_by": "kairos_api/model_console_candidates.py:173 GATE_KEYS is still a module constant; docs/ux-gauntlet/contracts/P7.md:140 publishes the shape gate_deltas: [{key, shipped, candidate, ...}] but not the ten-key list itself. Confirmed the contract gap remains, P7's."
   },
   {
    "what": "The identity of the breaks each artifact was fitted on. The counts are recorded and the identities are not, so the fit-basis confound is measured to exist and its effect cannot be sized from anything on disk. Confirmed again this round from the artifacts: spotclip records total_breaks_measured 2336, base_breaks 2532 and dropped_by_spot_clip 196, and no list of identifiers anywhere.",
    "where": "whatever produces models/candidates/**, outside this piece",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, named honestly on screen, not this piece's"
+   "status": "open, named honestly on screen, not this piece's",
+   "verified": "open",
+   "verified_by": "models/candidates/tv_break_coefficients_spotclip.json metadata keys read live: candidate, purpose, total_breaks_measured, base_breaks, dropped_by_spot_clip, shortened_by_spot_clip, residual_spot_overlap_breaks_pct, holdout_clean_test, pooled_log_effect_base/variant, first_break_multiplier_variant, first_break_p_value_variant, computed_at, source_fingerprints. No break-id list among them. Confirmed still absent, not this piece's."
   },
   {
    "what": "decide costs about eight seconds, of which the bulk is P7's gate ledger warming its artifacts on the first decision_evidence call. Measured 8.39 s this round against 8.31 s in round 7 and about 4 s in round 4. Well inside 120 s and not this piece's to move without writing a frozen module.",
    "where": "kairos_api/model_console_api_payloads.py decision_evidence, P7",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, unchanged"
+   "status": "open, unchanged",
+   "verified": "open",
+   "verified_by": "Ran live against a scratch copy of models/releases/ (KAIROS_MODEL_RELEASES_DIR redirected to scratchpad): `python -m scripts.adopt_candidate decide competitor --decision no-ship --perform` completed in 4.34s wall clock (was 8.39s in round 10), still driven by P7's decision_evidence/gate-ledger warm-up on first call. Well inside 120s, not a defect, not this piece's to move. Faster than previously measured but the cause and the ownership are unchanged."
   },
   {
    "what": "Money renders at two decimals when measured and at zero when stale, in the same block, so the exact stale figure (spotclip +902,998.61, printed +902,999) is on no screen. Defensible as a deliberate signal that a stale figure should not be read precisely, and the terminal carries the exact figure. Recorded rather than changed, because changing it would make a stale figure look as authoritative as a current one.",
    "where": "tv-break-dashboard/src/model/candidates/board-detail.jsx MoneyBlock, CandidateBoard.jsx Money",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "open as a considered absence, found this round"
+   "status": "open as a considered absence, found this round",
+   "verified": "open",
+   "verified_by": "board-detail.jsx MoneyBlock read live: the measured branch renders <Shekels value={money.revenue_delta} locale={locale} /> (default digits=2, line 208); the stale branch renders <Shekels value={money.last_known_revenue_delta} locale={locale} digits={0} /> (line 227). The two-decimal-vs-zero distinction is confirmed present exactly as described."
   },
   {
    "what": "The 'Next act, per candidate' block names the identical act for all five rows, measure the money, because all five money figures are stale. It is honest and it is also the one block on the registry that could rank and does not. Recorded rather than changed: the ranking a steward wants there is by re-score verdict, and on this tree every row reads no difference, so a rank would be a false one.",
    "where": "scripts/adopt_candidate_render.py, the next-act block",
    "kind": "structural",
    "severity": "minor",
-   "status": "open as a considered absence, found this round"
+   "status": "open as a considered absence, found this round",
+   "verified": "open",
+   "verified_by": "scripts/adopt_candidate_render.py:299-302, the 'Next act, per candidate' loop prints row['next_act']['en'] and row['next_act']['command'] for every row with no ranking column. Confirmed unchanged."
   },
   {
    "what": "Every figure on this board is wrapped twice. Numeric from shell/format IS Figure from shell/bidi (format.jsx:97), and the board writes <BidiFigure><Numeric>x</Numeric></BidiFigure> at more than forty sites. Harmless and redundant. I agree with round 8's call to leave it: changing forty sites in a critic pass trades a real regression risk for tidiness.",
    "where": "CandidateBoard.jsx and board-detail.jsx, throughout",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "open, deliberately left for the second round running"
+   "status": "open, deliberately left for the second round running",
+   "verified": "open",
+   "verified_by": "grep -c 'BidiFigure><Numeric' CandidateBoard.jsx = 9, board-detail.jsx = 11 occurrences. Double wrap still present tree-wide, deliberately untouched per the round 8/9/10 calls."
   },
   {
    "what": "In adopt_candidate_cells.py the CELL_READING branch key for a concentrated movement is 'cancelling' and for a spread one is 'spread', so the key and the payload field that selects it name the same fact two ways. Rendered sentences are correct in both directions.",
    "where": "scripts/adopt_candidate_cells.py _reading",
    "kind": "mechanical",
    "severity": "minor",
-   "status": "open, deliberately untouched for the third round running"
+   "status": "open, deliberately untouched for the third round running",
+   "verified": "open",
+   "verified_by": "scripts/adopt_candidate_cells.py:180, \"cancelling\" if summary[\"concentrated\"] else \"spread\" is still the literal branch key naming the fact its own payload field also names. Unchanged."
   },
   {
    "what": "Against the reference: there is no search, no filter and no column picker, where W&B spends four named controls plus a column picker on exactly this. At five candidates that is the right call. It becomes a gap at roughly twenty rows.",
    "where": "CandidateBoard.jsx",
    "kind": "structural",
    "severity": "minor",
-   "status": "open as a note, unchanged"
+   "status": "open as a note, unchanged",
+   "verified": "open",
+   "verified_by": "grep -i 'search|filter|column.*picker' CandidateBoard.jsx: only match is rows.filter((row) => row.adopted), an internal data filter, not a UI control. No search box, filter control or column picker exists in the JSX. Confirmed, five rows on this tree."
   },
   {
    "what": "The gate block is in the detail and not in the table, deliberately, so a later round does not add a ninth column that would say 'ten differences' about an artifact that decided nothing. I checked the reasoning against my own re-derivation and it holds: three of five candidates return ten rows and disagree on none.",
    "where": "tv-break-dashboard/src/model/candidates/CandidateBoard.jsx COLUMNS",
    "kind": "structural",
    "severity": "minor",
-   "status": "open as a note, unchanged"
+   "status": "open as a note, unchanged",
+   "verified": "open",
+   "verified_by": "CandidateBoard.jsx COLUMNS (lines 160-169): artifact, rmse, rmse_delta, paired_statistic, verdict, cells, money, recorded -- no gate column. Gate detail confirmed still only in the detail panel. Deliberate, unchanged."
   },
   {
    "what": "A data bar is not in the design rules. docs/ux-gauntlet/design-rules.md has eight rules and none of them covers a meter, a share bar or a chart mark, and its own section 8 says to add the rule before applying it. This round applied one on three call sites. What an entry would say is written out in the contract: a bar is always a share of a denominator that is on the screen in words, it is sized by inline-size alone so it mirrors with the document, it spends no state colour on its track, and it is hidden from assistive technology because the figure it draws is always beside it in text.",
    "where": "docs/ux-gauntlet/design-rules.md, the lead",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, found this round, not on this piece's ownership row"
+   "status": "open, found this round, not on this piece's ownership row",
+   "verified": "open",
+   "verified_by": "docs/ux-gauntlet/design-rules.md now has sections 1-10 (was 8 when this item was written), but grep -i for 'meter|bar|track|inline-size|aria-hidden' finds only the unrelated section-1 heading 'No one-sided accent bar. Anywhere.' No rule for a share bar/meter exists despite board-meter.jsx now shipping one on three call sites. Confirmed the gap remains, and the file itself grew around it without addressing it -- worth the lead's attention that this is not merely unaddressed but the file moved."
   },
   {
    "what": "Anything imported from kairos.model costs 17 s because that package's __init__ probes TensorFlow through kairos.model.train. It is not this piece's to fix and it is a live trap for every piece that reaches into the model layer for a small function: this round walked into it and measured show at 20.87 s before backing out. A lazy import inside kairos/model/__init__.py, or moving freshness.py out from under it, would make the engine's own guard reusable at a terminal.",
    "where": "kairos/model/__init__.py, outside every wave-two row",
    "kind": "structural",
    "severity": "minor",
-   "status": "open, measured this round, not this piece's"
+   "status": "open, measured this round, not this piece's",
+   "verified": "open",
+   "verified_by": "Ran live: `time python -c \"import kairos.model\"` = 4.88s wall clock (was 17s at round 10's measurement), still real and non-trivial, still driven by kairos/model/train.py's import chain per kairos/model/__init__.py's own docstring. scripts/adopt_candidate_origin.py:34 still documents the 17s figure as the reason its own code avoids this import. Not lazy-loaded; the specific number has drifted down (machine/cache variance) but the trap and its ownership are unchanged. Not this piece's."
   }
  ],
  "files_touched_by_this_round": [
@@ -272,5 +328,8 @@
   "picking an artifact opened its evidence entirely below the fold, CandidateBoard.jsx plus board-compare.js",
   "two byte-identical Shekels renderers, CandidateBoard.jsx and board-detail.jsx",
   "13 of 21 stale line counts in the piece's own published contract table, docs/ux-gauntlet/contracts/P12.md"
- ]
+ ],
+ "queue_verified_at": "2026-08-09",
+ "queue_open_count": 16,
+ "queue_reverification_note": "Every item in the queue below was re-measured on 2026-08-09 by running the named test/guard/grep/live command rather than trusting its own prose or status field. Result: 11 closed, 1 lead-decision, 16 open, of 28 total. The four items the task named as already known-closed (the two-line mount, the candidate purpose, npm run test:smoke, npm run test:dates on PodPage.jsx) are confirmed closed here too, each in one command. One item (the contract's own file-size table, previously closed by the round-10 critic) was found RE-OPENED: seven of its rows are stale again because files under this piece's row were edited again after round 10 without republishing the contract table (git status shows them modified, uncommitted). One un-queued but observed defect: tests/test_p12_decide.py::test_a_release_note_carrying_a_gate_verdict_is_refused_by_the_store_verbatim fails today (KeyError: 'refusal') against the current scripts/adopt_candidate_decide.py -- not one of the 28 queue items and not attributed to any of them, flagged here for visibility since the P12 suite is not fully green today (314 passed, 1 failed of tests/test_p12_*.py)."
 }
