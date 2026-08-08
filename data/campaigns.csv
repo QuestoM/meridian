@@ -101,12 +101,8 @@ campaign,CMP_D050,,2025-04 - שטראוס - דנונה פרו,שטראוס,AGY_0
 flight,CMP_D050,CMP_D050_F1,2025-04 - שטראוס - דנונה פרו,,,,2025-04-27,2025-05-03,grp,230.00,,,,,2026-08-02T03:54:47+00:00,,,,,,,,,,,,,true,"Seed rule: the flight is the Israeli broadcast week, Sunday to Saturday, containing every airing observed in the traffic file. Seed rule: the budget and the rating goal are the observed figures scaled by flight days over sourced days. They are the seed's, not a signed insertion order."
 campaign,CMP_D051,,אובלי קמפיין אוגוסט 2022,אובלי ערבויות,AGY_08,active,2025-04-27,2025-05-03,,,,,,,2026-08-02T03:54:47+00:00,,demo_seed,רשת 13,,,6600.00,,95.00,all_viewers,,,,true,"Seed rule: the flight is the Israeli broadcast week, Sunday to Saturday, containing every airing observed in the traffic file. Seed rule: the budget and the rating goal are the observed figures scaled by flight days over sourced days. They are the seed's, not a signed insertion order."
 flight,CMP_D051,CMP_D051_F1,אובלי קמפיין אוגוסט 2022,,,,2025-04-27,2025-05-03,grp,95.00,,,,,2026-08-02T03:54:47+00:00,,,,,,,,,,,,,true,"Seed rule: the flight is the Israeli broadcast week, Sunday to Saturday, containing every airing observed in the traffic file. Seed rule: the budget and the rating goal are the observed figures scaled by flight days over sourced days. They are the seed's, not a signed insertion order."
-campaign,CMP_001,,קמפיין ביקורת ו,לקוח ביקורת ו,AGY_10,active,2026-08-02,2026-08-29,,,,10.0,6,,2026-08-03T08:43:39+00:00,,manual,רשת 13,,,,,,,,,,false,
 flight,CMP_001,CMP_001_F1,,,,,2026-08-02,2026-08-29,spots,75.0,,,,,2026-08-03T08:43:39+00:00,,,,,,,,,,,,,,
-campaign,CMP_002,,קמפיין ביקורת ז,לקוח ביקורת ז,AGY_11,active,2026-08-02,2026-08-29,,,,10.0,6,,2026-08-03T08:45:39+00:00,,manual,רשת 13,,,,,,,,,,false,
 flight,CMP_002,CMP_002_F1,,,,,2026-08-02,2026-08-29,spots,75.0,,,,,2026-08-03T08:45:39+00:00,,,,,,,,,,,,,,
-campaign,CMP_003,,קמפיין ביקורת ח,לקוח ביקורת ח,AGY_12,active,2026-08-02,2026-08-29,,,4.0,10.0,6,,2026-08-03T22:04:40+00:00,,manual,רשת 13,,,,,,,,,,false,
 flight,CMP_003,CMP_003_F1,,,,,2026-08-02,2026-08-29,spots,75.0,,,,,2026-08-03T22:04:40+00:00,,,,,,,,,,,,,,
 campaign,CMP_004,,y,x,AGY_01,ended,2026-08-02,2026-08-03,,,,,,,2026-08-03T22:13:15+00:00,,manual,רשת 13,,,,,,,,,,false,
-campaign,CMP_005,,קמפיין ביקורת ט,לקוח ביקורת ט,AGY_13,active,2026-08-09,2026-09-05,,,5.0,12.0,6,,2026-08-03T23:09:26+00:00,,manual,רשת 13,,,,,,,,,,false,
 flight,CMP_005,CMP_005_F1,,,,,2026-08-09,2026-09-05,spots,80.0,,,,,2026-08-03T23:09:26+00:00,,,,,,,,,,,,,,
