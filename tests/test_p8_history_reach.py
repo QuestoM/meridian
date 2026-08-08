@@ -266,7 +266,10 @@ def test_the_reach_module_prints_the_payloads_own_figures_and_nothing_else() -> 
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", REACH_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", REACH_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -313,7 +316,10 @@ def test_the_day_a_link_lands_on_is_read_from_the_address_when_it_carries_one() 
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", DAY_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", DAY_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])

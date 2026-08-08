@@ -63,8 +63,11 @@ def _node() -> str:
 
 
 def _run_node(script: str) -> dict:
+    # --import wires the shell resolver hook, so the copied rules-bidi module's
+    # own `../shell/bidi` import finds the real primitive rather than nothing.
     done = subprocess.run(
-        [_node(), "--input-type=module", "-e", script],
+        [_node(), "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         "--input-type=module", "-e", script],
         capture_output=True, text=True, check=True,
     )
     return json.loads(done.stdout)
@@ -155,8 +158,12 @@ def _paint(tmp_path: Path, spans: dict) -> dict:
     )
     expression = tmp_path / "measure.js"
     expression.write_text(MEASURE, encoding="utf-8")
+    # --import wires the shell resolver hook. The probe itself never imports a
+    # shell primitive, but the flag costs nothing and keeps every node
+    # invocation in this file resolving the same way.
     done = subprocess.run(
-        [_node(), str(PROBE), str(document), str(expression)],
+        [_node(), "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         str(PROBE), str(document), str(expression)],
         capture_output=True, text=True,
     )
     if done.returncode == 2:

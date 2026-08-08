@@ -320,7 +320,11 @@ def _paint(locale: str, tmp_path: Path) -> dict:
     document.write_text(_document(locale, channel, day), encoding="utf-8")
     expression = tmp_path / "paint.js"
     expression.write_text(PAINT, encoding="utf-8")
-    done = subprocess.run([node, str(PROBE), str(document), str(expression)],
+    # --import wires the shell resolver hook. The probe itself never imports a
+    # shell primitive, but the flag costs nothing and keeps every node
+    # invocation in this file resolving the same way.
+    done = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                          str(PROBE), str(document), str(expression)],
                           capture_output=True, text=True, timeout=180)
     if done.returncode == 2 and "no chrome" in done.stderr:
         pytest.skip("no Chrome on this machine, so the paint cannot be measured")
@@ -413,7 +417,11 @@ def _runs(reading: str, tmp_path: Path) -> dict:
     document.write_text(_notice_document(lead, tail, f"{channel}.csv", "ltr" if reading == "en" else "rtl"), encoding="utf-8")
     expression = tmp_path / "runs.js"
     expression.write_text(RUNS, encoding="utf-8")
-    done = subprocess.run([node, str(PROBE), str(document), str(expression)],
+    # --import wires the shell resolver hook. The probe itself never imports a
+    # shell primitive, but the flag costs nothing and keeps every node
+    # invocation in this file resolving the same way.
+    done = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                          str(PROBE), str(document), str(expression)],
                           capture_output=True, text=True, timeout=180)
     if done.returncode == 2 and "no chrome" in done.stderr:
         pytest.skip("no Chrome on this machine, so the paint cannot be measured")

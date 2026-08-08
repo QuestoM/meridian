@@ -59,7 +59,10 @@ def test_the_link_that_answers_how_to_put_it_back_moves_the_list_to_where_the_po
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", ADDRESS_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", ADDRESS_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -123,7 +126,10 @@ def test_the_path_stem_and_the_actor_label_do_what_they_claim() -> None:
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", STEM_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", STEM_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -175,7 +181,10 @@ def test_a_run_count_the_product_may_not_make_is_never_printed_as_zero() -> None
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", RUNS_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", RUNS_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -264,7 +273,10 @@ def test_a_row_a_restore_would_add_or_remove_is_named_rather_than_dumped() -> No
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", ROWS_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", ROWS_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -346,7 +358,10 @@ def test_a_field_whose_value_holds_other_values_is_read_as_those_values() -> Non
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", FIELDS_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", FIELDS_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])

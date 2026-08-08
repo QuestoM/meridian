@@ -94,7 +94,10 @@ def test_a_search_over_one_page_never_reports_the_record_as_holding_nothing() ->
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", SEARCH_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", SEARCH_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])

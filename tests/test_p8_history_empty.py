@@ -82,7 +82,10 @@ def test_a_day_window_never_says_the_record_is_empty_while_its_own_tabs_count_it
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", EMPTY_PROBE],
+    # --import wires the shell resolver hook, so a bare `-e` import of
+    # history-reach.js still finds the real shell/bidi and shell/dates it pulls in.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", EMPTY_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -216,7 +219,10 @@ def test_the_empty_record_sentence_cannot_fire_for_a_window_older_than_the_recor
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", RECORD_PROBE],
+    # --import wires the shell resolver hook, so a bare `-e` import of
+    # history-reach.js still finds the real shell/bidi and shell/dates it pulls in.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", RECORD_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])

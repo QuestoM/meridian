@@ -269,7 +269,10 @@ def _run_module() -> dict:
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", MODULE_PROBE],
+    # --import wires the shell resolver hook, so this module runs against the
+    # real shell/bidi and shell/dates rather than failing to find them.
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+                            "--input-type=module", "-e", MODULE_PROBE],
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-600:]
     return json.loads(result.stdout.strip().splitlines()[-1])

@@ -259,7 +259,7 @@ def test_the_footer_says_which_figure_is_the_stores_and_which_is_the_readers() -
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", SOURCE_PROBE],
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"), "--input-type=module", "-e", SOURCE_PROBE],  # --import resolves shell/bidi and shell/dates
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
@@ -415,7 +415,7 @@ def test_the_strip_cannot_print_the_same_unqualified_sentence_for_both_scopes() 
     node = shutil.which("node")
     if not node:
         pytest.skip("node is not on this machine, so the module cannot be executed here")
-    result = subprocess.run([node, "--input-type=module", "-e", SINCE_SCOPE_PROBE],
+    result = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"), "--input-type=module", "-e", SINCE_SCOPE_PROBE],  # --import resolves shell/bidi and shell/dates
                             cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stderr[-500:]
     measured = json.loads(result.stdout.strip().splitlines()[-1])
