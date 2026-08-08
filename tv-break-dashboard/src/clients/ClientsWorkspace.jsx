@@ -9,6 +9,7 @@ import ClientTree from './ClientTree';
 import { ClientsHeader, ClientsLoadFailure, ClientsViewStrip, VIEW_LABELS } from './ClientsChrome';
 import MoneyBoard from './MoneyBoard';
 import OnboardClientFlow from './OnboardClientFlow';
+import PacingWorkspace from './pacing/PacingWorkspace';
 import {
   createAdvertiserRule,
   loadAdvertiserRules,
@@ -336,6 +337,18 @@ export default function ClientsWorkspace({
               />
               <CampaignRollupPanel campaigns={campaigns} locale={locale} refreshKey={refreshKey} />
             </>
+          ) : null}
+          {/* The delivery pace of what the campaigns view booked. It sits beside
+              campaigns rather than under a destination of its own because it
+              answers a question about the same object: what was promised, and
+              what has aired against it. */}
+          {active === 'pacing' ? (
+            <PacingWorkspace
+              locale={locale}
+              notify={notify}
+              refreshKey={refreshKey}
+              onOpenCampaign={openCampaignRecord}
+            />
           ) : null}
           {active === 'advertisers' ? (
             <AdvertiserRecordsPanel

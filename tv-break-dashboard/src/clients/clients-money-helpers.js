@@ -10,7 +10,7 @@ import { pageText } from '../shell/format';
 import { isolate } from '../shell/bidi';
 import { formatDay, formatSpan } from '../shell/dates';
 
-export const VIEWS = ['clients', 'money', 'campaigns', 'advertisers', 'agencies'];
+export const VIEWS = ['clients', 'money', 'campaigns', 'pacing', 'advertisers', 'agencies'];
 
 // Exact shekels, standard notation, on every figure this destination prints.
 // The shell's formatCurrency switches to compact above 100,000, which is right

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Numeric } from '../../shell/format';
+import CandidateBoard from '../candidates/CandidateBoard.jsx';
 import CandidatesPanel from './CandidatesPanel';
 import CoveragePanel from './CoveragePanel';
 import DriftPanel from './DriftPanel';
@@ -207,14 +208,24 @@ function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide,
   }
   if (section === 'drift') return <DriftPanel payload={payload} locale={locale} />;
   if (section === 'candidates') {
+    // The board first, then the shelf. They answer different questions and the
+    // order says which one to trust: the shelf reports each artifact's own
+    // held-out figures, and on this tree those come from different splits, so
+    // two rows of it compare two experiments rather than two models. The board
+    // re-scores every artifact on one identical set of breaks. It was built
+    // across ten critic rounds and, until this mount, no file in the tree
+    // imported it, so it shipped to nobody.
     return (
-      <CandidatesPanel
-        payload={payload}
-        locale={locale}
-        onRefresh={onRefresh}
-        onDecide={onDecide}
-        refreshKey={refreshKey}
-      />
+      <>
+        <CandidateBoard locale={locale} />
+        <CandidatesPanel
+          payload={payload}
+          locale={locale}
+          onRefresh={onRefresh}
+          onDecide={onDecide}
+          refreshKey={refreshKey}
+        />
+      </>
     );
   }
   if (section === 'training') return <TrainingPanel payload={payload} locale={locale} onRefresh={onRefresh} />;

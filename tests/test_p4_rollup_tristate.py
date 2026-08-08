@@ -140,6 +140,37 @@ PLAN_MODEL = """
 export function normalizeRows(rows) { return Array.isArray(rows) ? rows : []; }
 """
 
+# shell/bidi did not exist when this harness was written, and every panel that
+# prints a figure now imports it. Without this stub node cannot resolve the
+# specifier and the whole file errors before a single assertion runs, which is
+# how 36 tests across four files went red at once.
+#
+# The stub keeps the one thing a caller can observe: the wrapper element and its
+# class. It deliberately does NOT reproduce the isolation characters. A test
+# about a count or a column should not depend on invisible control codes, and
+# the real behaviour has its own guard in npm run test:direction.
+BIDI = """
+import React from 'react';
+
+const wrap = (className) => function Wrapper({ children, className: extra, title }) {
+  return React.createElement('span', { className: [className, extra].filter(Boolean).join(' '), title }, children);
+};
+
+export const Figure = wrap('bidi-figure');
+export const Code = wrap('bidi-code');
+export const Name = wrap('bidi-name');
+export function isolate(value) { return value; }
+export function documentDirection(locale) { return locale === 'he' ? 'rtl' : 'ltr'; }
+// Not forwardRef: the fake react runtime in this file is createElement and two
+// hooks, and nothing here needs the ref the real one forwards.
+export function DirectionRoot({ children, ...rest }) {
+  return React.createElement('div', rest, children);
+}
+export function Prose({ as: Element = 'p', children, className, ...rest }) {
+  return React.createElement(Element, { className, ...rest }, children);
+}
+"""
+
 # The grid, reduced to the behaviour this file is about: with no rows a person
 # reads the empty label, and with rows a person reads each column's own cell,
 # built the same way the real DataTable builds one, through `column.render`.
@@ -212,6 +243,7 @@ const ALERTS = pathToFileURL(join(here, 'alerts.mjs')).href;
 const FALLBACKS = pathToFileURL(join(here, 'fallbacks.mjs')).href;
 const LUCIDE = pathToFileURL(join(here, 'lucide.mjs')).href;
 const MONEY_HELPERS = pathToFileURL(join(here, 'money-helpers.mjs')).href;
+const BIDI = pathToFileURL(join(here, 'bidi.mjs')).href;
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -221,6 +253,7 @@ registerHooks({
     if (specifier.endsWith('shell/plan-model')) return { url: PLAN, shortCircuit: true };
     if (specifier.endsWith('shell/primitives')) return { url: PRIMITIVES, shortCircuit: true };
     if (specifier.endsWith('shell/fallbacks')) return { url: FALLBACKS, shortCircuit: true };
+    if (specifier.endsWith('shell/bidi')) return { url: BIDI, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: MONEY_HELPERS, shortCircuit: true };
     if (specifier.endsWith('MakeGoodAlerts')) return { url: ALERTS, shortCircuit: true };
@@ -333,7 +366,7 @@ def _run(tmp_path: Path, source: str) -> dict:
         "react-runtime.mjs": RUNTIME, "format.mjs": FORMAT, "plan-model.mjs": PLAN_MODEL,
         "primitives.mjs": PRIMITIVES, "clients-api.mjs": API, "alerts.mjs": ALERTS,
         "fallbacks.mjs": FALLBACKS, "empty.mjs": "export default {};\n",
-        "lucide.mjs": LUCIDE, "money-helpers.mjs": MONEY_HELPERS,
+        "lucide.mjs": LUCIDE, "money-helpers.mjs": MONEY_HELPERS, "bidi.mjs": BIDI,
         "harness.mjs": HARNESS, "CampaignRollupPanel.jsx": source,
     }
     for name, body in stubs.items():

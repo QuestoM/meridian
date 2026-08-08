@@ -18,6 +18,7 @@ export const VIEW_LABELS = [
   { key: 'clients', en: 'Clients', he: 'לקוחות' },
   { key: 'money', en: 'Money', he: 'כסף' },
   { key: 'campaigns', en: 'Campaigns', he: 'קמפיינים' },
+  { key: 'pacing', en: 'Delivery pace', he: 'קצב אספקה' },
   { key: 'advertisers', en: 'Pricing rules', he: 'כללי תמחור' },
   { key: 'agencies', en: 'Agency records', he: 'כרטיסי סוכנות' },
 ];
