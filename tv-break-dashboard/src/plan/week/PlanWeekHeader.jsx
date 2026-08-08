@@ -102,7 +102,7 @@ export function PlanWeekHeader({
             onClick={onRun}
           >
             {running ? <RefreshCcw size={14} className="upload-spinner" /> : <Play size={14} fill="currentColor" />}
-            {running ? `${pageText(locale, 'Running', 'רץ')} ${elapsed}s` : words.runShort}
+            {running ? `${pageText(locale, `Running ${elapsed}s`, `רץ ${elapsed} שנ'`)}` : words.runShort}
           </Button>
         )}
         <span className="plan-header-versions">

@@ -29,10 +29,22 @@ export function countLabel(count, locale, enOne, enMany, heOne, heMany) {
 
 // A duration or a gap, in the trade's own unit. There are no milliseconds in a
 // traffic file, so seconds are printed whole.
+//
+// RULED 2026-08-09, after measuring rather than choosing. This product printed
+// seconds three ways for one unit: `שניות` in twenty places, the standard Hebrew
+// abbreviation `שנ'` in two, and a bare Latin `s` here. A Latin unit letter on a
+// Hebrew screen is the one of the three that is simply wrong, and it was the one
+// on the compact surfaces: the copy-check badge, the elapsed column and the
+// length column all read `35s` to a Hebrew reader.
+//
+// The ruling is not "always spell it out". A column is not a sentence, and
+// Hebrew has an accepted abbreviation, so this compact form uses it and prose
+// keeps `שניות`. What is not allowed is a fourth form, or a Latin letter
+// standing in for a Hebrew one.
 export function secondsLabel(seconds, locale) {
   const number = Number(seconds);
   if (!Number.isFinite(number)) return pageText(locale, 'unknown', 'לא ידוע');
-  return `${Math.round(number)}s`;
+  return pageText(locale, `${Math.round(number)}s`, `${Math.round(number)} שנ'`);
 }
 
 // Seconds as a clock, for the totals a person reads against a break length.

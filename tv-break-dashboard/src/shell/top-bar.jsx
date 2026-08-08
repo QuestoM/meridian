@@ -159,7 +159,7 @@ export function renderTopBar({
               <>
                 <Button className="run-button" type="button" variant="contained" disabled={optimizationState === 'running'} onClick={handleRunOptimization}>
                   {optimizationState === 'running' ? <RefreshCcw size={15} className="upload-spinner" /> : <Play size={15} fill="currentColor" />}
-                  {optimizationState === 'running' ? `${pageText(locale, 'Running', 'מריץ')} ${elapsedSec}s` : copy.runOptimization}
+                  {optimizationState === 'running' ? `${pageText(locale, `Running ${elapsedSec}s`, `מריץ ${elapsedSec} שנ'`)}` : copy.runOptimization}
                 </Button>
                 <Tooltip title={pageText(locale, 'Saves these levers and rebuilds the whole weekly schedule, not just the preview', 'שומר את ההגדרות האלה ובונה מחדש את כל הלוח השבועי, לא רק את התצוגה המקדימה')} arrow placement="bottom">
                   <span>
@@ -171,7 +171,7 @@ export function renderTopBar({
                       onClick={handleApplyOptimization}
                     >
                       {recomputeState === 'running' ? <RefreshCcw size={15} className="upload-spinner" /> : <CalendarDays size={15} />}
-                      {recomputeState === 'running' ? `${pageText(locale, 'Applying', 'מחיל')} ${elapsedSec}s` : pageText(locale, 'Apply to weekly schedule', 'החל על לוח השבוע')}
+                      {recomputeState === 'running' ? `${pageText(locale, `Applying ${elapsedSec}s`, `מחיל ${elapsedSec} שנ'`)}` : pageText(locale, 'Apply to weekly schedule', 'החל על לוח השבוע')}
                     </Button>
                   </span>
                 </Tooltip>

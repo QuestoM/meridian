@@ -71,7 +71,7 @@ export function RunPanel({
         </div>
         <Button className="run-button" type="button" variant="contained" disabled={running} onClick={onRun}>
           {running ? <RefreshCcw size={15} className="upload-spinner" /> : <Play size={15} fill="currentColor" />}
-          {running ? `${pageText(locale, 'Running', 'רץ')} ${elapsed}s` : words.run}
+          {running ? `${pageText(locale, `Running ${elapsed}s`, `רץ ${elapsed} שנ'`)}` : words.run}
         </Button>
       </div>
 

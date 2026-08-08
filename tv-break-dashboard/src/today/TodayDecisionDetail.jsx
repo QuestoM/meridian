@@ -142,7 +142,7 @@ function DecisionRows({ state, item, date, locale }) {
           <span className="today-segment-clock"><Numeric>{row.start_clock}</Numeric></span>
           <span className="today-segment-type">{programTypeLabel(row.program_type, locale) || row.program_type}</span>
           <span className="today-segment-breaks">
-            <Numeric>{`${formatNumber(row.breaks, locale)} × ${formatNumber(row.ad_seconds, locale)}s`}</Numeric>
+            <Numeric>{pageText(locale, `${formatNumber(row.breaks, locale)} × ${formatNumber(row.ad_seconds, locale)}s`, `${formatNumber(row.breaks, locale)} × ${formatNumber(row.ad_seconds, locale)} שנ'`)}</Numeric>
           </span>
           <span className="today-segment-retention"><Numeric>{`${formatNumber(row.retention_percent, locale)}%`}</Numeric></span>
           <span className="today-segment-money"><Numeric>{formatCurrency(row.projected_revenue, locale)}</Numeric></span>
