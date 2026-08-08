@@ -44,7 +44,16 @@ round four when the limits started biting.
    `campaigns_api.py`). Then build, restart :8000 so it stops serving a stale
    bundle, and publish through `update_state.py --embed`.
 
-6. **Then wave two**, which is written, syntax-checked and never run:
+6. **Run the preflight gate before launching any wave, and do what it says.**
+   `~/.venvs/meridian/bin/python scripts/gauntlet/wave_preflight.py --pieces P10,P11,P12,P13`
+   It refuses to let a wave start when a piece has no dossier, when a dossier is
+   unfinished, when its file inventory has drifted from the repository, or when
+   the shared settings store has been left polluted. That last one has shipped
+   twice. This is the one thing in `campaign-plan.md` that is enforced rather
+   than merely written down, and the table at the top of that file says exactly
+   which of the others are not.
+
+7. **Then wave two**, which is written, syntax-checked and never run:
    `meridian-wave-2.js`. It carries the two fixes the audit found, plus a
    reshaped round described below.
 

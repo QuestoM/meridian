@@ -4,6 +4,31 @@ Written 2026-08-08. The owner asked why wave two is still wasteful, what would
 let an agent finish correctly on its first round, and for a list of everything
 still to do including the waves not yet run. This is that.
 
+## What in here is enforced, and what is only written down
+
+The owner then asked the better question: what makes a document like this
+actually get used? Nothing, on its own. A document whose failure mode is being
+unread is the same shape as a check whose failure mode is silence. It reports
+nothing, so it looks like it is working.
+
+So one prescription in this file is now a gate rather than a paragraph, and the
+rest are honestly marked as not.
+
+| Prescription | Enforced by | What happens if you ignore it |
+|---|---|---|
+| A dossier per piece, complete, before the wave (2.1) | `scripts/gauntlet/wave_preflight.py` | The launch is refused, per piece, by name |
+| The dossier's file inventory is current | the same gate, which re-counts every file | Refused, naming the file and both counts |
+| `data/kairos_settings.json` is unpolluted at launch | the same gate | Refused before a wave writes on top of it |
+| Evidence carries forward instead of re-measuring (2.2) | nothing yet | It quietly does not happen |
+| Blocking versus sweep (2.3) | `sweep-protocol.md`, by convention | A critic keeps one finding of four again |
+| The seven orchestration fixes (2.4) | nothing yet, they are script edits | The next wave repeats a paid-for defect |
+
+The gate is proven to bite: `tests/test_wave_preflight.py` constructs each shape
+of a dossier that would have wasted a round, including one whose line counts have
+drifted, and asserts the refusal. Run it before launching anything:
+
+    ~/.venvs/meridian/bin/python scripts/gauntlet/wave_preflight.py --pieces P10,P11,P12,P13
+
 ---
 
 # Part one: why a round is wasteful, measured
