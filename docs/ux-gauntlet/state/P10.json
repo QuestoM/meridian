@@ -2,6 +2,8 @@
  "piece": "P10",
  "round": 4,
  "passed": false,
+ "queue_verified_at": "2026-08-09",
+ "queue_open_count": 4,
  "gap": "Locking a pod whose saved operator order has gone stale destroys that order, its note and its saved_at, and says nothing. It is the exact mirror of the defect round 2 closed: that one invented an operator decision nobody made, this one deletes one somebody did make. The path, read in code and not reachable on today's data: break_api_pod.py:419 computes has_operator_order as pod['order']['state'] == 'operator', and a row whose fingerprint has moved reports state 'stale', never 'operator'. So lock() is told there is no operator order to protect, takes the else branch at break_api_pod_order.py:221-237, drops the existing row outright and writes a fresh one with an empty spot_keys and order_source 'file'. The operator's keys, their note and the moment they decided are gone from the register, and the surface shows a lock with no trace that anything was lost. Unlocking afterwards then removes the row entirely, because unlock() drops a file-sourced row, so the pod ends with no record at all of an order an operator genuinely saved. THE FIX is a decision about what a lock means on a stale row, and it needs a state on the payload, which is why it is structural and not mine to close. Three candidate answers, all inside break_api_pod_order.py and break_api_pod.py which P10 owns. Refuse the lock while the order is stale and say so, which is the honest reading of 'finalise' when the surface itself cannot say what would be frozen. Or freeze the file order and KEEP the stale row's spot_keys, saved_at, actor and note in place alongside order_source 'file', so the register still holds the decision that was made and applied() keeps reporting stale. Or write the lock as its own row and never touch an existing one. The second is the smallest and it also fixes the smaller half of the same bug: today a lock on a stale pod is indistinguishable in the register from a lock on a pod nobody ever touched. Pin whichever is chosen in tests/test_p10_pod_verification.py beside the two lock tests already there: save an order, move the pod's fingerprint underneath it, lock, and assert the operator's keys, note and saved_at are still readable through order_store.stored, then unlock and assert the same.",
  "history": [
   "round 1: pod entity built end to end (break_api_pod.py/_math/_spots/_order + PodPage/PodBoard/pod-model), 28/28 tests green, passed.",
@@ -415,126 +417,162 @@
    "severity": "serious",
    "kind": "structural",
    "what": "Locking a pod whose saved operator order has gone stale silently destroys that order, its note and its saved_at. break_api_pod.py:419 sends has_operator_order=False for a stale row, because state reads 'stale' and never 'operator', so lock() drops the row at break_api_pod_order.py:222-223 and writes a file-sourced one. Unlocking then deletes that row too, leaving no record that an operator ever saved an order for this pod. Read in code, not reachable on today's data, because the one traffic file would have to change under a saved order. It is the mirror of the round-2 gap on the one surface whose purpose is attribution.",
-   "where": "kairos_api/break_api_pod.py lock_pod 419; kairos_api/break_api_pod_order.py lock 221-237, unlock 260-263"
+   "where": "kairos_api/break_api_pod.py lock_pod 419; kairos_api/break_api_pod_order.py lock 221-237, unlock 260-263",
+   "verified": "closed",
+   "verified_by": "~/.venvs/meridian/bin/python -m pytest tests/test_p10_pod_verification.py -q -k test_locking_a_stale_operator_order_keeps_it_rather_than_destroying_it: 1 passed. The test saves an order, moves the stored row's own fingerprint underneath it via the register's load/write functions, locks, and asserts the operator's spot_keys, saved_at and note are still readable through order_store.stored while state reads stale and locked true, then unlocks and asserts the same row survives. This is also on the task's own known-closed list."
   },
   {
    "rank": 2,
    "severity": "serious",
    "kind": "structural",
    "what": "33 dir attributes remain inside this piece's own tree and the direction guard still cannot see the directory. Counted this round: BreakBoard.jsx 22, GoldBreakManager.jsx 9, BreakChip.jsx 2. PodBoard.jsx, PodPage.jsx and BreakInspector.jsx are genuinely 0, down from 111, so the round-2 item is two thirds closed. Measured live in the DOM, not only in source: the break table renders <td dir=\"ltr\">00:28:24</td> and <td dir=\"auto\">, which is design-rules section 6's banned form verbatim. The quarantine of src/plan/break/ in verify-direction-rules.mjs:96-100 stays until all 33 go, and that line is in a frozen script, so the sweep and the ruling are two separate acts.",
-   "where": "tv-break-dashboard/src/plan/break/BreakBoard.jsx, GoldBreakManager.jsx, BreakChip.jsx; quarantine at tv-break-dashboard/scripts/verify-direction-rules.mjs:96-100"
+   "where": "tv-break-dashboard/src/plan/break/BreakBoard.jsx, GoldBreakManager.jsx, BreakChip.jsx; quarantine at tv-break-dashboard/scripts/verify-direction-rules.mjs:96-100",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:direction: 'Direction rules hold.' The script's src/plan/break/ directory-wide quarantine is gone; grep -n \"src/plan/break\" scripts/verify-direction-rules.mjs shows exactly one remaining EXCEPTIONS entry, { file: 'src/plan/break/GoldBreakManager.jsx', rule: 'jsx-dir', count: 1 }, with a comment explaining it as the same accepted chart-ltr charting convention used elsewhere in the product. grep -n \"dir=\" on GoldBreakManager.jsx confirms exactly one dir attribute left, at line 92, matching the guard's own count. BreakBoard.jsx and BreakChip.jsx carry zero. This matches the task's own known-closed item (QUARANTINED list empty, test:direction passes over the whole tree)."
   },
   {
    "rank": 3,
    "severity": "serious",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. npm run test:dates failed on this piece's own file. verify-date-rules.mjs reported 3 date-part-arithmetic violations in src/plan/break/PodPage.jsx line 16, a hand-rolled todayIso built from getFullYear/getMonth/getDate. Attributed by three trees: a git archive of HEAD passes the guard, the working tree fails it, and PodPage.jsx is the only file named. It also answered in the machine's own zone rather than Asia/Jerusalem, so a reader west of Israel would have opened yesterday's breaks.",
-   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx 14-17"
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx 14-17",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:dates: 'Date rules hold. A calendar day is read in src/shell/dates.js and nowhere else.' grep -n 'todayIso|formatDay' PodPage.jsx confirms both are imported from ../../shell/dates and used at lines 82/146, with no hand-rolled getFullYear/getMonth/getDate left in the file. This matches the task's own known-closed item."
   },
   {
    "rank": 4,
    "severity": "serious",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. A locked pod refused PUT /order with 423 but accepted DELETE /order, which drops the whole register row including the lock. Measured live on 2025-04-27~22:53:49: save an order with a note, lock it, then DELETE the order returned 200 and left data/break_pod_order.csv holding only its header. The pod was unfinalised, the frozen order gone and the note gone, with no unlock ever pressed. The button is disabled on screen while locked, so only a direct call reaches it, but the guard existed one route above and not here.",
-   "where": "kairos_api/break_api_pod.py forget_order 384-392"
+   "where": "kairos_api/break_api_pod.py forget_order 384-392",
+   "verified": "closed",
+   "verified_by": "~/.venvs/meridian/bin/python -m pytest tests/test_p10_pod_verification.py -q -k test_a_locked_pod_refuses_the_revert_as_firmly_as_it_refuses_a_write: 1 passed. Named test drives save-order, lock, then DELETE /order on the real HTTP routes and asserts the locked register row survives; only after DELETE /lock does the same DELETE /order succeed."
   },
   {
    "rank": 5,
    "severity": "serious",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. The lock time on the audit banner was rendered by lockedAt.slice(0, 16).replace('T', ' '), which prints the stored UTC instant with no zone said. Measured: a lock taken at 16:28 Israel time read '2026-08-07 12:59' earlier in the session and '07/08/2026, 16:28' after the fix, a three-hour error on the one line that records who finalised a pod and when.",
-   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-lock-tag 157"
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-lock-tag 157",
+   "verified": "closed",
+   "verified_by": "Read tv-break-dashboard/src/plan/break/PodBoard.jsx: line 5 imports formatStamp from ../../shell/dates, and line 158 renders {formatStamp(lock.lockedAt) || lock.lockedAt} inside .pod-lock-when, replacing the earlier lockedAt.slice(0,16).replace('T',' ') that printed raw UTC with no zone. formatStamp is the shared Asia/Jerusalem formatter also used for Saved on at line 280."
   },
   {
    "rank": 6,
    "severity": "minor",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. Every calendar day this piece printed was ISO, against design-rules section 7, which fixes dd/mm/yyyy in both locales and names shell/dates.js as the only home. Measured before: the day picker read 2025-04-27, the tonight line 2026-08-07, the plan-coverage line 2024-11-01 to 2024-11-30. After: 27/04/2025, 07/08/2026, 01/11/2024 to 30/11/2024.",
-   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx pod-days and pod-tonight; PodBoard.jsx verdict covers"
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx pod-days and pod-tonight; PodBoard.jsx verdict covers",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:dates: 'Date rules hold.' Confirmed in code too: PodPage.jsx imports formatDay/todayIso from shell/dates and renders formatDay(tonight) and formatDay(covering) at lines 165/185; PodBoard.jsx renders formatDay(verdict.covers[0]) and formatDay(verdict.covers[...])  at lines 248/252. No raw ISO string is written to the screen in either file."
   },
   {
    "rank": 7,
    "severity": "minor",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. Lock this pod is disabled while the order on screen is unsaved and said nothing about why. JS-7's sequence is reorder then lock, so this is the exact moment an operator meets the disabled button. One line now states the reason, and it appears only in that state.",
-   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-hint block"
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-hint block",
+   "verified": "closed",
+   "verified_by": "Read tv-break-dashboard/src/plan/break/PodBoard.jsx lines 318-325: a .pod-hint paragraph reading 'Save this order before locking the pod, so the order that is frozen is the order that is recorded.' (he: 'שמרו את הסדר הזה לפני נעילת התוכן...') renders exactly when {!readOnly && changed && !lock.locked}, which is precisely the state in which the Lock button is disabled for an unsaved reorder."
   },
   {
    "rank": 8,
    "severity": "minor",
    "kind": "mechanical",
    "what": "FIXED THIS ROUND. The eleven-column grid-template-columns was written verbatim twice, on .pod-spot-head and on .pod-spot, so a change to one would misalign every heading from the column it names. Now one grouped selector holds it. Carried from round-2 item 11. break-pod.css sits at exactly 450 lines after the fix, so the next addition to it needs a trim first.",
-   "where": "tv-break-dashboard/src/plan/break/break-pod.css 167-172"
+   "where": "tv-break-dashboard/src/plan/break/break-pod.css 167-172",
+   "verified": "closed",
+   "verified_by": "grep -n grid-template-columns tv-break-dashboard/src/plan/break/break-pod.css shows exactly one eleven-column declaration, at line 165, under the grouped selector '.pod-spot-head,\\n.pod-spot {' (lines 163-166) with a comment 'The eleven columns, declared once for the heading and the rows together, so a heading can never drift off the column it names.' The second .pod-spot block at line 228 (layout/border rules) carries no grid-template-columns, confirming no duplication remains."
   },
   {
    "rank": 9,
    "severity": "minor",
    "kind": "structural",
    "what": "Hebrew prints seconds two ways on one screen. The copy-check badge, the elapsed column and the length column read 35s with a Latin s, while the verification error directly beneath them reads 'שם הגרסה נוקב ב-35 שנ''. pod-model.js's own comment at copyLengthBadge claims the badge uses the same mark the length column uses, and it does, but the server's Hebrew detail uses the trade's mark instead. Not mine to close: P3's break table and break inspector also print s, so making P10 alone say שנ' would split the product rather than settle it. Needs one ruling on the Hebrew seconds mark, then one sweep.",
-   "where": "tv-break-dashboard/src/plan/break/pod-model.js secondsLabel 32-36 and copyLengthBadge 215-229; kairos_api/break_api_pod_math.py verification detail_he"
+   "where": "tv-break-dashboard/src/plan/break/pod-model.js secondsLabel 32-36 and copyLengthBadge 215-229; kairos_api/break_api_pod_math.py verification detail_he",
+   "verified": "open",
+   "verified_by": "Read tv-break-dashboard/src/plan/break/pod-model.js:32-36: secondsLabel still returns `${Math.round(number)}s` unconditionally, ignoring locale (Latin s in both languages). grep -n detail_he kairos_api/break_api_pod_math.py:240 still builds f\"...שנ', בעוד ההזמנה היא {...} שנ'\" for the copy-length verification detail. The two marks still disagree on one screen exactly as the finding describes; still a cross-piece ruling, not something this pass can close."
   },
   {
    "rank": 10,
    "severity": "minor",
    "kind": "structural",
    "what": "break_type still prints the traffic file's raw code. Measured on the shipped file: 64 rows EB, 111 Regular, and the header now says in its title attribute that this is the file's own code with no translated term yet, which is the right holding answer. The vocabulary is the owner's to supply. Carried unchanged from round 1 item 14 and round 2 item 5.",
-   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-when header 145-149; kairos_api/break_api_pod.py build_pod break_type"
+   "where": "tv-break-dashboard/src/plan/break/PodBoard.jsx pod-when header 145-149; kairos_api/break_api_pod.py build_pod break_type",
+   "verified": "open",
+   "verified_by": "grep -n break_type kairos_api/break_api_pod.py:221 and tv-break-dashboard/src/plan/break/PodBoard.jsx:146-148: the raw file code (EB/Regular) is still passed through untranslated inside a <Code> element, only a title attribute names it as the file's own code. This is stated as an owner-vocabulary decision, not something buildable without the owner's term; unchanged across all four rounds."
   },
   {
    "rank": 11,
    "severity": "minor",
    "kind": "structural",
    "what": "data/break_pod_order.csv is still not a row in spec section 8.2's table. break_api_pod_order.py's docstring argues, reasonably, that a declared helper module's own runtime output is the module's to place, but that is a builder's reading rather than a ruling. One line from the lead closes it. Carried from round 1 item 18 and round 2 item 13.",
-   "where": "kairos_api/break_api_pod_order.py ORDER_PATH 68; docs/ux-gauntlet/spec.md section 8.2"
+   "where": "kairos_api/break_api_pod_order.py ORDER_PATH 68; docs/ux-gauntlet/spec.md section 8.2",
+   "verified": "open",
+   "verified_by": "grep -n 'break_pod_order.csv|break_api_pod' docs/ux-gauntlet/spec.md: zero hits. Section 8.2's file-ownership table still does not name data/break_pod_order.csv anywhere; the module's own docstring reasoning stands but spec.md, which is frozen, has not been amended. Needs a lead ruling, not a code change."
   },
   {
    "rank": 12,
    "severity": "minor",
    "kind": "mechanical",
    "what": "design-rules section 4: the four acts still share one visual weight, so no act is primary. The trade's sequence ends on finalising, so Lock this pod is the candidate. Left open deliberately, for the same reason round 2 left it: choosing the primary is a design decision rather than a defect, and break-pod.css now sits at exactly the 450-line cap, so whoever takes it must trim before adding a rule.",
-   "where": "tv-break-dashboard/src/plan/break/break-pod.css .pod-act, .pod-act-save, .pod-act-lock"
+   "where": "tv-break-dashboard/src/plan/break/break-pod.css .pod-act, .pod-act-save, .pod-act-lock",
+   "verified": "closed",
+   "verified_by": "STALE ITEM, contradicted by current code. Read tv-break-dashboard/src/plan/break/break-pod.css lines 417-426: '.pod-act-lock, .pod-act-unlock' now carries a filled teal background/border/color distinct from the plain outlined '.pod-act', under the comment 'Design rule 4: one primary act per card, filled. This card ends on finalising.' This is exactly the primary-act fix the finding describes as still needed. The queue's own text (\"Left open deliberately\") no longer matches the file on disk."
   },
   {
    "rank": 13,
    "severity": "minor",
    "kind": "structural",
    "what": "The read-only pod inside the break drawer never renders on today's data. The plan on disk covers 2024-11-01 to 2024-11-30 and the only traffic file covers 2025-04-27, so every break opened from the day board reports the honest unavailable state and the shared PodBoard branch behind it is never exercised live. Verified by opening the drawer on the first break of the day board. Same latency as the declared-length verdict, and it means the claim that the drawer and the page draw one component is proven only by tests today.",
-   "where": "tv-break-dashboard/src/plan/break/BreakInspector.jsx contents section 305-352"
+   "where": "tv-break-dashboard/src/plan/break/BreakInspector.jsx contents section 305-352",
+   "verified": "open",
+   "verified_by": "ls data/daily_input/: only Wally_Prime_Reshet_Example_2025-04-27.csv exists. head -3 output/weekly_break_schedule.csv: the plan still starts 2024-11-01. The two windows still share zero dates, so the read-only PodBoard branch inside BreakInspector still cannot be exercised live, only through tests/test_p10_pod_declared_length.py's synthetic fixture. Not a code defect (round 4's own 'NOT A DEFECT' reasoning still holds), but the underlying data-coverage gap the finding describes is unchanged, so marking it resolved would overstate what today's data proves."
   },
   {
    "rank": 14,
    "severity": "minor",
    "kind": "mechanical",
    "what": "Opening a pod low in the day list leaves the arithmetic below the fold. Measured at 1440x960 on the 22:53:49 row, the ninth of ten: after the click the three figures sat 46 px past the viewport bottom and nothing scrolled. Small here, larger for the tenth row and for any day with more pods. The page already scrolls itself for a covered-day request, so the mechanism exists.",
-   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx setOpenId 210"
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx setOpenId 210",
+   "verified": "closed",
+   "verified_by": "STALE ITEM, closed in code not reflected in the queue or in round_4_builder's notes. Read tv-break-dashboard/src/plan/break/PodPage.jsx lines 93-101: a useEffect keyed on openId now runs document.querySelector('[data-pod=\"' + openId + '\"]').scrollIntoView({block:'start'}) with a comment quoting the exact defect ('Opening a pod low in the day list put its arithmetic below the fold... The row itself goes to the top rather than the figures, so the reader keeps the pod they clicked in view.'). data-pod is set on each <li> at line 222. git log shows this landed in commit e4c9f29e alongside the rest of the round 2-4 work; no automated test covers it, so this is a tier-2 code-level verification, not a live measurement, but the fix is unambiguous and directly responsive."
   },
   {
    "rank": 15,
    "severity": "minor",
    "kind": "mechanical",
    "what": "The Break Library page header still describes the ranked shelf as what follows it, but this round moved the pod section above the break board, so the header now sits over a section it does not describe. Its body reads 'Every break in one broadcast day, with what the plan expects it to earn. Open one for its full detail, or use the ranked shelf below.' Not fixed by me because the page header is P3's own editorial voice and two shared P3 tests read this file.",
-   "where": "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx 55-63"
+   "where": "tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx 55-63",
+   "verified": "closed",
+   "verified_by": "STALE ITEM, closed in code not reflected in the queue. Read tv-break-dashboard/src/plan/break/BreakLibraryPage.jsx: the PageHeader body at line 60 now reads 'The spots inside a break first, read from the daily traffic file. Below them, every break in one broadcast day...and a ranked shelf...' which matches the actual render order confirmed at lines 68/70/73 (<PodPage> first, then <BreakBoard>, then the ranked-shelf section). The header no longer describes a section that does not follow it."
   },
   {
    "rank": 16,
    "severity": "minor",
    "kind": "structural",
    "what": "A failed write surfaces the raw HTTP status line to the operator. PodPage throws new Error(`${response.status} ${response.statusText}`) and hands that to notify, so a refused act reads '423 Locked' or '409 Conflict' rather than the sentence the API already sends in detail. Every one of those details is written in plain English on the server and none of them reaches the screen.",
-   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx write 116-124"
+   "where": "tv-break-dashboard/src/plan/break/PodPage.jsx write 116-124",
+   "verified": "closed",
+   "verified_by": "Read tv-break-dashboard/src/plan/break/PodPage.jsx lines 125-135 (the write() function, distinct from load()'s unrelated GET-path error at line 69): on a failed response it now awaits response.json().catch(() => null) and throws (detail && detail.detail) || `${response.status} ${response.statusText}`, so the server's plain-English detail field (locked, already locked, etc.) surfaces, falling back to the raw status line only when the body cannot be parsed."
   },
   {
    "rank": 17,
    "severity": "minor",
    "kind": "structural",
    "what": "The locale lives in data/kairos_settings.json, a git-tracked file, so every agent measuring the product in the other language fights over it. Measured this round rather than reasoned: the file flipped from he to en and back underneath a live measurement while another agent was working, and one screenshot captured a different agent's page entirely. Not P10's path and not P10's bug. Carried from round 2 item 14.",
-   "where": "data/kairos_settings.json; kairos_api/settings_api.py, which is W0-4's"
+   "where": "data/kairos_settings.json; kairos_api/settings_api.py, which is W0-4's",
+   "verified": "closed",
+   "verified_by": "~/.venvs/meridian/bin/python -m pytest tests/test_plan_artifact_fingerprint.py -q: 5 passed, including test_the_shipping_locale_is_not_a_test_leftover (tests/test_plan_artifact_fingerprint.py:143), whose own docstring states the exact defect this item describes and asserts the plan is invariant to locale/direction and that the committed settings file is not left in a measurement's leftover state. Matches the task's own known-closed item; not P10's file regardless."
   },
   {
    "rank": 18,
    "severity": "minor",
    "kind": "structural",
    "what": "npm run test:smoke has been dead since wave 0 and nobody owns the failure. verify-dashboard-render.mjs opens src/TVBreakDashboard.jsx, which W0-2 moved to src/shell/, so it exits ENOENT. Confirmed on both the working tree and a git archive of HEAD, so it is not this piece's doing, but one of the three shipped frontend guards has been answering nothing for the whole run.",
-   "where": "tv-break-dashboard/scripts/verify-dashboard-render.mjs"
+   "where": "tv-break-dashboard/scripts/verify-dashboard-render.mjs",
+   "verified": "closed",
+   "verified_by": "cd tv-break-dashboard && npm run test:smoke: 'Kairos dashboard system smoke passed. Native controls at 384, and the budget only goes down.' The script now resolves its target and exits 0 instead of ENOENT. Matches the task's own known-closed item; not P10's file regardless."
   }
  ],
  "fixed_myself": {

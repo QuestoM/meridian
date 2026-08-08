@@ -255,3 +255,12 @@
   border-inline-start: 1px solid var(--line);
   padding-inline-start: var(--space-2);
 }
+
+/* The controlled vocabulary, printed once under the head instead of hidden
+   behind a title attribute on every chip. A title is a meaning that exists only
+   for a mouse: a touch screen never shows it and a screen reader never reads it.
+   Reported on the ledger's two chip sets, deficit kind and record kind. */
+.makegood-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-2); }
+.makegood-legend > div { display: flex; align-items: baseline; gap: var(--space-2); }
+.makegood-legend dt { margin: 0; }
+.makegood-legend dd { margin: 0; font-size: var(--text-2xs); color: var(--muted); }

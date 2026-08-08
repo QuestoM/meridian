@@ -104,108 +104,144 @@
       "how": "aria-current on the focused listitem, which is valid there and moves no focus, so the list keeps the key handler it owns. Measured in a browser: exactly one element carries aria-current=true and it moves with j. The remaining half, a roving tabindex that announces the move as it happens, is left in the queue because it changes which element the keydown starts from and I will not ship an unmeasured focus change."
     }
   ],
+  "queue_verified_at": "2026-08-09",
+  "queue_open_count": 8,
   "queue": [
     {
       "what": "At HEAD the repository copy of this surface does not compile. git show HEAD of PacingWorkspace.jsx opens <Figure> at :265 and closes </span> at :267. The one-word fix and five files of this surface exist only in a working tree, and so does this round's guard file. Nobody in this loop may run git add.",
       "where": "HEAD versus the working tree, tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx:265-267",
       "kind": "structural",
-      "severity": "blocking"
+      "severity": "blocking",
+      "verified": "closed",
+      "verified_by": "cd tv-break-dashboard && npm run build: vite build succeeded, 3538 modules transformed, dist written cleanly with no error. git show HEAD:tv-break-dashboard/src/clients/pacing/PacingWorkspace.jsx around the old :265-267 range shows no open/close tag mismatch. The working tree was landed at HEAD; the compile defect is gone."
     },
     {
       "what": "The surface ships to nobody. A fresh repo build holds 0 occurrences of pacing-goal-line, pacing-figure-open, Decision ledger and The money goal; my scratch build carrying the mount holds all four. Nothing outside src/clients/pacing imports the tree and clients-money-helpers.js:13 VIEWS has no pacing entry. The mount is the three files in contracts/P11.md section 5 and all three are P4's.",
       "where": "tv-break-dashboard/src/clients/ClientsChrome.jsx VIEW_LABELS, tv-break-dashboard/src/clients/clients-money-helpers.js:13 VIEWS, tv-break-dashboard/src/clients/ClientsWorkspace.jsx",
       "kind": "structural",
-      "severity": "blocking"
+      "severity": "blocking",
+      "verified": "closed",
+      "verified_by": "grep -n pacing tv-break-dashboard/src/clients/ClientsWorkspace.jsx tv-break-dashboard/src/clients/clients-money-helpers.js tv-break-dashboard/src/clients/ClientsChrome.jsx: ClientsWorkspace.jsx:12 imports PacingWorkspace and :345-346 mounts it when active==='pacing'; clients-money-helpers.js:13 VIEWS includes 'pacing'; ClientsChrome.jsx:21 carries the nav label 'Delivery pace' / 'קצב אספקה'. The surface is mounted on the clients destination, not only reachable from a scratch build."
     },
     {
       "what": "Owner decision 4. data/campaign_flights.csv is header-only, there is no current broadcast week and no delivery feed. Every figure on this board is a plan figure counted off the traffic log and the screen says so in both languages, but the delivered half of this piece cannot exist until the owner supplies the feed.",
       "where": "data/campaign_flights.csv, the delivery feed, the owner",
       "kind": "structural",
-      "severity": "blocking"
+      "severity": "blocking",
+      "verified": "owner-blocked",
+      "verified_by": "wc -l data/campaign_flights.csv && cat data/campaign_flights.csv: 1 line total, the header row only, 0 data rows. This is owner decision 4; not attempted, per instruction."
     },
     {
       "what": "The second goal's figure is inert while the first goal's figure is a control. 5,280 of ILS 37,000 is plain text on the row and 4.4 of 35 rating points opens the seven days behind it, so Stripe's transferable mechanic, the amount being the way into the rows it was summed from, was applied to one of the two amounts on the same row. The fix threads an opener into PacingGoalLine and has to decide what the line does when it renders under the drill it would open, which is why I left it: the wrong version puts two disclosure controls on one row.",
       "where": "tv-break-dashboard/src/clients/pacing/PacingGoalLine.jsx, rendered from PacingRow.jsx and PacingDays.jsx",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "Read PacingRow.jsx:305-307: the row's second goal line passes onOpen={row.days_available ? onToggle : null}. Read PacingGoalLine.jsx: when onOpen && days it renders <button className=\"pacing-goal-figures pacing-figure-open\" aria-expanded aria-label={opensDays(...)}> instead of a plain span. The row-level figure is now a disclosure control; PacingDays.jsx:206 (the drill copy) intentionally omits onOpen, per its own comment, because a control inside the thing it discloses could only close it."
     },
     {
       "what": "j and k still announce nothing as they move. aria-current now marks the row, which a reader hears on arriving at it, but nothing tells assistive technology that the keyboard moved. The complete fix is a roving tabindex: give the focused article tabIndex -1 and focus it in the effect that currently calls scrollIntoView. keydown bubbles, so the list's handler still fires, but it changes which element the event starts from and wants measuring in a screen reader.",
       "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx, the focus effect and the list role",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "Read PacingBoard.jsx: a useEffect (around the aria-current comment block) calls card.focus({ preventScroll: true }) when stepped.current is true, and the listitem carries tabIndex={index === focused ? -1 : undefined} (roving tabindex), keydown still handled on the list. This is exactly the fix the finding specified: focused article gets tabIndex -1 and is focused in the effect that also calls scrollIntoView."
     },
     {
       "what": "Two meanings on the ledger are reachable only by hovering. The deficit-kind chip and the record-kind chip carry vocabularyMeaning in a title attribute and nothing else, so a keyboard or touch reader never gets them. This piece's own comment in PacingBoard.jsx says a control discoverable only by hovering is not discoverable, and פער עד כה is the exact distinction the raise rule turns on: it is a watch signal and not a debt.",
       "where": "tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx Figures and the kindmark span",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "grep -n 'title=' tv-break-dashboard/src/clients/pacing/MakeGoodLedger.jsx: lines 88 and 337 both still expose vocabularyMeaning only through a title attribute, no aria-label or visible/sr-only text alternative was added anywhere in the file. Unchanged from the finding; still hover-only."
     },
     {
       "what": "The board costs about a second of client render for 56 rows and the server is not the reason. Measured four times: /api/pacing answered in 78 to 99 ms at 100,474 B and the first row painted 1,000, 2,408, 3,141 and 3,663 ms after the tab click. Well inside the 60 s target and faster than the 6.61 to 8.26 s baseline, so the stopwatch passes, but it is the slowest thing on this screen and all of it is in the browser.",
       "where": "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx, 56 PacingRow instances rendered in one pass",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "grep -n 'React.memo|useMemo|virtualiz|react-window' PacingBoard.jsx PacingRow.jsx: no matches. No memoization or windowing was added since the finding was written, so the 56-row single-pass client render is unchanged. Did not restart a server to re-run the stopwatch (servers on 8000/3000/8010 are frozen and off-limits), so I cannot say the millisecond figure moved, only that no code change addresses the cause. Left open rather than guessed closed."
     },
     {
       "what": "The strongest verdict cannot be seen on this data. behind is 0 of 56 rows, so its chip colour, its row treatment and the act it offers are covered by guards and by nothing a person has looked at. Somebody should render one against a fixture and put the screenshot in evidence before the piece is signed off.",
       "where": "the shipped data, and docs/ux-gauntlet/evidence",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "ls docs/ux-gauntlet/evidence plus grep -rn behind on the P11 *.txt evidence files: every recorded run still shows 'behind 0' among the 56 rows (p11-c1r1-03, p11-c3r3-06, p11-r1-measured.txt); no fixture screenshot with a behind row exists among the p11-*.jpg/png evidence files. No screenshot was produced this pass either. Still open."
     },
     {
       "what": "The verdict word runs into the ratio in English. The money line reads 100% On pace, a capitalised vocabulary label concatenated after a figure, which reads as a title rather than as a sentence. The Hebrew form בקצב has no equivalent problem.",
       "where": "tv-break-dashboard/src/clients/pacing/PacingGoalLine.jsx, the ratio and verdict pair",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "Read PacingGoalLine.jsx: ratio and verdict now render as two separate elements (<Figure className=pacing-goal-ratio> and <span className=pacing-goal-verdict>) instead of one concatenated span, with a comment explaining the split. Read pacing-row.css:189-201: .pacing-goal-line uses display:flex with gap, and .pacing-goal-line > * + * draws a border-inline-start separator between adjacent children, with a comment confirming this is the fix. '100% On pace' no longer reads as one run in English."
     },
     {
       "what": "The keyboard legend floats at the far edge of the chrome row, opposite the basis prose, about 440 px from the list it describes in a 1512 px viewport. It is tied to the list by aria-describedby so nothing is lost to a screen reader, but on screen it reads as an unattached caption.",
       "where": "tv-break-dashboard/src/clients/pacing/pacing.css .pacing-chrome and .pacing-keys",
       "kind": "mechanical",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "Read PacingBoard.jsx: the legend (<p className=\"pacing-keys\" id=\"pacing-keys\">) is now rendered as its own block between the .pacing-chrome div and the .pacing-list div, no longer living inside the .pacing-chrome flex row (pacing.css :287-292, display:flex; justify-content:space-between) that produced the 440px gap. Code comment at the legend confirms: 'The legend sits against the list it is about... It is the same element with the same id, so the list still points at it' via aria-describedby."
     },
     {
       "what": "The delivery ledger's counted_as_of_basis and figures_basis are English only. Quoted correctly on the Hebrew board inside <q lang=\"en\"> and attributed to the ledger, so a Hebrew reader meets English only on asking. The columns are P4's.",
       "where": "data/campaign_delivery.csv, rendered at PacingBoard.jsx .pacing-source-quote",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "Read PacingBoard.jsx:124-136: counted_as_of_basis and figures_basis are still rendered only inside <q lang=\"en\">, no Hebrew form added. Unchanged from the finding, still P4's."
     },
     {
       "what": "The drill states how many spots a booking rule left out and cannot name the rule, because the ledger carries only dropped_rule_id. The one value on this data is DEFAULT_ONE_PER_BREAK. A reader's word for it belongs beside the key and the catalogue is P4's.",
       "where": "data/campaign_delivery.csv dropped_rule_id",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "~/.venvs/meridian/bin/python -m pytest tests/test_p11_surface_regression.py::test_the_drill_says_when_a_rule_left_spots_out_of_a_day -q --tb=short: FAILS. assert 'dropped_rule_id' not in days fires because the shipped JSX still names the engine key with no reader's word. Still open and still P4's."
     },
     {
       "what": "Every pacing write reaches the product's activity log unnamed. Re-verified this round: kairos_api/history_api_actions.py holds zero occurrences of pacing, make-good or make_good, so action_for answers other for all three pacing paths. Two rows in P8's table close it and tests/test_p11_regression.py pins the current answer so the change is visible when it lands.",
       "where": "kairos_api/history_api_actions.py (P8)",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "grep -n 'pacing|make_good|make-good' kairos_api/history_api_actions.py: zero matches. Every pacing write is still filed under the word other in History. Still open and still P8's."
     },
     {
       "what": "kairos_api/assistant.py:55 DEFAULT_MODEL is claude-opus-4-8 while the wave-two brief asserts the assistant runs on claude-opus-5. Re-read in code this round. Fifth round in a row this has been reported.",
       "where": "kairos_api/assistant.py:55 (P9)",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "Read kairos_api/assistant.py:55: DEFAULT_MODEL = \"claude-opus-4-8\", unchanged. Still open and still P9's."
     },
     {
       "what": "The brief for this piece names JS-8, which job-stories.md:325 defines as the traffic operator verifying media, the story P13 serves and the one the media-feed blocker stops. The job this piece serves is JS-6 at job-stories.md:252, target 60 s, and that is what I graded it against. The lead owns which label is wrong.",
       "where": "docs/ux-gauntlet/job-stories.md JS-6 and JS-8 versus the P11 brief",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "open",
+      "verified_by": "grep -n 'JS-6|JS-8' docs/ux-gauntlet/job-stories.md: JS-6 at :252 (the pacing board, 60 s target) and JS-8 at :325 (the traffic operator verifying media) are still distinct and unchanged; the P11 brief still names JS-8. This is a naming question for the lead, not something a code change closes, so it stays open."
     },
     {
       "what": "Not this piece's: data/kairos_settings.json differs from HEAD by a trailing newline. Snapshotted before my English pass and diffed after switching back through the same UI control: identical to my snapshot, so it is the settings writer's own behaviour and not a content change. Three pieces drive that control this session.",
       "where": "data/kairos_settings.json",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "git status data/kairos_settings.json: 'nothing to commit, working tree clean'. git diff data/kairos_settings.json: empty. The file matches HEAD exactly; the trailing-newline drift is gone and the guard holds."
     },
     {
       "what": "Not this piece's: tv-break-dashboard/index.html declares <html lang=\"en\"> and the shell sets lang=he dir=rtl on .kairos-shell instead. Nothing inside the app is mislabelled because the nearest lang wins, but the document's own declaration is wrong for a Hebrew operator.",
       "where": "tv-break-dashboard/index.html (shell, wave zero)",
       "kind": "structural",
-      "severity": "minor"
+      "severity": "minor",
+      "verified": "closed",
+      "verified_by": "grep -n 'lang=|dir=' tv-break-dashboard/index.html: line 2 reads <html lang=\"he\" dir=\"rtl\">. ~/.venvs/meridian/bin/python -m pytest tests/test_w0_2_shell_seams.py -q --tb=short: 19 passed. Shipped and guarded."
     }
   ],
   "evidence": {

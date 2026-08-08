@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Figure, Name } from '../../shell/bidi';
 import { formatSpan } from '../../shell/dates';
 import { amount, instant, isolate, localized, pair, pick, unitWord, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
+import { Legend, chipReading } from './makegood-legend';
 
 // The decision ledger: what was measured, what was decided about it, and who
 // acted. Every row is a record with a state, and the states it may move to next
@@ -84,8 +85,13 @@ function Figures({ record, locale, vocabulary }) {
           `נספרו ${pair(shortfall.counted_value, shortfall.goal_value, shortfall.unit, locale)}`,
         )}
       </small>
+      {/* The meaning is on the chip for a pointer and in the aria-label for a
+          reader, and it is also printed once in the legend below the head. A
+          title attribute alone is a meaning that does not exist on a touch
+          screen and does not exist to a screen reader either. */}
       <span className={`makegood-kind ${shortfall.deficit_kind}`}
-            title={vocabularyMeaning(vocabulary.deficit_kinds, shortfall.deficit_kind, locale)}>
+            title={vocabularyMeaning(vocabulary.deficit_kinds, shortfall.deficit_kind, locale)}
+            aria-label={chipReading(vocabulary.deficit_kinds, shortfall.deficit_kind, locale)}>
         {vocabularyLabel(vocabulary.deficit_kinds, shortfall.deficit_kind, locale)}
       </span>
     </div>
@@ -296,6 +302,8 @@ export default function MakeGoodLedger({
 
   return (
     <section className="makegood-ledger" aria-label={pick(locale, 'Decision ledger', 'ספר ההחלטות')}>
+      <Legend entries={vocabulary.kinds} locale={locale} />
+      <Legend entries={vocabulary.deficit_kinds} locale={locale} />
       <p className="pacing-basis">
         {localized(payload.sign_off, 'reason', locale)}
         {' '}
@@ -334,7 +342,8 @@ export default function MakeGoodLedger({
                 differ, and a person scanning a mixed timeline should not have to
                 read a state to learn which kind of record they are looking at. */}
             <span className={`makegood-kindmark ${record.kind}`}
-                  title={vocabularyMeaning(vocabulary.kinds, record.kind, locale)}>
+                  title={vocabularyMeaning(vocabulary.kinds, record.kind, locale)}
+                  aria-label={chipReading(vocabulary.kinds, record.kind, locale)}>
               {vocabularyLabel(vocabulary.kinds, record.kind, locale)}
             </span>
             <button type="button" className="makegood-campaign"
