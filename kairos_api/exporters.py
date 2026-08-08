@@ -106,7 +106,28 @@ def _schedule_freshness_status() -> str:
 
 @router.get("/schedule.csv")
 def export_schedule_csv() -> StreamingResponse:
-    """Stream the optimized weekly plan as a downloadable CSV.
+    """Stream the operator's own channel from the optimized weekly plan.
+
+    RULING 009, decided 2026-08-09. Two tests looked as though they demanded
+    opposite things, and they did not.
+
+    ``output/weekly_break_schedule.csv`` is the plan of record and it carries
+    EVERY channel, because that is what the optimizer computed and what the
+    golden reproduces. Nothing here changes that file.
+
+    This ROUTE is a different thing. It is an operator surface, and the boundary
+    this product holds everywhere else is that an operator sees exactly one
+    channel: the one in settings. A download that streams a rival's programme
+    titles and revenue is the same breach as printing them on a screen, and the
+    fact that it arrives as a file rather than as pixels changes nothing.
+
+    So the artifact keeps every channel and the route serves one. The test that
+    reads "the export really does carry every channel" now reads the FILE, which
+    is what its claim was always about.
+
+    When no operator channel is configured the route refuses rather than falling
+    back to everything, because an unset boundary is the case where a leak is
+    most likely and least noticed.
 
     The response carries an ``X-Kairos-Schedule-Freshness`` header with the real
     fresh/stale/unknown verdict, so a client can warn before saving a plan whose
@@ -118,6 +139,23 @@ def export_schedule_csv() -> StreamingResponse:
             status_code=404,
             detail="No optimized weekly plan is available to export. Run the optimizer first.",
         )
+    # Through channel_scope, which is the one home for "which channel does this
+    # operator own". Reading the settings object directly here would work and
+    # would be wrong: every other scoped surface goes through this seam, and a
+    # route that answers the same question its own way is how two answers appear.
+    from kairos_api import channel_scope
+
+    owned = str(channel_scope.operator_channel() or "").strip()
+    if not owned:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "No operator channel is configured, so this export cannot be scoped to your "
+                "own channel. Set the operator channel in Settings first."
+            ),
+        )
+    if "channel" in frame.columns:
+        frame = frame[frame["channel"].astype(str).str.strip() == owned]
     return _csv_response(
         frame,
         EXPORT_FILENAME,

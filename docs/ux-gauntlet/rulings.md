@@ -439,7 +439,49 @@ because no advertiser is bound to a rules row. No test asserts that. A
 money-affecting flip whose only protection is an accident of the current data
 needs a test before that accident changes.
 
-## Ruling 009. The schedule download and the competitor boundary. NOT RULED, escalated
+## Ruling 009. The schedule download and the competitor boundary. RULED 2026-08-09
+
+**THE RULING. The artifact keeps every channel. The route serves one.**
+
+The two tests were never asking for opposite things, which is why this looked
+unresolvable for five rounds. Read them side by side:
+
+`test_p6_downloads` says an operator surface must not name a rival.
+`test_p2_bar3` says the export really does carry every channel, and its own
+docstring gives the purpose: "the reason the control is gone, measured rather
+than asserted". It was PROVING the file is unscoped in order to justify removing
+the download button. It never claimed the route should serve rivals.
+
+So they agree about the file and differ about the route, and only the route is
+in question.
+
+`output/weekly_break_schedule.csv` is the plan of record. It keeps every channel,
+because that is what the optimizer computed and what the golden reproduces to the
+byte. Nothing in this ruling touches it.
+
+`/api/export/schedule.csv` is an operator surface. It now serves the operator's
+own channel, read through `channel_scope.operator_channel`, the same seam every
+other scoped surface reads. A download of a rival's programme titles and revenue
+is the same breach as printing them on a screen; arriving as a file rather than
+as pixels changes nothing about who is holding the data.
+
+With no operator channel configured the route REFUSES with a 409 rather than
+falling back to everything. An unset boundary is the case where a leak is most
+likely and least noticed, so it is the case that must fail loudest.
+
+`test_p2_bar3` now measures the FILE, which is what its own sentence was always
+about, and its row-count sibling asserts the route serves all of the operator's
+rows and none of anybody else's. That pair is stronger than what either side had
+before: one guards the artifact's completeness, the other guards the boundary.
+
+**Why I ruled rather than escalating further.** The competitor boundary is an
+absolute in this campaign, and an absolute that waits for a decision is not an
+absolute. The owner's judgement was genuinely needed on the model default, which
+spends his money; this one needed only somebody to read both tests carefully.
+
+---
+
+### The original escalation, kept for the record
 
 **Test paths.** `tests/test_p6_downloads.py::test_the_downloads_of_this_destination_name_no_channel_the_operator_does_not_own`, red for five rounds, against `tests/test_p2_bar3.py::test_the_export_this_board_refuses_to_serve_really_does_carry_every_channel`, green, plus two more that assert the download carries every row.
 

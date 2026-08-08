@@ -78,7 +78,14 @@ def test_the_frontier_point_is_still_clickable_and_still_applies_a_saved_floor()
     assert "onApplyFloor={onApplyFrontierFloor}" in page
 
 
-def test_the_plan_csv_still_downloads_every_row(client):
+def test_the_plan_csv_downloads_every_row_of_the_operators_own_channel(client):
+    """Ruling 009 moved the floor, and it moved it for a reason worth keeping.
+
+    This asserted 8,704 rows, the whole plan, off the route. The route now serves
+    the operator's own channel only, because it is an operator surface. So the
+    floor here is the operator's own row count, and the whole-file figure is
+    asserted on the file below, where it belongs.
+    """
     response = client.get("/api/export/schedule.csv")
     assert response.status_code == 200
     rows = list(csv.reader(io.StringIO(response.text)))
@@ -86,7 +93,21 @@ def test_the_plan_csv_still_downloads_every_row(client):
     data_rows = len(rows) - 1
     if data_rows == 0:
         pytest.skip("no saved plan on this tree, so there is nothing to export")
-    assert data_rows == 8704, f"the plan CSV carries {data_rows} rows, the floor is 8,704"
+    plan = ROOT / "output" / "weekly_break_schedule.csv"
+    whole = list(csv.reader(io.StringIO(plan.read_text(encoding="utf-8"))))
+    header = [cell.lstrip("﻿") for cell in whole[0]]
+    channels = [row[header.index("channel")] for row in whole[1:] if row]
+    assert len(channels) == 8704, f"the plan file carries {len(channels)} rows, the floor is 8,704"
+    # Through the same seam the route reads, so the test and the product cannot
+    # disagree about which channel is the operator's.
+    from kairos_api import channel_scope
+
+    owned_rows = channels.count(str(channel_scope.operator_channel() or "").strip())
+    assert owned_rows > 0, "the operator's own channel has no rows in the plan file"
+    assert data_rows == owned_rows, (
+        f"the route served {data_rows} rows and the operator's own channel has {owned_rows}. "
+        "It must serve all of its own and none of anybody else's."
+    )
     # The export ships a byte-order mark so Excel opens the Hebrew correctly,
     # which is a property of the file worth keeping rather than an accident.
     assert response.text.startswith("﻿")
@@ -170,15 +191,28 @@ def test_the_board_names_what_the_plan_file_holds_and_points_at_the_door():
     assert "מכל הערוצים שבמקור" in note
 
 
-def test_the_export_this_board_refuses_to_serve_really_does_carry_every_channel(client):
-    """The reason the control is gone, measured rather than asserted."""
-    response = client.get("/api/export/schedule.csv")
-    assert response.status_code == 200
-    rows = list(csv.reader(io.StringIO(response.text)))
+def test_the_plan_file_this_board_refuses_to_serve_really_does_carry_every_channel():
+    """The reason the control is gone, measured on the FILE rather than the route.
+
+    This read the route until ruling 009, and the route now serves the operator's
+    own channel only, because it is an operator surface and a download of a
+    rival's titles and revenue is the same breach as printing them on a screen.
+
+    Reading the route was always the weaker measurement anyway. The claim in this
+    test's name is about the artifact: the saved plan carries every channel, which
+    is why the board names the file and points at the destination that owns it
+    rather than offering a button that would hand three broadcasters' plans over
+    in one click. The file is what that sentence is about, so the file is what is
+    measured.
+    """
+    plan = ROOT / "output" / "weekly_break_schedule.csv"
+    if not plan.exists():
+        pytest.skip("no saved plan on this tree, so there is nothing to measure")
+    rows = list(csv.reader(io.StringIO(plan.read_text(encoding="utf-8"))))
     if len(rows) <= 1:
-        pytest.skip("no saved plan on this tree, so there is nothing to export")
+        pytest.skip("the saved plan is empty")
     header = [cell.lstrip("﻿") for cell in rows[0]]
     channel_column = header.index("channel")
     channels = {row[channel_column] for row in rows[1:] if row}
     # Counted, never named: a rival's name does not belong in this file either.
-    assert len(channels) > 1, "the export is single-channel, so the refusal would be pointless"
+    assert len(channels) > 1, "the plan file is single-channel, so the refusal would be pointless"
