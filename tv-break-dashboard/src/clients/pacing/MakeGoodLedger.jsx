@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Figure, Name } from '../../shell/bidi';
+import { formatSpan } from '../../shell/dates';
 import { amount, instant, isolate, localized, pair, pick, unitWord, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
 
 // The decision ledger: what was measured, what was decided about it, and who
@@ -45,6 +46,21 @@ function actWord(state, kind, locale) {
 function openedWord(kind, locale) {
   if (kind === ACCEPTANCE) return pick(locale, 'Recorded', 'נרשמה');
   return pick(locale, 'Raised', 'נפתח');
+}
+
+// Who acted, and the honest answer when nobody was recorded.
+//
+// The ledger's own sign-off sentence says this product records who acted, and
+// the trail printed the actor only when the store had one, so a record written
+// while sign-in is not set up said when and quietly dropped who. Measured on a
+// server with an uninitialised account store, which is how this product runs
+// before an operator creates the first account: /api/auth/me answers
+// auth_disabled true, every write lands with raised_by empty, and the trail read
+// as if the question had never been asked. An unknown actor is stated.
+function actorClause(who, locale) {
+  const named = String(who || '').trim();
+  if (named) return pick(locale, `by ${named}`, `על ידי ${named}`);
+  return pick(locale, 'by an account this product did not record', 'על ידי חשבון שהמוצר לא רשם');
 }
 
 function headlineFigure(record, locale) {
@@ -187,23 +203,28 @@ function CloseForm({ record, state, locale, busy, vocabulary, onSubmit, onCancel
 // The separating space lives outside the window, never inside it. Inside, the
 // bidi reorder puts it on the far edge of the run and the window's last digits
 // sit against the offer's first, which was measured rendering an offer of 0.6
-// against a window ending 2025-05-10 as the string 2025-05-100.6.
+// against a window ending 2025-05-10 as the string 2025-05-100.6. The four facts
+// are now four elements with a rule between them, per design-rules.md section 3,
+// so the separator is structural and cannot be swallowed by a reorder at all.
 function Offer({ record, locale }) {
   if (record.offer.value === null || record.offer.value === undefined) return null;
   const window = record.offer.window_start && record.offer.window_end
-    ? `${record.offer.window_start} - ${record.offer.window_end}`
+    ? formatSpan(record.offer.window_start, record.offer.window_end, locale)
     : '';
   return (
     <p className="makegood-offer-record">
-      {pick(
-        locale,
-        `Offered ${amount(record.offer.value, record.shortfall.unit, locale)}`,
-        `הוצעו ${amount(record.offer.value, record.shortfall.unit, locale)}`,
-      )}
-      {window ? ' ' : ''}
+      <span>
+        {pick(
+          locale,
+          `Offered ${amount(record.offer.value, record.shortfall.unit, locale)}`,
+          `הוצעו ${amount(record.offer.value, record.shortfall.unit, locale)}`,
+        )}
+      </span>
       {window ? <Figure>{window}</Figure> : null}
-      {record.offer.offered_by ? ` ${pick(locale, 'by', 'על ידי')} ${record.offer.offered_by}` : ''}
-      {record.offer.note ? ` ${record.offer.note}` : ''}
+      {record.offer.offered_by
+        ? <span>{pick(locale, `by ${record.offer.offered_by}`, `על ידי ${record.offer.offered_by}`)}</span>
+        : null}
+      {record.offer.note ? <span>{record.offer.note}</span> : null}
     </p>
   );
 }
@@ -211,23 +232,43 @@ function Offer({ record, locale }) {
 // Why a record was closed, on the record. A reason the store now requires and
 // nothing rendered would be a field written for a database rather than for the
 // person who has to answer for the decision next quarter.
+//
+// The reason, the actor and the instant are three facts, so a rule divides them
+// rather than a space. Measured on the shipped ledger, a withdrawn acceptance
+// read "Closed as: The record should not have been opened by admin", where the
+// actor ran into the end of the reason and reversed what the sentence said. And
+// the store has recorded closed_at all along while no screen printed it, so the
+// one act on this surface that cannot be undone was the one act with no time on
+// it.
 function Closure({ record, locale, vocabulary }) {
   if (!record.close_reason) return null;
   const reasons = (vocabulary.close_reasons || {})[record.state] || [];
+  const when = instant(record.closed_at);
   return (
     <p className="makegood-closure">
-      {pick(locale, 'Closed as: ', 'נסגרה בתור: ')}
-      {vocabularyLabel(reasons, record.close_reason, locale)}
-      {record.closed_by ? ` ${pick(locale, 'by', 'על ידי')} ${record.closed_by}` : ''}
+      <span>
+        {pick(locale, 'Closed as: ', 'נסגרה בתור: ')}
+        {vocabularyLabel(reasons, record.close_reason, locale)}
+      </span>
+      <span>{actorClause(record.closed_by, locale)}</span>
+      {when ? <span>{isolate(when)}</span> : null}
     </p>
   );
 }
 
-export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, busyId, onMove, onOpenCampaign }) {
+export default function MakeGoodLedger({
+  payload, locale, canEdit, editRefusal, busyId, onMove, onOpenCampaign,
+  focusMakeGoodId = '', onFocused = () => {},
+}) {
   const [offering, setOffering] = useState('');
   // Which record is being closed and into which state, so the confirmation is
   // about one act on one row and never about the last button pressed.
   const [closing, setClosing] = useState({ id: '', state: '' });
+  // The record a control on the board asked for. A name that opens a list of
+  // records and leaves the reader to find the one it named is a dead end on any
+  // ledger longer than one row, and this ledger only ever gets longer.
+  const [marked, setMarked] = useState('');
+  const markedRef = useRef(null);
   const vocabulary = payload.vocabulary || {};
   const asks = vocabulary.reason_required || [];
   // Both endings, in one timeline. Reading only make_goods was measured hiding
@@ -237,6 +278,21 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
   // written before this read carried both.
   const rows = payload.decisions || payload.make_goods || [];
   const accepted = payload.accepted_count || 0;
+
+  // The request is taken once and held here, so the mark survives the request
+  // being cleared and the reader keeps a visible answer to which record they
+  // opened. Scrolling waits for the row to exist, which on a fresh raise means
+  // waiting for the read that follows the write.
+  useEffect(() => {
+    if (!focusMakeGoodId) return;
+    setMarked(focusMakeGoodId);
+    onFocused();
+  }, [focusMakeGoodId, onFocused]);
+
+  useEffect(() => {
+    if (!marked || !markedRef.current) return;
+    markedRef.current.scrollIntoView({ block: 'nearest' });
+  }, [marked, rows.length]);
 
   return (
     <section className="makegood-ledger" aria-label={pick(locale, 'Decision ledger', 'ספר ההחלטות')}>
@@ -267,7 +323,9 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
       ) : null}
 
       {rows.map((record) => (
-        <article className={`makegood-row ${record.state}`} key={record.make_good_id}>
+        <article className={`makegood-row ${record.state}${record.make_good_id === marked ? ' makegood-focused' : ''}`}
+                 ref={record.make_good_id === marked ? markedRef : null}
+                 key={record.make_good_id}>
           <div className="makegood-row-head">
             <span className={`makegood-state ${record.state}`}>
               {vocabularyLabel(vocabulary.states, record.state, locale)}
@@ -284,7 +342,10 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
               <Name>{record.campaign_name || record.campaign_id}</Name>
             </button>
             <small className="makegood-flight">
-              <Figure>{record.flight.starts_on} - {record.flight.ends_on}</Figure>
+              {/* Read by shell/dates.js, so the window on a ledger record and the
+                  window on the board row it came from print one shape. Both were
+                  the payload's raw ISO fields either side of a spaced hyphen. */}
+              <Figure>{formatSpan(record.flight.starts_on, record.flight.ends_on, locale)}</Figure>
             </small>
             {record.is_demo ? <span className="pacing-demo">{pick(locale, 'Demo', 'הדגמה')}</span> : null}
           </div>
@@ -296,8 +357,8 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
           <small className="makegood-trail">
             {pick(
               locale,
-              `${openedWord(record.kind, locale)} ${instant(record.raised_at)}${record.raised_by ? ` by ${record.raised_by}` : ''}. Counted as of ${instant(record.shortfall.counted_as_of)}.`,
-              `${openedWord(record.kind, locale)} ${isolate(instant(record.raised_at))}${record.raised_by ? ` על ידי ${record.raised_by}` : ''}. נספר נכון ל־${isolate(instant(record.shortfall.counted_as_of))}.`,
+              `${openedWord(record.kind, locale)} ${instant(record.raised_at)} ${actorClause(record.raised_by, locale)}. Counted as of ${instant(record.shortfall.counted_as_of)}.`,
+              `${openedWord(record.kind, locale)} ${isolate(instant(record.raised_at))} ${actorClause(record.raised_by, locale)}. נספר נכון ל־${isolate(instant(record.shortfall.counted_as_of))}.`,
             )}
           </small>
 
@@ -325,7 +386,15 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
             <span className="pacing-remedy-note">{editRefusal}</span>
           )}
 
-          {closing.id === record.make_good_id ? (
+          {/* A form for an act the record no longer allows cannot be submitted
+              and must not stay on screen. Measured in a browser: with the close
+              form open I withdrew the record over the API, took the reload the
+              refusal offers, and the row corrected itself to Withdrawn and
+              Closed while the form under it went on offering to revoke a
+              decision that was already revoked. The typed values are still kept
+              on a refusal, which is the case this does not touch: there the
+              record still allows the act and the reader gets to try again. */}
+          {closing.id === record.make_good_id && record.next_states.indexOf(closing.state) >= 0 ? (
             <CloseForm
               record={record}
               state={closing.state}
@@ -340,7 +409,7 @@ export default function MakeGoodLedger({ payload, locale, canEdit, editRefusal, 
             />
           ) : null}
 
-          {offering === record.make_good_id ? (
+          {offering === record.make_good_id && record.next_states.indexOf('offered') >= 0 ? (
             <OfferForm
               record={record}
               locale={locale}

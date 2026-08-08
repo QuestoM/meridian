@@ -98,6 +98,39 @@ def close_reasons(state: str) -> tuple[dict[str, str], ...]:
 def reason_allowed(state: str, reason: str) -> bool:
     return reason in {entry["value"] for entry in close_reasons(state)}
 
+
+# Reversing a decision, published rather than left for a surface to invent.
+#
+# A decision that a single keystroke writes has to be reversible by a single
+# control beside the confirmation of it. The reference is Google Ads, which
+# writes every applied recommendation to its change history and can undo it
+# there; measured against this piece, pressing ``a`` on a focused row wrote a
+# record to the ledger and the banner it printed offered nothing but Dismiss.
+#
+# An undo is not a fourth act. It is the withdrawal this ledger already holds,
+# carrying the one published reason that says the record should not have been
+# opened, taken from the list the close form offers rather than from a constant
+# a client wrote. Nothing is deleted: the row stays on the ledger, closed, with
+# who withdrew it and when.
+UNDO_STATE = WITHDRAWN
+UNDO_REASON = "opened_in_error"
+UNDO_LABEL_EN = "Undo"
+UNDO_LABEL_HE = "בטלו"
+UNDO_MEANING_EN = "Undoing withdraws the record that was just written. The row stays in the ledger, closed, and records who withdrew it and when."
+UNDO_MEANING_HE = "ביטול מושך את הרשומה שזה עתה נכתבה. השורה נשארת בספר ההחלטות, סגורה, ורושמת מי ביטל אותה ומתי."
+
+
+def undo_block() -> dict[str, str]:
+    """The one transition that reverses a decision, in the words a control takes."""
+    return {
+        "state": UNDO_STATE,
+        "reason": UNDO_REASON,
+        "label_en": UNDO_LABEL_EN,
+        "label_he": UNDO_LABEL_HE,
+        "meaning_en": UNDO_MEANING_EN,
+        "meaning_he": UNDO_MEANING_HE,
+    }
+
 MEASURED_CLOSED = "measured_closed"
 BOOKED_SHORT = "booked_short"
 TO_DATE = "to_date"
@@ -147,6 +180,13 @@ STATE_VOCABULARY = (
     },
 )
 
+# A kind is the noun for what the record IS, and a state is where it has got to.
+# They sit side by side on every ledger row, so they may never print the same
+# words: measured on the shipped surface, an acceptance showed two adjacent
+# chips both reading "Risk taken on" in the same colour on the same background,
+# which told a reader nothing and read as a rendering fault. The state keeps the
+# sentence a person acted on and the kind takes the noun, as the make-good's
+# kind already did.
 KIND_VOCABULARY = (
     {
         "value": MAKE_GOOD,
@@ -157,8 +197,8 @@ KIND_VOCABULARY = (
     },
     {
         "value": ACCEPTANCE,
-        "label_en": "Risk taken on",
-        "label_he": "קבלת הסיכון",
+        "label_en": "Risk acceptance",
+        "label_he": "קבלת סיכון",
         "meaning_en": "A recorded decision to leave the risk on this campaign as it stands.",
         "meaning_he": "החלטה רשומה להשאיר את הסיכון בקמפיין הזה כפי שהוא.",
     },

@@ -71,6 +71,15 @@
   align-items: center;
 }
 
+/* The two tabs, in their own element so the tablist holds tabs and nothing
+   else. Read again sits beside them in .pacing-views and looks identical. */
+.pacing-view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 .pacing-views button.active {
   background: var(--primary);
   border-color: var(--primary);
@@ -157,6 +166,20 @@
 /* A write the server refused, said on the surface that asked for it. The shell's
    toast is the product's own channel and it does not reach this panel at the
    address it is mounted at, so the refusal is printed here as well. */
+/* Both banners stay in the reader's view, because the act that raises one is
+   fired from a row that can be anywhere in a list of 56. Measured before this:
+   with the list scrolled 547 px and the keyboard shortcut pressed on a focused
+   row, the notice that a decision had been recorded painted at y=-175 in a
+   907 px viewport, entirely above the fold, and it is the only confirmation the
+   panel has while the shell swallows notify(). The offset clears the shell's own
+   header rather than sitting under it. */
+.pacing-refusal,
+.pacing-notice {
+  position: sticky;
+  inset-block-start: var(--space-2);
+  z-index: 2;
+}
+
 .pacing-refusal {
   display: flex;
   flex-wrap: wrap;
@@ -176,6 +199,63 @@
   max-inline-size: 88ch;
 }
 
+/* What a write that landed says. It is the refusal's shape in the affirmative
+   colour rather than a second layout, because the two answer the same question
+   about the same act and a reader should not have to learn two banners. It
+   exists because the shell swallows this panel's notices at the address it is
+   mounted at, so a successful acceptance said nothing at all. */
+.pacing-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--teal);
+  background: var(--teal-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.pacing-notice p {
+  margin: 0;
+  max-inline-size: 88ch;
+}
+
+.pacing-notice button {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+/* Undo is the act this banner offers and Dismiss is the way out of it, so the
+   two do not read at one weight. It is the same primary the refusal gives to the
+   place the server said to go instead. */
+.pacing-notice .pacing-undo {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.pacing-notice button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The two acts a refusal offers, on one baseline at one height, which is what
+   design-rules.md section 4 asks of any group of them. */
+.pacing-refusal-acts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .pacing-refusal button {
   border: 1px solid var(--line-strong);
   background: var(--surface);
@@ -190,6 +270,14 @@
 .pacing-refusal button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* Where the server said to go instead. It is the primary of the two, because
+   dismissing a refusal is what a reader does when there is nowhere to go. */
+.pacing-refusal .pacing-refusal-open {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
 }
 
 /* The strip, then the table. What sits between them is one line of basis and one

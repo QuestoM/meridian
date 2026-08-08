@@ -16,7 +16,9 @@ control rather than as prose.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Iterable, Optional
+
+from kairos_api.affiliation_wall import COMPANY_SURFACE_DETAIL, READ_ONLY_ROLE_DETAIL
 
 # The published pace triggers. counted-through-today divided by the even-flight
 # reference for the same window. A ratio at or above ON_PACE is on pace; below
@@ -126,6 +128,113 @@ NOT_OWED_YET_HE = "הקמפיין הזה מפגר אחרי ייחוס הקצב �
 NOT_OWED_YET_PATH_EN = "Book the remaining days or upload the traffic file that holds them, and the raise becomes available. Until then the decision to record is that the risk stands."
 NOT_OWED_YET_PATH_HE = "הזמינו את הימים שנותרו או העלו את קובץ השידור שמחזיק אותם, והפתיחה תתאפשר. עד אז ההחלטה שנרשמת היא שהסיכון נשאר."
 
+# What a booking rule capped, in a reader's words instead of by its engine key.
+#
+# The delivery ledger records how many spots a rule left out of a broadcast day
+# and names the rule by ``dropped_rule_id`` alone. That id is an engine key and
+# belongs on no operator screen, so the drill stated the count and could not say
+# what had been capped. Measured on data/campaign_delivery.csv: 32 of the 62
+# sourced day rows carry a dropped count and every one of them names
+# DEFAULT_ONE_PER_BREAK, whose row in data/frequency_rules.csv is max_per_break,
+# scope default, value 1.
+#
+# The cap is read off that rule row rather than authored here, so a rule file
+# somebody edits changes this sentence with it. The nouns are the ones the
+# clients money layer already turns the same engine artefact into, imported
+# rather than copied, because that module's own docstring says it is the only
+# place in this product that performs this translation and two translators for
+# one rule is how a product comes to name one thing two ways.
+#
+# The third state is the point. A rule id the file being read does not hold is
+# reported as unknown with no cap invented for it, which is the same refusal the
+# money layer makes about the same column.
+BOOKING_RULE_SENTENCES = {
+    "max_per_break": (
+        "A booking rule allows at most {cap} per {over} in one break.",
+        "כלל הזמנה מתיר לכל היותר {cap} ל{over} בכל ברייק.",
+    ),
+    "max_per_day": (
+        "A booking rule allows at most {cap} per {over} in one broadcast day.",
+        "כלל הזמנה מתיר לכל היותר {cap} ל{over} ביום שידור אחד.",
+    ),
+    "max_consecutive": (
+        "A booking rule allows at most {cap} in a row per {over} in one break.",
+        "כלל הזמנה מתיר לכל היותר {cap} ברצף ל{over} בברייק אחד.",
+    ),
+    "min_separation": (
+        "A booking rule keeps two spots of the same {over} at least {cap} apart.",
+        "כלל הזמנה שומר מרחק של {cap} לפחות בין שני תשדירים של אותו {over}.",
+    ),
+    "competitive_separation": (
+        "A booking rule keeps competing advertisers at least {cap} apart.",
+        "כלל הזמנה שומר מרחק של {cap} לפחות בין מפרסמים מתחרים.",
+    ),
+}
+
+UNKNOWN_RULE_EN = "The delivery ledger names a booking rule the rule file being read does not hold, so what it capped is unknown."
+UNKNOWN_RULE_HE = "ספר האספקה נוקב בכלל הזמנה שאינו נמצא בקובץ הכללים הנקרא, ולכן לא ידוע מה הוא הגביל."
+UNKNOWN_RULE_PATH_EN = "Open the frequency rules and add the rule, or check the id the ledger recorded against it."
+UNKNOWN_RULE_PATH_HE = "פתחו את כללי התדירות והוסיפו את הכלל, או בדקו את המזהה שספר האספקה רשם מולו."
+
+
+def _rule_words() -> Any:
+    """The clients money layer's rule vocabulary, or None when it cannot be read."""
+    try:
+        from kairos_api import campaigns_read_money_reasons as rule_words
+
+        return rule_words
+    except Exception:  # noqa: BLE001 - an unreadable vocabulary is unknown, not a crash
+        return None
+
+
+def _cap_phrase(rule: Any, limit_type: str, rule_words: Any) -> Optional[tuple[str, str]]:
+    """The cap with the noun it counts, in both languages, or None when it has none."""
+    nouns = rule_words.CAP_WORDS.get(limit_type)
+    if nouns is None:
+        nouns = rule_words.UNIT_WORDS.get(str(getattr(rule, "unit", "") or ""))
+    if nouns is None:
+        return None
+    english, hebrew = rule_words.quantity(getattr(rule, "value", 0.0), nouns)
+    return english, hebrew
+
+
+def booking_rules(rule_ids: Iterable[str]) -> dict[str, dict[str, Any]]:
+    """One sentence per booking rule the delivery ledger named, or the unknown state.
+
+    Keyed by the id the ledger recorded, so a caller that holds a day row can
+    reach the sentence without the id ever reaching a screen.
+    """
+    wanted = sorted({str(one).strip() for one in rule_ids if str(one).strip()})
+    if not wanted:
+        return {}
+    rule_words = _rule_words()
+    index = rule_words.frequency_rules() if rule_words is not None else {}
+    blocks: dict[str, dict[str, Any]] = {}
+    for rule_id in wanted:
+        rule = index.get(rule_id)
+        limit_type = str(getattr(rule, "limit_type", "") or "")
+        sentences = BOOKING_RULE_SENTENCES.get(limit_type)
+        cap = _cap_phrase(rule, limit_type, rule_words) if rule is not None and sentences else None
+        if rule is None or sentences is None or cap is None:
+            blocks[rule_id] = {
+                "known": False,
+                "rule_en": UNKNOWN_RULE_EN,
+                "rule_he": UNKNOWN_RULE_HE,
+                "path_forward_en": UNKNOWN_RULE_PATH_EN,
+                "path_forward_he": UNKNOWN_RULE_PATH_HE,
+            }
+            continue
+        over_en, over_he = rule_words.COUNTED_OVER.get(str(getattr(rule, "scope", "")), ("client", "לקוח"))
+        blocks[rule_id] = {
+            "known": True,
+            "rule_en": sentences[0].format(cap=cap[0], over=over_en),
+            "rule_he": sentences[1].format(cap=cap[1], over=over_he),
+            "path_forward_en": "",
+            "path_forward_he": "",
+        }
+    return blocks
+
+
 PACE_VERDICTS = (
     {
         "value": ON_PACE,
@@ -193,6 +302,38 @@ UNITS = (
         "label_he": "שקלים",
     },
 )
+
+
+# The wall's refusals, in the second language the wall does not carry.
+#
+# ``Wall.stamp`` writes ``can_edit_reason`` as one string, and the constants
+# behind it are Hebrew only. Measured on this surface: an English reader on a
+# viewer account met לחשבון צפייה אין הרשאת עריכה where every other word on the
+# screen was English, which is the product speaking one language about
+# permission and another about everything else.
+#
+# The Hebrew here is the wall's own constant rather than a copy of it, so the
+# sentence a Hebrew reader meets is unchanged and the two cannot drift. The
+# English is this piece's translation of it. The wall itself is a frozen
+# wave-zero module and is read and never written.
+EDIT_REFUSAL_ENGLISH = {
+    READ_ONLY_ROLE_DETAIL: "A viewer account has no permission to edit.",
+    COMPANY_SURFACE_DETAIL: "This view is reserved for the company team.",
+}
+
+
+def edit_refusal_block(refusal: str) -> dict[str, str]:
+    """One refusal in both languages, or an empty block when this piece has no translation.
+
+    A refusal this module does not hold a translation for is published in the
+    wall's own words alone rather than paraphrased, because a permission
+    sentence a surface invented is a claim about a rule it does not own.
+    """
+    said = str(refusal or "").strip()
+    english = EDIT_REFUSAL_ENGLISH.get(said, "")
+    if not said or not english:
+        return {}
+    return {"can_edit_reason_en": english, "can_edit_reason_he": said}
 
 
 def reason(code: str) -> dict[str, Any]:

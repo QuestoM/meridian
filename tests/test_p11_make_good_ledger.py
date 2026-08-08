@@ -257,6 +257,51 @@ def test_the_second_ending_is_recordable_and_only_on_a_row_the_board_asks_about(
     assert "קשת 12" not in rival.text
 
 
+def test_the_answer_to_an_act_names_the_act_that_reverses_it(client) -> None:
+    """A decision one keystroke writes has to be reversible from the banner that confirms it.
+
+    Measured on the surface: pressing ``a`` on a focused row recorded a decision
+    to the ledger immediately, and the banner it printed offered Dismiss and
+    nothing else. The record could always be revoked, but only by finding it in
+    the ledger, and the ledger is where a person goes when they meant it.
+
+    So the answer to both writes carries the transition that undoes them. It is
+    not a fourth act: it is this ledger's own withdrawal, carrying the one
+    published reason that says the record should not have been opened, so a
+    surface holds no copy of what an undo is and nothing is deleted by one.
+    """
+    for path, body in (("/api/make-goods", {"campaign_id": "CMP_BEHIND"}),
+                       ("/api/pacing/CMP_BEHIND/accept", {"note": ""})):
+        written = client.post(path, json=body)
+        assert written.status_code == 201, written.text
+        answer = written.json()
+        undo = answer["undo"]
+        record = answer["make_good"]
+        assert undo["state"] in record["next_states"], "the record cannot reach its own undo"
+        assert undo["label_en"] and undo["label_he"]
+        assert undo["meaning_en"] and undo["meaning_he"]
+
+        # The move the banner sends is exactly the block it was handed.
+        moved = client.post(f"/api/make-goods/{record['make_good_id']}/state",
+                            json={"state": undo["state"], "reason": undo["reason"], "note": ""})
+        assert moved.status_code == 200, moved.text
+        closed = moved.json()["make_good"]
+        assert closed["state"] == ledger.WITHDRAWN
+        assert closed["close_reason"] == undo["reason"]
+        assert closed["closed_at"], "an undo is an act and carries the instant it happened at"
+
+        # Nothing is deleted. The row stays on the ledger and the campaign is free
+        # to be decided again, which is what makes an undo safe to offer.
+        rows = client.get("/api/make-goods").json()["decisions"]
+        assert record["make_good_id"] in {row["make_good_id"] for row in rows}
+
+    # And the reason an undo carries is one the store publishes for that state,
+    # rather than a constant this piece invented for the control.
+    undo = ledger.undo_block()
+    published = {entry["value"] for entry in ledger.close_reasons(undo["state"])}
+    assert undo["reason"] in published
+
+
 def test_an_accepted_risk_does_not_block_the_make_good_the_shortfall_later_owes(client) -> None:
     """The duplicate check is per kind, because the two endings are not the same act.
 

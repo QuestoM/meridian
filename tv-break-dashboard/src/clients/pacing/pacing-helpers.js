@@ -45,36 +45,12 @@ export const VERDICT_ORDER = [BEHIND, AT_RISK, UNKNOWN, ON_PACE];
 // did, and the two are asserted equal by the test that reads both.
 export const NEEDS_A_DECISION = [BEHIND, AT_RISK];
 
-// The Israeli week reads Sunday first, and a broadcast day is named by its own
-// weekday rather than left as an ISO string a reader has to derive one from.
-const WEEKDAYS = [
-  { en: 'Sunday', he: 'ראשון' },
-  { en: 'Monday', he: 'שני' },
-  { en: 'Tuesday', he: 'שלישי' },
-  { en: 'Wednesday', he: 'רביעי' },
-  { en: 'Thursday', he: 'חמישי' },
-  { en: 'Friday', he: 'שישי' },
-  { en: 'Saturday', he: 'שבת' },
-];
-
-export function weekday(isoDate, locale) {
-  const parts = String(isoDate || '').slice(0, 10).split('-');
-  if (parts.length !== 3) return '';
-  const when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-  if (Number.isNaN(when.getTime())) return '';
-  const entry = WEEKDAYS[when.getUTCDay()];
-  return entry ? pick(locale, entry.en, entry.he) : '';
-}
-
-// The two days the week ends on here, marked because a flight day that falls on
-// one of them is not a day a media buyer reads the same way as a weekday.
-export function isWeekend(isoDate) {
-  const parts = String(isoDate || '').slice(0, 10).split('-');
-  if (parts.length !== 3) return false;
-  const when = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-  if (Number.isNaN(when.getTime())) return false;
-  return when.getUTCDay() === 5 || when.getUTCDay() === 6;
-}
+// The weekday a broadcast day falls on, and whether it is one of the two the
+// Israeli week ends on, are read by src/shell/dates.js and by nothing else. This
+// file held a third and a fourth copy of that arithmetic; the copies are gone
+// and the two components that need them import the home directly, which is what
+// verify-date-rules.mjs exists to hold. They are not re-exported from here,
+// because a pass-through is a fifth place to look.
 
 export function pick(locale, en, he) {
   return locale === 'he' ? he : en;
@@ -160,22 +136,66 @@ export function pair(counted, goal, unit, locale) {
   return pick(locale, `${left} of ${right}`, `${isolate(left)} מתוך ${right}`);
 }
 
+// A ratio as a percentage, which never rounds a figure up to the number it did
+// not reach.
+//
+// Measured on the shipped board before this was written: of the 99 pace ratios
+// the payload carries, 38 sit between 0.995 and 1 and every one of them printed
+// 100%, beside 7 that are exactly 1 and printed the same thing. So a campaign
+// short of its reference and a campaign level with it were one figure on the
+// screen, and the percentage is the one number on this row a reader takes at
+// face value. Whole percent is kept everywhere else, because a board that reads
+// 90.9% and 93.7% down a column is asking to be compared at a resolution the
+// verdict does not use.
+//
+// The residual rounding only ever goes down. A figure that is short says so.
 export function percent(ratio, locale) {
   if (ratio === null || ratio === undefined) return null;
-  return `${decimals(Number(ratio) * 100, 0, locale)}%`;
+  const value = Number(ratio) * 100;
+  if (value < 100 && Math.round(value) >= 100) {
+    return `${decimals(Math.floor(value * 10) / 10, 1, locale)}%`;
+  }
+  return `${decimals(value, 0, locale)}%`;
+}
+
+// The accessible name a figure takes when the figure is also the way into the
+// days it was summed from. It is written once because two figures on one row now
+// open the same drill, and a screen reader that met two different sentences for
+// one act would be told they were two acts.
+export function opensDays(figures, days, locale) {
+  return pick(
+    locale,
+    `${figures}, show the ${days} broadcast days behind this`,
+    `${figures}, הציגו את ${isolate(days)} ימי השידור שמאחורי זה`,
+  );
 }
 
 // An instant as a person reads it, from the instant the store recorded. The
 // offset is kept when the source carries one and never invented when it does
 // not, because two instants on one row can be on two different clocks and a
 // screen that hides that says they are on one.
+//
+// The date reads dd/mm/yyyy, which design-rules.md asks for in both locales and
+// which is what every other date on this surface already prints. It was the
+// payload's raw yyyy-mm-dd, so the counted instant and the flight window beside
+// it were two shapes of one thing on one screen.
+//
+// The reshape is on the string and never through a clock. shell/dates.js is the
+// house home for a timestamp and its formatStamp reads every instant in
+// Asia/Jerusalem, which is right for a stamp that carries an offset and wrong
+// for these: the delivery ledger's counted_as_of carries none, so putting it
+// through a zone would invent one and shift it by the reader's own machine.
 export function instant(value) {
   const text = String(value || '').trim();
   if (!text) return '';
   const head = text.slice(0, 16).replace('T', ' ');
   if (head.length < 16) return text;
+  const parts = head.slice(0, 10).split('-');
+  const read = parts.length === 3
+    ? `${parts[2]}/${parts[1]}/${parts[0]}, ${head.slice(11)}`
+    : head;
   const utc = /(\+00:00|Z)$/.test(text);
-  return utc ? `${head} UTC` : head;
+  return utc ? `${read} UTC` : read;
 }
 
 export function vocabularyLabel(entries, value, locale) {

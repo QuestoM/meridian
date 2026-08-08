@@ -58,6 +58,23 @@ UNKNOWN_MAKE_GOOD_EN = "The ledger holds no record with that id."
 UNKNOWN_MAKE_GOOD_HE = "ספר ההחלטות אינו מחזיק רשומה עם המזהה הזה."
 
 
+def _stamp(payload: dict[str, Any], request: "Request | None") -> dict[str, Any]:
+    """The wall's own ``can_edit`` answer, plus that refusal in the second language.
+
+    ``Wall.stamp`` writes one string and the constants behind it are Hebrew only,
+    so an English reader on a viewer account met a Hebrew sentence where every
+    other word on the screen was English. The wall's string is left exactly as it
+    is and the pair is published beside it, so a client that reads only
+    ``can_edit_reason`` is unaffected and one that reads the pair can word the
+    refusal in the language the reader is in.
+    """
+    stamped = PACING_WALL.stamp(payload, request)
+    stamped.pop("can_edit_reason_en", None)
+    stamped.pop("can_edit_reason_he", None)
+    stamped.update(words.edit_refusal_block(stamped.get("can_edit_reason", "")))
+    return stamped
+
+
 def _actor(request: "Request | None") -> str:
     """Who acted, when the session says so and blank when it does not.
 
@@ -130,7 +147,7 @@ def pacing_board(request: Request = None) -> dict[str, Any]:
     payload["make_goods"] = _open_index(frame, ledger.MAKE_GOOD)
     payload["acceptances"] = _open_index(frame, ledger.ACCEPTANCE)
     payload["needs_a_decision"] = list(words.NEEDS_A_DECISION)
-    return PACING_WALL.stamp(payload, request)
+    return _stamp(payload, request)
 
 
 def _open_index(frame: Any, kind: str) -> dict[str, list[str]]:
@@ -158,7 +175,7 @@ def pacing_days(campaign_id: str, request: Request = None) -> dict[str, Any]:
     payload = read.days_payload(campaign_id)
     if payload is None:
         raise refuse(404, read.UNKNOWN_CAMPAIGN_EN, read.UNKNOWN_CAMPAIGN_HE)
-    return PACING_WALL.stamp(payload, request)
+    return _stamp(payload, request)
 
 
 @router.get("/api/make-goods", tags=["clients"])
@@ -166,7 +183,7 @@ def pacing_days(campaign_id: str, request: Request = None) -> dict[str, Any]:
 def make_goods(request: Request = None) -> dict[str, Any]:
     """The make-good ledger: what was measured, what was offered, and who acted."""
     payload = read.ledger_payload(ledger.load_frame())
-    return PACING_WALL.stamp(payload, request)
+    return _stamp(payload, request)
 
 
 @router.post("/api/make-goods", tags=["clients"], status_code=201)
@@ -252,7 +269,11 @@ def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | 
         frame = pd.concat([frame, pd.DataFrame([fresh])], ignore_index=True)
         ledger.write_frame(frame)
         stored = ledger.record(fresh)
-    return PACING_WALL.stamp({"make_good": stored}, request)
+    # The answer to an act names how to reverse the act. Both writes here can be
+    # fired by a single keystroke on a focused row, so the confirmation of one
+    # has to be able to offer the undo without the surface holding its own copy
+    # of which transition and which reason an undo is.
+    return _stamp({"make_good": stored, "undo": ledger.undo_block()}, request)
 
 
 @router.post("/api/make-goods/{make_good_id}/state", tags=["clients"])
@@ -279,7 +300,7 @@ def move_make_good(make_good_id: str, payload: MoveMakeGood, request: Request = 
         write.apply_move(frame, index, target, payload, actor)
         ledger.write_frame(frame)
         stored = ledger.record(frame.loc[index])
-    return PACING_WALL.stamp({"make_good": stored}, request)
+    return _stamp({"make_good": stored}, request)
 
 
 @router.get("/api/make-good-alerts", tags=["insights"])

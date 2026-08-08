@@ -62,6 +62,24 @@
   background: var(--surface-muted);
 }
 
+/* The total the day rows add up to, which is the figure the row above states.
+   It is emphasised because it is the reconciliation, and it carries no bottom
+   rule because there is nothing under it. */
+.pacing-days tfoot th,
+.pacing-days tfoot td {
+  border-block-end: 0;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+/* Why a day's count is not the whole of what the traffic log holds for it. */
+.pacing-day-dropped {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+}
+
 .pacing-day-figures {
   display: flex;
   flex-direction: column;
@@ -77,4 +95,20 @@
   margin: var(--space-2) 0 0;
   font-size: var(--text-2xs);
   color: var(--subtle);
+}
+
+/* What the booking rule the table counts against actually capped. Three facts,
+   so a rule divides them rather than a space, per design-rules.md section 3. */
+.pacing-days-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--muted);
+}
+
+.pacing-days-rule > * + * {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
 }

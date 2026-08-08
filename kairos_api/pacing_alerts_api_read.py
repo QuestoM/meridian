@@ -62,7 +62,29 @@ def _delivery() -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
         "instant": max(stamps) if stamps else "",
         "basis": bases[0] if bases else "",
         "figures_basis": figures[0] if figures else "",
+        **_ledger_basis(delivery),
     }
+
+
+# The same two claims the ledger writes into its own column, in the two languages
+# the ledger's module publishes them in.
+#
+# Measured cause: ``figures_basis`` and ``counted_as_of_basis`` are CSV columns
+# and both are English only, so a Hebrew operator met the sentence that decides
+# what every verdict on this board means in a language the rest of the screen is
+# not in. The delivery ledger's own module carries the same two facts as
+# bilingual constants and publishes them on the clients payload, so the pair is
+# read from there rather than translated here, and the column is quoted only
+# where no pair exists. Nothing is invented either way: a ledger that stops
+# publishing the pair falls back to its own words in the one language it wrote
+# them in.
+_BASIS_KEYS = ("rating_basis_en", "rating_basis_he", "spend_basis_en", "spend_basis_he")
+
+
+def _ledger_basis(delivery: Any) -> dict[str, str]:
+    """The delivery ledger's published basis pair, or an empty block when it holds none."""
+    found = {key: str(getattr(delivery, key.upper(), "") or "").strip() for key in _BASIS_KEYS}
+    return found if all(found.values()) else {}
 
 
 def board_payload() -> dict[str, Any]:
@@ -122,6 +144,13 @@ def days_payload(campaign_id: str) -> Optional[dict[str, Any]]:
         "count": len(days),
         "sources": sources,
         "as_of": as_of,
+        # What the rule that left spots out of a day actually capped. The ledger
+        # names it by an engine key and nothing else, so the drill could state
+        # how many spots a booking rule removed and never what the booking rule
+        # was. Published once per read, keyed by the id the day rows carry.
+        "booking_rules": words.booking_rules(
+            day.get("dropped_rule_id") for day in days
+        ),
     }
 
 

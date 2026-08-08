@@ -302,3 +302,50 @@ def test_every_pacing_write_lands_in_the_products_own_persistent_activity_feed()
         assert path.startswith("/api/")
         # Recorded, and named ``other`` until P8 adds two rows to its own table.
         assert history_api_actions.action_for("POST", path) == "other"
+
+
+def test_a_read_publishes_the_wall_refusal_in_both_languages_without_touching_the_wall() -> None:
+    """The pair rides every stamped payload this piece emits, and only when it is real.
+
+    The wall is a frozen wave-zero module holding one Hebrew constant, so the
+    translation is published beside its answer rather than in place of it. A
+    caller that reads only ``can_edit_reason`` sees exactly what it saw before.
+    """
+
+    class _Stub:
+        """A wall that refuses, so the false branch is exercised without a session."""
+
+        def __init__(self, refusal: str) -> None:
+            self.refusal = refusal
+
+        def stamp(self, payload, request):
+            payload["can_edit"] = False
+            payload["can_edit_reason"] = self.refusal
+            return payload
+
+    from kairos_api.affiliation_wall import READ_ONLY_ROLE_DETAIL
+
+    keep = pacing_alerts_api.PACING_WALL
+    try:
+        pacing_alerts_api.PACING_WALL = _Stub(READ_ONLY_ROLE_DETAIL)
+        stamped = pacing_alerts_api._stamp({}, None)
+        assert stamped["can_edit"] is False
+        assert stamped["can_edit_reason"] == READ_ONLY_ROLE_DETAIL
+        assert stamped["can_edit_reason_he"] == READ_ONLY_ROLE_DETAIL
+        assert not re.search(r"[֐-׿]", stamped["can_edit_reason_en"])
+
+        # A refusal with no translation publishes the wall's words alone, and a
+        # stale pair from an earlier stamp of the same dict never survives.
+        pacing_alerts_api.PACING_WALL = _Stub("a sentence this piece does not translate")
+        again = pacing_alerts_api._stamp(stamped, None)
+        assert "can_edit_reason_en" not in again
+        assert "can_edit_reason_he" not in again
+    finally:
+        pacing_alerts_api.PACING_WALL = keep
+
+    # And with the real wall and no session, auth is off, the answer is true and
+    # no refusal of either shape is published.
+    body = _client().get("/api/pacing").json()
+    assert body["can_edit"] is True
+    assert "can_edit_reason" not in body
+    assert "can_edit_reason_en" not in body

@@ -7,6 +7,14 @@
   box-shadow: inset 0 0 0 2px var(--focus-ring);
 }
 
+/* The focused row is the one element in the list that takes focus, so a step
+   lands on it rather than only colouring it. The ring above is already drawn on
+   exactly that row, so the browser's own outline would be a second ring around
+   the first one and is not a lost indicator. */
+.pacing-list > [role='listitem']:focus {
+  outline: none;
+}
+
 /* The verdict is on the whole frame and not on one edge of it. The owner asked
    for no one-sided accent bar anywhere and design-rules.md section 1 bans it: it
    reads as an unfinished frame and it inverts under right-to-left. This was the
@@ -73,6 +81,46 @@
   color: var(--muted);
 }
 
+/* The advertiser and the flight window are two facts on one line, so the rule
+   that divides them is the same one .pacing-forward already uses, per
+   design-rules.md section 3. A space alone read them as one broken phrase. */
+.pacing-name-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.pacing-name-facts > * + * {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
+}
+
+/* The name as a control, which it is only when the destination handed this
+   panel somewhere for it to go. It keeps the heading's own type so the row does
+   not gain a second visual weight, and it is underlined on hover and focus
+   rather than always, because a list of 56 underlined names is a wall. */
+/* The name opens the campaign, so it has to look like it does before the pointer
+   is over it. It carried nothing but a cursor: measured, colour rgb(17,24,39),
+   no underline, no border, no background, identical to the heading beside it, so
+   a reader scanning the board had no way to know the name was a door. The ledger
+   already paints the same seam in the control colour, and one product answering
+   one question two ways is the defect underneath both. */
+.pacing-name-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--blue);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pacing-name-open:hover,
+.pacing-name-open:focus-visible {
+  text-decoration: underline;
+}
+
 .pacing-demo {
   align-self: flex-start;
   padding: 1px var(--space-2);
@@ -98,9 +146,115 @@
   color: var(--ink);
 }
 
+/* The figure as the way into the days behind it, which is Stripe's transferable
+   mechanic: the amount is the link to the rows it was summed from. It keeps the
+   figure's own type and colour, so the row gains no second visual weight, and
+   carries a dotted underline so it reads as a door before a pointer is over it.
+   The labelled disclosure below the row stays, because a control discoverable
+   only by hovering is not discoverable. */
+.pacing-figure-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pacing-figure-open:hover {
+  text-decoration: underline;
+}
+
+.pacing-figure-open:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The campaign's other goal. One component prints it on the row and again under
+   the day drill, and its rules live with the row because that is where a reader
+   meets it first. Four facts on one line, so a rule divides them rather than a
+   space, per design-rules.md section 3.
+
+   Measured on the shipped board: 48 of the 56 rows carry both goals and on 10 of
+   those the two verdicts disagree, every one of them a row the board is asking a
+   decision about. The row printed one goal and the drill printed a bare pair of
+   the other with no verdict, no reference and no ratio. */
+.pacing-goal-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.pacing-goal-line > * + * {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
+}
+
+.pacing-goal-word {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.pacing-goal-figures {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The same three verdict colours the headline ratio takes, so one verdict reads
+   one way wherever it is printed. The ratio and the word are two elements so the
+   rule above puts a separator between them, and they take one colour because
+   they are one reading. */
+.pacing-goal-ratio,
+.pacing-goal-verdict {
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.pacing-goal-ratio.behind,
+.pacing-goal-verdict.behind { color: var(--red); }
+.pacing-goal-ratio.at_risk,
+.pacing-goal-verdict.at_risk { color: var(--amber-ink); }
+.pacing-goal-ratio.on_pace,
+.pacing-goal-verdict.on_pace { color: var(--teal-ink); }
+.pacing-goal-ratio.unknown,
+.pacing-goal-verdict.unknown { color: var(--muted); }
+
+/* This goal's figure is a control on the row and plain text under the drill, so
+   the button keeps the type it had as text and takes the opener's underline the
+   headline figure already uses. */
+button.pacing-goal-figures {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.pacing-goal-against,
+.pacing-goal-why {
+  color: var(--muted);
+}
+
+/* The scope of the figure above it, which this board exists not to omit, so it
+   reads at the same weight as every other qualifying line on the row rather
+   than as the quietest text on the surface. Measured: --subtle was 4.74:1 on
+   10px here, --muted is 5.56:1. */
 .pacing-scope {
   font-size: var(--text-2xs);
-  color: var(--subtle);
+  color: var(--muted);
+}
+
+/* How much of the counted figure has not aired yet. Amber because it qualifies
+   a figure a verdict was computed from, which is a fact about the data in it
+   and exactly what design-rules.md section 2 reserves a state colour for. */
+.pacing-not-aired {
+  font-size: var(--text-2xs);
+  color: var(--amber-ink);
 }
 
 .pacing-ratio {

@@ -370,4 +370,12 @@ def counts(rows: list[dict[str, Any]]) -> dict[str, int]:
             tally[verdict] += 1
     tally["total"] = len(rows)
     tally["demo"] = sum(1 for row in rows if row["is_demo"])
+    # How many of the rows the board is asking a decision about the seed wrote.
+    # The headline count of what still needs deciding reads as a morning's work,
+    # and on the shipped data every row under it is the seed's, so the count that
+    # matters is stated rather than left to be derived from a total.
+    tally["demo_needing_a_decision"] = sum(
+        1 for row in rows
+        if row["is_demo"] and row["headline"]["verdict"] in words.NEEDS_A_DECISION
+    )
     return tally

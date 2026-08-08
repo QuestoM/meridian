@@ -1,6 +1,8 @@
 import React from 'react';
 import { Code, Figure, Name } from '../../shell/bidi';
-import { amount, isWeekend, pair, pick, weekday } from './pacing-helpers';
+import { formatDay, isWeekendDay, weekdayName } from '../../shell/dates';
+import { amount, isolate, pick } from './pacing-helpers';
+import PacingGoalLine from './PacingGoalLine';
 
 // The broadcast days behind a figure, which is the second level of the drill: a
 // figure on the board opens the days it was summed from, and each day names the
@@ -38,6 +40,55 @@ function stateMeaning(state, locale) {
   return pick(locale, 'This day is inside the flight and no per-spot source exists for it.', 'היום הזה נמצא בתוך הטיסה ואין עבורו מקור ברמת התשדיר.');
 }
 
+// How many spots a booking rule left out of a day, agreeing with its own number.
+// Measured on data/campaign_delivery.csv: of the 32 sourced day rows that carry
+// one, 21 carry exactly 1, so the majority case read "1 מתוכם הושמטו", a plural
+// verb on a single spot, and "1 of them left out" with no verb at all. The
+// numeral is isolated in the Hebrew for the same reason every other numeral on
+// this surface is: it opens a right-to-left run and its direction is its own.
+function droppedSentence(count, locale) {
+  const many = Number(count) !== 1;
+  if (locale === 'he') {
+    return many
+      ? `${isolate(count)} מתוכם הושמטו בגלל כלל הזמנה`
+      : 'אחד מתוכם הושמט בגלל כלל הזמנה';
+  }
+  return many
+    ? `${count} of them were left out by a booking rule`
+    : '1 of them was left out by a booking rule';
+}
+
+// What the rule that left those spots out actually capped, and on how many of
+// these days it did it.
+//
+// The ledger names the rule by an engine key and by nothing else, so the drill
+// could say that a booking rule removed spots and never what the booking rule
+// was. The sentence is composed on the server from the rule's own row, and the
+// id itself never reaches the screen: a reader who cannot act on
+// DEFAULT_ONE_PER_BREAK is not helped by being shown it.
+//
+// A rule the rule file does not hold says so and is still counted, because a
+// cause this product cannot name is a third state and not an absence.
+function ruleLines(days, rules, locale) {
+  const counted = new Map();
+  days.forEach((day) => {
+    const id = String(day.dropped_rule_id || '');
+    if (!id || Number(day.spots_dropped_by_rule || 0) <= 0) return;
+    counted.set(id, (counted.get(id) || 0) + 1);
+  });
+  return Array.from(counted.entries()).map(([id, count]) => {
+    const block = (rules || {})[id] || null;
+    const rule = block ? pick(locale, block.rule_en, block.rule_he) : '';
+    const path = block ? pick(locale, block.path_forward_en, block.path_forward_he) : '';
+    const where = pick(
+      locale,
+      `On ${count} of these broadcast days it left spots out of the count.`,
+      `ב-${isolate(count)} מימי השידור האלה הוא השמיט תשדירים מהספירה.`,
+    );
+    return { id, rule, path, where };
+  }).filter((line) => line.rule);
+}
+
 function figure(day, locale) {
   if (day.air_state === 'unknown') {
     return <span className="pacing-day-unknown">{pick(locale, 'no source', 'אין מקור')}</span>;
@@ -52,7 +103,7 @@ function figure(day, locale) {
   );
 }
 
-export default function PacingDays({ drill, second, locale, onRetry }) {
+export default function PacingDays({ drill, line, second, vocabulary, locale, onRetry }) {
   if (!drill || drill.status === 'loading') {
     return (
       <p className="pacing-loading">
@@ -77,6 +128,7 @@ export default function PacingDays({ drill, second, locale, onRetry }) {
 
   const days = drill.days || [];
   const sources = Array.from(new Set(days.map((day) => day.source_file).filter(Boolean)));
+  const rules = ruleLines(days, drill.rules, locale);
   return (
     <div className="pacing-days">
       <table>
@@ -98,28 +150,69 @@ export default function PacingDays({ drill, second, locale, onRetry }) {
         <tbody>
           {days.map((day) => (
             <tr key={`${day.broadcast_date}-${day.air_state}`}
-                className={`${day.air_state}${isWeekend(day.broadcast_date) ? ' weekend' : ''}`}>
+                className={`${day.air_state}${isWeekendDay(day.broadcast_date) ? ' weekend' : ''}`}>
               <th scope="row">
-                <Figure>{day.broadcast_date}</Figure>
-                <small className="pacing-day-weekday">{weekday(day.broadcast_date, locale)}</small>
+                {/* The day reads dd/mm/yyyy, which is what an Israeli operator
+                    reads, and it is read by shell/dates.js rather than here.
+                    Measured on the shipped drill: this column printed the
+                    payload's raw 2025-04-27 while the Campaigns tab of the same
+                    destination printed 27/04/2025 for the same field. */}
+                <Figure>{formatDay(day.broadcast_date)}</Figure>
+                <small className="pacing-day-weekday">{weekdayName(day.broadcast_date, locale)}</small>
               </th>
               <td title={stateMeaning(day.air_state, locale)}>{stateWord(day.air_state, locale)}</td>
-              <td><Figure>{day.spots === null || day.spots === undefined ? '' : day.spots}</Figure></td>
+              <td>
+                <Figure>{day.spots === null || day.spots === undefined ? '' : day.spots}</Figure>
+                {/* How many of them a booking rule left out. The ledger has
+                    carried this on every day row all along and no screen read
+                    it. Measured: 32 of the 62 sourced day rows in
+                    data/campaign_delivery.csv have one, and all three days that
+                    price at zero are among them, so the drill printed a money
+                    figure of nought with nothing beside it to say why. The
+                    ledger names the rule by its engine key only, so the count is
+                    stated and the key is not. */}
+                {Number(day.spots_dropped_by_rule || 0) > 0 ? (
+                  <small className="pacing-day-dropped">
+                    {droppedSentence(day.spots_dropped_by_rule, locale)}
+                  </small>
+                ) : null}
+              </td>
               <td>{figure(day, locale)}</td>
             </tr>
           ))}
         </tbody>
+        {/* The figure the rows above add up to, taken from the server rather
+            than summed here, so the drill closes on the same number the row
+            states and a reader never adds seven cells to check that it does. */}
+        {line && line.goal !== null && line.goal !== undefined ? (
+          <tfoot>
+            <tr>
+              <th scope="row" colSpan={3}>
+                {pick(locale, 'Counted through the day above', 'נספר עד היום שלמעלה')}
+              </th>
+              <td>
+                <Name>{amount(line.counted.through_counted_day, line.unit, locale)}</Name>
+              </td>
+            </tr>
+          </tfoot>
+        ) : null}
       </table>
 
-      {second && second.goal !== null && second.goal !== undefined ? (
-        <p className="pacing-second-line">
-          {pick(
-            locale,
-            `The other goal on this campaign: ${pair(second.counted.through_counted_day, second.goal, second.unit, locale)}.`,
-            `היעד הנוסף של הקמפיין הזה: ${pair(second.counted.through_counted_day, second.goal, second.unit, locale)}.`,
-          )}
+      {/* The campaign's other goal, in the same component the row above states it
+          with. This printed one bare pair, counted of goal, with no verdict, no
+          reference and no ratio, while the payload carried all three: measured on
+          the shipped board, 48 of 56 rows carry a second goal line and on 10 of
+          them its verdict differs from the one the row leads with. */}
+      <PacingGoalLine line={second} vocabulary={vocabulary} locale={locale}
+                      className="pacing-second-line" />
+
+      {rules.map((line) => (
+        <p className="pacing-days-rule" key={line.id}>
+          <span>{line.rule}</span>
+          <span>{line.where}</span>
+          {line.path ? <span>{line.path}</span> : null}
         </p>
-      ) : null}
+      ))}
 
       {sources.length ? (
         <p className="pacing-days-source">

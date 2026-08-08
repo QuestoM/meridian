@@ -6,10 +6,8 @@ import {
   ChevronUp,
   CircleCheck,
   CircleHelp,
-  Plus,
-  ShieldCheck,
-  Upload,
 } from 'lucide-react';
+import { formatDayList, formatSpan } from '../../shell/dates';
 import {
   amount,
   bare,
@@ -17,19 +15,16 @@ import {
   headlineLine,
   isolate,
   localized,
+  opensDays,
   otherLine,
   pair,
   percent,
   pick,
   vocabularyLabel,
 } from './pacing-helpers';
+import { Acceptance, Remedy } from './PacingActs';
 import PacingDays from './PacingDays';
-
-// The destination a traffic file is uploaded at, in the shell's own address form
-// and under the shell's own name for it. This is a link and not a callback: the
-// shell reads the hash and this piece owns no seam into its router, so the
-// address contract is the thing both sides already agree on.
-const UPLOAD_HASH = '#Data';
+import PacingGoalLine from './PacingGoalLine';
 
 // One campaign on the pacing board.
 //
@@ -68,14 +63,38 @@ function Verdict({ verdict, vocabulary, locale }) {
 // shipped board, the row printed 4.4 of 35 and 88 percent and left the 5.0 that
 // makes 88 percent true only as the position of an unlabelled mark on the bar,
 // so a reader who divided what they could see got 12.6 percent.
-function Headline({ line, flight, locale }) {
+//
+// The figure itself opens the days it was summed from. Stripe's transferable
+// mechanic is that an amount is the way into the rows behind it, and this board
+// reached its drill only from a separately labelled button below the row while
+// 4.4 of 35 rating points sat inert above it. The labelled control stays, because
+// a figure that is also a control has to be discoverable by somebody who never
+// hovers it, and the accessible name of the figure carries the act as well as
+// the figure so the two are one control to a screen reader too.
+function Headline({ line, flight, locale, days, expanded, onToggle }) {
   if (!line) return null;
   const figures = pair(line.counted.through_counted_day, line.goal, line.unit, locale);
   const ratio = line.pace ? percent(line.pace.ratio, locale) : null;
   const reference = line.reference ? bare(line.reference.expected_through_counted_day, line.unit, locale) : null;
+  // The half of the counted figure whose time has not come yet. There is no
+  // delivery feed, so the sharpest thing this board can say about a figure is
+  // whether the traffic log's own clock has passed it, and the payload has
+  // carried that split on every line all along. Measured on the shipped board
+  // before this line existed: 18 of the 51 rows that carry a goal count spots
+  // that have not aired, and on 7 of them nothing has aired at all, five of
+  // those reading at risk. The only way to learn it was to open the drill and
+  // read a state column, so the row said at risk about a campaign that had
+  // aired nothing and never said so.
+  const notAired = amount(line.counted.booked_not_aired, line.unit, locale);
+  const opens = opensDays(figures, days, locale);
   return (
     <div className="pacing-headline">
-      <strong className="pacing-figure">{figures}</strong>
+      {days && onToggle ? (
+        <button type="button" className="pacing-figure pacing-figure-open"
+                aria-expanded={expanded} aria-label={opens} onClick={onToggle}>
+          {figures}
+        </button>
+      ) : <strong className="pacing-figure">{figures}</strong>}
       <small className="pacing-scope">
         {pick(
           locale,
@@ -83,6 +102,15 @@ function Headline({ line, flight, locale }) {
           `נספר על ${isolate(flight.days_counted)} מתוך ${isolate(flight.days)} ימי שידור`,
         )}
       </small>
+      {line.counted.booked_not_aired > 0 ? (
+        <small className="pacing-not-aired">
+          {pick(
+            locale,
+            `including ${notAired} whose time has not come yet`,
+            `כולל ${notAired} שהשעה שלהן טרם הגיעה`,
+          )}
+        </small>
+      ) : null}
       {ratio ? (
         <Figure className={`pacing-ratio ${line.pace.verdict}`}>{ratio}</Figure>
       ) : null}
@@ -186,65 +214,13 @@ function RemedyDays({ remedy, locale }) {
           `${isolate(remedy.days.length)} הימים שאין להם מקור`,
         )}
       </summary>
-      <Figure>{remedy.days.join(', ')}</Figure>
+      {/* The days are read by shell/dates.js, which collapses a consecutive run
+          and prints dd/mm/yyyy. Measured on the shipped card, this line printed
+          2025-04-28, 2025-04-29, 2025-04-30, 2025-05-01, 2025-05-02, 2025-05-03,
+          which is one unbroken run spelled out six times in a machine format,
+          and is the exact string the owner reported. */}
+      <Figure>{formatDayList(remedy.days, locale)}</Figure>
     </details>
-  );
-}
-
-function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood }) {
-  if (remedy.kind === 'raise') {
-    const value = amount(remedy.value, remedy.unit, locale);
-    return (
-      <button type="button" className="pacing-remedy" disabled={busy} onClick={onRaise}>
-        <Plus size={13} aria-hidden="true" />
-        {pick(locale, `Raise a make-good for ${value}`, `פתחו פיצוי שידור על ${value}`)}
-      </button>
-    );
-  }
-  if (remedy.kind === 'open') {
-    return (
-      <button type="button" className="pacing-remedy" onClick={() => onOpenMakeGood(remedy.makeGoodId)}>
-        {pick(locale, `Open make-good ${remedy.makeGoodId}`, `פתחו את פיצוי ${isolate(remedy.makeGoodId)}`)}
-      </button>
-    );
-  }
-  // The statement carries the act. A remedy that names an upload and then leaves
-  // the reader to find the upload themselves is a diagnosis, not a remedy, so the
-  // act this row offers is the one control that performs it.
-  if (remedy.kind === 'book') {
-    return (
-      <a className="pacing-remedy" href={UPLOAD_HASH}>
-        <Upload size={13} aria-hidden="true" />
-        {pick(locale, 'Open Data to upload it', 'פתחו את נתונים כדי להעלות')}
-      </a>
-    );
-  }
-  // A supply remedy is the same block the row already prints above the track,
-  // where a reader meets it before anything else on the row. Printing it again in
-  // the control slot said the same sentence twice, which reads as two different
-  // problems rather than as one.
-  return null;
-}
-
-// The other ending. A row the board is asking a decision about is finished with
-// either by acting on it or by somebody recording that the risk stands, and the
-// second one is the only ending available on every such row. Once it is recorded
-// the row states it, so a person scanning the board can see at a glance which
-// rows have been read and which have not.
-function Acceptance({ acceptance, locale, busy, onAccept, onOpenLedger }) {
-  if (!acceptance || acceptance.kind === 'none') return null;
-  if (acceptance.kind === 'accepted') {
-    return (
-      <button type="button" className="pacing-accepted" onClick={() => onOpenLedger(acceptance.makeGoodId)}>
-        <ShieldCheck size={13} aria-hidden="true" />
-        {pick(locale, 'Risk taken on, open the record', 'הסיכון התקבל, פתחו את הרשומה')}
-      </button>
-    );
-  }
-  return (
-    <button type="button" className="pacing-accept" disabled={busy} onClick={onAccept}>
-      {pick(locale, 'Take the risk on', 'קבלו את הסיכון')}
-    </button>
   );
 }
 
@@ -264,6 +240,7 @@ export default function PacingRow({
   onRaise,
   onAccept,
   onOpenMakeGood,
+  onOpenCampaign,
   onRetryDays,
 }) {
   const line = headlineLine(row);
@@ -282,10 +259,30 @@ export default function PacingRow({
             named the brand before the advertiser. dir=auto takes the direction
             from the first strong character, which is the name's own. */}
         <div className="pacing-names">
-          <strong id={`pacing-${row.campaign_id}`}><Name>{row.name || row.campaign_id}</Name></strong>
-          <small>
+          {/* The name opens the campaign when the destination this panel is
+              mounted in hands it a way to. It is a control only then: a name
+              styled as a link that goes nowhere is worse than a name, and this
+              piece owns no seam into the workspace's router. The mount in
+              contracts/P11.md section 5 passes onOpenCampaign, and a mount that
+              leaves it out regresses nothing: this stays the heading it was. */}
+          <strong id={`pacing-${row.campaign_id}`}>
+            {onOpenCampaign ? (
+              <button type="button" className="pacing-name-open"
+                      onClick={() => onOpenCampaign(row.campaign_id)}>
+                <Name>{row.name || row.campaign_id}</Name>
+              </button>
+            ) : <Name>{row.name || row.campaign_id}</Name>}
+          </strong>
+          {/* The advertiser and the flight window are two facts, so a rule
+              divides them rather than a space, which design-rules.md section 3
+              asks for and which matters most in Hebrew where there are no
+              capitals to find the boundary. The window is read by
+              shell/dates.js: it printed the payload's raw ISO fields either
+              side of a spaced hyphen, which is a machine format and a joiner a
+              reader cannot tell from a list separator. */}
+          <small className="pacing-name-facts">
             <Name>{row.advertiser}</Name>
-            {flight ? ` ${isolate(`${flight.starts_on} - ${flight.ends_on}`)}` : ''}
+            {flight ? <span>{formatSpan(flight.starts_on, flight.ends_on, locale)}</span> : null}
           </small>
         </div>
         {row.is_demo ? (
@@ -296,10 +293,18 @@ export default function PacingRow({
             {pick(locale, 'Demo', 'הדגמה')}
           </span>
         ) : null}
-        <Headline line={line} flight={flight} locale={locale} />
+        <Headline line={line} flight={flight} locale={locale}
+                  days={row.days_available} expanded={expanded} onToggle={onToggle} />
       </div>
 
       <Track line={line} locale={locale} />
+
+      {/* The campaign's other goal. It is a reading and not an act, so it sits
+          with the track rather than in the foot, and it is the same component
+          the day drill prints under its table. */}
+      <PacingGoalLine line={second} vocabulary={vocabulary} locale={locale}
+                      days={row.days_available} expanded={expanded}
+                      onOpen={row.days_available ? onToggle : null} />
 
       {line && line.pace && line.pace.verdict === 'unknown' ? (
         <Sentence block={line.pace} locale={locale} className="pacing-unknown" />
@@ -311,7 +316,13 @@ export default function PacingRow({
       {/* Acts on one line at one height, and the disclosure that expands the card
           on its own below them. The owner reported the three weights and three
           baselines this replaces, and design-rules.md section 4 states the rule. */}
-      {canEdit ? <RemedySentence remedy={remedy} locale={locale} /> : null}
+      {/* The sentence is a diagnosis and the days behind it are a reading, so
+          neither is gated on the write permission. They were both, which took
+          the quantity to book and the six dates it applies to off the screen of
+          every read-only account: a viewer could see that a campaign was at risk
+          and not what would fix it. The permission governs the acts below, and
+          those are still gated. */}
+      <RemedySentence remedy={remedy} locale={locale} />
 
       <div className="pacing-row-foot">
         {canEdit ? (
@@ -322,6 +333,7 @@ export default function PacingRow({
               busy={busy}
               onRaise={onRaise}
               onOpenMakeGood={onOpenMakeGood}
+              onOpenCampaign={onOpenCampaign ? () => onOpenCampaign(row.campaign_id) : null}
             />
             <Acceptance
               acceptance={acceptance}
@@ -337,7 +349,7 @@ export default function PacingRow({
       </div>
 
       <div className="pacing-row-disclosure">
-        {canEdit ? <RemedyDays remedy={remedy} locale={locale} /> : null}
+        <RemedyDays remedy={remedy} locale={locale} />
         {row.days_available ? (
           <button type="button" className="pacing-days-toggle" aria-expanded={expanded} onClick={onToggle}>
             <Chevron size={13} aria-hidden="true" />
@@ -359,7 +371,8 @@ export default function PacingRow({
       </div>
 
       {expanded ? (
-        <PacingDays drill={drill} second={second} locale={locale} onRetry={onRetryDays} />
+        <PacingDays drill={drill} line={line} second={second} vocabulary={vocabulary}
+                    locale={locale} onRetry={onRetryDays} />
       ) : null}
     </article>
   );

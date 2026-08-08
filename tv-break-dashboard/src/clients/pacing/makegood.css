@@ -17,6 +17,13 @@
   gap: var(--space-2);
 }
 
+/* The record a control on the board named. It is marked with the ring the board
+   marks a focused row with, so one product marks one thing one way, and it is
+   what makes "open the record" land on a record rather than on a list. */
+.makegood-focused {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
 .makegood-row-head {
   display: flex;
   align-items: center;
@@ -102,10 +109,21 @@
   font-size: var(--text-2xs);
 }
 
+/* The offer, its window, who recorded it and what was agreed are four facts on
+   one line. design-rules.md section 3: a rule divides them, never a space. */
 .makegood-offer-record {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.makegood-offer-record > * + * {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
 }
 
 .makegood-actions {
@@ -220,8 +238,20 @@
   background: var(--surface);
 }
 
+/* The reason, the actor and the instant, divided rather than run together. The
+   shipped line read "Closed as: The record should not have been opened by
+   admin", where the actor ran into the reason and reversed its meaning. */
 .makegood-closure {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.makegood-closure > * + * {
+  border-inline-start: 1px solid var(--line);
+  padding-inline-start: var(--space-2);
 }

@@ -3,8 +3,10 @@ import { Figure } from '../../shell/bidi';
 import { WALLS, fetchSession, payloadCanEdit } from '../../session';
 import MakeGoodLedger from './MakeGoodLedger';
 import PacingBoard from './PacingBoard';
-import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalText } from './pacing-api';
-import { isolate, pick, term, vocabularyLabel } from './pacing-helpers';
+import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalOpens, refusalText } from './pacing-api';
+import { isolate, localized, pick, term, vocabularyLabel } from './pacing-helpers';
+import { rememberCampaign, takeRememberedCampaign } from './pacing-place';
+import { headlineSentence, seededSentence } from './pacing-summary';
 import './pacing.css';
 import './pacing-row.css';
 import './pacing-days.css';
@@ -25,22 +27,55 @@ import './makegood.css';
 const BOARD = 'board';
 const LEDGER = 'ledger';
 
+// A read that failed, with the act that retries it, for both views.
+function Failed({ locale, en, he, onRetry }) {
+  return (
+    <div className="pacing-failed" role="alert">
+      <p>{pick(locale, en, he)}</p>
+      <button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</button>
+    </div>
+  );
+}
+
 export default function PacingWorkspace({ locale = 'he', notify = () => {}, refreshKey = 0, onOpenCampaign }) {
-  const he = locale === 'he';
   const [view, setView] = useState(BOARD);
   const [board, setBoard] = useState({ status: 'loading', payload: null });
   const [ledger, setLedger] = useState({ status: 'loading', payload: null });
   const [session, setSession] = useState(null);
   const [busyId, setBusyId] = useState('');
   // The refusal a write came back with, held here and printed on this surface.
-  // notify() is the product's own channel for this and it is a no-op at the
-  // address this panel is mounted at: measured, workspace-router.jsx renders the
-  // Campaigns destination without a notify prop, so every notice this panel sends
-  // is swallowed and a refused write said nothing at all for 2.5 s of polling. A
-  // refusal the server took the trouble to word in two languages has to reach the
-  // person who was refused, whatever the shell around it does.
+  // notify() is the product's own channel and it is a no-op at the address this
+  // panel is mounted at: measured, workspace-router.jsx renders the Campaigns
+  // destination without a notify prop, so a refused write said nothing at all
+  // for 2.5 s of polling. A refusal the server worded in two languages has to
+  // reach the person who was refused, whatever the shell around it does.
   const [refusal, setRefusal] = useState('');
+  // What a write that landed says, on this panel. The same measurement applies
+  // with more force here: a refusal at least leaves the screen unchanged, and a
+  // successful act that says nothing leaves the reader guessing whether they
+  // wrote a record. It is still sent to notify() too, so a destination that
+  // wires its own channel shows it twice until the mount passes notify through.
+  const [notice, setNotice] = useState('');
+  // Which record or campaign the server said to open instead. Every refusal that
+  // names one already carries it as detail.opens, and nothing on this surface
+  // read it, so a refusal that said "open it rather than raising a second one"
+  // left the reader to go and find it.
+  const [refusalOpen, setRefusalOpen] = useState(null);
   const [focusCampaign, setFocusCampaign] = useState('');
+  // Which record a control asked for, so the ledger opens on it rather than at
+  // the top of itself. Both seams that name one passed an id into a handler that
+  // threw it away.
+  const [focusMakeGood, setFocusMakeGood] = useState('');
+  // The record the last write created, and the published transition that reverses
+  // it. Measured: pressing a on a focused row recorded MG_0001 immediately and
+  // the banner confirming it offered Dismiss and nothing else.
+  const [undoable, setUndoable] = useState(null);
+
+  // A refusal is worded in the language it was raised in and then held in state,
+  // so a reader who switches language is left with the other one. Measured: an
+  // English refusal sat in a Hebrew panel until the next write. It goes when the
+  // language does, because a stale sentence is worse than none.
+  useEffect(() => { setRefusal(''); setRefusalOpen(null); setNotice(''); setUndoable(null); }, [locale]);
 
   const reload = useCallback(() => {
     let active = true;
@@ -62,12 +97,34 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   const clearFocus = useCallback(() => setFocusCampaign(''), []);
   const openCampaign = useCallback((id) => {
     if (onOpenCampaign) {
+      // The way out of this board is also the way back to it. Leaving by a name
+      // unmounts this panel, so the row a reader left from is written down and
+      // the next mount reads it once. Measured before this: the return trip cost
+      // a click on the Pacing tab and a rescroll through 56 rows.
+      rememberCampaign(id);
       onOpenCampaign(id);
       return;
     }
     setFocusCampaign(id);
     setView(BOARD);
   }, [onOpenCampaign]);
+
+  // A control that names a record opens that record. Both seams called this with
+  // a make-good id and the panel answered with a plain switch to the ledger,
+  // dropping it, so "Risk taken on, open the record" landed on an unscrolled,
+  // unmarked list. It is the mirror of the ledger name that focuses a board row.
+  const openMakeGood = useCallback((makeGoodId) => {
+    setFocusMakeGood(String(makeGoodId || ''));
+    setView(LEDGER);
+  }, []);
+  const clearMakeGoodFocus = useCallback(() => setFocusMakeGood(''), []);
+
+  // The row a reader left this panel by, focused once when they come back.
+  useEffect(() => {
+    if (board.status !== 'ready') return;
+    const remembered = takeRememberedCampaign();
+    if (remembered) setFocusCampaign(remembered);
+  }, [board.status]);
 
   useEffect(() => {
     let active = true;
@@ -82,16 +139,71 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   // than from the wall that made the decision.
   const gate = payloadCanEdit(board.payload, session, WALLS.readOnlyRole);
   const canEdit = gate.canEdit;
-  const editRefusal = gate.reason || WALLS.readOnlyRole.detail;
+  // The refusal in the language the reader is in. The wall that decides it holds
+  // one Hebrew constant and is a frozen wave-zero module, so an English reader on
+  // a viewer account met לחשבון צפייה אין הרשאת עריכה with every other word on
+  // the screen in English. This piece's own reads publish that same refusal as a
+  // pair, with the Hebrew taken from the wall's constant rather than copied, and
+  // the single-language string stays the fallback for anything the pair does not
+  // cover.
+  const refusalPair = localized(board.payload, 'can_edit_reason', locale)
+    || localized(ledger.payload, 'can_edit_reason', locale);
+  const editRefusal = refusalPair || gate.reason || WALLS.readOnlyRole.detail;
 
   // One place that words a refusal, so the three writes cannot state one three
   // ways. A server that answered with no detail at all still leaves the reader a
   // sentence, because a failure that says nothing is the worst of the three.
   function refuse(error, en, he) {
-    const said = refusalText(error, locale === 'he' ? 'he' : 'en');
+    const raw = refusalText(error, locale === 'he' ? 'he' : 'en');
+    // The wall answers a refused write with the same single-language constant it
+    // stamped on the read, so the sentence a reader met before the click and the
+    // one they meet after it are worded here the same way.
+    const said = raw && raw === gate.reason && refusalPair ? refusalPair : raw;
     const opener = pick(locale, en, he);
     setRefusal(said ? `${opener} ${said}` : opener);
-    notify(`${en} ${refusalText(error, 'en')}`, `${he} ⁦${refusalText(error, 'he')}⁩`);
+    setRefusalOpen(refusalOpens(error));
+    setNotice('');
+    setUndoable(null);
+    notify(`${en} ${refusalText(error, 'en')}`, `${he} ${isolate(refusalText(error, 'he'))}`);
+  }
+
+  // A write that landed says so here as well as through the shell's channel, and
+  // it clears whatever the last refusal was, because the two cannot both be true
+  // about the same act. A write that can be reversed hands the record and the
+  // published transition that reverses it, and the banner carries the control.
+  function announce(en, he, reversible) {
+    clearRefusal();
+    setNotice(pick(locale, en, he));
+    setUndoable(reversible || null);
+    notify(en, he);
+  }
+
+  // Reversing the decision that was just written. The transition and the reason
+  // are the ledger's own, published on the answer to the act, so this surface
+  // holds no second copy of what an undo is. It goes through the same move as
+  // every other transition, so it is refused the same way and lands as a
+  // withdrawal with an actor and an instant rather than deleting anything.
+  function onUndo(pending) {
+    setNotice('');
+    setUndoable(null);
+    return onMove(pending.id, { state: pending.undo.state, reason: pending.undo.reason, note: '' });
+  }
+
+  // The refusal named somewhere to go, so the banner takes the reader there.
+  function clearRefusal() {
+    setRefusal('');
+    setRefusalOpen(null);
+  }
+
+  function followRefusal() {
+    const opens = refusalOpen;
+    clearRefusal();
+    if (!opens) return;
+    if (opens.kind === 'campaign') {
+      openCampaign(opens.id);
+      return;
+    }
+    openMakeGood(opens.id);
   }
 
   async function onRaise(row) {
@@ -99,13 +211,24 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     try {
       const answer = await raiseMakeGood(row.campaign_id, '');
       const record = answer.make_good;
-      setRefusal('');
-      notify(
-        `Make-good ${record.make_good_id} raised for ${row.name}.`,
-        `פיצוי שידור ⁦${record.make_good_id}⁩ נפתח עבור ⁦${row.name}⁩.`,
+      // The name is isolated in both languages and not only in Hebrew. A campaign
+      // name here is a period, then the advertiser, then the brand, and two of
+      // the three are Hebrew: dropped bare into an English sentence the neutral
+      // separator between the two Hebrew runs takes their direction and the
+      // screen names the brand before the advertiser.
+      //
+      // Every isolate here is isolate(), the FIRST-STRONG pair. These four
+      // sentences held a hand-typed LEFT-TO-RIGHT one, which lays a Hebrew run
+      // out left to right: measured, the Hebrew acceptance notice wrapped the
+      // campaign name in U+2066. A Hebrew phrase in a Hebrew sentence takes no
+      // isolate at all, so the move notice's two vocabulary words lost theirs.
+      announce(
+        `Make-good ${record.make_good_id} raised for ${isolate(row.name)}.`,
+        `פיצוי שידור ${isolate(record.make_good_id)} נפתח עבור ${isolate(row.name)}.`,
+        answer.undo ? { id: record.make_good_id, undo: answer.undo } : null,
       );
       reload();
-      setView(LEDGER);
+      openMakeGood(record.make_good_id);
     } catch (error) {
       refuse(
         error,
@@ -124,10 +247,10 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     try {
       const answer = await acceptRisk(row.campaign_id, '');
       const record = answer.make_good;
-      setRefusal('');
-      notify(
-        `The risk on ${row.name} is recorded as taken on, ${record.make_good_id}.`,
-        `הסיכון ב⁦${row.name}⁩ נרשם כמתקבל, ⁦${record.make_good_id}⁩.`,
+      announce(
+        `The risk on ${isolate(row.name)} is recorded as taken on, ${record.make_good_id}.`,
+        `הסיכון ב${isolate(row.name)} נרשם כמתקבל, ${isolate(record.make_good_id)}.`,
+        answer.undo ? { id: record.make_good_id, undo: answer.undo } : null,
       );
       reload();
     } catch (error) {
@@ -149,17 +272,17 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     setBusyId(makeGoodId);
     try {
       const answer = await moveMakeGood(makeGoodId, payload);
-      // The state key is the store's word, not a reader's. The notice says the
-      // state in the language of the person who pressed the control, from the
-      // vocabulary the ledger publishes, so no internal key reaches a screen.
-      const states = (ledger.payload && ledger.payload.vocabulary
-        ? ledger.payload.vocabulary.states
-        : []);
-      const landed = answer.make_good.state;
-      setRefusal('');
-      notify(
-        `Make-good ${makeGoodId} is now ${vocabularyLabel(states, landed, 'en')}.`,
-        `פיצוי שידור ⁦${makeGoodId}⁩ נמצא כעת במצב ⁦${vocabularyLabel(states, landed, 'he')}⁩.`,
+      // Neither the state nor the noun is a store key on a screen; both are the
+      // ledger's published words, the same ones the row is labelled from.
+      // Measured in a browser: revoking a recorded risk acceptance announced
+      // "Make-good MG_0001 is now Withdrawn" about a row whose own chip read
+      // Risk acceptance. The Hebrew states the record's state rather than saying
+      // the record is in it, because one kind is masculine and one feminine.
+      const words = (ledger.payload && ledger.payload.vocabulary) || {};
+      const { state: landed, kind: noun } = answer.make_good;
+      announce(
+        `${vocabularyLabel(words.kinds, noun, 'en')} ${makeGoodId} is now ${vocabularyLabel(words.states, landed, 'en')}.`,
+        `המצב של ${vocabularyLabel(words.kinds, noun, 'he')} ${isolate(makeGoodId)} הוא כעת ${vocabularyLabel(words.states, landed, 'he')}.`,
       );
       reload();
       return true;
@@ -175,65 +298,17 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
     }
   }
 
-  function headline() {
-    if (board.status === 'loading') {
-      return pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב');
-    }
-    if (board.status === 'failed') {
-      return pick(
-        locale,
-        'The pacing board could not be read, so no count is shown rather than a zero.',
-        'לא ניתן היה לקרוא את לוח הקצב, ולכן לא מוצג מספר במקום אפס.',
-      );
-    }
-    const counts = board.payload.counts || {};
-    const acting = (counts.behind || 0) + (counts.at_risk || 0);
-    const settled = decided();
-    return pick(
-      locale,
-      `${acting - settled} of ${counts.total || 0} campaigns still need a decision, ${settled} of the ${acting} at risk already carry one, ${counts.unknown || 0} cannot be paced yet.`,
-      `${isolate(acting - settled)} מתוך ${isolate(counts.total || 0)} קמפיינים עדיין דורשים החלטה, ל־${isolate(settled)} מתוך ${isolate(acting)} שבסיכון כבר יש אחת, ${isolate(counts.unknown || 0)} עדיין לא ניתנים למדידת קצב.`,
-    );
-  }
-
-  // How many of the rows the board is asking a decision about already carry one.
-  // The job this destination serves is done when every at-risk campaign has an
-  // act taken against it or a recorded decision to take the risk on, so the
-  // headline counts what is left rather than what exists.
-  function decided() {
-    if (board.status !== 'ready') return 0;
-    const payload = board.payload;
-    const asking = payload.needs_a_decision || [];
-    const raised = payload.make_goods || {};
-    const accepted = payload.acceptances || {};
-    return (payload.rows || []).filter((row) => (
-      asking.indexOf(row.headline.verdict) >= 0
-      && ((raised[row.campaign_id] || []).length > 0 || (accepted[row.campaign_id] || []).length > 0)
-    )).length;
-  }
-
-  // How many of the counted rows the demo seed wrote. A count that mixes seeded
-  // rows into an operational one reads as a morning's work, and on this data
-  // most of them are seeded, so the count says which is which. The rows
-  // themselves are marked; the sentence above them was not.
-  function seeded() {
-    if (board.status !== 'ready') return null;
-    const counts = board.payload.counts || {};
-    if (!counts.demo) return null;
-    return pick(
-      locale,
-      `${counts.demo} of the ${counts.total || 0} are demo rows the seed wrote against the real traffic log, not campaigns an operator booked. Their goals and flight dates are the seed's.`,
-      `${isolate(counts.demo)} מתוך ${isolate(counts.total || 0)} הן שורות הדגמה שנכתבו על בסיס יומן השידור האמיתי ולא קמפיינים שמפעיל הזמין. היעדים ותאריכי הטיסה שלהן הם של זרע ההדגמה.`,
-    );
-  }
+  // The two counting sentences are prose about a payload and hold no JSX, so they
+  // live in pacing-summary.js where node can execute them against the shipped
+  // board rather than a guard having to grep this file for a substring of one.
+  const seededLine = seededSentence(board, locale);
 
   return (
     <section className="page-workspace pacing-workspace">
       {/* The heading is an h2 and the two view controls ride the same row as it.
           Mounted inside a destination that already carries an h1 and a view
           strip, a second h1 above a second strip is two documents on one page,
-          and it was measured costing 90 px of the fold before the first row.
-          Measured before: the first row sat at y=531 in an 851 px viewport. */}
+          and it was measured costing 90 px of the fold before the first row. */}
       <div className="page-header pacing-header">
         <div>
           {/* The two words this destination is about come from the product
@@ -247,37 +322,79 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
             )}
           </h2>
           <p>
-            {headline()}
-            {seeded() ? ' ' : ''}
-            {seeded() ? <span className="pacing-seeded">{seeded()}</span> : null}
+            {headlineSentence(board, locale)}
+            {seededLine ? ' ' : ''}
+            {seededLine ? <span className="pacing-seeded">{seededLine}</span> : null}
           </p>
         </div>
-        <nav className="pacing-views" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
-          <button type="button" role="tab" aria-selected={view === BOARD}
-                  className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
-            {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
-          </button>
-          <button type="button" role="tab" aria-selected={view === LEDGER}
-                  className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
-            {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
-            {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
-              ? (
-                <Figure className="pacing-open-count">
-                  {ledger.payload.open_count + ledger.payload.accepted_count}
-                </span>
-              )
-              : null}
-          </button>
+        {/* The tablist holds tabs and nothing else. Read again is a command and
+            not a view, and inside a role=tablist it made a reader count three
+            tabs and find two. It sits beside the list, in the same group. */}
+        <div className="pacing-views">
+          <nav className="pacing-view-tabs" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
+            <button type="button" role="tab" aria-selected={view === BOARD}
+                    className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
+              {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
+            </button>
+            <button type="button" role="tab" aria-selected={view === LEDGER}
+                    className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
+              {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
+              {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
+                ? (
+                  <Figure className="pacing-open-count">
+                    {ledger.payload.open_count + ledger.payload.accepted_count}
+                  </Figure>
+                )
+                : null}
+            </button>
+          </nav>
           <button type="button" className="pacing-refresh" onClick={reload}>
             {pick(locale, 'Read again', 'קראו שוב')}
           </button>
-        </nav>
+        </div>
       </div>
 
       {refusal ? (
         <div className="pacing-refusal" role="alert">
           <p>{refusal}</p>
-          <button type="button" onClick={() => setRefusal('')}>{pick(locale, 'Dismiss', 'סגרו')}</button>
+          <div className="pacing-refusal-acts">
+            {refusalOpen ? (
+              <button type="button" className="pacing-refusal-open" onClick={followRefusal}>
+                {refusalOpen.kind === 'campaign'
+                  ? pick(locale, 'Open that campaign', 'פתחו את הקמפיין')
+                  : pick(locale, 'Open that record', 'פתחו את הרשומה')}
+              </button>
+            ) : null}
+            {/* A refusal caused by a stale read leaves the row on screen still
+                offering the act that has just failed. The reload is offered and
+                never taken: taking it would throw away what the reader typed
+                into an open form, which is the defect a previous round closed. */}
+            <button type="button" onClick={() => { clearRefusal(); reload(); }}>
+              {pick(locale, 'Read again', 'קראו שוב')}
+            </button>
+            <button type="button" onClick={clearRefusal}>{pick(locale, 'Dismiss', 'סגרו')}</button>
+          </div>
+        </div>
+      ) : null}
+
+      {notice ? (
+        <div className="pacing-notice" role="status">
+          <p>{notice}</p>
+          <div className="pacing-refusal-acts">
+            {/* The act that reverses the act just announced. Its word, its
+                transition and its reason are the ledger's, published on the
+                answer to the write, and its title says what it does. */}
+            {undoable ? (
+              <button type="button" className="pacing-undo"
+                      title={pick(locale, undoable.undo.meaning_en, undoable.undo.meaning_he)}
+                      onClick={() => onUndo(undoable)}>
+                {pick(locale, undoable.undo.label_en, undoable.undo.label_he)}
+              </button>
+            ) : null}
+            <button type="button" onClick={() => { setNotice(''); setUndoable(null); }}>
+              {pick(locale, 'Dismiss', 'סגרו')}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -285,16 +402,10 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
         <p className="pacing-loading">{pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב')}</p>
       ) : null}
       {view === BOARD && board.status === 'failed' ? (
-        <div className="pacing-failed" role="alert">
-          <p>
-            {pick(
-              locale,
-              'The pacing board could not be read. What is missing is a failure, not an empty result.',
-              'לא ניתן היה לקרוא את לוח הקצב. מה שחסר הוא כשל, לא תוצאה ריקה.',
-            )}
-          </p>
-          <button type="button" onClick={reload}>{pick(locale, 'Try again', 'נסו שוב')}</button>
-        </div>
+        <Failed locale={locale} onRetry={reload}
+          en="The pacing board could not be read. What is missing is a failure, not an empty result."
+          he="לא ניתן היה לקרוא את לוח הקצב. מה שחסר הוא כשל, לא תוצאה ריקה."
+        />
       ) : null}
       {view === BOARD && board.status === 'ready' ? (
         <PacingBoard
@@ -305,7 +416,8 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           busyId={busyId}
           onRaise={onRaise}
           onAccept={onAccept}
-          onOpenMakeGood={() => setView(LEDGER)}
+          onOpenMakeGood={openMakeGood}
+          onOpenCampaign={onOpenCampaign ? openCampaign : null}
           focusCampaignId={focusCampaign}
           onFocused={clearFocus}
         />
@@ -320,19 +432,15 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           busyId={busyId}
           onMove={onMove}
           onOpenCampaign={openCampaign}
+          focusMakeGoodId={focusMakeGood}
+          onFocused={clearMakeGoodFocus}
         />
       ) : null}
       {view === LEDGER && ledger.status === 'failed' ? (
-        <div className="pacing-failed" role="alert">
-          <p>
-            {pick(
-              locale,
-              'The decision ledger could not be read. What is missing is a failure, not an empty result.',
-              'לא ניתן היה לקרוא את ספר ההחלטות. מה שחסר הוא כשל, לא תוצאה ריקה.',
-            )}
-          </p>
-          <button type="button" onClick={reload}>{pick(locale, 'Try again', 'נסו שוב')}</button>
-        </div>
+        <Failed locale={locale} onRetry={reload}
+          en="The decision ledger could not be read. What is missing is a failure, not an empty result."
+          he="לא ניתן היה לקרוא את ספר ההחלטות. מה שחסר הוא כשל, לא תוצאה ריקה."
+        />
       ) : null}
       {view === LEDGER && ledger.status === 'loading' ? (
         <p className="pacing-loading">{pick(locale, 'Reading the decision ledger', 'קורא את ספר ההחלטות')}</p>

@@ -187,7 +187,7 @@ def test_the_board_is_ordered_worst_first() -> None:
     assert [row["campaign_id"] for row in rows] == ["B", "C", "A"]
     assert board.counts(rows) == {
         words.BEHIND: 1, words.AT_RISK: 1, words.ON_PACE: 1, words.UNKNOWN: 0,
-        "total": 3, "demo": 0,
+        "total": 3, "demo": 0, "demo_needing_a_decision": 0,
     }
 
 

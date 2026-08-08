@@ -82,9 +82,12 @@ from kairos_api.makegood_store_words import (  # noqa: F401
     STATE_VOCABULARY,
     TO_DATE,
     TRANSITIONS,
+    UNDO_REASON,
+    UNDO_STATE,
     WITHDRAWN,
     close_reasons,
     reason_allowed,
+    undo_block,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -322,4 +325,7 @@ def vocabularies() -> dict[str, Any]:
                           for state, entries in CLOSE_REASONS.items()},
         "reason_required": sorted(REASON_REQUIRED),
         "reason_needing_a_note": OTHER,
+        # How a decision is reversed, so the control that offers it reads the
+        # rule rather than holding a second copy of it.
+        "undo": undo_block(),
     }

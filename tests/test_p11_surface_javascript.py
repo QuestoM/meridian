@@ -36,6 +36,54 @@ SURFACE = Path("tv-break-dashboard/src/clients/pacing")
 ROOT = Path(__file__).resolve().parents[1]
 HELPERS = ROOT / SURFACE / "pacing-helpers.js"
 
+# The bundler driver, held here rather than in a script beside the surface.
+#
+# It lived in ``src/clients/pacing/verify-parses.mjs`` and this file shelled out
+# to it by path. Measured: that script was never committed while this test was,
+# so at HEAD the one guard that can see a syntax error on this surface could not
+# run at all, and the defect it was written for was sitting in the committed
+# tree. A guard that lives in one file and runs from another is only as tracked
+# as its weakest half, so both halves are now the same file.
+#
+# It is executed with ``node --input-type=module --eval`` from the frontend
+# package, which is what makes the bare ``rolldown`` specifier resolve: node
+# resolves a specifier in an evaluated module against the working directory.
+#
+# Everything outside this directory is external and every stylesheet is stubbed,
+# because the question is whether these files are valid, not whether the app
+# links.
+PARSE_DRIVER = """
+import { build } from 'rolldown';
+
+const CSS_STUB = '\\0pacing-css-stub';
+
+const stubStylesheets = {
+  name: 'stub-stylesheets',
+  resolveId(id) {
+    return id.endsWith('.css') ? { id: CSS_STUB, external: false } : null;
+  },
+  load(id) {
+    return id === CSS_STUB ? 'export default {}' : null;
+  },
+};
+
+try {
+  await build({
+    input: %s,
+    // A bare specifier is somebody else's module and is not this tree's to parse.
+    external: (id) => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\\0'),
+    resolve: { extensions: ['.js', '.jsx'] },
+    plugins: [stubStylesheets],
+    output: { dir: %s },
+    logLevel: 'silent',
+  });
+  process.stdout.write('PARSE_OK');
+} catch (error) {
+  process.stdout.write(`PARSE_FAIL\\n${String(error.message || error)}`);
+  process.exitCode = 1;
+}
+"""
+
 
 def _client() -> TestClient:
     app = FastAPI()
@@ -43,7 +91,7 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
-def test_every_component_on_this_surface_actually_compiles() -> None:
+def test_every_component_on_this_surface_actually_compiles(tmp_path) -> None:
     """The repo build never parses this tree, so a syntax error here is silent.
 
     Nothing imports ``src/clients/pacing/**``, so ``npm run build`` transforms
@@ -56,18 +104,25 @@ def test_every_component_on_this_surface_actually_compiles() -> None:
     So the real bundler parses the tree, with everything outside it external and
     the stylesheets stubbed. Proven to fail against that exact defect and pass
     against the fix.
+
+    An empty entry list is a mis-invocation and not a parse failure, so it is
+    asserted here rather than handed to a bundler that would answer PARSE_OK
+    about nothing at all.
     """
     if shutil.which("node") is None:
         pytest.skip("node is not installed here")
     package = ROOT / "tv-break-dashboard"
     if not (package / "node_modules" / "rolldown").exists():
         pytest.skip("the frontend dependencies are not installed here")
-    entries = [str(path.relative_to("tv-break-dashboard")) for path in sorted(SURFACE.glob("*.jsx"))]
+    entries = [str(path.relative_to(ROOT / "tv-break-dashboard"))
+               for path in sorted((ROOT / SURFACE).glob("*.jsx"))]
+    assert entries, "no component was found to parse, which is a mis-invocation and not a pass"
+    script = PARSE_DRIVER % (json.dumps(entries), json.dumps(str(tmp_path / "parse-out")))
     done = subprocess.run(
-        ["node", str(ROOT / SURFACE / "verify-parses.mjs"), *entries],
+        ["node", "--input-type=module", "--eval", script],
         cwd=package, capture_output=True, text=True, timeout=180,
     )
-    assert done.stdout.startswith("PARSE_OK"), done.stdout
+    assert done.stdout.startswith("PARSE_OK"), done.stdout or done.stderr
 
 
 def test_a_figure_that_carries_a_unit_isolates_its_numeral_and_never_its_words() -> None:
@@ -232,6 +287,52 @@ def _shape(value):
     return value
 
 
+def test_the_two_counting_sentences_count_the_board_they_are_about() -> None:
+    """The headline above the list is arithmetic, so it is executed and not greped.
+
+    Both sentences were inside ``PacingWorkspace.jsx`` and both were guarded by a
+    text search for a field name, which passes on the day somebody changes what
+    the field is divided by. They moved to ``pacing-summary.js`` when the panel
+    reached the size law, whole and with their prose unchanged, and the move is
+    what makes this possible: node runs the shipped module against the shipped
+    board and the counts are checked against the payload's own.
+    """
+    if shutil.which("node") is None:
+        pytest.skip("node is not installed here")
+    body = _client().get("/api/pacing").json()
+    module = ROOT / SURFACE / "pacing-summary.js"
+    script = f"""
+import {{ headlineSentence, seededSentence, decidedCount }} from {json.dumps(str(module))};
+const board = {{ status: 'ready', payload: {json.dumps(body)} }};
+process.stdout.write(JSON.stringify({{
+  en: headlineSentence(board, 'en'),
+  he: headlineSentence(board, 'he'),
+  seeded: seededSentence(board, 'en'),
+  decided: decidedCount(board),
+  loading: headlineSentence({{ status: 'loading', payload: null }}, 'en'),
+  failed: headlineSentence({{ status: 'failed', payload: null }}, 'en'),
+}}));
+"""
+    done = subprocess.run(["node", "--input-type=module", "--eval", script],
+                          capture_output=True, text=True, timeout=120)
+    assert done.returncode == 0, done.stderr
+    read = json.loads(done.stdout)
+    counts = body["counts"]
+    asking = counts["behind"] + counts["at_risk"]
+    # Every figure in the sentence is one the server counted, and the one figure
+    # it derives is the subtraction the reader would otherwise have to do.
+    assert f"{asking - read['decided']} of {counts['total']} campaigns still need a decision" in read["en"]
+    assert f"{counts['unknown']} cannot be paced yet" in read["en"]
+    assert f"{counts['demo']} of the {counts['total']} are demo rows" in read["seeded"]
+    assert f"{counts['demo_needing_a_decision']} of the {asking} rows that need a decision" in read["seeded"]
+    # A read in flight and a read that failed are two facts and neither is a count.
+    assert not re.search(r"\d", read["loading"])
+    assert not re.search(r"\d", read["failed"])
+    # The Hebrew joins its figures through the first-strong isolate, as the rest
+    # of this surface does, and never through a left-to-right one.
+    assert FSI in read["he"] and "\u2066" not in read["he"]
+
+
 def test_a_refusal_that_is_a_plain_string_still_reaches_the_person_who_was_refused() -> None:
     """The auth middleware answers with detail as a string, not as the bilingual shape.
 
@@ -261,3 +362,82 @@ process.stdout.write(JSON.stringify({{
     assert read["plain"] == "Your account may read this and not change it."
     assert read["bilingual"] == "he"
     assert read["nothing"] == ""
+
+
+def test_a_percentage_never_rounds_a_short_figure_up_to_the_one_it_missed() -> None:
+    """A campaign short of its reference and one level with it were one figure.
+
+    Measured on the shipped board by the round-three critic, over the payload's
+    own 99 pace ratios: 38 of them sit between 0.995 and 1 and every one printed
+    ``100%``, beside the 7 that are exactly 1 and printed the same string. The
+    percentage is the one number on this row a reader takes at face value, and
+    on that data it said a campaign had reached a reference it had not.
+
+    Whole percent is kept everywhere else on purpose. The verdict is decided at
+    0.95 and 0.85, so a column reading 90.9 and 93.7 invites a comparison the
+    rule does not make.
+    """
+    if shutil.which("node") is None:
+        pytest.skip("node is not installed here")
+    script = f"""
+import {{ percent }} from {json.dumps(str(HELPERS))};
+process.stdout.write(JSON.stringify({{
+  short: percent(0.9989, 'en'),
+  shortHe: percent(0.9989, 'he'),
+  nearly: percent(0.9996, 'en'),
+  half: percent(0.995, 'en'),
+  level: percent(1, 'en'),
+  over: percent(1.04, 'en'),
+  ordinary: percent(0.88, 'en'),
+  ninetyOne: percent(0.9091, 'en'),
+  missing: percent(null, 'en'),
+}}));
+"""
+    done = subprocess.run(["node", "--input-type=module", "--eval", script],
+                          capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    read = json.loads(done.stdout)
+    # Nothing below the reference may print as having reached it.
+    for key in ("short", "shortHe", "nearly", "half"):
+        assert read[key] != "100%", (key, read[key])
+        assert float(read[key].rstrip("%").replace(",", "")) < 100, (key, read[key])
+    # And the residual rounding only ever goes down, so the figure is never a
+    # claim of more than was counted.
+    assert read["short"] == "99.8%"
+    assert read["nearly"] == "99.9%"
+    # Level is level, over is over, and every other figure keeps whole percent.
+    assert read["level"] == "100%"
+    assert read["over"] == "104%"
+    assert read["ordinary"] == "88%"
+    assert read["ninetyOne"] == "91%"
+    assert read["missing"] is None
+
+    # And the board really does carry the figures this is about, so the guard
+    # cannot quietly stop testing anything.
+    body = _client().get("/api/pacing").json()
+    ratios = [line["pace"]["ratio"]
+              for row in body["rows"] for key in ("rating", "money")
+              for line in [row.get(key) or {}]
+              if (line.get("pace") or {}).get("ratio") is not None]
+    near = [value for value in ratios if 0.995 <= value < 1]
+    assert near, "no ratio on the shipped board reaches this case, so re-measure before trusting the guard"
+
+
+def test_the_ledger_says_so_when_it_does_not_know_who_acted() -> None:
+    """The ledger's own sentence promises who acted and the trail dropped it.
+
+    Measured by the round-three critic on a server with an uninitialised account
+    store, which is how this product runs before an operator creates the first
+    account: ``/api/auth/me`` answers ``auth_disabled`` true, a write lands with
+    ``raised_by`` empty, and the record's trail read ``Recorded 07/08/2026, 13:50
+    UTC. Counted as of 27/04/2025, 22:59.`` with no actor and no statement that
+    there was none, while the sign-off block two lines above said this product
+    records who acted. Tri-state: an unknown actor is stated, never omitted.
+    """
+    ledger = (ROOT / SURFACE / "MakeGoodLedger.jsx").read_text(encoding="utf-8")
+    assert "function actorClause" in ledger
+    # One clause, so the trail and the closure cannot come to say it two ways.
+    assert ledger.count("actorClause(") >= 3
+    # The conditional that dropped the actor is gone from both sites.
+    assert "record.raised_by ?" not in ledger
+    assert "record.closed_by ?" not in ledger

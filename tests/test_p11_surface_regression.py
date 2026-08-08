@@ -13,7 +13,10 @@ arithmetic is not one a text guard can see at all.
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -191,9 +194,18 @@ def test_the_board_says_how_many_of_its_rows_the_demo_seed_wrote() -> None:
 
     The payload has carried ``counts.demo`` from the first round; the sentence
     above the list did not read it.
+
+    The two counting sentences moved to ``pacing-summary.js`` when the panel
+    reached the size law, and they moved as whole functions with their prose
+    unchanged. This reads the file that now holds them; the sentences themselves
+    are executed against the shipped board in
+    ``test_p11_surface_javascript.py::test_the_two_counting_sentences_count_the_board_they_are_about``,
+    which is a stronger guard than either grep.
     """
-    text = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    text = (ROOT / SURFACE / "pacing-summary.js").read_text(encoding="utf-8")
     assert "counts.demo" in text
+    panel = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    assert "seededSentence(board, locale)" in panel
     body = _client().get("/api/pacing").json()
     assert "demo" in body["counts"]
 
@@ -217,11 +229,204 @@ def test_this_surface_states_direction_nowhere_and_reads_the_shell_primitive_ins
 
 
 def test_the_isolate_this_surface_joins_into_prose_is_the_shell_s_own_pair() -> None:
-    """One product, one isolate. A left-to-right one lays a Hebrew name out backwards."""
+    """One product, one isolate. A left-to-right one lays a Hebrew name out backwards.
+
+    The guard named the surface and read one file of it, so four hand-typed
+    left-to-right isolates lived in ``PacingWorkspace.jsx`` under an assertion
+    that said they could not. Measured in a browser: the Hebrew acceptance notice
+    wrapped a Hebrew campaign name in U+2066, which is the exact layout the row
+    heading beside it had already been fixed for. It now reads every file on the
+    surface, which is the class the sentence always claimed.
+    """
     helpers = (ROOT / SURFACE / "pacing-helpers.js").read_text(encoding="utf-8")
     shell = (ROOT / "tv-break-dashboard/src/shell/bidi.jsx").read_text(encoding="utf-8")
     assert "\u2068" in helpers and "\u2069" in helpers
-    assert "\u2066" not in helpers, "the left-to-right isolate has no caller on this surface"
+    offenders = []
+    for path in sorted(list(SURFACE.glob("*.js")) + list(SURFACE.glob("*.jsx"))):
+        text = (ROOT / path).read_text(encoding="utf-8")
+        for number, line in enumerate(text.splitlines(), start=1):
+            if "\u2066" in line or "\u2067" in line:
+                offenders.append(f"{path}:{number} {line.strip()}")
+    assert offenders == [], "the directional isolates have no caller on this surface"
     # bidi.jsx writes the pair as escapes, on purpose: the characters render as
     # nothing, so a literal pair in the source is invisible to review.
     assert "u2068" in shell and "u2069" in shell
+
+
+def test_a_counted_figure_states_how_much_of_it_has_not_aired_yet() -> None:
+    """There is no delivery feed, so aired against scheduled is all this board has.
+
+    The delivery ledger splits every day into aired, scheduled and unknown, and
+    every goal line on the payload carries ``counted.delivered`` and
+    ``counted.booked_not_aired`` separately. The row printed only their sum.
+    Measured on the shipped board: of the 51 rows that carry a goal, 18 count
+    spots that have not aired and on 7 of them nothing has aired at all, five of
+    those reading at risk. On those five the board said at risk about a campaign
+    that had aired nothing and the only way to learn it was to open the drill and
+    read a state column.
+    """
+    row = (ROOT / SURFACE / "PacingRow.jsx").read_text(encoding="utf-8")
+    assert "counted.booked_not_aired" in row, "the row never reads the half that has not aired"
+    assert "pacing-not-aired" in row
+    css = (ROOT / SURFACE / "pacing-row.css").read_text(encoding="utf-8")
+    assert ".pacing-not-aired" in css
+
+    payload = _client().get("/api/pacing").json()
+    split = 0
+    for board_row in payload["rows"]:
+        line = board_row.get("rating") if (board_row.get("rating") or {}).get("goal") is not None else board_row.get("money")
+        if line and line.get("goal") is not None and line["counted"]["booked_not_aired"] > 0:
+            split += 1
+    assert split > 0, "the shipped data no longer exercises this, so re-measure before trusting the guard"
+
+
+def test_the_day_drill_closes_on_the_figure_the_row_states() -> None:
+    """Zero derivation by the reader. Seven day rows and no total is arithmetic.
+
+    The total is the server's own ``through_counted_day`` and is never summed in
+    the browser, so the drill cannot disagree with the row it was opened from.
+    """
+    days = (ROOT / SURFACE / "PacingDays.jsx").read_text(encoding="utf-8")
+    assert "tfoot" in days
+    assert "line.counted.through_counted_day" in days
+    row = (ROOT / SURFACE / "PacingRow.jsx").read_text(encoding="utf-8")
+    assert "line={line}" in row, "the drill cannot state the total it was not handed"
+
+
+def test_the_drill_says_when_a_rule_left_spots_out_of_a_day() -> None:
+    """A money figure of nought with nothing beside it is a figure nobody can check.
+
+    ``data/campaign_delivery.csv`` carries ``spots_dropped_by_rule`` on every day
+    row and no screen in this product read it. Measured: 32 of the 62 sourced day
+    rows carry one, and all three days that price at zero are among them, so the
+    drill printed ILS 0 next to a real rating figure and said nothing about why.
+    The rule is named by its engine key only, so the count is stated and the key
+    is not.
+    """
+    days = (ROOT / SURFACE / "PacingDays.jsx").read_text(encoding="utf-8")
+    assert "spots_dropped_by_rule" in days
+    assert "dropped_rule_id" not in days, "the ledger names the rule by an engine key, which is not a reader's word"
+    css = (ROOT / SURFACE / "pacing-days.css").read_text(encoding="utf-8")
+    assert ".pacing-day-dropped" in css
+
+    payload = _client().get("/api/pacing/CMP_D030/days").json()
+    carried = [day for day in payload["days"] if (day.get("spots_dropped_by_rule") or 0) > 0]
+    assert carried, "the shipped ledger no longer exercises this, so re-measure before trusting the guard"
+
+
+def test_no_guard_on_this_surface_stands_on_a_file_the_repository_does_not_have() -> None:
+    """A guard that stands on an untracked file is not a guard at HEAD.
+
+    Measured, and the finding that failed a previous round. ``verify-parses.mjs``
+    sat beside the surface and was never committed, while the test that shelled
+    out to it by path was, so the committed tree carried a guard that could not
+    run and a component that could not compile. The driver now lives inside
+    ``test_p11_surface_javascript.py`` and the script is gone.
+
+    Two assertions, and between them they are the defect. Every file of this
+    surface that a ``tests/test_p11_*`` guard names by path exists on disk, which
+    is how that defect showed at HEAD: the test named a script that was not
+    there. And no file of this surface is an executable script and no guard
+    mentions one, because a driver that runs from beside the surface is only as
+    tracked as its weakest half, and the driver belongs in the guard that runs it.
+
+    The wider sentence a previous round asserted, that nothing under
+    ``src/clients/pacing`` may exist only in a working tree, cannot be made to
+    pass by the round that adds a file to the surface: a builder may not commit,
+    so a new component is untracked on the day it is written and that assertion
+    fails for the one reason that is nobody's defect. Which files are waiting for
+    a commit is recorded as a blocker in the state file instead, which is where a
+    thing that needs a commit belongs.
+    """
+    on_disk = {path.name for path in (ROOT / SURFACE).glob("*") if path.is_file()}
+    named = re.compile(r"SURFACE\s*/\s*\"([^\"]+)\"")
+    seen = 0
+    for guard in sorted((ROOT / "tests").glob("test_p11_*.py")):
+        text = guard.read_text(encoding="utf-8")
+        for name in named.findall(text):
+            seen += 1
+            assert name in on_disk, f"{guard.name} names {name}, which is not on this surface"
+    assert seen > 5, "no guard names a file of this surface, which is a mis-invocation"
+    # And there is no script beside the surface for a guard to shell out to. The
+    # only reference any of them makes to a .mjs is to the repo's own date and
+    # direction sweeps, which live in the frontend package and are run by npm.
+    assert [path.name for path in (ROOT / SURFACE).glob("*.mjs")] == []
+
+
+def test_a_write_that_landed_says_so_on_this_panel_and_not_only_through_the_shell() -> None:
+    """The shell swallows every notice this panel sends, so it prints its own.
+
+    Measured in a browser: ``workspace-router.jsx`` renders the Campaigns
+    destination with no ``notify`` prop and ``CampaignsPage.jsx`` holds the word
+    zero times, so a successful acceptance produced no toast at all. Both files
+    are outside this piece. The panel already printed its refusals for the same
+    reason and said nothing when a write landed, which is the worse half: a
+    refusal leaves the screen unchanged and a silent success leaves the reader
+    guessing whether they wrote a record.
+    """
+    panel = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    assert 'className="pacing-notice"' in panel
+    assert 'role="status"' in panel
+    # All three writes announce through one function, so none of them can land
+    # silently by being written a fourth way.
+    assert panel.count("announce(") == 4, "one definition and one call per write"
+    css = (ROOT / SURFACE / "pacing.css").read_text(encoding="utf-8")
+    assert ".pacing-notice" in css
+
+
+def test_the_read_only_refusal_reaches_an_english_reader_in_english() -> None:
+    """The wall holds one Hebrew constant and it is a frozen wave-zero module.
+
+    Measured: a viewer account reading this board in English met
+    לחשבון צפייה אין הרשאת עריכה with every other word on the screen in English.
+    The pair is published by this piece's own reads, with the Hebrew taken from
+    the wall's constant rather than copied, so the sentence a Hebrew reader meets
+    is unchanged and the two cannot drift.
+    """
+    from kairos_api.affiliation_wall import READ_ONLY_ROLE_DETAIL
+    from kairos_api import pacing_alerts_api_words as words
+
+    block = words.edit_refusal_block(READ_ONLY_ROLE_DETAIL)
+    assert block["can_edit_reason_he"] == READ_ONLY_ROLE_DETAIL
+    assert block["can_edit_reason_en"]
+    assert not re.search(r"[֐-׿]", block["can_edit_reason_en"])
+    # A refusal this piece holds no translation for is published in the wall's
+    # own words alone rather than paraphrased.
+    assert words.edit_refusal_block("something the wall never said") == {}
+
+    panel = (ROOT / SURFACE / "PacingWorkspace.jsx").read_text(encoding="utf-8")
+    assert "localized(board.payload, 'can_edit_reason', locale)" in panel
+
+
+def test_the_headline_count_says_how_much_of_it_the_seed_wrote() -> None:
+    """A count of what needs deciding reads as a morning's work.
+
+    Measured on the shipped board: every row the board asks a decision about is
+    one the demo seed wrote, because the seed sets each goal by scaling the
+    observed figures over the flight, so a reader taking the headline for an
+    operational figure would be reading the seed's own arithmetic back to itself.
+    Nothing here is fabricated and nothing is fixable without real flights, so the
+    count states its own provenance.
+    """
+    counts = _client().get("/api/pacing").json()["counts"]
+    asking = counts["behind"] + counts["at_risk"]
+    assert counts["demo_needing_a_decision"] <= asking
+    assert asking > 0, "the shipped data no longer exercises this, so re-measure before trusting the guard"
+    summary = (ROOT / SURFACE / "pacing-summary.js").read_text(encoding="utf-8")
+    assert "demo_needing_a_decision" in summary
+
+
+def test_a_form_for_an_act_the_record_no_longer_allows_leaves_the_screen() -> None:
+    """A refusal keeps what the reader typed; a fresh read that closed the record does not.
+
+    Measured in a browser. With the close form open I withdrew the record over
+    the API, the submit was refused with the right sentence and the typed values
+    were kept, which is correct. Taking the reload the refusal now offers
+    corrected the row to Withdrawn and Closed, and the form under it went on
+    offering to revoke a decision that was already revoked. The two cases differ
+    by whether the record still allows the act, so that is what the form is
+    gated on rather than on whether a write failed.
+    """
+    ledger = (ROOT / SURFACE / "MakeGoodLedger.jsx").read_text(encoding="utf-8")
+    assert "closing.state) >= 0" in ledger
+    assert "record.next_states.indexOf('offered') >= 0" in ledger
