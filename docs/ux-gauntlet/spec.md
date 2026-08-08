@@ -1352,7 +1352,7 @@ W0-1 could not have built it.
 
 | Piece | Backend paths | Frontend paths | Depends on |
 |---|---|---|---|
-| **P10 Break contents and tonight's breaks** | `break_api.py` extensions inside P3's files, by handover | `src/plan/break/**`, by handover from P3 | P3 |
+| **P10 Break contents and tonight's breaks** | `break_api.py` extensions inside P3's files, by handover; `kairos_api/break_api_pod*.py` (new); `data/break_pod_order.csv` (new) | `src/plan/break/**`, by handover from P3 | P3 |
 | **P11 Pacing and make-good** | `pacing_alerts_api.py`, `kairos_api/makegood_store.py` (new), `data/make_goods.csv` (new) | `src/clients/pacing/**` | P4, decision 4 |
 | **P12 Model improvement** | `scripts/adopt_candidate.py` (new), `models/candidates/**`, `models/releases/**` by handover from P7 | `src/model/candidates/**` | P7 |
 | **P13 Media verification** | `kairos_api/media_api.py` (new), `kairos_api/media_store.py` (new), `data/media_assets.csv` (new) | `src/plan/break/media/**` | P10, owner media feed |

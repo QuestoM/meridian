@@ -38,6 +38,11 @@ DASHBOARD = ROOT / "tv-break-dashboard"
 KAI = DASHBOARD / "src" / "kai"
 TOKENS = DASHBOARD / "src" / "tokens.css"
 SHELL_SHEET = DASHBOARD / "src" / "shell" / "styles.css"
+# Loaded globally by src/index.jsx, after styles.css: the card owns the panel
+# head's inline inset since fb0544c8, and styles.css no longer states it. Left
+# out, the head has no horizontal padding at all and wraps at a different
+# point than the shipped product does.
+CARD_SHEET = DASHBOARD / "src" / "shell" / "card.css"
 CONSOLE_SHEET = KAI / "assistant-console.css"
 HEAD_SHEET = KAI / "kai-conversation-head.css"
 PANEL = (KAI / "AssistantPanel.jsx").read_text(encoding="utf-8")
@@ -80,8 +85,14 @@ def _document(locale: str, width: int, with_fix: bool) -> str:
     title, subtitle, acting = strings[0][index], strings[1][index], strings[2][index]
     clear = strings[3][index] if len(strings) > 3 else ""
     shell = "rtl" if locale == "he" else "ltr"
-    sheets = [TOKENS, SHELL_SHEET, CONSOLE_SHEET] + ([HEAD_SHEET] if with_fix else [])
+    sheets = [TOKENS, SHELL_SHEET, CARD_SHEET, CONSOLE_SHEET] + ([HEAD_SHEET] if with_fix else [])
     links = "\n".join(f'<link rel="stylesheet" href="file://{sheet}">' for sheet in sheets)
+    # The acting-user line, byte-for-byte what AssistantPanel.jsx renders: a
+    # plain <span class="asst-user"> (no dir="auto") wrapping a <b> (no
+    # dir="ltr") around <Name>, which is shell/bidi.jsx's plain
+    # <span class="bidi-name">. AssistantPanel.jsx dropped both dir attributes
+    # in favour of unicode-bidi: plaintext on .bidi-name, so a control that
+    # still hand-adds them is not measuring the shipped markup.
     return f"""<!doctype html><meta charset="utf-8">
 {links}
 <body style="margin:0"><div dir="{shell}" style="width:{width}px">
@@ -90,7 +101,7 @@ def _document(locale: str, width: int, with_fix: bool) -> str:
 <div>
 <h2>{title}</h2>
 <span>{subtitle}</span>
-<span class="asst-user" dir="auto">{acting}: <b dir="ltr">{ACTING_USER}</b></span>
+<span class="asst-user">{acting}: <b><span class="bidi-name">{ACTING_USER}</span></b></span>
 </div>
 <button type="button" class="asst-clear-btn"><span style="width:13px;height:13px;display:inline-block"></span>{clear}</button>
 </div>

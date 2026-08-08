@@ -174,4 +174,19 @@ def test_the_missing_basis_is_not_the_faintest_thing_on_the_card() -> None:
     rule = css.split(".asst-effect-basis.unknown {", 1)[1].split("}", 1)[0]
     assert "var(--subtle)" not in rule
     assert "var(--amber-ink)" in rule
-    assert "border-inline-start" in rule and "border-left" not in rule
+    # 33239036 banned the one-sided accent bar the owner reported and never asked
+    # for, everywhere in the product: a rule on one edge reads as an unfinished
+    # frame and lands on the opposite edge under right-to-left. This surface now
+    # carries a full border in the same colour plus inline-start padding to hold
+    # the text off it, the same correction as tests/test_p3_surface_readout.py.
+    # Do not put the accent bar back, and do not let a physical side sneak back
+    # in either: a hardcoded left/right stays on the same edge when Hebrew flips
+    # the box.
+    assert "border: 1px solid var(--amber);" in rule, "the basis keeps a full border, not an accent bar"
+    assert "padding-inline-start:" in rule, "the text sits off its own border"
+    assert "border-inline-start" not in rule and "border-left" not in rule and "border-right" not in rule, (
+        "a one-sided accent bar is banned, and a physical side does not mirror at all"
+    )
+    assert "padding-left:" not in rule and "padding-right:" not in rule, (
+        "padding stated as a physical side stays on the same edge when Hebrew flips the box"
+    )

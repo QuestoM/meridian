@@ -237,6 +237,29 @@ guardrail store lands either way and only its permission waits.
 
 ---
 
+## 7. What does EB mean in your traffic file?
+
+**One question, and it is only yours to answer.**
+
+`סוג ברייק` in your Wally file takes two values. Counted on the shipped example,
+`Wally_Prime_Reshet_Example_2025-04-27.csv`: **Regular 111 rows, EB 64 rows.**
+
+The product prints `EB` on the pod board exactly as your file writes it, labelled
+"from the file", because nothing in `media-domain-from-the-trade.md` says what it
+stands for and inventing a Hebrew word would put a term on your screen that your
+own vendor does not use.
+
+**What I need:** the words a trader uses for each, in Hebrew and in English. If EB
+is a real category with different commercial behaviour, say that too, because
+then it is not only a label: a break type that prices or places differently is a
+lever the optimizer does not currently know about.
+
+**What happens until you answer:** nothing breaks. The board shows your own file's
+word and says where it came from, which is honest and readable to anybody who
+knows the file. It just is not yet the product's own vocabulary.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from

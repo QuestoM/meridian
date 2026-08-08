@@ -143,9 +143,23 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
           <h3><Name>{fieldText(pod.programme, locale)}</Name></h3>
           <p className="pod-when">
             <Figure>{pod.break_start_clock}</Figure>
+            {/* The traffic file's own code, said out loud in the label rather
+                than hidden in a title. It was honest already and only a mouse
+                could read the honesty, which is the same defect the make-good
+                chips carried: a title does not exist on a touch screen and is
+                not read to a screen reader.
+
+                It stays a code on purpose. `סוג ברייק` in the operator's own
+                Wally file takes Regular and EB, 111 and 64 rows on the shipped
+                example, and nothing in the trade document says what EB stands
+                for. Inventing a Hebrew word for it would put a term on the
+                screen that the operator's own vendor does not use. The question
+                is in decisions-for-owner.md; until it is answered the product
+                shows the operator their own file's word and says where it came
+                from. */}
             {pod.break_type && (
-              <span title={label('The traffic file\'s own code, not yet a translated vocabulary term', 'הקוד המקורי מקובץ הטראפיק, ללא אוצר מילים מתורגם עדיין')}>
-                {label('Break type', 'סוג ברייק')} <Code>{pod.break_type}</Code>
+              <span>
+                {label('Break type, from the file', 'סוג ברייק, מהקובץ')} <Code>{pod.break_type}</Code>
               </span>
             )}
             <span>{label('on', 'בערוץ')} <Name>{pod.channel && pod.channel.value ? pod.channel.value : label('no channel in settings', 'לא הוגדר ערוץ בהגדרות')}</Name></span>
