@@ -97,6 +97,31 @@ def standing_finding(structure: dict[str, Any],
     }
 
 
+def render_standing_finding(finding: dict[str, Any]) -> list[str]:
+    """The standing finding at a terminal, sized against the candidates.
+
+    Rendered here rather than in ``adopt_candidate_render.py`` for the reason
+    ``adopt_candidate_basis.py`` gives for its own two blocks: that module is the
+    terminal's renderer and it sits at the size cap, and this block is this
+    module's finding end to end.
+
+    Printed as a standing finding and never as a next act. Nothing this terminal
+    can run changes the cell structure, so an act line here would be an act
+    nobody can take.
+    """
+    if not finding or finding.get("earns_its_place"):
+        return []
+    times = finding.get("times_the_largest_candidate_move")
+    largest = finding.get("largest_candidate_move_rmse")
+    lines = ["", "  Standing finding, and no candidate on this shelf answers it"]
+    if isinstance(times, (int, float)) and isinstance(largest, (int, float)):
+        lines.append(f"  the cell split costs {finding['structure_cost_rmse']:.6f} rmse out of sample, which is {times:.1f} times the largest movement any candidate makes, {largest:.6f}")
+    addressing = finding.get("candidates_addressing_it") or []
+    lines.append(f"  {len(addressing)} of the {finding.get('candidates_compared')} candidates change the set of cells at all, so all of them are choices made inside a structure that does not pay for itself")
+    lines.append(f"  whose decision this is: {finding.get('decision_owner_en')}. This terminal has no command that changes it.")
+    return lines
+
+
 def cell_structure(baselines: list[dict[str, Any]]) -> dict[str, Any]:
     """Does the 36-cell split beat one constant, out of sample and honestly.
 

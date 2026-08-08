@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import CandidateBoard from './CandidateBoard.jsx';
 import '../../tokens.css';
 import '../../shell/styles.css';
+import '../../shell/card.css';
 
 // The one function that puts this board on a page, and nothing else.
 //

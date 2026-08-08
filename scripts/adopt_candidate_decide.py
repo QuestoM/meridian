@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from scripts import adopt_candidate_note as note
 from scripts import adopt_candidate_words as words
 from scripts.adopt_candidate_render import DECISION_TAGS, VERDICT_TAGS
 from scripts.adopt_candidate_state import live_version, money_state
@@ -42,10 +43,36 @@ from scripts.adopt_candidate_rescore import (
     candidate_files,
     candidate_id,
     load_rescore,
+    read_artifact,
     rescore_state,
 )
 
 DECISIONS = ("shipped", "not_shipped")
+
+# The same two verdicts as a person spells them at a keyboard.
+#
+# ``shipped`` and ``not_shipped`` are the decision log's own keys and they were
+# the only two spellings this flag accepted, on the one command where the steward
+# chooses between them, while every screen this piece renders shows the pair as
+# "ship" and "no ship" and the board shows it as הושקה and לא הושקה. So a steward
+# typing the word he was just shown got an argparse error rather than a verdict.
+# Both spellings resolve to the store's key, and the key is what is recorded, so
+# nothing downstream sees a second vocabulary.
+DECISION_ALIASES: dict[str, str] = {
+    "shipped": "shipped",
+    "ship": "shipped",
+    "not_shipped": "not_shipped",
+    "not-shipped": "not_shipped",
+    "no_ship": "not_shipped",
+    "no-ship": "not_shipped",
+}
+
+DECISION_CHOICES = tuple(DECISION_ALIASES)
+
+
+def normalise_decision(value: str) -> str:
+    """The store's own key for whatever spelling the steward typed."""
+    return DECISION_ALIASES.get(str(value or "").strip().lower(), str(value or ""))
 
 # What the money did, computed from the measurement rather than typed by hand.
 # The console's own form posts "unknown" for every decision it records, because
@@ -137,6 +164,19 @@ def evidence_for(identifier: str, paths: Optional[Paths] = None) -> dict[str, An
         "measured_at": stored.get("measured_at"),
         "fingerprint": stored.get("fingerprint"),
     }
+    # What its gates decided differently, which is the first of the three things
+    # JS-19 names and the one this record did not carry. The console's own
+    # ``gate_counts`` above is the LIVE ledger, three active and five tested and
+    # lost, and it is about the shipped model rather than about this candidate,
+    # so a later reader holding only this record could not see what the gates of
+    # the artifact being decided on said. The reading rides with it, because the
+    # row count is the part that misreads.
+    from scripts import adopt_candidate_gates as gates
+    from scripts.adopt_candidate_state import gate_evidence
+
+    evidence["gates"] = gates.gate_summary(gate_evidence(
+        read_artifact(paths.shipped),
+        read_artifact(paths.candidates_dir / f"tv_break_coefficients_{identifier}.json")))
     evidence["evaluation"] = stored.get("evaluation")
     evidence["limit"] = stored.get("limit")
     evidence["fit_basis"] = stored.get("fit_basis")
@@ -156,7 +196,8 @@ def money_direction(money: dict[str, Any]) -> str:
 
 
 def preconditions(identifier: str, *, decision: str, actor: str, reason: str,
-                  release_note_he: str, paths: Optional[Paths] = None) -> dict[str, Any]:
+                  release_note_he: str, release_note_en: str = "",
+                  paths: Optional[Paths] = None) -> dict[str, Any]:
     """Every condition a recordable verdict must clear, answered in both languages."""
     paths = paths or Paths()
     known = {candidate_id(path): path for path in candidate_files(paths)}
@@ -219,10 +260,28 @@ def preconditions(identifier: str, *, decision: str, actor: str, reason: str,
             if money.get("state") == "measured" else str(money.get("reason_he") or ""),
             "measure", id=identifier))
 
+    # The store checks a note for a gate verdict, a p-value and a coefficient at
+    # the moment of the write, and this plan checked only that one is not empty,
+    # so a plan run said every check passed for a record the store then refused.
+    # Reproduced before this check existed: a no-ship verdict on competitor with
+    # an English note reading "the retention gate cleared at p=0.004" cleared all
+    # five conditions, printed ready, and came back refused on --perform. Run for
+    # every verdict and on both languages, because the store checks both and the
+    # case it was reproduced on is the one this plan required nothing of.
+    checks.extend(note.verdict_checks(decision, release_note_he, release_note_en))
+
     return {"candidate_id": identifier, "decision": decision, "checks": checks,
             "passed": all(check["passed"] for check in checks),
             "blocked_on": [check["id"] for check in checks if not check["passed"]],
             "money": money, "money_direction": money_direction(money),
+            # The sentence itself, so the surface that authors the one string
+            # allowed across the line can read it back before it lands.
+            "release_note": note.note_block(release_note_he, release_note_en,
+                                            ships=ships),
+            # And whether anything on the other side reads one at all. A note is
+            # written for an operator and on this tree no operator surface reads
+            # one, which nothing said on the screen where one is authored.
+            "operator_reads": note.operator_reads(),
             "rescore_verdict": (row.get("verdict") or {}).get("state", "unknown")}
 
 
@@ -234,7 +293,8 @@ def decide(identifier: str, *, decision: str, actor: str, reason: str,
 
     paths = paths or Paths()
     state = preconditions(identifier, decision=decision, actor=actor, reason=reason,
-                          release_note_he=release_note_he, paths=paths)
+                          release_note_he=release_note_he,
+                          release_note_en=release_note_en, paths=paths)
     version = live_version()
     result = {
         "candidate_id": identifier,
@@ -299,9 +359,19 @@ def render(result: dict[str, Any]) -> list[str]:
         lines.append(f"Money {carried}: {money['revenue_delta']:+,.2f} on the operator's own channel over {counted} rows, direction {result.get('money_direction')}")
         lines.append(f"  basis: {scope.get('basis')}")
     elif landing:
-        lines.append(f"Money {carried}: {MONEY_STATES.get(str(money.get('state')), 'unknown')}, so the record states that rather than carrying a figure")
+        state = str(money.get("state"))
+        said = (words.RECORD_MONEY.get(state) or {}).get("en") or MONEY_STATES.get(state, "unknown")
+        lines.append(f"Money {carried}: {said}")
     else:
         lines.append(f"Money {carried}: {MONEY_STATES.get(str(money.get('state')), 'unknown')}")
+    # The gates, before the score, because that is the order JS-19 reads them in
+    # and because a verdict recorded without them is a verdict a later reader
+    # cannot check. The reading rather than the row count: on this tree three
+    # candidates return ten rows and hold a different value on none of them.
+    gate_reading = ((result.get("evidence") or {}).get("gates") or {})
+    if gate_reading.get("state"):
+        lines.append(f"Gates {carried}: {gate_reading['reading_en']}")
+        lines.append(f"  {gate_reading['held_out_basis_en']}")
     scored = str(result.get("rescore_verdict") or "unknown")
     lines.append(f"Re-score verdict {carried}: {VERDICT_TAGS.get(scored, scored)}")
     if landing:
@@ -310,6 +380,15 @@ def render(result: dict[str, Any]) -> list[str]:
     if summary.get("cells_compared"):
         lines.append(f"Coefficient delta {carried}: {summary['cells_moved']} of {summary['cells_compared']} cells hold a different number")
         lines.append(f"  {summary.get('reading_en')}")
+    # The one sentence that leaves this side of the wall, read back before it
+    # lands. Every surface of this piece carried a boolean where it should be,
+    # and the surface that authors it showed none of it at all.
+    lines.extend(note.render_note(result.get("release_note") or {}, indent=0))
+    reach = result.get("operator_reads") or {}
+    if reach:
+        lines.append(f"Read on the operator side today: {reach['reading_en']}")
+        if reach.get("unblocked_by_en"):
+            lines.append(f"  supplied by: {reach['unblocked_by_en']}")
     if landing and not result.get("reason_is_hebrew"):
         lines.append("")
         lines.append("Note: the model console renders this reason verbatim inside a right-to-left card and the store carries no language for it, so a Hebrew reader will get English prose. Pass the Hebrew sentence as --reason and the English as --reason-en.")

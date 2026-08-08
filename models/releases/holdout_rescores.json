@@ -1,9 +1,10 @@
 {
- "measured_at": "2026-08-07T10:16:34.029174+00:00",
+ "measured_at": "2026-08-07T13:20:36.115667+00:00",
  "evaluation": {
   "breaks": 2532,
   "cells": 36,
-  "window": "2024-11-01 to 2024-11-30",
+  "window_from": "2024-11-01",
+  "window_to": "2024-11-30",
   "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
   "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
   "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
@@ -151,6 +152,46 @@
    "state": "absent",
    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+  },
+  "origin": {
+   "id": "shipped",
+   "purpose": null,
+   "purpose_state": "absent",
+   "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+   "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+   "sources": [
+    {
+     "file": "data/reference/Dayparts.xlsx",
+     "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+     "short": "77f69dd25143",
+     "on_disk": true,
+     "matches": true
+    },
+    {
+     "file": "data/reference/Programmes.xlsx",
+     "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+     "short": "00e23da271e8",
+     "on_disk": true,
+     "matches": true
+    },
+    {
+     "file": "data/reference/Spots.xlsx",
+     "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+     "short": "a540fe3bee3f",
+     "on_disk": true,
+     "matches": true
+    }
+   ],
+   "sources_recorded": 3,
+   "sources_state": "verified",
+   "sources_changed": [],
+   "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+   "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+   "recipe_state": "not_recorded",
+   "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+   "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+   "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+   "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם."
   }
  },
  "candidates": [
@@ -174,6 +215,50 @@
     "state": "recorded_without_a_verdict",
     "reading_en": "This artifact records its own out-of-sample test and reaches no recommendation either way.",
     "reading_he": "הקובץ הזה רושם בדיקה מחוץ למדגם משלו ואינו מגיע להמלצה לכאן או לכאן."
+   },
+   "origin": {
+    "id": "afterwindow",
+    "purpose": "after-window de-bias verification recompute (post-clip code, reference data)",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
    },
    "paired": {
     "rmse_delta": -0.00011379,
@@ -628,6 +713,50 @@
     "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
     "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
    },
+   "origin": {
+    "id": "calibrated",
+    "purpose": null,
+    "purpose_state": "absent",
+    "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+    "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "paired": {
     "rmse_delta": -0.00011379,
     "mean_squared_error_delta": -5.487048719664714e-05,
@@ -1081,6 +1210,50 @@
     "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
     "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
    },
+   "origin": {
+    "id": "competitor",
+    "purpose": "competition-adjusted coefficients (forward de-confounding) + counter-programming gate",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "paired": {
     "rmse_delta": -1.0511e-05,
     "mean_squared_error_delta": -5.0697155845327055e-06,
@@ -1533,6 +1706,50 @@
     "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
     "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
    },
+   "origin": {
+    "id": "placebo_corrected",
+    "purpose": null,
+    "purpose_state": "absent",
+    "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+    "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "paired": {
     "rmse_delta": 0.0,
     "mean_squared_error_delta": 0.0,
@@ -1968,6 +2185,50 @@
     "state": "advised_against",
     "reading_en": "Whatever produced this artifact recorded its own out-of-sample test and advised against adopting it.",
     "reading_he": "מה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ שלא לאמץ אותו."
+   },
+   "origin": {
+    "id": "spotclip",
+    "purpose": "spot-level window clip (clip_to_all_ad_airtime=True) variant",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
    },
    "paired": {
     "rmse_delta": -0.000155699,

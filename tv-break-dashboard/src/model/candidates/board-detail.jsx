@@ -1,6 +1,10 @@
 import React from 'react';
 import { Numeric } from '../../shell/format';
+import { formatStamp } from '../../shell/dates';
 import { Figure as BidiFigure, Code, Name } from '../../shell/bidi';
+import History from './board-history.jsx';
+import Meter from './board-meter.jsx';
+import { Provenance, Purpose } from './board-origin.jsx';
 import { pick, t } from './board-words';
 
 // What one artifact was decided on, under the table that ranks them.
@@ -53,12 +57,126 @@ function SelfReported({ self, locale }) {
 // How much of the evaluation was in this artifact's own fit, beside the count it
 // sits next to. A count of breaks fitted on means nothing without the count it
 // is scored on.
+// The separation between the count and the words is a gap on the box, never a
+// trailing space inside the figure. A space at the end of an isolated run has
+// nowhere to land in a right-to-left line, and this chip read as one token in
+// Hebrew while reading correctly in English.
 function FitBasis({ basis, locale }) {
   if (!basis || basis.state !== 'fewer') return null;
   return (
     <span className="cb-detail-shortfall cb-tag cb-amber">
-      <BidiFigure><Numeric>{`${basis.not_fitted_on} `}</Numeric></BidiFigure>
+      <BidiFigure><Numeric>{String(basis.not_fitted_on)}</Numeric></BidiFigure>
       <span>{t('basis.never_fitted', locale)}</span>
+    </span>
+  );
+}
+
+// One side of a gate row. A stored value, so it renders as a value and never as
+// a translated word: true and bootstrap are what the artifact holds, not prose.
+// An absence is a state and gets the tag, with the console's own sentence for it
+// under the table rather than repeated on every row.
+//
+// The text is rendered on the measuring side and carried here. A stored 1.0 is a
+// float the terminal prints as 1.0 and a browser prints as 1, because JavaScript
+// has one number type, and two surfaces of one piece printing one stored value
+// two ways is a divergence a steward walks into inside a session.
+function GateValue({ text, absent, locale }) {
+  if (absent) return <span className="cb-tag cb-neutral">{t('gates.absent_short', locale)}</span>;
+  return <Code>{String(text === null || text === undefined ? '' : text)}</Code>;
+}
+
+// What its gates decided, which is the second sentence of the steward's job and
+// was on no screen at all.
+//
+// The sentence comes first and the rows come second, because the row COUNT is
+// the thing that misreads. The console's comparison returns every key on which
+// the two artifacts do not hold the same value, and a key the candidate does not
+// carry comes back as one of those. Measured on this tree, three of the five
+// candidates return ten such rows and every one is an absence: reading the count
+// gives ten gates decided the other way, when the truth is none.
+//
+// The held-out amounts sit under it because they are the argument for this whole
+// board: the shipped artifact decided its series gate on 2,532 breaks and one
+// candidate decided the same gate on 506, and two figures taken on different
+// amounts are not comparable.
+function Gates({ gates, locale }) {
+  if (!gates || !gates.state) return null;
+  const rows = gates.rows || [];
+  const held = gates.held_out || [];
+  const anyAbsent = rows.some((row) => row.candidate_absent);
+  const anyShippedAbsent = rows.some((row) => row.shipped_absent);
+  return (
+    <section className="cb-gates">
+      <h4>{t('gates.title', locale)}</h4>
+      <p className="cb-gates-reading">{pick(gates, 'reading', locale)}</p>
+      {rows.length ? (
+        <table className="cb-cells-table">
+          <thead>
+            <tr>
+              <th scope="col">{t('gates.key', locale)}</th>
+              <th scope="col">{t('detail.shipped', locale)}</th>
+              <th scope="col">{t('detail.candidate', locale)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <th scope="row"><code><Code>{row.key}</Code></code></th>
+                <td><GateValue text={row.shipped_text} absent={row.shipped_absent} locale={locale} /></td>
+                <td><GateValue text={row.candidate_text} absent={row.candidate_absent} locale={locale} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : <p className="cb-note">{t('gates.none', locale)}</p>}
+      {anyAbsent ? <p className="cb-note">{t('gates.candidate_absent', locale)}</p> : null}
+      {anyShippedAbsent ? <p className="cb-note">{t('gates.shipped_absent', locale)}</p> : null}
+      {held.length ? (
+        <div className="cb-gates-held">
+          <p className="cb-label">{t('gates.held_out', locale)}</p>
+          <table className="cb-cells-table">
+            <thead>
+              <tr>
+                <th scope="col">{t('gates.block', locale)}</th>
+                <th scope="col">{t('detail.shipped', locale)}</th>
+                <th scope="col">{t('detail.candidate', locale)}</th>
+                <th scope="col">{t('table.verdict', locale)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {held.map((row) => (
+                <tr key={row.block}>
+                  <th scope="row"><code><Code>{row.block}</Code></code></th>
+                  <td><HeldOut size={row.shipped_size} unit={pick(row, 'shipped_unit', locale)} absent={row.shipped_absent} locale={locale} /></td>
+                  <td><HeldOut size={row.candidate_size} unit={pick(row, 'candidate_unit', locale)} absent={row.candidate_absent} locale={locale} /></td>
+                  <td>
+                    <span className={`cb-tag ${row.comparable ? 'cb-teal' : 'cb-amber'}`}>
+                      {t(row.comparable ? 'gates.comparable' : 'gates.not_comparable', locale)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="cb-note">{pick(gates, 'held_out_rule', locale)}</p>
+          <p className="cb-note">{pick(gates, 'held_out_basis', locale)}</p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// An amount with the noun it counts, because 34,560 minutes and 2,532 breaks are
+// two different things and the bare figure reads as one of them. The noun rides
+// on the payload in both halves rather than being mapped from a key here.
+function HeldOut({ size, unit, absent, locale }) {
+  if (absent || size === null || size === undefined) {
+    return <span className="cb-tag cb-neutral">{t('gates.absent_short', locale)}</span>;
+  }
+  return (
+    <span className="cb-detail-scope">
+      <BidiFigure><Numeric>{Number(size).toLocaleString('en-US')}</Numeric></BidiFigure>
+      <span>{unit}</span>
     </span>
   );
 }
@@ -71,7 +189,9 @@ function Number6({ value, digits = 6, sign = false }) {
   return <Numeric>{`${sign && number > 0 ? '+' : ''}${number.toFixed(digits)}`}</Numeric>;
 }
 
-function Shekels({ value, locale, digits = 2 }) {
+// Exported because the table renders shekels too and carried its own identical
+// copy of this. One renderer decides the sign, the separators and the locale.
+export function Shekels({ value, locale, digits = 2 }) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return <span className="cb-absent-figure">-</span>;
   }
@@ -93,13 +213,13 @@ function MoneyBlock({ money, locale }) {
         </p>
         <p><span className="cb-label">{t('money.whole_plan', locale)}</span><Shekels value={money.whole_plan_delta} locale={locale} /></p>
         <p><span className="cb-label">{t('money.basis', locale)}</span>{money.basis}</p>
-        <p><span className="cb-label">{t('state.measured_at', locale)}</span><BidiFigure><Numeric>{String(money.measured_at || '').slice(0, 19)}</Numeric></BidiFigure></p>
+        <p><span className="cb-label">{t('state.measured_at', locale)}</span><BidiFigure>{formatStamp(money.measured_at)}</BidiFigure></p>
       </div>
     );
   }
   return (
     <div className="cb-detail-money">
-      <p>
+      <p className="cb-detail-bars">
         <span className={`cb-tag ${state === 'stale' ? 'cb-amber' : 'cb-neutral'}`}>{t(`money.${state}`, locale)}</span>
         {typeof money.last_known_revenue_delta === 'number' ? (
           <span className="cb-detail-scope">
@@ -118,8 +238,12 @@ function Cells({ cells, locale }) {
   return (
     <div className="cb-detail-cells">
       <p>{pick(cells, 'reading', locale)}</p>
+      {/* cb-detail-bars is the flex row with a gap that every other fact line
+          here already uses. Without it the figure and the cell key sat against
+          each other with nothing between them and read as one token,
+          "0.012751733PrimeShow2_first_short", in both locales. */}
       {cells.max_abs_delta_at ? (
-        <p>
+        <p className="cb-detail-bars">
           <span className="cb-label">{t('detail.largest', locale)}</span>
           <BidiFigure><Number6 value={cells.max_abs_delta} digits={9} /></BidiFigure>
           <Code>{cells.max_abs_delta_at}</Code>
@@ -147,7 +271,14 @@ function Cells({ cells, locale }) {
                 <td><BidiFigure><Number6 value={row.delta} sign /></BidiFigure></td>
                 <td><BidiFigure><Numeric>{Number(row.breaks || 0).toLocaleString('en-US')}</Numeric></BidiFigure></td>
                 <td><BidiFigure><Number6 value={row.squared_error_delta} digits={9} sign /></BidiFigure></td>
-                <td><BidiFigure><Numeric>{`${(Number(row.share_of_absolute || 0) * 100).toFixed(2)}%`}</Numeric></BidiFigure></td>
+                <td>
+                  <BidiFigure><Numeric>{`${(Number(row.share_of_absolute || 0) * 100).toFixed(2)}%`}</Numeric></BidiFigure>
+                  {/* Where the movement concentrated, which is the one question
+                      on this table that is a shape and not a digit. The share is
+                      of the whole absolute movement, which the sentence above
+                      the table states. */}
+                  <Meter share={row.share_of_absolute} tone="cb-meter-blue" />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -175,6 +306,10 @@ export default function BoardDetail({ candidate, board, locale }) {
         <span>{t('detail.title', locale)}</span>
         <code><Code>{candidate.id}</Code></code>
       </h3>
+      {/* What it was built for, first, because a reader who does not know that
+          cannot read anything below it. The reference's own run overview leads
+          with the same line. */}
+      <Purpose origin={candidate.origin} locale={locale} />
       <p className="cb-detail-verdict">{pick(candidate, 'verdict', locale)}</p>
       <p className="cb-detail-rule">
         <span className="cb-label">{t('detail.rule', locale)}</span>
@@ -201,6 +336,10 @@ export default function BoardDetail({ candidate, board, locale }) {
         </p>
       ) : null}
 
+      {/* The gates before the money, because that is the order JS-19 reads them
+          in: what did it decide differently, then what would it move. */}
+      <Gates gates={candidate.gates} locale={locale} />
+
       <h4>{t('table.money', locale)}</h4>
       <MoneyBlock money={candidate.money} locale={locale} />
 
@@ -218,7 +357,13 @@ export default function BoardDetail({ candidate, board, locale }) {
             <Name>{decision.actor}</Name>
           </span>
         ) : null}
-        {decision.recorded_at ? <BidiFigure><Numeric>{String(decision.recorded_at).slice(0, 19)}</Numeric></BidiFigure> : null}
+        {decision.recorded_at ? <BidiFigure>{formatStamp(decision.recorded_at)}</BidiFigure> : null}
+        {decision.count > 1 ? (
+          <span className="cb-detail-scope">
+            <BidiFigure><Numeric>{String(decision.count)}</Numeric></BidiFigure>
+            <span>{t('decision.count', locale)}</span>
+          </span>
+        ) : null}
       </p>
       {decision.state ? (
         <p className={`cb-detail-basis ${decision.on_rescore ? '' : 'cb-amber'}`}>
@@ -226,18 +371,41 @@ export default function BoardDetail({ candidate, board, locale }) {
         </p>
       ) : null}
 
+      {/* And every verdict before that one. The block above is the newest, which
+          is what the shelf column shows; this is the second half of JS-19's done
+          condition, that a later reader can see what was tried. */}
+      <History history={candidate.history} locale={locale} />
+
       <SelfReported self={candidate.self_reported} locale={locale} />
 
       <h4>{t('detail.identity', locale)}</h4>
       <p className="cb-detail-identity">
         <code><Code>{candidate.file}</Code></code>
         <code><Code>{candidate.short}</Code></code>
-        <BidiFigure><Numeric>{`${Number(candidate.bytes || 0).toLocaleString('en-US')} bytes`}</Numeric></BidiFigure>
+        {/* When the artifact was produced. It has been on every row of this
+            payload since the board was built and no surface rendered it, so a
+            steward could not tell an artifact made last week from one made a
+            year ago. Through the one file that decides what a date looks like,
+            never as the stored instant. */}
+        {candidate.computed_at ? (
+          <span className="cb-detail-scope">
+            <span className="cb-label">{t('detail.built', locale)}</span>
+            <BidiFigure>{formatStamp(candidate.computed_at)}</BidiFigure>
+          </span>
+        ) : null}
+        <BidiFigure><Numeric>{Number(candidate.bytes || 0).toLocaleString('en-US')}</Numeric></BidiFigure>
+        <span>{t('detail.bytes', locale)}</span>
         <span className="cb-label">{t('detail.fitted_on', locale)}</span>
         <BidiFigure><Numeric>{Number(candidate.breaks_fitted_on || 0).toLocaleString('en-US')}</Numeric></BidiFigure>
         <span>{t('evaluation.breaks', locale)}</span>
         <FitBasis basis={candidate.fit_basis} locale={locale} />
       </p>
+
+      {/* And what that file read, checked against the files on disk. The block
+          above says which file this row is; this says which data it was fitted
+          from, whether that data is still here, and the half of the provenance
+          nothing in these artifacts records. */}
+      <Provenance origin={candidate.origin} locale={locale} />
     </section>
   );
 }

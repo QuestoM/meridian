@@ -1,10 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Numeric } from '../../shell/format';
-import { Figure as BidiFigure, Code, DirectionRoot, Name } from '../../shell/bidi';
+import { formatStamp } from '../../shell/dates';
+import { Figure as BidiFigure, Code, DirectionRoot } from '../../shell/bidi';
 import { read } from '../console/console-api';
 import BOARD from './candidate-board.json';
-import { freshness, sortRows, SORTS } from './board-compare';
-import BoardDetail from './board-detail.jsx';
+import { freshness, movementShare, reveal, sortRows, SORTS } from './board-compare';
+// Shekels comes from there because this file carried a byte-identical copy.
+import BoardDetail, { Shekels } from './board-detail.jsx';
+import Evaluation from './board-evaluation.jsx';
+import { LiveModelVerdict } from './board-history.jsx';
+import Meter from './board-meter.jsx';
+import { PurposeLine } from './board-origin.jsx';
 import { pick, t } from './board-words';
 import './candidate-board.css';
 
@@ -52,15 +58,6 @@ function Figure({ value, digits = 6, sign = false, fallback = '-' }) {
   return <Numeric>{text}</Numeric>;
 }
 
-function Shekels({ value, locale, digits = 2 }) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return <span className="cb-absent-figure">-</span>;
-  }
-  const number = Number(value);
-  const text = `${number > 0 ? '+' : ''}${number.toLocaleString(locale === 'en' ? 'en-US' : 'he-IL', { minimumFractionDigits: digits, maximumFractionDigits: digits })} ₪`;
-  return <Numeric>{text}</Numeric>;
-}
-
 function Money({ money, locale }) {
   const state = String((money || {}).state || 'not_measured');
   if (state === 'measured') {
@@ -97,96 +94,18 @@ function StateStrip({ state, board, locale }) {
           ))}
         </ul>
       ) : null}
+      {/* dd/mm/yyyy, from the one file in the product that decides what a date
+          looks like. These two read as ISO instants sliced to nineteen
+          characters, which is the machine format the design rules ban in both
+          locales, and the date guard's own list names calendar-day fields only
+          so it could not see them. */}
       <p className="cb-state-when">
         <span>{t('state.measured_at', locale)}</span>
-        <BidiFigure><Numeric>{String(board.measured_at || '').slice(0, 19)}</Numeric></BidiFigure>
+        <BidiFigure>{formatStamp(board.measured_at)}</BidiFigure>
         <span className="cb-dot">.</span>
         <span>{t('state.published_at', locale)}</span>
-        <BidiFigure><Numeric>{String(board.published_at || '').slice(0, 19)}</Numeric></BidiFigure>
+        <BidiFigure>{formatStamp(board.published_at)}</BidiFigure>
       </p>
-    </section>
-  );
-}
-
-// The rows the limit sentence is naming, under the sentence that names them.
-//
-// Only the rows that do not cover the evaluation are listed. When every row does
-// cover it the whole block is absent, because the limit sentence in that case
-// says so itself and a list of six rows agreeing with it is noise.
-function BasisRows({ board, locale }) {
-  const rows = ((board.fit_basis || {}).rows || []).filter((row) => row.state !== 'all');
-  if (!rows.length) return null;
-  return (
-    <ul className="cb-basis-rows">
-      <li className="cb-basis-head"><span className="cb-label">{t('limit.rows', locale)}</span></li>
-      {rows.map((row) => (
-        <li key={row.id}>
-          <Code>{row.id}</Code>
-          {row.state === 'fewer' ? (
-            <span className="cb-basis-said">
-              {/* Two rules meet on this line and both are kept. Design rule 3
-                  puts a middle dot between facts rather than whitespace, and a
-                  numeric line may never put two bare figures side by side, where
-                  "2532 . 196" can be read as one decimal. So the first group
-                  ends on a word and the dot separates the groups. */}
-              <span className="cb-basis-fitted">
-                <span className="cb-label">{t('basis.title', locale)}</span>
-                <BidiFigure><Numeric>{String(row.fitted_on)}</Numeric></BidiFigure>
-                <span>{t('basis.of', locale)}</span>
-                <BidiFigure><Numeric>{String(row.scored_on)}</Numeric></BidiFigure>
-                <span>{t('evaluation.breaks', locale)}</span>
-              </span>
-              <span className="cb-dot">.</span>
-              <span className="cb-basis-short">
-                <BidiFigure><Numeric>{String(row.not_fitted_on)}</Numeric></BidiFigure>
-                <span>{t('basis.never_fitted', locale)}</span>
-              </span>
-            </span>
-          ) : (
-            <span>{t('basis.unknown_mark', locale)}</span>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Evaluation({ board, locale }) {
-  const evaluation = board.evaluation || {};
-  const limit = board.limit || {};
-  return (
-    <section className="cb-evaluation">
-      <p className="cb-evaluation-line">
-        <BidiFigure><Numeric>{Number(evaluation.breaks || 0).toLocaleString('en-US')}</Numeric></BidiFigure>
-        <span>{t('evaluation.breaks', locale)}</span>
-        <span className="cb-dot">.</span>
-        <BidiFigure><Numeric>{String(evaluation.cells || '')}</Numeric></BidiFigure>
-        <span>{t('evaluation.cells', locale)}</span>
-        <span className="cb-dot">.</span>
-        <BidiFigure><Numeric>{String(evaluation.window || '')}</Numeric></BidiFigure>
-        <span className="cb-dot">.</span>
-        <BidiFigure><Numeric>{String(evaluation.folds || '')}</Numeric></BidiFigure>
-        <span>{t('evaluation.folds', locale)}</span>
-      </p>
-      <p className="cb-evaluation-metric">
-        <span className="cb-label">{t('evaluation.metric', locale)}</span>
-        {pick(evaluation, 'metric', locale)}
-      </p>
-      <p className="cb-evaluation-metric">
-        <span className="cb-label">{t('evaluation.spread', locale)}</span>
-        <BidiFigure><Figure value={evaluation.target_sd} /></BidiFigure>
-        <span className="cb-dot">.</span>
-        <span>{pick(evaluation, 'target_sd', locale)}</span>
-      </p>
-      <div className="cb-limit cb-amber">
-        <span className="cb-label">{t('limit.title', locale)}</span>
-        <p>{locale === 'en' ? limit.en : limit.he}</p>
-        <BasisRows board={board} locale={locale} />
-        <p className="cb-limit-lifted">
-          <span className="cb-label">{t('limit.lifted', locale)}</span>
-          {locale === 'en' ? limit.unblocked_by_en : limit.unblocked_by_he}
-        </p>
-      </div>
     </section>
   );
 }
@@ -200,11 +119,20 @@ function Recorded({ candidate, locale }) {
         {t(`decision.${decision.state}`, locale)}
       </span>
       {decision.on_rescore ? null : <span className="cb-mark" title={t('decision.before_comparison', locale)}>*</span>}
+      {/* One artifact on this tree was refused twice and this column printed one
+          word for it. The terminal states the count and the screen did not, so a
+          steward reading only the screen could not see the second refusal. */}
+      {decision.count > 1 ? (
+        <small className="cb-cancels">
+          <BidiFigure><Numeric>{String(decision.count)}</Numeric></BidiFigure>
+          <span>{t('decision.count', locale)}</span>
+        </small>
+      ) : null}
     </span>
   );
 }
 
-function Head({ id, label, locale, sort, onSort }) {
+function Head({ id, label, sort, onSort }) {
   const sortable = Object.prototype.hasOwnProperty.call(SORTS, id);
   if (!sortable) return <th scope="col">{label}</th>;
   const on = sort.key === id;
@@ -247,7 +175,7 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
       <caption className="cb-caption">{t('table.title', locale)}</caption>
       <thead>
         <tr>{COLUMNS.map(([id, key]) => (
-          <Head key={id} id={id} label={t(key, locale)} locale={locale} sort={sort} onSort={onSort} />
+          <Head key={id} id={id} label={t(key, locale)} sort={sort} onSort={onSort} />
         ))}</tr>
       </thead>
       <tbody>
@@ -275,10 +203,23 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
                 <span className="cb-name"><Code>{row.id}</Code></span>
               </button>
               <BasisMark basis={row.fit_basis} locale={locale} />
+              {/* What this artifact was built for, in its producer's own words,
+                  where the shelf is read as a shelf. Five identifiers with no
+                  note beside them is what this board showed, and the reference
+                  leads its own run list with exactly this line. */}
+              <PurposeLine origin={row.origin} locale={locale} />
               <code className="cb-digest"><Code>{row.short}</Code></code>
             </th>
             <td><BidiFigure><Figure value={row.rmse} /></BidiFigure></td>
-            <td><BidiFigure><Figure value={row.rmse_delta} sign /></BidiFigure></td>
+            <td>
+              <BidiFigure><Figure value={row.rmse_delta} sign /></BidiFigure>
+              {/* The movement against the noise it sits in, which is the figure
+                  the verdict is decided against and the one thing a column of
+                  six-decimal numerals cannot show. Absent when the row has no
+                  dispersion to divide by, rather than drawn as an empty bar. */}
+              <Meter share={movementShare(row)}
+                tone={row.verdict === 'better' ? 'cb-meter-teal' : 'cb-meter-neutral'} />
+            </td>
             <td><BidiFigure><Figure value={row.paired_statistic} digits={2} sign /></BidiFigure></td>
             <td><span className={`cb-tag ${row.verdict === 'better' ? 'cb-teal' : row.verdict === 'worse' ? 'cb-red' : 'cb-neutral'}`}>{t(`verdict.${row.verdict}`, locale)}</span></td>
             <td>
@@ -293,6 +234,46 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+// What the table means, under the table, in ink rather than in a tooltip.
+//
+// Two things were readable only by hovering or only by inference. The `*` beside
+// every verdict on this tree carried its sentence in a `title` attribute, which
+// a keyboard reaches never and a screen reader reads never, and all five rows
+// carry it. And the recorded-verdict column says "Shipped" of a DECISION, while
+// nothing on the screen said whether anything had actually replaced the live
+// artifact; the terminal half of this piece states that in its own block and the
+// screen did not, so a reader could stop at the word and leave believing the
+// candidate was live. `adopted` was on every row of the payload already.
+function TableNotes({ board, rows, locale }) {
+  const live = rows.filter((row) => row.adopted);
+  return (
+    <div className="cb-notes">
+      <p className="cb-note">
+        <span className="cb-mark">*</span>
+        <span>{t('decision.mark_legend', locale)}</span>
+        <span>{t('decision.before_comparison', locale)}</span>
+      </p>
+      <p className="cb-note">
+        <span className="cb-label">{t('adopted.title', locale)}</span>
+        {live.length
+          ? live.map((row) => <Code key={row.id}>{row.id}</Code>)
+          : <span>{t('adopted.none', locale)}</span>}
+      </p>
+      <p className="cb-note">
+        <BidiFigure><Numeric>{String(rows.length)}</Numeric></BidiFigure>
+        <span>{t('table.count', locale)}</span>
+      </p>
+      {/* How the table is worked, in ink. Four of the eight columns sort and the
+          only thing telling them apart was a bare circle glyph with no legend,
+          and the arrow keys moved the selection with nothing saying so. */}
+      <p className="cb-note">{t('table.how_to_read', locale)}</p>
+      {/* What the bar under a movement is a share of. A bar with no denominator
+          on screen is the visual form of a figure nobody measured. */}
+      <p className="cb-note">{t('meter.movement', locale)}</p>
+    </div>
   );
 }
 
@@ -348,6 +329,15 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
   const rows = useMemo(() => sortRows(board.candidates || [], sort), [board, sort]);
   const current = rows.find((row) => row.id === selected) || null;
 
+  // Opening an artifact left the reader looking at the table. Measured here:
+  // the panel starts at 900.5 px in a 907 px viewport, so a click tinted a row
+  // and changed nothing visible. Pointer picks reveal it; the arrow keys do not,
+  // because a reader walking the table with them is reading the table.
+  function onPick(id) {
+    setSelected(id);
+    reveal(region, '.cb-detail');
+  }
+
   function onSort(key) {
     setSort((was) => (was.key === key ? { key, ascending: !was.ascending } : { key, ascending: true }));
   }
@@ -380,9 +370,17 @@ export default function CandidateBoard({ locale = 'he', board = BOARD }) {
         <p className="cb-read-only">{t('board.read_only', locale)}</p>
       </header>
       <StateStrip state={state} board={board} locale={locale} />
+      {/* What is on record about the live artifact itself, before the table that
+          is measured against it. A decision record may be about the shipped
+          model rather than about a candidate, and every read of the log on this
+          piece filtered those out, so the shelf showed five verdicts and said
+          nothing about a standing verdict on the artifact all five are compared
+          with. */}
+      <LiveModelVerdict live={board.live_model} log={board.decision_log} locale={locale} />
       <Evaluation board={board} locale={locale} />
       <Table board={board} rows={rows} locale={locale} selected={selected}
-        onSelect={setSelected} sort={sort} onSort={onSort} />
+        onSelect={onPick} sort={sort} onSort={onSort} />
+      <TableNotes board={board} rows={rows} locale={locale} />
       <BoardDetail candidate={current} board={board} locale={locale} />
       <Baselines board={board} locale={locale} />
     </DirectionRoot>

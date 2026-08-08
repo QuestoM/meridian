@@ -187,9 +187,16 @@ def test_every_module_of_this_piece_stays_under_the_file_size_cap(module):
     assert len(lines) < 450, f"{module}.py is {len(lines)} lines"
 
 
+# Written as an escape rather than as the character, for the reason
+# test_p12_basis.py gives: a file that bans a mark should not be the one file
+# in the tree that contains it, or every sweep for that mark finds its own
+# guard and has to reason about it.
+EM_DASH = "\u2014"
+
+
 @pytest.mark.parametrize("module", MODULES)
 def test_no_module_of_this_piece_carries_an_em_dash_an_emoji_or_an_exclamation(module):
     text = (ROOT / "scripts" / f"{module}.py").read_text(encoding="utf-8")
-    assert "—" not in text
+    assert EM_DASH not in text
     assert "!" not in text.replace("!=", "")
     assert not re.search(r"[\U0001F300-\U0001FAFF☀-➿]", text)

@@ -194,11 +194,21 @@ def test_the_new_string_tables_carry_both_halves(table):
         assert entry["he"].strip(), f"{table}.{key} has no Hebrew"
 
 
+# Written as escapes rather than as the characters themselves, for the reason
+# shell/bidi.jsx gives for the isolate characters it holds: a file that bans a
+# mark should not be the one file in the tree that contains it, or every sweep
+# for that mark finds its own guard and has to reason about it.
+EM_DASH = "\u2014"
+BANNED = (EM_DASH, "!")
+
+
 def test_no_string_this_module_emits_carries_a_banned_mark():
-    for table in (words.SELF_TEST, words.FIT_BASIS):
-        for entry in table.values():
-            for half in entry.values():
-                assert "—" not in half and "!" not in half
-    for limit in (words.LIMIT_UNEVEN, words.LIMIT_UNKNOWN, words.SELF_TEST_BASIS):
-        for half in limit.values():
-            assert "—" not in half and "!" not in half
+    tables = (words.SELF_TEST, words.FIT_BASIS)
+    singles = (words.LIMIT_UNEVEN, words.LIMIT_UNKNOWN, words.SELF_TEST_BASIS,
+               words.IN_SAMPLE_LIMIT)
+    halves = [half for table in tables for entry in table.values() for half in entry.values()]
+    halves += [half for entry in singles for half in entry.values()]
+    assert halves, "nothing was walked, so this test proves nothing"
+    for half in halves:
+        for mark in BANNED:
+            assert mark not in half, f"{mark!r} in {half!r}"

@@ -174,7 +174,19 @@
   text-align: start;
 }
 
-.cb-pick:hover .cb-name { text-decoration: underline; }
+/* The artifact name is the only way into an artifact's evidence, and at rest it
+   was styled exactly like body text: inherited colour, no underline, no border.
+   The affordance existed only under the pointer, so a reader looking at the
+   screen could not tell which of the eight things in the row opens anything. A
+   dotted underline in the muted ink says "this opens" without spending a state
+   colour on it, and the solid underline on hover still marks the target. */
+.cb-pick .cb-name {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--subtle);
+  text-underline-offset: 3px;
+}
+
+.cb-pick:hover .cb-name { text-decoration: underline solid; }
 .cb-pick:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .cb-name { font-weight: var(--weight-semibold); display: block; }
@@ -185,7 +197,20 @@
   color: var(--subtle);
 }
 
-.cb-cancels { display: block; color: var(--muted); font-size: var(--text-2xs); }
+/* A figure and the noun it counts, on their own line under the cell it belongs
+   to. Flex rather than block: the block form put no space between a run and the
+   word beside it, so the verdict count rendered as one token, "2verdicts on
+   record" in English and the same jam in Hebrew, on the one row this tree
+   refused twice. A trailing space inside the run is not the fix, because a space
+   at the end of an isolated run has nowhere to land in a right-to-left line. */
+.cb-cancels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-2xs);
+}
 .cb-money-stale { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
 .cb-recorded { display: inline-flex; align-items: baseline; gap: var(--space-1); }
 .cb-mark { color: var(--amber-ink); font-weight: var(--weight-bold); }
@@ -239,6 +264,23 @@
 .cb-note { color: var(--muted); font-size: var(--text-xs); }
 .cb-note span { margin-inline-start: var(--space-2); }
 
+.cb-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-block-start: var(--space-2);
+}
+
+.cb-notes .cb-mark { margin-inline-end: var(--space-1); }
+
+.cb-detail-shortfall { display: inline-flex; align-items: baseline; gap: var(--space-1); }
+
+/* The gate block. Its own section rather than a run of paragraphs, because it
+   holds two tables and the sentence above them decides how both are read. */
+.cb-gates { margin-block-start: var(--space-2); }
+.cb-gates-reading { margin: var(--space-1) 0 0; }
+.cb-gates-held { margin-block-start: var(--space-3); }
+
 .cb-baselines h3 { margin: 0 0 var(--space-2); font-size: var(--text-md); }
 .cb-baselines ul { margin: 0; padding-inline-start: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
 .cb-baselines li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
@@ -262,6 +304,53 @@
    cannot push the widest column of the table wider than the viewport. */
 .cb-basis-mark { display: block; width: fit-content; margin-block-start: var(--space-1); font-size: var(--text-xs); }
 
+/* One bar, three call sites. A track and a fill, sized only by inline-size, so
+   it grows from the reading edge and mirrors with the document instead of
+   restating a direction. No state colour is spent on the track: the track is the
+   denominator and the fill is the figure, and only the fill carries meaning.
+
+   The over state is a real event rather than decoration: a fill that would pass
+   its own denominator is clamped to full and the track says so, because a bar
+   silently pinned at full would read as exactly at the bar. */
+.cb-meter {
+  display: block;
+  block-size: 4px;
+  inline-size: 100%;
+  max-inline-size: 120px;
+  margin-block-start: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.cb-meter-fill { display: block; block-size: 100%; border-radius: var(--radius-pill); }
+.cb-meter-neutral { background: var(--muted); }
+.cb-meter-teal { background: var(--teal); }
+.cb-meter-amber { background: var(--amber); }
+.cb-meter-blue { background: var(--blue); }
+.cb-meter-over { border-color: var(--amber); }
+
+.cb-spread { margin-block-start: var(--space-1); }
+.cb-spread .cb-meter { max-inline-size: 260px; }
+
+/* The purpose under an artifact name in the ranked table. Held to a narrow
+   measure so a sentence cannot push the widest column of an eight-column table
+   past the viewport, and muted so it reads as a note rather than as a figure. */
+.cb-purpose {
+  display: block;
+  max-inline-size: 26ch;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  color: var(--muted);
+}
+
+.cb-purpose-absent { color: var(--subtle); }
+.cb-purpose-block { margin-block-end: var(--space-2); }
+.cb-provenance { margin-block-start: var(--space-3); }
+.cb-recipe { margin-block-start: var(--space-2); }
+
 .cb-self { margin-block-start: var(--space-3); }
 .cb-self h4 { margin: 0 0 var(--space-1); font-size: var(--text-sm); }
 .cb-self p { margin: var(--space-1) 0 0; }
@@ -269,3 +358,55 @@
 .cb-self-n { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); }
 .cb-self-basis { color: var(--muted); font-size: var(--text-xs); }
 .cb-detail-shortfall { font-size: var(--text-xs); }
+
+/* Every verdict on record, rather than the newest one.
+
+   The cells hold tags and a tag is an inline box, so a cell with two of them
+   needs a gap on the box: a trailing space inside an isolated run has nowhere
+   to land in a right-to-left line, which is how a chip on this board read as
+   one token twice before. */
+.cb-history { margin-block-start: var(--space-3); }
+.cb-history h4 { margin: 0 0 var(--space-1); font-size: var(--text-sm); }
+.cb-history p { margin: var(--space-1) 0 0; }
+.cb-history-reading { color: var(--muted); }
+
+.cb-history td,
+.cb-live-verdict td {
+  display: table-cell;
+}
+
+.cb-history td .cb-tag,
+.cb-live-verdict td .cb-tag {
+  margin-inline-end: var(--space-1);
+}
+
+.cb-history td .cb-tag code,
+.cb-live-verdict td .cb-tag code {
+  margin-inline-start: var(--space-1);
+}
+
+/* What is on record about the live artifact itself. A full border in the state
+   colour with its matching soft background, never a rule down one edge, which
+   inverts under right-to-left. Design rule 1. */
+.cb-live-verdict {
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.cb-live-verdict h3 { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.cb-live-verdict p { margin: var(--space-1) 0 0; }
+.cb-live-reading { color: var(--ink); }
+
+/* A line of facts is a flex row with a gap on the box, never inline children
+   leaning on a margin. A trailing space inside an isolated run has nowhere to
+   land in a right-to-left line, and this board has now had three chips read as
+   one token for exactly that reason: a figure and its noun with no gap between
+   the boxes. Every fact line this block draws uses it. */
+.cb-fact-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.cb-fact-line span { margin-inline-start: 0; }

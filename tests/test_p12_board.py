@@ -36,10 +36,25 @@ WORDS = BOARD_DIR / "board-words.js"
 # a frozen shell primitive read-only is what `shell/format` beside them already
 # does. What was not correct was that the sweep landed and this guard did not
 # know, so the piece shipped a red test.
+#
+# `shell/dates` joined them for the same reason. The design rules say dd/mm/yyyy
+# in both locales and name one file that decides it, and this board was printing
+# ISO instants sliced to nineteen characters in four places. The product's own
+# date guard could not catch it: its raw-ISO rule names eight calendar-DAY fields
+# and these are instants, so the rule that exists for exactly this class of
+# defect passed the board while the board was committing it.
+#
+# `shell/card.css` arrived the same way and was caught the same way: it landed
+# on 2026-08-08 while this round was building, when the card became one home
+# with one inset, and the sweep wired every mount point in the product to it
+# including this row's. The dependency is correct and it is the mount point's
+# rather than the panel's, which is the division `board-mount.jsx` already
+# states: a mount point loads the sheets a page needs and a panel reads them.
 ALLOWED_IMPORTS = {
     "react", "react-dom/client",
-    "../../shell/format", "../../shell/bidi", "../console/console-api",
-    "../../tokens.css", "../../shell/styles.css",
+    "../../shell/format", "../../shell/bidi", "../../shell/dates",
+    "../console/console-api",
+    "../../tokens.css", "../../shell/styles.css", "../../shell/card.css",
 }
 
 # Both doors, which is the point. The guard read `from '<target>'` only, so every
@@ -49,6 +64,14 @@ ALLOWED_IMPORTS = {
 # the guard seeing it at all. A rule that cannot see half of what it governs is
 # not a weaker rule, it is a rule about a different thing.
 IMPORT_PATTERN = re.compile(r"(?:from|import)\s+'([^']+)'")
+
+# Written as an escape rather than as the character, for the reason
+# shell/bidi.jsx gives for the isolate characters it holds and test_p12_basis.py
+# now gives for this one: a file that bans a mark should not be the one file in
+# the tree that contains it, or every sweep for that mark finds its own guard.
+# The reasoning was applied to one of this piece's three guard files and the
+# other two kept the literal.
+EM_DASH = "\u2014"
 
 
 def imports_outside(directory: Path, allowed: set[str]) -> dict[str, list[str]]:
@@ -249,7 +272,7 @@ def _prose(text: str) -> str:
 def test_the_frontend_files_of_this_piece_keep_the_laws(path):
     target = BOARD_DIR / path
     text = target.read_text(encoding="utf-8")
-    assert "—" not in text
+    assert EM_DASH not in text
     assert not re.search(r"[\U0001F300-\U0001FAFF]", text)
     if target.suffix == ".json":
         # A published measurement is data, not source, so the file-size law does

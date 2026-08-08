@@ -69,7 +69,9 @@ from scripts.adopt_candidate_baselines import (  # noqa: E402
 )
 from scripts import adopt_candidate_basis as basis  # noqa: E402
 from scripts import adopt_candidate_cells as cells_module  # noqa: E402
+from scripts import adopt_candidate_origin as origin  # noqa: E402
 from scripts import adopt_candidate_words as words  # noqa: E402
+from scripts.adopt_candidate_origin import SOURCE_FILES, data_fingerprint  # noqa: E402,F401
 
 # Contiguous blocks in break_start order, the same fold construction and the
 # same count the series gate uses (kairos/model/series_gate.py, GATE_FOLDS), so
@@ -82,14 +84,10 @@ PAIRED_T_BAR = 2.0
 
 RESCORE_FILE = "holdout_rescores.json"
 
-# The three files every artifact in this tree was measured from. Digested so a
-# stored re-score can say the data moved rather than being served as current.
-SOURCE_FILES = ("Spots.xlsx", "Programmes.xlsx", "Dayparts.xlsx")
-
-# Both live in adopt_candidate_words.py, which is where every authored string
-# this piece emits keeps its two halves. Re-exported under their old names
-# because they are read from three modules and from the tests.
-IN_SAMPLE_LIMIT = words.IN_SAMPLE_LIMIT
+# ``SOURCE_FILES`` and ``data_fingerprint`` moved to adopt_candidate_origin.py,
+# which asks the same question one artifact at a time, and are re-exported here
+# under their old names. ``VERDICTS`` lives in adopt_candidate_words.py with
+# every other authored pair, and is read from here by the tests.
 VERDICTS = words.VERDICTS
 
 
@@ -137,11 +135,6 @@ def candidate_files(paths: Paths) -> list[Path]:
 
 def candidate_id(path: Path) -> str:
     return path.stem.replace("tv_break_coefficients_", "", 1)
-
-
-def data_fingerprint(paths: Paths) -> dict[str, str]:
-    """One digest per measured source, so a stale re-score can name what moved."""
-    return {name: sha256_file(paths.reference_dir / name) for name in SOURCE_FILES}
 
 
 def measured_effects() -> pd.DataFrame:
@@ -287,7 +280,8 @@ def rescore(paths: Optional[Paths] = None,
                         # which is how the whole evaluation could assert that
                         # every row was fitted on the same breaks.
                         "breaks_fitted_on": shipped_metadata.get("total_breaks_measured"),
-                        "self_reported": basis.self_reported("shipped", shipped_metadata)})
+                        "self_reported": basis.self_reported("shipped", shipped_metadata),
+                        "origin": origin.origin_row("shipped", shipped_metadata, root=paths.root)})
     scored_on = int(len(y))
     basis_rows = [basis.basis_row("shipped", shipped_metadata, scored_on)]
 
@@ -317,6 +311,11 @@ def rescore(paths: Optional[Paths] = None,
             # own fit, and it is carried because a recommendation is the one
             # thing about an artifact that only its producer knows.
             "self_reported": basis.self_reported(identifier, metadata),
+            # What it was built for and what data it read, checked by the
+            # engine's own freshness guard. It qualifies the score: an artifact
+            # fitted from bytes that are gone was not fitted from this data.
+            "origin": origin.origin_row(identifier, metadata, root=paths.root,
+                                        shipped_metadata=shipped_metadata),
             "paired": paired,
             "verdict": verdict(paired, identical),
             # JS-19's done condition names the coefficient deltas beside the
@@ -342,7 +341,11 @@ def rescore(paths: Optional[Paths] = None,
         "evaluation": {
             "breaks": int(len(y)),
             "cells": int(pd.unique(cells).size),
-            "window": f"{frame['break_start'].min():%Y-%m-%d} to {frame['break_start'].max():%Y-%m-%d}",
+            # Two calendar days, never a joined string. This shipped as
+            # "2024-11-01 to 2024-11-30", an English preposition inside a field a
+            # Hebrew screen rendered verbatim. The reasoning: words.window_line.
+            "window_from": f"{frame['break_start'].min():%Y-%m-%d}",
+            "window_to": f"{frame['break_start'].max():%Y-%m-%d}",
             "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
             "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
             "metric_en": words.METRIC["en"],

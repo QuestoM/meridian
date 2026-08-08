@@ -32,6 +32,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from scripts import adopt_candidate_history as history
+from scripts import adopt_candidate_note as note
 from scripts import adopt_candidate_ownership as ownership
 from scripts import adopt_candidate_registry as registry
 from scripts import adopt_candidate_rescore as rescore
@@ -122,6 +124,27 @@ def _cells(summary: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any
     }
 
 
+def _gates(summary: dict[str, Any]) -> dict[str, Any]:
+    """What its gates decided, as a screen reads it.
+
+    The rows travel whole, because there are at most ten of them and each one is
+    a key with two values, and the sentence travels with them because the row
+    count on its own is the thing that misreads: a key the candidate does not
+    carry comes back as a difference and is not a gate that decided differently.
+    The held-out sizes travel too, with the sentence saying why two of them may
+    not be read against each other, which is the argument for the whole board.
+    """
+    if not summary:
+        return {}
+    return {key: summary.get(key) for key in
+            ("state", "not_identical", "differing", "absent", "absent_on_shipped",
+             "reading_en", "reading_he", "rows", "differing_keys",
+             "held_out", "held_out_blocks", "held_out_comparable",
+             "held_out_uneven", "held_out_one_sided", "held_out_state",
+             "held_out_rule_en", "held_out_rule_he",
+             "held_out_basis_en", "held_out_basis_he")}
+
+
 def _candidate(row: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
     deltas = scored.get("cell_deltas") or {}
     return {
@@ -131,6 +154,10 @@ def _candidate(row: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
         "sha256": row.get("sha256"),
         "short": _short(row.get("sha256")),
         "computed_at": row.get("computed_at"),
+        # What it was built for and what data it read. The purpose is the first
+        # thing the reference puts on a run overview and it was on no surface
+        # here at all, so a reader had five opaque names and a coefficient table.
+        "origin": row.get("origin"),
         "breaks_fitted_on": row.get("breaks_fitted_on"),
         # Both halves of what this row does not share with the rows beside it:
         # how much of the evaluation was in its own fit, and what its producer
@@ -152,8 +179,19 @@ def _candidate(row: dict[str, Any], scored: dict[str, Any]) -> dict[str, Any]:
         "rule_he": row.get("rule_he"),
         "duplicate_of": row.get("duplicate_of") or [],
         "adopted": bool(row.get("adopted")),
+        "gates": _gates(row.get("gates") or {}),
         "money": _money(row.get("money") or {}),
         "decision": _decision(row),
+        # Every verdict on this artifact rather than the newest one. The block
+        # above is what the shelf column reads; this is what "a later reader can
+        # see what was tried" reads, and the steward's own sentence is taken off
+        # every row of it before it reaches a browser bundle.
+        # The steward's own sentence is taken off every row and the operator's
+        # is kept, which is the whole distinction of section 4.6: one is written
+        # for this side of the wall and one is written for the other. A note
+        # that names the training act is scrubbed by the same guard the write
+        # uses, so a publish cannot die on a steward's own words either.
+        "history": history.for_the_board(row.get("history") or {}, offending_names),
         "cells": _cells((deltas.get("summary") or {}), deltas.get("rows") or []),
     }
 
@@ -167,7 +205,22 @@ def board(paths: Optional[rescore.Paths] = None,
     scores = {row.get("id"): row for row in stored.get("candidates") or []}
     version = payload.get("live_version") or {}
     retention = ((version.get("artifacts") or {}).get("retention") or {})
+    log = payload.get("decision_log") or {}
     return {
+        # What is on record about the live artifact itself, which is the row
+        # every figure on this board is measured against. It is a different
+        # subject from a candidate and every read of the log dropped it.
+        "live_model": history.for_the_board_live(log.get("live_model") or {},
+                                                 offending_names),
+        # Whether a release note reaches the side it was written for. Measured
+        # rather than assumed: a chip on this board said a verdict carries a
+        # note for the operator side while no operator surface reads one.
+        "operator_reads": note.operator_reads(),
+        # And where every record in the log went, so a reader can add up the
+        # whole of an append-only file rather than the newest of each subject.
+        "decision_log": {key: log.get(key) for key in
+                         ("records", "tally", "off_the_shelf",
+                          "all_against_version_in_force", "version_name")},
         "published_at": datetime.now(timezone.utc).isoformat(),
         "measured_at": stored.get("measured_at"),
         "rescore_state": payload.get("rescore_state"),
@@ -189,6 +242,7 @@ def board(paths: Optional[rescore.Paths] = None,
             "version_name": version.get("name"),
             "version_short": version.get("short"),
             "computed_at": retention.get("computed_at"),
+            "origin": (payload.get("shipped") or {}).get("origin"),
         },
         "candidates": [_candidate(row, scores.get(row.get("id")) or {})
                        for row in payload.get("candidates") or []],

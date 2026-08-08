@@ -8,19 +8,34 @@ all, so a change to a sentence can never move a number.
 
 Every table here is a comparison across artifacts rather than a page per
 artifact, because JS-19's steward is choosing between five candidates and not
-reading one. The four blocks are the score, the coefficient delta, the baselines
-and the standing state, in that order, because that is the order the question is
-asked in: is it better, what did it change, better than what, and what happens
+reading one. The blocks are the score, the gates, the coefficient delta, the
+self-tests, the verdicts already recorded, the baselines and the standing state,
+in that order, because that is the order the question is asked in: is it better,
+what did it decide differently, what did it change, what did its own producer
+say, what has already been decided about it, better than what, and what happens
 next.
+
+**The checks for one candidate left this file in round 11**, when the verdict
+history took it to 447 of the 450-line cap. They are in
+``adopt_candidate_checks.py`` under the same naming rule, on the seam the two
+halves already had: this file is read while a steward is choosing between five
+artifacts, and that one is read once the choice is made. ``render_checks`` is
+re-exported here because three callers already use that name, and moving a file
+should not move a public surface.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from scripts import adopt_candidate_baselines as baselines
 from scripts import adopt_candidate_basis as basis
-from scripts import adopt_candidate_cells as cells
+from scripts import adopt_candidate_gates as gates
+from scripts import adopt_candidate_history as history
+from scripts import adopt_candidate_note as note
+from scripts import adopt_candidate_origin as origin
 from scripts import adopt_candidate_words as words
+from scripts.adopt_candidate_checks import MONEY_TAGS, render_checks  # noqa: F401
 from scripts.adopt_candidate_state import moved_inputs
 from scripts.adopt_candidate_surface import dropped_field  # noqa: F401
 
@@ -32,12 +47,6 @@ VERDICT_TAGS = {
     "worse": "worse",
     "not_distinguishable": "no difference",
     "unknown": "not re-scored",
-}
-
-MONEY_TAGS = {
-    "measured": "measured",
-    "stale": "stale",
-    "not_measured": "not measured",
 }
 
 # The verdict somebody already recorded, which is JS-19's whole done condition.
@@ -99,6 +108,14 @@ def render(payload: dict[str, Any]) -> list[str]:
     for kind, block in (version.get("artifacts") or {}).items():
         if isinstance(block, dict) and block.get("present"):
             lines.append(f"  {kind:10s} {block.get('path')}  {str(block.get('sha256') or '')[:12]}  trained {block.get('computed_at')}")
+    # What is on record about that version itself. Every read this piece made of
+    # the decision log filtered to the candidate rows, so a verdict whose subject
+    # is the live model reached no surface here at all.
+    lines.extend(history.render_live_model(payload.get("decision_log") or {}))
+    # And what the operator side reads about that version, which is the one
+    # sentence this act sends across the wall. Measured on this tree: none, and
+    # nothing on any surface of this piece said so.
+    lines.extend(note.render_operator_reads(payload.get("operator_reads") or {}))
     lines.append("")
 
     state = payload.get("rescore_state") or {}
@@ -109,7 +126,7 @@ def render(payload: dict[str, Any]) -> list[str]:
     elif state.get("reason_en"):
         lines.append(f"  {state['reason_en']}")
     if evaluation:
-        lines.append(f"  {evaluation.get('breaks')} breaks, {evaluation.get('cells')} cells, {evaluation.get('window')}, {evaluation.get('folds')} temporal folds")
+        lines.append(f"  {evaluation.get('breaks')} breaks, {evaluation.get('cells')} cells, {words.window_line(evaluation)}, {evaluation.get('folds')} temporal folds")
         lines.append(f"  metric: {evaluation.get('metric_en')}")
         # The single most honest line on this surface. Every rmse below sits
         # against it, and one that is not clearly under it is a model that has
@@ -126,9 +143,18 @@ def render(payload: dict[str, Any]) -> list[str]:
         lines.append(f"  lifted by: {limit.get('unblocked_by_en')}")
     lines.append("")
 
+    # What each artifact was for, before anything is ranked. A reader who does
+    # not know what an artifact was trying to do cannot read a table of five.
+    lines.extend(origin.render_purposes(payload))
     lines.extend(_render_table(payload))
+    lines.extend(_render_gate_readings(payload))
     lines.extend(_render_cells(payload))
     lines.extend(basis.render_self_tests(payload))
+    # Every verdict, in the order it was taken, on the surface where the next one
+    # is taken. The table above prints one word and a count in brackets, which
+    # cannot say when, by whom, on what, or that two of them are the same word
+    # for two different stated reasons.
+    lines.extend(history.render_history(payload))
     lines.extend(_render_baselines(payload))
     lines.extend(_render_notes(payload))
     return lines
@@ -158,6 +184,29 @@ def _render_table(payload: dict[str, Any]) -> list[str]:
     lines.append("  money is the revenue movement on the operator's own channel, from the model console's own measurement. A cell marked stale names a figure whose inputs have since moved.")
     lines.append("  a verdict marked * was taken before this comparison existed, so it rests on each artifact's own held-out figures, which come from different splits and are not comparable.")
     lines.extend(_render_money_notes(payload))
+    lines.append("")
+    return lines
+
+
+def _render_gate_readings(payload: dict[str, Any]) -> list[str]:
+    """What each artifact's gates decided, across all five, before any drill.
+
+    JS-19 reads the gates before it reads the money, and until this block the
+    only place they appeared was the last command a steward runs. It is a
+    sentence per artifact rather than a count, because the count the console's
+    comparison returns includes every key the candidate does not carry, and on
+    three of the five candidates on this tree that is the whole of it.
+    """
+    rows = [row for row in payload.get("candidates") or [] if row.get("gates")]
+    if not rows:
+        return []
+    lines = ["Gates, what each artifact decided against the shipped model"]
+    for row in rows:
+        lines.append(f"  {row['id']:20s} {row['gates']['reading_en']}")
+        lines.extend(gates.render_summary(row["gates"])[1:])
+    lines.append("")
+    lines.append(f"  {gates.HELD_OUT_RULE['en']}")
+    lines.append("  the held-out figures themselves, per gate: python scripts/adopt_candidate.py checks <candidate>")
     lines.append("")
     return lines
 
@@ -226,28 +275,8 @@ def _render_baselines(payload: dict[str, Any]) -> list[str]:
     if structure:
         lines.append(f"  {structure.get('reading_en')}")
         lines.append(f"  cell split minus one constant: {_number(structure.get('rmse_delta'), 6)} rmse")
-    lines.extend(_render_structure_finding(payload.get("structure_finding") or {}))
+    lines.extend(baselines.render_standing_finding(payload.get("structure_finding") or {}))
     lines.append("")
-    return lines
-
-
-def _render_structure_finding(finding: dict[str, Any]) -> list[str]:
-    """The standing finding, sized against the candidates, with whose decision it is.
-
-    Printed as a standing finding and never as a next act. Nothing this terminal
-    can run changes the cell structure, so an act line here would be an act
-    nobody can take.
-    """
-    if not finding or finding.get("earns_its_place"):
-        return []
-    times = finding.get("times_the_largest_candidate_move")
-    largest = finding.get("largest_candidate_move_rmse")
-    lines = ["", "  Standing finding, and no candidate on this shelf answers it"]
-    if isinstance(times, (int, float)) and isinstance(largest, (int, float)):
-        lines.append(f"  the cell split costs {finding['structure_cost_rmse']:.6f} rmse out of sample, which is {times:.1f} times the largest movement any candidate makes, {largest:.6f}")
-    addressing = finding.get("candidates_addressing_it") or []
-    lines.append(f"  {len(addressing)} of the {finding.get('candidates_compared')} candidates change the set of cells at all, so all of them are choices made inside a structure that does not pay for itself")
-    lines.append(f"  whose decision this is: {finding.get('decision_owner_en')}. This terminal has no command that changes it.")
     return lines
 
 
@@ -275,133 +304,13 @@ def _render_notes(payload: dict[str, Any]) -> list[str]:
     # The path was in the payload and not on the screen, so a steward who wanted
     # to open one had to guess the filename or read the json.
     lines.append("Artifact files")
+    # With the day each artifact was produced, which this payload has carried on
+    # every row and no surface printed. The live block above prints it for the
+    # shipped model and the candidate rows did not, so a steward could read a
+    # whole shelf without learning that all five of these artifacts predate the
+    # model they are being compared against.
     for row in payload.get("candidates") or []:
-        lines.append(f"  {row['id']:20s} {row['file']}  {row['bytes']:,} bytes")
-    return lines
-
-
-def _render_surface(surface: dict[str, Any]) -> list[str]:
-    """What else the adopted file would change, beyond the money and the score.
-
-    Printed on every check run, passing or failing, because a steward who reads
-    only the verdict lines would never learn that the file about to replace the
-    live one is a narrower file than the one it replaces.
-    """
-    if not surface:
-        return []
-    lines = ["What else the adopted artifact would change"]
-    intervals = surface.get("intervals") or {}
-    if intervals.get("bounds_moved"):
-        lines.append(f"  credible bounds moved on {intervals['bounds_moved']} of the {intervals.get('bounds_compared')} bounds compared, across {intervals.get('cells_compared')} cells")
-        # ``read_by`` is already a sentence about the line that reads the bound,
-        # so introducing it with "read by" made "read by <path> prices the ...".
-        lines.append(f"  largest move {intervals['max_abs_move']} at {intervals['max_abs_move_at']}. {intervals['read_by']}")
-    for key, label in (("metadata_dropped", "metadata keys dropped"),
-                       ("metadata_added", "metadata keys added"),
-                       ("detail_fields_dropped", "per-cell fields dropped"),
-                       ("detail_fields_added", "per-cell fields added"),
-                       ("cells_dropped", "cells dropped")):
-        values = surface.get(key) or []
-        if values:
-            lines.append(f"  {label}: {', '.join(values)}")
-    if len(lines) == 1:
-        lines.append("  nothing beyond the coefficients themselves")
-    lines.append("")
-    return lines
-
-
-def _render_gates(evidence: dict[str, Any]) -> list[str]:
-    """What its gates decide differently, and what each side decided that on.
-
-    JS-19's sequence says "read what its gates decided differently" and its
-    target adds "with its held-out figure". Both were one surface away, on the
-    model console, while the verdict is taken here. The two held-out sizes sit
-    on one line on purpose: 2,532 against 506 is the argument for the re-score.
-    """
-    if not evidence:
-        return []
-    cell = words.gate_cell
-    lines = ["What its gates decide differently"]
-    for row in evidence.get("verdicts") or []:
-        lines.append(f"  {row['key']:34s} shipped {cell(row['shipped'], row['shipped_absent']):22s} candidate {cell(row['candidate'], row['candidate_absent'])}")
-    if len(lines) == 1:
-        lines.append("  no gate decides differently from the shipped artifact")
-    if evidence.get("held_out"):
-        lines.append("  how much each gate was decided on, as each artifact reports it about itself")
-        for row in evidence["held_out"]:
-            lines.append(f"  {row['block']:34s} shipped {words.size_cell(row['shipped_size'], row['shipped_unit'], row['shipped_absent']):22s} candidate {words.size_cell(row['candidate_size'], row['candidate_unit'], row['candidate_absent'])}")
-        lines.append("  two sides measured on different amounts are not comparable, which is why show scores every artifact again on one common set.")
-    lines.append("")
-    return lines
-
-
-def _render_money(money: dict[str, Any]) -> list[str]:
-    """The figure itself, in shekels and with its scope, not just its state.
-
-    JS-19's target asks for the money movement in shekels with its scope, and a
-    check that says only "measured and current" has answered a different
-    question. When it is not measured the state is printed instead, because an
-    absent measurement is a state and never a zero.
-    """
-    delta = money.get("revenue_delta")
-    scope = money.get("scope") or {}
-    if money.get("state") != "measured" or not isinstance(delta, (int, float)):
-        # A state, never a figure. A stale one still carries the date it was
-        # taken and what has moved since, which is what makes it actionable.
-        lines = [f"Money if adopted: {MONEY_TAGS.get(str(money.get('state')), 'unknown')}"]
-        if money.get("state") == "stale":
-            lines.append(f"  last measured {words.when(money.get('measured_at'))}. What moved since: {moved_inputs(money.get('changed'))}")
-            # The magnitude of the figure being refused, named rather than
-            # withheld. "Stale" alone cannot say whether what this check will
-            # not use is a rounding error or a million shekels, and the table
-            # three commands earlier already prints it.
-            last = money.get("last_known_revenue_delta")
-            if isinstance(last, (int, float)):
-                lines.append(f"  the figure it last measured was {last:+,.2f} on the operator's own channel, and this check will not carry it into a record or an artifact stamp because its inputs have since moved")
-        return lines + [""]
-    whole = money.get("whole_plan_delta")
-    rows = scope.get("rows")
-    counted = f"{rows:,}" if isinstance(rows, int) else "an unrecorded number of"
-    lines = [f"Money if adopted: {delta:+,.2f} on the operator's own channel over {counted} rows"]
-    if isinstance(whole, (int, float)):
-        lines.append(f"  whole plan, every channel the optimizer schedules: {whole:+,.2f}")
-    lines.append(f"  basis: {scope.get('basis')}")
-    lines.append(f"  measured {words.when(money.get('measured_at'))}")
-    if money.get("moved_fields"):
-        lines.append(f"  shipped figures this would move: {', '.join(money['moved_fields'])}")
-    lines.append("")
-    return lines
-
-
-def render_checks(state: dict[str, Any]) -> list[str]:
-    """The adoption checks as a terminal reads them, passed and failed alike.
-
-    A name that is not a candidate stops after the first check. The payload
-    still answers every condition, but rendering the rest would state as fact
-    that a file which does not exist drops the engine inputs the shipped one has.
-    """
-    lines = [f"Adoption checks for {state.get('candidate_id')}"]
-    for check in state.get("checks") or []:
-        mark = "pass" if check["passed"] else "STOP"
-        lines.append(f"  [{mark}] {check['id']:32s} {check['reason_en']}")
-        if not check["passed"] and check.get("how_en"):
-            lines.append(f"         {'':32s} {check['how_en']}")
-        if check["id"] == "candidate_exists" and not check["passed"]:
-            lines.append("")
-            lines.append("Nothing below can be answered about a candidate that is not on disk.")
-            lines.append(f"outcome: {state.get('outcome')}")
-            return lines
-    lines.append("")
-    lines.extend(_render_money(state.get("money") or {}))
-    lines.extend(_render_gates(state.get("gate_evidence") or {}))
-    # The points before the intervals, because the point is what the engine
-    # reads as the retention cost and the interval is what it reads when the
-    # operator prices risk. Reporting the interval and not the point read as
-    # "the bounds moved and the numbers did not", and on this tree every number
-    # moved on every candidate but one.
-    lines.extend(cells.render_summary(state.get("cell_deltas") or {}))
-    lines.extend(_render_surface(state.get("artifact_surface") or {}))
-    if state.get("escalated"):
-        lines.append("This adoption is escalated and will not land.")
-    lines.append(f"outcome: {state.get('outcome')}")
+        lines.append(f"  {row['id']:20s} {row['file']}  {row['bytes']:,} bytes  produced {words.when(row.get('computed_at'))}")
+    # And what data each of those files read, checked against the files on disk.
+    lines.extend(origin.render_provenance(payload))
     return lines

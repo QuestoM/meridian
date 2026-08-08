@@ -266,6 +266,35 @@ DECISION_WORDS: dict[str, dict[str, str]] = {
 }
 
 
+# What a record actually carries in its money keys, said correctly for each of
+# the three states.
+#
+# This terminal used to print one sentence for all of them, "the record states
+# that rather than carrying a figure", and on a stale candidate that sentence is
+# false. Measured against a copy of the store: a verdict recorded on
+# ``competitor`` came back with ``money_state`` stale and ``revenue_delta``
+# 948456.21 sitting beside it. The figure is not this piece's. The evidence block
+# opens as the console's own, ``model_console_api_payloads.decision_evidence``,
+# which writes ``revenue_delta`` from the stored measurement whenever one exists
+# and lets ``money_state`` carry the staleness (``model_console_api_payloads.py``
+# lines 131 to 133). What this act adds is no figure of its own, which is a
+# different claim, and it is the one that is true.
+RECORD_MONEY: dict[str, dict[str, str]] = {
+    "measured": {
+        "en": "measured and current, and the record carries the figure",
+        "he": "נמדד ועדכני, והרישום נושא את המספר",
+    },
+    "stale": {
+        "en": "stale. The record carries the model console's own last measured figure under that state, and this act adds no figure of its own.",
+        "he": "לא עדכני. הרישום נושא את המספר האחרון שקונסולת המודל מדדה, תחת המצב הזה, והפעולה הזו אינה מוסיפה מספר משלה.",
+    },
+    "not_measured": {
+        "en": "not measured, so the record carries no figure at all",
+        "he": "לא נמדד, ולכן הרישום אינו נושא שום מספר",
+    },
+}
+
+
 # What the stat column is and what would have to happen for a row to be called
 # better or worse. The rule was computed on every row and rendered nowhere, so
 # the table carried a bare statistic with no bar beside it and a word, "no
@@ -316,46 +345,28 @@ CELL_READING: dict[str, dict[str, str]] = {
 }
 
 
-# What a gate cell says when one artifact does not carry the key at all. A
-# different fact from a key it carries with a different value, so it is a
-# sentence and never a blank.
-GATE_ABSENT: dict[str, str] = {
-    "en": "does not carry it",
-    "he": "אינו נושא אותו",
+# The measurement window as two ends rather than one joined string.
+#
+# It was emitted pre-joined, "2024-11-01 to 2024-11-30", with an English
+# preposition inside it, and rendered verbatim into a Hebrew line where nothing
+# could read it and nothing could reformat it. A range is two calendar days and
+# the joining is a property of the surface reading them, so the payload carries
+# the ends and each surface joins them its own way: this terminal in English
+# here, the board through the one file in the dashboard that decides what a date
+# looks like.
+WINDOW_JOIN: dict[str, str] = {
+    "en": "{start} to {end}",
+    "he": "{start} עד {end}",
 }
 
 
-# What each held-out block counted. Three gates on this tree record their size
-# under three different key names and they are three different things, so the
-# unit travels with the figure and 34,560 is never read as 34,560 breaks.
-HELD_OUT_UNITS: dict[str, str] = {
-    "n_test": "breaks",
-    "n_test_minutes": "minutes",
-    "n_test_days": "days",
-}
-
-
-def gate_cell(value: Any, absent: bool, language: str = "en") -> str:
-    """One side of a gate row: its value, or that this side has no such key.
-
-    A boolean is lowered and a count is grouped, because ``True`` and ``2532``
-    are how Python prints them and not how a person reads them, and a float is
-    cut at six decimals so a p-value does not arrive with seventeen.
-    """
-    if absent:
-        return GATE_ABSENT[language]
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, int):
-        return f"{value:,}"
-    return str(round(value, 6)) if isinstance(value, float) else str(value)
-
-
-def size_cell(size: Any, unit: str, absent: bool, language: str = "en") -> str:
-    """One side of a held-out row: how much it was measured on, and of what."""
-    if absent:
-        return GATE_ABSENT[language]
-    return f"{gate_cell(size, False)} {HELD_OUT_UNITS.get(unit, unit or '')}".strip()
+def window_line(evaluation: dict[str, Any], language: str = "en") -> str:
+    """The measurement window as one reading, from the two ends of it."""
+    start = str((evaluation or {}).get("window_from") or "")
+    end = str((evaluation or {}).get("window_to") or "")
+    if not start or not end:
+        return "window not recorded" if language == "en" else "החלון לא נרשם"
+    return WINDOW_JOIN[language].format(start=start, end=end)
 
 
 def when(value: Any) -> str:

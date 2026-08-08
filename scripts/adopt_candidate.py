@@ -5,7 +5,7 @@
     PYTHONUTF8=1 python scripts/adopt_candidate.py measure <candidate>
     PYTHONUTF8=1 python scripts/adopt_candidate.py checks <candidate>
     PYTHONUTF8=1 python scripts/adopt_candidate.py diff <candidate>
-    PYTHONUTF8=1 python scripts/adopt_candidate.py decide <candidate> --decision <shipped|not_shipped> --actor "<name>" --reason "<sentence>"
+    PYTHONUTF8=1 python scripts/adopt_candidate.py decide <candidate> --decision <ship|no-ship> --actor "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py adopt <candidate> --adopted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py revert <adoption id> --reverted-by "<name>" --reason "<sentence>"
     PYTHONUTF8=1 python scripts/adopt_candidate.py report
@@ -66,6 +66,7 @@ from scripts import adopt_candidate_cells as cells  # noqa: E402
 from scripts import adopt_candidate_decide as verdict  # noqa: E402
 from scripts import adopt_candidate_registry as registry  # noqa: E402
 from scripts import adopt_candidate_rescore as rescore  # noqa: E402
+from scripts import adopt_candidate_words as words  # noqa: E402
 
 REPORT_FILE = "candidate_registry.json"
 
@@ -98,7 +99,7 @@ def command_rescore(args: argparse.Namespace) -> int:
     payload = rescore.rescore(paths)
     written = rescore.save_rescore(payload, paths)
     print(f"Re-scored {len(payload['candidates'])} candidates against the shipped model.")
-    print(f"Evaluation: {payload['evaluation']['breaks']} breaks, {payload['evaluation']['cells']} cells, {payload['evaluation']['window']}.")
+    print(f"Evaluation: {payload['evaluation']['breaks']} breaks, {payload['evaluation']['cells']} cells, {words.window_line(payload['evaluation'])}.")
     print(f"Written to {written.relative_to(paths.root).as_posix()}.")
     print("")
     _print(registry.render(registry.registry(paths)))
@@ -169,7 +170,8 @@ def command_decide(args: argparse.Namespace) -> int:
     function, so this terminal and that console cannot hold different verdicts
     about the same candidate.
     """
-    result = verdict.decide(args.candidate, decision=args.decision, actor=args.actor,
+    decision = verdict.normalise_decision(args.decision)
+    result = verdict.decide(args.candidate, decision=decision, actor=args.actor,
                             reason=args.reason, reason_en=args.reason_en,
                             release_note_he=args.release_note_he,
                             release_note_en=args.release_note_en,
@@ -188,7 +190,7 @@ def command_adopt(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(plan, ensure_ascii=False, indent=1))
         return 0 if plan["outcome"] in ("adopted", "ready") else 1
-    _print(registry.render_checks(plan))
+    _print(registry.render_checks(registry.with_origin(plan, _paths())))
     if plan["outcome"] == "adopted":
         record = plan["record"]
         print(f"Adopted {record['candidate_id']} as {record['adoption_id']}.")
@@ -294,7 +296,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     decide_parser = subparsers.add_parser("decide", parents=[shared], help="record a ship or no-ship verdict against the model version on disk")
     decide_parser.add_argument("candidate")
-    decide_parser.add_argument("--decision", choices=verdict.DECISIONS, required=True)
+    decide_parser.add_argument("--decision", choices=verdict.DECISION_CHOICES, required=True,
+                               metavar="{ship|no-ship}",
+                               help="ship or no-ship. The store's own keys, shipped and not_shipped, are accepted too")
     decide_parser.add_argument("--actor", default="", help="who is taking this verdict")
     decide_parser.add_argument("--reason", default="", help="why, in one sentence, rendered verbatim on a right-to-left card")
     decide_parser.add_argument("--reason-en", default="", help="the same sentence in English, carried in the evidence")

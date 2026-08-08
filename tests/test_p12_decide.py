@@ -237,27 +237,50 @@ def test_the_english_reason_rides_in_the_evidence_so_neither_language_is_lost(tr
     assert _log(tree)[0]["evidence"]["reason_en"].startswith("Not distinguishable")
 
 
+def _modules():
+    """Every module of this piece, from disk, so a new one cannot escape the law.
+
+    The discovery below used to walk one module. That was the same shape of hole
+    one level up: an authored table put beside the arithmetic it belongs to,
+    rather than in the words file, was governed by nothing at all. Round 8 put
+    the gate strings beside the gate arithmetic in ``adopt_candidate_gates.py``,
+    and under the old test both halves of every one of them were unchecked.
+    """
+    import importlib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    found = [importlib.import_module(f"scripts.{path.stem}")
+             for path in sorted((root / "scripts").glob("adopt_candidate*.py"))]
+    assert len(found) >= 8, "the module discovery found almost nothing"
+    return found
+
+
 def _string_tables():
-    """Every table of two-language entries in the words module, found rather than listed.
+    """Every table of two-language entries in this piece, found rather than listed.
 
     This was a hardcoded list of five names. That is the same defect round 3
     found in the module-size test and fixed there with a glob: a list of names
     stops covering new code the moment new code is added, and it does it
     silently, so the law it holds quietly stops applying exactly when there is
     something new to hold it against. Round 6 added two tables and both would
-    have escaped. Discovered now, with a floor so an accident that makes the
-    discovery return nothing fails instead of passing vacuously.
+    have escaped. Round 8 widened the search from one module to every module of
+    the piece, for the same reason. Discovered now, with a floor so an accident
+    that makes the discovery return nothing fails instead of passing vacuously.
     """
     found = {}
-    for name in dir(words):
-        if not name.isupper():
-            continue
-        value = getattr(words, name)
-        if isinstance(value, dict) and value and all(
-                isinstance(entry, dict) and "en" in entry for entry in value.values()):
-            found[name] = value
-    assert len(found) >= 7, f"the discovery found only {sorted(found)}"
-    for known in ("VERDICTS", "BASIS", "RULE", "HOW", "NEXT_ACT", "SELF_TEST", "FIT_BASIS"):
+    for module in _modules():
+        for name in dir(module):
+            if not name.isupper():
+                continue
+            value = getattr(module, name)
+            if isinstance(value, dict) and value and all(
+                    isinstance(entry, dict) and "en" in entry for entry in value.values()):
+                found[f"{module.__name__.split('_')[-1]}.{name}"] = value
+    assert len(found) >= 9, f"the discovery found only {sorted(found)}"
+    for known in ("words.VERDICTS", "words.BASIS", "words.RULE", "words.HOW",
+                  "words.NEXT_ACT", "words.SELF_TEST", "words.FIT_BASIS",
+                  "words.CELL_READING", "gates.GATE_READING", "gates.HELD_OUT_STATE"):
         assert known in found, f"{known} was not discovered"
     return found
 
@@ -271,8 +294,11 @@ def test_every_authored_string_this_piece_emits_exists_in_both_languages(table):
 
 
 def test_the_evaluation_and_the_limit_carry_both_halves_too():
-    for pair in (words.METRIC, words.TARGET_SD, words.DECISION_BASIS, words.GATE_ABSENT,
-                 words.SELF_TEST_BASIS):
+    from scripts import adopt_candidate_gates as gates
+
+    for pair in (words.METRIC, words.TARGET_SD, words.DECISION_BASIS, words.WINDOW_JOIN,
+                 words.SELF_TEST_BASIS, gates.GATE_ABSENT, gates.HELD_OUT_RULE,
+                 gates.GATE_ALSO_ABSENT):
         assert pair["en"].strip() and pair["he"].strip()
     for limit in (words.IN_SAMPLE_LIMIT, words.LIMIT_UNEVEN, words.LIMIT_UNKNOWN):
         assert limit["en"].strip() and limit["he"].strip()

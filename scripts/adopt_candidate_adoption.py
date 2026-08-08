@@ -41,6 +41,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from scripts import adopt_candidate_gates as gates
 from scripts import adopt_candidate_ownership as ownership
 from scripts import adopt_candidate_words as words
 from scripts.adopt_candidate_state import (
@@ -364,6 +365,10 @@ def adopt(identifier: str, *, adopted_by: str, reason: str, release_note_he: str
         # version. All three are in this stamp, so a reader holding only the
         # adopted file can see what was decided and on what.
         "gate_deltas": (state["gate_evidence"] or {}).get("verdicts") or [],
+        # And what those rows amount to, because a key the candidate does not
+        # carry is one of them and counting them reads as a decision that was
+        # never taken. A reader holding only this file gets the sentence.
+        "gate_reading": gates.gate_summary(state["gate_evidence"] or {}),
         "coefficient_deltas": (state["cell_deltas"] or {}).get("summary") or {},
         "revert_with": f"python scripts/adopt_candidate.py revert {adoption_id}",
     }

@@ -45,14 +45,203 @@
   "basis_en": "The identity is a digest of both artifacts' bytes, so it is reproducible from the tree.",
   "basis_he": "הזהות היא טביעת אצבע של הבייטים של שני הקבצים, ולכן היא ניתנת לשחזור מהעץ."
  },
+ "decision_log": {
+  "records": 7,
+  "version_id": "mv-2026-07-29-35cc2e21",
+  "version_name": "2026-07-29",
+  "candidates": {
+   "spotclip": {
+    "rows": [
+     {
+      "decision_id": "md-2212595fbb9e",
+      "recorded_at": "2026-08-02T02:13:22.813973+00:00",
+      "actor": "steward",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון."
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
+   },
+   "calibrated": {
+    "rows": [
+     {
+      "decision_id": "md-693f95698d4e",
+      "recorded_at": "2026-08-01T19:04:24.745372+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded"
+     },
+     {
+      "decision_id": "md-f750ef920f12",
+      "recorded_at": "2026-08-01T14:41:08.155496+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": false,
+      "superseded_by": "md-693f95698d4e",
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "המדידה שעליה אפשר היה להסתמך אינה עדכנית מאז שההגדרות זזו, ולכן אין בסיס עדכני להשקה. יש למדוד שוב לפני הכרעה חוזרת."
+     }
+    ],
+    "count": 2,
+    "state": "restated",
+    "not_shown_by_the_latest": 1,
+    "reading_en": "2 verdicts on record, all of them the same word, each for a different stated reason. The newest is the one in force and the earlier ones are what was tried before it.",
+    "reading_he": "2 הכרעות רשומות, כולן אותה מילה, כל אחת מנימוק רשום אחר. החדשה היא זו שבתוקף והקודמות הן מה שנוסה לפניה."
+   },
+   "placebo_corrected": {
+    "rows": [
+     {
+      "decision_id": "md-b4b207f13299",
+      "recorded_at": "2026-08-01T18:51:33.198623+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures do not move far enough to be worth the restatement"
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
+   },
+   "competitor": {
+    "rows": [
+     {
+      "decision_id": "md-8e1761b105fc",
+      "recorded_at": "2026-08-01T18:50:51.892000+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures do not move far enough to be worth the restatement"
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
+   },
+   "afterwindow": {
+    "rows": [
+     {
+      "decision_id": "md-7805cd5b25b4",
+      "recorded_at": "2026-08-01T14:31:48.874771+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "shipped",
+      "decision_en": "ship",
+      "decision_he": "להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": true,
+      "money_direction": "unknown",
+      "reason": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור."
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
+   }
+  },
+  "live_model": {
+   "rows": [
+    {
+     "decision_id": "md-36f07b03b472",
+     "recorded_at": "2026-08-02T01:57:36.997947+00:00",
+     "actor": "steward",
+     "decision": "not_shipped",
+     "decision_en": "no ship",
+     "decision_he": "לא להשיק",
+     "model_version_id": "mv-2026-07-29-35cc2e21",
+     "model_version_name": "2026-07-29",
+     "against_version_in_force": true,
+     "on_rescore": false,
+     "in_force": true,
+     "superseded_by": null,
+     "release_note": false,
+     "money_direction": "unknown",
+     "reason": "הסחיפה השבועית חצתה את הסף המחייב, ולכן אין להשיק לפני מדידה חוזרת על חלון עדכני."
+    }
+   ],
+   "count": 1,
+   "state": "standing",
+   "not_shown_by_the_latest": 0,
+   "reading_en": "A verdict is on record on the shipped model itself, against the model version in force, and every candidate below is measured against that same version.",
+   "reading_he": "רשומה הכרעה על המודל המשודר עצמו, מול גרסת המודל שבתוקף, וכל מועמד למטה נמדד מול אותה גרסה בדיוק."
+  },
+  "off_the_shelf": [],
+  "tally": {
+   "on_the_shelf": 6,
+   "on_the_live_model": 1,
+   "off_the_shelf": 0
+  },
+  "against_another_version": [],
+  "all_against_version_in_force": true
+ },
  "rescore_state": {
   "state": "current",
-  "measured_at": "2026-08-07T08:24:57.851714+00:00"
+  "measured_at": "2026-08-07T13:20:36.115667+00:00"
  },
  "evaluation": {
   "breaks": 2532,
   "cells": 36,
-  "window": "2024-11-01 to 2024-11-30",
+  "window_from": "2024-11-01",
+  "window_to": "2024-11-30",
   "target_en": "The detrended log effect measured on each break, rebuilt from the sources on disk.",
   "target_he": "אפקט הלוג המנוכה מגמה שנמדד בכל ברייק, נבנה מחדש מהמקורות שעל הדיסק.",
   "metric_en": "Root mean squared error against that measured effect, over the same breaks for every row.",
@@ -63,11 +252,91 @@
   "folds": 5
  },
  "limit": {
-  "state": "in_sample",
-  "en": "Every artifact scored here was fitted on all of these breaks, so each absolute figure is optimistic. Only the difference between two rows is readable, because both carry the same optimism.",
-  "he": "כל קובץ שנמדד כאן אומן על כל הברייקים האלה, ולכן כל מספר מוחלט הוא אופטימי. רק ההפרש בין שתי שורות ניתן לקריאה, כי שתיהן נושאות את אותה אופטימיות.",
-  "unblocked_by_en": "A second month of measured breaks that no artifact here was fitted on.",
-  "unblocked_by_he": "חודש נוסף של ברייקים נמדדים שאף קובץ כאן לא אומן עליו."
+  "en": "Not every artifact was fitted on all of these breaks, so the optimism is not the same in every row and a difference against one of the named rows carries a confound on top of the noise.",
+  "he": "לא כל קובץ אומן על כל הברייקים האלה, ולכן האופטימיות אינה זהה בכל שורה, והפרש מול אחת השורות שנקובות כאן נושא הטיה נוספת מעבר לרעש.",
+  "unblocked_by_en": "The identity of the breaks each artifact was fitted on, recorded in the artifact rather than the count alone. The counts are recorded here and the identities are not, so the size of this confound is not computable from anything on disk.",
+  "unblocked_by_he": "זהות הברייקים שכל קובץ אומן עליהם, רשומה בתוך הקובץ ולא רק המניין. המניינים רשומים כאן והזהויות לא, ולכן גודל ההטיה הזו אינו ניתן לחישוב מדבר שנמצא על הדיסק.",
+  "state": "in_sample_uneven",
+  "uneven": [
+   "spotclip"
+  ],
+  "unknown": [],
+  "largest_shortfall": 196,
+  "largest_shortfall_at": "spotclip",
+  "largest_shortfall_share": 0.077409163
+ },
+ "fit_basis": {
+  "state": "uneven",
+  "scored_on": 2532,
+  "rows": [
+   {
+    "id": "shipped",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "afterwindow",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "calibrated",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "competitor",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "placebo_corrected",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
+   {
+    "id": "spotclip",
+    "fitted_on": 2336,
+    "base": 2532,
+    "dropped": 196,
+    "scored_on": 2532,
+    "not_fitted_on": 196,
+    "share_not_fitted_on": 0.077409163,
+    "state": "fewer"
+   }
+  ],
+  "uneven": [
+   "spotclip"
+  ],
+  "unknown": [],
+  "largest_shortfall": 196,
+  "largest_shortfall_at": "spotclip",
+  "largest_shortfall_share": 0.077409163
  },
  "baselines": [
   {
@@ -101,7 +370,54 @@
   "cells": 36,
   "cells_not_carried": 0,
   "sha256": "1e41d92b1a1476c79a8a506773a0e40e6fa2d1a69c5cbeca5c09435e45882aa8",
-  "file": "models/tv_break_coefficients.json"
+  "file": "models/tv_break_coefficients.json",
+  "breaks_fitted_on": 2532,
+  "self_reported": {
+   "id": "shipped",
+   "state": "absent",
+   "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+   "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+  },
+  "origin": {
+   "id": "shipped",
+   "purpose": null,
+   "purpose_state": "absent",
+   "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+   "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+   "sources": [
+    {
+     "file": "data/reference/Dayparts.xlsx",
+     "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+     "short": "77f69dd25143",
+     "on_disk": true,
+     "matches": true
+    },
+    {
+     "file": "data/reference/Programmes.xlsx",
+     "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+     "short": "00e23da271e8",
+     "on_disk": true,
+     "matches": true
+    },
+    {
+     "file": "data/reference/Spots.xlsx",
+     "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+     "short": "a540fe3bee3f",
+     "on_disk": true,
+     "matches": true
+    }
+   ],
+   "sources_recorded": 3,
+   "sources_state": "verified",
+   "sources_changed": [],
+   "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+   "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+   "recipe_state": "not_recorded",
+   "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+   "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+   "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+   "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם."
+  }
  },
  "cell_structure": {
   "cell_mean_loo_rmse": 0.242097429,
@@ -135,6 +451,50 @@
    "bytes": 12457,
    "sha256": "19bf30f1304f4f65366ae48b1824886ba1481b3577ae6d05452206fcefc7acaf",
    "computed_at": "2026-07-05T17:52:51.165302+00:00",
+   "origin": {
+    "id": "spotclip",
+    "purpose": "spot-level window clip (clip_to_all_ad_airtime=True) variant",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "breaks_fitted_on": 2336,
    "rmse": 0.241004968,
    "rmse_delta": -0.000155699,
@@ -147,6 +507,25 @@
    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.7756, movement -0.000156, dispersion 0.000418.",
    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.7756, תנועה -0.000156, פיזור 0.000418.",
    "duplicate_of": [],
+   "self_reported": {
+    "id": "spotclip",
+    "n_test": 461,
+    "reason": "variant rmse improves base by -0.38% (threshold 2%): keep OFF (within noise)",
+    "adopt_recommended": false,
+    "state": "advised_against",
+    "reading_en": "Whatever produced this artifact recorded its own out-of-sample test and advised against adopting it.",
+    "reading_he": "מה שהפיק את הקובץ הזה רשם בדיקה מחוץ למדגם משלו והמליץ שלא לאמץ אותו."
+   },
+   "fit_basis": {
+    "id": "spotclip",
+    "fitted_on": 2336,
+    "base": 2532,
+    "dropped": 196,
+    "scored_on": 2532,
+    "not_fitted_on": 196,
+    "share_not_fitted_on": 0.077409163,
+    "state": "fewer"
+   },
    "cell_delta": {
     "cells_compared": 36,
     "cells_moved": 36,
@@ -185,6 +564,180 @@
     "reading_en": "36 of 36 cells hold a different number, and 78.9 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 78.9 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
    },
+   "gates": {
+    "not_identical": 10,
+    "differing": 0,
+    "absent": 10,
+    "absent_on_shipped": 0,
+    "state": "absent_only_candidate",
+    "reading_en": "No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.",
+    "reading_he": "אין מפתח שער ששני הקבצים נושאים ובו ערך שונה. כל 10 המפתחות שהם נבדלים בהם הם מפתחות שהמועמד אינו נושא כלל, ולכן הוא אינו רושם הכרעה באף אחד מהם.",
+    "rows": [
+     {
+      "key": "series_layer_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "counterprogramming_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_multiplier",
+      "shipped": 1.0,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "1.0",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_p_value",
+      "shipped": 0.20341935034834022,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "0.203419",
+      "candidate_text": null
+     },
+     {
+      "key": "placebo_correction_active",
+      "shipped": true,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "true",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_seasonality_recommended",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "moderated_variances",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "interval_method",
+      "shipped": "bootstrap",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "bootstrap",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_baseline_mode",
+      "shipped": "global",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "global",
+      "candidate_text": null
+     }
+    ],
+    "differing_keys": [],
+    "held_out": [
+     {
+      "block": "counterprogramming_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     },
+     {
+      "block": "detrend_seasonality_holdout",
+      "shipped_size": 34560,
+      "shipped_unit": "n_test_minutes",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "minutes",
+      "shipped_unit_he": "דקות",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     },
+     {
+      "block": "holdout_clean_test",
+      "shipped_size": null,
+      "shipped_unit": null,
+      "candidate_size": 461,
+      "candidate_unit": "n_test",
+      "shipped_absent": true,
+      "candidate_absent": false,
+      "comparable": false,
+      "shipped_unit_en": "",
+      "shipped_unit_he": "",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     },
+     {
+      "block": "series_gate_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     }
+    ],
+    "held_out_blocks": 4,
+    "held_out_comparable": 0,
+    "held_out_uneven": [],
+    "held_out_one_sided": [
+     "counterprogramming_holdout",
+     "detrend_seasonality_holdout",
+     "holdout_clean_test",
+     "series_gate_holdout"
+    ],
+    "held_out_state": "uneven",
+    "held_out_rule_en": "Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.",
+    "held_out_rule_he": "כל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.",
+    "held_out_basis_en": "These amounts do not agree, so the gate figures taken on them are not comparable with each other.",
+    "held_out_basis_he": "הכמויות האלה אינן תואמות, ולכן מספרי השערים שנלקחו עליהן אינם ברי השוואה זה לזה."
+   },
    "money": {
     "state": "stale",
     "revenue_delta": null,
@@ -206,35 +759,44 @@
     "decision_id": "md-2212595fbb9e",
     "recorded_at": "2026-08-02T02:13:22.813973+00:00",
     "actor": "steward",
+    "decision": "not_shipped",
+    "decision_en": "no ship",
+    "decision_he": "לא להשיק",
     "model_version_id": "mv-2026-07-29-35cc2e21",
     "model_version_name": "2026-07-29",
-    "subject": "candidate",
-    "candidate_id": "spotclip",
-    "decision": "not_shipped",
-    "reason": "ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון.",
-    "release_note_he": "",
-    "release_note_en": "",
+    "against_version_in_force": true,
+    "on_rescore": false,
+    "in_force": true,
+    "superseded_by": null,
+    "release_note": false,
     "money_direction": "unknown",
-    "evidence": {
-     "gate_counts": {
-      "active": 3,
-      "tested_and_lost": 5,
-      "no_contrast": 5,
-      "not_measured": 0
-     },
-     "gate_total": 13,
-     "money_state": "measured",
-     "revenue_delta": 902998.61,
-     "revenue_delta_pct": 2.2078,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
-     },
-     "measured_at": "2026-08-01T08:53:05.583529+00:00"
-    },
-    "adoption": {
-     "state": "not_applicable"
-    }
+    "reason": "ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון."
+   },
+   "history": {
+    "rows": [
+     {
+      "decision_id": "md-2212595fbb9e",
+      "recorded_at": "2026-08-02T02:13:22.813973+00:00",
+      "actor": "steward",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "ההפרש מחוץ למדגם אינו מצדיק ניסוח מחדש של כל תוכנית, והכסף הנמדד קטן מדי ביחס לסיכון."
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
    },
    "decision_on_rescore": false,
    "owner_approval": false,
@@ -252,6 +814,50 @@
    "bytes": 12410,
    "sha256": "c0da369034d4a175269c2bbc4fc3d11edd715c1ca2bc926a5c7005a3401596d6",
    "computed_at": "2026-07-05T17:47:58.285153+00:00",
+   "origin": {
+    "id": "afterwindow",
+    "purpose": "after-window de-bias verification recompute (post-clip code, reference data)",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "breaks_fitted_on": 2532,
    "rmse": 0.241046876,
    "rmse_delta": -0.00011379,
@@ -266,6 +872,25 @@
    "duplicate_of": [
     "calibrated"
    ],
+   "self_reported": {
+    "id": "afterwindow",
+    "n_test": 452,
+    "reason": null,
+    "adopt_recommended": null,
+    "state": "recorded_without_a_verdict",
+    "reading_en": "This artifact records its own out-of-sample test and reaches no recommendation either way.",
+    "reading_he": "הקובץ הזה רושם בדיקה מחוץ למדגם משלו ואינו מגיע להמלצה לכאן או לכאן."
+   },
+   "fit_basis": {
+    "id": "afterwindow",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
    "cell_delta": {
     "cells_compared": 36,
     "cells_moved": 36,
@@ -304,76 +929,248 @@
     "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
    },
+   "gates": {
+    "not_identical": 10,
+    "differing": 0,
+    "absent": 10,
+    "absent_on_shipped": 0,
+    "state": "absent_only_candidate",
+    "reading_en": "No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.",
+    "reading_he": "אין מפתח שער ששני הקבצים נושאים ובו ערך שונה. כל 10 המפתחות שהם נבדלים בהם הם מפתחות שהמועמד אינו נושא כלל, ולכן הוא אינו רושם הכרעה באף אחד מהם.",
+    "rows": [
+     {
+      "key": "series_layer_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "counterprogramming_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_multiplier",
+      "shipped": 1.0,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "1.0",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_p_value",
+      "shipped": 0.20341935034834022,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "0.203419",
+      "candidate_text": null
+     },
+     {
+      "key": "placebo_correction_active",
+      "shipped": true,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "true",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_seasonality_recommended",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "moderated_variances",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "interval_method",
+      "shipped": "bootstrap",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "bootstrap",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_baseline_mode",
+      "shipped": "global",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "global",
+      "candidate_text": null
+     }
+    ],
+    "differing_keys": [],
+    "held_out": [
+     {
+      "block": "counterprogramming_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     },
+     {
+      "block": "detrend_seasonality_holdout",
+      "shipped_size": 34560,
+      "shipped_unit": "n_test_minutes",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "minutes",
+      "shipped_unit_he": "דקות",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     },
+     {
+      "block": "holdout_clean_test",
+      "shipped_size": null,
+      "shipped_unit": null,
+      "candidate_size": 452,
+      "candidate_unit": "n_test",
+      "shipped_absent": true,
+      "candidate_absent": false,
+      "comparable": false,
+      "shipped_unit_en": "",
+      "shipped_unit_he": "",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     },
+     {
+      "block": "series_gate_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     }
+    ],
+    "held_out_blocks": 4,
+    "held_out_comparable": 0,
+    "held_out_uneven": [],
+    "held_out_one_sided": [
+     "counterprogramming_holdout",
+     "detrend_seasonality_holdout",
+     "holdout_clean_test",
+     "series_gate_holdout"
+    ],
+    "held_out_state": "uneven",
+    "held_out_rule_en": "Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.",
+    "held_out_rule_he": "כל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.",
+    "held_out_basis_en": "These amounts do not agree, so the gate figures taken on them are not comparable with each other.",
+    "held_out_basis_he": "הכמויות האלה אינן תואמות, ולכן מספרי השערים שנלקחו עליהן אינם ברי השוואה זה לזה."
+   },
    "money": {
-    "state": "measured",
-    "revenue_delta": 923843.08,
+    "state": "stale",
+    "revenue_delta": null,
     "last_known_revenue_delta": 923843.08,
-    "revenue_delta_pct": 2.2636,
+    "changed": [
+     "settings"
+    ],
+    "how": "measure",
     "measured_at": "2026-08-07T02:42:07.179571+00:00",
     "scope": {
      "rows": 2540,
      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
     },
-    "moved_fields": [
-     "breaks_delta on the whole plan",
-     "retention_sum_delta on the operator's own channel",
-     "retention_sum_delta on the whole plan",
-     "revenue_delta on the operator's own channel",
-     "revenue_delta on the whole plan"
-    ],
-    "whole_plan_delta": 5290848.33
+    "reason_en": "The stored money measurement is not current. What changed: the saved settings.",
+    "reason_he": "מדידת הכסף השמורה אינה עדכנית. מה שהשתנה: ההגדרות השמורות."
    },
    "decisions": 1,
    "latest_decision": {
     "decision_id": "md-7805cd5b25b4",
     "recorded_at": "2026-08-01T14:31:48.874771+00:00",
     "actor": "unknown (login is not set up)",
+    "decision": "shipped",
+    "decision_en": "ship",
+    "decision_he": "להשיק",
     "model_version_id": "mv-2026-07-29-35cc2e21",
     "model_version_name": "2026-07-29",
-    "subject": "candidate",
-    "candidate_id": "afterwindow",
-    "decision": "shipped",
-    "reason": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור.",
-    "release_note_he": "עלות השימור לברייק מחושבת מעכשיו על חלון רחב יותר. תוכניות שירוצו מכאן ואילך עשויות למקם ברייקים מעט אחרת.",
-    "release_note_en": "",
+    "against_version_in_force": true,
+    "on_rescore": false,
+    "in_force": true,
+    "superseded_by": null,
+    "release_note": true,
     "money_direction": "unknown",
-    "evidence": {
-     "gate_counts": {
-      "active": 3,
-      "tested_and_lost": 5,
-      "no_contrast": 5,
-      "not_measured": 0
-     },
-     "gate_total": 13,
-     "money_state": "stale",
-     "revenue_delta": 963477.37,
-     "revenue_delta_pct": 2.3556,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
-     },
-     "measured_at": "2026-08-01T08:47:20.124212+00:00"
-    },
-    "adoption": {
-     "state": "escalated",
-     "performed": false,
-     "reason_en": "Copying this candidate over the shipped artifact would move revenue in every plan run afterwards, so the verdict is recorded and the adoption is escalated for owner approval rather than performed here.",
-     "reason_he": "העתקת המועמד הזה על הקובץ המשודר תזיז הכנסה בכל הרצה שאחריה, ולכן ההכרעה נרשמת וההטמעה מועברת לאישור בעלים במקום להתבצע כאן.",
-     "measured_revenue_delta": 963477.37,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
+    "reason": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור."
+   },
+   "history": {
+    "rows": [
+     {
+      "decision_id": "md-7805cd5b25b4",
+      "recorded_at": "2026-08-01T14:31:48.874771+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "shipped",
+      "decision_en": "ship",
+      "decision_he": "להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": true,
+      "money_direction": "unknown",
+      "reason": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדידת שימור."
      }
-    }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
    },
    "decision_on_rescore": false,
    "owner_approval": false,
    "adopted": false,
    "adoption_id": null,
    "next_act": {
-    "en": "The verdict on record was taken before this comparison existed. Record one on the common-basis re-score, or read the adoption checks.",
-    "he": "ההכרעה הרשומה התקבלה לפני שההשוואה הזו התקיימה. יש לרשום הכרעה על בסיס המדידה המשותפת, או לקרוא את בדיקות ההטמעה.",
-    "command": "python scripts/adopt_candidate.py decide afterwindow --decision <shipped|not_shipped> --actor \"<name>\" --reason \"<sentence>\""
+    "en": "Measure the money adopting it would move.",
+    "he": "יש למדוד את הכסף שהטמעתו תזיז.",
+    "command": "python scripts/adopt_candidate.py measure afterwindow"
    }
   },
   {
@@ -382,6 +1179,50 @@
    "bytes": 20682,
    "sha256": "4dd5c1fa50efb22d608a586c732d9073b225a68b0c5859ead0fff308ec752cf5",
    "computed_at": "2026-07-05T21:34:41.413211+00:00",
+   "origin": {
+    "id": "calibrated",
+    "purpose": null,
+    "purpose_state": "absent",
+    "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+    "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "breaks_fitted_on": 2532,
    "rmse": 0.241046876,
    "rmse_delta": -0.00011379,
@@ -396,6 +1237,22 @@
    "duplicate_of": [
     "afterwindow"
    ],
+   "self_reported": {
+    "id": "calibrated",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
+   "fit_basis": {
+    "id": "calibrated",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
    "cell_delta": {
     "cells_compared": 36,
     "cells_moved": 36,
@@ -433,6 +1290,82 @@
     "concentrated": false,
     "reading_en": "36 of 36 cells hold a different number, and 86.2 percent of the movement they make cancels between them. It takes 15 cells to reach 80 percent of it, so no small set of cells carries this.",
     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 86.2 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 15 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
+   },
+   "gates": {
+    "not_identical": 1,
+    "differing": 1,
+    "absent": 0,
+    "absent_on_shipped": 0,
+    "state": "decides_differently",
+    "reading_en": "One gate key is carried by both artifacts and holds a different value, which is what a gate decided differently means here.",
+    "reading_he": "מפתח שער אחד נישא בשני הקבצים ומחזיק ערך שונה, וזו המשמעות של שער שהוכרע אחרת.",
+    "rows": [
+     {
+      "key": "placebo_correction_active",
+      "shipped": true,
+      "candidate": false,
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "shipped_text": "true",
+      "candidate_text": "false"
+     }
+    ],
+    "differing_keys": [
+     "placebo_correction_active"
+    ],
+    "held_out": [
+     {
+      "block": "counterprogramming_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": 2532,
+      "candidate_unit": "n_test",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": true,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     },
+     {
+      "block": "detrend_seasonality_holdout",
+      "shipped_size": 34560,
+      "shipped_unit": "n_test_minutes",
+      "candidate_size": 34560,
+      "candidate_unit": "n_test_minutes",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": true,
+      "shipped_unit_en": "minutes",
+      "shipped_unit_he": "דקות",
+      "candidate_unit_en": "minutes",
+      "candidate_unit_he": "דקות"
+     },
+     {
+      "block": "series_gate_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": 2532,
+      "candidate_unit": "n_test",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": true,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     }
+    ],
+    "held_out_blocks": 3,
+    "held_out_comparable": 3,
+    "held_out_uneven": [],
+    "held_out_one_sided": [],
+    "held_out_state": "even",
+    "held_out_rule_en": "Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.",
+    "held_out_rule_he": "כל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.",
+    "held_out_basis_en": "Every held-out block both artifacts report was taken on the same amount, so on this pair those figures are comparable with each other. That is a property of this pair and not of the shelf.",
+    "held_out_basis_he": "כל בלוק שנשמר בצד ששני הקבצים מדווחים עליו נלקח על אותה כמות, ולכן בזוג הזה המספרים האלה ברי השוואה זה לזה. זו תכונה של הזוג הזה ולא של המדף."
    },
    "money": {
     "state": "stale",
@@ -455,35 +1388,61 @@
     "decision_id": "md-693f95698d4e",
     "recorded_at": "2026-08-01T19:04:24.745372+00:00",
     "actor": "unknown (login is not set up)",
+    "decision": "not_shipped",
+    "decision_en": "no ship",
+    "decision_he": "לא להשיק",
     "model_version_id": "mv-2026-07-29-35cc2e21",
     "model_version_name": "2026-07-29",
-    "subject": "candidate",
-    "candidate_id": "calibrated",
-    "decision": "not_shipped",
-    "reason": "the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded",
-    "release_note_he": "",
-    "release_note_en": "",
+    "against_version_in_force": true,
+    "on_rescore": false,
+    "in_force": true,
+    "superseded_by": null,
+    "release_note": false,
     "money_direction": "unknown",
-    "evidence": {
-     "gate_counts": {
-      "active": 3,
-      "tested_and_lost": 5,
-      "no_contrast": 5,
-      "not_measured": 0
+    "reason": "the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded"
+   },
+   "history": {
+    "rows": [
+     {
+      "decision_id": "md-693f95698d4e",
+      "recorded_at": "2026-08-01T19:04:24.745372+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures move too little to be worth restating every plan, and the measurement behind them is superseded"
      },
-     "gate_total": 13,
-     "money_state": "stale",
-     "revenue_delta": 963477.37,
-     "revenue_delta_pct": 2.3556,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
-     },
-     "measured_at": "2026-08-01T08:48:46.484343+00:00"
-    },
-    "adoption": {
-     "state": "not_applicable"
-    }
+     {
+      "decision_id": "md-f750ef920f12",
+      "recorded_at": "2026-08-01T14:41:08.155496+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": false,
+      "superseded_by": "md-693f95698d4e",
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "המדידה שעליה אפשר היה להסתמך אינה עדכנית מאז שההגדרות זזו, ולכן אין בסיס עדכני להשקה. יש למדוד שוב לפני הכרעה חוזרת."
+     }
+    ],
+    "count": 2,
+    "state": "restated",
+    "not_shown_by_the_latest": 1,
+    "reading_en": "2 verdicts on record, all of them the same word, each for a different stated reason. The newest is the one in force and the earlier ones are what was tried before it.",
+    "reading_he": "2 הכרעות רשומות, כולן אותה מילה, כל אחת מנימוק רשום אחר. החדשה היא זו שבתוקף והקודמות הן מה שנוסה לפניה."
    },
    "decision_on_rescore": false,
    "owner_approval": false,
@@ -501,6 +1460,50 @@
    "bytes": 13917,
    "sha256": "a0e3f1c45e2a39d19bce33e9a665eccca5fd378986b7a382791a9d53175a683c",
    "computed_at": "2026-07-05T18:07:24.784743+00:00",
+   "origin": {
+    "id": "competitor",
+    "purpose": "competition-adjusted coefficients (forward de-confounding) + counter-programming gate",
+    "purpose_state": "recorded",
+    "purpose_reading_en": "What its producer recorded it was built for, in its own words.",
+    "purpose_reading_he": "מה שהמפיק שלו רשם שהוא נבנה בשבילו, במילותיו שלו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "breaks_fitted_on": 2532,
    "rmse": 0.241150155,
    "rmse_delta": -1.0511e-05,
@@ -513,6 +1516,22 @@
    "rule_en": "Distinguishable only when the paired statistic reaches 2.0 and the movement in RMSE exceeds the fold dispersion. Measured: statistic -0.0488, movement -0.000011, dispersion 0.000459.",
    "rule_he": "ניתן להבחנה רק כאשר הסטטיסטי המזווג מגיע ל 2.0 והתנועה בשגיאה עולה על פיזור הקיפולים. נמדד: סטטיסטי -0.0488, תנועה -0.000011, פיזור 0.000459.",
    "duplicate_of": [],
+   "self_reported": {
+    "id": "competitor",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
+   "fit_basis": {
+    "id": "competitor",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
    "cell_delta": {
     "cells_compared": 36,
     "cells_moved": 36,
@@ -552,6 +1571,166 @@
     "reading_en": "36 of 36 cells hold a different number, and 98.7 percent of the movement they make cancels between them. It takes 16 cells to reach 80 percent of it, so no small set of cells carries this.",
     "reading_he": "ב 36 מתוך 36 תאים יש מספר אחר, ו 98.7 אחוזים מהתנועה שהם עושים מתקזזים ביניהם. צריך 16 תאים כדי להגיע ל 80 אחוזים ממנה, ולכן אין קבוצה קטנה של תאים שנושאת את זה."
    },
+   "gates": {
+    "not_identical": 10,
+    "differing": 0,
+    "absent": 10,
+    "absent_on_shipped": 0,
+    "state": "absent_only_candidate",
+    "reading_en": "No gate key that both artifacts carry holds a different value. All 10 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.",
+    "reading_he": "אין מפתח שער ששני הקבצים נושאים ובו ערך שונה. כל 10 המפתחות שהם נבדלים בהם הם מפתחות שהמועמד אינו נושא כלל, ולכן הוא אינו רושם הכרעה באף אחד מהם.",
+    "rows": [
+     {
+      "key": "series_layer_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "counterprogramming_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_active",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_multiplier",
+      "shipped": 1.0,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "1.0",
+      "candidate_text": null
+     },
+     {
+      "key": "first_break_p_value",
+      "shipped": 0.20341935034834022,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "0.203419",
+      "candidate_text": null
+     },
+     {
+      "key": "placebo_correction_active",
+      "shipped": true,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "true",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_seasonality_recommended",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "moderated_variances",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "interval_method",
+      "shipped": "bootstrap",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "bootstrap",
+      "candidate_text": null
+     },
+     {
+      "key": "detrend_baseline_mode",
+      "shipped": "global",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "global",
+      "candidate_text": null
+     }
+    ],
+    "differing_keys": [],
+    "held_out": [
+     {
+      "block": "counterprogramming_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": 506,
+      "candidate_unit": "n_test",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     },
+     {
+      "block": "detrend_seasonality_holdout",
+      "shipped_size": 34560,
+      "shipped_unit": "n_test_minutes",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "minutes",
+      "shipped_unit_he": "דקות",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     },
+     {
+      "block": "series_gate_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": null,
+      "candidate_unit": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "",
+      "candidate_unit_he": ""
+     }
+    ],
+    "held_out_blocks": 3,
+    "held_out_comparable": 0,
+    "held_out_uneven": [
+     "counterprogramming_holdout"
+    ],
+    "held_out_one_sided": [
+     "detrend_seasonality_holdout",
+     "series_gate_holdout"
+    ],
+    "held_out_state": "uneven",
+    "held_out_rule_en": "Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.",
+    "held_out_rule_he": "כל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.",
+    "held_out_basis_en": "These amounts do not agree, so the gate figures taken on them are not comparable with each other.",
+    "held_out_basis_he": "הכמויות האלה אינן תואמות, ולכן מספרי השערים שנלקחו עליהן אינם ברי השוואה זה לזה."
+   },
    "money": {
     "state": "stale",
     "revenue_delta": null,
@@ -573,35 +1752,44 @@
     "decision_id": "md-8e1761b105fc",
     "recorded_at": "2026-08-01T18:50:51.892000+00:00",
     "actor": "unknown (login is not set up)",
+    "decision": "not_shipped",
+    "decision_en": "no ship",
+    "decision_he": "לא להשיק",
     "model_version_id": "mv-2026-07-29-35cc2e21",
     "model_version_name": "2026-07-29",
-    "subject": "candidate",
-    "candidate_id": "competitor",
-    "decision": "not_shipped",
-    "reason": "the held-out figures do not move far enough to be worth the restatement",
-    "release_note_he": "",
-    "release_note_en": "",
+    "against_version_in_force": true,
+    "on_rescore": false,
+    "in_force": true,
+    "superseded_by": null,
+    "release_note": false,
     "money_direction": "unknown",
-    "evidence": {
-     "gate_counts": {
-      "active": 3,
-      "tested_and_lost": 5,
-      "no_contrast": 5,
-      "not_measured": 0
-     },
-     "gate_total": 13,
-     "money_state": "stale",
-     "revenue_delta": 948456.21,
-     "revenue_delta_pct": 2.3189,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
-     },
-     "measured_at": "2026-08-01T08:50:11.871980+00:00"
-    },
-    "adoption": {
-     "state": "not_applicable"
-    }
+    "reason": "the held-out figures do not move far enough to be worth the restatement"
+   },
+   "history": {
+    "rows": [
+     {
+      "decision_id": "md-8e1761b105fc",
+      "recorded_at": "2026-08-01T18:50:51.892000+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures do not move far enough to be worth the restatement"
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
    },
    "decision_on_rescore": false,
    "owner_approval": false,
@@ -619,6 +1807,50 @@
    "bytes": 15069,
    "sha256": "6c0b9bf656b35e2e9404d69844f5df107c7e634518b243d970096920f5ec34a2",
    "computed_at": "2026-07-05T21:07:47.793580+00:00",
+   "origin": {
+    "id": "placebo_corrected",
+    "purpose": null,
+    "purpose_state": "absent",
+    "purpose_reading_en": "This artifact records no purpose, so what it was built for is written down nowhere. It would be supplied by a purpose line in the artifact metadata, written by whatever produces it.",
+    "purpose_reading_he": "הקובץ הזה אינו רושם ייעוד, ולכן מה שהוא נבנה בשבילו אינו כתוב בשום מקום. הוא יסופק על ידי שורת ייעוד במטא של הקובץ, שתיכתב על ידי מה שמפיק אותו.",
+    "sources": [
+     {
+      "file": "data/reference/Dayparts.xlsx",
+      "sha256": "77f69dd25143bf804736e1617021a4df1b3fa6b94a749ec07b90fc19c79f49e0",
+      "short": "77f69dd25143",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Programmes.xlsx",
+      "sha256": "00e23da271e8193387813cab852753a49605e11d87dce27b8f673a638a477ea3",
+      "short": "00e23da271e8",
+      "on_disk": true,
+      "matches": true
+     },
+     {
+      "file": "data/reference/Spots.xlsx",
+      "sha256": "a540fe3bee3f6cb1a20ce5001e2489b07f1b7d7783e4c1cf0cd1d4a5b8cd1607",
+      "short": "a540fe3bee3f",
+      "on_disk": true,
+      "matches": true
+     }
+    ],
+    "sources_recorded": 3,
+    "sources_state": "verified",
+    "sources_changed": [],
+    "sources_reading_en": "Every source file it records is on disk with the digest it recorded, so it was fitted from the same bytes this evaluation rebuilt its breaks from.",
+    "sources_reading_he": "כל קובץ מקור שהוא רושם נמצא על הדיסק עם טביעת האצבע שרשם, ולכן הוא אומן מאותם בייטים שהמדידה הזו בנתה מהם מחדש את הברייקים שלה.",
+    "recipe_state": "not_recorded",
+    "recipe_en": "What every artifact here records is the data it read, identified by digest. None of them records the command that produced it, so an artifact on this shelf can be identified exactly and cannot be rebuilt from anything it carries.",
+    "recipe_he": "מה שכל קובץ כאן רושם הוא הנתונים שקרא, מזוהים בטביעת אצבע. אף אחד מהם אינו רושם את הפקודה שהפיקה אותו, ולכן קובץ על המדף הזה ניתן לזיהוי מדויק ולא ניתן לבנייה מחדש מכל מה שהוא נושא.",
+    "recipe_unblocked_by_en": "The producing script recording its own command line and its flags into the artifact metadata, beside the source fingerprints it already writes there.",
+    "recipe_unblocked_by_he": "הסקריפט המפיק ירשום את שורת הפקודה ואת הדגלים שלו לתוך המטא של הקובץ, לצד טביעות האצבע של המקורות שהוא כבר כותב שם.",
+    "same_sources_as_shipped": "same",
+    "differs_on": [],
+    "agreement_reading_en": "It records the same source files at the same digests as the shipped artifact, so the data is not one of the differences between them.",
+    "agreement_reading_he": "הוא רושם את אותם קבצי מקור ובאותן טביעות אצבע כמו הקובץ המשודר, ולכן הנתונים אינם אחד ההבדלים ביניהם."
+   },
    "breaks_fitted_on": 2532,
    "rmse": 0.241160667,
    "rmse_delta": 0.0,
@@ -631,6 +1863,22 @@
    "rule_en": "Both artifacts predict the same value for every break.",
    "rule_he": "שני הקבצים חוזים את אותו ערך בכל ברייק.",
    "duplicate_of": [],
+   "self_reported": {
+    "id": "placebo_corrected",
+    "state": "absent",
+    "reading_en": "This artifact records no out-of-sample test of its own, so there is no recommendation from whatever produced it.",
+    "reading_he": "הקובץ הזה אינו רושם בדיקה מחוץ למדגם משלו, ולכן אין המלצה ממה שהפיק אותו."
+   },
+   "fit_basis": {
+    "id": "placebo_corrected",
+    "fitted_on": 2532,
+    "base": null,
+    "dropped": null,
+    "scored_on": 2532,
+    "not_fitted_on": 0,
+    "share_not_fitted_on": 0.0,
+    "state": "all"
+   },
    "cell_delta": {
     "cells_compared": 36,
     "cells_moved": 0,
@@ -653,6 +1901,92 @@
     "reading_en": "No coefficient moves. The two artifacts hold the same number in every cell they share.",
     "reading_he": "אף מקדם אינו זז. שני הקבצים מחזיקים את אותו מספר בכל תא משותף."
    },
+   "gates": {
+    "not_identical": 2,
+    "differing": 0,
+    "absent": 2,
+    "absent_on_shipped": 0,
+    "state": "absent_only_candidate",
+    "reading_en": "No gate key that both artifacts carry holds a different value. All 2 keys they differ on are keys the candidate does not carry at all, so it records no decision on any of them.",
+    "reading_he": "אין מפתח שער ששני הקבצים נושאים ובו ערך שונה. כל 2 המפתחות שהם נבדלים בהם הם מפתחות שהמועמד אינו נושא כלל, ולכן הוא אינו רושם הכרעה באף אחד מהם.",
+    "rows": [
+     {
+      "key": "moderated_variances",
+      "shipped": false,
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "false",
+      "candidate_text": null
+     },
+     {
+      "key": "interval_method",
+      "shipped": "bootstrap",
+      "candidate": null,
+      "shipped_absent": false,
+      "candidate_absent": true,
+      "shipped_text": "bootstrap",
+      "candidate_text": null
+     }
+    ],
+    "differing_keys": [],
+    "held_out": [
+     {
+      "block": "counterprogramming_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": 506,
+      "candidate_unit": "n_test",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     },
+     {
+      "block": "detrend_seasonality_holdout",
+      "shipped_size": 34560,
+      "shipped_unit": "n_test_minutes",
+      "candidate_size": 34560,
+      "candidate_unit": "n_test_minutes",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": true,
+      "shipped_unit_en": "minutes",
+      "shipped_unit_he": "דקות",
+      "candidate_unit_en": "minutes",
+      "candidate_unit_he": "דקות"
+     },
+     {
+      "block": "series_gate_holdout",
+      "shipped_size": 2532,
+      "shipped_unit": "n_test",
+      "candidate_size": 506,
+      "candidate_unit": "n_test",
+      "shipped_absent": false,
+      "candidate_absent": false,
+      "comparable": false,
+      "shipped_unit_en": "breaks",
+      "shipped_unit_he": "ברייקים",
+      "candidate_unit_en": "breaks",
+      "candidate_unit_he": "ברייקים"
+     }
+    ],
+    "held_out_blocks": 3,
+    "held_out_comparable": 1,
+    "held_out_uneven": [
+     "counterprogramming_holdout",
+     "series_gate_holdout"
+    ],
+    "held_out_one_sided": [],
+    "held_out_state": "uneven",
+    "held_out_rule_en": "Each artifact reports the amount its own gates were decided on, and two figures taken on different amounts are not comparable. That is why the amounts are printed beside the gates rather than the gate figures alone, and why every artifact is scored again on one identical set of breaks.",
+    "held_out_rule_he": "כל קובץ מדווח על הכמות שהשערים שלו הוכרעו עליה, ושני מספרים שנלקחו על כמויות שונות אינם ברי השוואה. זו הסיבה שהכמויות מודפסות לצד השערים ולא רק מספרי השערים, ומכאן שכל קובץ נמדד שוב על אותה קבוצת ברייקים בדיוק.",
+    "held_out_basis_en": "These amounts do not agree, so the gate figures taken on them are not comparable with each other.",
+    "held_out_basis_he": "הכמויות האלה אינן תואמות, ולכן מספרי השערים שנלקחו עליהן אינם ברי השוואה זה לזה."
+   },
    "money": {
     "state": "stale",
     "revenue_delta": null,
@@ -674,35 +2008,44 @@
     "decision_id": "md-b4b207f13299",
     "recorded_at": "2026-08-01T18:51:33.198623+00:00",
     "actor": "unknown (login is not set up)",
+    "decision": "not_shipped",
+    "decision_en": "no ship",
+    "decision_he": "לא להשיק",
     "model_version_id": "mv-2026-07-29-35cc2e21",
     "model_version_name": "2026-07-29",
-    "subject": "candidate",
-    "candidate_id": "placebo_corrected",
-    "decision": "not_shipped",
-    "reason": "the held-out figures do not move far enough to be worth the restatement",
-    "release_note_he": "",
-    "release_note_en": "",
+    "against_version_in_force": true,
+    "on_rescore": false,
+    "in_force": true,
+    "superseded_by": null,
+    "release_note": false,
     "money_direction": "unknown",
-    "evidence": {
-     "gate_counts": {
-      "active": 3,
-      "tested_and_lost": 5,
-      "no_contrast": 5,
-      "not_measured": 0
-     },
-     "gate_total": 13,
-     "money_state": "stale",
-     "revenue_delta": 0.0,
-     "revenue_delta_pct": 0.0,
-     "scope": {
-      "rows": 2540,
-      "basis": "the weekly plan the run path computes, summed over the operator's own channel"
-     },
-     "measured_at": "2026-08-01T08:51:38.335070+00:00"
-    },
-    "adoption": {
-     "state": "not_applicable"
-    }
+    "reason": "the held-out figures do not move far enough to be worth the restatement"
+   },
+   "history": {
+    "rows": [
+     {
+      "decision_id": "md-b4b207f13299",
+      "recorded_at": "2026-08-01T18:51:33.198623+00:00",
+      "actor": "unknown (login is not set up)",
+      "decision": "not_shipped",
+      "decision_en": "no ship",
+      "decision_he": "לא להשיק",
+      "model_version_id": "mv-2026-07-29-35cc2e21",
+      "model_version_name": "2026-07-29",
+      "against_version_in_force": true,
+      "on_rescore": false,
+      "in_force": true,
+      "superseded_by": null,
+      "release_note": false,
+      "money_direction": "unknown",
+      "reason": "the held-out figures do not move far enough to be worth the restatement"
+     }
+    ],
+    "count": 1,
+    "state": "one",
+    "not_shown_by_the_latest": 0,
+    "reading_en": "One verdict on record.",
+    "reading_he": "הכרעה אחת רשומה."
    },
    "decision_on_rescore": false,
    "owner_approval": false,
