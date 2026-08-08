@@ -72,7 +72,7 @@ def _settings_batch(conversation_id: str, revenue_weight: int) -> dict[str, Any]
         "propose_settings_change",
         {"changes": {"revenue_weight": revenue_weight}, "reason": "בדיקת שחזור"})]
     return actions.create_batch(f"שינוי משקל ל-{revenue_weight}", items, USER,
-                                "claude-opus-4-8", conversation_id=conversation_id)
+                                "claude-opus-5", conversation_id=conversation_id)
 
 
 def _apply(batch: dict[str, Any]) -> dict[str, Any]:
@@ -111,7 +111,7 @@ def test_changes_falls_back_to_entry_batch_ids_for_legacy_batches(client: TestCl
     # legacy conversation because its batch_id sits on one of its entries.
     items = [tools.build_proposal_item(
         "propose_recompute", {"scope": "full", "reason": "רענון ישן"})]
-    batch = actions.create_batch("שאלה ישנה", items, USER, "claude-opus-4-8")
+    batch = actions.create_batch("שאלה ישנה", items, USER, "claude-opus-5")
     memory._write_atomic(memory._path_for(USER), USER, [
         {"question": "שאלה ישנה", "answer": "תשובה", "at": "2026-07-01T00:00:00+00:00",
          "batch_id": batch["batch_id"]}])

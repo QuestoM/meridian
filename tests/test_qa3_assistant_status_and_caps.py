@@ -86,7 +86,7 @@ def _history_pairs(messages: list[dict[str, Any]]) -> list[tuple[str, str]]:
 # --- /api/assistant/status names the upgraded default model ----------------------
 def test_status_route_reports_the_upgraded_default_model(client: TestClient) -> None:
     body = client.get("/api/assistant/status").json()
-    assert body["model"] == "claude-opus-4-8" == assistant.DEFAULT_MODEL
+    assert body["model"] == "claude-opus-5" == assistant.DEFAULT_MODEL
     # Honest availability is unchanged: no key configured, so unavailable.
     assert body["available"] is False
     assert body["action_plane"]["enabled"] is False

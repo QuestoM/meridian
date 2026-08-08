@@ -141,7 +141,7 @@ def test_ask_places_history_turns_before_context_question(client: TestClient, mo
     assert messages[-1]["content"].startswith("CONTEXT:\n")
     assert messages[-1]["content"].rstrip().endswith("שאלת המשך")
     # The upgraded model and raised ceilings ride on the same call.
-    assert kwargs["model"] == "claude-opus-4-8"
+    assert kwargs["model"] == "claude-opus-5"
     assert kwargs["max_tokens"] == assistant.LOOP_MAX_TOKENS == 4000
 
 
@@ -190,7 +190,7 @@ def test_stream_ask_replays_the_same_history(client: TestClient, monkeypatch) ->
     assert "event: final" in response.text
     final = json.loads(response.text.strip().split("\n\n")[-1].split("\ndata: ")[1])
     assert final["answer"] == "the fresh answer"
-    assert final["model"] == "claude-opus-4-8"
+    assert final["model"] == "claude-opus-5"
     messages = recorder["calls"][0]["messages"]
     assert [m["role"] for m in messages] == ["user", "assistant", "user"]
     assert messages[0]["content"] == "שאלה קודמת"

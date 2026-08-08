@@ -47,12 +47,17 @@ from kairos_api import (
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 router.include_router(assistant_actions.router)
 
-# The current Opus in the model catalogue, and the name every assistant test in
-# this repository pins. A rename here is never local: it forces seven test
-# files, three of which this piece does not own, so it is a test-change request
-# under section 8.2 rule 4 rather than an edit. The env override below is how an
-# operator moves the default without touching code or tests at all.
-DEFAULT_MODEL = "claude-opus-4-8"
+# The current Opus, and the name every assistant test in this repository pins.
+#
+# A rename here is never local: it moves seven test files, three of which this
+# piece does not own, so a builder correctly refused to make it and raised it
+# instead. The owner ruled on 2026-08-09: the assistant runs the newest Opus.
+# That is the owner's call and not a builder's, because the assistant runs on the
+# owner's credentials and a model change moves the owner's bill.
+#
+# The env override below still moves it without touching code or tests, which is
+# how an operator pins an older model for a run without a commit.
+DEFAULT_MODEL = "claude-opus-5"
 MODEL_ENV = "KAIROS_ASSISTANT_MODEL"
 KEY_ENVS = ("ANTHROPIC_API_KEY", "KAIROS_ASSISTANT_API_KEY")
 KEY_MISSING_REASON = "API key not configured"

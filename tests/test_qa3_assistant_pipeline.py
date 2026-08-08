@@ -46,8 +46,8 @@ def client() -> TestClient:
 
 # --- model default and hard ceilings --------------------------------------------
 def test_default_model_and_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert assistant.DEFAULT_MODEL == "claude-opus-4-8"
-    assert assistant._model_name() == "claude-opus-4-8"
+    assert assistant.DEFAULT_MODEL == "claude-opus-5"
+    assert assistant._model_name() == "claude-opus-5"
     monkeypatch.setenv("KAIROS_ASSISTANT_MODEL", "claude-sonnet-4-6")
     assert assistant._model_name() == "claude-sonnet-4-6"
 

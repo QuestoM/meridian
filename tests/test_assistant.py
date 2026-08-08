@@ -96,19 +96,19 @@ def test_status_honest_without_key(client: TestClient) -> None:
     assert response.json() == {
         "available": False,
         "reason": assistant.AUTH_MISSING_REASON,
-        "model": "claude-opus-4-8",
+        "model": "claude-opus-5",
         "action_plane": {"enabled": False, "reason": assistant.AUTH_MISSING_REASON},
     }
 
 
 def test_status_reports_key_and_model_override(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KAIROS_ASSISTANT_API_KEY", "test-key")
-    monkeypatch.setenv("KAIROS_ASSISTANT_MODEL", "claude-opus-4-8")
+    monkeypatch.setenv("KAIROS_ASSISTANT_MODEL", "claude-opus-5")
     body = client.get("/api/assistant/status").json()
     assert body == {
         "available": True,
         "reason": None,
-        "model": "claude-opus-4-8",
+        "model": "claude-opus-5",
         "action_plane": {"enabled": True, "reason": None},
         "auth": {"mode": "api_key", "source": "KAIROS_ASSISTANT_API_KEY"},
     }
@@ -159,7 +159,7 @@ def test_ask_composes_real_sections_and_grounding_prompt(client: TestClient, mon
     # The Claude call carries the frozen grounding contract and the real context.
     kwargs = recorder["kwargs"]
     assert recorder["api_key"] == "test-key"
-    assert kwargs["model"] == "claude-opus-4-8"
+    assert kwargs["model"] == "claude-opus-5"
     assert kwargs["max_tokens"] == assistant.LOOP_MAX_TOKENS  # the tool-use loop budget
     assert "temperature" not in kwargs  # omitted on every call: newer models reject it
     assert {tool["name"] for tool in kwargs["tools"]} >= {"get_settings", "propose_settings_change"}

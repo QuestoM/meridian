@@ -284,6 +284,6 @@ def test_ask_response_shape_is_backward_compatible(
     assert body["tool_trace"] == []
     assert body["proposals"] is None
     assert set(body["grounding"]) == {"sources", "generated_at"}
-    assert body["model"] == "claude-opus-4-8"
+    assert body["model"] == "claude-opus-5"
     assert body["context_disclosure"] == body["grounding"]
     assert body["truncated"] is False

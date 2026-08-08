@@ -447,7 +447,7 @@ and `/api/assistant/ask/stream` on send.
 
 Findings:
 
-- The header prints the raw model id `claude-opus-4-8` next to "Connected", and
+- The header prints the raw model id `claude-opus-5` next to "Connected", and
   "Acting user: auth-disabled".
 - The "Conversation" sub-panel clips its own content in the observed layout: the
   heading is cut at the top edge of the scroll area and "Acting user: auth-disabled"
@@ -692,7 +692,7 @@ real controls.
 | Break Library table | "Position: middle", "Type: medium" (raw enum values as cell text) |
 | Advertiser drawer | title is the raw id "ADV_01"; "ALLOWED POSITIONS: Any / first / middle / last / gold"; "Behind-pace strength"; "Over-delivery restraint" |
 | Overrides | "carrying the segment anchor so the decision survives a re-ingest", "An override changes a fingerprinted input" |
-| Assistant dock | raw model id "claude-opus-4-8", "Acting user: auth-disabled" |
+| Assistant dock | raw model id "claude-opus-5", "Acting user: auth-disabled" |
 | Settings | "Engine focus", "objective_mode", "retention_basis: tvr_weighted" implied by the basis lines |
 | Calendar | "Retention measurement mode: Global baseline, calendar-blind" |
 

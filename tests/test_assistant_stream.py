@@ -173,7 +173,7 @@ def test_stream_frames_step_delta_final_in_order(client: TestClient, monkeypatch
     assert final["answer"] == "the final grounded answer"
     assert {"answer", "error", "model", "context_disclosure", "truncated",
             "proposals", "tool_trace"} <= set(final)
-    assert final["model"] == "claude-opus-4-8"
+    assert final["model"] == "claude-opus-5"
     assert [step["tool"] for step in final["tool_trace"]] == ["get_settings"]
 
 

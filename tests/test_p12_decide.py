@@ -183,13 +183,41 @@ def test_an_unnamed_steward_or_a_missing_reason_refuses_even_with_perform(tree):
     assert _log(tree) == []
 
 
-def test_a_release_note_carrying_a_gate_verdict_is_refused_by_the_store_verbatim(tree):
-    """The store's own guard, shown rather than duplicated here."""
+def test_a_release_note_carrying_a_gate_verdict_is_refused_before_the_write(tree):
+    """The refusal moved EARLIER, and this test had to follow it.
+
+    It used to assert ``result["refusal"]``, the string the store raises at the
+    moment of the write. That key is now absent for this case, and the reason is
+    an improvement rather than a regression: the note check was lifted into the
+    preconditions, so a steward is told the note is unacceptable while planning
+    instead of being told after pressing perform.
+
+    The defect that lift closed is written into adopt_candidate_decide.py: a
+    no-ship verdict whose English note read "the retention gate cleared at
+    p=0.004" cleared every condition, PRINTED READY, and came back refused. A
+    plan that says ready about a record the store will refuse is worse than no
+    plan.
+
+    So this asserts the earlier refusal, which is strictly more than the old one
+    asserted: the verdict is refused, it is refused ON THE NOTE by name, the
+    sentence a steward reads says which word is the problem, and nothing was
+    written.
+    """
     result = decide.decide("twin", decision="shipped", actor="steward", reason="עדיף",
                            release_note_he="המקדם עודכן", paths=tree, perform=True)
     assert result["outcome"] == "refused"
-    assert result["refusal"]
-    assert "מקדם" in result["refusal"]
+    assert "release_note_crossing" in result["blocked_on"], (
+        f"the note was not what refused this; blocked on {result['blocked_on']}"
+    )
+    blocking = [c for c in result["checks"] if c["id"] == "release_note_crossing"]
+    assert blocking and not blocking[0]["passed"]
+    assert "מקדם" in blocking[0]["reason_he"], (
+        "the refusal does not name the word that caused it, so a steward cannot act on it"
+    )
+    assert "refusal" not in result, (
+        "the store was still reached. The point of lifting this check into the "
+        "preconditions is that a plan never says ready about a record the store refuses."
+    )
     assert _log(tree) == []
 
 
