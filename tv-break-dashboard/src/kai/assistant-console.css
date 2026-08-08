@@ -87,7 +87,8 @@
 .asst-run-grounded { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1); padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); }
 .asst-run-grounded-label { color: var(--subtle); font-weight: var(--weight-semibold); }
 .asst-run-chip { border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); color: var(--muted); padding: 0 var(--space-2); }
-.asst-run-chip bdi { font-variant-numeric: tabular-nums; }
+/* Orphaned the same way and deleted rather than re-pointed: the only thing it
+   supplied was tabular figures, which .bidi-figure already sets in the shell. */
 .asst-run-long { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); color: var(--amber); }
 
 /* The licence-limit disclosure on a proposal that would move a regulatory number */
@@ -208,7 +209,16 @@
    both sides were optimized on. It sits under the header and above the first
    figure, so it is read before the number it qualifies. */
 .asst-effect-basis { margin: 0 0 2px; font-size: var(--text-2xs); color: var(--muted); line-height: 1.5; }
-.asst-effect-basis bdi { white-space: nowrap; } /* measured in a 420 px dock: the line broke inside the channel name, printing רשת and 13 on different lines */
+/* Measured in a 420 px dock: the line broke inside the channel name, printing
+   רשת and 13 on different lines. This selector said `bdi` until 2026-08-09,
+   when a measurement found the rule had been DEAD since isolation moved to the
+   primitive: the view renders Name and Figure, which are spans, so nothing
+   matched and nothing enforced the rule. Re-measured with it dead, the ISO date
+   split across two line boxes at 330, 340, 350 and 360 px, breaking at a hyphen.
+   The guard that was supposed to catch this was a grep for the selector text,
+   which kept passing over a rule that applied to nothing. */
+.asst-effect-basis .bidi-name,
+.asst-effect-basis .bidi-figure { white-space: nowrap; }
 /* An item stored before the basis was carried says so in this product's own
    honest-unavailable language, the single inline-start amber edge, and never in
    fainter grey. Measured: --subtle on this surface is 4.61:1 against the card

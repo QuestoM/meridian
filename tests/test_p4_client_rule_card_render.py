@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -44,6 +45,23 @@ OPEN_RULE_CONTROL = "פתחו את כרטיס הכלל המלא"
 ADD_SPELLING_CONTROL = "הוסיפו כתיב על הכלל"
 UNBOUND_REASON = "אף כלל שמור אינו נושא את שם הלקוח הזה"
 NEEDS_RULE_FIRST = "ללקוח הזה דרוש קודם כלל תמחור"
+
+# Isolation has one home, tv-break-dashboard/src/shell/bidi.jsx, and these are
+# the classes it paints: a measured quantity, a machine-facing identifier, a name
+# that arrives as data. All three are corrections rather than renames.
+#
+# A dir attribute on an inline run IS the defect. It fixes the run's internal
+# order, which is wanted, and it also re-anchors that element's own alignment,
+# which inside a Hebrew card pushes a multiplier away from the property it
+# belongs to while its neighbours stay put. The primitives isolate through a CSS
+# class and never touch alignment, so these runs carry a class and no dir.
+#
+# The two dir attributes still in this component are on form inputs, which set
+# the direction a person types in rather than escaping the direction around a
+# printed run. They are a different thing and are not what this guards.
+FIGURE_CLASS = "bidi-figure"
+CODE_CLASS = "bidi-code"
+ISOLATED_CLASSES = (FIGURE_CLASS, CODE_CLASS, "bidi-name")
 
 # The join the bound state depends on, and the mutation that removes it.
 SHIPPED_JOIN = """  return (rows || []).find((row) => {
@@ -118,6 +136,13 @@ for (const [name, props] of Object.entries(cases)) {
 }
 fs.writeFileSync(outFile, JSON.stringify(rendered), 'utf8');
 """
+
+
+def _assert_no_run_re_anchors_itself(markup: str) -> None:
+    """Every run the primitives painted, and not one of them carries a dir."""
+    for class_name in ISOLATED_CLASSES:
+        for tag in re.findall(rf'<[a-z]+ class="{class_name}[^"]*"[^>]*>', markup):
+            assert "dir=" not in tag, f"{tag} re-anchors its own alignment inside a Hebrew card"
 
 
 def _node() -> str:
@@ -222,16 +247,24 @@ def test_the_unbound_client_gets_a_control_it_can_complete_here(rendered) -> Non
 def test_the_unbound_client_reads_as_rate_card_and_never_as_a_blank(rendered) -> None:
     """The honest reading of an unbound client is 1.00, not an empty property."""
     markup = rendered["unbound"]
-    assert '<span class="numeric" dir="ltr">1.00x</span>' in markup
+    # Isolation moved to the shell primitive, so the multiplier paints as a class
+    # and no dir. A dir here would re-anchor this figure alone and it would stop
+    # lining up with the other properties on the card.
+    assert f'<span class="{FIGURE_CLASS} numeric">1.00x</span>' in markup
+    _assert_no_run_re_anchors_itself(markup)
     assert "מחיר מחירון" in markup
 
 
 def test_the_bound_client_shows_its_premium_and_opens_the_row_that_holds_it(rendered) -> None:
     """The bound state: the real premium, the row id, and the way into it."""
     markup = rendered["bound"]
-    assert '<span class="numeric" dir="ltr">1.15x</span>' in markup
-    assert "+15%" in markup
-    assert 'dir="ltr">ADV_03<' in markup
+    # Isolation moved to the shell primitive. The multiplier and the signed delta
+    # are figures and the row id is a machine-facing code, each an inline run
+    # carrying its class and no dir attribute.
+    assert f'<span class="{FIGURE_CLASS} numeric">1.15x</span>' in markup
+    assert f'<span class="{FIGURE_CLASS} numeric clients-rule-delta">+15%</span>' in markup
+    assert f'<span class="{CODE_CLASS} clients-rule-id">ADV_03</span>' in markup
+    _assert_no_run_re_anchors_itself(markup)
     assert OPEN_RULE_CONTROL in markup
     assert ADD_SPELLING_CONTROL in markup
     assert CREATE_CONTROL not in markup

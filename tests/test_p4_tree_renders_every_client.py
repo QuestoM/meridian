@@ -23,6 +23,7 @@ and asserts the client disappears from both, so a pass here can never be vacuous
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -43,6 +44,29 @@ CAMPAIGN_NAME = "קמפיין בדיקה"
 GROUP_TITLE = "הוזמנו, ללא תמחור ביום הנקרא"
 GROUP_NOTE = "יש להם קמפיין רשום ואין תשדיר מתומחר ביום הנקרא"
 UNLINKED_TITLE = "לקוחות ללא סוכנות"
+
+# Isolation has one home, tv-break-dashboard/src/shell/bidi.jsx, and the shapes
+# below are what it paints. Both are corrections rather than renames.
+#
+# A dir attribute on an inline run IS the defect. It fixes the run's internal
+# order, which is wanted, and it also re-anchors that element's own alignment,
+# which inside a Hebrew table knocks a numeric cell out of line with the column
+# it belongs to. The primitive isolates through a CSS class and never touches
+# alignment, so a count paints as bidi-figure and carries no dir at all.
+#
+# U+2068 is the FIRST STRONG isolate, used where a figure is joined into a
+# sentence rather than rendered as its own element. It takes the run's direction
+# from the run's own first strong character, so it is right for a Hebrew figure
+# and a Latin one. U+2066 forces left to right and would be the old defect.
+#
+# Written as escapes on purpose: the characters render as nothing, so a literal
+# pair in this file would be invisible to review.
+FIRST_STRONG_ISOLATE = "\u2068"
+POP_DIRECTIONAL_ISOLATE = "\u2069"
+LEFT_TO_RIGHT_ISOLATE = "\u2066"
+RIGHT_TO_LEFT_ISOLATE = "\u2067"
+
+FIGURE_CLASS = "bidi-figure"
 
 # The mutation: the third group, cut out of the shipped source exactly as it was
 # missing when this was measured.
@@ -326,14 +350,26 @@ def test_the_header_counts_every_client_the_component_renders(payload, rendered)
         + len(payload["clients_booked_without_spots"])
     )
     assert payload["counts"]["clients"] == rows
-    assert f"⁦{rows}⁩ לקוחות" in html
+    # The header is one sentence built by concatenation, so the figure inside it
+    # is isolated by the marks rather than by an element. First-strong, so a
+    # Hebrew word beside it cannot drag the digits, and no left-to-right forcing.
+    assert f"{FIRST_STRONG_ISOLATE}{rows}{POP_DIRECTIONAL_ISOLATE} לקוחות" in html
+    assert LEFT_TO_RIGHT_ISOLATE not in html and RIGHT_TO_LEFT_ISOLATE not in html
     assert rendered["rows"] == rows, "the flattened set the record walks is the same set"
 
 
 def test_the_group_states_its_own_count_in_the_right_singular(rendered):
     """One client is a client, and Hebrew has a singular the count must respect."""
     group = rendered["treeHtml"][rendered["treeHtml"].index(GROUP_TITLE):]
-    assert '<span class="numeric" dir="ltr">1</span><small>לקוח</small>' in group
+    # Isolation moved to the shell primitive: the count is an inline run carrying
+    # bidi-figure and no dir. A dir attribute here would set this element's base
+    # direction and re-anchor its alignment, which is what pulls a figure out of
+    # the column its neighbours sit in, so do not put one back.
+    assert (
+        f'<span class="numeric"><span class="{FIGURE_CLASS}">1</span></span><small>לקוח</small>' in group
+    )
+    for tag in re.findall(rf'<span class="{FIGURE_CLASS}[^"]*"[^>]*>', group):
+        assert "dir=" not in tag, f"{tag} re-anchors its own alignment inside a Hebrew table"
     assert "<small>לקוחות</small>" not in group.split("</article>")[0], "one row never reads לקוחות"
 
 
@@ -374,5 +410,7 @@ def test_without_the_third_group_the_client_vanishes_from_the_screen(tmp_path, p
     assert GROUP_TITLE not in html
     assert BOOKED_CLIENT not in html, "this is exactly what was measured on the shipped bundle"
     total = payload["counts"]["clients"]
-    assert f"⁦{total}⁩ לקוחות" in html, "and the header went on counting a client with no row, which is the defect"
+    assert f"{FIRST_STRONG_ISOLATE}{total}{POP_DIRECTIONAL_ISOLATE} לקוחות" in html, (
+        "and the header went on counting a client with no row, which is the defect"
+    )
     assert UNLINKED_TITLE not in html, "no other group covers for it: the unlinked group is empty on this data"

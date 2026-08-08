@@ -19,31 +19,29 @@ The rule this file enforces is the one the effect view already stated for its
 figures three lines above the defect: one isolate per value, never one around
 the pair. So no display string in ``src/kai`` interpolates a value that can be
 the other script, in either of the two sinks this destination has. On a card the
-value is composed beside the sentence in its own ``bdi``. In a notice, which
-takes two plain strings and hands them to the shell's toast, no element can go,
-so the value carries the isolate characters instead. The only expressions still
-allowed inside a template are counts, listed below and checked to be counts.
+value is composed beside the sentence in its own isolate element, one of the
+shell primitives. In a notice, which takes two plain strings and hands them to
+the shell's toast, no element can go, so the value carries the isolate
+characters instead. The only expressions still allowed inside a template are
+counts, listed below and checked to be counts.
 
 Both halves are here: the source rule, which a reviewer can run anywhere, and
 the paint, laid out in a real headless browser with the shipped strings and the
-shipped stylesheet. Each paint test carries its control: the same characters
+shipped stylesheets. Each paint test carries its control: the same characters
 without the isolate must still scramble. If one ever stops doing so, the world
 changed and this file should say so out loud rather than pass quietly.
 
-Measured after the fix, same browser, same dock width, both readings:
+Measured after the fix, same browser, same dock width, both readings, and then
+the notice with the owned channel's name as an uploaded file name, where the run
+being read is the file name alone (glyph dumps are visual order, left to right,
+so Hebrew reads backwards):
 
     English  shipped  (13 תשר, 2024-11-11), not the weekly total.
     English  control  2024-11-11 ,13), not the weekly total.
     Hebrew   shipped  , )2024-11-11 ,13 תשר( דחא גציימ ץורע-םוי לע הצר היצלומיסה
-
-And the notice, with the owned channel's name as an uploaded file name, where
-the run being read is the file name alone:
-
     English  alone    csv.13 תשר
     English  shipped  csv.13 תשר
     English  control  13 תשר.csv
-
-(the glyph dumps are visual order, left to right, so Hebrew reads backwards.)
 """
 
 from __future__ import annotations
@@ -60,6 +58,10 @@ ROOT = Path(__file__).resolve().parents[1]
 KAI = ROOT / "tv-break-dashboard" / "src" / "kai"
 TOKENS = ROOT / "tv-break-dashboard" / "src" / "tokens.css"
 SHEET = KAI / "assistant-console.css"
+# Isolation moved into one home. The primitives isolate through a class and state
+# no dir, because a dir also re-anchors the element, so the paint below lays out
+# the classes the product ships, under the stylesheets that give them meaning.
+SHELL_SHEET = ROOT / "tv-break-dashboard" / "src" / "shell" / "styles.css"
 PROBE = Path(__file__).with_name("test_p9_paint_probe.mjs")
 PROPOSALS = ROOT / "data" / "assistant" / "proposals.json"
 SETTINGS = ROOT / "data" / "kairos_settings.json"
@@ -70,29 +72,15 @@ SETTINGS = ROOT / "data" / "kairos_settings.json"
 # is composed beside the sentence in its own isolate, so a new name, title,
 # file, date or error message added to a sentence fails this file until it is.
 COUNTS = {
-    "restoreResult.files.length",
-    "count",
-    "thread.length",
-    "itemIds.length",
-    "removedCount",
-    "appliedCount",
-    "failedCount",
-    "rows.length - shown.length",
-    "bulk.changeCount",
-    "selectedIds.length",
-    "results.length",
-    "deadline",
-    "file.change_count",
-    "file.bytes_now",
-    "file.bytes_after_restore",
-    "file.changes_omitted",
-    "done ? done.restored : 0",
-    "rows",
-    "sheets",
+    "restoreResult.files.length", "count", "thread.length", "itemIds.length",
+    "removedCount", "appliedCount", "failedCount", "rows.length - shown.length",
+    "bulk.changeCount", "selectedIds.length", "results.length", "deadline",
+    "file.change_count", "file.bytes_now", "file.bytes_after_restore",
+    "file.changes_omitted", "done ? done.restored : 0", "rows", "sheets",
 }
 
 # What makes an allowlisted expression a count rather than a promise that it is
-# one. Every entry above has to look like a quantity in its own name.
+# one: every entry above has to look like a quantity in its own name.
 COUNTLIKE = re.compile(
     r"length|count|bytes|restored|omitted|deadline|^rows$|^sheets$", re.IGNORECASE)
 
@@ -137,10 +125,9 @@ def _skip_quoted(source: str, start: int) -> int:
 
 
 # The two sinks a bilingual display string in this destination goes into. One
-# renders a node, so a value beside it carries a bdi element. The other takes
-# two plain strings and hands them to the shell's toast and activity feed, where
-# an element cannot go, so a value carries the isolate characters instead. The
-# rule is the same rule; only the spelling of the isolate differs.
+# renders a node, so a value beside it carries an isolate element. The other
+# takes two plain strings and hands them to the shell's toast and activity feed,
+# where an element cannot go, so a value carries the isolate characters instead.
 SINKS = ("pageText(", "notify(")
 
 
@@ -241,13 +228,20 @@ def test_the_scanner_sees_an_interpolated_name_when_one_is_put_back() -> None:
 
 
 def test_the_two_sentences_the_defect_was_measured_on_are_composed() -> None:
-    """Source half of the paint below: each value sits in its own isolate."""
+    """Source half of the paint below: each value sits in its own isolate.
+
+    Isolation moved into the shell primitives, so the isolate is a Name or a
+    Figure and no longer a bdi carrying a dir. That is a correction: a dir fixes
+    the run's order, which is wanted, and re-anchors the element, which is not.
+    """
     effect = (KAI / "AssistantEffectView.jsx").read_text(encoding="utf-8")
-    assert '<bdi dir="auto">{channel}</bdi>' in effect
-    assert '<bdi dir="ltr">{day}</bdi>' in effect
     panel = (KAI / "AssistantPanel.jsx").read_text(encoding="utf-8")
-    assert '<bdi dir="auto">{page.label}</bdi>' in panel
-    assert '<bdi dir="auto">{entityLabel}</bdi>' in panel
+    assert "from '../shell/bidi'" in effect and "from '../shell/bidi'" in panel
+    for source, composed in ((effect, ("<Name>{channel}</Name>", "<Figure>{day}</Figure>")),
+                             (panel, ("<Name>{page.label}</Name>", "<Name>{entityLabel}</Name>"))):
+        for element in composed:
+            assert element in source, f"{element} is not what this destination composes"
+        assert not re.search(r"<(Name|Figure)[^>]*\sdir=", source), "a primitive carries a dir"
 
 
 # --- the paint ---------------------------------------------------------------
@@ -273,26 +267,31 @@ def _measured_basis() -> tuple[str, str]:
     pytest.skip("no stored proposal carries an effect basis")
 
 
-def _document(locale: str, channel: str, day: str) -> str:
-    """The shipped strings in the shipped markup under the shipped stylesheet,
-    laid out wide enough for one line: the property under test is the order the
-    runs paint in, and a line break is measured on the dock itself."""
+def _document(locale: str, channel: str, day: str, width: int = 800) -> str:
+    """The shipped strings in the shipped markup under the shipped stylesheets.
+    At 800 px the sentence is one line, so what is measured is the order the runs
+    paint in. A narrower width is the dock, where the break is the property."""
     lead, mid, tail = _readings()["HE" if locale == "he" else "EN"]
     shell = "rtl" if locale == "he" else "ltr"
+    name = f'<span class="bidi-name">{channel}</span>'
+    figure = f'<span class="bidi-figure">{day}</span>'
     return f"""<!doctype html><meta charset="utf-8">
 <link rel="stylesheet" href="file://{TOKENS}">
+<link rel="stylesheet" href="file://{SHELL_SHEET}">
 <link rel="stylesheet" href="file://{SHEET}">
-<body style="margin:0"><div dir="{shell}" style="width:800px">
-<p class="asst-effect-basis" id="shipped" dir="auto">{lead}<bdi dir="auto">{channel}</bdi>{mid}<bdi dir="ltr">{day}</bdi>{tail}</p>
+<body style="margin:0"><div dir="{shell}" style="width:{width}px">
+<p class="asst-effect-basis" id="shipped" dir="auto">{lead}{name}{mid}{figure}{tail}</p>
 <p class="asst-effect-basis" id="control" dir="auto">{lead}{channel}{mid}{day}{tail}</p>
 </div></body>"""
 
 
 PAINT = """(() => {
   const box = (r) => ({ left: Math.round(r.left * 10) / 10, right: Math.round(r.right * 10) / 10, top: Math.round(r.top) });
+  // Distinct line boxes, not rects: one line box holding a bidi run is split.
+  const lineBoxes = (el) => new Set([...el.getClientRects()].map((r) => Math.round(r.top))).size;
   const shipped = document.getElementById('shipped');
   const control = document.getElementById('control');
-  const bdis = shipped.querySelectorAll('bdi');
+  const bdis = shipped.querySelectorAll('.bidi-name, .bidi-figure');
   const node = control.firstChild;
   const lead = shipped.firstChild.textContent.length;
   const mid = shipped.childNodes[2].textContent.length;
@@ -307,22 +306,18 @@ PAINT = """(() => {
   return {
     shipped: { channel: box(bdis[0].getBoundingClientRect()), day: box(bdis[1].getBoundingClientRect()) },
     control: { channel: range(lead, channel), day: range(lead + channel + mid, day) },
+    lines: { channel: lineBoxes(bdis[0]), day: lineBoxes(bdis[1]) },
   };
 })()"""
 
 
-def _paint(locale: str, tmp_path: Path) -> dict:
+def _probe(document: Path, expression: Path) -> dict:
+    """Lay a document out in a real browser and return what the probe read."""
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not on PATH, so the paint cannot be measured")
-    channel, day = _measured_basis()
-    document = tmp_path / f"basis-{locale}.html"
-    document.write_text(_document(locale, channel, day), encoding="utf-8")
-    expression = tmp_path / "paint.js"
-    expression.write_text(PAINT, encoding="utf-8")
-    # --import wires the shell resolver hook. The probe itself never imports a
-    # shell primitive, but the flag costs nothing and keeps every node
-    # invocation in this file resolving the same way.
+    # --import wires the shell resolver hook, so every node invocation in this
+    # file resolves a shell primitive the same way.
     done = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
                           str(PROBE), str(document), str(expression)],
                           capture_output=True, text=True, timeout=180)
@@ -330,6 +325,15 @@ def _paint(locale: str, tmp_path: Path) -> dict:
         pytest.skip("no Chrome on this machine, so the paint cannot be measured")
     assert done.returncode == 0, f"the probe failed: {done.stderr[-800:]}"
     return json.loads(done.stdout)
+
+
+def _paint(locale: str, tmp_path: Path, width: int = 800) -> dict:
+    channel, day = _measured_basis()
+    document = tmp_path / f"basis-{locale}-{width}.html"
+    document.write_text(_document(locale, channel, day, width), encoding="utf-8")
+    expression = tmp_path / "paint.js"
+    expression.write_text(PAINT, encoding="utf-8")
+    return _probe(document, expression)
 
 
 def test_the_english_reading_paints_the_name_then_the_date(tmp_path) -> None:
@@ -356,11 +360,22 @@ def test_the_hebrew_reading_paints_the_name_then_the_date(tmp_path) -> None:
         f"the date does not follow the name: {shipped}")
 
 
-def test_the_name_and_the_date_are_never_split_across_lines() -> None:
+def test_the_name_and_the_date_are_never_split_across_lines(tmp_path) -> None:
     """Measured in a 420 px dock: the line broke inside the channel name and
-    printed רשת at the end of one line and 13 at the start of the next."""
-    rule = SHEET.read_text(encoding="utf-8")
-    assert ".asst-effect-basis bdi { white-space: nowrap; }" in rule
+    printed רשת at the end of one line and 13 at the start of the next.
+
+    Painted, not read off the stylesheet: the rule the source form of this read
+    selects a bdi, the runs are no longer bdi elements, and the grep went on
+    passing while nothing enforced it. One line box or two is a question only a
+    layout engine answers, and one width can miss the break by luck.
+    """
+    for width in (330, 360, 390, 420, 450):
+        lines = _paint("en", tmp_path, width)["lines"]
+        assert lines["channel"] == 1, f"the channel name broke across lines at {width} px"
+        assert lines["day"] == 1, (
+            f"the date broke across lines at {width} px. The nowrap rule in "
+            "assistant-console.css still selects .asst-effect-basis bdi, and these runs "
+            "are now .bidi-name and .bidi-figure, so nothing holds them together.")
 
 
 # --- the other sink ----------------------------------------------------------
@@ -405,9 +420,6 @@ def _notice_document(lead: str, tail: str, value: str, shell: str) -> str:
 
 def _runs(reading: str, tmp_path: Path) -> dict:
     """The shipped upload notice, laid out with a Hebrew file name in it."""
-    node = shutil.which("node")
-    if node is None:
-        pytest.skip("node is not on PATH, so the paint cannot be measured")
     found = NOTICE.search((KAI / "AssistantUpload.jsx").read_text(encoding="utf-8"))
     assert found, "the shipped upload notice did not parse"
     lead, tail = (found.group(1), found.group(2)) if reading == "en" else (found.group(3), found.group(4))
@@ -417,16 +429,7 @@ def _runs(reading: str, tmp_path: Path) -> dict:
     document.write_text(_notice_document(lead, tail, f"{channel}.csv", "ltr" if reading == "en" else "rtl"), encoding="utf-8")
     expression = tmp_path / "runs.js"
     expression.write_text(RUNS, encoding="utf-8")
-    # --import wires the shell resolver hook. The probe itself never imports a
-    # shell primitive, but the flag costs nothing and keeps every node
-    # invocation in this file resolving the same way.
-    done = subprocess.run([node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
-                          str(PROBE), str(document), str(expression)],
-                          capture_output=True, text=True, timeout=180)
-    if done.returncode == 2 and "no chrome" in done.stderr:
-        pytest.skip("no Chrome on this machine, so the paint cannot be measured")
-    assert done.returncode == 0, f"the probe failed: {done.stderr[-800:]}"
-    return json.loads(done.stdout)
+    return _probe(document, expression)
 
 
 def test_the_english_notice_paints_the_file_name_as_itself(tmp_path) -> None:

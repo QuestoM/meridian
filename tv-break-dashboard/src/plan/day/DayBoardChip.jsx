@@ -21,8 +21,11 @@ import './day-chip.css';
 // numbers are drawn beside the object, never squeezed into it, and they are there
 // on hover and on selection, which are the two moments a person is asking.
 //
-// The clock is forced left to right inside a right to left page, because a time
-// must never be mirrored.
+// The clock is ISOLATED inside a right to left page, because a time must never
+// be mirrored. Isolated, not forced left to right: forcing it also re-anchors
+// the element's alignment to the left, which is what pulls a numeric column out
+// of line with its neighbours. This comment said "forced" until 2026-08-09 and
+// was describing the defect rather than the fix.
 //
 // Gold and the saved placement are states, so they are in the name, not only in
 // the glyph. Both glyphs are decorative and hidden, and while they were the only

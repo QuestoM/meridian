@@ -39,12 +39,23 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "tv-break-dashboard" / "src" / "rules"
 HELPER = RULES / "rules-bidi.js"
+# Isolation was consolidated into one home. The helper this file measures now
+# re-exports the shared primitive rather than defining marks of its own, so the
+# escapes are asserted where they live and the helper is asserted to import
+# them. A second copy of an isolate mark is how two lines drift apart later.
+SHELL_BIDI = ROOT / "tv-break-dashboard" / "src" / "shell" / "bidi.jsx"
 PROBE = Path(__file__).with_name("test_p5_paint_probe.mjs")
 TOKENS = ROOT / "tv-break-dashboard" / "src" / "tokens.css"
 SHEET = RULES / "rules-restrictions.css"
 
 FIRST_STRONG_ISOLATE = "⁨"
 POP_DIRECTIONAL_ISOLATE = "⁩"
+# The two marks that must never appear. U+2066 forces a run to read left to
+# right and U+2067 right to left, and either one imposes a direction on a figure
+# whose direction is its own. U+2068 infers it from the run's first strong
+# character, which is why the shipped helper uses that one and only that one.
+LEFT_TO_RIGHT_ISOLATE = "⁦"
+RIGHT_TO_LEFT_ISOLATE = "⁧"
 
 # Every expression on this destination that prints a pair, and the file that
 # prints it. A new one belongs here on the day it is written.
@@ -183,9 +194,22 @@ def test_the_helper_wraps_each_side_in_a_first_strong_isolate(tmp_path):
     )
     assert pairs["money"] == expected
     assert pairs["breaks"] == f"{FIRST_STRONG_ISOLATE}3{POP_DIRECTIONAL_ISOLATE} → {FIRST_STRONG_ISOLATE}2{POP_DIRECTIONAL_ISOLATE}"
+    # The strongest form of this assertion is the string the helper really
+    # returned, above and here: first-strong, and never a mark that forces a
+    # direction onto a figure that carries its own.
+    for produced in (pairs["money"], pairs["rate"], pairs["breaks"]):
+        assert LEFT_TO_RIGHT_ISOLATE not in produced and RIGHT_TO_LEFT_ISOLATE not in produced
+
+    # Isolation moved into one home, tv-break-dashboard/src/shell/bidi.jsx, so
+    # the marks are asserted where they are now defined and the helper is
+    # asserted to import them rather than to keep a second copy.
+    home = SHELL_BIDI.read_text(encoding="utf-8")
+    assert "'\\u2068'" in home and "'\\u2069'" in home, "the marks are not written as escapes"
+    assert LEFT_TO_RIGHT_ISOLATE not in home and RIGHT_TO_LEFT_ISOLATE not in home, (
+        "a directional isolate other than first-strong"
+    )
     source = HELPER.read_text(encoding="utf-8")
-    assert "'\\u2068'" in source and "'\\u2069'" in source, "the marks are not written as escapes"
-    assert "⁦" not in source and "⁧" not in source, "a directional isolate other than first-strong"
+    assert "import { isolate } from '../shell/bidi';" in source, "the helper defines a mark of its own again"
 
 
 @pytest.mark.parametrize("figure", ["money", "rate", "breaks"])
@@ -229,23 +253,42 @@ def test_every_pair_this_destination_prints_goes_through_the_helper(tmp_path):
         and re.search(r"\}\s*→\s*\$\{", path.read_text(encoding="utf-8"))
     ]
     assert hand_rolled == [], f"{hand_rolled} build a pair by hand instead of calling valuePair"
+    # Isolation moved to the shell primitive, so no file on this destination
+    # writes a mark at all any more: they all reach it through the one home.
+    # A file that starts writing its own is a second definition of the rule.
     carriers = [
         path.name
         for path in sorted(RULES.iterdir())
-        if path.suffix in {".js", ".jsx"} and "\\u2068" in path.read_text(encoding="utf-8")
+        if path.suffix in {".js", ".jsx"}
+        and any(mark in path.read_text(encoding="utf-8") for mark in ("\\u2068", FIRST_STRONG_ISOLATE))
     ]
-    assert carriers == ["rules-bidi.js"], f"the isolate marks are also written by {carriers}"
+    assert carriers == [], f"the isolate marks are written by {carriers} rather than by the shell primitive"
+    assert "\\u2068" in SHELL_BIDI.read_text(encoding="utf-8"), "and the one home still writes them"
 
 
 def test_the_signed_delta_beside_the_pair_is_isolated_too():
-    """One card, one currency, one rendering. The delta sits directly above the pair."""
+    """One card, one currency, one rendering. The delta sits directly above the pair.
+
+    The delta used to be the bare expression on the line under the element, and
+    that is what this read. Isolation moved to the shell primitive, so the value
+    now sits inside a Figure element within the same element, and the element
+    itself carries no dir: a dir on an inline run fixes its order and also
+    re-anchors its alignment, which is the defect this card was fixed for. So
+    the whole element is read, and both halves are required of it.
+    """
     for name in ("RestrictionEffect.jsx", "RateCardEffect.jsx"):
         source = (RULES / name).read_text(encoding="utf-8")
-        deltas = re.findall(r"rules-figure-delta[^\n]*\n\s*\{([^}]+)\}", source)
+        deltas = re.findall(r"rules-figure-delta.*?</strong>", source, re.S)
         assert deltas, f"{name} no longer prints a signed delta, so this guard is stale"
-        for expression in deltas:
-            assert "isolate(" in expression or "valuePair(" in expression, (
-                f"{name} prints {expression.strip()} without isolating it"
+        for element in deltas:
+            assert "isolate(" in element or "valuePair(" in element, (
+                f"{name} prints a delta without isolating it: {element.strip()!r}"
+            )
+            assert re.search(r"<(Bidi)?Figure[ >]", element), (
+                f"{name} prints a delta outside the shell figure primitive: {element.strip()!r}"
+            )
+            assert "dir=" not in element, (
+                f"{name} re-anchors its own delta, which is what pulls it out of line: {element.strip()!r}"
             )
 
 

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -49,6 +50,32 @@ AGY_01 = [
     "פריסבי",
     "קרסו מוטורס",
 ]
+
+# Isolation has one home, tv-break-dashboard/src/shell/bidi.jsx, and the shapes
+# below are what it paints. Both are corrections rather than renames, so do not
+# put the old ones back.
+#
+# A dir attribute on an inline run IS the defect. It fixes the run's internal
+# order, which is wanted, and it also re-anchors that element's own alignment,
+# which is a bug inside a right-to-left surface: a figure carrying dir="ltr"
+# aligns left while its neighbours align right and the column stops lining up.
+# The primitives isolate through a CSS class and never touch alignment, so a run
+# they paint carries a class and no dir at all.
+#
+# U+2068 is the FIRST STRONG isolate: the run takes its direction from its own
+# first strong character, so one call is right for a Hebrew name and a Latin
+# one. U+2066 is the left-to-right isolate and would force a Hebrew name to read
+# left to right, so its presence anywhere in this markup is the old defect.
+#
+# Written as escapes on purpose. The characters render as nothing, so a literal
+# pair in this file would be invisible to review and to any editor that trims it.
+FIRST_STRONG_ISOLATE = "\u2068"
+POP_DIRECTIONAL_ISOLATE = "\u2069"
+LEFT_TO_RIGHT_ISOLATE = "\u2066"
+RIGHT_TO_LEFT_ISOLATE = "\u2067"
+
+FIGURE_CLASS = "bidi-figure"
+NAME_CLASS = "bidi-name"
 
 OBSERVED_CHIP = "נצפה בנתונים"
 MANUAL_CHIP = "קישור ידני"
@@ -141,6 +168,25 @@ def _as_text(value: str) -> str:
     and hide whether the name rendered at all.
     """
     return html.escape(value)
+
+
+def _runs(markup: str, class_name: str) -> list[str]:
+    """Every opening tag in the painted markup that the primitive produced."""
+    return re.findall(rf'<[a-z]+ class="{class_name}[^"]*"[^>]*>', markup)
+
+
+def _assert_isolated_without_a_dir(markup: str, class_name: str, count: int) -> None:
+    """The painted shape of an isolated run: the class, and no dir attribute.
+
+    Both halves matter. Without the class the run is not isolated at all and its
+    digits merge with the Hebrew around them. With a dir attribute it is
+    isolated and also re-anchored, which is the column-misalignment defect the
+    primitive was written to remove.
+    """
+    tags = _runs(markup, class_name)
+    assert len(tags) == count, f"{len(tags)} runs carry {class_name}, expected {count}"
+    for tag in tags:
+        assert "dir=" not in tag, f"{tag} re-anchors its own alignment inside a Hebrew surface"
 
 
 def _node() -> str:
@@ -271,7 +317,9 @@ def test_the_six_names_the_critic_measured_are_on_the_first_agency(rendered):
     """The exact response the critic read, rendered."""
     html = rendered["AGY_01"]["html"]
     for name in AGY_01:
-        assert f'<span class="agz-link-name" dir="auto">{_as_text(name)}</span>' in html
+        # Isolation moved to the shell primitive, so a name paints as a class and
+        # no dir. dir="auto" here would re-anchor the row's alignment.
+        assert f'<span class="{NAME_CLASS} agz-link-name">{_as_text(name)}</span>' in html
     assert html.count(OBSERVED_CHIP) == len(AGY_01), "every observed link states its provenance"
     assert MANUAL_CHIP not in html, "no link here is manual, so no link may claim to be"
 
@@ -288,10 +336,20 @@ def test_a_full_payload_never_reaches_the_empty_state(payloads, rendered):
 
 
 def test_hebrew_advertiser_names_are_not_forced_left_to_right(rendered):
-    """A Hebrew trade name inside dir=ltr reads with its punctuation flipped."""
+    """A Hebrew trade name forced left to right reads with its punctuation flipped.
+
+    Read off the painted markup, not off the component source. Isolation moved
+    into the shell primitive and each name now paints as an inline run carrying
+    bidi-name and nothing else: a dir attribute on that run would set its base
+    direction, which fixes the order and also re-anchors the row's alignment,
+    and that second effect is the defect. U+2066 would force left to right on a
+    name whose direction is its own, so it may not appear here either.
+    """
     html = rendered["AGY_01"]["html"]
-    assert 'class="agz-link-name" dir="ltr"' not in html
-    assert html.count('class="agz-link-name" dir="auto"') == len(AGY_01)
+    _assert_isolated_without_a_dir(html, NAME_CLASS, len(AGY_01))
+    assert LEFT_TO_RIGHT_ISOLATE not in html and RIGHT_TO_LEFT_ISOLATE not in html, (
+        "a name is isolated by a direction-forcing mark rather than by first-strong"
+    )
 
 
 def test_the_section_states_its_count_and_the_file_it_read(payloads, rendered):
@@ -299,9 +357,17 @@ def test_the_section_states_its_count_and_the_file_it_read(payloads, rendered):
     source_file = payloads["AGY_01"]["observed_source_file"]
     assert source_file, "the store must name the daily file, or the basis line is untestable"
     html = rendered["AGY_01"]["html"]
-    assert f'<span class="numeric" dir="ltr">{len(AGY_01)}</span>' in html
+    # Isolation moved to the shell primitive: the count paints as a class, and a
+    # dir attribute on it would pull the figure off the column it belongs to.
+    assert f'<span class="{FIGURE_CLASS} numeric">{len(AGY_01)}</span>' in html
+    _assert_isolated_without_a_dir(html, FIGURE_CLASS, 1)
     assert "<small>מפרסמים</small>" in html
-    assert f"נצפו בקובץ הספוטים היומי ⁦{source_file}⁩." in html, "the file name is an isolated run"
+    # The file name is joined into a sentence rather than rendered as its own
+    # element, so it is isolated by the marks. First-strong, never left-to-right.
+    assert (
+        f"נצפו בקובץ הספוטים היומי {FIRST_STRONG_ISOLATE}{source_file}{POP_DIRECTIONAL_ISOLATE}." in html
+    ), "the file name is a first-strong isolated run"
+    assert LEFT_TO_RIGHT_ISOLATE not in html and RIGHT_TO_LEFT_ISOLATE not in html
 
 
 def test_an_agency_holding_one_advertiser_reads_in_the_singular(payloads, rendered):
@@ -310,7 +376,9 @@ def test_an_agency_holding_one_advertiser_reads_in_the_singular(payloads, render
     assert singles, "this data must contain a one-advertiser agency, or this proves nothing"
     for agency_id in singles:
         html = rendered[agency_id]["html"]
-        assert '<span class="numeric" dir="ltr">1</span><small>מפרסם</small>' in html
+        # Isolation moved to the shell primitive, so the figure carries a class
+        # and no dir. A dir here would re-anchor the count inside its own header.
+        assert f'<span class="{FIGURE_CLASS} numeric">1</span><small>מפרסם</small>' in html
         assert "<small>מפרסמים</small>" not in html
 
 
