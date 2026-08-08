@@ -31,6 +31,7 @@ from pathlib import Path
 import pytest
 
 from kairos.export.schedule_fingerprint import (
+    active_override_digest,
     PINNED_SETTINGS,
     STAMPED_SETTINGS,
     csv_sha256,
@@ -102,6 +103,40 @@ def test_the_artifact_was_produced_under_the_settings_on_disk():
         + "\n".join(f"  {k}: plan has {was!r}, settings say {now!r}" for k, was, now in drifted)
         + "\nRe-export with scripts/export_schedule.py, or restore the settings. Do not "
         "edit the fingerprint."
+    )
+
+
+def test_the_plan_was_computed_under_the_overrides_that_are_active_now():
+    """The other shared writable store, and the one that got away.
+
+    data/manual_overrides.csv holds what an operator pins by hand, the optimizer
+    honours every active row, and the same browser writes it that writes the
+    settings. On 2026-08-01 one walk changed revenue_weight AND wrote a single
+    gold mark into this file. The settings were restored and guarded; this file
+    was not, so that row survived the restore and moved 131,878.70 ILS on
+    2024-11-03 for another eight days with nothing noticing.
+
+    The guard above learned that the file is the unit of risk rather than the
+    field. This one is the next size up: the unit of risk is every shared
+    writable store the plan is computed from, and there were two.
+    """
+    recorded = read_fingerprint(CSV)
+    if recorded is None:
+        pytest.fail("the fingerprint is unreadable, so the artifact is unguarded")
+    stamped = recorded.get("active_overrides")
+    if stamped is None:
+        pytest.fail(
+            "this fingerprint predates the override digest. Re-export with "
+            "scripts/export_schedule.py; do not hand-edit the fingerprint."
+        )
+    live = active_override_digest(ROOT)
+    assert stamped == live, (
+        "the saved plan was computed under a different set of active overrides:\n"
+        f"  plan has: {stamped}\n"
+        f"  on disk:  {live}\n"
+        "An override was added, retired or edited since the export. Re-run "
+        "scripts/export_schedule.py. If you did not make that change, find out who did "
+        "before re-exporting: this is exactly how a browser walk moved 131,878.70 ILS."
     )
 
 

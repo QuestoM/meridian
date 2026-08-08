@@ -1,6 +1,6 @@
 {
   "artifact": "weekly_break_schedule.csv",
-  "sha256": "f18f080fb7d5b5dbe7e435caf7e9c35b3680ed5339e4689a9d0abc6ca5dd14de",
+  "sha256": "1b9d42983fc0cb38c0c288984e2e69b2f6c042cdca084b40672fc62b392b8f5c",
   "rows": 8704,
   "settings": {
     "revenue_weight": 60,
@@ -8,5 +8,6 @@
     "operator_channel": "רשת 13",
     "risk_lambda": 0.0
   },
-  "note": "Committed on purpose. The freshness sidecar beside this file is gitignored and answers unknown on a fresh checkout, so it cannot guard the artifact. tests/test_plan_artifact_fingerprint.py compares this against the file and against data/kairos_settings.json."
+  "active_overrides": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "note": "Committed on purpose. The freshness sidecar beside this file is gitignored and answers unknown on a fresh checkout, so it cannot guard the artifact. tests/test_plan_artifact_fingerprint.py compares this against the file, against data/kairos_settings.json, and against the active rows of data/manual_overrides.csv."
 }

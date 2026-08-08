@@ -34,6 +34,7 @@ is what makes it a guard rather than a ceremony.
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -61,6 +62,56 @@ PINNED_SETTINGS = {
     "locale": "he",
     "direction": "rtl",
 }
+
+# The OTHER shared writable store, and the one that got away.
+#
+# data/manual_overrides.csv holds the decisions an operator pins by hand, and the
+# optimizer honours every row whose status is active. It is written by the same
+# browser the settings are written by, so it carries the same risk, and on
+# 2026-08-01 the same walk that changed revenue_weight also wrote one gold mark
+# into it. The settings were restored and guarded; this file was not, so the row
+# survived the restore and moved 131,878.70 ILS on 2024-11-03 for another eight
+# days without anything noticing.
+#
+# The lesson recorded above was "the file is the unit of risk, not the field".
+# It was still too narrow. The unit of risk is EVERY shared writable store the
+# plan is computed from, and there were two.
+#
+# Only ACTIVE rows are digested, because only active rows bend the plan. That is
+# deliberate and it is what makes the guard usable: retiring a bad row changes
+# the digest and correctly demands a re-export, while the row itself stays on
+# disk as a record rather than being deleted to make a test pass.
+OVERRIDE_STORE = "data/manual_overrides.csv"
+
+
+def active_override_digest(root: str | Path) -> str:
+    """A hash of the override rows the optimizer would actually honour.
+
+    Absent file and no active rows hash the same, on purpose: both mean the plan
+    was computed with nothing pinned, which is one state and not two.
+    """
+    path = Path(root) / OVERRIDE_STORE
+    rows: list[str] = []
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        text = ""
+    lines = [line for line in text.splitlines() if line.strip()]
+    if lines:
+        header = [column.strip() for column in lines[0].split(",")]
+        try:
+            status = header.index("status")
+        except ValueError:
+            status = -1
+        for line in lines[1:]:
+            cells = list(csv.reader([line]))[0] if line else []
+            if status < 0 or (len(cells) > status and cells[status].strip().lower() == "active"):
+                rows.append(line)
+    digest = hashlib.sha256()
+    for line in sorted(rows):
+        digest.update(line.encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
 
 
 def csv_sha256(path: str | Path) -> str:
@@ -95,16 +146,21 @@ def build_fingerprint(csv_path: str | Path, settings: Any) -> dict[str, Any]:
     with open(path, "r", encoding="utf-8") as handle:
         for index, _ in enumerate(handle):
             rows = index  # header is line 0, so the final index is the data row count
+    # The repository root, from this module rather than from the caller, so the
+    # digest is taken over the same store the optimizer read.
+    root = Path(__file__).resolve().parents[2]
     return {
         "artifact": path.name,
         "sha256": csv_sha256(path),
         "rows": rows,
         "settings": _settings_slice(settings),
+        "active_overrides": active_override_digest(root),
         "note": (
             "Committed on purpose. The freshness sidecar beside this file is gitignored "
             "and answers unknown on a fresh checkout, so it cannot guard the artifact. "
-            "tests/test_plan_artifact_fingerprint.py compares this against the file and "
-            "against data/kairos_settings.json."
+            "tests/test_plan_artifact_fingerprint.py compares this against the file, "
+            "against data/kairos_settings.json, and against the active rows of "
+            "data/manual_overrides.csv."
         ),
     }
 

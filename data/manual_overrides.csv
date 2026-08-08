@@ -1,2 +1,2 @@
 ﻿override_id,scope,target_id,kind,value,gold,notes,created_at,source,rec_id,status,anchor_date,anchor_start,anchor_title
-17ae786f703d,segment,2024-11-03|רשת 13|064,gold,,True,"gold from the day board, break 1",2026-08-01T21:52:30.800589+00:00,manual,,active,2024-11-03,15:59,Special Event
+17ae786f703d,segment,2024-11-03|רשת 13|064,gold,,True,"gold from the day board, break 1 [DISMISSED 2026-08-09: written by an agent browser walk, not by the operator; it moved 131878.70 ILS on 2024-11-03]",2026-08-01T21:52:30.800589+00:00,manual,,dismissed,2024-11-03,15:59,Special Event
