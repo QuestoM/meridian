@@ -77,7 +77,23 @@ def test_the_controls_stay_on_screen_on_the_day_a_person_needs_them_most():
     block = css.split(".day-violations {")[1].split("}")[0]
     assert "flex-wrap: wrap;" in block, "the verdicts share a line and wrap on a narrow window"
     item = css.split(".day-violations li {")[1].split("}")[0]
-    assert "border-inline-start" in item, "each verdict keeps a rule of its own, and it mirrors in Hebrew"
+    # Each verdict is still set off as its own box, and the shape that does it
+    # moved. It used to be a one-sided rule down the inline-start edge; that is
+    # now banned outright by docs/ux-gauntlet/design-rules.md section 1, because a
+    # rule on one edge reads as an unfinished frame and lands on the opposite edge
+    # under right-to-left. A full border in the same colour says the same thing in
+    # both languages, and the inline padding that came with it keeps the text off
+    # that border. A correction, not a rename: do not put the one-sided rule back.
+    assert "border: 1px solid var(--red);" in item, (
+        "each verdict keeps a box of its own, in the state colour for a breach"
+    )
+    assert "border-inline-start" not in item and "border-left" not in item and "border-right" not in item, (
+        "a one-sided accent bar is banned, and a physical side does not mirror at all"
+    )
+    assert "padding-inline-start:" in item, "the text sits off its own border"
+    assert "padding-left:" not in item and "padding-right:" not in item, (
+        "padding stated as a physical side stays on the same edge when Hebrew flips the box"
+    )
     readout = read("plan/day/DayBoardReadout.jsx")
     assert "{violations.map((violation, index) => (" in readout, "every failed check is still rendered"
     assert "{formatNumber(violation.observed, locale)} / {formatNumber(violation.limit, locale)}" in readout

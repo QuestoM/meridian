@@ -35,6 +35,46 @@ from test_p3_save_scope import editor_rows, node_pin_bodies, read
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tv-break-dashboard" / "src"
 MONEY_JS = SRC / "plan" / "day" / "schedule-editor-money.js"
+# The two modules the money panel composes its scope line out of. A calendar day
+# is read in one place now, src/shell/dates.js, and the plan a figure came from
+# is named in one place, plan-basis.js. Both are executed below rather than read,
+# because the shape of the line is what a scheduler sees and a source read would
+# pass on any spelling of it.
+DATES_JS = SRC / "shell" / "dates.js"
+BASIS_JS = SRC / "plan" / "day" / "plan-basis.js"
+
+# The day the whole file is measured on, in the two shapes it can take. The wire
+# carries ISO and a person is never shown it: 01/11/2024 is unambiguous in both
+# locales, where 2024-11-01 reads as a machine's string in a Hebrew line and
+# invites the reader to hunt for which number is the month.
+MEASURED_DAY_ISO = "2024-11-01"
+MEASURED_DAY_READS = "01/11/2024"
+
+
+def node_scope_line(channel: str, day: str, locale: str) -> str:
+    """The money panel's scope line, composed by the shipped modules themselves.
+
+    Exactly the expression ScheduleEditorMoney evaluates, run in node against the
+    real modules, so what is asserted is the line a scheduler reads rather than
+    the source that produces it.
+    """
+    if shutil.which("node") is None:
+        pytest.skip("node is not on PATH, so the shipped modules cannot be executed")
+    script = (
+        f"const dates = await import({json.dumps(DATES_JS.as_uri())});\n"
+        f"const basis = await import({json.dumps(BASIS_JS.as_uri())});\n"
+        f"const scope = {json.dumps(channel)} + ' / ' + dates.formatDay({json.dumps(day)});\n"
+        f"process.stdout.write(basis.scopeWithBasis(scope, basis.LIVE_PLAN, {json.dumps(locale)}));\n"
+    )
+    result = subprocess.run(
+        # dates.js imports the shell's bidi primitive; this hook resolves it to
+        # the real compiled module rather than a stub.
+        ["node", "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"),
+         "--input-type=module", "-e", script],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -284,7 +324,19 @@ def test_the_editor_prints_no_figure_before_the_engine_has_answered():
     # on, because this panel prices the live re-plan while the sentence above the
     # timeline counts the saved weekly plan. The basis wording itself is asserted
     # as a class in test_p3_editor_coverage.py; here it only has to be present.
-    assert 'scopeWithBasis(`${basis.channel} / ${basis.day}`, LIVE_PLAN, locale)' in money
+    #
+    # The day moved. A calendar day is read in one place, src/shell/dates.js, and
+    # it reads dd/mm/yyyy in both locales, so the panel no longer drops the wire's
+    # ISO string into the line. A correction, not a rename: do not put ${basis.day}
+    # back. What that produces is measured rather than described, immediately below.
+    assert 'scopeWithBasis(`${basis.channel} / ${formatDay(basis.day)}`, LIVE_PLAN, locale)' in money
+    assert "${basis.day}" not in money, "the wire's ISO day never reaches a person unread"
+    line = node_scope_line("רשת 13", MEASURED_DAY_ISO, "he")
+    assert line == f"רשת 13 / {MEASURED_DAY_READS} / התוכנית החיה הזו", line
+    assert MEASURED_DAY_ISO not in line, "the ISO day is the wire's shape and nobody's calendar"
+    english = node_scope_line("רשת 13", MEASURED_DAY_ISO, "en")
+    assert english == f"רשת 13 / {MEASURED_DAY_READS} / this live plan", english
+    assert MEASURED_DAY_ISO not in english, "one calendar shape, and the English locale reads it too"
     assert money.count('className="day-figure-scope"') >= 4, "every figure names its own scope"
     assert "negative" not in money.lower()
 

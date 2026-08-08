@@ -51,6 +51,19 @@ QUESTIONS_EN = {
     "breaks": "Which break delivered the most",
 }
 
+# Isolation has one home, tv-break-dashboard/src/shell/bidi.jsx, and its isolate
+# character moved with it. U+2068 is the FIRST STRONG isolate: the run takes its
+# direction from its own first strong character, so one call is right for a Latin
+# rule id and for a Hebrew name. U+2066 is the left-to-right isolate and would
+# force a Hebrew run to read left to right, which is the defect that move
+# removed. This shape is a correction, not a rename: do not put U+2066 back.
+#
+# Written as escapes on purpose. The characters render as nothing, so a literal
+# pair in this file would be invisible to review and to any editor that trims it.
+FIRST_STRONG_ISOLATE = "\u2068"
+POP_DIRECTIONAL_ISOLATE = "\u2069"
+LEFT_TO_RIGHT_ISOLATE = "\u2066"
+
 ENTRY = """
 export {{ default as MoneyBoard }} from '{board}';
 export {{ default as ClientRecord }} from '{record}';
@@ -330,7 +343,20 @@ def test_a_removed_spot_says_why_in_words_and_not_in_a_log_line(rendered, payloa
     html = rendered["detail"]
     assert "כלל מתיר לכל היותר תשדיר אחד ללקוח בכל ברייק" in html
     assert "max_per_break=1" not in html, "the machine reason must not be the explanation"
-    assert "כלל ⁦DEFAULT_ONE_PER_BREAK⁩" in html, "the rule id stays, labelled as an id"
+    # Read off the painted markup. The id keeps its own left-to-right order inside
+    # a Hebrew line, and the shape that gives it that moved: isolation now comes
+    # from tv-break-dashboard/src/shell/bidi.jsx, whose isolate() emits U+2068,
+    # the FIRST STRONG isolate, where the old one emitted U+2066 and forced the
+    # direction. The run also carries no dir attribute, because a dir on an inline
+    # run re-anchors that run's own alignment and pulls it off the line it sits
+    # in. Both halves are corrections rather than renames: do not put either back.
+    rule_run = f"כלל {FIRST_STRONG_ISOLATE}DEFAULT_ONE_PER_BREAK{POP_DIRECTIONAL_ISOLATE}"
+    assert f'<span class="clients-rule-id">{rule_run}</span>' in html, (
+        "the rule id stays, labelled as an id and isolated by first strong"
+    )
+    assert f"כלל {LEFT_TO_RIGHT_ISOLATE}DEFAULT_ONE_PER_BREAK" not in html, (
+        "a left-to-right isolate forces a direction rather than inferring one"
+    )
     dropped = next(
         row for row in payload["money"]["dropped"]
         if row["kind"] == "frequency" and row["advertiser"] == rendered["removed"]

@@ -350,7 +350,15 @@ def test_the_editor_offers_no_scope_wider_than_the_airing_it_is_looking_at():
     )
     assert "savePinPlacement" in pin
     row = read("plan/day/ScheduleEditorRow.jsx")
-    assert '{scope && <span className="editor-row-scope" dir="auto">{scope}</span>}' in row
+    # Isolation moved to tv-break-dashboard/src/shell/bidi.jsx and stopped using
+    # dir on the way. A dir attribute on an inline run fixes its internal order
+    # and also re-anchors its own alignment, which drags it off the line its
+    # neighbours sit on. The scope sentence is interface copy that already knows
+    # its language, so it carries no dir; the figures beside it isolate through
+    # the primitive. A correction, not a rename: do not put dir back on this row.
+    assert '{scope && <span className="editor-row-scope">{scope}</span>}' in row
+    assert "import { Figure } from '../../shell/bidi';" in row
+    assert "dir=" not in row, "no run on this row sets a base direction of its own"
 
 
 def test_the_editor_prints_a_currency_figure_and_an_inverse_control_after_a_save():

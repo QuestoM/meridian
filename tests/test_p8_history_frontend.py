@@ -23,6 +23,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "tv-break-dashboard" / "src"
 HISTORY = SRC / "history"
 
+# The two direction-forcing isolate marks. U+2068, the first-strong isolate
+# the shell primitives use, infers a run's direction from the run itself;
+# these two impose one, which is wrong for a value a store can write Hebrew
+# into. Written as escapes because the characters render as nothing, so a
+# literal pair here would be invisible to review and to any editor that
+# trims it.
+LEFT_TO_RIGHT_ISOLATE = "\u2066"
+RIGHT_TO_LEFT_ISOLATE = "\u2067"
+
 
 def _read(name: str) -> str:
     return (HISTORY / name).read_text(encoding="utf-8")
@@ -90,14 +99,30 @@ def test_a_row_the_restore_would_add_or_remove_is_read_as_an_identity() -> None:
     looked for item.id or item.name and not one of the eight stores uses either.
     What the identity returns is executed in tests/test_p8_history_modules.py;
     what is asserted here is that the surface asks for it and that a chip that
-    can hold Hebrew is no longer forced left to right."""
+    can hold Hebrew is no longer forced left to right.
+
+    Isolation moved. It has one home now, tv-break-dashboard/src/shell/bidi.jsx,
+    and the two primitives it exports are the whole vocabulary this surface has
+    for direction: Name for a run that arrives as data and may be Hebrew or
+    Latin, Code for a machine-facing string whose order is left to right whatever
+    the language. They isolate through a CSS class and touch no alignment, where
+    a dir attribute on an inline run fixes the order AND re-anchors that run's
+    own alignment, which pulls it off the line its neighbours sit on. So a dir
+    attribute anywhere on this surface is the defect, not the fix, and the
+    assertions below are corrections rather than renames: do not put dir back."""
     diff = _read("HistoryDiff.jsx")
     assert "import { rowIdentity } from './history-rows';" in diff
     assert "JSON.stringify" not in diff, "nothing on this surface reaches a person as a dumped record"
-    assert '<code dir="ltr"' not in diff, "the chip that can hold Hebrew is not forced left to right"
-    assert 'className="hist-diff-chip-name" dir="auto"' in diff
-    assert 'dir={part.ltr ? \'ltr\' : \'auto\'}' in diff, (
-        "only an id, a date and a clock are isolated left to right")
+    assert "import { Code, Name } from '../shell/bidi';" in diff, (
+        "direction comes from the one place that is allowed to state it")
+    assert "<Name>{identity.title}</Name>" in diff, (
+        "the chip's identity is a name, so its order comes from its own first strong character")
+    assert "part.ltr ? <Code key={index}>{value}</Code> : <Name key={index}>{value}</Name>" in diff, (
+        "only an id, a date and a clock read left to right; everything else reads as written")
+    assert "dir=" not in diff, (
+        "no run on this surface sets a base direction, because that re-anchors its own alignment")
+    assert LEFT_TO_RIGHT_ISOLATE not in diff and RIGHT_TO_LEFT_ISOLATE not in diff, (
+        "and none is isolated by a mark that forces a direction rather than inferring one")
     words = _read("history-row-words.js")
     labels = _read("history-labels.js")
     assert "from './history-row-words.js';" in labels, (
