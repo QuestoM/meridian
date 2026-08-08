@@ -62,6 +62,22 @@ for (const name of MODULES) {
   built.set(name.replace(/\\.jsx?$/, ''), file);
 }
 
+// shell/bidi and shell/dates are real primitives, not scaffolding, and the
+// modules above now name them for the same reason MoneyBoard's campaign cell
+// and CampaignBoard's agency cell became buttons: a figure or a name that used
+// to print as bare text now goes through Figure/Code/Name, and DeliveryState's
+// dates go through the same file's formatters. Compiling a stub would let the
+// modules resolve while testing nothing about what they actually render, so
+// these build the shipped files, from their own directory next to src/clients.
+// dates.js itself imports isolate from './bidi', so shell/bidi builds first.
+const SHELL = path.join(DASH, 'src', 'shell');
+for (const name of ['bidi.jsx', 'dates.js']) {
+  const out = await transformWithOxc(fs.readFileSync(path.join(SHELL, name), 'utf8'), name, { jsx: { runtime: 'automatic' } });
+  const file = path.join(OUT, `shell-${name.replace(/\\.jsx?$/, '')}.mjs`);
+  fs.writeFileSync(file, out.code, 'utf8');
+  built.set(`shell/${name.replace(/\\.jsx?$/, '')}`, file);
+}
+
 function stub(name, body) {
   const file = path.join(OUT, name);
   fs.writeFileSync(file, body, 'utf8');
@@ -90,6 +106,8 @@ registerHooks({
     const hit = (url) => ({ url: pathToFileURL(url).href, shortCircuit: true });
     if (specifier.endsWith('.css')) return hit(CSS);
     if (specifier.endsWith('shell/format')) return hit(FORMAT);
+    if (specifier.endsWith('/bidi')) return hit(built.get('shell/bidi'));
+    if (specifier.endsWith('shell/dates')) return hit(built.get('shell/dates'));
     if (specifier.endsWith('clients-api')) return hit(API);
     if (specifier === 'lucide-react') return hit(LUCIDE);
     if (specifier === './CampaignDetail' || specifier === './CampaignTerms') return hit(PANEL);

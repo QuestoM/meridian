@@ -85,6 +85,56 @@ def effect_keys() -> list[str]:
     return sorted(_EFFECTS) + [UNKNOWN_EFFECT]
 
 
+# tv-break-dashboard/src/shell/bidi.jsx is a primitive added after this probe
+# was written: rules-bidi.js now imports `isolate` from it, and the probe only
+# ever copies rules-words.js and rules-bidi.js into its scratch tree, so node
+# resolves `../shell/bidi` against a directory that was never given the file.
+# The probe script itself is frozen, so the fix cannot live in the copy it
+# makes; it has to arrive before that script even starts resolving imports.
+# Node's `--import` preloads a module in the same process ahead of the entry
+# point and lets that module call `registerHooks`, which is exactly what the
+# P4 fix (tests/test_p4_rollup_tristate.py) does for its own harness's own
+# entry module. This does the equivalent from outside a file this suite may
+# not edit: a resolver hook, installed by a small module written to the same
+# scratch tree the payload already lives in, standing in for the one import
+# the copied files actually reach for.
+#
+# The stub mirrors only what a plain-node ESM probe can honestly mirror: no
+# React, because nothing here compiles JSX or supplies a React runtime, and no
+# invisible isolation marks, because a test about words must not depend on
+# control codes the eye cannot see. The real characters have their own guard
+# in npm run test:direction.
+BIDI_STUB = """
+export function isolate(value) {
+  return String(value ?? '').trim();
+}
+export function documentDirection(locale) {
+  return locale === 'he' ? 'rtl' : 'ltr';
+}
+export function Figure() { return null; }
+export function Code() { return null; }
+export function Name() { return null; }
+export function DirectionRoot() { return null; }
+export function Prose() { return null; }
+"""
+
+RESOLVE_BIDI_HOOK = """
+import { registerHooks } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const BIDI = pathToFileURL(join(here, 'bidi-stub.mjs')).href;
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith('shell/bidi')) return { url: BIDI, shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+"""
+
+
 @pytest.fixture(scope="module")
 def read(tmp_path_factory, walls, effect_keys) -> dict:
     node = _node()
@@ -93,8 +143,12 @@ def read(tmp_path_factory, walls, effect_keys) -> dict:
     payload.write_text(
         json.dumps({**walls, "effect_keys": effect_keys}, ensure_ascii=False), encoding="utf-8",
     )
+    (work / "bidi-stub.mjs").write_text(BIDI_STUB, encoding="utf-8")
+    hook = work / "resolve-bidi.mjs"
+    hook.write_text(RESOLVE_BIDI_HOOK, encoding="utf-8")
     result = subprocess.run(
-        [node, str(PROBE), str(payload)], capture_output=True, text=True, check=False, cwd=str(work),
+        [node, "--import", hook.as_uri(), str(PROBE), str(payload)],
+        capture_output=True, text=True, check=False, cwd=str(work),
     )
     assert result.returncode == 0, result.stderr[-2000:]
     return json.loads(result.stdout)
