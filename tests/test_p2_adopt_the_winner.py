@@ -294,8 +294,12 @@ def test_every_day_row_and_the_sentence_that_names_the_day_open_it():
     assert "<DayOpener date={row.date} weekday={row.weekday} locale={locale} onOpenDay={onOpenDay}>" in table
     # The sentence the destination is judged on is itself the control.
     assert "<DayOpener date={turnRow.date} weekday={turnRow.weekday} locale={locale} onOpenDay={onOpenDay}>" in table
-    assert "Open ${date} on the week board" in table
-    assert "פתיחת ${date} בלוח השבוע" in table
+    # The label names the day through formatDay, the single home for reading a
+    # calendar day, so an Israeli operator hears 03/11/2024 rather than the
+    # machine's own ISO string. It said ${date} until the dates law landed.
+    assert "Open ${formatDay(date)} on the week board" in table
+    assert "פתיחת ${formatDay(date)} בלוח השבוע" in table
+    assert "${date}" not in table, "a raw payload date is still interpolated somewhere here"
 
     panel = _text("ComparePanel.jsx")
     assert panel.count("onOpenDay={onOpenDay}") == 2, "both the live table and the finished one"

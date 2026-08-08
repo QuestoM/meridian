@@ -357,7 +357,16 @@ def test_a_channel_name_inside_a_sentence_carries_its_own_direction():
     assert "<bdi>{scope.channel}</bdi>" in compare
     assert "<bdi>{channel}</bdi>" in compare
     model = _text(WEEK / "plan-week-model.js")
-    assert "export function isolate(value)" in model
+    # isolate moved to src/shell/bidi.jsx, the single home for isolation, so this
+    # surface imports it instead of defining its own. That is the better answer
+    # and this assertion follows it: the law was never "defined here", it was
+    # "one definition", and a second copy is how two of them drift.
+    assert "from '../../shell/bidi'" in model, (
+        "plan-week-model.js no longer reads isolate from the primitive"
+    )
+    assert "export function isolate(value)" not in model, (
+        "plan-week-model.js defines its own isolate again, so there are two"
+    )
     assert "isolate(note.scope_channel)" in model
 
 
