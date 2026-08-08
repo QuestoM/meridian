@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Code, Name } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { recordDecision } from './console-api';
 import { Absent, Money, Panel, RecordDrill } from './console-bits';
@@ -46,7 +47,7 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
     <form className="mc-decision-form" onSubmit={submit}>
       <div className="mc-decision-subject">
         {subject === 'candidate'
-          ? <>{t('versions.subject_candidate', locale)} <code dir="ltr">{candidateId}</code></>
+          ? <>{t('versions.subject_candidate', locale)} <code><Code>{candidateId}</Code></code></>
           : t('versions.subject_current', locale)}
       </div>
       <div className="mc-decision-choice">
@@ -81,7 +82,14 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
             <textarea value={noteHe} onChange={(event) => setNoteHe(event.target.value)} rows={2} required />
           </label>
           <label className="mc-field">
-            <span dir="ltr">English</span>
+            <Name>English</Name>
+            {/*
+              dir on a form control is not alignment. It sets the order the
+              characters are INSERTED in as the operator types, which is the one
+              thing the isolating primitives cannot do: they render a span and
+              there is no element to wrap around a field's own value. The note in
+              this field is English by definition, so the insertion order is too.
+            */}
             <textarea value={noteEn} onChange={(event) => setNoteEn(event.target.value)} rows={2} dir="ltr" />
           </label>
         </>
@@ -111,10 +119,10 @@ function DecisionRow({ record, locale }) {
         </span>
         <span className="mc-decision-subject-line">
           {record.subject === 'candidate'
-            ? <>{t('versions.subject_candidate', locale)} <code dir="ltr">{record.candidate_id}</code></>
+            ? <>{t('versions.subject_candidate', locale)} <code><Code>{record.candidate_id}</Code></code></>
             : t('versions.subject_current', locale)}
         </span>
-        <span className="mc-decision-meta" dir="ltr">
+        <span className="mc-decision-meta">
           <Numeric>{`${String(record.recorded_at || '').slice(0, 19)}`}</Numeric>
         </span>
       </div>
@@ -123,9 +131,9 @@ function DecisionRow({ record, locale }) {
         <p className="mc-release-note">{record.release_note_he}</p>
       ) : null}
       <p className="mc-decision-meta">
-        {t('versions.by', locale)} <span dir="ltr">{record.actor}</span>
+        {t('versions.by', locale)} <Name>{record.actor}</Name>
         {' - '}
-        <span dir="ltr">{record.model_version_name}</span>
+        <Numeric>{record.model_version_name}</Numeric>
       </p>
       {adoption.state === 'escalated' ? (
         <p className="mc-escalated">
@@ -149,7 +157,7 @@ export default function VersionsPanel({ payload, locale, onRefresh, openForm, on
     <>
       <Panel
         title={t('versions.title', locale)}
-        sub={<span dir="ltr">{payload.store_dir}</span>}
+        sub={<Code>{payload.store_dir}</Code>}
         right={(
           <button type="button" className="mc-button mc-primary" onClick={() => setFormOpen(true)}>
             {t('candidates.decide', locale)}
@@ -193,8 +201,8 @@ export default function VersionsPanel({ payload, locale, onRefresh, openForm, on
           <ul className="mc-version-list">
             {payload.observed.map((version) => (
               <li key={version.id}>
-                <span dir="ltr" className="mc-version-id">{version.id}</span>
-                <span dir="ltr" className="mc-version-seen">
+                <Code className="mc-version-id">{version.id}</Code>
+                <span className="mc-version-seen">
                   <Numeric>{String(version.first_seen_at || '').slice(0, 19)}</Numeric>
                 </span>
               </li>

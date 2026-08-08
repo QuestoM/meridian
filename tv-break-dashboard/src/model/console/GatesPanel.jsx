@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Prose } from '../../shell/bidi';
 import { Absent, Basis, Earliest, Panel, RecordDrill, STATE_ORDER, Verdict } from './console-bits';
 import { pick, t } from './console-words';
 
@@ -67,7 +68,13 @@ function GateRow({ gate, locale, blocked }) {
         />
       </div>
       <Basis basis={gate.basis} locale={locale} />
-      {gate.reason ? <p className="mc-gate-reason" dir="ltr">{gate.reason}</p> : null}
+      {/*
+        The artifact's own sentence, in whatever language the trainer wrote it.
+        It is Prose rather than a plain paragraph because the direction has to
+        come from the sentence itself: this field is not interface copy and the
+        console cannot know from the locale which way it reads.
+      */}
+      {gate.reason ? <Prose className="mc-gate-reason">{gate.reason}</Prose> : null}
       {unblock ? (
         <p className="mc-gate-unblock">
           <span className="mc-gate-unblock-label">{t('gates.unblock', locale)}</span>
@@ -93,7 +100,7 @@ function LayerRow({ layer, locale }) {
         </span>
       </div>
       <p className="mc-layer-note">{pick(layer, 'note', locale)}</p>
-      {layer.reason ? <p className="mc-gate-reason" dir="ltr">{layer.reason}</p> : null}
+      {layer.reason ? <Prose className="mc-gate-reason">{layer.reason}</Prose> : null}
       <RecordDrill record={layer.measured} locale={locale} open={open} onToggle={() => setOpen((v) => !v)} />
     </li>
   );

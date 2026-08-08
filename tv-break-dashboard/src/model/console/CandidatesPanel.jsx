@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Code, Name } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import CandidateVerdict, { useCandidateDecision } from './CandidateVerdict';
 import { measureCandidate, readSection } from './console-api';
@@ -46,8 +47,13 @@ function measurementIsOpen(payload) {
 // Which artifact a value came from, in words, on the value itself. It replaces
 // a connector between two bare values: a reader who lands on the second value
 // still knows whose figure it is, and it says the same thing in both languages.
+// The label carries its own isolation rather than inheriting it from a rule on
+// the row. Both the label and the value beside it can be Hebrew inside a row
+// whose direction is Latin, and two unisolated Hebrew runs merge and render as
+// one unbroken word: measured on this screen, the label read as part of the
+// value it labels.
 function Side({ side, locale }) {
-  return <small className="mc-side-label">{t(`candidates.side_${side}`, locale)}</small>;
+  return <Name className="mc-side-label">{t(`candidates.side_${side}`, locale)}</Name>;
 }
 
 // A gate value the artifact does not carry is an absence, not a value. Printing
@@ -55,12 +61,12 @@ function Side({ side, locale }) {
 // and wrong piece of news: the candidate simply predates the key.
 function GateValue({ value, absent, locale }) {
   if (absent) {
-    return <span className="mc-delta-absent">{t('candidates.key_absent', locale)}</span>;
+    return <Name className="mc-delta-absent">{t('candidates.key_absent', locale)}</Name>;
   }
   if (value === null || value === undefined) {
-    return <span className="mc-delta-absent">{t('candidates.value_null', locale)}</span>;
+    return <Name className="mc-delta-absent">{t('candidates.value_null', locale)}</Name>;
   }
-  return <span>{String(value)}</span>;
+  return <Code>{String(value)}</Code>;
 }
 
 // A figure out of a gate's own record. Three states, never conflated: a number,
@@ -68,18 +74,18 @@ function GateValue({ value, absent, locale }) {
 // does not carry at all.
 function RecordFigure({ value, absent, digits, locale }) {
   if (absent) {
-    return <span className="mc-delta-absent">{t('candidates.key_absent', locale)}</span>;
+    return <Name className="mc-delta-absent">{t('candidates.key_absent', locale)}</Name>;
   }
   if (value === null || value === undefined) {
-    return <span className="mc-delta-absent">{t('candidates.value_null', locale)}</span>;
+    return <Name className="mc-delta-absent">{t('candidates.value_null', locale)}</Name>;
   }
   return <Figure value={value} unit="ratio" digits={digits} />;
 }
 
 function FigurePair({ figure, locale }) {
   return (
-    <li dir="ltr">
-      <code>{figure.key}</code>
+    <li>
+      <code><Code>{figure.key}</Code></code>
       <span className="mc-delta-before">
         <Side side="shipped" locale={locale} />
         <RecordFigure value={figure.shipped} absent={figure.shipped_absent} digits={figure.digits} locale={locale} />
@@ -119,11 +125,11 @@ function HeldOutGate({ row, locale }) {
         <div className="mc-holdout-reasons">
           <p>
             <Side side="shipped" locale={locale} />
-            <span dir="ltr">{row.reason_shipped || t('candidates.no_sentence', locale)}</span>
+            <Name>{row.reason_shipped || t('candidates.no_sentence', locale)}</Name>
           </p>
           <p>
             <Side side="candidate" locale={locale} />
-            <span dir="ltr">{row.reason_candidate || t('candidates.no_sentence', locale)}</span>
+            <Name>{row.reason_candidate || t('candidates.no_sentence', locale)}</Name>
           </p>
         </div>
       ) : null}
@@ -261,7 +267,7 @@ function CandidateCard({ candidate, index, total, locale, onMeasure, onDecide, b
     <li className="mc-candidate">
       <div className="mc-candidate-head">
         <div>
-          <strong dir="ltr">{candidate.id}</strong>
+          <strong><Code>{candidate.id}</Code></strong>
           <small className="mc-candidate-position">
             <Numeric>{`${index + 1} / ${total}`}</Numeric>
           </small>
@@ -283,8 +289,8 @@ function CandidateCard({ candidate, index, total, locale, onMeasure, onDecide, b
           ) : (
             <ul className="mc-delta-list">
               {candidate.gate_deltas.map((delta) => (
-                <li key={delta.key} dir="ltr">
-                  <code>{delta.key}</code>
+                <li key={delta.key}>
+                  <code><Code>{delta.key}</Code></code>
                   <span className="mc-delta-before">
                     <Side side="shipped" locale={locale} />
                     <GateValue value={delta.shipped} absent={delta.shipped_absent} locale={locale} />
@@ -306,7 +312,7 @@ function CandidateCard({ candidate, index, total, locale, onMeasure, onDecide, b
                 {', '}
                 {t('candidates.largest_move', locale)}{' '}
                 <Figure value={deltas.max_abs_delta} unit="ratio" digits={6} />{' '}
-                <code dir="ltr">{deltas.max_abs_delta_cell}</code>
+                <code><Code>{deltas.max_abs_delta_cell}</Code></code>
               </>
             ) : null}
           </p>
@@ -378,7 +384,7 @@ export default function CandidatesPanel({ payload, locale, onRefresh, onDecide, 
   return (
     <Panel
       title={t('candidates.title', locale)}
-      sub={<span dir="ltr">{shown.directory}</span>}
+      sub={<Code>{shown.directory}</Code>}
     >
       {lost ? (
         <p className="mc-note mc-candidate-watch">

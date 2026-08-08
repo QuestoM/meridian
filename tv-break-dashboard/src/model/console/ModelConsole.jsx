@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Code, DirectionRoot, Prose, documentDirection } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import CandidateBoard from '../candidates/CandidateBoard.jsx';
 import CandidatesPanel from './CandidatesPanel';
@@ -85,8 +86,8 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
         <div className="mc-header-strip">
           <div className="mc-header-version">
             <span className="mc-header-label">{t('header.version', locale)}</span>
-            <strong dir="ltr"><Numeric>{version.name}</Numeric></strong>
-            <code dir="ltr" className="mc-header-hash">{version.short}</code>
+            <strong><Numeric>{version.name}</Numeric></strong>
+            <code className="mc-header-hash"><Code>{version.short}</Code></code>
             {version.recorded ? (
               <span className="mc-chip mc-active">{t('header.recorded', locale)}</span>
             ) : (
@@ -114,7 +115,7 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
           */}
           <p className="mc-header-counts-note">
             {t('header.gates_measured_at', locale)}{' '}
-            <span dir="ltr"><Numeric>{version.name}</Numeric></span>
+            <Numeric>{version.name}</Numeric>
           </p>
           {/*
             The activation mirror, and the way to the switch it names.
@@ -153,11 +154,18 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
           {payload.can_edit === undefined ? null : (
             <div className="mc-header-permission">
               <span className="mc-header-label">{t('header.who_may_train', locale)}</span>
-              <span dir="auto">
+              {/*
+                Prose, because the refusing branch is the wall's own sentence
+                rather than interface copy: canEditReason falls back to whatever
+                the server sent when it has no English for it, so the line can
+                arrive in either language and has to take its direction from
+                itself.
+              */}
+              <Prose as="span">
                 {payload.can_edit
                   ? t('header.can_edit_yes', locale)
                   : canEditReason(payload.can_edit_reason, locale)}
-              </span>
+              </Prose>
             </div>
           )}
         </div>
@@ -183,7 +191,7 @@ function Rail({ section, onPick, locale }) {
           aria-current={section === id ? 'page' : undefined}
         >
           <span>{t(`section.${id}`, locale)}</span>
-          <kbd dir="ltr">{index + 1}</kbd>
+          <kbd><Numeric>{index + 1}</Numeric></kbd>
         </button>
       ))}
     </nav>
@@ -307,10 +315,15 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
   }
 
   const headPayload = useMemo(() => head.payload || {}, [head.payload]);
-  const dir = locale === 'en' ? 'ltr' : 'rtl';
+  // This surface is a shell of its own rather than a page inside the operator's,
+  // so it is one of the few elements in the product that SHOULD state a
+  // direction: nothing above it in the tree establishes one for the company
+  // side. DirectionRoot is that statement, and it derives the value from the
+  // same helper the app shell uses so the two sides cannot drift apart.
+  const dir = documentDirection(locale);
 
   return (
-    <div className={`mc-console ${dir}`} dir={dir} lang={locale}>
+    <DirectionRoot locale={locale} className={`mc-console ${dir}`} lang={locale}>
       {head.status === 'refused' ? (
         <Absent title={t('state.refused', locale)} reason={head.detail} />
       ) : head.status === 'ok' ? (
@@ -330,8 +343,8 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
       <div className="mc-layout">
         <Rail section={section} onPick={setSection} locale={locale} />
         <main className="mc-body">
-          <p className="mc-route" dir="ltr">
-            <code>{SECTION_ROUTE[section]}</code>
+          <p className="mc-route">
+            <code><Code>{SECTION_ROUTE[section]}</Code></code>
           </p>
           <Body
             section={section}
@@ -347,6 +360,6 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
           />
         </main>
       </div>
-    </div>
+    </DirectionRoot>
   );
 }

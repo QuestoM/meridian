@@ -93,11 +93,19 @@ const RULES = [
 // everywhere else. PacingDays.jsx line 89 is the td dir="ltr" behind the column
 // the owner reported. Delete an entry here and sweep the directory the moment
 // its holder lands, and the guard will then hold the line for it.
-const QUARANTINED = [
-  'src/clients/pacing/',
-  'src/plan/break/',
-  'src/model/console/',
-];
+// EMPTIED 2026-08-08. The agents that held these three directories are gone and
+// the directories stopped moving, so the reason for the excuse expired. The debt
+// behind the list was 68 violations in 13 files, 58 of them in the model console.
+//
+// Two of the three released clean into EXCEPTIONS rather than into edits, which
+// is the honest outcome: a day axis that must run left to right in both locales,
+// and two isolation characters a raw-node test forces to be defined twice. Both
+// carry their reason above. The model console was real debt and was converted.
+//
+// Leave this empty. A directory is quarantined only while an agent is actively
+// holding it, and only for as long as that is true; anything longer is a budget
+// with no number, which is how a guard stops guarding.
+const QUARANTINED = [];
 
 // Budgets. Each entry is a debt to pay down, with the reason it is still open.
 // A place that genuinely needs the physical form belongs here with the reason it
@@ -132,6 +140,33 @@ const EXCEPTIONS = [
   // left-to-right from midnight regardless of locale. The direction is content
   // semantics, not alignment, and flipping it would reverse the time axis.
   { file: 'src/plan/day/DayBoardReadout.jsx', rule: 'jsx-dir', count: 1 },
+  // The English release-note textarea on the model console. Same shape as the
+  // Login and DayBoardToolbar entries above: dir on a form control sets the
+  // order characters are INSERTED in as the operator types, which is not
+  // alignment, and there is no element to wrap because the primitives render a
+  // span and cannot be applied to a field's own value. The note in this field is
+  // English by definition, so its insertion order is too.
+  { file: 'src/model/console/VersionsPanel.jsx', rule: 'jsx-dir', count: 1 },
+  // .gold-by-day is the same shape one level up: a day axis that runs left to
+  // right from the first day of the week in both locales. It already carries
+  // .chart-ltr, which is the charting contract this codebase named, so the
+  // attribute agrees with the class rather than fighting it.
+  { file: 'src/plan/break/GoldBreakManager.jsx', rule: 'jsx-dir', count: 1 },
+
+  // The two isolation characters, defined a second time.
+  //
+  // This IS a duplicate of shell/bidi.jsx and it stays, which needs the reason
+  // written down or someone will correctly delete it. pacing-helpers.js is
+  // executed RAW by node in four tests, and bidi.jsx is JSX that node cannot
+  // parse. Extracting a shared plain-JavaScript home and importing it is the
+  // obvious fix and it is the wrong one: this campaign added exactly such a
+  // module on 2026-08-08 and it broke five probe harnesses at once, 36 errors,
+  // because every one of them resolves a hand-listed subtree. Closed in
+  // 8b715747, and not worth re-opening to save two lines.
+  //
+  // The file's own comment carries the same reasoning. If pacing-helpers.js ever
+  // stops being run raw, delete this entry and import from the primitive.
+  { file: 'src/clients/pacing/pacing-helpers.js', rule: 'literal-bidi-mark', count: 2 },
   // Two <input> fields: one for a clock string (HH:MM:SS) and one for a duration
   // in seconds. Both accept digits and colons in LTR order; dir="ltr" controls
   // cursor insertion order inside the field, which is not alignment.

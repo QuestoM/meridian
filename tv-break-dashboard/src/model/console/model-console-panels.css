@@ -243,16 +243,19 @@
 .mc-candidate-grid h4, .mc-candidate-verdict h4 { margin: 0 0 var(--space-2); font-size: var(--text-xs); color: var(--subtle); font-weight: var(--weight-medium); }
 
 /* Which artifact a figure belongs to, printed on the figure itself rather than
-   as a connector between two bare values. The label and the value are isolated
-   from each other: both can be Hebrew inside a row whose direction is Latin,
-   and without isolation the two Hebrew runs merge into one and render as a
-   single unbroken word. Measured on the candidates screen before the isolation:
-   the label read as part of the sentence beside it. */
+   as a connector between two bare values. The label and the value it labels have
+   to be isolated from each other, because both can be Hebrew inside a row whose
+   direction is Latin and two unisolated Hebrew runs merge into a single unbroken
+   word. That isolation used to be stated here, as a descendant selector on this
+   row, which is the one thing a stylesheet outside shell/bidi.jsx may not say:
+   the same declaration on a block re-anchors what text-align: start resolves
+   against. It now sits on the label and on the value themselves, through Name
+   and Code in CandidatesPanel.jsx, so a run is isolated without a row being
+   re-anchored. */
 /* Inline-block rather than `text-decoration: none`: a decoration cannot be
    cancelled by a descendant, and the shipped side is struck through. Measured
    before this line: the label read as struck as well as the value it labels. */
 .mc-side-label { display: inline-block; color: var(--subtle); font-size: var(--text-2xs); margin-inline-end: var(--space-2); }
-.mc-delta-before > *, .mc-delta-after > * { unicode-bidi: isolate; }
 
 /* The verdict recorded about this candidate, on the candidate's own card. It
    sits above the evidence because it is the first thing a later reader asks,

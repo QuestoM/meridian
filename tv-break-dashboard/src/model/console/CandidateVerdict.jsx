@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Name } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { readCandidate } from './console-api';
 import { Figure, Money, RecordDrill } from './console-bits';
@@ -70,12 +71,12 @@ function Recorded({ record, locale }) {
           {shipped ? t('versions.shipped', locale) : t('versions.not_shipped', locale)}
         </span>
         <span className="mc-verdict-actor">
-          {t('versions.by', locale)} <span dir="ltr">{record.actor}</span>
+          {t('versions.by', locale)} <Name>{record.actor}</Name>
         </span>
-        <span className="mc-verdict-when" dir="ltr">
+        <span className="mc-verdict-when">
           <Numeric>{String(record.recorded_at || '').slice(0, 19)}</Numeric>
         </span>
-        <span className="mc-verdict-version" dir="ltr">
+        <span className="mc-verdict-version">
           <Numeric>{record.model_version_name || record.model_version_id || ''}</Numeric>
         </span>
       </div>
@@ -111,7 +112,7 @@ export default function CandidateVerdict({ state, locale }) {
     return (
       <p className="mc-note">
         {t('candidates.verdict_unreadable', locale)}
-        {state.detail ? <> <span dir="ltr">{state.detail}</span></> : null}
+        {state.detail ? <> <Name>{state.detail}</Name></> : null}
       </p>
     );
   }
@@ -120,7 +121,7 @@ export default function CandidateVerdict({ state, locale }) {
     return (
       <p className="mc-note">
         {t('candidates.no_verdict', locale)}{' '}
-        <span dir="ltr"><Numeric>{(payload.model_version || {}).name || ''}</Numeric></span>
+        <Numeric>{(payload.model_version || {}).name || ''}</Numeric>
       </p>
     );
   }

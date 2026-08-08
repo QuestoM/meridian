@@ -1,4 +1,5 @@
 import React from 'react';
+import { Code } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { Absent, Earliest, Figure, Panel, Stat } from './console-bits';
 import { pick, t } from './console-words';
@@ -42,7 +43,7 @@ function Window({ window: block, locale }) {
       <div className="mc-stat-row">
         <Stat
           label={t('coverage.window', locale)}
-          value={<span dir="ltr"><Numeric>{`${block.start} .. ${block.end}`}</Numeric></span>}
+          value={<Numeric>{`${block.start} .. ${block.end}`}</Numeric>}
           sub={`${block.days} ${t('coverage.days', locale)}`}
         />
         <Stat
@@ -52,7 +53,7 @@ function Window({ window: block, locale }) {
         <Stat
           label={locale === 'en' ? 'After the ceasefire' : 'אחרי הפסקת האש'}
           value={<Numeric>{`${block.post_ceasefire_breaks} (${block.post_ceasefire_pct}%)`}</Numeric>}
-          sub={<span dir="ltr">{block.ceasefire_date}</span>}
+          sub={<Numeric>{block.ceasefire_date}</Numeric>}
         />
       </div>
     </Panel>
@@ -83,11 +84,11 @@ function RetentionContrast({ block, locale }) {
           value={<Figure value={block.contrast_ratio} unit="ratio" digits={6} />}
           sub={(
             <span className="mc-variances">
-              <span dir="ltr"><Numeric>tau^2</Numeric></span>
+              <Numeric>tau^2</Numeric>
               {' '}
               <Figure value={block.between_cell_variance_tau2} unit="ratio" digits={6} />
               {' '}
-              <span dir="ltr">/</span>
+              <Numeric>/</Numeric>
               {' '}
               <Figure value={block.pooled_within_variance} unit="ratio" digits={6} />
               {' '}
@@ -120,7 +121,7 @@ function AudienceContrast({ block, locale }) {
         {(block.factor_levels || []).filter((row) => row.levels).map((row) => (
           <Stat
             key={row.factor}
-            label={<span dir="ltr">{row.factor}</span>}
+            label={<Code>{row.factor}</Code>}
             value={<Numeric>{Number(row.levels).toLocaleString('en-US')}</Numeric>}
             sub={t('coverage.levels', locale)}
           />
@@ -157,7 +158,7 @@ function Counted({ evidence, locale }) {
         <React.Fragment key={key}>
           {index ? ' ' : null}
           <span className="mc-blocked-count">
-            {t(`coverage.evidence.${key}`, locale) || <code dir="ltr">{key}</code>}
+            {t(`coverage.evidence.${key}`, locale) || <code><Code>{key}</Code></code>}
             {' '}
             <Numeric>{Number.isFinite(Number(value)) ? Number(value).toLocaleString('en-US') : String(value)}</Numeric>
           </span>
@@ -182,10 +183,10 @@ function Supply({ row, locale, onOpenEvents }) {
         <button type="button" className="mc-link mc-blocked-open" onClick={onOpenEvents}>
           {t('coverage.supply_store_open', locale)}
           {' '}
-          <code dir="ltr">{row.source}</code>
+          <code><Code>{row.source}</Code></code>
         </button>
       ) : (
-        <code dir="ltr">{row.source}</code>
+        <code><Code>{row.source}</Code></code>
       )}
       {' '}
       <span className="mc-blocked-supply">{t(`coverage.supply_${supply}`, locale)}</span>

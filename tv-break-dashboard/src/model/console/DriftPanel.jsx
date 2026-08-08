@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Code } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { Absent, Figure, Panel, RecordDrill, Stat } from './console-bits';
 import { pick, t } from './console-words';
@@ -48,7 +49,7 @@ export default function DriftPanel({ payload, locale }) {
           <Stat
             label={t('drift.per_week', locale)}
             value={<Figure value={percent(current.drift_per_week)} unit="percent" />}
-            sub={<span dir="ltr"><Numeric>{`se ${(Number(current.drift_se) * 100).toFixed(2)}%`}</Numeric></span>}
+            sub={<Numeric>{`se ${(Number(current.drift_se) * 100).toFixed(2)}%`}</Numeric>}
           />
           <Stat
             label={t('drift.threshold', locale)}
@@ -57,12 +58,12 @@ export default function DriftPanel({ payload, locale }) {
           <Stat
             label={locale === 'en' ? 'Slope per week' : 'שיפוע לשבוע'}
             value={<Figure value={percent(current.slope_per_week)} unit="percent" />}
-            sub={<span dir="ltr"><Numeric>{`se ${(Number(current.slope_se) * 100).toFixed(2)}%`}</Numeric></span>}
+            sub={<Numeric>{`se ${(Number(current.slope_se) * 100).toFixed(2)}%`}</Numeric>}
           />
         </div>
         <p className="mc-note">
           <span className="mc-basis-label">{t('drift.criterion', locale)}</span>
-          <span dir="ltr">{current.criterion}</span>
+          <Code>{current.criterion}</Code>
         </p>
         <div className="mc-week-strip">
           <span className="mc-week-caption">{t('drift.weekly', locale)}</span>
@@ -88,7 +89,7 @@ export default function DriftPanel({ payload, locale }) {
           <ul className="mc-series">
             {payload.series.map((point) => (
               <li key={point.model_version_id}>
-                <span dir="ltr">{point.name}</span>
+                <Numeric>{point.name}</Numeric>
                 <Figure value={percent(point.drift_per_week)} unit="percent" />
               </li>
             ))}

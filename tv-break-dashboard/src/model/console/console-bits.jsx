@@ -1,4 +1,5 @@
 import React from 'react';
+import { Code, Name } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { t } from './console-words';
 
@@ -96,7 +97,7 @@ export function Basis({ basis, locale }) {
       <span className="mc-basis-parts">{parts}</span>
       {basis.bar_source ? (
         <span className="mc-basis-source">
-          {t('gates.bar_from', locale)} <code dir="ltr">{basis.bar_source}</code>
+          {t('gates.bar_from', locale)} <code><Code>{basis.bar_source}</Code></code>
         </span>
       ) : null}
     </div>
@@ -114,7 +115,7 @@ export function RecordDrill({ record, locale, open, onToggle, label }) {
         {open ? t('gates.hide_record', locale) : (label || t('gates.show_record', locale))}
       </button>
       {open ? (
-        <pre className="mc-record" dir="ltr">{JSON.stringify(record, null, 1)}</pre>
+        <pre className="mc-record"><Code>{JSON.stringify(record, null, 1)}</Code></pre>
       ) : null}
     </div>
   );
@@ -128,6 +129,11 @@ export function RecordDrill({ record, locale, open, onToggle, label }) {
 // so a screen that knew the block ends with חנוכה, on the eight days to
 // 2025-01-02, showed the reader neither. Both are rendered here, once, so the
 // gate table and the register cannot say different things about the same row.
+//
+// The name takes its direction from its own first strong character rather than
+// from the field it arrives in. It is called name_he because the calendar is
+// Hebrew, but the row it sits in is Latin whenever the steward reads in English,
+// and a name stated as rtl there would drag the date beside it out of order.
 export function Earliest({ earliest, locale }) {
   if (!earliest || !earliest.start) return null;
   const span = !earliest.end || earliest.end === earliest.start
@@ -137,9 +143,9 @@ export function Earliest({ earliest, locale }) {
     <span className="mc-earliest">
       <span className="mc-earliest-label">{t('coverage.earliest', locale)}</span>
       {' '}
-      {earliest.name_he ? <span className="mc-earliest-name" dir="rtl">{earliest.name_he}</span> : null}
+      {earliest.name_he ? <Name className="mc-earliest-name">{earliest.name_he}</Name> : null}
       {' '}
-      <span className="mc-earliest-span" dir="ltr"><Numeric>{span}</Numeric></span>
+      <span className="mc-earliest-span"><Numeric>{span}</Numeric></span>
     </span>
   );
 }

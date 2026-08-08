@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Code, Name, Prose } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { readSection, startTraining } from './console-api';
 import { Absent, Panel, RecordDrill } from './console-bits';
@@ -56,7 +57,7 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
       <div className="mc-trainer-head">
         <div>
           <strong>{locale === 'en' ? trainer.label_en : trainer.label_he}</strong>
-          <small dir="ltr">{trainer.script}</small>
+          <small><Code>{trainer.script}</Code></small>
         </div>
         <button
           type="button"
@@ -68,7 +69,7 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
         </button>
       </div>
       <p className="mc-note">
-        {t('training.writes', locale)} <code dir="ltr">{trainer.writes}</code>
+        {t('training.writes', locale)} <code><Code>{trainer.writes}</Code></code>
         {trainer.measured_seconds ? (
           <>
             {' '}
@@ -81,7 +82,7 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
           <span className="mc-flags-label">{t('training.overrides', locale)}</span>
           {trainer.flags.map((flag) => (
             <label className="mc-flag" key={flag.flag}>
-              <code dir="ltr">{flag.flag}</code>
+              <code><Code>{flag.flag}</Code></code>
               <select
                 value={flags[flag.flag] || ''}
                 onChange={(event) => setFlags((current) => {
@@ -109,19 +110,25 @@ function RunRow({ run, locale }) {
   return (
     <li className={`mc-run mc-run-${run.state}`}>
       <div className="mc-run-head">
-        <span dir="ltr" className="mc-run-id">{run.run_id}</span>
+        <Code className="mc-run-id">{run.run_id}</Code>
         <span className="mc-run-artifact">{locale === 'en' ? run.label_en : run.label_he}</span>
         <span className={`mc-verdict mc-${run.state === 'done' ? 'active' : run.state === 'failed' ? 'tested_and_lost' : 'no_contrast'} mc-sm`}>
           {run.state === 'done' ? t('training.done', locale) : run.state === 'failed' ? t('training.failed', locale) : t('training.running', locale)}
         </span>
       </div>
-      <p className="mc-run-meta" dir="ltr">
-        <Numeric>
-          {`${String(run.started_at || '').slice(0, 19)}  ${run.actor}`}
-          {run.duration_seconds ? `  ${run.duration_seconds}s` : ''}
-        </Numeric>
+      {/*
+        Three facts, three runs, rather than one string forced left-to-right.
+        The stamp and the duration are figures and the actor is a name, and an
+        actor written in Hebrew inside a figure would have been laid out as
+        though it were part of the timestamp beside it.
+      */}
+      <p className="mc-run-meta">
+        <Numeric>{String(run.started_at || '').slice(0, 19)}</Numeric>
+        {' '}
+        <Name>{run.actor}</Name>
+        {run.duration_seconds ? <> <Numeric>{`${run.duration_seconds}s`}</Numeric></> : null}
       </p>
-      <p className="mc-run-command" dir="ltr"><code>{run.command}</code></p>
+      <p className="mc-run-command"><code><Code>{run.command}</Code></code></p>
       {changed.available ? (
         <p className="mc-note">
           {t('training.would_change', locale)}:{' '}
@@ -193,9 +200,9 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
     <>
       <Panel title={t('training.title', locale)} sub={pick(shown, 'safety', locale)}>
         {locked ? (
-          <p className="mc-note mc-trainer-locked" dir="auto">
+          <Prose className="mc-note mc-trainer-locked">
             {canEditReason(shown.can_edit_reason, locale)}
-          </p>
+          </Prose>
         ) : null}
         {(shown.trainers || []).map((trainer) => (
           <Trainer

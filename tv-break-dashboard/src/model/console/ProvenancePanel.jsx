@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Code } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { Absent, Panel, RecordDrill, Stat } from './console-bits';
 import { pick, t } from './console-words';
@@ -24,17 +25,17 @@ function Artifact({ artifact, locale }) {
     <li className="mc-artifact">
       <div className="mc-artifact-head">
         <strong>{pick(artifact, 'subject', locale)}</strong>
-        <code dir="ltr">{artifact.path}</code>
+        <code><Code>{artifact.path}</Code></code>
       </div>
       <div className="mc-stat-row">
         <Stat
           label={t('provenance.digest', locale)}
-          value={<code dir="ltr">{artifact.short}</code>}
-          sub={<span dir="ltr"><Numeric>{`${Number(artifact.bytes || 0).toLocaleString('en-US')} B`}</Numeric></span>}
+          value={<code><Code>{artifact.short}</Code></code>}
+          sub={<Numeric>{`${Number(artifact.bytes || 0).toLocaleString('en-US')} B`}</Numeric>}
         />
         <Stat
           label={t('provenance.trained_at', locale)}
-          value={<span dir="ltr"><Numeric>{String(artifact.computed_at || '').slice(0, 19)}</Numeric></span>}
+          value={<Numeric>{String(artifact.computed_at || '').slice(0, 19)}</Numeric>}
         />
       </div>
       {paths.length === 0 ? (
@@ -44,9 +45,9 @@ function Artifact({ artifact, locale }) {
           <h4>{t('provenance.read_from', locale)}</h4>
           <ul className="mc-fingerprint-list">
             {paths.map((path) => (
-              <li key={path} dir="ltr">
-                <code>{path}</code>
-                <span className="mc-fingerprint">{String(fingerprints[path]).slice(0, 8)}</span>
+              <li key={path}>
+                <code><Code>{path}</Code></code>
+                <Code className="mc-fingerprint">{String(fingerprints[path]).slice(0, 8)}</Code>
               </li>
             ))}
           </ul>
@@ -76,7 +77,7 @@ function methodStats(payload, locale) {
       <Stat
         key={key}
         label={t(key, locale)}
-        value={<span dir="ltr"><Numeric>{String(value)}</Numeric></span>}
+        value={<Numeric>{String(value)}</Numeric>}
       />
     ));
 }
@@ -107,8 +108,8 @@ export default function ProvenancePanel({ payload, locale }) {
         <ul className="mc-flag-list">
           {flags.map((flag) => (
             <li key={flag.flag}>
-              <code dir="ltr">{flag.flag}</code>
-              <code dir="ltr" className="mc-flag-env">{flag.env}</code>
+              <code><Code>{flag.flag}</Code></code>
+              <code className="mc-flag-env"><Code>{flag.env}</Code></code>
               <span className="mc-verdict mc-no_contrast mc-sm">
                 {flag.recorded_in_artifact
                   ? t('provenance.flag_recorded', locale)
@@ -127,9 +128,9 @@ export default function ProvenancePanel({ payload, locale }) {
         <ul className="mc-command-list">
           {(payload.training_commands || []).map((row) => (
             <li key={row.artifact}>
-              <code dir="ltr">{row.command}</code>
-              <span className="mc-command-writes" dir="ltr">
-                {t('training.writes', locale)} <code>{row.writes}</code>
+              <code><Code>{row.command}</Code></code>
+              <span className="mc-command-writes">
+                {t('training.writes', locale)} <code><Code>{row.writes}</Code></code>
               </span>
               <p className="mc-note">{pick(row, 'consequence', locale)}</p>
             </li>
