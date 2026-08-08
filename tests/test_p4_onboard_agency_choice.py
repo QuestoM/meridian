@@ -92,6 +92,10 @@ export function useRef(value) { return slot('ref', () => ({ ref: { current: valu
 
 export function useMemo(factory) { slot('memo', () => ({})); return factory(); }
 
+// bidi.jsx calls this once at module scope; nothing under test renders the
+// result, so it only has to be a function rather than throw.
+export function forwardRef(render) { return render; }
+
 export function useEffect(fn, deps) {
   const held = slot('effect', () => ({ deps: null, cleanup: null, first: true }));
   if (held.first || !same(held.deps, deps)) {
@@ -152,7 +156,7 @@ export function deep(node) {
   return { type: node.type, props: { ...(node.props || {}), children: deep(node.props.children) } };
 }
 
-export default { createElement, Fragment, useState, useRef, useMemo, useEffect };
+export default { createElement, Fragment, useState, useRef, useMemo, useEffect, forwardRef };
 """
 
 ICONS = """
@@ -203,6 +207,20 @@ const WEEKDAYS_OUT = join(here, 'weekday-scope-helpers.mjs');
 writeFileSync(WEEKDAYS_OUT, readFileSync(join(dirname(helpersPath), 'weekday-scope-helpers.js'), 'utf8'), 'utf8');
 const WEEKDAYS = pathToFileURL(WEEKDAYS_OUT).href;
 
+// shell/bidi is real JSX, unlike the modules above, so it needs the same
+// compiler pass the component gets rather than a plain copy.
+const bidiCompiled = await transformWithOxc(
+  readFileSync(join(dashboardDir, 'src', 'shell', 'bidi.jsx'), 'utf8'),
+  'bidi.jsx',
+  { jsx: { runtime: 'classic', pragma: 'React.createElement', pragmaFrag: 'React.Fragment' } },
+);
+const BIDI_OUT = join(here, 'bidi.mjs');
+writeFileSync(BIDI_OUT, bidiCompiled.code, 'utf8');
+const BIDI = pathToFileURL(BIDI_OUT).href;
+// shell/dates is plain JS reaching bidi the same extensionless way, so it only
+// needs pointing at the real file.
+const DATES = pathToFileURL(join(dashboardDir, 'src', 'shell', 'dates.js')).href;
+
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier === 'react') return { url: RUNTIME, shortCircuit: true };
@@ -211,6 +229,9 @@ registerHooks({
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
     if (specifier.endsWith('weekday-scope-helpers')) return { url: WEEKDAYS, shortCircuit: true };
+    // '/bidi' catches both '../shell/bidi' and dates.js's own real-file-relative './bidi'.
+    if (specifier.endsWith('/bidi')) return { url: BIDI, shortCircuit: true };
+    if (specifier.endsWith('shell/dates')) return { url: DATES, shortCircuit: true };
     return nextResolve(specifier, context);
   },
 });
