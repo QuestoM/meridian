@@ -162,15 +162,37 @@ def test_no_file_this_piece_created_is_over_the_line_cap() -> None:
 
 
 def test_tokens_are_defined_in_tokens_css_and_nowhere_else() -> None:
-    """One token source. A stylesheet may read a token; it may not define one."""
+    """One token source. A stylesheet may read a token, and rebind one it did not invent.
+
+    The rule as first written could not tell those two apart, and it was right to
+    be suspicious and wrong about the one case it caught. card.css contains
+
+        .card-dense { --card-inset: var(--card-inset-dense); }
+
+    which invents nothing. Both names are tokens.css's own, and the line is a
+    scoped REBIND: it is the mechanism by which everything inside a dense card
+    follows the denser inset without any child restating a number. Forbidding it
+    would push every child to hard-code a value, which is the defect the one-home
+    rule exists to prevent, so the rule would have been working against itself.
+
+    So the line that matters is narrower and still holds everything worth holding:
+    a stylesheet outside tokens.css may not introduce a NAME that tokens.css does
+    not define. Inventing a token anywhere else is still a failure, and that is
+    the case where two homes really do drift apart.
+    """
     definition = re.compile(r"(?m)^\s*(--[a-z0-9-]+)\s*:")
     tokens = definition.findall(_read("tokens.css"))
     assert len(tokens) >= 40, f"tokens.css defines only {len(tokens)} variables"
+    known = set(tokens)
     for path in _sources(".css"):
         if path.name == "tokens.css":
             continue
-        found = definition.findall(path.read_text(encoding="utf-8"))
-        assert found == [], f"{path.relative_to(SRC)} defines tokens {found}"
+        invented = sorted(set(definition.findall(path.read_text(encoding="utf-8"))) - known)
+        assert invented == [], (
+            f"{path.relative_to(SRC)} invents {invented}, which tokens.css does not define. "
+            "A stylesheet may rebind a token at a scope; it may not create one, because "
+            "then there are two homes for the same idea and they drift."
+        )
 
 
 def test_tokens_css_is_loaded_before_the_shell_stylesheet() -> None:
@@ -179,10 +201,41 @@ def test_tokens_css_is_loaded_before_the_shell_stylesheet() -> None:
     assert entry.index("./tokens.css") < entry.index("./shell/styles.css")
 
 
-def test_all_seventeen_navigation_entries_survive_the_split() -> None:
-    """The route list is the shell's, and it still has every entry."""
+def _nav_labels() -> list[str]:
+    """The rail's entries, parsed as entries rather than searched for as text."""
     nav = _read("shell/nav.js")
-    for label in (
+    block = nav[nav.index("export const navItems"):]
+    block = block[: block.index("];")]
+    return re.findall(r"\[\s*'([^']+)'", block)
+
+
+def _removed_routes() -> list[str]:
+    nav = _read("shell/nav.js")
+    line = re.search(r"export const removedRoutes = \[([^\]]*)\]", nav)
+    return re.findall(r"'([^']+)'", line.group(1)) if line else []
+
+
+def test_the_rail_holds_every_destination_and_nothing_that_was_folded_away() -> None:
+    """The route list is the shell's, and it names exactly what it can reach.
+
+    This test used to assert seventeen entries and it was wrong in two ways that
+    are worth keeping written down, because between them a missing destination
+    would have looked like a formatting change.
+
+    It searched for a label as a SUBSTRING OF THE WHOLE FILE, so 'Pricing'
+    satisfied it by appearing in ``removedRoutes``, which is the list of
+    destinations the rail no longer has. A check that confirms a thing exists by
+    finding its name on the list of things that were deleted is not a check.
+
+    And it counted the string "],\\n", which is a formatting count. Reindent the
+    array and the number moves without a destination changing.
+
+    So it parses the entries now. Fifteen is correct: Calendar and Pricing were
+    deliberately folded into other destinations as tabs, and the router still
+    honours their old bookmarks, which is asserted below rather than assumed.
+    """
+    labels = _nav_labels()
+    assert labels == [
         "Overview",
         "Optimizer",
         "Schedule",
@@ -190,19 +243,34 @@ def test_all_seventeen_navigation_entries_survive_the_split() -> None:
         "Break Library",
         "Campaigns",
         "Forecasts",
-        "Calendar",
         "Reports",
         "Data",
         "Advertisers",
         "Agencies",
-        "Pricing",
         "Overrides",
         "Assistant",
         "Versions",
         "Settings",
-    ):
-        assert f"'{label}'" in nav, f"navigation entry {label} is missing"
-    assert nav.count("],\n") == 17, "the navigation list no longer holds 17 entries"
+    ], "the rail's destinations changed"
+
+
+def test_a_folded_destination_leaves_the_rail_but_not_the_router() -> None:
+    """A bookmark to a folded destination still reaches something sensible."""
+    removed = _removed_routes()
+    assert removed, "nav.js no longer declares which destinations were folded away"
+    labels = set(_nav_labels())
+    still_on_rail = [name for name in removed if name in labels]
+    assert not still_on_rail, (
+        f"{still_on_rail} is listed as folded away and is still on the rail, so the "
+        "two lists disagree about what the product has"
+    )
+    router = _read("shell/workspace-router.jsx")
+    unrouted = [name for name in removed if f"'{name}'" not in router]
+    assert not unrouted, (
+        f"{unrouted} was removed from the rail and the router does not mention it, so an "
+        "existing bookmark reaches nothing. Removing a destination means redirecting it, "
+        "not dropping it."
+    )
 
 
 def test_assistant_hash_still_opens_the_dock_over_the_current_page() -> None:
