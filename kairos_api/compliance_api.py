@@ -104,6 +104,11 @@ def compliance() -> dict[str, Any]:
             "checks": verdict["checks"],
             "violations": verdict["violations"],
             "status": verdict["status"],
+            # Which optional caps ran and which did not. Without this the
+            # verdict would read as though every expressible rule had been
+            # applied, and a plan would carry a badge nobody's rule earned.
+            "optional_caps": verdict["optional_caps"],
+            "cap_states": verdict["cap_states"],
             "graded_breaks": len(owned),
         }
 
@@ -120,6 +125,8 @@ def compliance() -> dict[str, Any]:
         "checks": fallback["checks"],
         "violations": fallback["violations"],
         "status": fallback["status"],
+        "optional_caps": fallback["optional_caps"],
+        "cap_states": fallback["cap_states"],
         "graded_breaks": 0,
     }
 
