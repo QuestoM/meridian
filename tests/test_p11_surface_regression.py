@@ -318,7 +318,24 @@ def test_the_drill_says_when_a_rule_left_spots_out_of_a_day() -> None:
     """
     days = (ROOT / SURFACE / "PacingDays.jsx").read_text(encoding="utf-8")
     assert "spots_dropped_by_rule" in days
-    assert "dropped_rule_id" not in days, "the ledger names the rule by an engine key, which is not a reader's word"
+    # The id may be READ as a lookup key and must never be RENDERED. Asserting
+    # the string is absent from the source confused those two: the drill has to
+    # read the key to find the rule's own sentence, and it is the sentence that
+    # reaches the screen. So this asserts what a reader sees.
+    assert "{line.rule}" in days, "the drill no longer renders the rule's own sentence"
+    # key={line.id} is a React key and never reaches a reader, so the check is
+    # about the id in a TEXT position rather than about the string appearing.
+    rendered_id = re.search(r">\s*\{\s*line\.id\s*\}|\{\s*line\.id\s*\}\s*<", days)
+    assert rendered_id is None, (
+        "the engine key reaches the screen. A reader who cannot act on "
+        "DEFAULT_ONE_PER_BREAK is not helped by being shown it."
+    )
+    # And the third state, which the code's own comment promised and its filter
+    # removed: a cause the rule file cannot name is COUNTED and said, not dropped.
+    assert "named: false" in days, (
+        "a drop whose rule the file does not carry is filtered out of the drill, so an "
+        "unnameable cause reads as no cause at all"
+    )
     css = (ROOT / SURFACE / "pacing-days.css").read_text(encoding="utf-8")
     assert ".pacing-day-dropped" in css
 

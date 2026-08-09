@@ -85,8 +85,30 @@ function ruleLines(days, rules, locale) {
       `On ${count} of these broadcast days it left spots out of the count.`,
       `ב-${isolate(count)} מימי השידור האלה הוא השמיט תשדירים מהספירה.`,
     );
-    return { id, rule, path, where };
-  }).filter((line) => line.rule);
+    // A rule the rule file does not hold is a THIRD STATE and it is counted.
+    // The comment above this function has said so from the start and the filter
+    // below it dropped exactly those lines, so a cause the product could not
+    // name vanished from the drill instead of being reported as unnamed. That is
+    // the honest-math law read backwards: unavailable became absent.
+    if (!rule) {
+      return {
+        id,
+        rule: pick(
+          locale,
+          'A booking rule the rule file does not carry.',
+          'כלל הזמנה שקובץ הכללים אינו מחזיק.',
+        ),
+        path: pick(
+          locale,
+          'The count is real and the cause cannot be named from this tree.',
+          'הספירה אמיתית והסיבה אינה ניתנת לשיום מהעץ הזה.',
+        ),
+        where,
+        named: false,
+      };
+    }
+    return { id, rule, path, where, named: true };
+  });
 }
 
 function figure(day, locale) {
