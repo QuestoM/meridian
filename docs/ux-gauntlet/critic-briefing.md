@@ -70,6 +70,25 @@ Each piece also has `state/<piece>.json` and some have `state/<piece>-critic.jso
 **Read those for the OPEN GAPS ONLY.** You are blind to the builder's claims of
 success: a claim is not evidence, and you re-measure anything you rely on.
 
+**AND EVERY ONE OF THOSE FILES IS A HISTORY, NOT A STATE.** Measured 2026-08-10:
+every `<piece>-critic.json` is dated 2026-08-07, and 103 commits touching 663
+files, 320 of them under `kairos/`, `kairos_api/` or `tv-break-dashboard/src/`,
+have landed since the newest of them was written. Two were class fixes that
+closed named blockers outright.
+
+This already cost a wrong verdict. P4's critic file names a hard-coded `unknown`
+literal in `CampaignFlights.jsx`; the literal is not in that file, the eleven-site
+class fix shipped `tests/test_p4_delivery_on_screen.py`, and that file's last test
+restores the literal and asserts the defect returns, so the other twelve are not
+passing vacuously. The verdict was one publish away from failing a piece for a
+defect fixed three days earlier.
+
+So an inherited finding is a LEAD, and it is only a finding again once you have
+reproduced it today. Say which of the two you did. **A finding you cannot
+reproduce is a closed finding, and reporting it closed is a real result rather
+than an empty round.** P10, P11 and P12 have no critic file at all and nothing
+to inherit.
+
 ## 5. Known state, so nobody reports it as a finding
 
 - **`output/weekly_break_schedule.csv` differs from its committed version.** It is
