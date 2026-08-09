@@ -15,6 +15,16 @@ import { isolate } from '../shell/bidi';
 // reused and reported as reused, a client already linked is left alone, and a
 // campaign whose name and client match an existing one is refused with the id
 // that already holds it. The result panel says which of the three happened.
+//
+// Every native form control below stays native, deliberately. Two suites
+// (test_p4_onboard_agency_choice.py, test_p4_onboard_refusal_opens.py) run
+// this exact file through a hand-written React stub with no createContext or
+// useContext, and Node's registerHooks routes even require('react') through
+// it, so importing '@mui/material' (which needs @emotion/react's own
+// React.createContext at module load) crashes both suites on the import
+// alone, no matter which control changed. Both also read the tree by literal
+// element type. verify-direction-rules.mjs, frozen and unowned here, is the
+// second lock: exactly one literal dir attribute, the one on Field below.
 
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
 
@@ -46,6 +56,9 @@ export function RefusalNotice({ error, opens, locale, onOpen }) {
     <p className="clients-error" role="alert">
       <span>{error}</span>
       {word ? (
+        // Native: test_p4_onboard_refusal_opens.py finds this control by
+        // comparing the rendered element's type to the literal string, so an
+        // MUI Button here (a different type) would simply not be found.
         <button type="button" className="clients-retry" onClick={() => onOpen(opens)}>
           {word}
         </button>
@@ -54,6 +67,8 @@ export function RefusalNotice({ error, opens, locale, onOpen }) {
   );
 }
 
+// Native: the shared field behind every text/date/number control here. See
+// the file header for why nothing in this component can become an MUI control.
 function Field({ label, value, onChange, type = 'text', ltr = false, list, required = false, hint }) {
   return (
     <label className="clients-field">

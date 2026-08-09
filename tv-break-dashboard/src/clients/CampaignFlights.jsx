@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button, MenuItem, Select, TextField } from '@mui/material';
 import { Figure } from '../shell/bidi';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -33,28 +34,45 @@ function draftOf(flight) {
 function FlightFields({ draft, onChange, goalKinds, goalWords, locale }) {
   return (
     <div className="clients-flight-row">
-      <label className="clients-field">
+      <div className="clients-field">
         <span>{pageText(locale, 'Flight name', 'שם טיסת השידור')}</span>
-        <input type="text" value={draft.name} onChange={(event) => onChange('name', event.target.value)} />
-      </label>
+        <TextField
+          size="small"
+          value={draft.name}
+          onChange={(event) => onChange('name', event.target.value)}
+          slotProps={{ htmlInput: { 'aria-label': pageText(locale, 'Flight name', 'שם טיסת השידור') } }}
+        />
+      </div>
       <label className="clients-field">
         <span>{pageText(locale, 'From', 'מתאריך')}</span>
+        {/* Native on purpose: type="date" keeps the browser's own picker, and
+            scripts/verify-direction-rules.mjs (frozen, not owned here) budgets
+            this file at exactly 3 literal dir= attributes across the two
+            dates and the goal below. Moving dir onto TextField's slotProps
+            would change that literal count and the guard cannot be lowered. */}
         <input type="date" dir="ltr" value={draft.starts_on} onChange={(event) => onChange('starts_on', event.target.value)} />
       </label>
       <label className="clients-field">
         <span>{pageText(locale, 'To', 'עד תאריך')}</span>
+        {/* Native: same reason as "From" above. */}
         <input type="date" dir="ltr" value={draft.ends_on} onChange={(event) => onChange('ends_on', event.target.value)} />
       </label>
-      <label className="clients-field">
+      <div className="clients-field">
         <span>{pageText(locale, 'Goal unit', 'יחידת יעד')}</span>
-        <select value={draft.goal_kind} onChange={(event) => onChange('goal_kind', event.target.value)}>
+        <Select
+          size="small"
+          value={draft.goal_kind}
+          onChange={(event) => onChange('goal_kind', event.target.value)}
+        >
           {goalKinds.map((kind) => (
-            <option key={kind} value={kind}>{vocabularyLabel(goalWords, kind, locale)}</option>
+            <MenuItem key={kind} value={kind}>{vocabularyLabel(goalWords, kind, locale)}</MenuItem>
           ))}
-        </select>
-      </label>
+        </Select>
+      </div>
       <label className="clients-field">
         <span>{pageText(locale, 'Booked goal', 'יעד שהוזמן')}</span>
+        {/* Native: type="number" keeps the browser's stepper and numeric
+            keyboard, and the dir attribute budget noted above applies here too. */}
         <input type="number" dir="ltr" value={draft.goal_value} onChange={(event) => onChange('goal_value', event.target.value)} />
       </label>
     </div>
@@ -151,12 +169,12 @@ export default function CampaignFlights({
                   <td colSpan={5}>
                     <FlightFields draft={draft} onChange={change} goalKinds={goalKinds} goalWords={goalWords} locale={locale} />
                     <div className="clients-form-actions">
-                      <button type="button" className="clients-primary" onClick={() => save(flight)}>
+                      <Button type="button" variant="contained" className="clients-primary" onClick={() => save(flight)}>
                         {pageText(locale, 'Save the flight', 'שמרו את טיסת השידור')}
-                      </button>
-                      <button type="button" className="clients-secondary" onClick={() => { setEditing(''); setError(''); }}>
+                      </Button>
+                      <Button type="button" variant="outlined" className="clients-secondary" onClick={() => { setEditing(''); setError(''); }}>
                         {pageText(locale, 'Cancel', 'ביטול')}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -182,8 +200,9 @@ export default function CampaignFlights({
                   <td>
                     {canEdit && pendingRemove !== flight.flight_id ? (
                       <span className="clients-row-actions">
-                        <button
+                        <Button
                           type="button"
+                          variant="text"
                           className="clients-inline-action"
                           onClick={() => {
                             setDraft(draftOf(flight));
@@ -194,22 +213,22 @@ export default function CampaignFlights({
                         >
                           <Pencil size={12} aria-hidden="true" />
                           {pageText(locale, 'Edit', 'עריכה')}
-                        </button>
-                        <button type="button" className="clients-inline-action" onClick={() => setPendingRemove(flight.flight_id)}>
+                        </Button>
+                        <Button type="button" variant="text" className="clients-inline-action" onClick={() => setPendingRemove(flight.flight_id)}>
                           <Trash2 size={12} aria-hidden="true" />
                           {pageText(locale, 'Remove', 'הסרה')}
-                        </button>
+                        </Button>
                       </span>
                     ) : null}
                     {pendingRemove === flight.flight_id ? (
                       <span className="clients-confirm">
                         <small>{pageText(locale, 'The flight is deleted. The campaign stays.', 'טיסת השידור נמחקת. הקמפיין נשאר.')}</small>
-                        <button type="button" className="clients-inline-action" onClick={() => remove(flight.flight_id)}>
+                        <Button type="button" variant="text" className="clients-inline-action" onClick={() => remove(flight.flight_id)}>
                           {pageText(locale, 'Confirm', 'אישור')}
-                        </button>
-                        <button type="button" className="clients-inline-action" onClick={() => setPendingRemove('')}>
+                        </Button>
+                        <Button type="button" variant="text" className="clients-inline-action" onClick={() => setPendingRemove('')}>
                           {pageText(locale, 'Keep it', 'השאירו')}
-                        </button>
+                        </Button>
                       </span>
                     ) : null}
                   </td>
@@ -228,25 +247,26 @@ export default function CampaignFlights({
         <div className="clients-add-flight">
           <FlightFields draft={draft} onChange={change} goalKinds={goalKinds} goalWords={goalWords} locale={locale} />
           <div className="clients-form-actions">
-            <button type="button" className="clients-primary" onClick={add}>
+            <Button type="button" variant="contained" className="clients-primary" onClick={add}>
               {pageText(locale, 'Add the flight', 'הוסיפו את טיסת השידור')}
-            </button>
-            <button type="button" className="clients-secondary" onClick={() => { setAdding(false); setError(''); }}>
+            </Button>
+            <Button type="button" variant="outlined" className="clients-secondary" onClick={() => { setAdding(false); setError(''); }}>
               {pageText(locale, 'Cancel', 'ביטול')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
       {canEdit && !adding && !editing ? (
-        <button
+        <Button
           type="button"
+          variant="outlined"
           className="clients-secondary"
           onClick={() => { setDraft({ ...EMPTY, starts_on: campaign.starts_on, ends_on: campaign.ends_on }); setAdding(true); }}
         >
           <Plus size={13} aria-hidden="true" />
           {pageText(locale, 'Add a flight', 'הוסיפו טיסת שידור')}
-        </button>
+        </Button>
       ) : null}
 
       {error ? <p className="clients-error" role="alert">{error}</p> : null}

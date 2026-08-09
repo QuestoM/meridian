@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@mui/material';
 import { CalendarDays, ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/format';
 import {
@@ -37,6 +38,10 @@ export function ReachDays({ locale, from, until, onDays }) {
   return (
     <div className="hist-days">
       <CalendarDays size={14} aria-hidden="true" />
+      {/* Both dates below stay native date inputs: the browser's own picker
+          is the point, MUI has no drop-in that reopens it the same way, and
+          scripts/verify-direction-rules.mjs (frozen, outside this file's
+          owned scope) budgets this file at exactly two literal dir attributes. */}
       <label className="hist-select" title={pageText(locale, FROM_HINT[0], FROM_HINT[1])}>
         <span>{pageText(locale, FROM_CONTROL[0], FROM_CONTROL[1])}</span>
         <input
@@ -60,9 +65,9 @@ export function ReachDays({ locale, from, until, onDays }) {
         />
       </label>
       {set ? (
-        <button type="button" className="hist-link" onClick={() => onDays('', '')}>
+        <Button type="button" variant="text" className="hist-link" onClick={() => onDays('', '')}>
           {pageText(locale, DAYS_CLEAR[0], DAYS_CLEAR[1])}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -87,15 +92,15 @@ export function ReachPager({ locale, body, searching, onOlder, onNewest }) {
         <span className="hist-reach warn">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
       ) : null}
       {reach.cursor ? (
-        <button type="button" className="hist-link" onClick={() => onOlder(reach.cursor)}>
+        <Button type="button" variant="text" className="hist-link" onClick={() => onOlder(reach.cursor)}>
           <ChevronDown size={13} aria-hidden="true" />
           {pageText(locale, OLDER_CONTROL[0], OLDER_CONTROL[1])}
-        </button>
+        </Button>
       ) : null}
       {reach.paged ? (
-        <button type="button" className="hist-link" onClick={onNewest}>
+        <Button type="button" variant="text" className="hist-link" onClick={onNewest}>
           {pageText(locale, NEWEST_CONTROL[0], NEWEST_CONTROL[1])}
-        </button>
+        </Button>
       ) : null}
     </>
   );
@@ -122,19 +127,19 @@ export function ReachMissed({ locale, missed, points, limit, wide, day, onClear,
     <p className="hist-block" role="note">
       {pageText(locale, line[0], line[1])}
       {missed === 'filtered' ? (
-        <button type="button" className="hist-link" onClick={onClear}>
+        <Button type="button" variant="text" className="hist-link" onClick={onClear}>
           {pageText(locale, CLEAR_FILTERS[0], CLEAR_FILTERS[1])}
-        </button>
+        </Button>
       ) : null}
       {missed === 'paged_out' && limit < wide ? (
-        <button type="button" className="hist-link" onClick={onWide}>
+        <Button type="button" variant="text" className="hist-link" onClick={onWide}>
           {pageText(locale, `Load ${wide}`, `טעינת ${wide}`)}
-        </button>
+        </Button>
       ) : null}
       {day ? (
-        <button type="button" className="hist-link" onClick={onDay}>
+        <Button type="button" variant="text" className="hist-link" onClick={onDay}>
           {pageText(locale, `${DAY_JUMP[0]}, ${day}`, `${DAY_JUMP[1]}, ${day}`)}
-        </button>
+        </Button>
       ) : null}
     </p>
   );
@@ -155,13 +160,13 @@ export function ReachEmpty({ locale, empty, onClear, onNewest }) {
         <span className="hist-reach warn">{pageText(locale, SEARCH_SCOPE[0], SEARCH_SCOPE[1])}</span>
       ) : null}
       {state.clear ? (
-        <button type="button" className="hist-link" onClick={onClear}>
+        <Button type="button" variant="text" className="hist-link" onClick={onClear}>
           {pageText(locale, CLEAR_FILTERS[0], CLEAR_FILTERS[1])}
-        </button>
+        </Button>
       ) : null}
-      <button type="button" className="hist-link" onClick={onNewest}>
+      <Button type="button" variant="text" className="hist-link" onClick={onNewest}>
         {pageText(locale, NEWEST_CONTROL[0], NEWEST_CONTROL[1])}
-      </button>
+      </Button>
     </>
   );
 }
@@ -192,30 +197,30 @@ export function ReachEmptyPage(props) {
         <span className="hist-reach">{pageText(locale, ...byActorLine(state.actor))}</span>
       ) : null}
       {control ? (
-        <button type="button" className="hist-link" onClick={() => onActor(state.actor)}>
+        <Button type="button" variant="text" className="hist-link" onClick={() => onActor(state.actor)}>
           {pageText(locale, control[0], control[1])}
-        </button>
+        </Button>
       ) : null}
       {state.wide ? (
-        <button type="button" className="hist-link" onClick={onWide}>
+        <Button type="button" variant="text" className="hist-link" onClick={onWide}>
           {pageText(locale, `Load ${wide}`, `טעינת ${wide}`)}
-        </button>
+        </Button>
       ) : null}
       {state.older ? (
-        <button type="button" className="hist-link" onClick={onOlder}>
+        <Button type="button" variant="text" className="hist-link" onClick={onOlder}>
           <ChevronDown size={13} aria-hidden="true" />
           {pageText(locale, OLDER_CONTROL[0], OLDER_CONTROL[1])}
-        </button>
+        </Button>
       ) : null}
       {state.clear ? (
-        <button type="button" className="hist-link" onClick={onClear}>
+        <Button type="button" variant="text" className="hist-link" onClick={onClear}>
           {pageText(locale, CLEAR_FILTERS[0], CLEAR_FILTERS[1])}
-        </button>
+        </Button>
       ) : null}
       {state.newest ? (
-        <button type="button" className="hist-link" onClick={onNewest}>
+        <Button type="button" variant="text" className="hist-link" onClick={onNewest}>
           {pageText(locale, NEWEST_CONTROL[0], NEWEST_CONTROL[1])}
-        </button>
+        </Button>
       ) : null}
     </>
   );

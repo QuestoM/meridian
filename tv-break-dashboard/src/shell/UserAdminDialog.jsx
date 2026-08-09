@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Tooltip } from '@mui/material';
+import { Button, MenuItem, Select, TextField, Tooltip } from '@mui/material';
 import { pageText } from './format';
 import {
   MIN_PASSWORD_LENGTH,
@@ -149,9 +149,9 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
   return (
     <DirectionRoot locale={locale} className="auth-overlay" role="dialog" aria-modal="true">
       <div className="auth-dialog auth-dialog-wide">
-        <button type="button" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
+        <Button type="button" variant="text" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
           ×
-        </button>
+        </Button>
         <h2>{t('Manage accounts', 'ניהול חשבונות')}</h2>
         <p className="auth-hint">
           {t(
@@ -164,9 +164,9 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
           <div>
             <p className="auth-error">{t('Could not load the account list.', 'טעינת רשימת החשבונות נכשלה.')}</p>
             <div className="auth-actions">
-              <button type="button" className="auth-secondary" onClick={() => setReloadKey((key) => key + 1)}>
+              <Button type="button" variant="outlined" className="auth-secondary" onClick={() => setReloadKey((key) => key + 1)}>
                 {t('Try again', 'ניסיון נוסף')}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -197,20 +197,22 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                         )}
                       </td>
                       <td>
-                        <select
+                        <Select
+                          size="small"
                           value={account.affiliation === 'channel' ? 'channel' : 'company'}
                           disabled={busy}
                           aria-label={t('Affiliation', 'שיוך')}
                           onChange={(event) => submitAffiliation(account.username, event.target.value)}
                         >
-                          <option value="company">{affiliationLabel('company', locale)}</option>
-                          <option value="channel">{affiliationLabel('channel', locale)}</option>
-                        </select>
+                          <MenuItem value="company">{affiliationLabel('company', locale)}</MenuItem>
+                          <MenuItem value="channel">{affiliationLabel('channel', locale)}</MenuItem>
+                        </Select>
                       </td>
                       <td>
                         <div className="auth-row-actions">
-                          <button
+                          <Button
                             type="button"
+                            variant="outlined"
                             className="auth-mini"
                             disabled={busy}
                             onClick={() => {
@@ -220,7 +222,7 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                             }}
                           >
                             {t('Reset password', 'איפוס סיסמה')}
-                          </button>
+                          </Button>
                           <Tooltip
                             title={
                               isSelf
@@ -236,14 +238,15 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                             placement="bottom"
                           >
                             <span className="auth-mini-wrap">
-                              <button
+                              <Button
                                 type="button"
+                                variant="outlined"
                                 className={`auth-mini auth-danger${confirmDelete === account.username ? ' auth-confirming' : ''}`}
                                 disabled={busy || isSelf || lastAdmin}
                                 onClick={() => submitDelete(account.username)}
                               >
                                 {confirmDelete === account.username ? t('Confirm delete', 'אישור מחיקה') : t('Delete', 'מחיקה')}
-                              </button>
+                              </Button>
                             </span>
                           </Tooltip>
                         </div>
@@ -253,6 +256,12 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                       <tr className="auth-reset-row">
                         <td colSpan={5}>
                           <div className="auth-inline-form">
+                            {/* Native on purpose: a password field needs the browser's
+                                own credential-manager hooks (autofill, generated-password
+                                offers), and scripts/verify-direction-rules.mjs (frozen,
+                                outside this file's owned scope) budgets this file at
+                                exactly three literal dir attributes across the three
+                                password/username fields below. */}
                             <input
                               type="password"
                               dir="ltr"
@@ -261,14 +270,15 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                               value={resetValue}
                               onChange={(event) => setResetValue(event.target.value)}
                             />
-                            <button
+                            <Button
                               type="button"
+                              variant="outlined"
                               className="auth-mini"
                               disabled={busy || resetValue.length < MIN_PASSWORD_LENGTH}
                               onClick={() => submitReset(account.username)}
                             >
                               {t('Set password', 'קביעת הסיסמה')}
-                            </button>
+                            </Button>
                             <span className="auth-hint">
                               {t('A change is required at the next sign-in.', 'בכניסה הבאה תידרש החלפת סיסמה.')}
                             </span>
@@ -294,6 +304,8 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
           <form onSubmit={submitCreate}>
             <h3>{t('New account', 'חשבון חדש')}</h3>
             <div className="auth-create-grid">
+              {/* Native on purpose, same reason as the reset field above: the dir
+                  attribute budget in scripts/verify-direction-rules.mjs. */}
               <label className="auth-field">
                 <span>{t('Username', 'שם משתמש')}</span>
                 <input
@@ -303,28 +315,31 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                   onChange={(event) => setForm({ ...form, username: event.target.value })}
                 />
               </label>
-              <label className="auth-field">
+              <div className="auth-field">
                 <span>{t('Display name', 'שם תצוגה')}</span>
-                <input
+                <TextField
+                  size="small"
                   value={form.display_name}
                   onChange={(event) => setForm({ ...form, display_name: event.target.value })}
+                  slotProps={{ htmlInput: { 'aria-label': t('Display name', 'שם תצוגה') } }}
                 />
-              </label>
-              <label className="auth-field">
+              </div>
+              <div className="auth-field">
                 <span>{t('Role', 'תפקיד')}</span>
-                <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
-                  <option value="viewer">{roleLabel('viewer', locale)}</option>
-                  <option value="operator">{roleLabel('operator', locale)}</option>
-                  <option value="admin">{roleLabel('admin', locale)}</option>
-                </select>
-              </label>
-              <label className="auth-field">
+                <Select size="small" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
+                  <MenuItem value="viewer">{roleLabel('viewer', locale)}</MenuItem>
+                  <MenuItem value="operator">{roleLabel('operator', locale)}</MenuItem>
+                  <MenuItem value="admin">{roleLabel('admin', locale)}</MenuItem>
+                </Select>
+              </div>
+              <div className="auth-field">
                 <span>{t('Affiliation', 'שיוך')}</span>
-                <select value={form.affiliation} onChange={(event) => setForm({ ...form, affiliation: event.target.value })}>
-                  <option value="company">{affiliationLabel('company', locale)}</option>
-                  <option value="channel">{affiliationLabel('channel', locale)}</option>
-                </select>
-              </label>
+                <Select size="small" value={form.affiliation} onChange={(event) => setForm({ ...form, affiliation: event.target.value })}>
+                  <MenuItem value="company">{affiliationLabel('company', locale)}</MenuItem>
+                  <MenuItem value="channel">{affiliationLabel('channel', locale)}</MenuItem>
+                </Select>
+              </div>
+              {/* Native on purpose, same reason as the reset field above. */}
               <label className="auth-field">
                 <span>{t('Temporary password', 'סיסמה זמנית')}</span>
                 <input
@@ -354,13 +369,14 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
               </p>
             )}
             <div className="auth-actions">
-              <button
+              <Button
                 type="submit"
+                variant="contained"
                 className="auth-primary"
                 disabled={busy || form.username.trim() === '' || form.password === ''}
               >
                 {t('Create account', 'יצירת חשבון')}
-              </button>
+              </Button>
             </div>
           </form>
         )}

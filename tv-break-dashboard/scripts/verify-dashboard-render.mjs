@@ -104,7 +104,7 @@ const requiredDependencies = [
 // .jsx and used a narrower character class. The guard itself, searching .js as
 // well, answered 384. The guard was right and the grep was wrong, which is the
 // argument for the guard: a number nobody re-derives is a number nobody checks.
-const NATIVE_CONTROL_BUDGET = 384;
+const NATIVE_CONTROL_BUDGET = 350;
 const NATIVE_CONTROL = /<(button|select|input|textarea)[\s>/]/g;
 
 const nativeByFile = sourceFiles
