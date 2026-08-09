@@ -45,8 +45,34 @@ MAX_VERSIONS = 200
 
 # The logical operation-state files. Paths resolve lazily (at call time) so a
 # test that monkeypatches a store's PATH and the real deployment both hold.
+# TWO REGISTERS, because this was one tuple doing two jobs and the conflation is
+# what made it dangerous to extend.
+#
+# ``_LOGICAL_ORDER`` is THE FULL RESTORE SET: what an operator's named snapshot
+# captures and what a restore of that snapshot rolls back, atomically. Adding a
+# name here changes what a restore UNDOES, which is why it stays at the nine it
+# has always held.
+#
+# ``_KNOWN_LOGICAL`` is every name this store can capture at all. It is the
+# vocabulary, not the restore set.
+#
+# The bug that forced the split: ``snapshot`` filtered its argument against the
+# restore set and returned None for anything left over, so a caller naming a file
+# the store had never heard of was indistinguishable from a caller whose file was
+# untouched. Two callers had been doing exactly that. campaigns_api_store's own
+# docstring said "Version the campaigns store before a manual edit writes it" and
+# it versioned nothing; target_store did the same for the plan targets. Both are
+# operator-editable through the dashboard, so a manual edit to either had no
+# history to restore from and the timeline simply did not show it.
+#
+# Putting the two names in the restore set instead would have been the obvious
+# move and it is the wrong one: restoring a settings version would then also
+# revert campaign bookings, which is a far worse thing than the bug being fixed.
+# A manual edit records a version holding ONLY the file it touched, and restoring
+# that version restores only that file.
 _LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions",
                   "events", "agencies", "agency_links", "agency_conditions")
+_KNOWN_LOGICAL = _LOGICAL_ORDER + ("campaigns", "plan_targets")
 
 
 def _now_iso() -> str:
@@ -91,13 +117,22 @@ def _logical_path(logical: str) -> Path:
     if logical == "agency_conditions":
         from kairos_api import agency_conditions as agency_conditions_api
         return Path(agency_conditions_api.CONDITIONS_PATH)
+    if logical == "campaigns":
+        from kairos_api import campaigns_api_store
+        return Path(campaigns_api_store.CAMPAIGNS_PATH)
+    if logical == "plan_targets":
+        from kairos_api import target_store
+        return Path(target_store.TARGETS_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
 
 
 _ID_COLUMN = {"constraints": "constraint_id", "overrides": "override_id",
               "advertisers": "advertiser_id", "conditions": "rule_id",
               "events": "event_id", "agencies": "agency_id",
-              "agency_links": "agency_id", "agency_conditions": "rule_id"}
+              "agency_links": "agency_id", "agency_conditions": "rule_id",
+              "campaigns": "campaign_id"}
+# plan_targets has no id column: a row is keyed by channel, period and metric
+# together, so a diff of it is a whole-file diff rather than a row diff.
 
 
 def _snapshot_name(logical: str) -> str:
@@ -191,11 +226,24 @@ def snapshot(source: str, actor: str, files: list[str], label: Optional[str] = N
     """Record a version of the named logical files' current state.
 
     Returns the new version id, or the newest existing id when the capture is
-    byte-identical to it (the edit-burst short-circuit), or None when no known
-    logical file was named. ``force`` records unconditionally (used for the
+    byte-identical to it (the edit-burst short-circuit), or None when the caller
+    named nothing at all. ``force`` records unconditionally (used for the
     pre_restore safety point and the operator's named snapshot).
+
+    A name this store does not know RAISES. It used to be filtered out and the
+    call returned None, which reads at every call site exactly like "nothing had
+    changed", so two stores went unversioned without one line of evidence. The
+    manual-edit hook still swallows the raise, because a history hiccup must
+    never fail an operator's edit; what the raise buys is that a test, a script
+    or the assistant sees it immediately.
     """
-    wanted = [name for name in _LOGICAL_ORDER if name in set(files)]
+    named = set(files)
+    unknown = sorted(named - set(_KNOWN_LOGICAL))
+    if unknown:
+        raise ValueError(
+            f"version_store does not know {unknown!r}; add it to _KNOWN_LOGICAL and "
+            "_logical_path, or the edit it guards is versioned nowhere")
+    wanted = [name for name in _KNOWN_LOGICAL if name in named]
     if not wanted:
         return None
     captured = [_capture(name) for name in wanted]

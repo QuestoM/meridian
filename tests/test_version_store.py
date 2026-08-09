@@ -109,9 +109,24 @@ def test_identical_content_snapshot_is_skipped(relocated) -> None:
     assert third != first and len(vs._all_manifests()) == 2
 
 
-def test_unknown_or_empty_files_snapshot_to_none(relocated) -> None:
+def test_naming_nothing_is_a_no_op_and_naming_the_unknown_is_refused(relocated) -> None:
+    """This asserted that BOTH answer None, and that is what hid a real defect.
+
+    An unknown name was filtered out and the call returned None, which at every
+    call site reads exactly like "nothing had changed". Two callers were passing
+    a name the store had never heard of, for months, with no evidence anywhere:
+    campaigns_api_store said it versioned the campaigns store and versioned
+    nothing, and target_store did the same for the plan targets.
+
+    So the two cases are now different answers, because they are different
+    facts. Naming nothing is a caller asking for nothing. Naming something the
+    store cannot capture is a caller asking for something that does not exist,
+    and it raises.
+    """
     assert vs.snapshot("manual_edit", "t", []) is None
-    assert vs.snapshot("manual_edit", "t", ["recompute", "nonsense"]) is None
+    with pytest.raises(ValueError) as raised:
+        vs.snapshot("manual_edit", "t", ["recompute", "nonsense"])
+    assert "does not know" in str(raised.value)
     assert vs._all_manifests() == []
 
 
