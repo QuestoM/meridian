@@ -137,7 +137,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
   };
 
   return (
-    <section className="pod-board">
+    <section className="card card-dense pod-board">
       <header className="pod-head">
         <div>
           <h3><Name>{fieldText(pod.programme, locale)}</Name></h3>
@@ -353,7 +353,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
                 key={spot.spot_key}
                 role="row"
                 data-spot-key={spot.spot_key}
-                className={`pod-spot${frozen ? ' pod-spot-frozen' : ''}${dragging === index ? ' pod-spot-dragging' : ''}${dropClass}`}
+                className={`card pod-spot${frozen ? ' pod-spot-frozen' : ''}${dragging === index ? ' pod-spot-dragging' : ''}${dropClass}`}
                 draggable={!frozen}
                 tabIndex={0}
                 onKeyDown={(event) => onKeyDown(event, index)}

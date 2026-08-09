@@ -77,7 +77,12 @@ const RULES = [
 // the two tables in the owner's own Break Library screenshot: measured after
 // this sweep its cells still sit 9px from the card edge under a title at 17px.
 // Delete an entry here and sweep the directory the moment its holder lands.
-const QUARANTINED = [
+// EMPTIED 2026-08-09. The agents that held these four directories are gone and
+// the nine violations behind the excuse are converted. Leave it empty: a
+// directory is quarantined only while an agent is actively holding it, and
+// anything longer is a budget with no number.
+const QUARANTINED = [];
+const _RELEASED = [
   'src/clients/pacing/',
   'src/plan/break/',
   'src/model/console/',

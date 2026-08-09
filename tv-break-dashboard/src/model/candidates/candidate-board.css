@@ -91,13 +91,14 @@
   gap: var(--space-1);
 }
 
+/* Surface, hairline and radius come from .card in shell/card.css, which the
+   element carries in board-evaluation.jsx. Only the inset and the stacking are
+   this piece's, and the inset stays at the tighter value it shipped at rather
+   than being pulled to --card-inset, which would move a panel nobody measured. */
 .cb-evaluation {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -215,10 +216,9 @@
 .cb-recorded { display: inline-flex; align-items: baseline; gap: var(--space-1); }
 .cb-mark { color: var(--amber-ink); font-weight: var(--weight-bold); }
 
+/* Same as .cb-evaluation above: the box is .card from shell/card.css, carried on
+   the element in board-detail.jsx, and only the inset is written here. */
 .cb-detail {
-  border: 1px solid var(--line);
-  background: var(--surface);
-  border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
 }
 

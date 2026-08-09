@@ -26,11 +26,15 @@
   outline-offset: 2px;
 }
 
+/* The table carries no top margin of its own. It sits inside the card's bleed,
+   under a card body that already ends in the card's inset, so a margin here
+   would be a second gap stacked on the first. Its horizontal inset is not set
+   here either: shell/card.css puts --card-inset on the first and last cell of
+   every row so the Start column lines up with the card title above it. */
 .break-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
-  margin-block-start: var(--space-3);
 }
 
 .break-table th {
@@ -130,17 +134,21 @@
   font-size: var(--text-xs);
 }
 
+/* First line of its own card body, so the separation from the table above and
+   from the card's bottom edge is the body's inset, not a margin stacked on it.
+   Both block margins are named because a bare paragraph still carries the
+   browser's 1em bottom margin, which would loosen the foot of the card. */
 .break-board-basis {
   font-size: var(--text-xs);
   color: var(--subtle);
-  margin-block-start: var(--space-2);
+  margin-block: 0;
 }
 
 /* The rounding footnote sits under the basis line and reads as a footnote. */
 .break-board-rounding {
   font-size: var(--text-2xs);
   color: var(--subtle);
-  margin-block-start: var(--space-1);
+  margin-block: var(--space-1) 0;
 }
 
 .break-board-error {

@@ -92,7 +92,7 @@ export default function Evaluation({ board, locale }) {
   const evaluation = board.evaluation || {};
   const limit = board.limit || {};
   return (
-    <section className="cb-evaluation">
+    <section className="card cb-evaluation">
       <p className="cb-evaluation-line">
         <BidiFigure><Numeric>{Number(evaluation.breaks || 0).toLocaleString('en-US')}</Numeric></BidiFigure>
         <span>{t('evaluation.breaks', locale)}</span>

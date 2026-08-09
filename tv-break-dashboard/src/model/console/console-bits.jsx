@@ -174,7 +174,7 @@ export function Absent({ title, reason, action }) {
 
 export function Panel({ title, sub, right, children }) {
   return (
-    <section className="mc-panel">
+    <section className="card mc-panel">
       <header className="mc-panel-head">
         <div>
           <h2>{title}</h2>

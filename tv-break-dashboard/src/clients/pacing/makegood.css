@@ -7,11 +7,21 @@
   gap: var(--space-3);
 }
 
-.makegood-row {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  padding: var(--space-3);
+/* One record on the ledger. Its surface, its hairline and its radius come from
+   .card in shell/card.css, which the element carries in MakeGoodLedger.jsx, so
+   they are not restated here and cannot drift from every other card. It is a
+   dense card, and its inset is read from the card rather than written again:
+   --card-inset-dense is the 12px it renders at.
+
+   The selector names the card as well as the row because `.makegood-row` is not
+   a unique name: shell/styles.css defines the same class for the make-good
+   alerts on the clients page, a different component, and the bundler emits that
+   sheet after this one. Measured on the built bundle, that rule was winning
+   every property it declared and this one's were dead. Naming the card here is
+   what makes this rule govern the ledger record it was written for, and it
+   leaves the alerts row, which carries no card class, exactly as it was. */
+.card.makegood-row {
+  padding: var(--card-inset);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

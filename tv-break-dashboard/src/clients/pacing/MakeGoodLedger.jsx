@@ -331,7 +331,7 @@ export default function MakeGoodLedger({
       ) : null}
 
       {rows.map((record) => (
-        <article className={`makegood-row ${record.state}${record.make_good_id === marked ? ' makegood-focused' : ''}`}
+        <article className={`card card-dense makegood-row ${record.state}${record.make_good_id === marked ? ' makegood-focused' : ''}`}
                  ref={record.make_good_id === marked ? markedRef : null}
                  key={record.make_good_id}>
           <div className="makegood-row-head">

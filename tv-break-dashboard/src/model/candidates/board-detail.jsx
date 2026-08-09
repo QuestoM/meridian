@@ -315,13 +315,13 @@ function Cells({ cells, locale }) {
 
 export default function BoardDetail({ candidate, board, locale }) {
   if (!candidate) {
-    return <section className="cb-detail cb-empty"><p>{t('detail.pick_one', locale)}</p></section>;
+    return <section className="card cb-detail cb-empty"><p>{t('detail.pick_one', locale)}</p></section>;
   }
   const cells = candidate.cells || {};
   const decision = candidate.decision || {};
   const evaluation = board.evaluation || {};
   return (
-    <section className="cb-detail" aria-live="polite">
+    <section className="card cb-detail" aria-live="polite">
       <h3>
         <span>{t('detail.title', locale)}</span>
         <code><Code>{candidate.id}</Code></code>

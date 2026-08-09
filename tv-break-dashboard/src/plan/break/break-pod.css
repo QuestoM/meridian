@@ -11,11 +11,10 @@
   outline-offset: 2px;
 }
 
+/* A dense card: surface, hairline and radius come from .card in shell/card.css,
+   carried on the element in PodBoard.jsx, and the inset is read back from it. */
 .pod-board {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  padding: var(--space-3);
+  padding: var(--card-inset);
   margin-block-start: var(--space-2);
   display: flex;
   flex-direction: column;
@@ -225,33 +224,33 @@
   gap: 2px;
 }
 
+/* A bordered surface holding an eleven-column row, so it is a card: .card in
+   shell/card.css draws it, carried on the row in PodBoard.jsx. That moves the
+   radius from --radius-sm to --radius-md, 6px to 8px, the only visible change.
+   The inset stays a data row's 4px/8px, because these columns line up with the
+   heading above them and not with a card. */
 .pod-spot {
   display: grid;
   align-items: center;
   gap: var(--space-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
-  background: var(--surface);
   font-size: var(--text-xs);
   color: var(--ink);
   cursor: grab;
 }
 
-.pod-spot-dragging {
+/* These three name .pod-spot as well on purpose: the border is the card's now,
+   and .card is one class in a sheet the bundler emits after this one, so a
+   one-class selector loses the tie and the state quietly stops drawing. */
+.pod-spot.pod-spot-dragging {
   opacity: 0.5;
   border-color: var(--line-strong);
 }
 
 /* The insertion line a drag shows before release, so where a drop lands is read
    rather than guessed. Logical border, so it flips correctly in RTL. */
-.pod-spot-drop-before {
-  border-block-start: 2px solid var(--blue);
-}
-
-.pod-spot-drop-after {
-  border-block-end: 2px solid var(--blue);
-}
+.pod-spot.pod-spot-drop-before { border-block-start: 2px solid var(--blue); }
+.pod-spot.pod-spot-drop-after { border-block-end: 2px solid var(--blue); }
 
 .pod-grip-cell {
   display: inline-flex;

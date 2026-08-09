@@ -57,7 +57,7 @@ function GateRow({ gate, locale, blocked }) {
   const [open, setOpen] = useState(false);
   const unblock = blocked ? blocked[gate.id] : null;
   return (
-    <li className={`mc-gate mc-${gate.state}`}>
+    <li className={`card card-dense mc-gate mc-${gate.state}`}>
       <div className="mc-gate-head">
         <span className="mc-gate-name">{locale === 'en' ? gate.label_en : gate.label_he}</span>
         <Verdict
@@ -92,7 +92,7 @@ function GateRow({ gate, locale, blocked }) {
 function LayerRow({ layer, locale }) {
   const [open, setOpen] = useState(false);
   return (
-    <li className="mc-layer">
+    <li className="card card-dense mc-layer">
       <div className="mc-gate-head">
         <span className="mc-gate-name">{locale === 'en' ? layer.label_en : layer.label_he}</span>
         <span className={`mc-verdict mc-layer-${layer.on ? 'on' : 'off'} mc-md`}>

@@ -7,6 +7,7 @@ import BreakInspector from './BreakInspector';
 import { clockOf, exactCurrency } from '../day/day-board-model';
 import { fetchDay, fetchDays } from '../day/day-board-actions';
 import { basisSentence, roundingSentence, shareOfDay, sumRevenue, visibleRows } from './break-board-model';
+import { CardBleed, CardBody } from '../../shell/primitives';
 import './break-board.css';
 
 // Plan, at break zoom: every break in one broadcast day, as objects.
@@ -113,69 +114,85 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
           <Figure>{goldOnly ? `${rows.length} / ${all.length}` : rows.length}</Figure>
         </div>
       </div>
-      <DayPicker
-        days={days ? days.days : []}
-        value={day}
-        onChange={setDay}
-        locale={locale}
-        channel={days ? days.operator_channel : ''}
-      />
-      {!board && <p>{label('Opening the day', 'פותח את היום')}</p>}
-      {board && rows.length === 0 && (
-        <EmptyBoard board={board} goldOnly={goldOnly} locale={locale} onClearFilter={() => setGoldOnly(false)} />
-      )}
+      {/* The picker, the waiting line and the empty state take the card's inset,
+          which is what the head above them already sits at. Measured on the
+          shipped tree before this: the head sat 17px from the card's outer edge
+          and every one of these sat at 1px, because the card owned no inset and
+          a child that invented none ran to the border. */}
+      <CardBody>
+        <DayPicker
+          days={days ? days.days : []}
+          value={day}
+          onChange={setDay}
+          locale={locale}
+          channel={days ? days.operator_channel : ''}
+        />
+        {!board && <p>{label('Opening the day', 'פותח את היום')}</p>}
+        {board && rows.length === 0 && (
+          <EmptyBoard board={board} goldOnly={goldOnly} locale={locale} onClearFilter={() => setGoldOnly(false)} />
+        )}
+      </CardBody>
       {board && rows.length > 0 && (
         <>
-          <table className="break-table">
-            <thead>
-              <tr>
-                <th scope="col">{pageText(locale, 'Start', 'התחלה')}</th>
-                <th scope="col">{pageText(locale, 'Programme', 'תוכנית')}</th>
-                <th scope="col">{pageText(locale, 'Order', 'סדר')}</th>
-                <th scope="col">{pageText(locale, 'Length', 'אורך')}</th>
-                <th scope="col">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</th>
-                <th scope="col">{label('Delivered', 'שסופק בפועל')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.break_id} onClick={() => setOpen(row.break_id)} tabIndex={0}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') setOpen(row.break_id);
-                  }}
-                >
-                  <td><Figure>{clockOf(row.start_seconds)}</Figure></td>
-                  <td>
-                    {row.is_gold && <Star size={11} aria-hidden="true" />}
-                    <Name>{row.programme}</Name>
-                  </td>
-                  <td><Figure>{row.ordinal} / {row.breaks_in_segment}</Figure></td>
-                  <td><Figure>{formatNumber(row.duration_seconds, locale)}s</Figure></td>
-                  <td><Figure>{exactCurrency(row.projected_revenue, locale)}</Figure></td>
-                  <td className="break-cell-muted">{(he && row.delivered.reason_he) || row.delivered.reason}</td>
+          {/* The table bleeds on purpose: its row rules have to reach the card's
+              border to stay readable down eighty rows. Bleeding is the named
+              opt-in from shell/card.css, and it still lines the first and last
+              column up with the head, so the Start column now sits under the
+              card title instead of 8px inside it. */}
+          <CardBleed>
+            <table className="break-table">
+              <thead>
+                <tr>
+                  <th scope="col">{pageText(locale, 'Start', 'התחלה')}</th>
+                  <th scope="col">{pageText(locale, 'Programme', 'תוכנית')}</th>
+                  <th scope="col">{pageText(locale, 'Order', 'סדר')}</th>
+                  <th scope="col">{pageText(locale, 'Length', 'אורך')}</th>
+                  <th scope="col">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</th>
+                  <th scope="col">{label('Delivered', 'שסופק בפועל')}</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={4}>
-                  {label('Sum over these breaks', 'סכום על הברייקים האלה')}
-                  <Figure className="break-foot-count">{rows.length} / {all.length}</Figure>
-                </td>
-                <td><Figure>{exactCurrency(shown, locale)}</Figure></td>
-                <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
-              </tr>
-              {goldOnly && (
-                <tr className="break-foot-day">
-                  <td colSpan={4}>{label('The whole day, every break', 'כל היום, כל הברייקים')}</td>
-                  <td><Figure>{exactCurrency(dayRevenue, locale)}</Figure></td>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.break_id} onClick={() => setOpen(row.break_id)} tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') setOpen(row.break_id);
+                    }}
+                  >
+                    <td><Figure>{clockOf(row.start_seconds)}</Figure></td>
+                    <td>
+                      {row.is_gold && <Star size={11} aria-hidden="true" />}
+                      <Name>{row.programme}</Name>
+                    </td>
+                    <td><Figure>{row.ordinal} / {row.breaks_in_segment}</Figure></td>
+                    <td><Figure>{formatNumber(row.duration_seconds, locale)}s</Figure></td>
+                    <td><Figure>{exactCurrency(row.projected_revenue, locale)}</Figure></td>
+                    <td className="break-cell-muted">{(he && row.delivered.reason_he) || row.delivered.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={4}>
+                    {label('Sum over these breaks', 'סכום על הברייקים האלה')}
+                    <Figure className="break-foot-count">{rows.length} / {all.length}</Figure>
+                  </td>
+                  <td><Figure>{exactCurrency(shown, locale)}</Figure></td>
                   <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
                 </tr>
-              )}
-            </tfoot>
-          </table>
-          <p className="break-board-basis">{basisSentence({ goldOnly, shownCount: rows.length, total: all.length, portion: share === null ? null : formatPercent(share, locale), locale })}</p>
-          <p className="break-board-rounding">{roundingSentence(locale)}</p>
+                {goldOnly && (
+                  <tr className="break-foot-day">
+                    <td colSpan={4}>{label('The whole day, every break', 'כל היום, כל הברייקים')}</td>
+                    <td><Figure>{exactCurrency(dayRevenue, locale)}</Figure></td>
+                    <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
+                  </tr>
+                )}
+              </tfoot>
+            </table>
+          </CardBleed>
+          <CardBody>
+            <p className="break-board-basis">{basisSentence({ goldOnly, shownCount: rows.length, total: all.length, portion: share === null ? null : formatPercent(share, locale), locale })}</p>
+            <p className="break-board-rounding">{roundingSentence(locale)}</p>
+          </CardBody>
         </>
       )}
       {open && (

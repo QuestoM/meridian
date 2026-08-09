@@ -3,12 +3,14 @@
    that file; everything a panel renders inside itself lives here. Both are
    imported by ModelConsole.jsx and both read only frozen tokens. */
 
+/* The console's panel IS a card, so it is one: .card in shell/card.css carries
+   the surface, the hairline, the radius and the clipping, and the element takes
+   the class in console-bits.jsx. Only the gap to the next panel is written here.
+   This moves the radius from --radius-lg to the card's --radius-md, 10px to 8px,
+   which is the point: the console was the last surface in the product rounding
+   its corners differently from every other card. */
 .mc-panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
   margin-block-end: var(--space-4);
-  overflow: hidden;
 }
 
 .mc-panel-head {
@@ -61,11 +63,12 @@
 
 .mc-gate-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 
+/* A gate and a layer are dense cards nested inside a panel. The surface, the
+   hairline and the radius come from .card in shell/card.css, carried on each
+   list item in GatesPanel.jsx; the inset is read from the card as
+   --card-inset-dense, which is the 12px both already used. */
 .mc-gate, .mc-layer {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  background: var(--surface);
+  padding: var(--card-inset);
 }
 
 /* The gate's verdict colours the whole border. The soft fill and the ink come
@@ -89,10 +92,22 @@
 }
 
 .mc-verdict.mc-sm { font-size: var(--text-2xs); }
-.mc-active { background: var(--teal-soft); color: var(--teal-ink); }
-.mc-tested_and_lost { background: var(--red-soft); color: var(--red); }
-.mc-no_contrast { background: var(--amber-soft); color: var(--amber-ink); }
-.mc-not_measured { background: var(--surface-muted); color: var(--subtle); border: 1px dashed var(--line-strong); }
+
+/* One fill and one ink per state, shared by the verdict pill and the gate that
+   carries it, which is what keeps a gate and its pill from being two different
+   greens. Each is written once and reached by two selectors: the bare class for
+   the pill, and the class named alongside .mc-gate for the gate. The second
+   selector exists because a gate is a card now, and .card is a single class in a
+   stylesheet the bundler emits AFTER this one, so a bare class would lose the
+   tie and every stated gate would come out plain --surface. */
+.mc-active,
+.mc-gate.mc-active { background: var(--teal-soft); color: var(--teal-ink); }
+.mc-tested_and_lost,
+.mc-gate.mc-tested_and_lost { background: var(--red-soft); color: var(--red); }
+.mc-no_contrast,
+.mc-gate.mc-no_contrast { background: var(--amber-soft); color: var(--amber-ink); }
+.mc-not_measured,
+.mc-gate.mc-not_measured { background: var(--surface-muted); color: var(--subtle); border: 1px dashed var(--line-strong); }
 .mc-layer-on { background: var(--blue-soft); color: var(--blue); }
 .mc-layer-off { background: var(--surface-muted); color: var(--subtle); }
 

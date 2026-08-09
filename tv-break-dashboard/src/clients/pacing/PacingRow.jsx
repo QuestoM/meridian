@@ -248,7 +248,7 @@ export default function PacingRow({
   const flight = row.flight;
   const Chevron = expanded ? ChevronUp : ChevronDown;
   return (
-    <article className={`pacing-row ${row.headline.verdict}`} aria-labelledby={`pacing-${row.campaign_id}`}>
+    <article className={`card card-dense pacing-row ${row.headline.verdict}`} aria-labelledby={`pacing-${row.campaign_id}`}>
       <div className="pacing-row-head">
         <Verdict verdict={row.headline.verdict} vocabulary={vocabulary} locale={locale} />
         {/* A name is data and takes its own direction, never the surface's. The

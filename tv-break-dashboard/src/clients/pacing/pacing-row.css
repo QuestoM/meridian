@@ -17,21 +17,24 @@
   outline: none;
 }
 
-/* The verdict is on the whole frame and not on one edge of it. The owner asked
-   for no one-sided accent bar anywhere and design-rules.md section 1 bans it: it
-   reads as an unfinished frame and it inverts under right-to-left. This was the
-   site he reported, left standing by the sweep of the other 23 because this file
-   was owned by a live agent at the time. */
+/* One campaign on the board. Its surface, its hairline and its radius come from
+   .card in shell/card.css, which the row carries in PacingRow.jsx, so they are
+   not restated here and cannot drift from every other card. It is a dense card,
+   and its inset is read from the card rather than written again:
+   --card-inset-dense is the 12px this row already used. */
 .pacing-row {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  padding: var(--space-3);
+  padding: var(--card-inset);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
+/* The verdict is on the whole frame and not on one edge of it. The owner asked
+   for no one-sided accent bar anywhere and design-rules.md section 1 bans it: it
+   reads as an unfinished frame and it inverts under right-to-left. This was the
+   site he reported, left standing by the sweep of the other 23 because this file
+   was owned by a live agent at the time. Only the COLOUR is written here; the
+   hairline it colours belongs to the card. */
 .pacing-row.behind { border-color: var(--red); }
 .pacing-row.at_risk { border-color: var(--amber); }
 .pacing-row.on_pace { border-color: var(--teal); }

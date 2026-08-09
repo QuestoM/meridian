@@ -204,7 +204,9 @@
   color: var(--subtle);
   border: 1px solid var(--line);
   border-radius: var(--radius-xs);
-  padding: 0 4px;
+  /* --space-1 IS 4px, so nothing moves; the name is used so a change to the
+     spacing scale reaches this key cap too. */
+  padding: 0 var(--space-1);
   background: var(--surface-muted);
 }
 
