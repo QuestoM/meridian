@@ -25,8 +25,28 @@ def test_advertiser_stats_shape_and_honesty() -> None:
     assert isinstance(body["advertisers"], list)
     assert body["count"] == len(body["advertisers"])
     assert set(body["effect_types"]) == {"premium", "require", "forbid", "pressure"}
-    # The honest caveat: weekly optimizer ignores advertiser rules.
-    assert "weekly optimizer does not consume" in body["status"]
+    # THE CAVEAT GOT MORE HONEST AND THIS ASSERTION HAD TO FOLLOW IT.
+    #
+    # It required the sentence "the weekly optimizer does not consume advertiser
+    # rules". That was true only by accident: the advertiser conditions file was
+    # EMPTY, so nothing was consumed because nothing was there. Measured
+    # 2026-08-09, the preference does reach the weekly plan's first pass. What
+    # happens next is that the refinement step optimises it straight back out,
+    # which is why the schedule does not move. Same outcome, different reason,
+    # and the reason is the part an operator needs: the first sentence would have
+    # started lying the moment anybody added a pressure row.
+    #
+    # So the assertion checks the MECHANISM rather than the old wording, because
+    # the mechanism is what must not quietly disappear.
+    status = body["status"]
+    assert "refinement" in status or "refined" in status, (
+        "the caveat no longer names the refinement step, so it has gone back to "
+        "explaining the absence of data instead of the behaviour of the engine"
+    )
+    assert "does not change" in status
+    # And the daily path is a different answer to a different question, which is
+    # the distinction the original sentence collapsed.
+    assert "daily" in status
     if body["advertisers"]:
         row = body["advertisers"][0]
         assert {"advertiser_id", "rule_count", "effect_breakdown", "baseline_premium",
