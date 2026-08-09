@@ -38,6 +38,40 @@ stops until you answer.
 
 ---
 
+## THE ANSWER SHEET, added 2026-08-10
+
+The approval above is dated 2026-08-01 and covers decisions 1 to 5. Decisions 7
+and 9 to 13 were written AFTER it, so they are not covered by it and are still
+open. Decision 8 you answered on 2026-08-09. **There is no decision 6; the
+numbering skips it.**
+
+This table is the whole of what is still open. Every row can be answered in one
+line, and you can answer them in any order. Read the full section only where you
+want the evidence.
+
+| # | The question, in one line | My recommendation |
+|---|---|---|
+| 3 | What is a week measured against: the number, its unit, its grain, its owner. | None. **This is a fact, not a choice**, and I must not invent it. |
+| 4 | A current or near-future broadcast week, real campaign flights, a delivery feed. | None. **Also a fact**, and it lives outside this repository. |
+| 7 | What does `EB` mean in your traffic file, in Hebrew and in English? | None. Trade knowledge only you have. If it prices or places differently, it is a lever the optimizer does not know about. |
+| 9a | A programme running 23:40 to 00:30: for an hourly limit, does it belong to the day it started in, or to the clock? | Leave as is. The day not rolling is defensible and moving the bucketing moves money. 143 breaks of 9,026 are affected. |
+| 9b | Should break LENGTH be configurable at all? | **Yes.** It is one constant, 120 seconds, for every break on every channel, and it is the number that silently decides what your hourly limit means. |
+| 10 | Seven questions for someone who works in this market. | None. Your trade knowledge outranks my search results, and has already overturned two of my findings. |
+| 11 | Make the optimizer's work budget deterministic? | **Yes**, and measure the revenue difference across all 120 groups first, so you see what it is worth rather than take my word. |
+| 12 | Commit the fresh plan as the new baseline? (two questions) | **Yes.** The artifact is STALE, not corrupted, and there is nothing to attribute: it has not been rebuilt since before 2026-07-07 and a fresh export reproduces it exactly. |
+| 13 | The Hebrew word a trader uses for a campaign's run period. | None, and it is **one word**. It lands on all 44 occurrences in a single pass with a test to hold it. "Flight" in English is a legitimate answer. |
+
+**The three cheapest, if you only have a minute:** 13 is one word. 9b and 11 are
+each a yes or a no, and I recommend yes to both.
+
+**Two of these are not decisions and no approval can unblock them.** Decisions 3
+and 4 need a number and a dataset that exist outside this repository. Both
+surfaces already ship an honest empty state naming the missing input and the path
+to supply it, which is what the specification committed to, so nothing waits on
+them and nothing pretends to know them.
+
+---
+
 ## 1. Advertiser identity: which of two honest methods
 
 **The situation, measured with pandas this session.**
