@@ -520,6 +520,24 @@ agree: four rewrites plus one deliberate export.
 
 Same number of breaks, distributed differently, slightly less money.
 
+**HOW LONG IT HAS BEEN STALE: AT LEAST A MONTH.** I extracted the tree from
+2026-07-07, the first commit where this exact artifact content appears, and ran a
+full export inside it. It produced `d4573c00` too, not the `6a5944b4` it shipped.
+
+So `d4573c00` is what the engine produces, and it has produced it across:
+
+    the 2026-07-07 tree
+    the 2026-08-09 tree that committed the plan
+    today's tree
+    four recompute runs through the product
+    two deliberate consecutive exports
+
+**Seven independent productions of the same bytes, spanning a month of code
+changes** including a DP restructure, Top and Tail, the goal seam and two new
+caps. The engine is far more stable than any of this looked. The artifact simply
+was never rebuilt, and nothing noticed for over a month because the golden checks
+its own baseline and not this file.
+
 **Why it drifted, and I was wrong about this too.** I assumed this session's own
 engine work. It is not. I extracted the exact tree from the commit that COMMITTED
 the plan and ran a full export inside it: it produced the SAME file today's tree
