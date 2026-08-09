@@ -560,6 +560,46 @@ opposite of a race.
 
 ---
 
+## 13. A media flight is being called an aeroplane flight, 44 times
+
+Found 2026-08-09 by an agent that refused to guess the fix, which was the right
+call and is why this is a question rather than a commit.
+
+**The defect.** A campaign's flight, its run period, is rendered in Hebrew as
+`טיסה`. That is the word for an aeroplane flight. Measured across the tree: **44
+occurrences in six modules**, `pacing_alerts_api_words.py` worst at 15, then
+`campaigns_goal_words.py` at 6, `makegood_store_words.py` at 3, and three more.
+
+Every one of them is operator-facing. Some examples as they read today:
+
+  „האריכו את הטיסה, הקטינו את היעד, או פרסו אותו על יותר ימי שידור."
+  „היום הזה נמצא בתוך הטיסה ואין עבורו מקור ברמת התשדיר."
+
+The first is the sentence Kai now QUOTES VERBATIM on every raise it refuses, so a
+traffic operator is told to lengthen a flight, in the aviation sense, when the
+system declines their request.
+
+**Why nobody fixed it.** `docs/media-domain-from-the-trade.md` uses the English
+word "flight" and gives no Hebrew equivalent. The rule in this campaign is that
+Hebrew words are READ and never invented, so the agent that found it stopped and
+said so rather than coining one. That is exactly right: a coined term on 44
+surfaces is worse than an obviously wrong one, because the wrong one is visibly
+wrong and a plausible invention is not.
+
+**What I need from you:** the word a trader uses for a campaign's run period. One
+word and it lands on all 44 in a single pass, with a test to keep it there.
+
+If there is no Hebrew word and the trade simply says "flight" in English, that is
+a complete answer too, and it matches your standing ruling that English-only
+names stay English. It would just mean the current Hebrew is wrong in a different
+way: it translated something that is not translated.
+
+**What happens until you answer:** nothing changes. Forty-four surfaces keep
+saying aeroplane. It is legible, it is wrong, and it is not urgent, but it is the
+kind of thing a customer notices in the first minute.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from
