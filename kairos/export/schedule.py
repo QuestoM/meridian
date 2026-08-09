@@ -43,6 +43,7 @@ from kairos.export.incremental import (  # noqa: F401
     rows_from_result as _rows_from_result,
     unmatched_anchor_reports,
 )
+from kairos.export.plan_guard import authorize_shipped_plan_write
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.day_core import _optimize_one_day
@@ -423,6 +424,10 @@ def write_weekly_schedule(
     if frame is None:
         frame = build_weekly_schedule(**kwargs)
     target = Path(path) if path is not None else DEFAULT_OUTPUT_PATH
+    # Refuses when the shipped plan is read-only on this tree, and records who
+    # wrote it when it is not. Covers the explicit-path caller the flag above
+    # cannot see, and runs before any byte is written.
+    authorize_shipped_plan_write(target, DEFAULT_OUTPUT_PATH)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(target.name + ".tmp")
     frame.to_csv(tmp, index=False, encoding="utf-8")
