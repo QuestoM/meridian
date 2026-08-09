@@ -142,12 +142,22 @@ a critic with nowhere to put a small finding.
 4. **The mention system**, build order R1 to R5 in
    `audits/kai-mentions-and-coverage-2026-08-07.md`. R1 is the smallest
    shippable: `@` over the four kinds that already resolve.
-   **KNOWN GAP IN THAT RESEARCH:** it studied the terminal products, where there
-   are no icons and no drill-down. The owner meant the GRAPHICAL typing
-   experience: a floating panel on `@`, a list that narrows as you type, an icon
-   per kind, mouse drill-down into a container, and `@` alone showing categories.
-   That surface has not been studied and the icon and drill-down questions are
-   therefore still open.
+   **CORRECTED 2026-08-09, and the earlier note here was too harsh.** It said
+   the graphical surface had not been studied and the icon and drill-down
+   questions were open. Re-read: Part four of that audit IS the design for the
+   graphical surface. It specifies the trigger, one glyph per KIND taken from the
+   rail's own icons so the glyph is navigational identity rather than decoration,
+   a server-side candidate index because a client-side one would put rival rows
+   in the browser, three named boundary rules, Hebrew prefix stripping that
+   neither reference product has, and the drill-down BOTH reference products
+   verifiably declined to build, with the leading-edge arrow resolved from
+   documentDirection rather than hardcoded.
+   What is genuinely missing is narrower and the audit says so itself: no
+   screenshots, because taking one required opening an interactive session of
+   another product, which it was told not to do. So every rendering claim in it
+   is sourced to code and the visual gaps are listed rather than guessed.
+   That is a good document with one hole, not a document that answered the wrong
+   question.
 5. **The eight remaining trade gaps**, `trade-gap-analysis.md`. The goal-based
    order is the thesis of the product and the largest single piece of work left.
 6. **Three owner-reported interface defects** in `owner-reported.md`.
