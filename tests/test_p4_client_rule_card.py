@@ -122,16 +122,39 @@ def named(store, monkeypatch):
 # --- the state that made it a dead end -----------------------------------------
 
 
-def test_the_shipped_store_still_cannot_contain_this_client() -> None:
-    """The premise. 45 rows, none bound, against 41 named advertisers."""
+def test_the_premise_this_file_was_written_against_is_closed_on_the_shipped_store() -> None:
+    """This asserted zero bound rows, and it failed because the product got better.
+
+    What it measured when written, on 2026-08-08: 45 rules rows, **0 of them
+    bound**, against 41 observed advertisers of whom 41 were named. Every card
+    was keyed ADV_01 to ADV_45 and none of them could have been this client's.
+
+    Measured again 2026-08-09, after the naming and binding work: same 45 rules
+    rows, same 41 advertisers, and **41 of 41 bound**. The dead end is gone on the
+    shipped store, so the assertion that it is still there is the wrong assertion
+    to keep.
+
+    It is kept as its inverse rather than deleted, because the premise closing is
+    exactly the thing that could silently reopen: a rules row rewritten without
+    its name, or a store restored from a pre-naming backup, drops the count and
+    this fails again with the reason attached.
+
+    The write path itself is measured below on a throwaway store, which is why
+    those tests never depended on this one.
+    """
     from kairos_api.advertisers_identity import identity_report
 
     report = identity_report()
     assert report["rules_rows"] == 45
-    assert report["bound_to_a_rules_row"] == 0
     assert report["count"] == 41 and report["resolved"] == 41
+    assert report["bound_to_a_rules_row"] == 41, (
+        "advertisers came unbound from their rules rows; this file's whole premise "
+        "was that state, and the client record leads nowhere again while it holds"
+    )
     record = next(r for r in report["advertisers"] if r["advertiser"] == CLIENT)
-    assert record["rules"]["bound"] is False
+    assert record["rules"]["bound"] is True
+    # Unmoved by the binding, and that is the honest result: every bound row
+    # carries premium 1.0, so the money is identical and only the layer is live.
     assert record["money"]["gross"] == pytest.approx(CLIENT_GROSS)
 
 

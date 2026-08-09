@@ -89,6 +89,7 @@ from kairos_api.makegood_store_words import (  # noqa: F401
     reason_allowed,
     undo_block,
 )
+from kairos_api.store_columns import projected
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -174,7 +175,7 @@ def write_frame(frame: pd.DataFrame) -> None:
     _backup()
     MAKE_GOODS_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = MAKE_GOODS_PATH.with_name(MAKE_GOODS_PATH.name + ".tmp")
-    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    projected(frame, COLUMNS).to_csv(tmp, index=False, encoding="utf-8-sig")
     os.replace(tmp, MAKE_GOODS_PATH)
 
 

@@ -42,6 +42,7 @@ import pandas as pd
 
 from kairos_api import campaigns_commitment as commitment
 from kairos_api import campaigns_goal_order as goal_order
+from kairos_api.store_columns import projected
 from kairos_api.campaigns_api_words import (  # noqa: F401 - re-exported store surface
     FIELD_WORDS,
     GOAL_KIND_VOCABULARY,
@@ -149,7 +150,7 @@ def write_frame(frame: pd.DataFrame) -> None:
     _backup()
     CAMPAIGNS_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = CAMPAIGNS_PATH.with_name(CAMPAIGNS_PATH.name + ".tmp")
-    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    projected(frame, COLUMNS).to_csv(tmp, index=False, encoding="utf-8-sig")
     os.replace(tmp, CAMPAIGNS_PATH)
 
 

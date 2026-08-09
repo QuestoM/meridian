@@ -47,6 +47,7 @@ from kairos_api.condition_validation import (
     validate_weekday_scope,
     weekday_options,
 )
+from kairos_api.store_columns import projected
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -138,7 +139,7 @@ def _write_frame(frame: pd.DataFrame) -> None:
     _backup()
     CONDITIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = CONDITIONS_PATH.with_name(CONDITIONS_PATH.name + ".tmp")
-    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    projected(frame, COLUMNS).to_csv(tmp, index=False, encoding="utf-8-sig")
     os.replace(tmp, CONDITIONS_PATH)
 
 

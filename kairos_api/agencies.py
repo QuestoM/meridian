@@ -31,6 +31,7 @@ from typing import Any, Optional
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from kairos_api.store_columns import projected
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -222,7 +223,7 @@ def _write_frame(frame: pd.DataFrame) -> None:
     _backup()
     AGENCIES_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = AGENCIES_PATH.with_name(AGENCIES_PATH.name + ".tmp")
-    frame[COLUMNS].to_csv(tmp, index=False, encoding="utf-8-sig")
+    projected(frame, COLUMNS).to_csv(tmp, index=False, encoding="utf-8-sig")
     os.replace(tmp, AGENCIES_PATH)
 
 
