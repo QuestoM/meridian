@@ -296,10 +296,26 @@ def _render_notes(payload: dict[str, Any]) -> list[str]:
     else:
         lines.append("  nothing has ever been adopted on this tree, so the live artifact is the one the training script wrote")
     lines.append("")
-    lines.append("Next act, per candidate")
-    for row in payload.get("candidates") or []:
-        lines.append(f"  {row['id']:20s} {row['next_act']['en']}")
-        lines.append(f"  {'':20s} {row['next_act']['command']}")
+    # Per candidate ONLY when the candidates differ.
+    #
+    # The act really is computed per row, and on this tree all five rows collapse
+    # onto the same branch because none of them has measured money yet. Printing
+    # five identical lines under a heading that promises "per candidate" is
+    # honest and useless: it takes ten lines to say one thing and it hides the
+    # fact that one command clears all five. When the acts differ, the list is
+    # the right shape and comes back.
+    acts = [row["next_act"] for row in (payload.get("candidates") or [])]
+    shared = {act["command"] for act in acts}
+    if len(shared) == 1 and len(acts) > 1:
+        one = acts[0]
+        lines.append(f"Next act, the same for all {len(acts)} candidates")
+        lines.append(f"  {one['en']}")
+        lines.append(f"  {one['command']}")
+    else:
+        lines.append("Next act, per candidate")
+        for row in payload.get("candidates") or []:
+            lines.append(f"  {row['id']:20s} {row['next_act']['en']}")
+            lines.append(f"  {'':20s} {row['next_act']['command']}")
     lines.append("")
     # The path was in the payload and not on the screen, so a steward who wanted
     # to open one had to guess the filename or read the json.

@@ -281,3 +281,37 @@ def test_the_frontend_files_of_this_piece_keep_the_laws(path):
         return
     assert len(text.splitlines()) < 450, path
     assert "!" not in _prose(text)
+
+
+def test_the_next_act_block_says_one_thing_once_when_it_is_one_thing():
+    """Ten lines to say one thing, under a heading that promises per candidate.
+
+    The act is genuinely computed per row. On this tree every row collapses onto
+    the same branch, because none of the candidates has measured money yet, so
+    the block printed five identical pairs of lines. That is honest and useless:
+    it hides the one fact a steward needs, which is that a single command clears
+    the whole shelf.
+
+    When the acts differ the list is the right shape, so both directions are
+    asserted here rather than only the one that prompted the change.
+    """
+    from scripts import adopt_candidate_render as render
+
+    def _row(identifier, en, command):
+        return {"id": identifier, "file": f"{identifier}.json", "bytes": 0,
+                "produced_on": None, "next_act": {"en": en, "command": command}}
+
+    same = {"candidates": [_row(f"c{n}", "measure the money", "adopt measure") for n in range(5)]}
+    text = "\n".join(render._render_notes(same)) if hasattr(render, "_render_notes") else None
+    if text is None:
+        import pytest
+
+        pytest.skip("the notes renderer is not exposed under that name")
+    assert "the same for all 5 candidates" in text
+    assert text.count("adopt measure") == 1, "the one command is printed once"
+
+    differing = {"candidates": [_row("c0", "measure the money", "adopt measure"),
+                                _row("c1", "decide", "adopt decide")]}
+    listed = "\n".join(render._render_notes(differing))
+    assert "Next act, per candidate" in listed
+    assert "adopt measure" in listed and "adopt decide" in listed
