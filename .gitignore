@@ -84,3 +84,6 @@ data/versions/
 .playwright-mcp/
 output/*.png
 tv-break-dashboard/.probe-shell/
+
+# Local reading aid built from docs/research (owner-only, never committed)
+guide/

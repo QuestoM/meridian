@@ -107,6 +107,57 @@ def test_the_hebrew_says_the_plan_changed_and_the_proposal_was_recorded() -> Non
         assert "\n" not in text, "display text must be one string, never hard-wrapped"
 
 
+def test_the_freshness_verdict_reaches_the_surface_and_is_not_an_inert_lever() -> None:
+    """The whole chain, because three of its four links are silent when broken.
+
+    THE INERT LEVER, measured on this very mechanism: the server computed the
+    verdict, the route returned it, and the client's ``normalizeBatch`` is a
+    WHITELIST that returned only batch_id, created_at, items and restorePoints.
+    So it was dropped at the boundary, the card never saw it, and no operator
+    could ever learn a proposal had gone stale. No error, no warning, and a
+    server payload that reads as live.
+
+    Each link is asserted separately so a break names which one went.
+    """
+    from kairos_api.assistant_read_tools import _READ_EXECUTORS  # noqa: F401 - import health
+
+    state = (ROOT / "tv-break-dashboard" / "src" / "kai" / "assistant-panel-state.js").read_text(encoding="utf-8")
+    card = (ROOT / "tv-break-dashboard" / "src" / "kai" / "AssistantProposalCard.jsx").read_text(encoding="utf-8")
+
+    # 2. the client mapper keeps it (link 1, the server, is asserted below)
+    assert "raw.plan_freshness" in state, "the batch mapper drops the verdict at the client boundary"
+    assert "planFreshness" in state
+    # 3. the card reads it, and only speaks for the one state that means something
+    assert "planFreshness" in card, "the card never reads the verdict, so it cannot show it"
+    assert "'stale'" in card
+    # 4. the words are the server's, so the two cannot disagree and a state added
+    #    later cannot arrive with no sentence
+    assert "reasonHe" in card and "reasonEn" in card
+    for invented in ("התוכנית השבועית השתנתה", "השתנתה"):
+        assert invented not in card, "the card wrote its own copy of the server's sentence"
+
+
+def test_the_banner_fires_for_stale_and_stays_silent_otherwise() -> None:
+    """Vary the lever across its full range and require the output to change.
+
+    ``lever_probe``'s discipline: a probe that never reaches the state it is
+    testing passes vacuously. Here the three states are the full range, and the
+    assertion is that exactly one of them produces a sentence.
+    """
+    verdicts = {
+        freshness.CURRENT: freshness.verdict(freshness.plan_stamp()),
+        freshness.STALE: freshness.verdict({"sha256": "0" * 64, "settings": {}}),
+        freshness.UNKNOWN: freshness.verdict(None),
+    }
+    speaks = {name: bool(v.get("reason_he")) for name, v in verdicts.items()}
+    assert speaks[freshness.STALE] is True
+    assert speaks[freshness.CURRENT] is False
+    # unknown carries words too, but the card deliberately does not banner it:
+    # every batch recorded before the stamp existed is unknown, and a banner on
+    # those would cry stale at history it cannot speak about.
+    assert verdicts[freshness.UNKNOWN]["state"] == freshness.UNKNOWN
+
+
 def test_a_captured_batch_carries_its_stamp_and_reads_back_its_freshness(
     tmp_path, monkeypatch,
 ) -> None:

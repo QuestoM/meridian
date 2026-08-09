@@ -86,7 +86,6 @@ def _summarise(body: dict[str, Any]) -> dict[str, Any]:
         "changes_total": len(changes),
         # The two money bases, each under its own name and neither summed into
         # the other. The preview's own words for what each one is ride with them.
-        "revenue_delta": -1.0,
         "scored": body.get("scored"),
         "exact": body.get("exact"),
         "collateral": body.get("collateral"),
