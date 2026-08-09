@@ -114,15 +114,20 @@ def test_last_is_its_own_position_and_never_the_fifth_ordinal():
     assert last["kind"] == "last"
     assert last["code"] == "L"
     assert last["ordinal"] is None
-    assert last["preferred"] is True
+    # None, not True: no preferred set is configured on this tree, and the flag is
+    # UNKNOWN rather than "yes". It read True because the module guessed the trade
+    # default and marked every ordinal preferred.
+    assert last["preferred"] is None
     fifth = pod.position_of(5)
     assert fifth["kind"] == "ordinal"
     assert fifth["code"] == "5"
     assert fifth["ordinal"] == 5
-    assert fifth["preferred"] is True
+    assert fifth["preferred"] is None
     sixth = pod.position_of(6)
     assert sixth["ordinal"] == 6
-    assert sixth["preferred"] is False
+    # Also None: with no configured set, no position can be called preferred OR
+    # unpreferred. Unknown is one state and False is a different claim.
+    assert sixth["preferred"] is None
     none = pod.position_of(0)
     assert none["kind"] == "unpositioned"
     assert none["code"] is None
@@ -143,14 +148,33 @@ def test_the_shipped_pod_carries_a_last_and_nine_unpositioned_billboards():
     assert record["positions"]["unpositioned"] == 9
     ordinals = sorted(spot["position"]["ordinal"] for spot in record["spots"] if spot["position"]["kind"] == "ordinal")
     assert ordinals == list(range(1, 19))
-    assert "L" in record["positions"]["preferred_set"]
+    # None on this tree, because no preferred set is configured, and that is the
+    # honest answer rather than the trade default this used to guess.
+    assert record["positions"]["preferred_set"] is None
+    assert record["positions"]["preferred_state"] == "unavailable"
     assert record["positions"]["basis_he"]
 
 
-def test_the_preferred_set_is_stated_as_a_default_and_not_as_anybody_agreement():
-    assert pod.PREFERRED_POSITIONS == ("1", "2", "3", "4", "5", "L")
-    assert "default" in pod.PREFERRED_BASIS
+def test_the_preferred_set_is_read_and_never_guessed():
+    """It guessed the trade default, and the product's other answer forbade that.
+
+    This asserted PREFERRED_POSITIONS == ("1","2","3","4","5","L"), a hardcoded
+    "trade default". Two consequences, both measured. It marked EVERY real
+    ordinal preferred, so on a five-spot break all five carried the badge and the
+    badge distinguished nothing. And the pricing screen says, in both languages,
+    that a guessed percentage is worse than none BECAUSE the channel and the
+    agency audit each other with this number. Both sentences shipped, two screens
+    apart, and the second condemns the first.
+
+    It is read from the channel's configured set now, through the same pricing
+    seam every other money surface reads, and an unset set is UNAVAILABLE rather
+    than "everything qualifies".
+    """
+    assert not hasattr(pod, "PREFERRED_POSITIONS"), (
+        "the hardcoded trade default is back, and it marks every ordinal preferred"
+    )
     assert "agreed per client" in pod.PREFERRED_BASIS
+    assert "cannot be" in pod.PREFERRED_UNSET
 
 
 def test_every_spot_names_an_advertiser_a_length_and_a_house_number_or_says_it_cannot():

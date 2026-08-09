@@ -136,3 +136,99 @@ nameable position rather than a raw integer.
 Build order: (1) daypart taxonomy, (2) data-model extensions (programmes, pressure,
 coefficient modes, gold break) in the engine with tests, (3) pricing-path wiring,
 (4) API option/CRUD endpoints, (5) dashboard UI. Each step ships green.
+
+## 7. Binding the rules store to the advertisers that actually air (2026-08-09)
+
+### The defect, measured
+
+`data/advertiser_rules.csv` held 45 rows keyed `ADV_01`..`ADV_45`, each carrying a
+commercial rule. Its `name`, `display_name` and `aliases` columns were empty in all
+45. The resolver in `kairos/optimize/advertiser_rules_identity.py` binds a spot to a
+rule BY NAME, so the two key spaces did not intersect:
+
+| measurement | before | after |
+|---|---|---|
+| advertisers airing on `data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv` | 41 | 41 |
+| rules rows | 45 | 45 |
+| rows bound to an observed advertiser | 0 | 41 |
+| **advertisers that resolve to a rules row** | **0** | **41** |
+| daily gross revenue | 699,450.00 ILS | 699,450.00 ILS |
+| priced spots / dropped spots | 119 / 0 | 119 / 0 |
+
+The whole advertiser premium layer bound to nothing. Not "usually 1.0": dead. No
+premium anyone set on that page could ever have priced a spot.
+
+### What was done
+
+The 41 rows that could bind are re-keyed on the observed advertiser names, which is
+option A of `docs/ux-gauntlet/decisions-for-owner.md` decision 1, approved by the
+owner on 2026-08-01. The names come from `data/advertiser_names.csv`, which holds
+the operator's own traffic vocabulary with `source=observed` and
+`first_seen=2025-04-27`. Nothing here invents an advertiser; this store points at
+that name space and is never a source of names itself, which is its own test.
+
+Re-keying rather than filling the `name` column is deliberate and was measured
+both ways. Both shapes bind 41 of 41 and both leave the money identical, but with
+the name in `advertiser_id` the API reports `name_source: observed` (literally
+true: the id is a name seen in the data), while filling `name` reports
+`name_source: operator`, which claims a person named these rows when a seed did.
+The key-on-the-name shape also breaks no existing test, and the resolver was built
+for it: `build_name_index` indexes `advertiser_id` itself, and
+`kairos_api/advertisers.py::_name_source` already has an `observed` branch for a
+Hebrew id.
+
+### Provenance: why every row says `synthetic`
+
+The premiums in this store are seed values. Attaching one to a real bank without
+saying so fabricates a commercial term about a real company, which is the
+campaign's fabrication law. So the store gains a `data_source` column reading
+`synthetic` on every row, the same column `data/agencies.csv` already publishes,
+plus a Hebrew note on every row saying the commercial detail is a seed and not
+something agreed with the advertiser.
+
+### The four rows left unbound, and why
+
+`ADV_02` carries the only seed terms in the store with teeth: `default_premium`
+1.27 and `allow_positions` `first,last`. Both were invented. Binding them to a
+named advertiser would assert a 27 percent premium and a placement restriction
+about a real company, and would also drop that company's spots that fall in the
+middle of a break. It stays unbound and says so in its notes.
+`ADV_43`, `ADV_44` and `ADV_45` are the arithmetic remainder: 45 rows, 41 observed
+advertisers. They stay as neutral 1.0/ANY seed rows bound to nobody rather than
+have a company invented to fill them.
+
+That is also the rule the guard enforces: a row carrying a premium other than 1.0,
+a narrowed allow list, or `prime_time_only`, may not be bound to a named
+advertiser until the term is real.
+
+### Why the money did not move
+
+Every row that took a name carries `default_premium` 1.0 and allows ANY position
+and genre, so consulting it is arithmetically identical to the unknown-advertiser
+fallback of 1.0 it replaced. Gross stays 699,450.00 ILS across 119 priced spots
+with zero drops, every applied premium still exactly 1.0. What changed is that the
+layer is now live: a premium the operator sets on any of those 41 rows will price
+that advertiser's spots, where before it could not.
+
+`output/weekly_break_schedule.csv` is unmodified, checked by MD5 and by
+`tests/test_plan_artifact_fingerprint.py` before and after. The weekly break-count
+plan does not attribute breaks to advertisers, so it cannot see this store.
+
+### Known gap, in `kairos_api/advertisers.py` (not fixed here)
+
+`_write_frame` writes `frame[COLUMNS]` and `COLUMNS` does not list `data_source`.
+Measured: one `PUT /api/advertisers/{id}` erases the `data_source` column from all
+45 rows. The Hebrew note in `notes` survives, because `notes` is in `COLUMNS`, so
+the provenance is not lost entirely; but the machine-readable half is. Adding
+`"data_source"` to that list is the one-line fix.
+`tests/test_advertiser_rules_bind.py::test_every_row_declares_its_commercial_terms_synthetic`
+fails loudly with that instruction if it ever happens.
+
+### The guard
+
+`tests/test_advertiser_rules_bind.py`, nine checks over binding, provenance and
+money. Six of the nine fail against the pre-fix file, including the headline
+"41 of 41 advertisers resolve to no rules row". One of them,
+`test_a_row_returned_to_the_old_shape_fails_the_bar`, rebuilds an unbound row from
+the shipped store and runs the same check over it, so the guard cannot quietly
+stop guarding.

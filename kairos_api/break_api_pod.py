@@ -41,6 +41,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from kairos_api import campaigns_assets_constraints as pair_constraints
 from kairos_api import read_cache
 from kairos_api.break_api_pod_math import (
     against_declared,
@@ -53,7 +54,9 @@ from kairos_api.break_api_pod_spots import (
     LAST_POSITION_CODE,
     PREFERRED_BASIS,
     PREFERRED_BASIS_HE,
-    PREFERRED_POSITIONS,
+    PREFERRED_UNSET,
+    PREFERRED_UNSET_HE,
+    _preferred_set,
     UNPOSITIONED_CODE,
     clock_seconds,
     duration_of,
@@ -92,7 +95,7 @@ NO_BREAK_IN_WINDOW_HE = "קובץ טראפיק מכסה את היום הזה, א
 __all__ = [
     "LAST_POSITION_CODE",
     "PREFERRED_BASIS",
-    "PREFERRED_POSITIONS",
+    "PREFERRED_UNSET",
     "UNPOSITIONED_CODE",
     "against_declared",
     "build_pod",
@@ -211,7 +214,10 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
     saved = order_store.applied(identifier, spots, _fingerprint_of(spots))
     violations = position_violations(saved["spots"])
     copy_disagreements = sum(1 for item in spots if item["copy_length"]["state"] == "disagrees")
-    errors = verification_errors(saved["spots"], violations)
+    # Judged against the SAVED order, so a reordering that breaks a pair is
+    # caught by the same check that caught the file breaking it.
+    pairs = pair_constraints.pod_pair_block(saved["spots"], start_clock)
+    errors = verification_errors(saved["spots"], violations) + pairs["errors"]
     return {
         "pod_id": identifier,
         "day": day,
@@ -228,15 +234,21 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
         "against_declared": against_declared(declared, arithmetic),
         "copy_length_disagreements": copy_disagreements,
         "positions": {
-            "preferred_set": list(PREFERRED_POSITIONS),
-            "basis": PREFERRED_BASIS,
-            "basis_he": PREFERRED_BASIS_HE,
+            # None, not a guessed default: an unset set means unanswerable.
+            "preferred_set": sorted(_preferred_set()) if _preferred_set() else None,
+            "preferred_state": "real" if _preferred_set() else "unavailable",
+            "basis": PREFERRED_BASIS if _preferred_set() else PREFERRED_UNSET,
+            "basis_he": PREFERRED_BASIS_HE if _preferred_set() else PREFERRED_UNSET_HE,
             "last_held": any(item["position"].get("kind") == "last" for item in spots),
             "unpositioned": sum(1 for item in spots if item["position"].get("kind") == "unpositioned"),
             "top_and_tail": top_and_tail(spots),
             "violations": violations,
             "violation_count": len(violations),
         },
+        # A lead spot and its short closer. NOT ``positions.top_and_tail`` above,
+        # the other thing the trade calls Top and Tail: one campaign holding both
+        # position 1 and Last. See docs/top-and-tail-design.md.
+        "creative_pairs": pairs,
         "verification": {"errors": errors, "count": len(errors)},
         "fingerprint": _fingerprint_of(spots),
     }

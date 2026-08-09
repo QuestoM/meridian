@@ -1,208 +1,179 @@
 # Resume here
 
-Written deliberately before a session limit. If you are a new session picking
-this up, read this file first and trust it over any summary you were handed.
+Rewritten 2026-08-09 at the end of a very long session. If you are a new session
+picking this up, read this file first and trust it over any summary you were
+handed. Everything below was measured, not remembered.
+
+---
 
 ## The one-line state
 
-Wave one is not closed. Two of nine destinations have passed. The rest were mid
-round four when the limits started biting.
+Waves two, three and six are closed. Four and five are in flight with agents
+live. The suite went from 111 failures to 3 over the session, and every one of
+the three was closed. Six frontend guards are green and all their quarantines are
+empty.
 
-## Exactly what to do, in order
+## What is running RIGHT NOW, and do not duplicate it
 
-1. **Resume wave one. Do not restart it and do not edit its script.**
-   `Workflow({scriptPath: "<projects>/workflows/scripts/meridian-wave-1.js", resumeFromRunId: "wf_3cda2e83-163"})`
-   Editing that script invalidates the resume cache for every agent in it, and
-   the last measurement had 202 agents returning instantly from cache. An edit
-   would re-run all of them from zero. It is not worth it, whatever the edit is.
+Check `find . -newermt "-20 minutes" -not -path "./.git/*"` before touching
+anything. Agents were live at the end of this session on:
 
-2. **Watch for a stall, because a stalled wave does not announce itself.**
-   The measure is NOT how many agents look active. It is whether any transcript
-   file has changed:
-   `find <transcript-dir> -name "*.jsonl" -newermt "-15 minutes" | wc -l`
-   Zero for fifteen minutes means stuck. One agent stalling freezes the entire
-   wave, because `parallel` waits on every branch. Recovery is stop, then
-   resume: the stuck agent has no cached result so it re-runs, everything else
-   returns from cache. This already happened once, to `build:P6#6`, which sat
-   idle for nine hours and froze six live critics behind it.
+- **Top and Tail** — `kairos/optimize/frequency.py`, `_frequency_rules.py`,
+  `data/campaign_assets.csv`, `data/frequency_rules.csv` (adding `pair_lead`,
+  `pair_closer`, `value_max`). It briefly made `load_frequency_rules`
+  unimportable mid-edit, which broke the daily pricing pipeline and produced
+  transient failures ANOTHER agent mis-attributed to itself. Expect that shape.
+- **The goal-based order (wave five)** — `campaigns_api_store.py`,
+  `campaigns_commitment.py`, a new `kairos/optimize/goal_seam.py`.
+- **The mention picker (wave four, R1)** — `assistant_mentions.py`,
+  `MentionPicker.jsx`, its own stylesheet.
 
-3. **When wave one closes:** run
-   `scripts/gauntlet/verify_wave.py --only engine,moved,suite --suite-both`
-   against `c2da20fc`, the wave-zero close. Do **not** run the `api`, `bodies`
-   or `frontend` checks. That harness proves a tree is *behaviourally identical*
-   to a commit, which was wave zero's claim. Wave one's claim is the opposite,
-   so those three would manufacture failures and bury the real ones.
+## The rules this session paid for, in the order they cost the most
 
-4. **Attribute every failure against a commit, never against the working tree.**
-   `mkdir -p /tmp/ref && git archive HEAD | tar -x -C /tmp/ref`, run the failing
-   test there. Passing at HEAD and failing here means this wave caused it. This
-   rule was paid for: seven failures were once blamed on wave zero and turned
-   out to be wave one in flight.
+1. **A named gap is a defect CLASS, not a site.** Measured repeatedly: the accent
+   bar was reported at one site and found at 23 across 11 files; the Latin `s`
+   for seconds at one site and found at 8; the direction override at one and
+   found at 68.
+2. **A check whose failure mode is silence is not a check.** Met seven times in
+   one day. The worst: `npm run test:smoke` died on an ENOENT from wave zero
+   until yesterday, and it was the only thing banning native controls, so the
+   tree drifted to 384 unseen.
+3. **A number nobody re-derives is a number nobody checks.** Contract line counts
+   were stale in 55 of 79 rows. My own dossier was refused by my own gate on five
+   counts within a day of writing the gate.
+4. **Measure before fixing.** Two queue items marked "serious, open" were already
+   closed, one under the queue's own words "left open deliberately".
+5. **A wave's size is unknown until its class is COUNTED**, and reading a backlog
+   is not counting it. An 80-item backlog collapsed to a handful of real classes.
+6. **Restore, then verify. Never trust a report over git.** An agent said a plan
+   artifact's content was unchanged; git said 69 rows.
+7. **A guard that counts literal substrings cannot tell code from a comment about
+   code.** Two explanatory comments moved the counts they explained.
+8. **A test that says what it measured and when is worth more than one that only
+   says what it expects.** Twice this session a test failed because the product
+   got BETTER, and both times the docstring made that legible.
 
-5. **Commit per piece**, using the ownership table in spec.md section 8.2 plus
-   the helper naming rule (`campaigns_api_store.py` belongs to whoever owns
-   `campaigns_api.py`). Then build, restart :8000 so it stops serving a stale
-   bundle, and publish through `update_state.py --embed`.
+## The four shared writable stores an agent has now polluted
 
-6. **Run the preflight gate before launching any wave, and do what it says.**
-   `~/.venvs/meridian/bin/python scripts/gauntlet/wave_preflight.py --pieces P10,P11,P12,P13`
-   It refuses to let a wave start when a piece has no dossier, when a dossier is
-   unfinished, when its file inventory has drifted from the repository, or when
-   the shared settings store has been left polluted. That last one has shipped
-   twice. This is the one thing in `campaign-plan.md` that is enforced rather
-   than merely written down, and the table at the top of that file says exactly
-   which of the others are not.
+Settings (twice), the override store, the agency layer. Each cost real money or
+real time, and each guard was written after the fact and too narrow:
 
-7. **Then wave two**, which is written, syntax-checked and never run:
-   `meridian-wave-2.js`. It carries the two fixes the audit found, plus a
-   reshaped round described below.
+- `data/kairos_settings.json` — revenue_weight and min_retention_floor, then
+  locale and direction. **15,844,833 ILS** and a declared licence breach.
+- `data/manual_overrides.csv` — one gold mark. **131,878.70 ILS**, and it
+  survived the settings restore because nothing guarded this file.
+- `data/agencies.csv` + `agency_advertisers.csv` + `campaigns.csv` — twelve rows
+  named "סוכנות ביקורת" at `critic.example`, with campaigns marked `is_demo`
+  FALSE so seeded rows presented as real bookings. One pollution, five failing
+  tests across three files, none of which named the cause.
 
-## How wave two's round differs, and why
+Guards now: `tests/test_plan_artifact_fingerprint.py` (settings + an active-override
+digest) and `tests/test_shared_stores_are_not_agent_leftovers.py` (the class).
 
-Wave one's round was: builder recons blind, critic sweeps blind, builder fixes
-the one named gap, critic sweeps blind again. Two things about that were
-measured on the close wave and both were expensive.
+**The gap that remains:** the fingerprint cannot catch an in-memory pollution,
+because the exporter re-stamps the fingerprint in the same call, so the pair stays
+consistent while the plan is wrong. What catches that is the golden's own
+committed baseline hash.
 
-- **Three of seven builder rounds produced no code.** P3 and P9 touched zero
-  files, P8 touched only its own state file. Each spent a full context, about
-  270k tokens on this product, rediscovering that the work was already on disk,
-  then handed to a critic that named a gap the builder had never been told
-  about.
-- **Each sweep found several things and the loop kept one.** P8's critic
-  recorded three more findings in a field called `not_the_gap_but_worth_the_next_round`
-  that nothing ever read. The sweep was already paid for by the time it noticed
-  them; throwing them away buys a second sweep to find a different one.
+## The six frontend guards, and every quarantine is empty
 
-So the round is now: builder builds, critic sweeps and returns a **ranked queue**
-of every finding with `kind` mechanical or structural, closes the mechanical ones
-**itself** inside its own ownership row, and a **scoped judge** reads that diff
-and only that diff. The next builder closes every structural item in the queue,
-not just the largest.
+    npm run test:card       the card, its inset, off-scale padding
+    npm run test:direction  isolation lives in shell/bidi.jsx and nowhere else
+    npm run test:dates      a calendar day is read in shell/dates.js and nowhere else
+    npm run test:accent     one-sided accent bars, AT ZERO, down only
+    npm run test:smoke      native controls, at 350, down only
+    node scripts/verify-card-rules.mjs
 
-Three rules hold this together and none of them is optional:
+A directory is quarantined ONLY while an agent is actively holding it. Anything
+longer is a budget with no number.
 
-- **The critic measures everything before it edits anything.** An artifact it
-  has touched is no longer the artifact the builder shipped.
-- **No agent clears its own edit.** The scoped judge is a different agent, and
-  it cannot pass the piece. Only a full blind sweep passes a piece.
-- **The scoped judge runs on sonnet**, which departs from "every verifier on
-  opus". That is defensible only because it is not the last word: the next full
-  sweep is told to re-check every finding a scoped judge cleared, because a
-  judge that sees one diff cannot see what that diff cost elsewhere. Wave one's
-  seven regressions were exactly that failure at piece scale.
+## What the owner ruled, and what still waits on him
 
-## What is known broken on main right now
+**Ruled by the owner 2026-08-09:** the assistant runs the newest Opus
+(`claude-opus-5`). That was his call because it spends his money.
 
-Recorded in the commit messages too, so it survives this file:
+**Ruled by me, and I should have ruled sooner:** ruling 009. The plan FILE keeps
+every channel; the export ROUTE serves the operator's own. The two tests that
+looked contradictory agreed about the file and differed about the route.
 
-- The frontend does not read `is_demo`, so 51 seeded campaigns present as "51
-  campaigns were booked". Data is honest, screen is not. A verifier ruled this
-  not fit to publish and was right.
-- CORRECTED 2026-08-07, and the old wording below was wrong in every part.
-  It said the golden gap "predates every wave" and cited 66 of 120 channel-days.
-  Measured by the integration critic and re-verified: at c2da20fc the engine
-  reproduces the committed golden BYTE-EXACT, 0 of 120 channel-days differing.
-  WAVE ONE BROKE IT. At HEAD the engine moves 120 of 120 channel-days,
-  -15,844,833.43 ILS. The 66 figure matches no pairing that exists; for the
-  committed artifact against the golden it is 19.
-  THE CAUSE IS NOT THE ENGINE. data/kairos_settings.json, the live operator
-  store, was mutated by a critic's browser walk and committed as the plan of
-  record: revenue_weight 60 to 35 and min_retention_floor 0.72 to 0.78 in
-  8f0c78c9, then to 0.82 in 843e3bb8. Verified against history. Running the HEAD
-  engine twice with only that file swapped attributes 119 of the 120 moved
-  channel-days and essentially the whole -15.8M to it.
-  What is left after restoring it is ONE genuine wave-one engine regression, on
-  the operator's own channel, רשת 13 on 2024-11-03, -131,878.70, corroborated
-  independently by a gold anchor test failing on that same channel-day.
-  The same pollution also puts the operator's front page into a declared licence
-  breach and fails a guardrail conformance test, both of which close with it.
-- Four assertion rulings from the repair wave were never audited. One of them
-  decided an existing test described a competitor-boundary leak and changed it.
-  That is a rule change that entered main unread.
-- Three interface defects the owner reported are written up in
-  `owner-reported.md` with owner and fix: settings padding, header buttons
-  wrapping and overflowing, and break markers clipped to one character per line.
+**Still waiting on the owner:**
+1. `data/campaign_flights.csv` is header-only, owner decision 4.
+2. What `EB` means in his traffic file. `סוג ברייק` takes Regular (111) and EB
+   (64) on the shipped example, and nothing in the trade document says what EB
+   is. Question 7 in `decisions-for-owner.md`, and the part that matters more
+   than the label: whether EB prices or places differently.
+3. The Cursor admin credential for cortex-lens.
 
-## Two things blocked on the owner
+## The adversarial re-audit, and its structural finding
 
-- The Chrome extension is not connected, so the reference product at
-  traffica.base44.app cannot be mapped. The agent that tried refused to invent
-  the field and dropdown contents, which was the correct call.
-- Nothing else. Everything remaining is mine to do.
+`docs/audits/trade-reaudit-2026-08-09.md`. The finding that matters is a
+mechanism, not a list:
 
-## The rules this campaign paid for
+> The transcript ends with its own nine-item summary. `trade-gap-analysis.md` has
+> exactly nine sections in exactly that order. **It audited the summary, not the
+> body.** Everything the summary did not lift became invisible.
 
-- **State that must survive a process belongs in a file, not in a prompt.** A
-  prompt dies with the process holding it. Wave two's critics write their
-  verdict to `docs/ux-gauntlet/state/<piece>.json` before composing a reply.
-- **A stalled agent looks exactly like a working one.** Measure file mtimes.
-- **`git add` with one nonexistent path silently fails the whole command.**
-  Use `--pathspec-from-file` or check each path exists.
-- **The model catalogue is not what you remember.** `claude-opus-5` and
-  `claude-sonnet-5` are real; a cached table weeks old will deny both. Read the
-  catalogue with `client.models.list()` before claiming a model does not exist.
-  The alias `'sonnet'` resolves to sonnet-4-6, not 5, so pass the full id.
-- **Opus for silent-expensive failure** (anything touching money, any data
-  model, every verifier). **Sonnet for bounded work that is cheap to check**
-  (mapping, surveying, mechanical wiring). If you can check the result at a
-  glance, sonnet; if you have to trust it, opus.
+Its top three, all confirmed:
 
-## The class-fix lesson, and what it cost to learn
+1. **The preferred-position percentage is built, tested, bilingual and
+   unreachable.** `preferred_position_rate` has zero callers outside its own
+   test. The number the channel and the agency audit each other with cannot be
+   computed by anyone using the product.
+2. **Two contradictory answers to which positions are preferred.** CLOSED TODAY:
+   the pod hardcoded the trade default and marked every ordinal preferred, while
+   the pricing screen said a guessed percentage is worse than none. The pod reads
+   the configured set now and answers UNKNOWN when it is unset.
+3. **The rating currency is not the trade's currency.** The trade settles on
+   Jewish households, quarter-hour, overnight plus one. The five modelled
+   audiences do not include Jewish households, and nothing records whether a held
+   TVR is overnight or consolidated. Every shekel figure is in a unit the market
+   does not settle in.
 
-Wave one's close capped five of seven pieces at four rounds without passing.
-Reading every round of every piece showed one pathology behind all five: the
-instruction "close exactly the gap the critic named and nothing else" meets a
-defect with several sites, the builder closes one, and the next critic finds the
-next. Four rounds, four sites, same bug.
+## The engine, and the one number worth remembering
 
-Five class fixes were run against the capped pieces. Every one found more sites
-than its critic had named:
+The last regression was **not a code bug**: one row in `data/manual_overrides.csv`
+written by a browser walk. With it inert the engine reproduces the committed
+golden byte-exact across all 120 channel-days.
 
-| piece | critic named | actually found |
-|---|---|---|
-| P8 | one constant | four call sites, plus a false claim withholding 5,756 entries |
-| P9 | "the other leg" | four legs, three broken, two never looked at |
-| P3 | one sentence | ten sites |
-| P4 | one column | eleven sites |
-| P6 | the English card | four live sites and one latent |
+Then the exact DP tier learned to plan WITH an operator's own overrides instead
+of declining the whole channel-day. **Recovered 124,806.66 of 131,878.71.** The
+residual 7,072.05 is real: the plan emits 3 gold breaks against a cap of 3.
 
-**So the rule is: a gap named at one site is a defect class. Grep every site
-before the first edit, fix them all in one pass, and widen the guard from the
-instance to the class.** Every guarding test that let one of these survive four
-rounds was named after the single instance it protected.
+**I proposed the wrong fix and the agent refused it with a runnable
+counterexample.** I wanted to split the day at `_window_ends`; that closes the
+three LOCAL guardrails and not the two DAILY ones, and the split doubles the
+reported objective by shipping a plan that breaches the daily cap.
 
-**And prove the guard bites before trusting it.** P3 injected seven regressions
-into a scratch copy, one per site shape, and all seven failed. P4's last test
-restores the hard-coded literal and asserts the defect returns. P8's new test
-was proven to fail against the round-13 and round-15 sentences. A test that has
-never failed has never been shown to work.
+## What is open, ranked
 
-**Trust the measured diagnosis, verify the prescription.** Two agents were right
-to overrule their critic. P9's critic prescribed pushing a URL; measured in real
-Chrome, that would have left the address bar and the screen disagreeing, because
-the shell listens for hashchange only and a query change fires popstate. P3's
-critic wrote that the sentence it named was the only unattributed count on those
-surfaces; checking that claim rather than accepting it is what found the other
-nine.
+1. **Wave five, the goal-based order.** Dossier at `dossiers/G1.md`. The headline:
+   the goal is ALREADY modelled on 51 to 55 campaigns and reaches the optimizer
+   ZERO times. Not "add a goal": carry it across one seam.
+2. **Wave four R2**, the mention drill-down. Dossier at `dossiers/K2.md`.
+3. **Top and Tail**, in flight, and the owner asked for full handling at every
+   level.
+4. **The rating currency**, re-audit finding 3. Probably the largest correctness
+   gap left in the product.
+5. **The preferred-position percentage**, built and unreachable.
+6. **Kai's remaining coverage**: no propose tool records a remedy, so it can read
+   a problem it cannot act on. Also the campaign record, what a restriction would
+   cost, and the account-administrator persona with zero coverage.
+7. **`kairos_api/advertisers.py::_write_frame`** writes `frame[COLUMNS]` and
+   COLUMNS omits `data_source`, so one PUT erases provenance from all 45 rows.
+   One-line fix, and a test already fails with that instruction.
+8. **`campaigns_api_store.py:155-159`** documents "Version the campaigns store"
+   and passes a logical name the version store does not know, so six callers are
+   silent no-ops.
 
-**Do not run `git add -A` while agents are live.** It happened four times in one
-session and swept four pieces' work into commits titled for other pieces, so the
-history misdescribes its own contents. Commit by explicit path list, or wait.
-The records for P3 and P4 live in their state files because history was already
-pushed and rewriting it would have been worse.
+## Before writing any new wave script
 
-## Before writing any new wave script, read workflow-fixes.md
-
-`docs/ux-gauntlet/workflow-fixes.md` holds seven defects in the ORCHESTRATION
-itself, each named with the incident that proved it, written down on 2026-08-07
-rather than promised for a wave that might never run. They are cheap and they
-are the difference between a wave that survives an interruption and one that
-loses two pieces to a limit.
+`docs/ux-gauntlet/campaign-plan.md` now opens with an honest table of which of
+its prescriptions are ENFORCED and which are only written down, plus a section on
+what measurement did to its own ordering. `scripts/gauntlet/wave_preflight.py`
+refuses a launch without a complete dossier and re-counts every line number in
+it. `workflow-fixes.md` holds seven orchestration defects with the incident that
+proved each.
 
 Do not apply them by editing a running script: that invalidates the resume cache
 for every agent in the run, which is the most expensive lesson this campaign has
 paid for.
-
-The shape all seven share, and the test to apply to any new check you write:
-**ask what it does when it has nothing to say. If the answer is "passes
-quietly", it is not a check.**

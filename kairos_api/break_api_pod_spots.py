@@ -28,9 +28,43 @@ from typing import Any, Optional
 
 LAST_POSITION_CODE = 99
 UNPOSITIONED_CODE = 0
-PREFERRED_POSITIONS = ("1", "2", "3", "4", "5", "L")
-PREFERRED_BASIS = "The preferred set here is 1 to 5 and Last, which is the trade default. Which positions count as preferred is agreed per client, so this is a default and not a reading of any agreement."
-PREFERRED_BASIS_HE = "קבוצת המיקומים המועדפים כאן היא 1 עד 5 ואחרון, שהיא ברירת המחדל בענף. אילו מיקומים נחשבים מועדפים נקבע בהסכם מול כל לקוח, ולכן זו ברירת מחדל ולא קריאה של הסכם כלשהו."
+# The preferred set is READ, never guessed, and it is unset on this tree.
+#
+# This hardcoded ("1","2","3","4","5","L") as "the trade default", and its own
+# basis line admitted it was "a default and not a reading of any agreement". Two
+# consequences, both measured on 2026-08-09.
+#
+# It marked EVERY REAL ORDINAL as preferred, so on a five-spot break all five
+# carried the badge and the badge distinguished nothing.
+#
+# And it contradicted the product's other answer to the same question. The
+# pricing screen says, in both languages: "No preferred set is configured, so no
+# preferred-position percentage is computed anywhere. A guessed percentage is
+# worse than none, because the channel and the agency audit each other with this
+# number." That sentence condemns this constant. Both shipped, two screens apart.
+#
+# So the set comes from config/optimization_weights.yaml through the same
+# pricing seam every other money surface reads, and when it is unset the flag is
+# UNKNOWN rather than True. Three states, never two.
+PREFERRED_BASIS = "Read from the channel's configured preferred set. Which positions count as preferred is agreed per client, so an unset set means this cannot be answered rather than that every position qualifies."
+PREFERRED_BASIS_HE = "נקרא מקבוצת המיקומים המועדפים שהוגדרה לערוץ. אילו מיקומים נחשבים מועדפים נקבע בהסכם מול כל לקוח, ולכן קבוצה שלא הוגדרה פירושה שאי אפשר לענות על כך, ולא שכל מיקום נחשב מועדף."
+PREFERRED_UNSET = "No preferred set is configured for this channel, so whether this position is preferred cannot be read."
+PREFERRED_UNSET_HE = "לא הוגדרה לערוץ קבוצת מיקומים מועדפים, ולכן לא ניתן לקרוא אם המיקום הזה מועדף."
+
+
+def _preferred_set() -> frozenset[str] | None:
+    """The configured preferred codes, or None when the channel has not set one.
+
+    Through the pricing seam, which is the one home for operator pricing, so this
+    surface and the pricing screen cannot disagree about the same question.
+    """
+    try:
+        from kairos.optimize.pricing import pricing_from_settings
+
+        model = pricing_from_settings()
+        return getattr(model, "preferred_positions_default", None) or None
+    except Exception:
+        return None
 
 # A run of digits immediately followed by a seconds mark is a length. The three
 # marks really present in the shipped file are the double quote (28", 35"), the
@@ -129,7 +163,9 @@ def position_of(raw: Any) -> dict[str, Any]:
         }
     code = int(round(value))
     if code == LAST_POSITION_CODE:
-        return {"state": "real", "code": "L", "kind": "last", "ordinal": None, "preferred": "L" in PREFERRED_POSITIONS}
+        preferred = _preferred_set()
+        return {"state": "real", "code": "L", "kind": "last", "ordinal": None,
+                "preferred": ("L" in preferred) if preferred else None}
     if code == UNPOSITIONED_CODE:
         return {
             "state": "real",
@@ -145,7 +181,7 @@ def position_of(raw: Any) -> dict[str, Any]:
         "code": str(code),
         "kind": "ordinal",
         "ordinal": code,
-        "preferred": str(code) in PREFERRED_POSITIONS,
+        "preferred": (str(code) in (_preferred_set() or ())) if _preferred_set() else None,
     }
 
 
