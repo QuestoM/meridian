@@ -9,6 +9,23 @@ Every check is a pure function that returns a list of Violations, so a candidate
 schedule can be rejected or repaired without side effects. Defaults follow the
 KairosSettings baseline and should be confirmed against current broadcaster
 policy before production use.
+
+READ THIS BEFORE TUNING ANY MINUTES-PER-PERIOD CAP. Break length is a hardcoded
+constant, ``_types.DEFAULT_BREAK_LENGTH_SECONDS = 120.0``, with NO settings key,
+and it silently decides what every minutes cap in this module can ever mean.
+Combined with ``max_breaks_per_hour``, it sets a hard ceiling on ad time that no
+minutes cap below that ceiling can reach:
+
+    4 pods/hour x 120s = 480s = 8 minutes  <  max_ad_seconds_per_hour of 720s
+
+so ``max_ad_seconds_per_hour`` CANNOT BIND at the shipped configuration and is
+inert today; it would take 7 pods in an hour before 12 minutes could be reached.
+MEASURED 2026-08-09 on the shipped plan, operator channel: 713 hours, worst hour
+8.00 minutes, ZERO breaches, and 404 of those hours sitting exactly at the 4-pod
+ceiling. The rule actually shaping ad load is the pod count, not the minutes.
+:class:`WindowAdCap` inherits the same ceiling; its docstring carries the
+arithmetic for the window case. Changing the break length moves real money and
+is an owner decision, not a tuning knob.
 """
 
 from __future__ import annotations
@@ -32,11 +49,47 @@ SECONDS_PER_CALENDAR_DAY = 86400.0
 class WindowAdCap:
     """A cap on total ad seconds inside a wall-clock window of one channel-day.
 
-    ``start_hour`` and ``end_hour`` are wall-clock hours on the broadcast day,
-    half-open as ``[start_hour, end_hour)``, so an end of 24 means "up to
-    midnight". A break belongs to the window when ITS OWN start falls inside it,
-    which is the same attribution the hourly cap uses (see
-    :func:`check_hourly_ad_load`): a break is counted whole, where it starts.
+    ``start_hour`` and ``end_hour`` are wall-clock hours, half-open as
+    ``[start_hour, end_hour)``, so an end of 24 means "up to midnight". A break
+    belongs to the window when ITS OWN start falls inside it, which is the same
+    attribution the hourly cap uses (see :func:`check_hourly_ad_load`): a break
+    is counted whole, where it starts.
+
+    THE HOUR-24 DECISION, MADE EXPLICITLY. A break's hour is
+    ``int(start_seconds // 3600)`` and that division is NOT bounded at 23, so a
+    programme starting at 23:xx yields breaks at hour 24 or 25 of the same
+    broadcast day (143 such breaks on the plan measured 2026-08-09, 30 of them
+    the operator's; see tests/test_the_hour_past_midnight.py). THIS WINDOW IS A
+    HALF-OPEN CLOCK INTERVAL AND HOURS 24 AND 25 ARE OUTSIDE IT. A window ending
+    at 24 therefore covers hours 20 to 23 and stops; it does not sweep up the
+    post-midnight tail of a programme that began before midnight.
+
+    Chosen over the "broadcast day continues" reading for one reason: the cap is
+    stated in wall-clock terms, and 24:00 is the clock's own end. Including hours
+    24 and 25 would make a "20:00 to 24:00" window silently cover time after
+    24:00, which is the opposite of what its own name says. The other reading is
+    defensible and is NOT wrong; it is simply not what this type does, and a
+    caller wanting it must say so with different bounds rather than inherit it by
+    accident. The bucketing itself is untouched either way.
+
+    IF YOU SWITCH THIS ON AND NOTHING HAPPENS, HERE IS WHY. This cap inherits the
+    ceiling described in the module docstring, and on today's plan that ceiling
+    is BELOW the evening limit under discussion. An hour cannot hold more than
+    ``max_breaks_per_hour x break_length`` = 4 x 120s = 8 minutes, so a four-hour
+    window cannot hold more than 32 minutes however the optimizer is pushed:
+
+        4 hours x 8 minutes = 32 minutes  <  a 40-minute cap on 20:00-24:00
+
+    MEASURED 2026-08-09 on the shipped plan, operator channel, 30 channel-days:
+    the worst evening is 32.00 minutes and a 40-minute cap breaches on 0 of 30
+    days. IT IS STRUCTURALLY UNREACHABLE, not merely slack, and no schedule the
+    current engine can emit will trip it. A window cap only becomes live if it is
+    set below the ceiling, or if the pod cap or the break length changes. This is
+    the same defect class as the inert hourly cap and is recorded here so the
+    next reader finds it rather than re-deriving it.
+
+    The day-fraction cap is NOT in this position: see :class:`DayFractionAdCap`,
+    which on the same plan binds on 30 of 30 days at a tenth of the day.
 
     Nothing here is a regulatory figure. The hours and the limit are supplied by
     whoever configures the cap; this type only knows how to apply them.
@@ -50,22 +103,31 @@ class WindowAdCap:
 
 @dataclass(frozen=True)
 class DayFractionAdCap:
-    """A cap on a channel-day's ad seconds as a fraction of the broadcast day.
+    """A cap on a channel-day's ad seconds as a fraction OF A 24-HOUR CALENDAR DAY.
 
-    ``day_seconds`` is the denominator the fraction is taken against and defaults
-    to a full calendar day. It is an explicit field because "the broadcast day"
-    is an assumption, not a constant: an operator that does not broadcast around
-    the clock has a shorter one, and the honest thing is to make the caller say
-    so rather than to bake a number in.
+    THE DENOMINATOR IS DECIDED AND FIXED, and the field name says which one it
+    is. ``max_fraction_of_calendar_day`` is taken against a constant 1440
+    minutes, NOT against the hours this channel actually transmits. A tenth is
+    therefore always 144 minutes, on every channel and every day.
+
+    The choice, so nobody has to re-derive it. The alternative denominator, the
+    transmitted span, would have to be derived from the plan, which makes the cap
+    depend on how much the channel happened to broadcast that day: a quiet day
+    would tighten the cap and an overnight-filler day would loosen it, and the
+    same schedule could pass or fail for reasons that have nothing to do with
+    advertising. A fixed denominator is the one a reader can check by hand.
+
+    Offering both was rejected deliberately. A configurable denominator would let
+    two operators mean different things by "ten percent" while storing the same
+    number, which is exactly the ambiguity this field name exists to kill.
     """
 
-    max_fraction: float
-    day_seconds: float = SECONDS_PER_CALENDAR_DAY
+    max_fraction_of_calendar_day: float
     enabled: bool = False
 
     @property
     def max_ad_seconds(self) -> float:
-        return self.max_fraction * self.day_seconds
+        return self.max_fraction_of_calendar_day * SECONDS_PER_CALENDAR_DAY
 
 
 @dataclass(frozen=True)
@@ -118,8 +180,7 @@ def airtime_caps_from_mapping(settings: Optional[Mapping[str, Any]]) -> AirtimeC
     day_fraction = None
     if day_raw:
         day_fraction = DayFractionAdCap(
-            max_fraction=float(day_raw["max_fraction_of_day"]),
-            day_seconds=float(day_raw.get("day_seconds", SECONDS_PER_CALENDAR_DAY)),
+            max_fraction_of_calendar_day=float(day_raw["max_fraction_of_calendar_day"]),
             enabled=bool(day_raw.get("enabled", False)),
         )
     return AirtimeCaps(window=window, day_fraction=day_fraction)
@@ -326,7 +387,8 @@ def check_day_fraction_ad_load(breaks: Iterable[Break], guardrails: Guardrails) 
                 scope=f"{channel}/{day}",
                 observed=round(total, 1),
                 limit=round(limit, 1),
-                detail=f"ad seconds exceed {cap.max_fraction:.4g} of the broadcast day",
+                detail=f"ad seconds exceed {cap.max_fraction_of_calendar_day:.4g} "
+                   "of a 24-hour calendar day",
             ))
     return out
 
