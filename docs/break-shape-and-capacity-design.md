@@ -14,6 +14,63 @@ Everything numbered below was MEASURED on this tree on 2026-08-09, not recalled.
 
 ---
 
+## 0. CORRECTED 2026-08-09 BY THE MEASUREMENT THIS DOCUMENT COMMISSIONED
+
+Stage A ran and it corrected four things below, including two numbers I
+published. `docs/break-shape-measured.md` is the authority; this section is the
+diff so nobody reads a superseded figure.
+
+**1,145 of the 3,055 "breaks" ARE NOT BREAKS.** They carry an Excel epoch-zero
+start time of 01/01/1900, a null parsed timestamp and `hour_of_day = -1`, and
+each is its own single-row break at position 1. That is 37.5 percent of the
+count, all of it below the median. They are what drags the median to 39. Drop
+them and change nothing else: **median 39 becomes 108**, p75 186 becomes 310, and
+the share above 120 seconds goes from 29.4 to 47.1 percent. Whether they are real
+airtime or an export defect the data cannot say, and it is the first question for
+the owner.
+
+**MY "40 BREAKS PER HOUR" IS AN ARTIFACT AND MUST NOT BE USED.** The real maximum
+in a clocked hour is SEVEN. Forty is reachable only through the minus-one bucket,
+one cell per day holding that day's orphans. Anyone sizing a breaks-per-hour
+guardrail against 40 is sizing against an export defect. The hourly block in
+section 1 did not reproduce under any of four groupings; only the 24.3-minute
+maximum survives every method.
+
+**MY SHARPEST LINE WAS WRONG, AND STAGE A SAID SO FIRST, IN THE CONSTANT'S
+FAVOUR.** I wrote that 120 seconds is "the one summary statistic that describes
+none of it". Against COMMERCIAL airtime, 120 seconds is exactly the 25th
+percentile. What survives is narrower and still real: the median commercial pod
+is 58 percent longer, 72.8 percent exceed 120 seconds, and only 2.4 percent sit
+at it.
+
+**STAGE C AS WRITTEN IS CONTRADICTED.** I proposed that the length a segment gets
+should be the length its programme carries. Programme duration does NOT carry a
+length: correlation with a pod's length is **+0.002**. It carries a COUNT,
+correlation **+0.843**, and the count is already a decision the optimizer makes.
+Stage C has to be rewritten around what actually varies.
+
+**AND THE FINDING THAT REFRAMES STAGE B.** Spot count explains 85 percent of a
+pod's length variance, and the mean spot inside a pod is about 21 seconds flat at
+every pod size above three. A break is long BECAUSE MORE SPOTS WERE SOLD INTO IT.
+So stage B's question is not "does an extra thirty seconds cost audience", it is
+**"does an extra SPOT cost audience"**, and the two are the same question only if
+the cost is per second rather than per interruption. The trap in section 2 holds
+and sharpens: revenue is priced per second, retention per break, and the ratio
+between them is a spot count nobody has modelled.
+
+Two further corrections of mine. The commercial-versus-promotional split I
+flagged as open is measured: sponsorship billboards have a median AND mode of
+exactly 6 seconds, 1,973 of 3,055 breaks carry no commercial spot at all, and a
+commercial pod count is 760 rather than 3,055. And my suspicion about the
+35.6-minute hour was right: a break starting 22:59:40 runs 432 seconds past the
+boundary, and excluding it gives 28.4.
+
+The prime-window gap between 322 and 39 seconds was never a prime effect. It is a
+DEFINITION ladder: 39 for everything, 108 without the orphans, 340 for breaks
+carrying a commercial, 389 in prime.
+
+---
+
 ## 1. The measurement, and it is not close
 
 **Every break in the plan is exactly 120 seconds.** Not a default that varies in
