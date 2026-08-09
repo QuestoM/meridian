@@ -367,6 +367,80 @@ as sales policy rather than as a licence limit.
 
 ---
 
+## 10. Seven questions for the person who works in this market
+
+These came out of the broadcast research, 2026-08-09, and they are a different
+kind of question from the ones above. Each one is a mechanism that is DOCUMENTED
+AND REAL somewhere else, quoted from a regulator rather than from marketing, and
+that has NO Israeli evidence either way. Under the research ruling they stop at
+documentation. The only route by which any of them becomes real work is you or
+Tal saying "yes, we do that".
+
+They are listed because a concrete question gets a better answer than an open
+one. "Does an Israeli deal ever contract a minimum weekly spread" is answerable.
+"What else should we build" is not.
+
+**First, the part that is NOT a question, because the research settled it.** The
+goal-based order is not a bet on a market that might arrive. The UK regulator has
+published the mechanics in detail: sales houses run an optimiser over aggregated
+demand, re-optimise continually, and the sales house's optimisation "generally
+overrides the vast majority of specific contractual terms". An entire national
+market has traded this way for decades. Whatever else is uncertain, the direction
+is not.
+
+And one thing it CONFIRMED about our own naming: the international concept for
+what a channel owes when it under-delivers is already in this product under the
+name `deficit`, in the make-good ledger. Nothing is renamed.
+
+**1. A contracted weekly spread.** Elsewhere a buyer can contract a minimum
+spread of ratings per week, so the pacing curve is a TERM OF THE DEAL rather than
+something we watch internally. This product has a pacing board and no contracted
+curve. Does an Israeli deal ever fix one?
+
+**2. A spot that cannot be moved.** Elsewhere there are clauses that forbid the
+broadcaster from moving an advertisement out of a fixed slot. The trade document
+says the ordered time here "is a range, not a commitment", which suggests we have
+no such thing. Is any spot ever sold as immovable?
+
+**3. Length factors, and whether they are linear.** Elsewhere a published table
+converts a spot's duration to thirty-second equivalents and it is deliberately
+NOT proportional: five seconds is priced at 0.300 of a thirty, not 0.167. This
+product prices per second, which is linear by construction. Does the Israeli
+trade apply any non-linear length factor?
+
+**4. Withholding breaks.** The trade document says "the channel does not release
+every break". Elsewhere that is a licence problem: the regulator explicitly
+prohibits a dominant broadcaster from withholding airtime to push prices up. Is
+there any Israeli restriction on this, or is holding inventory back entirely the
+channel's business?
+
+**5. How many audiences do you actually TRADE?** Elsewhere over a hundred
+audiences are measured and only about twenty are traded. That number decides what
+values a goal-based order's audience field may take, so it is a build input and
+not trivia.
+
+**6. Does the advertiser's real target get mapped to a tradeable one?** Elsewhere
+a buyer picks the traded audience closest to the real target and accepts the
+mismatch, and gets the spill for free. Do we need to model that mapping, or does
+an Israeli order name the audience it is settled on directly?
+
+**7. Is a gold break inside a goal-based order or outside it?** Elsewhere the
+highest-rating programmes are carved out as "specials", priced at a premium and
+traded spot by spot OUTSIDE the optimised pool. Our gold breaks carry a separate
+rate card, which is the same shape. Are they also excluded from a goal order, or
+can a goal be delivered partly out of gold inventory? This one changes the design
+of the goal seam and it is the most load-bearing of the seven.
+
+**Two things the research could NOT corroborate anywhere, so they rest on the
+trade document alone and that is fine.** Deliberate over-ordering of prime as a
+negotiating position, which no regulator or industry source describes; and the
+one-to-two-day lead time, where the same foreign market books eight weeks ahead.
+The second is a factor of thirty and it means no foreign assumption about a known
+order book may be imported here. Our daily re-optimisation is right for Israel
+BECAUSE of that difference, not in spite of it.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from

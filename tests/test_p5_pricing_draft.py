@@ -26,11 +26,9 @@ recorded here rather than run here.
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -57,38 +55,28 @@ PROBE = Path(__file__).with_name("test_p5_draft_probe.mjs")
 # not, so that one line is rewritten to add it; nothing else about the file
 # changes.
 #
-# bidi.jsx cannot be copied the same way: it opens with `import React from
-# 'react'` and returns JSX, and this harness has no react runtime the way
-# test_p4_rollup_tristate.py's fake-React probe does. dates.js only calls
-# `isolate` to keep a formatted run from being reordered inside a Hebrew line,
-# which this file's assertions never read, so the stub is the identity
-# function, the same shape test_p4's fix used for the same reason: a correct
-# isolate the probe cannot see is not worth a fake react tree to produce it.
-BIDI_STUB = "export function isolate(value) { return value; }\n"
-
-# node's static ESM resolution cannot be redirected from the CLI the way a
-# bundler alias can, so a real loader hook does it: anything ending in
-# shell/dates(.js) or shell/bidi(.js) is sent to the two files this fixture
-# writes into its own support directory instead of the paths the probe's copy
-# never created. The two support files are passed in by URL through the
-# environment because the loader hook runs in its own thread and a literal
-# path baked into the hook source would have to survive being embedded in a
-# JS string; an env var sidesteps that entirely.
-LOADER_HOOK = """
-const DATES_URL = process.env.P5_DATES_URL;
-const BIDI_URL = process.env.P5_BIDI_URL;
-
-export function resolve(specifier, context, nextResolve) {
-  if (specifier.endsWith('shell/dates.js') || specifier.endsWith('shell/dates')) {
-    return { url: DATES_URL, shortCircuit: true };
-  }
-  if (specifier.endsWith('shell/bidi.js') || specifier.endsWith('shell/bidi')) {
-    return { url: BIDI_URL, shortCircuit: true };
-  }
-  return nextResolve(specifier, context);
-}
-"""
-
+# This file used to carry its own loader hook and its own stub of the bidi
+# primitive, run through node's deprecated ``--experimental-loader``. It was the
+# last caller of that flag in the repository.
+#
+# What replaced it is the point. ``tests/js/shell-resolver.mjs`` is ONE hook that
+# every browser probe here already uses, and it resolves the shell primitives to
+# the REAL modules compiled with the bundler's own transform. This file was
+# resolving them to a stub instead: bidi's ``isolate`` was replaced by the
+# identity function, on the reasoning that these assertions never read what it
+# produces.
+#
+# That reasoning was sound and the arrangement was still worse, for a reason
+# worth keeping. A probe asserting against a fake primitive proves nothing about
+# what ships, and the moment the fake and the real one diverge the probe goes on
+# passing. There is no reason left to accept that here, because the shared hook
+# already solves the problem the stub was working around: bidi.jsx imports react
+# and returns JSX, and the hook compiles it and places the copy where a bare
+# specifier can still find node_modules.
+#
+# So this file now runs the same primitives the dashboard runs, through the same
+# hook as its forty-odd siblings, and there is no second place that has to learn
+# about a shell primitive when one is added.
 
 @pytest.fixture(scope="module")
 def draft() -> dict:
@@ -96,24 +84,10 @@ def draft() -> dict:
     if node is None:
         pytest.skip("node is not on this machine, so the shipped helpers cannot be run")
 
-    with tempfile.TemporaryDirectory() as support_dir:
-        support = Path(support_dir)
-        dates_source = (SHELL / "dates.js").read_text(encoding="utf-8")
-        (support / "dates.js").write_text(
-            dates_source.replace("from './bidi'", "from './bidi.js'"), encoding="utf-8",
-        )
-        (support / "bidi.js").write_text(BIDI_STUB, encoding="utf-8")
-        hook_path = support / "resolve-shell.mjs"
-        hook_path.write_text(LOADER_HOOK, encoding="utf-8")
-
-        env = dict(os.environ)
-        env["P5_DATES_URL"] = (support / "dates.js").as_uri()
-        env["P5_BIDI_URL"] = (support / "bidi.js").as_uri()
-
-        result = subprocess.run(
-            [node, f"--experimental-loader={hook_path}", str(PROBE)],
-            capture_output=True, text=True, timeout=120, check=False, env=env,
-        )
+    result = subprocess.run(
+        [node, "--import", str(ROOT / "tests" / "js" / "shell-resolver.mjs"), str(PROBE)],
+        capture_output=True, text=True, timeout=120, check=False,
+    )
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
 
