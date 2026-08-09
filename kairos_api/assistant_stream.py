@@ -61,6 +61,9 @@ class StreamAskRequest(BaseModel):
     # The frozen page-context contract: advisory grounding for where the
     # operator is; absent or invalid degrades to exactly today's behavior.
     page_context: dict[str, Any] | None = None
+    # The typed references the operator pointed at in the question. Same
+    # advisory contract as the non-streaming ask.
+    mentions: list[dict[str, Any]] | None = None
 
 
 def _frame(event: str, data: Any) -> str:
@@ -104,6 +107,7 @@ def assistant_ask_stream(request: StreamAskRequest, http_request: Request) -> St
             body = assistant._ask_body(question, http_request, on_step=on_step, on_text=on_text,
                                        conversation_id=request.conversation_id,
                                        page_context=request.page_context,
+                                       mentions=request.mentions,
                                        on_stage=on_stage)
             batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
             assistant._audit_ask(user, question, body, batch_id)

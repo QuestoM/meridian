@@ -211,8 +211,22 @@ function bulkFacts(items) {
   return { changeCount, sensitive };
 }
 
+// The weekly plan moved after this batch was recorded, so any figure its
+// summaries quote was measured against a plan that is no longer the saved one.
+// The sentence is the SERVER'S, in both languages, rather than a second copy
+// written here: the two could not then disagree, and a state the server adds
+// later cannot arrive with no words. A batch whose plan still matches, and one
+// with nothing to compare, both say nothing, because a banner that fires on
+// unknown would cry stale at every batch recorded before the stamp existed.
+function staleSentence(batch, locale) {
+  const freshness = batch && batch.planFreshness;
+  if (!freshness || freshness.state !== 'stale') return '';
+  return pageText(locale, freshness.reasonEn, freshness.reasonHe);
+}
+
 export default function AssistantProposalCard({ batch, locale, busy, applyResult, onApply, onReject, onShowRestore, notify, onUndone }) {
   const items = Array.isArray(batch.items) ? batch.items : [];
+  const staleText = staleSentence(batch, locale);
   const pendingIds = items.filter((item) => item.status === 'pending' && item.id).map((item) => item.id);
   const [checked, setChecked] = useState(() => new Set(pendingIds));
   const [confirming, setConfirming] = useState(false);
@@ -266,6 +280,13 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
         <div className="asst-bulk" role="note">
           <TriangleAlert size={13} />
           <span>{bulkText}</span>
+        </div>
+      ) : null}
+
+      {staleText ? (
+        <div className="asst-bulk" role="note">
+          <TriangleAlert size={13} />
+          <span>{staleText}</span>
         </div>
       ) : null}
 

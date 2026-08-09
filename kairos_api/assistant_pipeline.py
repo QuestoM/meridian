@@ -41,8 +41,10 @@ from typing import Any, Callable
 from kairos_api import (
     assistant_actions,
     assistant_claimed_action as claimed_action,
+    assistant_context,
     assistant_conversations,
     assistant_history,
+    assistant_mentions_resolve,
     assistant_model_call,
     assistant_protocol_text as protocol_text,
     assistant_sections,
@@ -292,7 +294,8 @@ def ask_body(question: str, http_request: Any,
              on_text: Callable[[str], None] | None = None,
              conversation_id: str | None = None,
              page_context: dict[str, Any] | None = None,
-             on_stage: Callable[[str, dict[str, Any]], None] | None = None) -> dict[str, Any]:
+             on_stage: Callable[[str, dict[str, Any]], None] | None = None,
+             mentions: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """The full ask pipeline shared by /ask and /ask/stream.
 
     Composes the grounding context, replays the caller's own saved thread as
@@ -336,6 +339,16 @@ def ask_body(question: str, http_request: Any,
     if on_stage is not None:
         on_stage("reading", {"conversation_id": conversation_id})
     context, sources = assistant._compose(question, page_context, user)
+    # The objects the operator pointed at, attached AFTER the composer and then
+    # measured against the same character budget the composer enforces. It is
+    # attached here rather than inside compose_context because several suites
+    # replace that composer with a one-argument stub, and the arity dance that
+    # accommodates them is not a place to add a fourth argument. Re-enforcing
+    # the budget is what keeps the section inside the ceiling rather than beside
+    # it: day-detail rows give way to a thing the operator explicitly named.
+    mentioned = assistant_mentions_resolve.extend_with_mentioned_objects(context, sources, mentions)
+    if mentions:
+        assistant_context.enforce_budget(context)
     grounding = {"sources": sources, "generated_at": generated_at}
     if on_stage is not None:
         on_stage("grounded", {"sections": len(sources), "facts": grounding_facts(context)})
@@ -401,4 +414,11 @@ def ask_body(question: str, http_request: Any,
         "proposals": proposals,
         "tool_trace": trace,
         "conversation_id": conversation_id,
+        # What each reference the operator pointed at actually bound to, in the
+        # four states, present ONLY when references were sent. An ask without
+        # them is byte-identical to the ask that shipped before this key existed.
+        # It is here rather than left to the model to mention because the finding
+        # against page_context is that the binding is invisible: a state the model
+        # can read and the operator cannot is the same defect one layer down.
+        **({"mentions": mentioned} if mentioned else {}),
     }

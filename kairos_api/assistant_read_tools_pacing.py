@@ -415,10 +415,10 @@ PACING_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
             "not yet aired, and which days carry no per-spot source at all and are therefore "
             "unknown rather than empty. It also carries the remedy: whether a make-good may "
             "actually be raised against a shortfall that is owed, or the reason it may not "
-            "yet, whether the risk may instead be taken on, and the decisions already "
-            "recorded against this campaign. Both are acts a person takes on the board; no "
-            "tool records them. Call this when the campaign manager asks about one campaign, "
-            "why it is behind, or what can be done about it."
+            "yet, whether the risk may instead be taken on, and the decisions already recorded "
+            "against this campaign. Both are acts a person takes on the board, and propose_pacing_decision "
+            "records either one for their approval; read this first and propose only what the remedy block "
+            "says is available. Call this when the campaign manager asks about one campaign, why it is behind, or what can be done about it."
         ),
         "input_schema": {
             "type": "object",

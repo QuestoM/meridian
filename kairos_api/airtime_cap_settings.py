@@ -23,11 +23,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from kairos.optimize.guardrails import (
-    SECONDS_PER_CALENDAR_DAY,
-    AirtimeCaps,
-    airtime_caps_from_mapping,
-)
+from kairos.optimize.guardrails import AirtimeCaps, airtime_caps_from_mapping
 
 __all__ = [
     "DayFractionAdCapSettings",
@@ -58,16 +54,17 @@ class WindowAdCapSettings(BaseModel):
 
 
 class DayFractionAdCapSettings(BaseModel):
-    """A cap on a channel-day's ad time as a fraction of the broadcast day.
+    """A cap on a channel-day's ad time as a fraction OF A 24-HOUR CALENDAR DAY.
 
-    ``max_fraction_of_day`` is a fraction, not a percentage: a tenth of the day
-    is 0.1. ``day_seconds`` is the denominator and defaults to a full calendar
-    day; an operator that does not broadcast around the clock sets its own.
+    ``max_fraction_of_calendar_day`` is a fraction, not a percentage: a tenth is
+    0.1, which is always 144 minutes. The denominator is a fixed 1440 minutes and
+    is deliberately NOT configurable, so "a tenth" cannot come to mean two
+    different things on two channels; see :class:`DayFractionAdCap` for why the
+    transmitted-span alternative was rejected.
     """
 
     enabled: bool = False
-    max_fraction_of_day: float = Field(gt=0, le=1)
-    day_seconds: float = Field(default=SECONDS_PER_CALENDAR_DAY, gt=0)
+    max_fraction_of_calendar_day: float = Field(gt=0, le=1)
 
 
 def airtime_caps_from_settings(

@@ -75,7 +75,24 @@ export function normalizeBatch(raw) {
       // point so the "see it in the history" control has something to address.
       versionId: point.version_id ? String(point.version_id) : null,
     }));
-  return { batch_id: String(raw.batch_id), created_at: raw.created_at || null, items, restorePoints };
+  // Whether the weekly plan still is the plan this batch was reasoned against.
+  // The server answers it per read, because whether the plan has moved is a fact
+  // about now; the sentence comes from the server in both languages so there is
+  // one copy of it and not two. Dropping it here is what made the whole
+  // mechanism inert: the server computed it, the route returned it, and this
+  // whitelist threw it away, so no operator could ever learn a proposal had gone
+  // stale.
+  const freshness = raw.plan_freshness && typeof raw.plan_freshness === 'object'
+    ? {
+      state: String(raw.plan_freshness.state || 'unknown'),
+      reasonEn: raw.plan_freshness.reason_en ? String(raw.plan_freshness.reason_en) : '',
+      reasonHe: raw.plan_freshness.reason_he ? String(raw.plan_freshness.reason_he) : '',
+    }
+    : null;
+  return {
+    batch_id: String(raw.batch_id), created_at: raw.created_at || null,
+    items, restorePoints, planFreshness: freshness,
+  };
 }
 
 // Opens the History page addressed at one row rather than at its own newest

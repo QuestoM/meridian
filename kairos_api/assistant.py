@@ -155,6 +155,12 @@ class AskRequest(BaseModel):
     # invalid degrades to exactly the behavior without it, and the response
     # shape never changes.
     page_context: dict[str, Any] | None = None
+    # What the operator POINTED AT in the question itself: a list of
+    # {type, id, label} references from the composer's picker. Advisory in
+    # exactly the sense page_context is advisory, and additive in the sense that
+    # matters most here: the prose still carries the label, so an absent or
+    # invalid list degrades to the same question typed by hand.
+    mentions: list[dict[str, Any]] | None = None
 
 
 def _resolve_auth() -> Any:
@@ -329,7 +335,7 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
         )
     user = _actor_name(http_request)
     body = _ask_body(question, http_request, conversation_id=request.conversation_id,
-                     page_context=request.page_context)
+                     page_context=request.page_context, mentions=request.mentions)
     batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
     _audit_ask(user, question, body, batch_id)
     if body.get("answer"):
@@ -345,6 +351,7 @@ from kairos_api import (  # noqa: E402
     assistant_conversations_api,
     assistant_memory,
     assistant_mentions,
+    assistant_mentions_children,
     assistant_restore,
     assistant_stream,
     assistant_uploads,
@@ -353,6 +360,7 @@ from kairos_api import (  # noqa: E402
 router.include_router(assistant_stream.router)
 router.include_router(assistant_memory.router)
 router.include_router(assistant_mentions.router)
+router.include_router(assistant_mentions_children.router)
 router.include_router(assistant_conversations_api.router)
 router.include_router(assistant_uploads.router)
 router.include_router(assistant_restore.router)

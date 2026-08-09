@@ -8,6 +8,9 @@ product already uses for it.
 
 Where each word comes from, so the next reader can check rather than trust:
 
+``day``         ``יום שידור``        downloads_api_reports.py, constraints_sentence.py,
+                                   makegood_store_words.py and campaigns_goal_words.py all
+                                   ship this exact phrase for this exact object
 ``advertiser``  ``מפרסם``          tv-break-dashboard/src/vocabulary.js, ``object.advertiser``
 ``agency``      ``סוכנות``          tv-break-dashboard/src/vocabulary.js, ``object.agency``
 ``program``     ``תוכנית``          shipped on seven surfaces (BreakBoard, BreakInspector,
@@ -35,6 +38,7 @@ from __future__ import annotations
 # and pod kinds land between the programme and the commercial objects when their
 # read tools exist, and inserting them should not renumber what is already here.
 KINDS: dict[str, dict[str, object]] = {
+    "day": {"rank": 10, "he": "יום שידור", "en": "broadcast day", "icon": "nav:Schedule"},
     "program": {"rank": 20, "he": "תוכנית", "en": "programme", "icon": "MonitorPlay"},
     "advertiser": {"rank": 40, "he": "מפרסם", "en": "advertiser", "icon": "nav:Advertisers"},
     "agency": {"rank": 41, "he": "סוכנות", "en": "agency", "icon": "nav:Agencies"},
@@ -42,6 +46,77 @@ KINDS: dict[str, dict[str, object]] = {
 }
 
 KIND_NAMES: tuple[str, ...] = tuple(KINDS)
+
+# THE LADDER, AND IT IS A GRAPH OF TYPED EDGES RATHER THAN A TREE.
+#
+# A file picker can navigate by path because every leaf has exactly one. This
+# product's objects do not: a day holds programmes and a programme runs on days,
+# and both directions are the same relation read from the same scoped frame. So
+# descending is an EDGE the caller names, not a path segment it appends, and the
+# same object is reachable from two parents without being two objects.
+#
+# Only edges whose CHILD store can be produced under the operator's own scope
+# appear here. The plan spine below the programme (break, pod, spot) is absent
+# for the reason the build order gives: a mention resolving to a card the model
+# has no read tool to follow up on is a dead end, so coverage lands first and
+# the kind follows it. Nothing here is a placeholder for those.
+EDGES: dict[str, tuple[str, ...]] = {
+    "day": ("program",),
+    "program": ("day",),
+    "agency": ("advertiser",),
+}
+
+
+# WHAT A REFERENCE CAME BACK AS, in the operator's own language.
+#
+# Four states and no fewer, because "we looked and it is not there" and "we could
+# not look" are different claims and a product that reports them as one thing is
+# guessing on the operator's behalf. Every word below is READ from a module that
+# already ships it for this exact meaning, and the source is named so the next
+# reader checks rather than trusts.
+#
+# ``resolved``     ``נקרא``            break_api_pod_spots.PREFERRED_BASIS_HE, which
+#                                     opens "נקרא מ..." for a figure that was read
+# ``changed``      ``השתנה``           break_api_pod_order.STALE_HE, for a store that
+#                                     moved under a saved reading
+# ``gone``         ``לא נמצא``         campaigns_api_store.py, for an identifier the
+#                                     store was read for and does not hold
+# ``unavailable``  ``לא ניתן לקרוא``    break_api_states.py, for a store that could
+#                                     not be read at all
+STATES: dict[str, dict[str, str]] = {
+    "resolved": {"he": "נקרא", "en": "read"},
+    "changed": {"he": "השתנה", "en": "changed since it was pointed at"},
+    "gone": {"he": "לא נמצא", "en": "not found in the store"},
+    "unavailable": {"he": "לא ניתן לקרוא", "en": "the store could not be read"},
+}
+
+# The one thing a descent with nothing under it says, in both languages. The
+# Hebrew is overview_api_drill.py's own sentence for this exact situation, a
+# level of a drill with nothing readable beneath it, and it is reused rather than
+# rewritten. It names the KIND that was asked for and never the container that
+# was asked about, which is what keeps every empty descent identical.
+ABSENT_REASON_EN = "nothing of this kind is held under a container of that kind"
+ABSENT_REASON_HE = "אין מה לקרוא מתחת לרמה הזאת"
+
+
+def state_label(state: str, locale: str = "he") -> str:
+    """The approved word for a resolution state. Empty for an unknown state, on
+    the same rule the kind labels follow: a gap a reviewer notices beats a
+    snake_case token an operator has to decode."""
+    entry = STATES.get(state)
+    if not entry:
+        return ""
+    return entry["he" if locale == "he" else "en"]
+
+
+def child_kinds(kind: str) -> tuple[str, ...]:
+    """The kinds a container of this kind descends into, in ladder order."""
+    return EDGES.get(kind, ())
+
+
+def is_container(kind: str) -> bool:
+    """Whether a row of this kind may be entered rather than only accepted."""
+    return bool(EDGES.get(kind))
 
 
 def rank(kind: str) -> int:

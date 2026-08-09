@@ -146,8 +146,21 @@ def pacing_board(request: Request = None) -> dict[str, Any]:
     frame = ledger.load_frame()
     payload["make_goods"] = _open_index(frame, ledger.MAKE_GOOD)
     payload["acceptances"] = _open_index(frame, ledger.ACCEPTANCE)
+    # Decisions the assistant has PROPOSED and nobody has approved. A separate
+    # key from the two above because it is a separate fact: these have changed
+    # nothing, are owed by nobody, and must never be counted as ledger records.
+    # What they are for is a row that would otherwise offer a second raise of a
+    # decision already waiting for an approver.
+    payload["proposed"] = _proposed_index()
     payload["needs_a_decision"] = list(words.NEEDS_A_DECISION)
     return _stamp(payload, request)
+
+
+def _proposed_index() -> dict[str, Any]:
+    """Pending assistant proposals per campaign, or empty when unreadable."""
+    from kairos_api.assistant_pacing_propose import pending_index
+
+    return pending_index()
 
 
 def _open_index(frame: Any, kind: str) -> dict[str, list[str]]:
@@ -196,7 +209,8 @@ def raise_make_good(payload: RaiseMakeGood, request: Request = None) -> dict[str
     against. That last refusal is the important one: it is what keeps the ledger
     from holding a figure the board could not compute.
     """
-    return _write_decision(ledger.MAKE_GOOD, payload.campaign_id.strip(), payload.note.strip(), request)
+    return _write_decision(ledger.MAKE_GOOD, payload.campaign_id.strip(), payload.note.strip(),
+                           _actor(request), request)
 
 
 @router.post("/api/pacing/{campaign_id}/accept", tags=["clients"], status_code=201)
@@ -210,7 +224,8 @@ def accept_risk(campaign_id: str, payload: AcceptRisk, request: Request = None) 
     the board is not asking a decision about, because accepting a risk that was
     never stated is not a thing a person can mean.
     """
-    return _write_decision(ledger.ACCEPTANCE, campaign_id.strip(), payload.note.strip(), request)
+    return _write_decision(ledger.ACCEPTANCE, campaign_id.strip(), payload.note.strip(),
+                           _actor(request), request)
 
 
 DUPLICATES = {
@@ -230,12 +245,22 @@ REFUSED_RAISE = {
 }
 
 
-def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | None") -> dict[str, Any]:
+def _write_decision(kind: str, campaign_id: str, note: str, actor: str,
+                    request: "Request | None" = None) -> dict[str, Any]:
     """One act on one campaign, measured from the board and written to the ledger.
 
     Both acts take the same route through this function so that neither can ever
     stamp a figure the other would not have. What differs between them is only
     which rows they are allowed on, which is decided by the reader below.
+
+    ``actor`` is passed rather than derived here so a second caller can attribute
+    the row to somebody the request does not name. The assistant's action plane
+    is that caller: an approved proposal reaches this function with no HTTP
+    request at all, and deriving the actor internally recorded a blank name, which
+    is the one thing this ledger exists not to do. It is a parameter and NOT a
+    field on the request models on purpose: the routes are the only public door,
+    they pass the session's own answer, and a caller therefore cannot post an
+    actor of its choosing.
     """
     # The board a write measures from is the full shape, never the wire's
     # collapsed one, so an act is never decided on a row a reader could not read.
@@ -263,7 +288,7 @@ def _write_decision(kind: str, campaign_id: str, note: str, request: "Request | 
         if already:
             raise refuse(409, duplicate_en, duplicate_he, opens={"kind": opens_kind, "id": already[0]})
         record_id = ledger.next_id(frame)
-        fresh = write.new_row(record_id, kind, row, view, deficit, note, _actor(request))
+        fresh = write.new_row(record_id, kind, row, view, deficit, note, actor)
         import pandas as pd
 
         frame = pd.concat([frame, pd.DataFrame([fresh])], ignore_index=True)
@@ -286,8 +311,18 @@ def move_make_good(make_good_id: str, payload: MoveMakeGood, request: Request = 
     guessing at it. Settling or declining needs an offer to exist first, and an
     accepted risk moves only to withdrawn because it was never an offer.
     """
+    return _move_decision(make_good_id, payload, _actor(request), request)
+
+
+def _move_decision(make_good_id: str, payload: MoveMakeGood, actor: str,
+                   request: "Request | None" = None) -> dict[str, Any]:
+    """The transition itself, with the acting account passed in.
+
+    Split from the route for the reason :func:`_write_decision` records: the
+    assistant's action plane applies an approved move with no HTTP request, and
+    the row has to name whoever approved it rather than nobody.
+    """
     target = payload.state.strip()
-    actor = _actor(request)
     with ledger.lock():
         frame = ledger.load_frame()
         index = ledger.locate(frame, make_good_id)

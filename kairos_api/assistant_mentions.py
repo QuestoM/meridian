@@ -150,10 +150,54 @@ def _row(kind: str, ident: str, label: str, parent: list[dict[str, Any]]) -> dic
         "id": ident,
         "label": label or ident,
         "icon": words.icon(kind),
+        # The kind's own approved word, on the row, because the chip the operator
+        # ends up with has to say WHAT KIND of thing it bound to and the client
+        # is not allowed to mint a word for it. The words live in one module and
+        # travel from it; nothing downstream translates anything.
+        "kind_he": words.label(kind, "he"),
+        "kind_en": words.label(kind, "en"),
         "parent": parent,
+        # Whether this row can be ENTERED as well as accepted. It is a property
+        # of the kind and not of the instance, deliberately: an arrow that
+        # appears on some rows of a kind and not others makes the operator
+        # discover emptiness by its absence, and the drill states an empty
+        # container in words instead. See the children route.
+        "container": words.is_container(kind),
         "_fold_label": _fold(label or ident),
         "_fold_id": _fold(ident),
     }
+
+
+def _days() -> list[dict[str, Any]]:
+    """The broadcast days of the saved plan, on the operator's own channel only.
+
+    The label IS the ISO date, and that is the whole point of the kind rather
+    than an implementation detail. ``_question_dates`` already lifts an ISO date
+    out of prose, so a day inserted into a question reaches exactly the same
+    day-detail grounding a typed date reaches, with no new resolution path at
+    all. The client renders it through the one date module and inserts what it
+    rendered, so what the operator sees is what lands in the sentence.
+    """
+    from kairos_api import assistant_context
+
+    frame, owned, _competitors, _reason = assistant_context._owned_frame()
+    if frame is None:
+        return []
+    rows: list[dict[str, Any]] = []
+    for date_text, group in frame.groupby(frame["date_text"].astype(str), sort=True):
+        iso = str(date_text).strip()
+        if not iso or iso.lower() == "nan":
+            continue
+        # The dim line carries the channel and how much of the day there is, as
+        # separate parts, because the client isolates each and never wraps a
+        # phrase. The count is of the operator's own segments and of nothing
+        # else, which is what makes it safe to show at all.
+        parent = [
+            {"kind": "name", "text": owned},
+            {"kind": "figure", "text": str(int(len(group)))},
+        ]
+        rows.append(_row("day", iso, iso, parent))
+    return rows
 
 
 def _programs() -> list[dict[str, Any]]:
@@ -242,6 +286,7 @@ def _events() -> list[dict[str, Any]]:
 
 
 _BUILDERS = {
+    "day": _days,
     "program": _programs,
     "advertiser": _advertisers,
     "agency": _agencies,

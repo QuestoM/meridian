@@ -342,7 +342,15 @@ def advertiser_stats() -> dict[str, Any]:
         "count": len(advertisers),
         "effect_types": effect_keys,
         "revenue_note": "Spot-revenue attribution is computed on the daily spot-pricing path only; not available in this read-only aggregate.",
-        "status": "The weekly optimizer does not consume advertiser rules; only the daily spot-pricing path prices against them.",
+        # Accurate as of 2026-08-09. The weekly optimizer DOES read advertiser
+        # placement preference, into its first pass; the earlier wording said it
+        # did not, which was true only as a side effect of an empty conditions
+        # file and would have gone silently false on the first rule added. What
+        # is actually true is that the preference does not survive: the
+        # refinement step re-optimises it out. Measured over 30 channel-days, a
+        # full-range preference moved 754 segment break-counts before refinement
+        # and 2 after. Pinned by tests/test_demand_weights_reach_only_greedy.py.
+        "status": "Advertiser placement preference reaches the weekly plan's first pass, but the refinement step that follows optimises it back out, so it does not change the shipped schedule. Pricing against advertiser rules happens on the daily spot-pricing path.",
     }
 
 

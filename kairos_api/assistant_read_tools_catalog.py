@@ -255,7 +255,7 @@ def _read_get_advertiser_pricing(args: dict[str, Any], user: str | None = None) 
         "baseline": record,
         "conditions": conditions,
         "conditions_count": len(conditions),
-        "basis": "advertiser rules bite on the daily per-spot pricing path; the weekly break-count plan does not attribute breaks to advertisers",
+        "basis": "advertiser rules bite on the daily per-spot pricing path; the weekly break-count plan does not attribute breaks to advertisers, and the placement preference it does read is optimised back out by the plan's refinement step, so it does not change the shipped schedule",
     }
     _cap(payload, "conditions", MAX_CONDITIONS)
     try:
@@ -345,12 +345,16 @@ def register(executors: dict[str, Any], sources: dict[str, str]) -> None:
     # one-registry rule.
     from kairos_api.assistant_audience_model import register as register_audience
     from kairos_api.assistant_event_pipeline import register as register_pipeline
+    from kairos_api.assistant_read_tools_accounts import register as register_accounts
     from kairos_api.assistant_read_tools_break import register as register_break
     from kairos_api.assistant_read_tools_pacing import register as register_pacing
     from kairos_api.assistant_read_tools_pod import register as register_pod
+    from kairos_api.assistant_read_tools_restriction import register as register_restriction
 
     register_pipeline(executors, sources)
     register_audience(executors, sources)
     register_pod(executors, sources)
     register_break(executors, sources)
     register_pacing(executors, sources)
+    register_restriction(executors, sources)
+    register_accounts(executors, sources)

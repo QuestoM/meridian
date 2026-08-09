@@ -330,7 +330,7 @@ EXTRA_PROPOSE_VALIDATORS = {
 
 
 # --- appliers: replay approved items through the real route functions -------------
-def _apply_event_change(payload: dict[str, Any]) -> dict[str, Any]:
+def _apply_event_change(payload: dict[str, Any], actor: str) -> dict[str, Any]:
     from kairos_api import events_api
 
     action = str(payload.get("action") or "")
@@ -346,7 +346,7 @@ def _apply_event_change(payload: dict[str, Any]) -> dict[str, Any]:
     return {"event_id": record.get("event_id"), "action": action}
 
 
-def _apply_agency_change(payload: dict[str, Any]) -> dict[str, Any]:
+def _apply_agency_change(payload: dict[str, Any], actor: str) -> dict[str, Any]:
     from kairos_api import agencies, agency_conditions
 
     agency_id = str(payload.get("agency_id") or "")
@@ -415,6 +415,10 @@ def _extra_state_paths(kinds: set[str]) -> list[Any]:
         paths.append(Path(agency_conditions.LINKS_PATH))
     if "agency_condition_change" in kinds:
         paths.append(Path(agency_conditions.CONDITIONS_PATH))
+    if "pacing_decision" in kinds:
+        from kairos_api import makegood_store
+
+        paths.append(Path(makegood_store.MAKE_GOODS_PATH))
     return paths
 
 
@@ -425,10 +429,13 @@ def register_action_plane() -> None:
     router), so registration always precedes any HTTP apply. The state-files
     seam is wrapped, not replaced: built-in kinds keep their exact behavior.
     """
-    from kairos_api import assistant_actions, version_store
+    from kairos_api import assistant_actions, assistant_pacing_propose, version_store
 
     assistant_actions._APPLIERS.update(EXTRA_APPLIERS)
     version_store._LOGICAL_FOR_KIND.update(EXTRA_LOGICAL_FOR_KIND)
+    # The pacing decisions register themselves the same way, through the same
+    # call, so there is one moment the action plane is extended and not two.
+    assistant_pacing_propose.register()
     if getattr(assistant_actions._state_files_for, "_kairos_extra_kinds", False):
         return
     original = assistant_actions._state_files_for

@@ -26,7 +26,6 @@ same objects.
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
 import os
@@ -72,7 +71,7 @@ MAX_VERSIONS = 200
 # that version restores only that file.
 _LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions",
                   "events", "agencies", "agency_links", "agency_conditions")
-_KNOWN_LOGICAL = _LOGICAL_ORDER + ("campaigns", "plan_targets")
+_KNOWN_LOGICAL = _LOGICAL_ORDER + ("campaigns", "plan_targets", "make_goods")
 
 
 def _now_iso() -> str:
@@ -123,16 +122,10 @@ def _logical_path(logical: str) -> Path:
     if logical == "plan_targets":
         from kairos_api import target_store
         return Path(target_store.TARGETS_PATH)
+    if logical == "make_goods":
+        from kairos_api import makegood_store
+        return Path(makegood_store.MAKE_GOODS_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
-
-
-_ID_COLUMN = {"constraints": "constraint_id", "overrides": "override_id",
-              "advertisers": "advertiser_id", "conditions": "rule_id",
-              "events": "event_id", "agencies": "agency_id",
-              "agency_links": "agency_id", "agency_conditions": "rule_id",
-              "campaigns": "campaign_id"}
-# plan_targets has no id column: a row is keyed by channel, period and metric
-# together, so a diff of it is a whole-file diff rather than a row diff.
 
 
 def _snapshot_name(logical: str) -> str:
@@ -301,88 +294,21 @@ def _audit(event: str, actor: str, **fields: Any) -> None:
         handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
 
 
-# Diffs: current live state versus a chosen version (what restoring would change).
-def _read_json(data: Optional[bytes]) -> dict[str, Any]:
-    try:
-        parsed = json.loads((data or b"{}").decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return {}
-    return parsed if isinstance(parsed, dict) else {}
-
-
-def _read_rows(data: Optional[bytes], id_column: str) -> dict[str, dict[str, str]]:
-    if not data:
-        return {}
-    text = data.decode("utf-8-sig")
-    reader = csv.DictReader(text.splitlines())
-    rows: dict[str, dict[str, str]] = {}
-    for row in reader:
-        key = str(row.get(id_column, "") or "").strip()
-        if key:
-            rows[key] = {k: ("" if v is None else str(v)) for k, v in row.items()}
-    return rows
-
-
-def _version_bytes(version_id: str, logical: str) -> Optional[bytes]:
-    """The snapshotted bytes for one logical file in a version, or None if the
-    file was absent at snapshot time."""
-    manifest = _read_manifest(version_id)
-    for entry in manifest.get("files", []):
-        if entry.get("logical") == logical:
-            if not entry.get("existed"):
-                return None
-            path = _versions_root() / version_id / str(entry.get("name"))
-            return path.read_bytes() if path.exists() else None
-    return None
-
-
-def _current_bytes(logical: str) -> Optional[bytes]:
-    path = _logical_path(logical)
-    return path.read_bytes() if path.exists() else None
-
-
-def _settings_diff(current: dict[str, Any], version: dict[str, Any]) -> dict[str, Any]:
-    changed = []
-    for field in sorted(set(current) | set(version)):
-        cur = current.get(field)
-        old = version.get(field)
-        if cur != old:
-            changed.append({"field": field, "from": cur, "to": old})
-    return {"changed": changed}
-
-
-def _rows_diff(current: dict[str, dict[str, str]], version: dict[str, dict[str, str]],
-               id_key: str, names_only: bool) -> dict[str, Any]:
-    added_ids = [k for k in version if k not in current]
-    removed_ids = [k for k in current if k not in version]
-    changed: list[dict[str, Any]] = []
-    for key in current:
-        if key not in version:
-            continue
-        cur_row, old_row = current[key], version[key]
-        for field in sorted(set(cur_row) | set(old_row)):
-            if str(cur_row.get(field, "")) != str(old_row.get(field, "")):
-                changed.append({id_key: key, "field": field,
-                                "from": cur_row.get(field, ""), "to": old_row.get(field, "")})
-    if names_only:
-        return {"added": sorted(added_ids), "removed": sorted(removed_ids), "changed": changed}
-    return {
-        "added": [version[k] for k in added_ids],
-        "removed": [current[k] for k in removed_ids],
-        "changed": changed,
-    }
-
-
-def _diff_logical(version_id: str, logical: str) -> dict[str, Any]:
-    version_data = _version_bytes(version_id, logical)
-    current_data = _current_bytes(logical)
-    if logical == "settings":
-        return _settings_diff(_read_json(current_data), _read_json(version_data))
-    id_column = _ID_COLUMN[logical]
-    id_key = "advertiser" if logical == "advertisers" else "id"
-    return _rows_diff(_read_rows(current_data, id_column),
-                      _read_rows(version_data, id_column),
-                      id_key, names_only=(logical == "advertisers"))
+# Diffs live in kairos_api.version_store_diff (size cap). Every name the diff
+# section used to define is re-exported here, against the SAME objects, so this
+# split follows the rule the router split already set and
+# tests/test_w0_1_module_seams.py holds: a module that splits keeps answering to
+# every name it answered to before, or the split is a rename in disguise.
+from kairos_api.version_store_diff import (  # noqa: E402,F401
+    _ID_COLUMN,
+    _current_bytes,
+    _diff_logical,
+    _read_json,
+    _read_rows,
+    _rows_diff,
+    _settings_diff,
+    _version_bytes,
+)
 
 
 # Restore: snapshot the current state first, then put the selected files back.

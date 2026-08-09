@@ -161,11 +161,20 @@ def create_batch(question: str, items: list[dict[str, Any]], user: str, model: s
                  conversation_id: str | None = None) -> dict[str, Any]:
     """Persist one ask's captured proposal items as a batch and audit it. The
     conversation the ask ran in rides on the batch so the per-conversation
-    changes view and restore can collect it without a join through entries."""
+    changes view and restore can collect it without a join through entries.
+
+    The batch also records WHICH PLAN it was reasoned against
+    (kairos_api.assistant_proposal_freshness), so an item approved after a run
+    can say that the figures its summary quotes were measured against a plan
+    that has since moved. Nothing else about the batch depends on it, and a
+    stamp that cannot be read is None rather than a guess.
+    """
+    from kairos_api.assistant_proposal_freshness import plan_stamp
+
     batch = {
         "batch_id": uuid.uuid4().hex[:12], "question": question, "created_at": _now_iso(),
         "created_by": user, "model": model, "status": _batch_status(items), "items": items,
-        "conversation_id": conversation_id,
+        "conversation_id": conversation_id, "plan_stamp": plan_stamp(),
     }
     counts = {status: sum(1 for item in items if item["status"] == status)
               for status in ("pending", "rejected")}
@@ -188,6 +197,7 @@ def list_proposals(limit: int = 20) -> dict[str, Any]:
     derived here from the payload the item already stores. The store itself is
     never touched: a read must not rewrite a file a gate has to diff.
     """
+    from kairos_api.assistant_proposal_freshness import verdict as _plan_verdict
     from kairos_api.assistant_summary_terms import terms_for_item
 
     limit = max(1, min(int(limit), 200))
@@ -199,7 +209,11 @@ def list_proposals(limit: int = 20) -> dict[str, Any]:
         for item in batch.get("items", []):
             terms = terms_for_item(item)
             items.append({**item, "summary_terms": terms} if terms else item)
-        batches.append({**batch, "items": items})
+        # Derived at read time, never written back, for the reason above: a read
+        # must not rewrite a file a gate has to diff. It is also the only correct
+        # place for it, since whether the plan has moved is a fact about NOW.
+        batches.append({**batch, "items": items,
+                        "plan_freshness": _plan_verdict(batch.get("plan_stamp"))})
     return {"batches": batches}
 
 
@@ -229,99 +243,13 @@ def _state_files_for(kinds: set[str]) -> list[Path]:
 
 # ---------------------------------------------------------------------------
 # Apply engine: replay approved items through the real seams.
+#
+# The appliers themselves live in kairos_api.assistant_apply_kinds (size cap).
+# The registry object is imported, not copied, so this module's _APPLIERS is
+# that dict and assistant_propose_extra.register_action_plane still extends the
+# same mapping. Each applier takes (payload, approving_account).
 # ---------------------------------------------------------------------------
-def _apply_settings(payload: dict[str, Any]) -> dict[str, Any]:
-    from kairos_api import settings_api
-    from kairos_api.core import KairosSettings, _load_settings, _model_dump
-
-    changes = dict(payload.get("changes") or {})
-    forbidden = sorted(set(changes) - assistant_tools.ALLOWED_SETTINGS_FIELDS)
-    if not changes or forbidden:
-        raise ValueError(f"settings changes not applicable: forbidden fields {forbidden}")
-    merged = {**_model_dump(_load_settings()), **changes}
-    settings_api.update_settings(KairosSettings(**merged))
-    return {"changed": changes}
-
-
-def _apply_constraint(payload: dict[str, Any]) -> dict[str, Any]:
-    from kairos_api.constraints import ConstraintCreate, create_constraint
-
-    record = create_constraint(ConstraintCreate(**dict(payload.get("constraint") or {})))
-    return {"constraint_id": record.get("constraint_id")}
-
-
-def _apply_override(payload: dict[str, Any]) -> dict[str, Any]:
-    from kairos_api.overrides import OverrideCreate, create_override
-
-    record = create_override(OverrideCreate(**dict(payload.get("override") or {})))
-    return {"override_id": record.get("override_id")}
-
-
-def _apply_pricing(payload: dict[str, Any]) -> dict[str, Any]:
-    from kairos_api.pricing_api import PricingUpdate, put_pricing
-
-    changes = dict(payload.get("changes") or {})
-    if not changes:
-        raise ValueError("pricing changes are empty")
-    state = put_pricing(PricingUpdate(overrides=changes))
-    return {"has_overrides": bool(state.get("has_overrides"))}
-
-
-def _expand_days(days: list[str]) -> list[dict[str, str]]:
-    """Every (channel, day) pair the saved plan carries for the named days."""
-    from kairos_api.core import _load_break_schedule
-
-    frame = _load_break_schedule()
-    if frame.empty or "channel" not in frame.columns or "date" not in frame.columns:
-        raise ValueError("no saved weekly plan to scope a recompute by days; use scope 'full'")
-    dates = frame["date"].astype(str).str.strip()
-    channels = frame["channel"].astype(str).str.strip()
-    pairs: list[dict[str, str]] = []
-    for day in days:
-        day_channels = sorted(set(channels[dates == day]) - {""})
-        if not day_channels:
-            raise ValueError(f"the saved plan has no rows for {day}; use scope 'full'")
-        pairs.extend({"channel": channel, "day": day} for channel in day_channels)
-    return pairs
-
-
-def _apply_advertiser(payload: dict[str, Any]) -> dict[str, Any]:
-    """Create or edit one advertiser through the real advertisers store. request is
-    None (programmatic), so the store skips its own manual-edit snapshot; the assistant
-    restore point taken before this apply covers the advertiser rules file."""
-    from kairos_api.advertisers import (
-        AdvertiserCreate,
-        AdvertiserUpdate,
-        create_advertiser,
-        update_advertiser,
-    )
-
-    name = str(payload.get("advertiser_name") or "").strip()
-    changes = dict(payload.get("changes") or {})
-    if not name or not changes:
-        raise ValueError("advertiser change needs an advertiser_name and non-empty changes")
-    if payload.get("create"):
-        record = create_advertiser(AdvertiserCreate(advertiser_id=name, **changes), request=None)
-    else:
-        record = update_advertiser(name, AdvertiserUpdate(**changes), request=None)
-    return {"advertiser_id": record.get("advertiser_id")}
-
-
-def _apply_recompute(payload: dict[str, Any]) -> dict[str, Any]:
-    from kairos_api.recompute_api import RecomputeJobRequest, start_recompute_job
-
-    scope = payload.get("scope")
-    if scope == "full":
-        response = start_recompute_job(None)
-    else:
-        days = [str(day) for day in (scope or {}).get("days", [])]
-        response = start_recompute_job(RecomputeJobRequest(scope=_expand_days(days)))
-    return {"job_id": response["job_id"], "already_running": bool(response.get("already_running"))}
-
-
-_APPLIERS = {"settings": _apply_settings, "constraint": _apply_constraint,
-             "override": _apply_override, "pricing": _apply_pricing,
-             "recompute": _apply_recompute, "advertiser_change": _apply_advertiser}
+from kairos_api.assistant_apply_kinds import _APPLIERS, _expand_days  # noqa: E402,F401
 
 
 class ItemIdsRequest(BaseModel):
@@ -353,13 +281,18 @@ def _record_restore_point(batch: dict[str, Any], restore_id: str | None, user: s
                    "applied_by": user, "item_ids": list(item_ids), "version_id": version_id})
 
 
-def _act_apply(item: dict[str, Any]) -> None:
-    """Apply one item through its real seam; per-item isolation lives here."""
+def _act_apply(item: dict[str, Any], user: str) -> None:
+    """Apply one item through its real seam; per-item isolation lives here.
+
+    ``user`` is the account that APPROVED the item. Every applier reaches its
+    store programmatically (request=None), so the store's own actor lookup finds
+    nobody; the stores that record who acted take this name instead of a blank.
+    """
     applier = _APPLIERS.get(str(item.get("kind")))
     try:
         if applier is None:
             raise ValueError(f"no applier for kind {item.get('kind')!r}")
-        result = applier(item.get("payload") or {})
+        result = applier(item.get("payload") or {}, user)
     except HTTPException as exc:
         item["status"] = "failed"
         item["error"] = str(exc.detail)
@@ -372,7 +305,8 @@ def _act_apply(item: dict[str, Any]) -> None:
         item.pop("error", None)
 
 
-def _act_reject(item: dict[str, Any]) -> None:
+def _act_reject(item: dict[str, Any], user: str) -> None:
+    del user  # a rejection mutates nothing, so it reaches no store that records an actor
     item["status"] = "rejected"
 
 
@@ -408,6 +342,13 @@ def _resolve_items(
 
             extra["version_id"] = version_store.snapshot_assistant_apply(kinds, batch, user)
             _record_restore_point(batch, extra["restore_id"], user, approved, extra["version_id"])
+            # Which plan these items were reasoned against, answered at the moment
+            # of approval. It rides the response AND the audit entry, so a change
+            # approved against a plan that had already moved is legible afterwards
+            # and not only to whoever happened to be looking at the card.
+            from kairos_api.assistant_proposal_freshness import verdict as _plan_verdict
+
+            extra["plan_freshness"] = _plan_verdict(batch.get("plan_stamp"))
         results: list[dict[str, Any]] = []
         for item_id in requested:
             item = by_id.get(item_id)
@@ -418,7 +359,7 @@ def _resolve_items(
                 results.append({"id": item_id, "status": "failed", "error": (
                     f"item status is {item.get('status')!r}; only pending items can be {verb}")})
                 continue
-            act(item)
+            act(item, user)
             item["resolved_at"] = _now_iso()
             item["resolved_by"] = user
             entry: dict[str, Any] = {"id": item_id, "status": item["status"]}

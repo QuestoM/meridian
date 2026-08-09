@@ -174,7 +174,14 @@ _PROPOSE_VALIDATORS = {
 # The calendar-event and agency validators live in assistant_propose_extra
 # (size cap); merging them here keeps one validator registry for
 # build_proposal_item.
+from kairos_api.assistant_pacing_propose import validate_pacing_decision  # noqa: E402
 from kairos_api.assistant_propose_extra import EXTRA_PROPOSE_VALIDATORS  # noqa: E402
+
+# Registered HERE, at import, and not in the action plane's register() call, for
+# the reason the schema is: the schema joins the model's tool list at import, so
+# a validator that waited for the router to load would leave a window in which
+# the tool is offered and every call of it fails as an unknown validator.
+_PROPOSE_VALIDATORS["propose_pacing_decision"] = validate_pacing_decision
 
 _PROPOSE_VALIDATORS.update(EXTRA_PROPOSE_VALIDATORS)
 

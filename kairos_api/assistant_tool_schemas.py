@@ -97,13 +97,17 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
 # this list so READ_TOOL_NAMES, which freezes at import, carries them: a schema
 # registered after that frozenset is built is invisible to handle_tool_use, and
 # the model can never call the tool.
+from kairos_api.assistant_read_tools_accounts import ACCOUNTS_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_break import BREAK_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_pacing import PACING_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_pod import POD_READ_TOOL_SCHEMAS  # noqa: E402
+from kairos_api.assistant_read_tools_restriction import RESTRICTION_READ_TOOL_SCHEMAS  # noqa: E402
 
 EXTRA_READ_TOOL_SCHEMAS.extend(POD_READ_TOOL_SCHEMAS)
 EXTRA_READ_TOOL_SCHEMAS.extend(BREAK_READ_TOOL_SCHEMAS)
 EXTRA_READ_TOOL_SCHEMAS.extend(PACING_READ_TOOL_SCHEMAS)
+EXTRA_READ_TOOL_SCHEMAS.extend(RESTRICTION_READ_TOOL_SCHEMAS)
+EXTRA_READ_TOOL_SCHEMAS.extend(ACCOUNTS_READ_TOOL_SCHEMAS)
 
 EXTRA_PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     _tool(
@@ -141,7 +145,16 @@ EXTRA_PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     ),
 ]
 
+# The pacing-decision propose tool's schema is defined beside its validator and
+# applier, and rides this list for the same reason the pod, break and pacing READ
+# schemas do: PROPOSE_TOOL_NAMES freezes at import, and a schema registered after
+# that frozenset is built is invisible to handle_tool_use.
+from kairos_api.assistant_pacing_propose import PACING_PROPOSE_TOOL_SCHEMAS  # noqa: E402
+
+EXTRA_PROPOSE_TOOL_SCHEMAS.extend(PACING_PROPOSE_TOOL_SCHEMAS)
+
 EXTRA_KIND_BY_TOOL = {
     "propose_event_change": "event_change",
     "propose_agency_change": "agency_change",
+    "propose_pacing_decision": "pacing_decision",
 }
