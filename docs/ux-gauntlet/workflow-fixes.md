@@ -107,3 +107,53 @@ freshness sidecar excluded from version control.
 
 **When adding any check, ask what it does when it has nothing to say. If the
 answer is "passes quietly", it is not a check.**
+
+---
+
+## A mutation harness must not be able to poison the tree it measures
+
+Proved twice on 2026-08-09, from both ends, in the same afternoon.
+
+**What a bite harness is for.** It injects a defect, runs the suite, and requires
+a specific test to fail. A test that cannot fail on a real defect is decoration,
+and this is the only way to know which is which. It found 17 of 17 and caught two
+of its own author's tests passing for the wrong reason, so it earns its place.
+
+**What went wrong, from the harness's end.** A run was killed by a 600-second
+timeout mid-mutation. Its cleanup never ran and it left an injected value on
+disk. The author then ran a grep for residue, declared the tree clean, and the
+next run reported a baseline of four failures and fifteen mutation counts that
+looked plausible and meant nothing, because every one was measured against a tree
+that already had a live defect in it. **A run wrong in that direction reads
+exactly like a run that is right.**
+
+The grep checked the patterns the author REMEMBERED writing rather than all of
+them, which is the same defect as a guard scoped to what its author happened to
+be thinking about.
+
+**What went wrong, from the other end.** The injected value was
+`"revenue_delta": -1.0` in an operator-facing preview, and the lead COMMITTED IT,
+by staging a whole directory while the agent was live in it. A fabricated money
+figure, the exact class this product exists not to ship, on main for about two
+hours. The agent's own test caught it on the next run; the lead found it reading
+`git status` before writing a summary.
+
+**THE FOUR RULES, and none of them is optional.**
+
+1. **Refuse to start unless the baseline is wholly green**, and say so. Every
+   number a harness produces against a dirty baseline is meaningless.
+2. **An anchor that is not found is a LOUD FAILURE, never a skip.** It means the
+   file does not say what the harness thinks it says, which invalidates the
+   mutation rather than excusing it.
+3. **Re-run the baseline AFTER restoring, and fail if the tree did not come
+   back.** Restoring is a claim; verifying is a measurement.
+4. **Single instance.** Two harnesses on the same files corrupt each other's
+   restore, and it nearly happened.
+
+Plus a signal handler, so a killed run restores rather than leaving residue. It
+was added after the first incident and confirmed working when two instances were
+killed and the tree came back by itself.
+
+**And the lead's half: NEVER STAGE A DIRECTORY WHILE AGENTS ARE LIVE IN IT.** It
+swept other agents' work into commits about unrelated subjects three times, and
+once swept in an injected fault. Name the files.
