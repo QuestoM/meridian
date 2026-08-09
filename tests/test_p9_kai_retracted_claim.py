@@ -37,7 +37,14 @@ ROOT = Path(__file__).resolve().parents[1]
 DASHBOARD = ROOT / "tv-break-dashboard"
 KAI = DASHBOARD / "src" / "kai"
 THREAD_VIEW = (KAI / "AssistantThread.jsx").read_text(encoding="utf-8")
-PANEL = (KAI / "AssistantPanel.jsx").read_text(encoding="utf-8")
+# The ask itself moved out of AssistantPanel.jsx in the round that added typed
+# mention references: the panel stood at 448 lines against the 450-line law and a
+# reference has to travel beside the prose it belongs to, so the question, its
+# references and the send live in one module together. The wiring this test pins
+# is unchanged; only its address is. Reading both files keeps the check on the
+# behaviour rather than on a filename.
+PANEL = ((KAI / "AssistantPanel.jsx").read_text(encoding="utf-8")
+         + (KAI / "assistant-panel-ask.js").read_text(encoding="utf-8"))
 LIVE_TURN = (KAI / "kai-live-turn.js").read_text(encoding="utf-8")
 
 # The answer measured in the browser: the claim first, the truth last.

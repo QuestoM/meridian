@@ -151,6 +151,22 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
     rows = pacing_read.board_payload().get("rows") or []
     if rows:
         args["get_campaign_pacing"] = {"campaign_id": rows[0]["campaign_id"]}
+    # The restriction pricer needs a kind and a real programme, so the scan bites
+    # on a priced restriction carrying real airings and real revenue rather than
+    # on the "kind is required" stub. The programme is the operator's own, which
+    # is the point: the preview compiles against the plan of record, and the plan
+    # of record holds every channel.
+    from kairos_api.constraints_restrictions import restriction_titles
+
+    titles = [row for row in (restriction_titles("").get("titles") or [])
+              if int(row.get("planned_breaks") or 0) > 0]
+    if titles:
+        busiest = max(titles, key=lambda row: int(row["planned_breaks"]))
+        args["estimate_restriction_cost"] = {
+            "kind": "no_breaks",
+            "where": {"combinator": "and", "conditions": [
+                {"field": "programme", "operator": "is", "value": str(busiest["title"])}]},
+        }
     return args
 
 

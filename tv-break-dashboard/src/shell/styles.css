@@ -2495,6 +2495,25 @@ button {
   background: var(--red-soft);
 }
 
+/* Placement-lever states (lever-state.js). "Wired, off" is amber rather than red:
+   the lever is built and harmless, not broken, and it is the state the operator
+   most needs to notice. "Not built" stays muted, the default. */
+.status-badge.live {
+  color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.status-badge.wired_off {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.settings-panel-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .bar-list,
 .scenario-bars {
   display: grid;

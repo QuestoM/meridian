@@ -87,7 +87,12 @@ def test_the_restore_set_and_the_vocabulary_are_not_the_same_register():
     """
     assert set(version_store._LOGICAL_ORDER) < set(version_store._KNOWN_LOGICAL)
     added = set(version_store._KNOWN_LOGICAL) - set(version_store._LOGICAL_ORDER)
-    assert added == {"campaigns", "plan_targets"}
+    # make_goods joined the vocabulary when the assistant gained a propose tool
+    # over the pacing board, and it stays out of the restore set for exactly the
+    # reason the other two do, only more so: the decision ledger records what a
+    # channel owes a client, and rolling that back because somebody restored a
+    # settings version would erase a debt nobody decided to erase.
+    assert added == {"campaigns", "plan_targets", "make_goods"}
     for name in added:
         assert name not in version_store._LOGICAL_ORDER, (
             f"{name} joined the full restore set, so restoring any version now "
@@ -110,12 +115,28 @@ def test_the_two_that_were_broken_resolve_to_the_files_they_claim():
     # than the .dat fallback, which is what an unresolvable path would produce.
     assert version_store._snapshot_name("campaigns") == "campaigns.csv"
     assert version_store._snapshot_name("plan_targets") == "plan_targets.csv"
+    # And the third, for the same reason: the assistant's pacing proposals name
+    # it, so a string in the tuple with no path behind it would raise on the
+    # snapshot taken just before an approved decision is written.
+    from kairos_api import makegood_store
+
+    assert version_store._logical_path("make_goods") == Path(makegood_store.MAKE_GOODS_PATH)
+    assert version_store._snapshot_name("make_goods") == "make_goods.csv"
 
 
 def test_an_unknown_name_is_refused_rather_than_dropped():
-    """The half that makes the next one loud instead of silent."""
+    """The half that makes the next one loud instead of silent.
+
+    The example name is deliberately fictional. This test used to name
+    ``make_goods``, which stopped being unknown the day the assistant's pacing
+    proposals needed it versioned, and a guard whose example quietly becomes
+    valid stops testing the refusal it was written for. The assertion below
+    keeps it fictional by construction.
+    """
+    fictional = "not_a_real_store_and_never_will_be"
+    assert fictional not in version_store._KNOWN_LOGICAL
     with pytest.raises(ValueError) as raised:
-        version_store.snapshot(source="test", actor="test", files=["make_goods"])
+        version_store.snapshot(source="test", actor="test", files=[fictional])
     assert "does not know" in str(raised.value)
     # Naming nothing at all is still a no-op rather than an error: a caller with
     # an empty list has asked for nothing, which is different from asking for

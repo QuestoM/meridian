@@ -95,3 +95,74 @@
   font-size: var(--text-sm);
   color: var(--muted);
 }
+
+/* THE BREADCRUMB. It only exists inside a drill, so it is also the one thing on
+   screen that says the list has stopped being the flat search. It reaches both
+   edges of the card and its content sits at the card's inset, which is the head
+   contract card.css already states for every other card in the product. */
+.mention-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--card-inset);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-xs);
+}
+
+.mention-crumb {
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.mention-crumb:hover {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+}
+
+.mention-crumb-sep {
+  color: var(--line-strong);
+}
+
+/* The descend control on the LEADING edge of a container row, and the reserved
+   space on a row that has nothing to descend into. The gap is the same width as
+   the control so labels line up down the list whether or not a row is a
+   container: a list whose text jogs left and right by row is harder to scan than
+   one with a column of empty space in it. */
+.mention-descend,
+.mention-descend-gap {
+  inline-size: 22px;
+  block-size: 22px;
+  flex-shrink: 0;
+}
+
+.mention-descend {
+  padding: 0;
+  color: var(--muted);
+  align-self: center;
+}
+
+.mention-descend:hover {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+}
+
+.mention-descend-gap {
+  display: inline-block;
+}
+
+/* How many matched and did not fit. It is taken AFTER scoping and after
+   matching, which is what makes it safe to print at all: a count computed before
+   the scope would itself be a count of rival rows. */
+.mention-omitted {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--card-inset);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-2xs);
+  color: var(--subtle);
+}

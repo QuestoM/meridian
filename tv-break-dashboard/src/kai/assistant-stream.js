@@ -50,13 +50,16 @@ function parseFrame(frame) {
 }
 
 // Optional fields ride in the body per the frozen contract: conversation_id
-// scopes the ask to the active conversation, and page_context is the advisory
-// current-location grounding ({ view, label, entity } or absent). Both are
-// omitted when null, so the request degrades to exactly today's behavior.
-export async function streamAsk(question, { conversationId = null, pageContext = null, onStep, onDelta, onStage, signal } = {}) {
+// scopes the ask to the active conversation, page_context is the advisory
+// current-location grounding ({ view, label, entity } or absent), and mentions
+// is the list of typed references the operator pointed at in the question
+// itself ([{ type, id, label }]). All three are omitted when null, so a request
+// carrying none of them degrades to exactly today's behavior.
+export async function streamAsk(question, { conversationId = null, pageContext = null, mentions = null, onStep, onDelta, onStage, signal } = {}) {
   const payload = { question };
   if (conversationId) payload.conversation_id = conversationId;
   if (pageContext) payload.page_context = pageContext;
+  if (mentions && mentions.length) payload.mentions = mentions;
   const response = await fetch(`${API_BASE}/api/assistant/ask/stream`, {
     method: 'POST',
     credentials: 'include',

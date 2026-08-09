@@ -2,8 +2,10 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { Bot, Send, Sparkles } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
-import { MentionPicker, useMentionSearch } from './MentionPicker';
-import { insertMention, readMentionQuery } from './mention-trigger';
+import { MentionPicker } from './MentionPicker';
+import { useMentions } from './mention-state';
+import { AttachedRefs, MentionOverlay } from './MentionRefs';
+import { liveRefs } from './mention-refs';
 
 // The way in: the empty state that offers a first question, and the composer
 // that sends one. Split out of AssistantPanel so both files stay under the
@@ -47,97 +49,96 @@ export function AssistantEmptyThread({ locale, showSuggestions, onPick }) {
   );
 }
 
-// THE @ TRIGGER LIVES HERE, and the panel is untouched by it.
+// THE @ TRIGGER IS WIRED HERE, and the panel is untouched by it.
 //
-// The panel holds the question and the send key handler and is two lines under
-// the 450-line law, so the mention state lives in this file and the panel's own
-// onKeyDown is CALLED THROUGH rather than replaced: while the picker is open
-// this file answers the arrow keys, Enter and Escape, and every other keystroke
-// falls through to the panel exactly as it did before. Enter with no picker open
-// still sends. Nothing is taken away from anyone.
+// The panel holds the question and the send key handler, so the picker's own
+// state lives outside both (mention-state.js) and the panel's onKeyDown is
+// CALLED THROUGH rather than replaced: while the picker is open that hook
+// answers the arrow keys, Enter and Escape, and every other keystroke falls
+// through to the panel exactly as it did before. Enter with no picker open still
+// sends. Nothing is taken away from anyone.
 //
 // The caret is read after the browser has applied the keystroke, which is why
 // the run is recomputed from the textarea rather than from the previous value.
-function useMentions(composerRef, question, onQuestionChange) {
-  const [run, setRun] = React.useState(null);
-  const [active, setActive] = React.useState(0);
-  const open = run !== null;
-  const { rows, loading } = useMentionSearch(run ? run.query : '', open);
+//
+// WHY THE TEXT CHANGE GOES THROUGH THE HOOK. A reference is a span into this
+// exact string, so every edit has to carry the spans across it or drop the ones
+// it ran through. That arithmetic is mention-refs.js's and it is applied on the
+// one path every keystroke, paste and undo already takes. The prop the panel
+// passes is bound below under the name the line already used, so the keystroke
+// path itself is unchanged: the same call still tells the panel the text moved.
 
-  React.useEffect(() => { setActive(0); }, [run && run.query]);
-
-  function sync(element) {
-    setRun(element ? readMentionQuery(element.value, element.selectionStart) : null);
-  }
-
-  function choose(row) {
-    if (!run) return;
-    const next = insertMention(question, run, row.label);
-    setRun(null);
-    onQuestionChange(next.text);
-    const element = composerRef && composerRef.current;
-    if (element) {
-      // After React has written the new value, put the caret past the name.
-      window.requestAnimationFrame(() => {
-        element.focus();
-        element.setSelectionRange(next.caret, next.caret);
-      });
-    }
-  }
-
-  function onKeyDown(event, fallback) {
-    if (open && event.key === 'Escape') { event.preventDefault(); setRun(null); return; }
-    if (open && rows.length) {
-      if (event.key === 'ArrowDown') { event.preventDefault(); setActive((i) => (i + 1) % rows.length); return; }
-      if (event.key === 'ArrowUp') { event.preventDefault(); setActive((i) => (i - 1 + rows.length) % rows.length); return; }
-      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); choose(rows[active]); return; }
-      if (event.key === 'Tab') { event.preventDefault(); choose(rows[active]); return; }
-    }
-    if (fallback) fallback(event);
-  }
-
-  return { open, rows, loading, active, setActive, choose, onKeyDown, sync };
-}
-
-export function AssistantComposer({ locale, composerRef, question, onQuestionChange, onKeyDown, unavailable, asking, onSend, onStop, onActivity }) {
+export function AssistantComposer({ locale, composerRef, question, onQuestionChange: setText, refs, onRefsChange, onKeyDown, unavailable, asking, onSend, onStop, onActivity }) {
   const activity = onActivity || (() => {});
-  const mention = useMentions(composerRef, question, onQuestionChange);
+  const overlayRef = React.useRef(null);
+  const mention = useMentions({
+    locale,
+    composerRef,
+    question,
+    onQuestionChange: setText,
+    refs: refs || [],
+    onRefsChange: onRefsChange || (() => {}),
+  });
+  const onQuestionChange = mention.applyText;
+  // What is STILL attached to this exact sentence. A span survives only while
+  // the characters it covers are the label it was made from, so the strip and
+  // the highlight show what would actually be sent and never a stale binding.
+  const attached = liveRefs(question, refs || []);
   return (
     <>
       <div className="asst-composer">
-        {/* The trigger reads the TEXT and the caret rather than the keystroke, so
-            a paste and an undo are seen exactly as typing is. onInput is a second
-            listener on the same native event, deliberately: onChange below stays
-            the line the keep-warm test pins character for character, and the
-            question-being-written signal it carries is not touched by any of this. */}
-        <textarea
-          ref={composerRef}
-          value={question}
-          onFocus={() => activity()}
-          onChange={(event) => { activity(); onQuestionChange(event.target.value); }}
-          onInput={(event) => mention.sync(event.target)}
-          onKeyUp={(event) => mention.sync(event.target)}
-          onClick={(event) => mention.sync(event.target)}
-          onBlur={() => mention.sync(null)}
-          onKeyDown={(event) => mention.onKeyDown(event, onKeyDown)}
-          rows={1}
-          maxLength={2000}
-          dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
-          placeholder={unavailable ? pageText(locale, 'Kai is not available right now', 'קאי אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
-          disabled={unavailable}
-          aria-label={pageText(locale, 'Question for Kai', 'שאלה לקאי')}
-          aria-expanded={mention.open}
-          aria-controls={mention.open ? 'kai-mention-picker' : undefined}
-        />
+        {/* The field is one positioned box holding two layers that must line up
+            to the pixel: the textarea, which is what sizes the box and what the
+            operator types into, and the highlight pinned to the same box behind
+            it. Their metrics are stated once each and checked against each other
+            by test, because a highlight a pixel off its words is worse than no
+            highlight at all. The overlay carries no glyph of its own for the same
+            reason: a character here that is not in the field would slide it. */}
+        <div className="mention-field">
+          <MentionOverlay ref={overlayRef} text={question} refs={attached} />
+          {/* The trigger reads the TEXT and the caret rather than the keystroke, so
+              a paste and an undo are seen exactly as typing is. onInput is a second
+              listener on the same native event, deliberately: onChange below stays
+              the line the keep-warm test pins character for character, and the
+              question-being-written signal it carries is not touched by any of this. */}
+          <textarea
+            ref={composerRef}
+            value={question}
+            onFocus={() => activity()}
+            onChange={(event) => { activity(); onQuestionChange(event.target.value); }}
+            onInput={(event) => mention.sync(event.target)}
+            onKeyUp={(event) => mention.sync(event.target)}
+            onClick={(event) => mention.sync(event.target)}
+            onBlur={() => mention.sync(null)}
+            onKeyDown={(event) => mention.onKeyDown(event, onKeyDown)}
+            // A grown question scrolls inside its own box, so the layer under it
+            // has to scroll with it or the highlight parts company with the words
+            // the moment the field passes its maximum height.
+            onScroll={(event) => { if (overlayRef.current) overlayRef.current.scrollTop = event.target.scrollTop; }}
+            rows={1}
+            maxLength={2000}
+            dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
+            placeholder={unavailable ? pageText(locale, 'Kai is not available right now', 'קאי אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
+            disabled={unavailable}
+            aria-label={pageText(locale, 'Question for Kai', 'שאלה לקאי')}
+            aria-expanded={mention.open}
+            aria-controls={mention.open ? 'kai-mention-picker' : undefined}
+          />
+        </div>
         <MentionPicker
           locale={locale}
           anchorEl={composerRef ? composerRef.current : null}
           open={mention.open && !unavailable}
           rows={mention.rows}
+          absent={mention.absent}
+          omitted={mention.omitted}
           loading={mention.loading}
           activeIndex={mention.active}
+          trail={mention.trail}
           onChoose={mention.choose}
           onHover={mention.setActive}
+          onDescend={mention.descend}
+          onUpTo={mention.upTo}
         />
         {asking ? (
           <Button variant="outlined" size="small" className="asst-send-btn" onClick={onStop}>
@@ -149,9 +150,15 @@ export function AssistantComposer({ locale, composerRef, question, onQuestionCha
           </Button>
         )}
       </div>
+      {/* What is attached to this sentence right now, before anything is sent.
+          The binding being invisible is the exact defect this piece was built
+          against, so it is a thing on screen and not a thing only the model
+          reads. What each reference came back AS appears under the finished
+          question, because resolution happens at send time and never before. */}
+      <AttachedRefs locale={locale} refs={attached} />
       {/* @ is offered, never required: every question that worked before still
           works typed out in full, which is the whole design of this trigger. */}
-      <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line, @ points at an advertiser, an agency, a programme or a calendar event, Cmd+J opens Kai from any screen.', 'מקש Enter שולח, Shift+Enter יורד שורה, @ מצביע על מפרסם, סוכנות, תוכנית או אירוע לוח שנה, Cmd+J פותח את קאי מכל מסך.')}</p>
+      <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line, @ points at a broadcast day, a programme, an advertiser, an agency or a calendar event, the arrow key on the reading edge goes inside one, Cmd+J opens Kai from any screen.', 'מקש Enter שולח, Shift+Enter יורד שורה, @ מצביע על יום שידור, תוכנית, מפרסם, סוכנות או אירוע לוח שנה, מקש החץ בקצה הקריאה נכנס פנימה, Cmd+J פותח את קאי מכל מסך.')}</p>
     </>
   );
 }

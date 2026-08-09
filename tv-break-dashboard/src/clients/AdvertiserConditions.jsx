@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, TextField, Tooltip } from '@mui/material';
 import { ChevronDown, Info, Plus, RotateCcw, Save, Trash2, TriangleAlert } from 'lucide-react';
+import { leverReasons } from '../shell/lever-state';
 import {
   CONDITION_EFFECTS,
   PREMIUM_MODES,
@@ -377,10 +378,18 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
           <p className="adv-scoped-note">
             {pageText(
               locale,
-              'Scoped rules layer on top of the baseline premium. They apply on the per-spot daily pricing path only - not yet in the weekly break-count plan. Placement preference steers where ads go without changing the reported revenue.',
-              'כללים ממוקדים מתווספים מעל המקדם הבסיסי. הם חלים על נתיב התמחור היומי לכל תשדיר בלבד - עדיין לא בתכנון מספר הברייקים השבועי. העדפת שיבוץ מטה את מיקום התשדירים מבלי לשנות את ההכנסה המדווחת.',
+              'Scoped rules layer on top of the baseline premium. They price on the per-spot daily path.',
+              'כללים ממוקדים מתווספים מעל המקדם הבסיסי. הם מתמחרים בנתיב היומי לכל תשדיר.',
             )}
           </p>
+          {/* The placement-preference verdict is COMPUTED, not written here. The
+              sentence this replaced said scoped rules were "not yet in the weekly
+              break-count plan"; that was a static string, true only while the
+              conditions file was empty, and it would have gone silently false on
+              the first rule added. */}
+          {leverReasons('advertiser', rules.length > 0, locale).map((reason) => (
+            <p className="adv-scoped-note" key={reason}>{reason}</p>
+          ))}
 
           {findings.length > 0 && (
             <div className="adv-overlaps">

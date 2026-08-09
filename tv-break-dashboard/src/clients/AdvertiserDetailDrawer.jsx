@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Figure, Code, Name } from '../shell/bidi';
 import { Button, Drawer, Switch, TextField, Tooltip } from '@mui/material';
 import { Info, RotateCcw, Save, Trash2, TriangleAlert, X } from 'lucide-react';
+import { leverReasons } from '../shell/lever-state';
 import {
   GENRE_PRESETS,
   POSITION_PRESETS,
@@ -198,6 +199,15 @@ function BaselineEditor({ row, locale, onSave }) {
             onChange={(event) => update('ahead_k', event.target.value)}
           />
           <span className="adv-field-hint">{pageText(locale, 'How hard over-delivered campaigns are steered away from inventory. Default 1.0. Blank uses the channel default.', 'כמה חזק קמפיינים שהקדימו את הלוז מורחקים מהמלאי. ברירת מחדל 1.0. ריק = ברירת המחדל של הערוץ.')}</span>
+        </div>
+        {/* These two knobs are the per-advertiser override of the channel pacing
+            lever, and they carried no qualification at all: they read as live
+            controls. The verdict is computed in lever-state.js, not asserted
+            here, so it stays correct when the mechanism or the data changes. */}
+        <div className="amz-drawer-field">
+          {leverReasons('pacing', null, locale).slice(0, 1).map((reason) => (
+            <span className="adv-field-hint" key={reason}>{reason}</span>
+          ))}
         </div>
         <div className="amz-drawer-field amz-drawer-notes">
           <span className="adv-field-label">{pageText(locale, 'Notes', 'הערות')}</span>

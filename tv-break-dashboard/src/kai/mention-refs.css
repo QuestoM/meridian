@@ -1,0 +1,192 @@
+/* The chip, the strip it sits in, and the highlight behind the composer.
+
+   Its own sheet because assistant-console.css is exactly at the 450-line law and
+   mention-picker.css owns the popup, which is a different surface with a
+   different job. No literal colour and no off-scale spacing: every value below
+   is a token, and the state colours are the product's existing three rather than
+   three new ones.
+
+   THE STATE COLOURS, and why unavailable is not the same as gone.
+
+     resolved      teal    the product's own affirmative
+     changed       amber   the product's own "look at this"
+     gone          red     the store was read and does not hold it
+     unavailable   blue    the store could not be read AT ALL
+
+   The last is the one a careless design would fold into the one above it, and
+   folding them is the defect the tri-state doctrine in this codebase exists to
+   prevent: "we looked and it is not there" and "we could not look" are different
+   claims and an operator acts differently on each. Blue is informational rather
+   than alarming, because an unreadable store is a fact about this machine and
+   not about the object.
+
+   Every chip is an inline element. bidi.jsx states the reason: isolation on a
+   block re-anchors alignment, so a chip built as a block would left-align the
+   line it sits in inside the Hebrew dock. */
+
+.mention-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.mention-strip-resolved {
+  padding-inline: 0;
+  padding-block: var(--space-2) 0;
+}
+
+.mention-strip-label {
+  color: var(--subtle);
+}
+
+.mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  max-inline-size: 100%;
+}
+
+.mention-chip-glyph {
+  display: inline-flex;
+  color: var(--muted);
+}
+
+.mention-chip-name {
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-chip-kind,
+.mention-chip-word {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+.mention-chip-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mention-chip.is-resolved {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.mention-chip.is-resolved .mention-chip-state {
+  color: var(--teal-ink);
+}
+
+.mention-chip.is-changed {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.mention-chip.is-changed .mention-chip-state,
+.mention-chip.is-changed .mention-chip-word {
+  color: var(--amber-ink);
+}
+
+/* Struck through, and it keeps its glyph and its word. A reference that is gone
+   still reaches the model and still shows here: the silent drop is the failure
+   this whole piece was built against. */
+.mention-chip.is-gone {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.mention-chip.is-gone .mention-chip-name {
+  text-decoration: line-through;
+}
+
+.mention-chip.is-gone .mention-chip-state,
+.mention-chip.is-gone .mention-chip-word {
+  color: var(--red);
+}
+
+.mention-chip.is-unavailable {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.mention-chip.is-unavailable .mention-chip-state,
+.mention-chip.is-unavailable .mention-chip-word {
+  color: var(--blue);
+}
+
+.mention-chip-was {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+}
+
+/* THE COMPOSER FIELD, and the highlight one layer under it.
+
+   The field is a positioned box that holds two things stacked exactly: the
+   textarea, in normal flow, which is what sizes the box and what the operator
+   actually types into; and the overlay pinned to the same box, painting a
+   background behind the characters a reference covers.
+
+   THE METRICS BELOW ARE THE TEXTAREA'S OWN, RESTATED. Every one of them has to
+   agree with .asst-composer textarea in assistant-console.css or the highlight
+   slides off the words: the same font size, the same line height, the same
+   padding, the same border width, the same wrapping. The border is transparent
+   rather than absent, because a missing 1px border shifts every line by 1px. */
+.asst-composer .mention-field {
+  position: relative;
+  flex: 1;
+  min-inline-size: 0;
+  /* The field carries the surface, so the textarea above it can be transparent
+     and let the highlight through. Putting the surface on the OVERLAY instead
+     would make the field's own background depend on whether a reference happens
+     to exist, which is a state the operator would see as a flicker. */
+  background: var(--surface);
+  border-radius: var(--radius-md);
+}
+
+.asst-composer .mention-field textarea {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  display: block;
+  background: transparent;
+}
+
+.mention-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 20px;
+  padding: 11px var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* The mark itself. A soft band and a rule under the word, which is the pattern
+   the product already uses for a highlighted run; the glyph that says WHICH KIND
+   lives in the strip below, where adding it costs no alignment. */
+.mention-mark {
+  background: var(--teal-soft);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 1px 0 0 var(--teal);
+}

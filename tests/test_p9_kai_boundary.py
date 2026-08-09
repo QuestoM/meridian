@@ -48,14 +48,23 @@ def channel_account(tmp_path, monkeypatch):
 
 
 # --- the propose-only contract, the Bar 3 floor for this piece ---------------
-def test_the_tool_surface_is_still_38_read_8_propose_and_0_write() -> None:
-    # 38 since the coverage gap closed. Three objects the prompt tells Kai to
-    # answer in were unreadable: the pod the traffic operator assembles (2
-    # tools), the break the scheduler places (2), and pacing against goal with
-    # the remedy the campaign manager is told to name (3). Every one of them
-    # reads a route's own function, and not one of them writes.
-    assert len(assistant_tools.READ_TOOL_NAMES) == 38
-    assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 8
+def test_the_tool_surface_is_still_40_read_9_propose_and_0_write() -> None:
+    # 38 when the read half of the coverage gap closed: the pod the traffic
+    # operator assembles (2 tools), the break the scheduler places (2), and
+    # pacing against goal with the remedy the campaign manager is told to name
+    # (3). Then 40 and 9, closing the half that was left. Kai could READ a
+    # problem it could not ACT on, so propose_pacing_decision records the two
+    # endings a board row has and the ledger moves after them. The two reads are
+    # estimate_restriction_cost, which prices a rule about somebody else's
+    # revenue before anyone writes it, and get_accounts, the
+    # account-administrator persona, which also states the four licence limits
+    # the propose path already refused to move and could not name.
+    #
+    # There is deliberately no tool for an account change: creating one,
+    # resetting a password and moving an affiliation are credential acts, and a
+    # review-first assistant that could stage them would be staging a way in.
+    assert len(assistant_tools.READ_TOOL_NAMES) == 40
+    assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 9
     every_name = assistant_tools.READ_TOOL_NAMES | assistant_tools.PROPOSE_TOOL_NAMES
     assert len(assistant_tools.anthropic_tools()) == len(every_name)
     # No tool applies anything. The apply engine is the only writer, and it is

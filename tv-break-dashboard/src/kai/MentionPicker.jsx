@@ -1,20 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MenuItem, MenuList, Popper } from '@mui/material';
-import { Building2, CalendarDays, MonitorPlay, Users } from 'lucide-react';
+import React from 'react';
+import { ButtonBase, IconButton, MenuItem, MenuList, Popper } from '@mui/material';
+import { Building2, CalendarDays, ChevronLeft, ChevronRight, MonitorPlay, Users } from 'lucide-react';
 import { navItems } from '../shell/nav';
-import { Code, DirectionRoot, Figure, Name } from '../shell/bidi';
+import { Code, DirectionRoot, Figure, Name, documentDirection } from '../shell/bidi';
 import { formatDay, formatSpan } from '../shell/dates';
 import { pageText } from '../shell/surface-helpers';
-import { API_BASE } from '../shell/api';
-// The trigger grammar lives in a plain module with no imports so a test can run
-// it in node against the shipped code rather than describe it.
 export { insertMention, readMentionQuery } from './mention-trigger';
+export { useMentions, useMentionRows } from './mention-state';
+export { edgeKeys } from './mention-refs';
 import './mention-picker.css';
 
 // The @ picker: the composer's way of pointing at a thing that exists.
 //
 // It has its own file and its own stylesheet because assistant-console.css sits
-// exactly at the 450-line law and AssistantPanel.jsx sits two lines under it, so
+// exactly at the 450-line law and AssistantPanel.jsx sat two lines under it, so
 // neither could absorb a floating panel. The split was planned before the first
 // edit rather than discovered by a failing count.
 //
@@ -25,7 +24,9 @@ import './mention-picker.css';
 // inserts the STORE'S OWN NAME as plain text: the free-text path the assistant
 // already has resolves it, typing the same name by hand still works, and an
 // operator who never presses @ sees no change at all. What the picker buys is
-// that the name inserted is exactly the one the store holds, spelled its way.
+// that the name inserted is exactly the one the store holds, spelled its way,
+// and that a typed {type, id} rides beside it so two same-named things are two
+// different references.
 //
 // THE INDEX IS SERVER-SIDE and this file never builds one. The saved plan holds
 // every channel, because the retention model is measured against the
@@ -38,49 +39,17 @@ import './mention-picker.css';
 // only place direction is stated in this piece.
 
 // The glyph is navigational identity, not decoration: where a kind has a rail
-// destination the chip wears that rail item's own icon, read from nav.js rather
+// destination the row wears that rail item's own icon, read from nav.js rather
 // than picked again here. The two kinds with no rail destination of their own
 // name their lucide glyph on the server, in assistant_mentions_words.py.
 const NAV_ICONS = Object.fromEntries(navItems);
 const LOOSE_ICONS = { MonitorPlay, CalendarDays, Users, Building2 };
 
-function iconFor(key) {
+export function iconFor(key) {
   if (typeof key === 'string' && key.startsWith('nav:')) {
     return NAV_ICONS[key.slice(4)] || MonitorPlay;
   }
   return LOOSE_ICONS[key] || MonitorPlay;
-}
-
-// One request per query, with the answer dropped when the query moved on. The
-// staleness check is query equality rather than a request id, because two
-// keystrokes that produce the same query should share an answer.
-export function useMentionSearch(query, open) {
-  const [state, setState] = useState({ rows: [], loading: false, query: null });
-  const latest = useRef('');
-  useEffect(() => {
-    if (!open) {
-      latest.current = '';
-      setState({ rows: [], loading: false, query: null });
-      return undefined;
-    }
-    const wanted = String(query || '');
-    latest.current = wanted;
-    let live = true;
-    setState((prev) => ({ ...prev, loading: true }));
-    const url = `${API_BASE}/api/assistant/mentions?q=${encodeURIComponent(wanted)}`;
-    fetch(url)
-      .then((response) => (response.ok ? response.json() : { rows: [] }))
-      .then((body) => {
-        if (!live || latest.current !== wanted) return;
-        setState({ rows: Array.isArray(body.rows) ? body.rows : [], loading: false, query: wanted });
-      })
-      .catch(() => {
-        if (!live || latest.current !== wanted) return;
-        setState({ rows: [], loading: false, query: wanted });
-      });
-    return () => { live = false; };
-  }, [query, open]);
-  return state;
 }
 
 // The dim second line. It arrives as PARTS and is rendered as parts, never
@@ -109,25 +78,87 @@ function ParentPath({ parts, locale }) {
   );
 }
 
+// THE BREADCRUMB. A drill with no header is a list that has silently stopped
+// being the list you asked for, so the header says where you are and every step
+// of it goes back. The root step returns to the flat search, which is the mode
+// the operator started in and the one typing always returns to.
+function Breadcrumb({ trail, locale, onUp, onRoot }) {
+  if (!trail.length) return null;
+  return (
+    <div className="mention-crumbs">
+      <ButtonBase className="mention-crumb" onMouseDown={(e) => e.preventDefault()} onClick={onRoot}>
+        {pageText(locale, 'All', 'הכל')}
+      </ButtonBase>
+      {trail.map((step, index) => (
+        <React.Fragment key={`${step.type}:${step.id}`}>
+          <span className="mention-crumb-sep" aria-hidden="true">·</span>
+          <ButtonBase
+            className="mention-crumb"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onUp(index)}
+          >
+            <Name>{step.label}</Name>
+          </ButtonBase>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// The descend affordance, on the LEADING edge of a container row. Which glyph
+// that is comes from the document direction and is never hardcoded: in Hebrew
+// the leading edge is the right, so the chevron points left, which is the same
+// gesture into the row that a chevron pointing right makes in English.
+function DescendControl({ locale, label, onDescend }) {
+  const Chevron = documentDirection(locale) === 'rtl' ? ChevronLeft : ChevronRight;
+  return (
+    <IconButton
+      size="small"
+      className="mention-descend"
+      aria-label={label}
+      title={label}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={(event) => { event.stopPropagation(); onDescend(); }}
+    >
+      <Chevron size={14} />
+    </IconButton>
+  );
+}
+
 // Sit the panel on the composer's reading edge with a hair of clearance, and let
 // it flip below when the dock is near the top of the viewport.
+//
+// NOT MEASURED IN A BROWSER. These three modifiers are reasoned from the dock's
+// layout and from Popper's own defaults, exactly as R1 said of the same block:
+// the offset, the flip and the overflow padding have not been checked against a
+// rendered dock at its narrow width. That measurement is still owed.
 const MODIFIERS = [
   { name: 'offset', options: { offset: [0, 6] } },
   { name: 'flip', enabled: true },
   { name: 'preventOverflow', options: { padding: 8 } },
 ];
 
-export function MentionPicker({ locale, anchorEl, open, rows, loading, activeIndex, onChoose, onHover }) {
+export function MentionPicker({
+  locale, anchorEl, open, rows, absent, omitted, loading, activeIndex, trail,
+  onChoose, onHover, onDescend, onUpTo,
+}) {
   if (!open || !anchorEl) return null;
-  const empty = !loading && !rows.length;
+  const descendLabel = pageText(locale, 'Show what is inside', 'הצג מה יש בפנים');
+  // No-match and not-ours say the same sentence, deliberately. "None on your
+  // channel" would confirm that a name the operator typed exists somewhere,
+  // which is the one thing the boundary must never disclose. A drill that came
+  // back empty says the server's own stated absence instead of showing nothing,
+  // because an empty list in a picker reads as "zero of them" and the two are
+  // different claims.
+  const absentText = absent
+    ? (locale === 'he' ? absent.reason_he || absent.reason : absent.reason)
+    : pageText(locale, 'No matches', 'אין תוצאות');
   return (
     <Popper open placement="top-start" anchorEl={anchorEl} className="mention-popper" modifiers={MODIFIERS}>
       <DirectionRoot locale={locale} className="card mention-picker" id="kai-mention-picker" role="listbox">
-        {empty ? (
-          // No-match and not-ours say the same sentence, deliberately. "None on
-          // your channel" would confirm that a name the operator typed exists
-          // somewhere, which is the one thing the boundary must never disclose.
-          <p className="mention-empty">{pageText(locale, 'No matches', 'אין תוצאות')}</p>
+        <Breadcrumb trail={trail || []} locale={locale} onUp={onUpTo} onRoot={() => onUpTo(-1)} />
+        {!loading && !rows.length ? (
+          <p className="mention-empty">{absentText}</p>
         ) : (
           <MenuList dense disablePadding autoFocus={false} className="mention-list">
             {rows.map((row, index) => {
@@ -143,6 +174,9 @@ export function MentionPicker({ locale, anchorEl, open, rows, loading, activeInd
                   onMouseEnter={() => onHover(index)}
                   onClick={() => onChoose(row)}
                 >
+                  {row.container
+                    ? <DescendControl locale={locale} label={descendLabel} onDescend={() => onDescend(row)} />
+                    : <span className="mention-descend-gap" aria-hidden="true" />}
                   <span className="mention-glyph" aria-hidden="true"><Glyph size={14} /></span>
                   <Name className="mention-label">{row.label}</Name>
                   <ParentPath parts={row.parent} locale={locale} />
@@ -151,6 +185,12 @@ export function MentionPicker({ locale, anchorEl, open, rows, loading, activeInd
             })}
           </MenuList>
         )}
+        {omitted > 0 ? (
+          <p className="mention-omitted">
+            {pageText(locale, 'More match than fit here', 'יש יותר התאמות ממה שנכנס כאן')}
+            {' '}<Figure>{String(omitted)}</Figure>
+          </p>
+        ) : null}
       </DirectionRoot>
     </Popper>
   );

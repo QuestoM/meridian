@@ -34,11 +34,14 @@ The math is pure and deterministic: no datetime.now, no random. Any reference
 from __future__ import annotations
 
 import csv
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping, Optional
 
 from kairos.optimize.optimizer import ProgramSegment
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[2]
 # The booked-spot inventory the channel already sold. Same file the per-spot
@@ -142,11 +145,22 @@ def load_inventory(path: Optional[str | Path] = None) -> dict[tuple[str, str, in
         reader = csv.DictReader(handle)
         if reader.fieldnames is None:
             return {}
+        read = 0
+        discarded: dict[str, int] = {"channel": 0, "day": 0, "hour": 0}
         for row in reader:
+            read += 1
             channel = str(row.get("channel", "") or row.get("Channel", "") or "").strip()
             day = _parse_iso_day(row.get("Date_dt")) or _parse_iso_day(row.get("Last_dt"))
             hour = _parse_hour(row)
             if not channel or day is None or hour is None:
+                # Count WHY, not just that: a loader that drops rows without
+                # naming the failing field cannot be debugged from its own output.
+                if not channel:
+                    discarded["channel"] += 1
+                elif day is None:
+                    discarded["day"] += 1
+                else:
+                    discarded["hour"] += 1
                 continue
             key = (channel, day, hour)
             current = slots.get(key)
@@ -159,7 +173,44 @@ def load_inventory(path: Optional[str | Path] = None) -> dict[tuple[str, str, in
                 channel=channel, day=day, hour=hour,
                 booked=booked, available=available,
             )
+    _report_discards(target, read, discarded, kept=len(slots))
     return slots
+
+
+def _report_discards(
+    target: Path, read: int, discarded: Mapping[str, int], *, kept: int
+) -> None:
+    """Say out loud when rows were read and thrown away, with the count and reason.
+
+    An inventory file that parses to nothing leaves every weight at 1.0, which is
+    indistinguishable from having no file at all: the signal is silently absent
+    while the file sits on disk looking like data. That silence is the defect
+    class this reporting exists to break, so a TOTAL discard is a warning rather
+    than a debug line.
+
+    The reason is named per field because the shipped example fails on exactly
+    one of them: measured 2026-08-09, all 994 rows of ``Spots - inventory.csv``
+    parse a date but carry an empty ``hour_of_day``, so every row is dropped on
+    the hour. Channel counts are reported as a NUMBER and never as names: this
+    file carries other broadcasters' rows and no rival name may travel outward.
+    """
+    dropped = sum(discarded.values())
+    if not dropped:
+        return
+    reasons = ", ".join(f"{count} on {field}" for field, count in discarded.items() if count)
+    if kept:
+        logger.warning(
+            "Inventory: discarded %d of %d rows in %s (%s); kept %d slots.",
+            dropped, read, target.name, reasons, kept,
+        )
+        return
+    logger.warning(
+        "Inventory: discarded ALL %d rows in %s (%s), so the pool is EMPTY and the "
+        "inventory placement steer is inert: every weight stays 1.0, exactly as if "
+        "no file were present. Fixing the parse would ACTIVATE the steer and move "
+        "real money, so it is owner-gated, not a silent repair.",
+        read, target.name, reasons,
+    )
 
 
 def _booked_for_segment(

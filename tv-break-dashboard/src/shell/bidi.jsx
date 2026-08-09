@@ -168,10 +168,18 @@ export function useDocumentDirection(locale) {
 //
 // Use it only for text somebody else wrote. Interface copy already knows its
 // language and needs nothing.
-export function Prose({ as: Element = 'p', children, className, ...rest }) {
-  return (
-    <Element dir="auto" className={className} {...rest}>
-      {children}
-    </Element>
-  );
-}
+// Refs are forwarded for the same reason DirectionRoot forwards them: a block
+// that establishes its own direction is often the element a widget measures or
+// scrolls. The composer's mention highlight is exactly that case - it must
+// scroll in step with the field it sits behind, and it must resolve its
+// direction from the same first strong character the field resolves from, or
+// the highlight parts company with the words it marks.
+export const Prose = React.forwardRef(
+  function Prose({ as: Element = 'p', children, className, ...rest }, ref) {
+    return (
+      <Element dir="auto" className={className} ref={ref} {...rest}>
+        {children}
+      </Element>
+    );
+  },
+);

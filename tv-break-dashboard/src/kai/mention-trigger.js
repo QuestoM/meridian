@@ -33,10 +33,15 @@ export function readMentionQuery(text, caret) {
 // Replace the @query run with the object's own label and report where the caret
 // belongs afterwards. One trailing space, because the operator is mid-sentence.
 //
-// What goes in is the STORE'S OWN NAME, as plain text. That is the whole R1
-// contract with the model: the read tools already resolve that string, so a
-// mention needs no new resolution path, and the same question typed by hand
-// still reaches the same object.
+// What goes in is the STORE'S OWN NAME, as plain text. The read tools already
+// resolve that string, so the same question typed by hand still reaches the same
+// object and nothing here is a gate. What the caller ALSO gets back is the span
+// the name occupies -- start and len -- so a typed {type, id} can be bound to
+// those exact characters and travel beside the prose. The plain text is the
+// sentence; the span is how the sentence says which of two same-named things it
+// meant. Returning it here rather than re-deriving it in the caller keeps one
+// arithmetic in one place, which is the arithmetic mention-refs.js then carries
+// across every edit.
 // The WHOLE @ token goes, not just the part before the caret. A caret parked in
 // the middle of a half-typed name is ordinary -- an operator backs up to fix a
 // letter -- and replacing only the left half would leave the right half stranded
@@ -47,6 +52,12 @@ export function insertMention(text, run, label) {
   const head = whole.slice(0, run.start);
   let end = run.start + 1 + run.query.length;
   while (end < whole.length && !/\s/.test(whole[end])) end += 1;
-  const inserted = `${label} `;
-  return { text: `${head}${inserted}${whole.slice(end)}`, caret: head.length + inserted.length };
+  const name = String(label || '');
+  const inserted = `${name} `;
+  return {
+    text: `${head}${inserted}${whole.slice(end)}`,
+    caret: head.length + inserted.length,
+    start: head.length,
+    len: name.length,
+  };
 }

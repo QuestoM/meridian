@@ -4,6 +4,7 @@ import { Figure, Code, Prose } from '../shell/bidi';
 import { sourceLabel, stepLabel } from './AssistantRunTrace';
 import { inApprovedWords } from './kai-vocabulary';
 import { claimSegments } from './kai-claimed-action';
+import { ResolvedRefs } from './MentionRefs';
 import './kai-claimed-action.css';
 import { formatClock } from '../shell/dates';
 
@@ -79,6 +80,12 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
   return (
     <article className="asst-exchange">
       <RichText className="asst-q" text={entry.question} />
+      {/* What each reference in that question actually bound to, resolved at the
+          moment it was sent. It sits under the question and not under the answer
+          because it is a fact about the asking. A reference that came back gone
+          or unreadable is shown as such rather than dropped: a label with no data
+          behind it is what pushes a model to answer from the label. */}
+      <ResolvedRefs locale={locale} mentions={Array.isArray(entry.mentions) ? entry.mentions : []} />
       {/* The answer said a proposal is waiting for approval and the payload
           recorded none (kai-claimed-action.js). The honest sentence REPLACES the
           claim as the answer rather than following it: a critic measured the

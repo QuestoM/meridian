@@ -3,11 +3,12 @@ import { Button } from '@mui/material';
 import { Trash2 } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
-import { postJson, requestJson, streamAsk } from './assistant-stream';
+import { requestJson } from './assistant-stream';
 import { keepPrefixWarm } from './kai-keep-warm';
 import { useConversations } from './AssistantConversationsApi';
-import { asArray, normalizeBatch, showRestoreVersion, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
-import { buildPageContext, useAssistantPage } from '../shell/assistant-page-context';
+import { showRestoreVersion, useAssistantBatches, useAssistantThread } from './assistant-panel-state';
+import { useAssistantPage } from '../shell/assistant-page-context';
+import { useAsk } from './assistant-panel-ask';
 import AssistantConversationsSidebar from './AssistantConversationsSidebar';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantRunTrace, { useElapsed } from './AssistantRunTrace';
@@ -15,8 +16,6 @@ import AssistantUpload from './AssistantUpload';
 import { AssistantExchange, ModelText, RichText } from './AssistantThread';
 import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
 import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
-import { unrecordedProposalClaim } from './kai-claimed-action';
-import { applyStage, noteStageLimits } from './kai-live-turn';
 import { isolate } from '../shell/bidi';
 import './assistant-console.css';
 import { formatDay } from '../shell/dates';
@@ -45,11 +44,8 @@ function startedLabel(iso) {
 export default function AssistantPanel({ locale, notify, dock = false }) {
   const [status, setStatus] = useState(null);
   const [statusState, setStatusState] = useState('loading');
-  const [question, setQuestion] = useState('');
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [asking, setAsking] = useState(false);
-  const [live, setLive] = useState(null);
   const conv = useConversations(notify);
   const {
     batchMap, mergeBatches, refreshRail, refreshing, proposalsState, proposalsError,
@@ -59,7 +55,18 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   const pageState = useAssistantPage();
   const threadRef = useRef(null);
   const composerRef = useRef(null);
-  const abortRef = useRef(null);
+  const markUnavailable = useCallback((reason) => {
+    setStatus((prev) => ({ ...(prev || {}), available: false, reason: reason || '' }));
+  }, []);
+  // The question, its typed references, and sending them: one idea, in one
+  // module, because AssistantPanel.jsx stood two lines under the size law and a
+  // reference has to travel beside the prose it belongs to.
+  const {
+    question, setQuestion, refs, setRefs, asking, live, ask, stopAsk, onComposerKeyDown,
+  } = useAsk({
+    locale, conv, pageState, mergeBatches, refreshRail, appendEntry, markAdopted,
+    onUnavailable: markUnavailable,
+  });
   const elapsed = useElapsed(asking, live ? live.startedAt : null);
 
   useEffect(() => {
@@ -129,127 +136,13 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
     }
   }, [notify, conv, resetLocal]);
 
-  const finishAsk = useCallback((trimmed, body, measured) => {
-    if (body.available === false) {
-      setStatus((prev) => ({ ...(prev || {}), available: false, reason: body.reason || body.error }));
-      appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
-      return;
-    }
-    // Adopt the conversation id the ask landed in: a new conversation minted
-    // by the server appears in the list, and the id rides on the next ask.
-    const returnedConv = body.conversation_id ? String(body.conversation_id) : null;
-    if (returnedConv) {
-      if (returnedConv !== conv.activeId) {
-        markAdopted(returnedConv);
-        conv.adopt(returnedConv);
-      }
-      if (conv.supported) conv.refreshList();
-    }
-    const batch = body.proposals ? normalizeBatch(body.proposals) : null;
-    if (batch) mergeBatches([batch], false);
-    appendEntry({
-      question: trimmed,
-      answer: body.answer ? String(body.answer) : null,
-      error: body.error ? String(body.error) : !body.answer && !batch ? pageText(locale, 'The server returned no answer.', 'השרת לא החזיר תשובה.') : null,
-      // Said a proposal is pending when this payload recorded none.
-      unrecordedClaim: unrecordedProposalClaim(body, batch),
-      disclosure: typeof body.context_disclosure === 'string' ? body.context_disclosure : '',
-      sources: asArray(body.grounding && body.grounding.sources),
-      toolTrace: asArray(body.tool_trace),
-      truncated: Boolean(body.truncated),
-      // All measured in this browser: the limit stages the server sent while
-      // the answer was still streaming, and the wall clock from the send. The
-      // last is the number a stopwatch beside the screen would read.
-      stoppedAtDeadline: Boolean(measured && measured.stoppedAtDeadline),
-      stoppedAtCeiling: Boolean(measured && measured.stoppedAtCeiling),
-      elapsedSeconds: measured && Number.isFinite(measured.elapsedSeconds) ? measured.elapsedSeconds : null,
-      batchId: batch ? batch.batch_id : null,
-      at: (body.grounding && body.grounding.generated_at) || new Date().toISOString(),
-    });
-    if (batch) refreshRail();
-  }, [locale, appendEntry, mergeBatches, refreshRail, conv, markAdopted]);
-
-  const stopAsk = useCallback(() => {
-    if (abortRef.current) abortRef.current.abort();
-  }, []);
-
-  const ask = useCallback(async () => {
-    const trimmed = question.trim();
-    if (!trimmed || asking) return;
-    setAsking(true);
-    // Clear at send time, not on completion: the composer stays typeable while
-    // the answer streams, so a late clear would wipe whatever has already been
-    // typed for the next question.
-    setQuestion('');
-    const startedAt = Date.now();
-    setLive({ question: trimmed, text: '', stage: null, steps: [], startedAt });
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const conversationId = conv.supported && conv.activeId ? conv.activeId : null;
-    // Advisory grounding only, per the frozen contract: where the operator is
-    // right now, plus the focused entity when a record is open. Absent context
-    // sends nothing and the ask behaves exactly as before.
-    const pageContext = buildPageContext(pageState);
-    // Stage frames the finished exchange keeps: the scope Kai grounded on, and
-    // whether the run stopped at one of its own limits, the time limit or the
-    // turn budget. None is in the ask body, whose key set is the frozen
-    // contract, so each is captured as it streams.
-    const measured = { stoppedAtDeadline: false, stoppedAtCeiling: false, elapsedSeconds: null };
-    try {
-      let body;
-      try {
-        body = await streamAsk(trimmed, {
-          conversationId,
-          pageContext,
-          signal: controller.signal,
-          onStage: (stage) => {
-            noteStageLimits(stage, measured);
-            setLive((prev) => applyStage(prev, stage));
-          },
-          onStep: (step) => setLive((prev) => (prev ? { ...prev, steps: [...prev.steps, step] } : prev)),
-          onDelta: (text) => setLive((prev) => (prev ? { ...prev, text: prev.text + text } : prev)),
-        });
-      } catch (streamError) {
-        // A stop is the person's own decision, so it ends here rather than
-        // silently starting the same ask again on the plain endpoint.
-        if (controller.signal.aborted) throw streamError;
-        // The stream endpoint is unavailable or broke mid-flight; the plain
-        // ask returns the same answer without live updates, so retry there.
-        setLive({ question: trimmed, text: '', stage: null, steps: [], startedAt });
-        body = await postJson('/api/assistant/ask', {
-          question: trimmed,
-          ...(conversationId ? { conversation_id: conversationId } : {}),
-          ...(pageContext ? { page_context: pageContext } : {}),
-        }, { signal: controller.signal });
-      }
-      measured.elapsedSeconds = (Date.now() - startedAt) / 1000;
-      finishAsk(trimmed, body, measured);
-    } catch (error) {
-      const stopped = controller.signal.aborted;
-      appendEntry({
-        question: trimmed,
-        error: stopped
-          ? pageText(locale, 'You stopped this question. Nothing was changed.', 'עצרתם את השאלה הזו. שום דבר לא שונה.')
-          : error.message,
-      });
-      // Put the question back for an easy retry, but never overwrite text
-      // typed while the ask was in flight.
-      setQuestion((current) => (current ? current : trimmed));
-    } finally {
-      abortRef.current = null;
-      setLive(null);
-      setAsking(false);
-    }
-  }, [question, asking, finishAsk, appendEntry, locale, conv.supported, conv.activeId, pageState]);
-
-  function onComposerKeyDown(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      ask();
-    }
-  }
-
+  // A suggestion and an ask-again both put PROSE back in the box and no typed
+  // references with it. That is deliberate rather than missing: the labels are
+  // still in the sentence and the free-text routes still resolve them, and a
+  // reference restored without the operator making it would be a binding they
+  // never chose. The old references go with the old text.
   function pickSuggestion(text) {
+    setRefs([]);
     setQuestion(text);
     if (composerRef.current) composerRef.current.focus();
   }
@@ -419,6 +312,8 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             composerRef={composerRef}
             question={question}
             onQuestionChange={setQuestion}
+            refs={refs}
+            onRefsChange={setRefs}
             onKeyDown={onComposerKeyDown}
             unavailable={unavailable}
             asking={asking}

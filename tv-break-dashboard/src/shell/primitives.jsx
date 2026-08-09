@@ -104,6 +104,11 @@ export function StatusBadge({ status, locale, mode = 'inline' }) {
     attention: pageText(locale, 'Needs attention', 'דורש טיפול'),
     empty: pageText(locale, 'No rows yet', 'אין שורות עדיין'),
     error: pageText(locale, 'Error', 'שגיאה'),
+    // The three placement-lever states (see lever-state.js). They live here so a
+    // lever chip is the same chip as every other status on the product.
+    live: pageText(locale, 'Live', 'פעיל'),
+    wired_off: pageText(locale, 'Wired, off', 'מחווט-כבוי'),
+    absent: pageText(locale, 'Not built', 'לא קיים'),
   };
   return <span className={`status-badge ${mode} ${normalized}`}>{labelMap[normalized] || status}</span>;
 }

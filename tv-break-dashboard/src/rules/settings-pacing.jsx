@@ -1,11 +1,19 @@
 import React from 'react';
 import { Gauge } from 'lucide-react';
 import DateField from '../shell/DateField';
+import { StatusBadge } from '../shell/primitives';
+import { leverReasons, leverState } from '../shell/lever-state';
 import { NumberControl, ToggleControl } from './SettingsControls';
 
 // The campaign-pacing panel of the settings surface, kept as a render function
 // so the element tree is exactly what the single file produced.
 export function renderPacingPanel({ he, draft, updateField, updateNumber, hasCampaignFlights }) {
+  // The state is COMPUTED, never asserted by this file. Pacing cannot be live
+  // while the refinement step optimises the placement preference back out, so
+  // the chip stays honest even after campaign flights land; see lever-state.js.
+  const locale = he ? 'he' : 'en';
+  const { state } = leverState('pacing', hasCampaignFlights === null ? null : !!hasCampaignFlights);
+  const reasons = leverReasons('pacing', hasCampaignFlights === null ? null : !!hasCampaignFlights, locale);
   return (
         <section className="settings-panel wide">
           <div className="settings-panel-head">
@@ -13,13 +21,14 @@ export function renderPacingPanel({ he, draft, updateField, updateNumber, hasCam
               <h2>{he ? 'קצב קמפיינים' : 'Campaign pacing'}</h2>
               <p>{he ? 'מטה את השיבוץ לפי קצב הדילוור של הקמפיינים, בלי לשנות את תחזית ההכנסה' : 'Steer placement by campaign delivery pace, without changing the revenue projection'}</p>
             </div>
-            <Gauge size={18} />
+            <div className="settings-panel-state">
+              <StatusBadge status={state} locale={locale} />
+              <Gauge size={18} />
+            </div>
           </div>
-          {!hasCampaignFlights && (
-            <p className="settings-pacing-note">
-              {he ? 'טרם הועלו יעדי דילוור לקמפיינים, ולכן הקצב אינו פעיל.' : 'No campaign flights uploaded yet, so pacing is inactive.'}
-            </p>
-          )}
+          {reasons.map((reason) => (
+            <p className="settings-pacing-note" key={reason}>{reason}</p>
+          ))}
           <div className="settings-toggle-grid">
             <ToggleControl
               label={he ? 'קצב קמפיינים' : 'Campaign pacing'}
