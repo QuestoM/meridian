@@ -441,3 +441,62 @@ def test_a_refusal_names_the_field_as_a_person_names_it(client):
     assert "תאריך ההתחלה" in detail["message_he"]
     assert "starts_on" not in detail["message_en"]
     assert "starts_on" not in detail["message_he"]
+
+
+def test_a_free_campaign_id_is_free_on_every_row_and_not_only_on_campaign_rows():
+    """The allocator handed out ids that already owned flights, and the new
+    campaign silently adopted them.
+
+    MEASURED by a blind critic on 2026-08-09, through the real booking flow, four
+    times out of four. Each booking confirmed "created with 0 flights" and then
+    rendered a flight the operator never entered, in a window outside the
+    campaign's own dates, carrying 75 spots in the BOOKED column. A commitment
+    figure nobody typed and no data supports.
+
+    The shipped store carries four campaign ids that exist ONLY on flight rows:
+    CMP_001, CMP_002, CMP_003 and CMP_005, orphans with no campaign of their own.
+    ``next_campaign_id`` built its used-set from CAMPAIGN rows alone, so all four
+    read as free. The function directly below it, ``next_flight_id``, has always
+    read flight rows and their campaign ids; only this half looked away.
+
+    206 P4 tests passed over this defect. The only assertion on the allocator
+    checked ``next_campaign_id == "CMP_001"`` against a CLEAN fixture, which is
+    the one shape that cannot see it. So this test does the opposite: it puts an
+    orphan flight row in the store and requires the allocator to step over it.
+    """
+    import pandas as pd
+
+    from kairos_api.campaigns_api_store import CAMPAIGN, FLIGHT, next_campaign_id
+
+    frame = pd.DataFrame([
+        {"record_type": CAMPAIGN, "campaign_id": "CMP_001", "flight_id": ""},
+        {"record_type": FLIGHT, "campaign_id": "CMP_002", "flight_id": "CMP_002_F1"},
+    ])
+    # CMP_002 is taken by a flight row and by nothing else. An allocator reading
+    # only campaign rows answers CMP_002 here, which is the whole defect.
+    assert next_campaign_id(frame) == "CMP_003"
+
+    # And the counter-check, so this cannot pass by refusing every id: with no
+    # orphan present the answer is still the next number and not a skipped one.
+    clean = pd.DataFrame([{"record_type": CAMPAIGN, "campaign_id": "CMP_001", "flight_id": ""}])
+    assert next_campaign_id(clean) == "CMP_002"
+
+
+def test_the_shipped_store_hands_out_an_id_that_owns_nothing():
+    """The same rule against the real file, because the orphans are committed.
+
+    This is not a fixture. `data/campaigns.csv` at HEAD holds 52 campaign rows,
+    55 flight rows and exactly four orphan ids. If the allocator ever returns one
+    of them again, a real operator inherits a phantom booking.
+    """
+    from kairos_api.campaigns_api_store import CAMPAIGN, load_frame, next_campaign_id
+
+    frame = load_frame()
+    if frame.empty:
+        pytest.skip("no campaign store on this tree")
+    proposed = next_campaign_id(frame)
+    on_any_row = set(frame["campaign_id"].astype(str))
+    assert proposed not in on_any_row, (
+        f"the allocator proposed {proposed}, which already appears on a row of the "
+        "shipped store, so the next campaign booked would adopt whatever that row owns"
+    )

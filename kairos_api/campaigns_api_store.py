@@ -301,10 +301,28 @@ def locate_flight(frame: pd.DataFrame, campaign_id: str, flight_id: str) -> int:
 
 
 def next_campaign_id(frame: pd.DataFrame) -> str:
-    """The next free CMP_nnn, so nobody has to invent an identifier."""
+    """The next free CMP_nnn, so nobody has to invent an identifier.
+
+    **Free means unused by ANY row, not merely by a campaign row.** This read
+    only CAMPAIGN rows, and the shipped store carries four campaign ids that
+    exist solely on FLIGHT rows: CMP_001, CMP_002, CMP_003 and CMP_005, orphans
+    with no campaign of their own. So the allocator handed each of them out
+    again, and the newly booked campaign silently ADOPTED the orphan's flight.
+
+    Measured by a critic on 2026-08-09, four times out of four, through the real
+    booking flow. Every one confirmed "created with 0 flights" and then rendered
+    a flight the operator never entered, in a window outside the campaign's own,
+    carrying 75 spots in the BOOKED column. A commitment figure nobody typed and
+    no data supports, which is the honest-math law broken on committed state
+    rather than on anything a test wrote.
+
+    The store already knew: ``next_flight_id`` directly below reads FLIGHT rows
+    and their campaign ids. Only this half looked away.
+    """
     used = {
         _text(row, "campaign_id")
-        for _, row in frame[frame["record_type"].astype(str) == CAMPAIGN].iterrows()
+        for _, row in frame.iterrows()
+        if _text(row, "campaign_id")
     }
     index = 1
     while f"CMP_{index:03d}" in used:
