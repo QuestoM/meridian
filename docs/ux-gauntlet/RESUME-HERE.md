@@ -115,19 +115,32 @@ mechanism, not a list:
 
 Its top three, all confirmed:
 
-1. **The preferred-position percentage is built, tested, bilingual and
-   unreachable.** `preferred_position_rate` has zero callers outside its own
-   test. The number the channel and the agency audit each other with cannot be
-   computed by anyone using the product.
+1. **The preferred-position percentage was built, tested, bilingual and
+   unreachable.** CLOSED 2026-08-09, `6dd9c1fd`. It has a seam and a route now,
+   at `kairos_api/preferred_rate.py`, and it refuses to guess the preferred set
+   or to pick a counting method. On the shipped file: 41 campaigns placeable, 51
+   rows counted as dropped rather than vanishing, and with a set configured the
+   two methods DISAGREE on 2 of 11 campaigns.
 2. **Two contradictory answers to which positions are preferred.** CLOSED TODAY:
    the pod hardcoded the trade default and marked every ordinal preferred, while
    the pricing screen said a guessed percentage is worse than none. The pod reads
    the configured set now and answers UNKNOWN when it is unset.
-3. **The rating currency is not the trade's currency.** The trade settles on
-   Jewish households, quarter-hour, overnight plus one. The five modelled
-   audiences do not include Jewish households, and nothing records whether a held
-   TVR is overnight or consolidated. Every shekel figure is in a unit the market
-   does not settle in.
+3. **The rating currency is not the trade's currency.** RESEARCHED TO PRIMARY
+   SOURCES 2026-08-09, `docs/research/israeli-rating-currency.md`. The trade
+   settles on Jewish households and the round quarter-hour, both attested. The
+   five modelled audiences do not include Jewish households and nothing records
+   which rating vintage a held TVR is.
+
+   **AND IT CORRECTED THIS FILE.** I wrote "overnight plus one" here. That is NOT
+   CONFIRMED as published Israeli usage: the published term is OVERNIGHT, live
+   plus deferred viewing to 02:00, and searches in both languages returned
+   nothing for the plus-one form. Two readings fit and they imply DIFFERENT
+   STORED VINTAGES, which is the part that bears on code. Deferred viewing moves
+   published figures by +0.1 to +8.1 rating points.
+
+   The qualifier that stops this being misread: the PANEL is not Jewish-only. It
+   measures television households excluding East Jerusalem and Gaza, and the
+   Jewish cut is applied commercially on top.
 
 ## The engine, and the one number worth remembering
 
@@ -154,16 +167,46 @@ reported objective by shipping a plan that breaches the daily cap.
    level.
 4. **The rating currency**, re-audit finding 3. Probably the largest correctness
    gap left in the product.
-5. **The preferred-position percentage**, built and unreachable.
-6. **Kai's remaining coverage**: no propose tool records a remedy, so it can read
+5. **Kai's remaining coverage**: no propose tool records a remedy, so it can read
    a problem it cannot act on. Also the campaign record, what a restriction would
    cost, and the account-administrator persona with zero coverage.
-7. **`kairos_api/advertisers.py::_write_frame`** writes `frame[COLUMNS]` and
-   COLUMNS omits `data_source`, so one PUT erases provenance from all 45 rows.
-   One-line fix, and a test already fails with that instruction.
-8. **`campaigns_api_store.py:155-159`** documents "Version the campaigns store"
-   and passes a logical name the version store does not know, so six callers are
-   silent no-ops.
+6. **CLOSED, both of them, and both were classes rather than sites.**
+   `advertisers.py::_write_frame` was one of FIVE writers projecting through a
+   hardcoded column list; `f2aa1bc6`. The version-store name was one of TWO
+   callers naming a file the store had never heard of; `af928059`, and fixing it
+   forced a register split because putting campaigns in the full restore set
+   would make restoring a settings version revert campaign bookings.
+
+## Closed today, in case a stale note sends you back to one
+
+- The plan artifact was polluted a SECOND time, same 69-row shape, fingerprint
+  re-stamped to match. Restored and the suite verified: 23 passed. Watch
+  `git status output/` before trusting any engine measurement.
+- My own "the plan breaches its hourly cap" was a BUCKETING ERROR, refuted with
+  286,920.0 seconds identical both ways. Under the enforced unit: max 8.00
+  minutes an hour, zero breaches of 713 hours.
+- Underneath it: **the hourly minutes cap CANNOT BIND.** Break length is a
+  hardcoded 120 seconds with no settings key, so 4 breaks an hour is an 8-minute
+  hard ceiling under a 12-minute cap. Lowering it to the regulation's ten would
+  change nothing. Decision 9.
+- **Hour 24 exists** and no rule was written for it; 143 breaks land there.
+  Named, measured, NOT changed, decision 9.
+- `test_p5_pricing_draft` was the last caller of node's deprecated
+  `--experimental-loader`, and it asserted against a STUB of a shell primitive.
+  Both gone; it runs the real modules through the shared hook.
+
+## What the owner ruled today
+
+- **Israel is the only market that matters.** Foreign research is documentation;
+  it becomes work only with Israeli evidence attached.
+  `docs/audits/research-scope-ruling.md`.
+- **`L` IS what the market uses for the last position.** The research had it NOT
+  CONFIRMED. He works in this market and he outranks the search engine.
+- **Regulatory caps are OFF BY DEFAULT**, because the commercial channels do not
+  always work to the regulation, with the technical ability to turn them on. The
+  value is not the product's to hold; being able to apply a rule and to say
+  whether it did, is.
+- **English-only names stay English.**
 
 ## Before writing any new wave script
 
