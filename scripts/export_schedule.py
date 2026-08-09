@@ -79,7 +79,10 @@ def main() -> int:
         print("ERROR: no segments produced (is data/reference/Programmes.xlsx present?)")
         return 1
 
-    path = write_weekly_schedule(frame=frame)
+    # Replacing the shipped plan is this script's entire purpose, so it says so.
+    # The flag exists because callers that did NOT mean it were overwriting the
+    # committed artifact silently; see write_weekly_schedule's own docstring.
+    path = write_weekly_schedule(frame=frame, replace_shipped_plan=True)
     breaks = int(frame["num_breaks"].sum())
     revenue = float(frame["predicted_revenue"].sum())
     channels = frame["channel"].nunique()

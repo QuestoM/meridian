@@ -216,3 +216,63 @@ def test_the_committed_artifact_is_the_one_on_disk():
         "unintended: `git checkout -- output/`. If it was deliberate: verify the "
         "golden and commit it, because a changed plan is a change to money."
     )
+
+
+def test_writing_the_shipped_plan_takes_a_deliberate_argument():
+    """A default cannot be fixed by an instruction, and this one was not.
+
+    ``write_weekly_schedule``'s path defaulted to the real, committed,
+    version-controlled artifact the dashboard reads. So any caller that named no
+    path replaced the operator's plan, and on 2026-08-09 that happened FOUR times
+    in one session under briefs that every one of those callers obeyed. They were
+    told read-only on ``output/``; none of them knew it had written.
+
+    What the accidental writes did is worth knowing, because it is not what it
+    looked like. Same row count, same break count, same total ad seconds to the
+    second, and a redistribution of breaks inside a channel-day that left the plan
+    claiming 17,966.31 LESS revenue. Not corruption: a re-optimisation landing on
+    a marginally worse local optimum and silently replacing a committed one.
+
+    So the default is a refusal now. Two callers legitimately mean the real plan,
+    the recompute endpoint and the export script, and both say so.
+    """
+    import pytest as _pytest
+    from kairos.export.schedule import DEFAULT_OUTPUT_PATH, write_weekly_schedule
+
+    with _pytest.raises(ValueError) as raised:
+        write_weekly_schedule(frame=None)
+    message = str(raised.value)
+    assert "shipped plan" in message
+    assert "replace_shipped_plan=True" in message, (
+        "the refusal must name the way through it, or the next caller guesses"
+    )
+    assert str(DEFAULT_OUTPUT_PATH) in message, (
+        "the refusal must name the file it protected, or the reader has to go and find it"
+    )
+
+
+def test_the_two_callers_that_really_do_mean_the_shipped_plan_say_so():
+    """Named explicitly, because the flag is worthless if it spreads by copying.
+
+    Replacing the plan is the whole job of exactly two callers. Any third one is
+    a decision somebody should have to make on purpose.
+    """
+    root = Path(__file__).resolve().parents[1]
+    callers: dict[str, list[str]] = {}
+    for folder in ("kairos", "kairos_api", "scripts"):
+        for module in sorted((root / folder).rglob("*.py")):
+            text = module.read_text(encoding="utf-8")
+            if "write_weekly_schedule(" not in text or "def write_weekly_schedule" in text:
+                continue
+            for line_no, line in enumerate(text.splitlines(), start=1):
+                if "write_weekly_schedule(" in line and "import" not in line:
+                    callers[f"{module.relative_to(root)}:{line_no}"] = [line.strip()]
+    unflagged = {
+        where: line for where, line in callers.items()
+        if "replace_shipped_plan" not in line[0] and "path=" not in line[0]
+    }
+    assert not unflagged, (
+        "a caller writes the schedule without naming a path and without saying it "
+        f"means the shipped plan: {unflagged}. It will raise at runtime, which is "
+        "the point, but it should be corrected here rather than discovered there."
+    )

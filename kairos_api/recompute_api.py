@@ -53,7 +53,7 @@ def _run_recompute(
     )
     if frame.empty:
         raise ValueError("No segments produced (is data/reference/Programmes.xlsx present?)")
-    path = write_weekly_schedule(frame=frame)
+    path = write_weekly_schedule(frame=frame, replace_shipped_plan=True)
     # The cached reader keys on mtime+size, but clear it so the next GET is fresh.
     _read_csv_cached.cache_clear()
     # An incremental merge returns the frame in CSV text space (str dtype) to

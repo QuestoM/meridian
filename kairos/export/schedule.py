@@ -378,6 +378,7 @@ def write_weekly_schedule(
     path: Optional[str | Path] = None,
     *,
     frame: Optional[pd.DataFrame] = None,
+    replace_shipped_plan: bool = False,
     **kwargs: Any,
 ) -> Path:
     """Build (unless ``frame`` is supplied) and write the schedule CSV.
@@ -385,12 +386,40 @@ def write_weekly_schedule(
     Returns the path written. Extra keyword arguments are forwarded to
     :func:`build_weekly_schedule`.
 
+    **A CALLER THAT NAMES NO PATH MUST NOW SAY IT MEANS THE SHIPPED PLAN.**
+    This defaulted to ``DEFAULT_OUTPUT_PATH``, which is the real, committed,
+    version-controlled artifact the dashboard reads. So any code that called this
+    without naming a path overwrote the operator's plan, and on 2026-08-09 that
+    happened FOUR TIMES in one session under briefs that all said read-only on
+    ``output/``. Every one of those writers obeyed the instruction; none of them
+    knew it had written. An instruction cannot fix a default.
+
+    What the accidental writes actually did is worth recording, because it is not
+    what it looked like: same row count, same break count, same total ad seconds
+    to the second, and a redistribution of breaks between segments inside a
+    channel-day that left the plan claiming 17,966.31 LESS revenue. Not a
+    corruption. A re-optimisation landing on a marginally worse local optimum,
+    silently replacing a committed one.
+
+    So the default is now a REFUSAL rather than a destination. Pass an explicit
+    path to write anywhere, or pass ``replace_shipped_plan=True`` to mean the real
+    one on purpose, which the recompute endpoint does because replacing the plan
+    is its entire job. Everything else raises, loudly, at the moment of the
+    mistake rather than hours later in somebody else's measurement.
+
     The write is atomic (a temp file in the same directory, then ``os.replace``):
     the API readers parse this CSV unguarded while a recompute may be rewriting
     it, so they must only ever see the complete old file or the complete new one,
     never a truncated one. The final path's mtime and size change exactly once,
     at the swap, so the mtime+size cache keys stay coherent.
     """
+    if path is None and not replace_shipped_plan:
+        raise ValueError(
+            "write_weekly_schedule would overwrite the shipped plan at "
+            f"{DEFAULT_OUTPUT_PATH}, which is the committed artifact the dashboard "
+            "reads. Pass an explicit path to write somewhere else, or pass "
+            "replace_shipped_plan=True if replacing the real plan is what you mean."
+        )
     if frame is None:
         frame = build_weekly_schedule(**kwargs)
     target = Path(path) if path is not None else DEFAULT_OUTPUT_PATH
