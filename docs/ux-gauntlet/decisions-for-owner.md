@@ -260,6 +260,59 @@ knows the file. It just is not yet the product's own vocabulary.
 
 ---
 
+## 8. Three regulatory caps, one of which you already have and two of which do not exist here
+
+Raised 2026-08-09, out of the broadcast research. I am asking rather than acting
+because every one of these numbers moves real money and none of them is mine to
+set.
+
+**What a research agent found, and its source.** The Second Authority's 1992
+placement rules, `כללי הרשות השניה לטלויזיה ורדיו (שיבוץ תשדירי פרסומת בשידורי
+טלויזיה), תשנ"ב-1992`, at https://www.nevo.co.il/law_html/law00/4941.htm, cap
+commercial time three separate ways:
+
+  * clause 3(א), ten minutes in any hour;
+  * clause 3(ב)(1), forty minutes IN TOTAL across 20:00 to 24:00;
+  * clause 3(ג), ten percent of the whole broadcast day.
+
+**What this product has today.** One of the three. `max_ad_minutes_per_hour` is
+a setting and it is set to **12.0**, not 10. The evening-window cap and the
+whole-day cap DO NOT EXIST anywhere in the engine, the settings or the
+compliance read: there is no field, so there is nothing set wrongly, there is
+simply no way to express them.
+
+**What I am NOT claiming.** That your plan breaches anything. I have not
+established that, the exact measurement is in flight, and my first crude attempt
+used a unit the guardrail may not use. I am also not claiming the 1992 text is
+current: it may have been amended since, your licence may carry different terms,
+and one web page read by an agent is not a legal opinion. That is precisely why
+this is a question and not a change.
+
+**What I need from you.**
+
+1. What are the numbers that actually bind you? If the hourly limit is ten and
+   not twelve, that is not a settings tweak: it is a constraint that reshapes
+   every plan the optimizer produces, and it should be measured before it is
+   moved.
+2. Do the evening-window and whole-day caps bind you? If they do, they are two
+   constraints the engine cannot currently express at all, which is a build and
+   not a setting.
+3. Is `אתנחתה` a real constraint in your operation? Clause 10(ב) says a
+   mid-programme cluster may be placed ONLY at a natural pause. If your traffic
+   department treats that as binding, it is a placement rule the optimizer does
+   not know about.
+
+**Related and already asked: decision 5b**, which is about WHO may change these
+numbers. This one is about WHAT they should be. Answering 5b without this one
+protects the wrong values well.
+
+**What happens until you answer:** nothing changes. `max_ad_minutes_per_hour`
+stays at 12.0 because lowering it on the strength of a web citation would move
+real money on my judgement rather than yours, and the two missing caps stay
+missing rather than being invented at values nobody confirmed.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from

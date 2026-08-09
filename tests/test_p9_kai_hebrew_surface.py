@@ -66,6 +66,31 @@ ASSISTANT_DATA = ROOT / "data" / "assistant"
 HEBREW = re.compile(r"[֐-׿]")
 
 
+def _is_written_in_hebrew(summary: str) -> bool:
+    """Whether a sentence is WRITTEN in Hebrew, not whether it contains a letter.
+
+    This used ``HEBREW.search`` directly and it broke the day real data arrived.
+    Advertisers used to be keyed ADV_01 to ADV_45; they carry their own Hebrew
+    names now, so an English summary reads
+
+        advertiser: edit אובלי ערבויות (default_premium)
+
+    which contains Hebrew and is not written in it. Under the old check that
+    sentence was ruled a Hebrew summary and excused from carrying the terms an
+    English reader needs, which is the opposite of what the rule is for.
+
+    A proper noun is data. The language of a sentence is a property of the
+    sentence, so this asks the FIRST STRONG letter, which is the same question
+    the bidirectional algorithm asks when it decides which way to lay a line out.
+    """
+    for character in summary:
+        if HEBREW.match(character):
+            return True
+        if character.isalpha():
+            return False
+    return False
+
+
 def _an_advertiser() -> str:
     """A real key from the advertiser store, so the edit path is exercised
     against a record that exists rather than an invented one."""
@@ -99,7 +124,7 @@ def test_every_english_summary_carries_the_terms_behind_it() -> None:
     for tool, args, code in calls:
         item = assistant_tools.build_proposal_item(tool, {**args, "reason": "test"})
         assert item["status"] == "pending", f"{tool} rejected: {item.get('error')}"
-        assert not HEBREW.search(item["summary"]) or code == "pricing", (
+        assert not _is_written_in_hebrew(item["summary"]) or code == "pricing", (
             f"{tool} writes a Hebrew summary, so it needs no terms")
         terms = item.get("summary_terms")
         assert terms is not None, f"{tool} carries no terms behind its English summary"
