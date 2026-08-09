@@ -1,0 +1,97 @@
+/* The @ picker's own sheet.
+
+   It is here rather than in assistant-console.css because that file is exactly
+   at the 450-line law and cannot take one more declaration. A floating panel is
+   still a CARD, so the surface, the hairline and the radius come from
+   shell/card.css via the .card class on the element and are not restated here.
+   What this file owns is what is genuinely the picker's: how wide it is, how
+   far it may grow before it scrolls, and how a row reads.
+
+   No literal hex and no off-scale spacing. The row's selected state is a FULL
+   border in the state colour over the soft background, which is the product's
+   pattern; a rule down one edge to mark the active row is the banned shape and
+   verify-accent-rules.mjs is at zero. */
+
+.mention-popper {
+  z-index: var(--z-feed);
+}
+
+.mention-picker {
+  /* Wide enough for a label and its parent path on one line at the dock's usual
+     width, and never wider than the dock itself. */
+  inline-size: min(420px, calc(100vw - var(--space-6)));
+  box-shadow: var(--shadow);
+}
+
+/* The card owns overflow: hidden, so the scroll belongs to the list inside it
+   and the rounded corners still clip. Eight rows is the popup's own cap, and
+   this height is what eight of them come to. */
+.mention-list {
+  max-block-size: 292px;
+  overflow-y: auto;
+  padding-block: var(--space-1);
+}
+
+.mention-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-block-size: 0;
+  padding: 6px var(--card-inset);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  /* Reserved on every row so the selected state does not move the text. */
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.mention-row.Mui-selected,
+.mention-row.Mui-selected:hover,
+.mention-row:hover {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+}
+
+.mention-glyph {
+  display: inline-flex;
+  align-self: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.mention-row.Mui-selected .mention-glyph {
+  color: var(--teal-ink);
+}
+
+.mention-label {
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The parent path is the disambiguator, not the answer: a programme recurs
+   every weekday and the days beside it are what tell two rows apart. It stays
+   dim, it stays on the trailing edge, and it gives way before the label does. */
+.mention-parent {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mention-parent-dot {
+  color: var(--line-strong);
+}
+
+.mention-empty {
+  margin: 0;
+  padding: var(--space-3) var(--card-inset);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}

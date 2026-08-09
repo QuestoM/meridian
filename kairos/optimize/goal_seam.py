@@ -4,89 +4,90 @@ The commercial layer has modelled the goal for a long time. A campaign carries a
 rating-point target and the audience it counts against, the pacing board reads it
 as a denominator, the delivery ledger settles against it and the make-good ledger
 raises a shortfall from it. None of that ever reached the engine that decides
-where breaks go. The optimizer maximises revenue net of retention and has never
+where breaks go. The optimizer maximises revenue net of retention and had never
 been told a goal exists.
 
 This module is that missing door, and only that door. It holds no placement
-logic, no objective and no greedy step. It reads what was booked, reads what the
-delivery ledger can honestly say was delivered, and returns one per-segment
-weight map in exactly the shape :func:`kairos.optimize.demand.build_demand_weights`
-already folds. The engine keeps every decision it had; it simply gains one more
-signal, on the same footing as advertiser demand, inventory awareness and
-delivery pacing.
+logic, no objective and no greedy step. Its persistence half lives in
+:mod:`kairos.optimize.goal_seam_store`, re-exported here so callers import one.
 
 Why a goal moves placement at all
 ---------------------------------
 Revenue is ``cpp * rating_points``. A rating-point goal is ``rating_points``
-alone. Those two orderings are not the same ordering. A segment with a large
-audience in a cheap daypart is efficient for a points goal and inefficient for
-revenue; an expensive prime segment is the reverse. So a channel that has
-committed to points leans toward rating per second of inventory, while a channel
-optimising revenue leans toward shekels per second. The seam expresses exactly
-that divergence and nothing else.
+alone, and those are not the same ordering. A large audience in a cheap daypart
+is efficient for a points goal and inefficient for revenue. That divergence is the whole mechanism.
+
+The two halves of the seam
+--------------------------
+:func:`build_goal_weights` and :func:`fold_into_demand_weights` are the RANKING
+half, folding beside advertiser demand, inventory awareness and delivery pacing.
+Measured caveat, and it applies to that whole class rather than to the goal: the
+F1 refiner and the exact DP tier do not read demand weights, so a bias the greedy
+took on is optimised back out wherever they can improve the true objective.
+
+:func:`goal_adjusted_net` is the OBJECTIVE half and the half that survives,
+because the greedy, the refiner and the DP tier all climb the scalar it returns.
+Measured over 30 real operator-channel days, a goal worth a quarter of a day's
+rating moved 53 of 2540 segments and raised delivered goal points by 0.3754
+percent. ``docs/goal-based-order-design.md`` carries the contract in full.
 
 Honesty contract
 ----------------
-Every path here is an identity no-op until real data lands, and the identity is
+Every path is an identity no-op until real data lands, and the identity is
 arithmetic rather than a flag:
 
-  * No goal orders, from any cause, gives every weight exactly 1.0.
-  * A goal whose audience this product holds no panel for contributes no
-    pressure, because progress against it is unknown and an unknown may not be
-    spent as though it were zero.
-  * A day on which every in-scope segment carries the same expected rating gives
-    every weight exactly 1.0, because there is no rating-efficiency difference
-    for a points goal to prefer.
-  * A demo row is not a booking. :func:`load_goal_orders` excludes demo rows by
-    default, so a seeded campaign can never steer a real plan.
+  * No goal orders, from any cause, leaves every weight at exactly 1.0, and
+    :func:`goal_adjusted_net` returns the SAME function object.
+  * A goal whose audience this product holds no panel for contributes nothing.
+  * An order carrying no channel, or a channel that is not the segment's, steers
+    nothing. That is the competitor boundary inside this seam.
+  * A day whose in-scope segments all carry the same rating is an exact identity.
+  * A demo row is not a booking. All 51 stored goals are demo rows, so the seam
+    ships provably inert.
 
-Measured on this tree: of the 52 campaign rows on disk, 51 carry a rating goal
-and all 51 are demo rows. So ``load_goal_orders()`` returns an empty list today
-and this seam is provably inert on the real plan, the same way the pacing signal
-is inert while ``campaign_flights.csv`` is header only.
+Nothing here reads a clock or calls random, and nothing here changes reported
+revenue: both halves touch ranking or the objective scalar only.
 
-Purity
-------
-``today`` is supplied by the caller. This module never reads a clock and never
-calls random, so the same inputs always produce the same weights.
+Weight formula, over the segments of one channel on one day::
 
-Weight formula
---------------
-For a broadcast day, over the segments of one channel::
+    supply    = sum of baseline_tvr
+    pressure  = clamp(sum over orders of (unmet / days_left) / supply, 0, 1)
+    weight(s) = clamp(1 + K * pressure * (tvr(s) / (supply / count) - 1), U_MIN, U_MAX)
 
-    supply      = sum of baseline_tvr over the day's in-scope segments
-    mean_tvr    = supply / count
-    unmet_i     = the goal points order i still has to place (see unmet_points)
-    days_left_i = broadcast days from today, inclusive, to the flight end
-    pressure    = clamp(sum_i (unmet_i / days_left_i) / supply, 0, 1)
-    weight(s)   = clamp(1 + K * pressure * (tvr(s) / mean_tvr - 1), U_MIN, U_MAX)
-
-``pressure`` is the share of the day's whole expected rating that the booked
-goals still need, so it is a demand fact rather than a delivery guess. The
-``(ratio - 1)`` term is what makes the lean differential: a uniform multiplier on
-every segment of a day changes no ranking and would be a silent no-op.
+The ``(ratio - 1)`` term is what makes the lean differential; a uniform
+multiplier on a day changes no ranking and would be a silent no-op.
 """
 
 from __future__ import annotations
 
-import csv
 from collections import defaultdict
+from datetime import date
 from dataclasses import dataclass
-from datetime import date, timedelta
-from pathlib import Path
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 from kairos.optimize.optimizer import ProgramSegment
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CAMPAIGNS_PATH = ROOT / "data" / "campaigns.csv"
-DEFAULT_DELIVERY_PATH = ROOT / "data" / "campaign_delivery.csv"
-
-# The one audience this product's ratings are the base for. Held here as a
-# string rather than imported from kairos_api, because the engine must not depend
-# on the API layer; kairos_api.campaigns_commitment.ALL_VIEWERS is the same value
-# and tests/test_goal_based_order.py asserts the two never drift apart.
-ALL_VIEWERS = "all_viewers"
+# The persistence half of this seam, re-exported so a caller imports one module.
+from kairos.optimize.goal_seam_store import (  # noqa: F401
+    ALL_VIEWERS,
+    BASIS_BOOKED,
+    BASIS_GAP_IN_ELAPSED,
+    BASIS_MEASURED,
+    BASIS_NO_FLIGHT_DATES,
+    BASIS_NO_GOAL,
+    BASIS_NO_SOURCE,
+    BASIS_UNMEASURABLE,
+    DEFAULT_CAMPAIGNS_PATH,
+    DEFAULT_DELIVERY_PATH,
+    DeliveredPoints,
+    GoalOrder,
+    days_left,
+    load_delivered_points,
+    load_goal_orders,
+    remaining_days,
+    unmet_points,
+)
+from kairos.optimize.goal_seam_store import _parse_iso
 
 # How hard a unit of goal pressure leans, and the bounds the lean lives in. K is
 # the strength; U_MAX caps a boost so one large goal cannot own a whole day;
@@ -96,17 +97,12 @@ GOAL_K = 1.0
 GOAL_U_MAX = 2.0
 GOAL_U_MIN = 0.5
 
-# Basis codes. The first four name a state the pacing words module already has a
-# published bilingual refusal for, so a surface renders the product's own
-# sentence rather than one this seam invented. MEASURED and BOOKED are not
-# refusals: they say what the number rests on.
-BASIS_MEASURED = "measured"
-BASIS_BOOKED = "booked"
-BASIS_NO_GOAL = "no_goal"
-BASIS_UNMEASURABLE = "unmeasurable"
-BASIS_NO_FLIGHT_DATES = "no_flight_dates"
-BASIS_GAP_IN_ELAPSED = "gap_in_elapsed"
-BASIS_NO_SOURCE = "no_source"
+# How much a committed rating point is worth in the objective, as a multiple of
+# the day's own mean CPP. 1.0 says a point the channel has promised is worth one
+# point of ordinary airtime on top of what that airtime already earns, which is
+# what a make-good actually costs to settle. Zero disables the objective half of
+# the seam and leaves the net untouched.
+GOAL_SHADOW = 1.0
 
 # Feasibility verdicts for the pre-flight question "will the channel deliver
 # this". They are about SUPPLY, not about a promise: the product has no
@@ -122,93 +118,8 @@ UNKNOWN = "unknown"
 # flight's remaining days. Published so a surface can quote it.
 TIGHT_SHARE = 0.5
 
-_TRUE_WORDS = frozenset({"true", "yes", "1", "y"})
-
-
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
-
-
-def _is_true(value: object) -> bool:
-    return str(value or "").strip().lower() in _TRUE_WORDS
-
-
-def _parse_iso(value: object) -> Optional[date]:
-    """Parse a YYYY-MM-DD (or leading ISO datetime) into a date, or None."""
-    text = str(value or "").strip()
-    if not text:
-        return None
-    head = text.split(" ")[0].split("T")[0]
-    parts = head.split("-")
-    if len(parts) == 3 and all(part.isdigit() for part in parts):
-        try:
-            return date(int(parts[0]), int(parts[1]), int(parts[2]))
-        except ValueError:
-            return None
-    return None
-
-
-def _to_float(value: object) -> Optional[float]:
-    text = str(value if value is not None else "").strip()
-    if not text:
-        return None
-    try:
-        return float(text)
-    except (TypeError, ValueError):
-        return None
-
-
-@dataclass(frozen=True)
-class GoalOrder:
-    """One goal-based order: points against an audience, on one channel, in a window.
-
-    This is the whole order. There is no spot list, by design, because that is
-    what a goal-based order means: the agency states the outcome and the channel
-    owns the placement. Anything that needs a spot list must say so rather than
-    invent one.
-
-    ``channel`` comes from the campaign row, which the store fills from settings
-    through ``channel_scope.operator_channel``. An order carrying no channel
-    cannot be scoped to the operator's own inventory, so it steers nothing.
-    """
-
-    campaign_id: str
-    channel: str
-    audience: str
-    goal_points: float
-    starts_on: str
-    ends_on: str
-    status: str = "active"
-    is_demo: bool = False
-    priority: str = ""
-    pacing_mode: str = ""
-
-    @property
-    def measurable(self) -> bool:
-        """Whether this product can count rating points against this audience."""
-        return self.audience.strip() == ALL_VIEWERS
-
-
-@dataclass(frozen=True)
-class DeliveredPoints:
-    """What the delivery ledger can honestly say one campaign has delivered.
-
-    ``points_counted`` is a FLOOR whenever ``days_unknown`` is above zero: those
-    broadcast days carry no per-spot source, so what aired on them is unknown and
-    is not zero. A reader that treats the floor as a total has understated the
-    remainder, which is the safe direction for a lean and the wrong direction for
-    a claim, so the basis travels with the number everywhere.
-    """
-
-    campaign_id: str
-    points_counted: float
-    days_counted: int
-    days_unknown: int
-    days_total: int
-
-    @property
-    def complete(self) -> bool:
-        return self.days_total > 0 and self.days_unknown == 0
 
 
 @dataclass(frozen=True)
@@ -232,168 +143,6 @@ class GoalFeasibility:
     share_of_supply: Optional[float] = None
     days_left: Optional[int] = None
     unmet_points: Optional[float] = None
-
-
-def load_goal_orders(
-    path: Optional[str | Path] = None,
-    *,
-    include_demo: bool = False,
-) -> list[GoalOrder]:
-    """Read goal-based orders from the campaigns store.
-
-    A campaign row is a goal-based order when it carries a positive
-    ``rating_goal_points``. Rows without one are ordinary campaigns and are not
-    this seam's business. Ended campaigns are skipped, because a closed order
-    cannot want future placement.
-
-    Demo rows are excluded unless ``include_demo`` is set. A seeded row is never
-    a booking, so it must never steer a real plan. Every one of the 51 rows on
-    disk carrying a rating goal is a demo row, which is why this function returns
-    an empty list today and the seam is provably inert.
-    """
-    target = Path(path) if path is not None else DEFAULT_CAMPAIGNS_PATH
-    if not target.exists():
-        return []
-    out: list[GoalOrder] = []
-    with open(target, "r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return []
-        for row in reader:
-            if str(row.get("record_type", "") or "").strip() != "campaign":
-                continue
-            campaign_id = str(row.get("campaign_id", "") or "").strip()
-            points = _to_float(row.get("rating_goal_points"))
-            if not campaign_id or points is None or points <= 0:
-                continue
-            status = str(row.get("status", "") or "").strip() or "active"
-            if status != "active":
-                continue
-            demo = _is_true(row.get("is_demo"))
-            if demo and not include_demo:
-                continue
-            out.append(GoalOrder(
-                campaign_id=campaign_id,
-                channel=str(row.get("channel", "") or "").strip(),
-                audience=str(row.get("rating_goal_audience", "") or "").strip(),
-                goal_points=points,
-                starts_on=str(row.get("starts_on", "") or "").strip(),
-                ends_on=str(row.get("ends_on", "") or "").strip(),
-                status=status,
-                is_demo=demo,
-                priority=str(row.get("priority", "") or "").strip(),
-                pacing_mode=str(row.get("pacing_mode", "") or "").strip(),
-            ))
-    return out
-
-
-def load_delivered_points(
-    path: Optional[str | Path] = None,
-) -> dict[str, DeliveredPoints]:
-    """Sum the delivery ledger's counted rating points per campaign, honestly.
-
-    A ledger day counts toward ``points_counted`` only when its ``air_state`` is
-    ``aired`` and it carries a rating figure. Every other day is counted as
-    unknown, including a day marked ``scheduled``, because a booked day is not a
-    delivered day. The returned record therefore states a floor and says how many
-    days it could not see.
-    """
-    target = Path(path) if path is not None else DEFAULT_DELIVERY_PATH
-    if not target.exists():
-        return {}
-    counted: dict[str, float] = defaultdict(float)
-    known: dict[str, int] = defaultdict(int)
-    unknown: dict[str, int] = defaultdict(int)
-    with open(target, "r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None:
-            return {}
-        for row in reader:
-            campaign_id = str(row.get("campaign_id", "") or "").strip()
-            if not campaign_id:
-                continue
-            state = str(row.get("air_state", "") or "").strip().lower()
-            points = _to_float(row.get("rating_points_planned"))
-            if state == "aired" and points is not None:
-                counted[campaign_id] += points
-                known[campaign_id] += 1
-            else:
-                unknown[campaign_id] += 1
-    ids = set(counted) | set(known) | set(unknown)
-    return {
-        campaign_id: DeliveredPoints(
-            campaign_id=campaign_id,
-            points_counted=round(counted.get(campaign_id, 0.0), 4),
-            days_counted=known.get(campaign_id, 0),
-            days_unknown=unknown.get(campaign_id, 0),
-            days_total=known.get(campaign_id, 0) + unknown.get(campaign_id, 0),
-        )
-        for campaign_id in ids
-    }
-
-
-def days_left(order: GoalOrder, today: date) -> Optional[int]:
-    """Broadcast days from ``today`` to the flight end, inclusive, or None.
-
-    Before the flight starts the whole window is still ahead, so the count runs
-    from the start date. After the flight ends there is nothing left to place and
-    the answer is zero. A window with no dates has no answer at all.
-    """
-    starts = _parse_iso(order.starts_on)
-    ends = _parse_iso(order.ends_on)
-    if starts is None or ends is None:
-        return None
-    if today > ends:
-        return 0
-    first = starts if today < starts else today
-    return max(0, (ends - first).days + 1)
-
-
-def remaining_days(order: GoalOrder, today: date) -> list[str]:
-    """The ISO broadcast days this order still has to place into, in order.
-
-    The same window :func:`days_left` counts, spelled out, so a caller that needs
-    to ask another source about those days (the plan's expected rating, for one)
-    asks about exactly the days the lean is spread over and not a day more.
-    """
-    starts = _parse_iso(order.starts_on)
-    ends = _parse_iso(order.ends_on)
-    if starts is None or ends is None or today > ends:
-        return []
-    first = starts if today < starts else today
-    span = (ends - first).days + 1
-    return [(first + timedelta(days=index)).isoformat() for index in range(max(0, span))]
-
-
-def unmet_points(
-    order: GoalOrder,
-    delivered: Optional[DeliveredPoints],
-    today: date,
-) -> tuple[Optional[float], str]:
-    """The points this order still has to place, and what that number rests on.
-
-    Returns ``(None, basis)`` whenever the remainder cannot be stated: an
-    audience with no panel behind it, or a flight with no dates. Otherwise the
-    remainder is the goal less what the ledger counted, and the basis says
-    whether the ledger saw every elapsed day (``measured``), saw some of them
-    (``gap_in_elapsed``, so the remainder is a ceiling), or has nothing on this
-    campaign at all (``no_source``, so the remainder is the booked goal itself).
-
-    The remainder is never negative and is never rounded up to the goal to
-    flatter a lean.
-    """
-    if order.goal_points <= 0:
-        return None, BASIS_NO_GOAL
-    if not order.measurable:
-        return None, BASIS_UNMEASURABLE
-    if days_left(order, today) is None:
-        return None, BASIS_NO_FLIGHT_DATES
-    if delivered is None or delivered.days_total == 0:
-        return order.goal_points, BASIS_NO_SOURCE
-    remainder = max(0.0, order.goal_points - delivered.points_counted)
-    if delivered.complete:
-        return remainder, BASIS_MEASURED
-    return remainder, BASIS_GAP_IN_ELAPSED
 
 
 def goal_feasibility(
@@ -463,6 +212,38 @@ def _order_covers_day(order: GoalOrder, day: date, channel: str) -> bool:
     return starts <= day <= ends
 
 
+def day_pressure(
+    supply: float,
+    orders: Sequence[GoalOrder],
+    day: date,
+    channel: str,
+    today: date,
+    delivered_of: Mapping[str, DeliveredPoints],
+) -> float:
+    """The share of one day's whole expected rating the booked goals still need.
+
+    Summed over every order whose window and channel cover this day, and clamped
+    into ``[0, 1]``: three orders each wanting a fifth of the day read as
+    three-fifths of pressure, and no set of orders can read as more than the
+    whole day. An order whose remainder cannot be stated contributes nothing,
+    because an unknown may not be spent as though it were a number.
+    """
+    if supply <= 0.0:
+        return 0.0
+    pressure = 0.0
+    for order in orders:
+        if not _order_covers_day(order, day, channel):
+            continue
+        remainder, _ = unmet_points(order, delivered_of.get(order.campaign_id), today)
+        if remainder is None or remainder <= 0.0:
+            continue
+        left = days_left(order, today) or 0
+        if left <= 0:
+            continue
+        pressure += (remainder / left) / supply
+    return _clamp(pressure, 0.0, 1.0)
+
+
 def build_goal_weights(
     segments: Iterable[ProgramSegment],
     orders: Optional[Sequence[GoalOrder]],
@@ -503,18 +284,7 @@ def build_goal_weights(
         mean_tvr = supply / len(group)
         if mean_tvr <= 0.0:
             continue
-        pressure = 0.0
-        for order in orders:
-            if not _order_covers_day(order, day, channel):
-                continue
-            remainder, _ = unmet_points(order, delivered_of.get(order.campaign_id), today)
-            if remainder is None or remainder <= 0.0:
-                continue
-            left = days_left(order, today) or 0
-            if left <= 0:
-                continue
-            pressure += (remainder / left) / supply
-        pressure = _clamp(pressure, 0.0, 1.0)
+        pressure = day_pressure(supply, orders, day, channel, today, delivered_of)
         if pressure <= 0.0:
             continue
         for segment in group:
@@ -574,6 +344,94 @@ def fold_into_demand_weights(
             base.get(segment_id, 1.0) * factor, WEIGHT_FLOOR, WEIGHT_CAP
         )
     return base
+
+
+def goal_adjusted_net(
+    net_of: Callable[[ProgramSegment, int], float],
+    segments: Iterable[ProgramSegment],
+    orders: Optional[Sequence[GoalOrder]],
+    today: Optional[date],
+    *,
+    delivered_of: Optional[Mapping[str, DeliveredPoints]] = None,
+    shadow: float = GOAL_SHADOW,
+) -> Callable[[ProgramSegment, int], float]:
+    """Wrap the per-segment net so the engine's OBJECTIVE can see a committed goal.
+
+    The weight map is a ranking bias and the refiner does not read it, so a
+    placement bias the greedy took on can be optimised straight back out. This is
+    the other half of the seam and the half that survives: it returns a function
+    of exactly the shape :func:`kairos.optimize.revenue_net.segment_net_revenue`
+    has, so it threads into the greedy step, the F1 refiner and the exact DP tier
+    through the one ``net_of`` parameter they already share, and every one of
+    them climbs the same adjusted scalar.
+
+    What it adds, and why it is not a fabricated shekel::
+
+        adjusted(segment, k) = net(segment, k)
+                             + shadow * pressure(day) * price(day) * points(segment, k)
+
+    ``points`` is the rating the segment's ``k`` breaks carry, in the same
+    thirty-second units revenue is quoted in. ``price`` is the day's own
+    points-weighted mean CPP, read from the segments in front of it rather than
+    from a rate nobody supplied, and it stands for what the channel would have to
+    give away to make good a point it committed to and missed. ``pressure`` is
+    the share of the day's rating the booked goals still need, so the term
+    vanishes the moment the goals are met and the objective is the untouched net
+    again.
+
+    The term is proportional to POINTS while the net is proportional to SHEKELS,
+    which is the whole reason it moves anything: a large audience in a cheap
+    daypart is worth more to a points goal than to a revenue plan, and this is
+    where the product finally says so.
+
+    It changes the objective and never the reported revenue. Revenue is built
+    from :func:`~kairos.optimize._segment_math._segment_revenue` in
+    ``_build_result`` and does not pass through here, so no campaign is charged a
+    shekel more for having been leaned toward.
+
+    With no orders, no reference date or zero pressure this returns ``net_of``
+    itself, so the identity is the same object and not merely the same numbers.
+    """
+    rows = list(orders or [])
+    if today is None or not rows:
+        return net_of
+    delivered_of = delivered_of or {}
+    pressure_of: dict[tuple[str, str], float] = {}
+    price_of: dict[tuple[str, str], float] = {}
+    groups: dict[tuple[str, str], list[ProgramSegment]] = defaultdict(list)
+    for segment in segments:
+        groups[(str(segment.day), str(segment.channel))].append(segment)
+    for key, group in groups.items():
+        day = _parse_iso(key[0])
+        if day is None:
+            continue
+        supply = sum(max(0.0, float(seg.baseline_tvr)) for seg in group)
+        pressure = day_pressure(supply, rows, day, key[1], today, delivered_of)
+        if pressure <= 0.0:
+            continue
+        priced = sum(
+            max(0.0, float(seg.baseline_tvr)) * max(0.0, float(seg.cpp)) for seg in group
+        )
+        if priced <= 0.0:
+            continue
+        pressure_of[key] = pressure
+        price_of[key] = priced / supply
+    if not pressure_of:
+        return net_of
+
+    def adjusted(segment: ProgramSegment, count: int) -> float:
+        base = net_of(segment, count)
+        key = (str(segment.day), str(segment.channel))
+        pressure = pressure_of.get(key, 0.0)
+        price = price_of.get(key, 0.0)
+        if pressure <= 0.0 or price <= 0.0 or count <= 0:
+            return base
+        unit = float(segment.unit_seconds) or 1.0
+        units = float(segment.break_length_seconds) / unit
+        points = count * max(0.0, float(segment.baseline_tvr)) * units
+        return base + shadow * pressure * price * points
+
+    return adjusted
 
 
 def seam_state(orders: Optional[Sequence[GoalOrder]]) -> dict[str, object]:
