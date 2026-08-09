@@ -32,7 +32,7 @@ from kairos.model.measure import read_coefficients_metadata
 from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
-from kairos.optimize.guardrails import Guardrails
+from kairos.optimize.guardrails import Guardrails, airtime_caps_from_mapping
 from kairos.optimize.day_core import _optimize_one_day
 from kairos.optimize.inventory import build_inventory_weights, load_inventory
 from kairos.optimize.objective import clamp
@@ -158,6 +158,7 @@ def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
             "protected_program_max_ad_minutes_per_hour", base.protected_max_ad_seconds_per_hour
         ),
         gold_breaks_max_per_day=gold_cap if gold_enabled else 0,
+        airtime_caps=airtime_caps_from_mapping(settings),
     )
 
 

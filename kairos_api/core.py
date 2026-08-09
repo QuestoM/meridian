@@ -21,12 +21,17 @@ import time
 from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Literal, Mapping, Optional, Sequence
 
 import pandas as pd
 from pydantic import BaseModel, Field
 
 from kairos.optimize.guardrails import Guardrails
+from kairos_api.airtime_cap_settings import (
+    DayFractionAdCapSettings,
+    WindowAdCapSettings,
+    airtime_caps_from_settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +98,11 @@ class KairosSettings(BaseModel):
     sponsorships_enabled: bool = True
     gold_breaks_enabled: bool = True
     gold_breaks_max_per_day: int = Field(default=3, ge=0, le=50)
+    # Optional caps beyond the hourly guardrail, absent unless configured. None
+    # means the cap DOES NOT EXIST, not that its limit is zero, so a settings
+    # file that never mentions them yields an engine that never applies them.
+    window_ad_cap: Optional[WindowAdCapSettings] = None
+    day_fraction_ad_cap: Optional[DayFractionAdCapSettings] = None
     require_manual_approval: bool = True
     notes: str = "Configurable baseline. Validate with current counsel and broadcaster policy before production use."
     # The operator is the client and owns exactly one channel. All placement
@@ -230,6 +240,9 @@ def _settings_to_guardrails(settings: KairosSettings) -> Guardrails:
         protected_program_types=tuple(settings.protected_program_types),
         protected_max_ad_seconds_per_hour=settings.protected_program_max_ad_minutes_per_hour * 60,
         gold_breaks_max_per_day=settings.gold_breaks_max_per_day,
+        airtime_caps=airtime_caps_from_settings(
+            settings.window_ad_cap, settings.day_fraction_ad_cap
+        ),
     )
 
 

@@ -14,9 +14,115 @@ policy before production use.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Iterable
+from typing import Any, Iterable, Mapping, Optional
+
+# The three states a cap can be in, and the only three this module reports. A
+# cap that is not enforced must never be presented as though it were, so "did
+# not run" is a first-class answer rather than a silent pass.
+CAP_ABSENT = "absent"        # not configured at all: the rule does not exist here
+CAP_AVAILABLE = "available"  # configured and switched off: expressible, not applied
+CAP_ENFORCED = "enforced"    # configured and switched on: applied to this plan
+
+SECONDS_PER_CALENDAR_DAY = 86400.0
+
+
+@dataclass(frozen=True)
+class WindowAdCap:
+    """A cap on total ad seconds inside a wall-clock window of one channel-day.
+
+    ``start_hour`` and ``end_hour`` are wall-clock hours on the broadcast day,
+    half-open as ``[start_hour, end_hour)``, so an end of 24 means "up to
+    midnight". A break belongs to the window when ITS OWN start falls inside it,
+    which is the same attribution the hourly cap uses (see
+    :func:`check_hourly_ad_load`): a break is counted whole, where it starts.
+
+    Nothing here is a regulatory figure. The hours and the limit are supplied by
+    whoever configures the cap; this type only knows how to apply them.
+    """
+
+    start_hour: int
+    end_hour: int
+    max_ad_seconds: float
+    enabled: bool = False
+
+
+@dataclass(frozen=True)
+class DayFractionAdCap:
+    """A cap on a channel-day's ad seconds as a fraction of the broadcast day.
+
+    ``day_seconds`` is the denominator the fraction is taken against and defaults
+    to a full calendar day. It is an explicit field because "the broadcast day"
+    is an assumption, not a constant: an operator that does not broadcast around
+    the clock has a shorter one, and the honest thing is to make the caller say
+    so rather than to bake a number in.
+    """
+
+    max_fraction: float
+    day_seconds: float = SECONDS_PER_CALENDAR_DAY
+    enabled: bool = False
+
+    @property
+    def max_ad_seconds(self) -> float:
+        return self.max_fraction * self.day_seconds
+
+
+@dataclass(frozen=True)
+class AirtimeCaps:
+    """Optional caps beyond the hourly guardrail, each absent unless configured.
+
+    Both fields default to ``None``, which means the cap DOES NOT EXIST rather
+    than that its limit is zero. That distinction is the whole point: an absent
+    cap contributes no violations and grades as :data:`CAP_ABSENT`, so a plan
+    built without one never carries a verdict it did not earn.
+    """
+
+    window: Optional[WindowAdCap] = None
+    day_fraction: Optional[DayFractionAdCap] = None
+
+    def states(self) -> dict[str, str]:
+        """Which state each cap is in, for the compliance read to disclose."""
+        return {
+            "window_ad_load": cap_state(self.window),
+            "day_fraction_ad_load": cap_state(self.day_fraction),
+        }
+
+
+def cap_state(cap: Optional[WindowAdCap | DayFractionAdCap]) -> str:
+    """Absent, available or enforced. Never a bare boolean."""
+    if cap is None:
+        return CAP_ABSENT
+    return CAP_ENFORCED if cap.enabled else CAP_AVAILABLE
+
+
+def airtime_caps_from_mapping(settings: Optional[Mapping[str, Any]]) -> AirtimeCaps:
+    """Build the optional caps from a settings mapping; missing keys stay absent.
+
+    The single translation both settings paths use, so the API model and the
+    plain-dict service path cannot drift into disagreeing about what a stored
+    cap means. A key that is absent, ``None`` or empty leaves its cap absent.
+    """
+    if not settings:
+        return AirtimeCaps()
+    window_raw = settings.get("window_ad_cap")
+    day_raw = settings.get("day_fraction_ad_cap")
+    window = None
+    if window_raw:
+        window = WindowAdCap(
+            start_hour=int(window_raw["start_hour"]),
+            end_hour=int(window_raw["end_hour"]),
+            max_ad_seconds=float(window_raw["max_ad_minutes"]) * 60.0,
+            enabled=bool(window_raw.get("enabled", False)),
+        )
+    day_fraction = None
+    if day_raw:
+        day_fraction = DayFractionAdCap(
+            max_fraction=float(day_raw["max_fraction_of_day"]),
+            day_seconds=float(day_raw.get("day_seconds", SECONDS_PER_CALENDAR_DAY)),
+            enabled=bool(day_raw.get("enabled", False)),
+        )
+    return AirtimeCaps(window=window, day_fraction=day_fraction)
 
 
 @dataclass(frozen=True)
@@ -31,6 +137,10 @@ class Guardrails:
     protected_program_types: tuple[str, ...] = ("News", "Children", "Kids")
     protected_max_ad_seconds_per_hour: float = 480.0  # 8 minutes
     gold_breaks_max_per_day: int = 3
+    # Optional caps, absent by default. An engine built without them behaves
+    # exactly as it did before they existed, which is what makes "off by
+    # default" a structural property rather than a promise.
+    airtime_caps: AirtimeCaps = field(default_factory=AirtimeCaps)
 
 
 @dataclass(frozen=True)
@@ -164,6 +274,63 @@ def check_daily_ad_load(breaks: Iterable[Break], guardrails: Guardrails) -> list
     return out
 
 
+def check_window_ad_load(breaks: Iterable[Break], guardrails: Guardrails) -> list[Violation]:
+    """Total ad seconds inside the configured wall-clock window of a channel-day.
+
+    Returns no violations when the cap is absent or switched off, so this is a
+    genuine no-op until an operator asks for it. A break counts toward the window
+    when its own start falls inside ``[start_hour, end_hour)``; a break that
+    starts inside and runs past the end is still counted whole, exactly as the
+    hourly cap counts it.
+    """
+    cap = guardrails.airtime_caps.window
+    if cap is None or not cap.enabled:
+        return []
+    seconds: dict[tuple[str, str], float] = defaultdict(float)
+    for item in breaks:
+        if cap.start_hour <= item.hour < cap.end_hour:
+            seconds[(item.channel, item.day)] += item.duration_seconds
+    out: list[Violation] = []
+    for (channel, day), total in seconds.items():
+        if total > cap.max_ad_seconds:
+            out.append(Violation(
+                code="window_ad_load",
+                scope=f"{channel}/{day} {cap.start_hour:02d}:00-{cap.end_hour:02d}:00",
+                observed=round(total, 1),
+                limit=cap.max_ad_seconds,
+                detail="ad seconds in the window exceed the limit",
+            ))
+    return out
+
+
+def check_day_fraction_ad_load(breaks: Iterable[Break], guardrails: Guardrails) -> list[Violation]:
+    """A channel-day's ad seconds against a fraction of the broadcast day.
+
+    Returns no violations when the cap is absent or switched off. This is a
+    separate rule from :func:`check_daily_ad_load`, which caps the same total
+    against an absolute duration; both can be configured and they do not replace
+    one another.
+    """
+    cap = guardrails.airtime_caps.day_fraction
+    if cap is None or not cap.enabled:
+        return []
+    limit = cap.max_ad_seconds
+    seconds: dict[tuple[str, str], float] = defaultdict(float)
+    for item in breaks:
+        seconds[(item.channel, item.day)] += item.duration_seconds
+    out: list[Violation] = []
+    for (channel, day), total in seconds.items():
+        if total > limit:
+            out.append(Violation(
+                code="day_fraction_ad_load",
+                scope=f"{channel}/{day}",
+                observed=round(total, 1),
+                limit=round(limit, 1),
+                detail=f"ad seconds exceed {cap.max_fraction:.4g} of the broadcast day",
+            ))
+    return out
+
+
 def check_gold_breaks(breaks: Iterable[Break], guardrails: Guardrails) -> list[Violation]:
     counts: dict[tuple[str, str], int] = defaultdict(int)
     for item in breaks:
@@ -191,6 +358,8 @@ def evaluate(breaks: Iterable[Break], guardrails: Guardrails) -> list[Violation]
     violations.extend(check_hourly_ad_load(items, guardrails))
     violations.extend(check_break_spacing(items, guardrails))
     violations.extend(check_daily_ad_load(items, guardrails))
+    violations.extend(check_window_ad_load(items, guardrails))
+    violations.extend(check_day_fraction_ad_load(items, guardrails))
     violations.extend(check_gold_breaks(items, guardrails))
     return violations
 
@@ -209,6 +378,8 @@ def is_compliant(breaks: Iterable[Break], guardrails: Guardrails) -> bool:
         check_hourly_ad_load,
         check_break_spacing,
         check_daily_ad_load,
+        check_window_ad_load,
+        check_day_fraction_ad_load,
         check_gold_breaks,
     )
     for check in checks:

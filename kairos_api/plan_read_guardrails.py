@@ -15,6 +15,7 @@ lru_cache instance.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from functools import lru_cache
 from typing import Any
 
@@ -22,6 +23,13 @@ import pandas as pd
 
 from kairos.optimize.guardrails import Break as GuardrailBreak
 from kairos.optimize.guardrails import evaluate as evaluate_guardrails
+from kairos.optimize.guardrails import (
+    CAP_ENFORCED,
+    Guardrails,
+    cap_state,
+    check_day_fraction_ad_load,
+    check_window_ad_load,
+)
 
 from kairos_api.core import (
     DATA_DIR,
@@ -216,6 +224,66 @@ def _min_break_spacing_seconds(items: list[GuardrailBreak]) -> float | None:
     return min(gaps) if gaps else None
 
 
+def _optional_cap_checks(items: list[GuardrailBreak], guardrails: Guardrails) -> list[dict[str, Any]]:
+    """One row per optional cap, saying plainly whether the rule actually ran.
+
+    An absent cap reports no observation and no limit: there is no window and no
+    fraction to measure against, so the honest answer is that the quantity is
+    unavailable, never that it is zero and never that the plan is compliant with
+    a rule nobody configured. A configured-but-off cap CAN be measured, so it
+    reports what it would have found and whether it would have bitten, under a
+    status that is not a compliance verdict. Only an enforced cap grades.
+    """
+    specs = (
+        ("window_ad_load", guardrails.airtime_caps.window, check_window_ad_load,
+         "Ad minutes in the capped window", "דקות פרסום בחלון המוגבל", "minutes/window"),
+        ("day_fraction_ad_load", guardrails.airtime_caps.day_fraction, check_day_fraction_ad_load,
+         "Ad time as a share of the broadcast day", "זמן פרסום כשיעור מיממת השידור", "minutes/day"),
+    )
+    rows: list[dict[str, Any]] = []
+    for check_id, cap, check_fn, label_en, label_he, unit in specs:
+        state = cap_state(cap)
+        row: dict[str, Any] = {
+            "id": check_id,
+            "violation_code": check_id,
+            "label_en": label_en,
+            "label_he": label_he,
+            "unit": unit,
+            "cap_state": state,
+            "observed": None,
+            "limit": None,
+            "violations": 0,
+            "status": state,
+        }
+        if cap is not None:
+            # The worst channel-day under this cap, measured whether or not the
+            # cap is switched on: a configured cap is a question we can answer.
+            if check_id == "window_ad_load":
+                scoped = [b for b in items if cap.start_hour <= b.hour < cap.end_hour]
+            else:
+                scoped = items
+            observed = _max_group_sum(
+                scoped, lambda item: (item.channel, item.day), lambda item: item.duration_seconds,
+            )
+            # Run the cap's own check with the switch forced on, so the verdict
+            # reported is the one the rule itself would reach rather than a
+            # second implementation of the same comparison.
+            forced = replace(cap, enabled=True)
+            field_name = "window" if check_id == "window_ad_load" else "day_fraction"
+            found = check_fn(items, replace(
+                guardrails,
+                airtime_caps=replace(guardrails.airtime_caps, **{field_name: forced}),
+            ))
+            row["limit"] = round(cap.max_ad_seconds / 60, 2)
+            row["observed"] = round(observed / 60, 2)
+            row["violations"] = len(found) if state == CAP_ENFORCED else 0
+            row["would_breach"] = bool(found)
+            if state == CAP_ENFORCED:
+                row["status"] = "at_risk" if found else "compliant"
+        rows.append(row)
+    return rows
+
+
 def guardrail_compliance_from_breaks(items: list[GuardrailBreak], settings: KairosSettings) -> dict[str, Any] | None:
     if not items:
         return None
@@ -319,9 +387,22 @@ def guardrail_compliance_from_breaks(items: list[GuardrailBreak], settings: Kair
             )
         check["status"] = "at_risk" if count else "compliant"
         check["violations"] = count
+        # Every check above always runs, so it grades a rule that was applied.
+        # The optional caps below say for themselves whether they did.
+        check["cap_state"] = CAP_ENFORCED
+
+    # ``checks`` stays the list of rules that ACTUALLY RAN against this plan, so
+    # a caller counting it is counting graded rules and nothing else. An
+    # optional cap joins it only once enforced; absent and available caps live
+    # in ``optional_caps`` alone, where their state is the headline. That is what
+    # stops a plan from carrying a badge earned by a rule nobody ran.
+    optional = _optional_cap_checks(items, guardrails)
+    checks.extend(row for row in optional if row["cap_state"] == CAP_ENFORCED)
 
     return {
         "checks": checks,
+        "optional_caps": optional,
+        "cap_states": guardrails.airtime_caps.states(),
         "violations": [
             {
                 "code": violation.code,

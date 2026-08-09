@@ -22,6 +22,7 @@ from typing import Any
 import pandas as pd
 
 from kairos_api import plan_read_guardrails
+from kairos_api.airtime_cap_settings import airtime_caps_from_settings
 from kairos_api.core import KairosSettings, _summarize_schedule
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,10 @@ def build_compliance(
             "checks": break_level["checks"],
             "violations": break_level["violations"],
             "status": break_level["status"],
+            # Which optional caps actually ran. A reader must be able to tell a
+            # verdict that applied a rule from one that never had it.
+            "optional_caps": break_level["optional_caps"],
+            "cap_states": break_level["cap_states"],
             "disclaimer": settings.notes,
         }
 
@@ -124,5 +129,13 @@ def build_compliance(
         "checks": checks,
         "violations": [],
         "status": "at_risk" if any(check["status"] == "at_risk" for check in checks) else "compliant",
+        # This fallback grades from the schedule frame alone, with no break
+        # geometry, so it cannot evaluate the optional caps at all. It still
+        # reports which state they are in rather than staying silent about them,
+        # and reports no observation rather than a zero it did not measure.
+        "optional_caps": [],
+        "cap_states": airtime_caps_from_settings(
+            settings.window_ad_cap, settings.day_fraction_ad_cap
+        ).states(),
         "disclaimer": settings.notes,
     }

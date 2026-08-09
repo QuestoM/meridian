@@ -1,9 +1,14 @@
 """Kairos optimization: revenue and retention economics, guardrails, optimizer."""
 
 from kairos.optimize.guardrails import (
+    AirtimeCaps,
     Break,
+    DayFractionAdCap,
     Guardrails,
     Violation,
+    WindowAdCap,
+    airtime_caps_from_mapping,
+    cap_state,
     evaluate,
     is_compliant,
 )
@@ -36,11 +41,16 @@ __all__ = [
     "AdvertiserAgreement",
     "AgreementConstraint",
     "AgreementViolation",
+    "AirtimeCaps",
     "Break",
     "BreakPlacement",
+    "DayFractionAdCap",
     "Decision",
     "Guardrails",
+    "WindowAdCap",
     "agreement_violations",
+    "airtime_caps_from_mapping",
+    "cap_state",
     "load_agreements",
     "OptimizationResult",
     "OptimizerAssumptions",
