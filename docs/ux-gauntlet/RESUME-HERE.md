@@ -6,9 +6,29 @@ handed. Everything below was measured, not remembered.
 
 ---
 
-## The one-line state, 2026-08-10
+## The one-line state, 2026-08-10, CORRECTED
 
-ALL WAVES ARE CLOSED. Two, three, four, five and six. **Wave two closed by
+I wrote "all waves are closed" here and it was WRONG. It is true of the
+follow-on workstreams and false of the thing this campaign is named after.
+
+**WAVE ONE, THE GAUNTLET ITSELF, IS OPEN. One piece of twelve has passed.**
+`state/P7.json` is the only `passed: true`. Every other piece reads `passed:
+false`, and the note on most of them says exactly why:
+
+> "Still false. The class fix did not re-run the four bars; no blind sweep has
+> passed this piece."
+
+That is the distinction I collapsed. **The defect CLASSES are closed** and each
+has a guard proven to bite: direction, dates, cards, accents, colours, native
+controls, six of them green with empty quarantines. **The PIECES are not judged.**
+Closing a class is a measurement anyone can repeat; passing a piece requires a
+BLIND CRITIC re-running the four bars against that piece, and none has been run
+since the class fixes landed. A guard going green is not a verdict.
+
+So: pieces P3, P4, P5, P6, P8, P9, P10, P11, P12 are unjudged, P7 passed, and P1
+and P2 passed in wave one's earlier rounds.
+
+WAVES TWO, THREE, FOUR, FIVE AND SIX ARE CLOSED. **Wave two closed by
 measurement rather than by work:** its 80-row backlog is 12 CLASSES, and 76 of
 the 80 rows were already covered by guards that exist and are green, including
 all 62 rows of its single largest class. Of the four left, three are judgement
