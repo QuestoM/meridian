@@ -242,3 +242,38 @@ naming instead of running off the card.
 
 Add it here first, then apply it. A pattern that exists in one file and nowhere
 else is not a rule, it is an accident waiting to be copied.
+
+## A cell that TRUNCATES must not also GROW
+
+Measured 2026-08-09 on the break library, reported by the owner from a
+screenshot, then measured rather than eyeballed.
+
+`.pod-row span:nth-child(2)` carried `flex: 1`. The intent is right and readable:
+let the programme name have the room, and truncate it when the row is tight. The
+behaviour is not the intent. `flex: 1` says "give this cell every spare pixel",
+so a cell holding the eight characters of `חדשות 13` measured **815 pixels wide**
+and opened **756 pixels of dead air** between the programme name and the facts
+beside it.
+
+**It also defeated the separator rule two declarations below it.** Rule 3 says a
+row of facts needs a separator rather than whitespace. A divider is meant to
+stand between two ADJACENT facts. With a grown cell in the middle it stood 750
+pixels away from the content it was dividing, which is exactly the whitespace the
+rule exists to replace.
+
+**The rule.** In a row of facts, a cell that truncates takes `flex: 0 1 auto`. It
+shrinks when the row is tight, which is the whole point of the ellipsis, and it
+does not grow when the row is roomy. Slack falls at the end of the row, where it
+is margin and reads as margin.
+
+**This is a SITE and not a class, and it was measured rather than assumed.** Ten
+stylesheets use the separator rule; three of them also declare `flex: 1`, and all
+three are legitimate: two are scroll panels filling a column, one is a vertical
+stack that should grow. `.pod-row` was the only horizontal fact row with a
+growing cell.
+
+**No guard was added, on purpose.** A static rule banning `flex-grow` inside a
+separator row would misfire on every one of those three. The defect only appears
+when the content is SHORT, so catching it needs a rendered measurement rather
+than a source check, and a guard that fires on correct code gets switched off.
+The rule is written here instead, which is the honest instrument for it.

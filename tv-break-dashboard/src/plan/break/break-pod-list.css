@@ -117,8 +117,19 @@
   cursor: pointer;
 }
 
+/* The programme cell TRUNCATES when the row is tight and does not GROW when it
+   is roomy. It used to be flex: 1, which reads as "let the long name have the
+   space" and behaves as "give this one cell every spare pixel". Measured on the
+   break library at a 1440 viewport: the cell was 815px wide to hold the eight
+   characters of חדשות 13, so 756px of dead air opened between the programme name
+   and the facts beside it.
+   That also defeated the separator rule below it. A divider is meant to stand
+   between two adjacent facts; with a grown cell in the middle it stood 750px
+   from the content it was dividing, which is the whitespace the rule exists to
+   replace. So the row now packs its cells together and the slack falls at the
+   end of the row, where it is just margin. */
 .pod-row span:nth-child(2) {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
