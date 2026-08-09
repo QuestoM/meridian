@@ -520,11 +520,24 @@ agree: four rewrites plus one deliberate export.
 
 Same number of breaks, distributed differently, slightly less money.
 
-**Why it drifted.** Almost certainly this session's own engine work. The gold
-override that was moving 131,878.70 was set inert, 41 advertiser rules were bound
-where none had been, and the preferred-position set stopped being guessed. Each
-of those changes what the optimizer sees. I have NOT isolated which, and I am not
-guessing at the split.
+**Why it drifted, and I was wrong about this too.** I assumed this session's own
+engine work. It is not. I extracted the exact tree from the commit that COMMITTED
+the plan and ran a full export inside it: it produced the SAME file today's tree
+does. **The artifact committed in that commit was never what that commit's own
+code produced.**
+
+It has been carried forward by RESTORE rather than by EXPORT, for several
+commits. Its content even appears twice in the file's own history with different
+content in between, which is the signature of a restore rather than a rebuild.
+
+That is possible only because THE GOLDEN AND THE ARTIFACT ARE DIFFERENT THINGS.
+The golden asserts against its own embedded baseline, not against this file, so
+it can be green while the shipped artifact matches nothing the engine produces.
+It was, and it has been for longer than this session.
+
+So the 17,966.31 is not the price of anything done today. It is the accumulated
+distance between a file nobody rebuilt and the engine that was supposed to have
+built it.
 
 **What I need from you, and there are two questions.**
 

@@ -27,6 +27,21 @@
 >
 > **What does not survive:** the suggestion that it explains this artifact.
 >
+> **AND THE DRIFT IS OLDER THAN TODAY.** I extracted the exact tree at
+> `fec20f1d`, the commit that COMMITTED the plan, and ran a full export in it.
+> It produced `d4573c00` as well. **So the artifact committed in that commit was
+> never what that commit's own code produced.** It had already been carried
+> forward by restore rather than by export, across several commits, and the
+> content `6a5944b4` appears twice in the file's history with different content
+> in between.
+>
+> That is only possible because THE GOLDEN AND THE ARTIFACT ARE DIFFERENT THINGS.
+> `tests/golden_weekly_schedule.py` asserts against its own embedded baseline, not
+> against `output/weekly_break_schedule.csv`, so the golden can be green while the
+> shipped artifact matches nothing. It was, and it has been.
+>
+> So the 17,966.31 is NOT attributable to this session's engine work.
+>
 > The measured drift between the committed plan and what the current tree
 > produces: 68 of 8,704 segments carry a different break count, the break total
 > is IDENTICAL at 9,026, and revenue is **17,966.31 lower**, of which 9,350.68 is
