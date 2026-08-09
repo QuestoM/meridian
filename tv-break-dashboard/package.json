@@ -13,8 +13,9 @@
     "test:card": "node scripts/verify-card-rules.mjs",
     "test:dates": "node scripts/verify-date-rules.mjs",
     "test:accent": "node scripts/verify-accent-rules.mjs",
-    "test:guards": "npm run test:card && npm run test:direction && npm run test:dates && npm run test:accent && npm run test:smoke",
-    "test:all": "npm run build && npm run test:guards"
+    "test:guards": "npm run test:card && npm run test:direction && npm run test:dates && npm run test:accent && npm run test:colour && npm run test:smoke",
+    "test:all": "npm run build && npm run test:guards",
+    "test:colour": "node scripts/verify-colour-rules.mjs"
   },
   "keywords": [],
   "author": "",
