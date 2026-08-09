@@ -249,7 +249,22 @@ def test_the_inverse_holds_when_the_gold_act_removes_the_break_it_was_performed_
         pytest.skip("no gold mark on this day removed the break it was performed on")
 
     target, after_board = stranded
-    assert after_board["totals"]["breaks"] < before["breaks"]
+    # The break COUNT is deliberately not asserted to fall any more.
+    #
+    # This said `after < before`, and the docstring records the measurement it
+    # was written from: marking 001~4 gold took the day from 80 breaks to 79. On
+    # 2026-08-09 the exact DP tier learned to plan WITH a gold constraint instead
+    # of declining the whole channel-day the moment it saw one, and the day now
+    # keeps all 80. That is the improvement, not a regression: an operator who
+    # marks a break gold no longer pays a break for it.
+    #
+    # What this test is actually about survives untouched, and is asserted below:
+    # the mark stranded the break it was performed on, and the inverse still
+    # finds its way back, because the route parses the programme out of the id
+    # rather than looking the id up in a plan that no longer holds it.
+    assert after_board["totals"]["breaks"] <= before["breaks"], (
+        "a gold mark added breaks to the day, which no act here should do"
+    )
     assert after_board["totals"]["revenue"] != pytest.approx(before["revenue"], abs=0.005), (
         "a mark that changed nothing would not be evidence of anything"
     )
