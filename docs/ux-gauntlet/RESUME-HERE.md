@@ -131,12 +131,22 @@ Its top three, all confirmed:
    five modelled audiences do not include Jewish households and nothing records
    which rating vintage a held TVR is.
 
-   **AND IT CORRECTED THIS FILE.** I wrote "overnight plus one" here. That is NOT
-   CONFIRMED as published Israeli usage: the published term is OVERNIGHT, live
-   plus deferred viewing to 02:00, and searches in both languages returned
-   nothing for the plus-one form. Two readings fit and they imply DIFFERENT
-   STORED VINTAGES, which is the part that bears on code. Deferred viewing moves
-   published figures by +0.1 to +8.1 rating points.
+   **THIS FILE WAS CORRECTED AND THEN THE CORRECTION WAS CORRECTED, both on
+   2026-08-09, and the second one is the interesting half.** I wrote "overnight
+   plus one" here. A search of the measurement body's own publications found only
+   OVERNIGHT, live plus deferred to 02:00, and no plus-one form in either
+   language, so it was reported NOT CONFIRMED. Hours later a different agent
+   found it attested in Hebrew in the buyers' own trade guide: „כולל צפייה נדחית
+   של 24 שעות מרגע השידור (overnight +1)", in one sentence with Jewish households
+   and the quarter-hour and the length factor.
+
+   So the trade document was right all along, and the second reading is the true
+   one: "+1" is a further 24 hours of deferred viewing, not the next morning's
+   publication. **The lesson is the one worth carrying: a negative result from
+   one set of sources is not a negative result.** The measurement body publishes
+   what it MEASURES; the trade guide publishes what people PAY ON. Ours is the
+   second question. Deferred viewing moves published figures by +0.1 to +8.1
+   rating points, so the vintage is not a rounding question.
 
    The qualifier that stops this being misread: the PANEL is not Jewish-only. It
    measures television households excluding East Jerusalem and Gaza, and the

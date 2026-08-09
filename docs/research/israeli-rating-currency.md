@@ -32,14 +32,48 @@ rather than re-derives.
 
 ---
 
-# THE CORRECTION: "overnight plus one" is not confirmed usage
+# THE CORRECTION, AND THEN THE CORRECTION TO THE CORRECTION
 
-**ACTIONABLE. This corrects a document in this repo.**
+**RESOLVED 2026-08-09, LATER THE SAME DAY. `overnight +1` IS ATTESTED, in
+Hebrew, in an Israeli primary source, and the reading is settled.**
 
-`docs/ux-gauntlet/RESUME-HERE.md:127` states the trade settles on "Jewish
-households, quarter-hour, overnight plus one". The first two are confirmed by
-this research (sections 4 and 5 below). **The third is NOT CONFIRMED as published
-Israeli usage.**
+The Israeli Marketing Association, itself a member of the rating committee,
+publishes in its Media Guide at https://www.ishivuk.co.il/מדריך-מדיה-2/ :
+
+> „שיטת התמחור המקובלת כיום היא לפי **עלות לנקודת רייטינג בתי אב יהודיים** לכל
+> רצועת שידור… כולל **צפייה נדחית של 24 שעות מרגע השידור (overnight +1)**…
+> התשלום בפועל מתבצע על פי CPP שנקבע כפול אחוז **רייטינג רבעי שעה** לכל ספוט
+> כפול מקדם האורך."
+
+One sentence carries all three terms the trade document names, in the trade
+document's own order, plus the length factor. **And it settles the ambiguity
+below in favour of reading 2: "+1" is a further 24 hours of deferred viewing
+from the moment of broadcast, not the D+1 publication of the overnight figure.**
+
+So the trade document was right, the search that could not find the term was not
+wrong to report that, and the resolution came from a source the first search did
+not reach. Caveat kept: the guide is bylined 2014 and describes the pre-2017
+channel structure, and no newer public Israeli source restates or contradicts the
+mechanics.
+
+**WHY THE ORIGINAL FINDING IS LEFT STANDING BELOW RATHER THAN DELETED.** It was
+correct as reported: a careful search of the measurement body's own publications
+found only OVERNIGHT and no plus-one form, and it named the two readings that fit
+rather than picking one. The lesson is not that it was sloppy. It is that a
+NEGATIVE result from one set of sources is not a negative result, and the thing
+that closed it was a different source type entirely: the buyers' trade guide
+rather than the measurement body's own site. The measurement body publishes what
+it MEASURES; the trade guide publishes what people PAY ON. They are different
+questions and the second one is ours.
+
+---
+
+## The original finding, superseded, kept for the reason above
+
+`docs/ux-gauntlet/RESUME-HERE.md` stated the trade settles on "Jewish households,
+quarter-hour, overnight plus one". The first two are confirmed by this research
+(sections 4 and 5 below). The third was reported as NOT CONFIRMED as published
+Israeli usage, on the evidence available at the time:
 
 The only term the IARB publishes is **OVERNIGHT**, defined as live viewing plus
 deferred viewing up to 02:00 on the night of broadcast (finding 6a). No Israeli
