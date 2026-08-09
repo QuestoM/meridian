@@ -28,11 +28,56 @@ since the class fixes landed. A guard going green is not a verdict.
 So: pieces P3, P4, P5, P6, P8, P9, P10, P11, P12 are unjudged, P7 passed, and P1
 and P2 passed in wave one's earlier rounds.
 
-WAVES TWO, THREE, FOUR, FIVE AND SIX ARE CLOSED. **Wave two closed by
-measurement rather than by work:** its 80-row backlog is 12 CLASSES, and 76 of
-the 80 rows were already covered by guards that exist and are green, including
-all 62 rows of its single largest class. Of the four left, three are judgement
-for the owner and one was a gap in a guard, now closed.
+### TWO THINGS ARE BOTH CALLED "WAVE TWO", which is how I got this wrong
+
+Measured 2026-08-10 off `state.json`'s own `wave` field, which is the authority:
+
+| the gauntlet's BUILD waves | pieces |
+|---|---|
+| wave 0 | W0-1 … W0-5, all passed |
+| wave 1 | **P1 … P9**, nine pieces |
+| wave 2 | **P10, P11, P12, P13**, four pieces |
+
+The marathon's numbered SWEEP waves (the backlog rounds, two through six) are a
+different sequence entirely, and those are the ones closed below. Saying "wave
+two is closed" is true of the sweep and false of the build, and collapsing them
+is exactly what produced the "all waves are closed" error this file opens with.
+**Name which sequence you mean, every time.**
+
+That also corrects the count above. "One of twelve" spans both build waves. Per
+wave, measured:
+
+- **Build wave 1 (P1-P9).** P7 passed and is the only piece with an artifact
+  proving it: `state/P7.json` carries `passed: true` at round 5, beside a critic
+  file. P3, P4, P5, P6, P8 and P9 are in critique now.
+- **P1 AND P2 ARE CLAIMED PASSED AND I CANNOT EVIDENCE EITHER.** There is no
+  `state/P1.json`, no `state/P2.json`, and no P1 contract file; P2 has a contract
+  carrying no verdict. This file and `critic-briefing.md` both assert the pass and
+  neither cites an artifact. `update_state.py` would refuse to publish it, and it
+  is right to: a claim is not evidence, which is the standard the whole campaign
+  judges the product by. Either the round record is found, or the two pieces are
+  re-judged, or the claim is retracted. Do not carry it forward as fact.
+- **Build wave 2 (P10-P13).** P10, P11 and P12 have state files dated 08-09 and
+  are in critique now. **P13, Media verification, has not been started at all:**
+  no contract, no state file, and none of its three owned files
+  (`kairos_api/media_api.py`, `kairos_api/media_store.py`, `data/media_assets.csv`)
+  exists. It is absent from the critic briefing, which is correct for a wave-one
+  round and not a gap.
+
+**`state.json` IS NOT THE CURRENT STATE.** Its `meta.generated_at` is
+2026-07-31, its `campaign.phase` still reads `wave0_building`, and it carries
+eight rounds, all of them SPEC and W0. Every P-piece in it reads `waiting` with
+zero rounds while P4 alone has twelve rounds of recorded history. The workbench
+page embeds a copy older still. **Trust this file and the per-piece
+`state/<piece>.json` files; treat `state.json` as a wave-0 artifact until the
+wave-one verdicts are published into it.** Publishing them is what closing wave
+one MEANS, and it goes through `update_state.py` (never by hand).
+
+WAVES TWO, THREE, FOUR, FIVE AND SIX OF THE SWEEP ARE CLOSED. **Sweep wave two
+closed by measurement rather than by work:** its 80-row backlog is 12 CLASSES,
+and 76 of the 80 rows were already covered by guards that exist and are green,
+including all 62 rows of its single largest class. Of the four left, three are
+judgement for the owner and one was a gap in a guard, now closed.
 
 SIX frontend guards, all green, all quarantines empty, and `npm run test:all`
 runs the BUILD FIRST because five design guards passed twice on a tree that would
