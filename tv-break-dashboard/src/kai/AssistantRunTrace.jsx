@@ -48,6 +48,8 @@ const STEP_LABELS = {
   get_event_pipeline: ['Reading the event pipeline', 'קורא את מסלול האירועים'],
   get_agencies: ['Reading the agencies', 'קורא את הסוכנויות'],
   get_top_advertisers: ['Reading the advertiser ledger', 'קורא את ספר המפרסמים'],
+  get_break_pods: ['Reading the day\'s break contents', 'קורא את תוכן הברייקים של היום'],
+  get_pod: ['Reading one break\'s contents', 'קורא את תוכן הברייק'],
   list_uploads: ['Listing your uploaded files', 'מציג את הקבצים שהעליתם'],
   get_upload: ['Reading an uploaded file', 'קורא קובץ שהועלה'],
   find_advertiser: ['Matching an advertiser', 'מאתר מפרסם'],
@@ -101,6 +103,8 @@ const SOURCE_HE = {
   'audience model artifact (models/audience_model.json) plus the activation flag': 'קובץ מודל הקהל ומצב ההפעלה שלו',
   'event pipeline snapshot (events store, pricing layer, schedule freshness, training gate)': 'תמונת מסלול האירועים: מאגר האירועים, שכבת התמחור ועדכניות התוכנית',
   'assistant uploads (own)': 'הקבצים שהעליתם',
+  'daily traffic files on disk (data/daily_input), the pods of one broadcast day': 'קובצי הטראפיק היומיים בדיסק, תוכן הברייקים של יום שידור אחד',
+  'daily traffic files on disk (data/daily_input), the pod of one break': 'קובצי הטראפיק היומיים בדיסק, תוכן ברייק אחד',
   'unknown tool': 'כלי לא מוכר',
 };
 

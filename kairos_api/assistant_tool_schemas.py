@@ -92,6 +92,13 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
     ),
 ]
 
+# The pod tools' schemas are defined beside their executors, so the description
+# and what the executor returns cannot drift apart. They ride in this list so
+# READ_TOOL_NAMES, which freezes at import, carries them.
+from kairos_api.assistant_read_tools_pod import POD_READ_TOOL_SCHEMAS  # noqa: E402
+
+EXTRA_READ_TOOL_SCHEMAS.extend(POD_READ_TOOL_SCHEMAS)
+
 EXTRA_PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     _tool(
         "propose_event_change",

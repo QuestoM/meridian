@@ -125,6 +125,14 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
     advertisers = _advertisers_frame()
     if len(advertisers):
         args["get_advertiser_pricing"] = {"advertiser": str(advertisers.iloc[0]["advertiser_id"])}
+    # The pod tool needs a real pod id, so the leak scan bites on a real pod with
+    # its real advertisers, campaigns and agencies rather than on an error stub.
+    from kairos_api import break_api_pod
+
+    covered = break_api_pod.covered_days()
+    pods = break_api_pod.pods_for_day(covered[0]) if covered else []
+    if pods:
+        args["get_pod"] = {"pod_id": pods[0]["pod_id"]}
     return args
 
 

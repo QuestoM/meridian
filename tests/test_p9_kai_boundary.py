@@ -48,8 +48,10 @@ def channel_account(tmp_path, monkeypatch):
 
 
 # --- the propose-only contract, the Bar 3 floor for this piece ---------------
-def test_the_tool_surface_is_still_31_read_8_propose_and_0_write() -> None:
-    assert len(assistant_tools.READ_TOOL_NAMES) == 31
+def test_the_tool_surface_is_still_33_read_8_propose_and_0_write() -> None:
+    # 33 since the two pod read tools landed: the traffic operator's own object
+    # was the one thing Kai was told to be exact about and could not read.
+    assert len(assistant_tools.READ_TOOL_NAMES) == 33
     assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 8
     every_name = assistant_tools.READ_TOOL_NAMES | assistant_tools.PROPOSE_TOOL_NAMES
     assert len(assistant_tools.anthropic_tools()) == len(every_name)

@@ -130,6 +130,16 @@ def _read_get_compliance(args: dict[str, Any], user: str | None = None) -> dict[
     return {
         "status": verdict.get("status"),
         "profile": verdict.get("profile"),
+        # The prompt tells the compliance owner's persona to "name the profile
+        # and its effective date". This returned the profile and dropped the
+        # date, while the licence envelope has carried both plus the source URL
+        # in one dict all along. So the model was instructed to state a date it
+        # was never given, which is the shape that produces a confident wrong
+        # answer rather than a refusal. The source is here too: a regulatory
+        # claim a reader cannot follow to its source is worth less than one they
+        # can.
+        "effective_date": verdict.get("effective_date"),
+        "source_url": verdict.get("source_url"),
         "checks": checks,
         "violations_total": len(violations),
         "violations_sample": violations[:5],

@@ -340,10 +340,12 @@ def register(executors: dict[str, Any], sources: dict[str, str]) -> None:
     """Merge these executors and their source labels into the shared registry."""
     executors.update(_CATALOG_READ_EXECUTORS)
     sources.update(CATALOG_SOURCE_BY_TOOL)
-    # The event-pipeline and audience-model executors live in their own modules
-    # (size cap); registering them here keeps the one-registry rule.
+    # The event-pipeline, audience-model and pod executors live in their own
+    # modules (size cap); registering them here keeps the one-registry rule.
     from kairos_api.assistant_audience_model import register as register_audience
     from kairos_api.assistant_event_pipeline import register as register_pipeline
+    from kairos_api.assistant_read_tools_pod import register as register_pod
 
     register_pipeline(executors, sources)
     register_audience(executors, sources)
+    register_pod(executors, sources)
