@@ -161,6 +161,46 @@ a critic with nowhere to put a small finding.
 
 ## C. The waves, in the order they should run
 
+## What actually happened, 2026-08-09, against the order below
+
+The order below was written on 2026-08-08 and it is kept because the reasoning in
+it still holds. What follows is what MEASUREMENT did to it, which is the more
+useful document.
+
+**Wave six finished first.** The remaining engine regression was ranked last
+because it looked like a hard optimizer bug. It was a DATA restore: one row in
+`data/manual_overrides.csv`, written by an agent's browser walk on 2026-08-01,
+the same walk that polluted the settings. With it inert the engine reproduces the
+committed golden byte-exact across all 120 channel-days. Ranking work by how hard
+it LOOKS is how the cheapest thing on the list stays last.
+
+**Wave three shrank on contact.** The direction class was 68 violations and the
+sweep closed it to zero, but the accent bar the owner reported had never been
+COUNTED at all: 23 across 11 files. The card quarantine hid only 9. A backlog of
+80 items collapsed to a handful of real classes once each was measured instead of
+being read.
+
+**Wave four split honestly.** Coverage before mentions was right, and coverage
+turned out to be five gaps rather than one. The pod landed; the break itself, the
+pacing it can name a remedy for but not read, the plan version and the
+account-administrator persona are still open. The mention system has not started
+and its research still answers the wrong surface, which is recorded below.
+
+**Wave five has a dossier now**, `dossiers/G1.md`, and writing it moved the piece
+before any code was written. The headline measurement: the goal is ALREADY
+modelled, on 51 to 55 campaigns, and reaches the pacing board, the delivery
+ledger and the commitment check. It reaches the optimizer ZERO times. So the
+piece is not "add a goal", it is "carry it across the seam and settle against
+it", which is a different and much smaller thing than the roadmap assumed.
+
+**The rule this session earned.** A wave's size is unknown until its class is
+counted, and reading a backlog is not counting it. Four items on that backlog
+were already closed, three more were one measurement each, and the two that
+looked smallest, the accent bar and the seconds mark, were the two that turned
+out to be classes spanning eleven and eight files.
+
+---
+
 **Wave three, the sweep wave.** Close the backlog by class, not by site. Each
 class gets a widened guard proven to fail on the old behaviour. This is where
 the owner's reported defects land, because every one of them turned out to be a
