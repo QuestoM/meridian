@@ -41,6 +41,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from kairos_api import campaigns_commitment as commitment
+from kairos_api import campaigns_goal_order as goal_order
 from kairos_api.campaigns_api_words import (  # noqa: F401 - re-exported store surface
     FIELD_WORDS,
     GOAL_KIND_VOCABULARY,
@@ -261,6 +262,11 @@ def campaigns_with_flights(frame: pd.DataFrame) -> list[dict[str, Any]]:
             (flight_record(flight) for _, flight in own.iterrows()),
             key=lambda flight: (flight["starts_on"], flight["flight_id"]),
         )
+        # Which of the three kinds of order this is, published rather than left
+        # to a reader to infer. A goal-based order books no lines at all and is
+        # COMPLETE that way, so no surface may render its absent spot list as
+        # missing data. See kairos_api.campaigns_goal_order.
+        record["order"] = goal_order.order_block(record["commitment"], record["flights"])
         campaigns.append(record)
     campaigns.sort(key=lambda item: (item["status"] != "active", item["starts_on"], item["campaign_id"]))
     return campaigns

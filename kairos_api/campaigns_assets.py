@@ -21,6 +21,15 @@ carrying its own state, its reason and the action that would resolve it, so a
 surface can render "not known yet, here is how to know" instead of an empty cell
 that reads as "fine".
 
+A creative also carries a **validity window**: until when it may be scheduled.
+The trade calls that a constraint, and it is a property of one tape rather than a
+relation between two, so it is a column here (``valid_from`` and ``valid_until``)
+and not a rule elsewhere. The traffic log declares no window, so every row read
+from it reports the window unknown with the path to supply it, exactly like the
+four properties only a video can answer. The window's own arithmetic, and the
+paired-creative constraint that is NOT a property of one tape, are in
+:mod:`kairos_api.campaigns_assets_constraints`.
+
 Every row the demo seed writes carries ``is_demo`` true, because the campaign it
 hangs on is a seeded booking rather than a signed one. The identity half of the
 row is still real and says so in ``identity_source``.
@@ -33,6 +42,7 @@ from typing import Any, Optional
 
 import pandas as pd
 
+from kairos_api import campaigns_assets_constraints as constraints
 from kairos_api import campaigns_commitment as commitment
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,6 +68,9 @@ COLUMNS = [
     "clearance_verdict",
     "clearance_authority",
     "clearance_checked_at",
+    "valid_from",
+    "valid_until",
+    "validity_source",
     "first_observed_on",
     "last_observed_on",
     "airings_observed",
@@ -120,6 +133,12 @@ UNKNOWN_PATHS = {
         "say whether the spot is fit to air.",
         "רשמו את החלטת הכשירות עבור מספר הבית הזה, או חברו את מערכת הכשירות, כדי לומר אם התשדיר "
         "כשיר לשידור.",
+    ),
+    "validity": (
+        "Record the last day this creative may be scheduled. The traffic log records what aired, "
+        "not until when a tape may air, so no window can be read from it.",
+        "רשמו את היום האחרון שבו מותר לתזמן את התשדיר הזה. קובץ הטראפיק רושם מה שודר, ולא עד מתי "
+        "מותר לשדר, ולכן לא ניתן לקרוא ממנו חלון תוקף.",
     ),
 }
 
@@ -202,6 +221,8 @@ def asset_record(row: Any) -> dict[str, Any]:
             "path_en": UNKNOWN_PATHS["clearance"][0] if verdict == "unknown" else "",
             "path_he": UNKNOWN_PATHS["clearance"][1] if verdict == "unknown" else "",
         },
+        # Authored, not observed: until when this tape may be scheduled.
+        "validity": constraints.validity_window(row),
         "is_demo": demo,
         "demo": commitment.demo_block(demo),
         "notes": _text(row, "notes"),
@@ -224,7 +245,9 @@ def summarise(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     ``fit_to_air_unknown`` is counted rather than assumed away, because a
     campaign whose every tape is unchecked is the normal state of this product
-    and the board has to be able to say so.
+    and the board has to be able to say so. ``validity_unknown`` is counted for
+    the same reason and today equals ``count`` on every campaign, because no
+    window has ever been recorded.
     """
     if not records:
         return {
@@ -235,7 +258,11 @@ def summarise(records: list[dict[str, Any]]) -> dict[str, Any]:
             "fit_to_air": 0,
             "fit_to_air_unknown": 0,
             "media_unknown": 0,
+            "validity_unknown": 0,
+            "paired": 0,
         }
+    campaigns = {item["campaign_id"] for item in records}
+    paired = sum(len(constraints.pairs_for_campaign(campaign)) for campaign in campaigns)
     return {
         "count": len(records),
         "reason_en": "",
@@ -244,6 +271,11 @@ def summarise(records: list[dict[str, Any]]) -> dict[str, Any]:
         "fit_to_air": sum(1 for item in records if item["clearance"]["fit_to_air"] is True),
         "fit_to_air_unknown": sum(1 for item in records if item["clearance"]["fit_to_air"] is None),
         "media_unknown": sum(1 for item in records if item["media"]["state"] == "unknown"),
+        "validity_unknown": sum(1 for item in records if item["validity"]["state"] == "unknown"),
+        # How many pairs an operator has authored over this campaign's creatives.
+        # Zero everywhere today, and zero is the true count of authored agreements
+        # rather than a stand-in for one nobody has entered.
+        "paired": paired,
     }
 
 

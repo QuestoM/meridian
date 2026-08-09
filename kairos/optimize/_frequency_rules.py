@@ -23,9 +23,17 @@ Scoping and composition. A limit can be authored at four scopes:
 
 For one limit_type the EFFECTIVE rule is the most specific match
 (ad > campaign > advertiser > default). :func:`resolve_effective` implements that
-single, clean precedence. COMPETITIVE_SEPARATION is different: it is keyed by a
-named ``competing_group`` (a set of advertisers that compete, e.g. two banks) and
-is resolved per group, not per advertiser, by :func:`competitive_groups`.
+single, clean precedence.
+
+Two limit types are RELATIONS rather than caps, and neither resolves by
+specificity. COMPETITIVE_SEPARATION is keyed by a named ``competing_group`` (a
+set of advertisers that compete, e.g. two banks) and is resolved per group by
+:func:`competitive_groups`. PAIR_SEPARATION names two creatives of ONE campaign
+that must air in the same break with a stated number of other advertisements
+between them, and is resolved per authored pair by :func:`pair_rules`. A relation
+holds between two things, so asking which of two relations is "more specific"
+about one spot is not a question, and neither goes through
+:func:`resolve_effective`.
 
 Honesty rules: an empty file (header only) yields no rules, so with no authored
 rule the spot log is unchanged (identity). A malformed row is skipped with a
@@ -50,12 +58,14 @@ MAX_CONSECUTIVE = "max_consecutive"        # no same target in N adjacent break 
 MIN_SEPARATION = "min_separation"          # min gap (minutes OR positions) between two
 MAX_PER_DAY = "max_per_day"                # at most N spots of the target across the day
 COMPETITIVE_SEPARATION = "competitive_separation"  # keep two competitors apart
+PAIR_SEPARATION = "pair_separation"        # two creatives of one campaign, same break, N..M between
 _LIMIT_TYPES = (
     MAX_PER_BREAK,
     MAX_CONSECUTIVE,
     MIN_SEPARATION,
     MAX_PER_DAY,
     COMPETITIVE_SEPARATION,
+    PAIR_SEPARATION,
 )
 
 # Scope vocabulary, ordered least-to-most specific (index = specificity rank).
@@ -71,6 +81,13 @@ MINUTES = "minutes"
 POSITIONS = "positions"
 _UNITS = (MINUTES, POSITIONS)
 
+# PAIR_SEPARATION counts in its own unit and only in that one. The trade states
+# the constraint as "separated by exactly one or two other advertisements", so
+# the figure is a count of OTHER spots standing between the two, not a distance
+# between positions and not a number of minutes. Naming it separately keeps a
+# min_separation row from ever being authored in it by accident.
+BETWEEN = "between"
+
 COLUMNS = [
     "rule_id",
     "limit_type",
@@ -78,9 +95,12 @@ COLUMNS = [
     "advertiser_id",
     "campaign",
     "ad",
+    "pair_lead",
+    "pair_closer",
     "competing_group",
     "members",
     "value",
+    "value_max",
     "unit",
     "enabled",
     "notes",
@@ -95,6 +115,12 @@ class FrequencyRule:
     ``limit_type`` and ``unit``). For COMPETITIVE_SEPARATION, ``members`` is the
     set of advertiser ids that compete and ``value``/``unit`` say how far apart to
     keep them (0 positions = not in the same break; N minutes = at least N apart).
+
+    For PAIR_SEPARATION the rule is a RANGE rather than a cap: ``pair_lead`` and
+    ``pair_closer`` name the two creatives, and ``value``/``value_max`` are the
+    fewest and the most other advertisements allowed to stand between them inside
+    one break. The trade's common structure, a ten second spot with a six second
+    closer, is authored as value 1 and value_max 2.
     """
 
     rule_id: str
@@ -103,9 +129,12 @@ class FrequencyRule:
     advertiser_id: str = ""
     campaign: str = ""
     ad: str = ""
+    pair_lead: str = ""
+    pair_closer: str = ""
     competing_group: str = ""
     members: frozenset[str] = frozenset()
     value: float = 0.0
+    value_max: Optional[float] = None
     unit: str = ""
     enabled: bool = True
     notes: str = ""
@@ -169,6 +198,39 @@ def _members(value: object) -> frozenset[str]:
     return frozenset(p for p in parts if p)
 
 
+def _pair_fields(
+    row: dict[str, str], rule_id: str, value: float
+) -> tuple[Optional[tuple[str, str, float]], str]:
+    """Validate a pair row into (lead, closer, value_max), or say why it will not.
+
+    Every refusal here is a case where honouring the row would mean guessing. A
+    pair with only one creative named is not a pair; a pair naming one creative
+    twice would be satisfied by any single spot; a maximum below the minimum
+    describes an empty range that nothing can ever satisfy, and a rule nothing can
+    satisfy would mark every real break as broken. A blank maximum is read as the
+    minimum, so a row saying "exactly two between" can be authored with one figure.
+    """
+    named = rule_id or "<no id>"
+    lead = str(row.get("pair_lead", "") or "").strip()
+    closer = str(row.get("pair_closer", "") or "").strip()
+    if not lead or not closer:
+        return None, f"{named}: pair_separation needs both pair_lead and pair_closer"
+    if lead == closer:
+        return None, f"{named}: pair_separation names the same creative twice ('{lead}')"
+    raw_max = str(row.get("value_max", "") or "").strip()
+    parsed_max = value if not raw_max else _to_float(raw_max, value)
+    if parsed_max is None:
+        return None, f"{named}: non-numeric value_max '{row.get('value_max')}'"
+    if value < 0 or parsed_max < value:
+        return None, f"{named}: pair_separation needs 0 <= value <= value_max"
+    if not str(row.get("campaign", "") or "").strip():
+        # The trade constraint is between two creatives OF ONE CAMPAIGN. Without
+        # the campaign named, two house numbers that happen to collide across
+        # advertisers would bind, which is a rule nobody authored.
+        return None, f"{named}: pair_separation needs the campaign the two creatives belong to"
+    return (lead, closer, parsed_max), ""
+
+
 def rule_from_row(row: dict[str, str]) -> tuple[Optional[FrequencyRule], str]:
     """Parse one CSV row into a rule, or return (None, reason) when malformed."""
     rule_id = str(row.get("rule_id", "") or "").strip()
@@ -182,8 +244,17 @@ def rule_from_row(row: dict[str, str]) -> tuple[Optional[FrequencyRule], str]:
     if value is None:
         return None, f"{rule_id or '<no id>'}: non-numeric value '{row.get('value')}'"
     unit = str(row.get("unit", "") or "").strip().lower()
+    value_max: Optional[float] = None
     if limit_type == MIN_SEPARATION and unit not in _UNITS:
         return None, f"{rule_id or '<no id>'}: min_separation needs unit minutes|positions"
+    if limit_type == PAIR_SEPARATION:
+        pair, reason = _pair_fields(row, rule_id, value)
+        if pair is None:
+            return None, reason
+        lead, closer, value_max = pair
+        unit = BETWEEN
+    else:
+        lead = closer = ""
     if limit_type == COMPETITIVE_SEPARATION:
         members = _members(row.get("members"))
         if len(members) < 2:
@@ -199,9 +270,12 @@ def rule_from_row(row: dict[str, str]) -> tuple[Optional[FrequencyRule], str]:
         advertiser_id=str(row.get("advertiser_id", "") or "").strip(),
         campaign=str(row.get("campaign", "") or "").strip(),
         ad=str(row.get("ad", "") or "").strip(),
+        pair_lead=lead,
+        pair_closer=closer,
         competing_group=str(row.get("competing_group", "") or "").strip(),
         members=members,
         value=value,
+        value_max=value_max,
         unit=unit,
         enabled=_to_bool(row.get("enabled")),
         notes=str(row.get("notes", "") or "").strip(),
@@ -248,3 +322,15 @@ def resolve_effective(
 def competitive_groups(rules: list[FrequencyRule]) -> list[FrequencyRule]:
     """The enabled competitive-separation rules (each carries its member set)."""
     return [r for r in rules if r.enabled and r.limit_type == COMPETITIVE_SEPARATION]
+
+
+def pair_rules(rules: list[FrequencyRule]) -> list[FrequencyRule]:
+    """The enabled pair rules (each carries its own two creatives and its range).
+
+    The sibling of :func:`competitive_groups`, and deliberately shaped the same
+    way: a relation is returned whole, in authored order, and never collapsed to
+    one effective rule per spot. One campaign can hold several pairs at once, and
+    a campaign running a lead with two different closers is the trade's normal
+    case rather than an ambiguity to resolve away.
+    """
+    return [r for r in rules if r.enabled and r.limit_type == PAIR_SEPARATION]

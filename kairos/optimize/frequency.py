@@ -25,7 +25,18 @@ LIMIT TYPES (see :mod:`kairos.optimize._frequency_rules` for authoring):
                              spots of the same target,
   * MAX_PER_DAY           -> at most N spots of one target across the whole day,
   * COMPETITIVE_SEPARATION-> keep two DIFFERENT but competing advertisers apart
-                             (not in the same break, or >= N minutes/positions).
+                             (not in the same break, or >= N minutes/positions),
+  * PAIR_SEPARATION       -> two named creatives of ONE campaign must air in the
+                             SAME break with a stated number of other
+                             advertisements between them (the trade's Top and
+                             Tail: a lead spot and its short closer).
+
+PAIR_SEPARATION is the one rule here that never drops a spot. Dropping the closer
+of a broken pair leaves a campaign with a lead and no closer, which is worse than
+the fault, so the pair is answered as a VERDICT on the ordering and carried on the
+result for the verification surfaces to name. The judgement itself lives in
+:mod:`kairos.optimize._pair_placement`, which keeps this module under the
+450-line cap and keeps the drop pass and the verdict pass from sharing state.
 
 IMPORTANT BOUNDARY. Competitive separation is advertiser-vs-advertiser WITHIN the
 client's OWN channel (e.g. two banks in the same news break). It is NOT the
@@ -57,8 +68,24 @@ from kairos.optimize._frequency_rules import (
     FrequencyRule,
     FrequencyRuleSet,
     competitive_groups,
+    pair_rules,
     resolve_effective,
 )
+from kairos.optimize._pair_placement import (
+    PairVerdict,
+    pair_counts,
+    pair_verdicts,
+)
+
+__all__ = [
+    "EnforcementResult",
+    "FrequencyDrop",
+    "PairVerdict",
+    "SpotView",
+    "enforce_spots",
+    "pair_counts",
+    "pair_verdicts",
+]
 
 
 @dataclass(frozen=True)
@@ -71,6 +98,12 @@ class SpotView:
     arbitrary day origin (for MIN_SEPARATION by minutes); ``position`` is the
     position-in-break. A None minute disables minute-based checks for that spot
     (recorded, never guessed).
+
+    ``house_number`` is the broadcast house's own filing identity for the tape,
+    which is what a pair rule names. It defaults to blank because not every
+    caller carries it yet, and a blank one is handled as an absence rather than
+    as a match: see :mod:`kairos.optimize._pair_placement` for the fallback and
+    what it costs.
     """
 
     key: Any
@@ -80,6 +113,7 @@ class SpotView:
     break_id: str
     position: Optional[int]
     minute: Optional[float]
+    house_number: str = ""
 
 
 @dataclass(frozen=True)
@@ -98,10 +132,21 @@ class FrequencyDrop:
 
 @dataclass
 class EnforcementResult:
-    """Kept spot keys (in order) and the dropped spots with reasons."""
+    """Kept spot keys (in order), the dropped spots, and the pair verdicts.
+
+    ``pairs`` is judged over the spots that SURVIVED, because the surviving order
+    is the one that would air. It never removes anything: a pair verdict is a
+    statement about the ordering, and the three states it can carry are counted
+    by :attr:`pair_states`.
+    """
 
     kept: list[Any] = field(default_factory=list)
     dropped: list[FrequencyDrop] = field(default_factory=list)
+    pairs: list[PairVerdict] = field(default_factory=list)
+
+    @property
+    def pair_states(self) -> dict[str, int]:
+        return pair_counts(self.pairs)
 
     @property
     def status_text(self) -> str:
@@ -279,6 +324,10 @@ def enforce_spots(
     of each limit type is resolved, then every competitive-separation group is
     checked. The first violating rule found drops the spot with its reason; an
     accepted spot joins ``kept`` and constrains later spots.
+
+    Pair rules run last and separately, over the surviving order, because they
+    judge rather than drop. A pair whose creative a cap already removed reads as
+    a real violation of the ordering that would air, which it is.
     """
     result = EnforcementResult()
     kept_views: list[SpotView] = []
@@ -329,6 +378,7 @@ def enforce_spots(
                 reason=reason,
             ))
 
+    result.pairs = pair_verdicts(kept_views, pair_rules(ruleset.rules))
     return result
 
 

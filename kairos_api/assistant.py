@@ -344,6 +344,7 @@ from kairos_api import (  # noqa: E402
     assistant_conversations,
     assistant_conversations_api,
     assistant_memory,
+    assistant_mentions,
     assistant_restore,
     assistant_stream,
     assistant_uploads,
@@ -351,6 +352,7 @@ from kairos_api import (  # noqa: E402
 
 router.include_router(assistant_stream.router)
 router.include_router(assistant_memory.router)
+router.include_router(assistant_mentions.router)
 router.include_router(assistant_conversations_api.router)
 router.include_router(assistant_uploads.router)
 router.include_router(assistant_restore.router)
