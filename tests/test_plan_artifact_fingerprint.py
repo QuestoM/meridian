@@ -165,3 +165,54 @@ def test_the_shipping_locale_is_not_a_test_leftover():
         + "\nThis is almost always a browser walk that measured in the other locale and "
         "did not restore. Restore it; do not change the expected value."
     )
+
+
+def test_the_committed_artifact_is_the_one_on_disk():
+    """The plan artifact has been silently rewritten THREE times in one session.
+
+    Each time the shape was identical: 69 rows changed, breaks added, and the
+    fingerprint re-stamped in the same call so the pair stayed consistent while
+    the plan was wrong. Each time it was found hours later by an agent measuring
+    something else, and each time the restore held only until the next run.
+
+    THE CAUSE IS NOT CARELESSNESS, IT IS A DEFAULT. ``kairos/export/schedule.py``
+    sets ``DEFAULT_OUTPUT_PATH`` to the shipped artifact itself, so anything that
+    calls the exporter without naming a path overwrites the real plan. Every
+    brief in this campaign says read-only on ``output/``, and agents obeyed it and
+    polluted the file anyway, because they never knew they had written to it.
+
+    So the guard is not another instruction. It is this test. The artifact is
+    version-controlled, so the honest check is whether the bytes on disk are the
+    bytes that were committed, and it fails within one suite run rather than
+    within one afternoon.
+
+    A REAL RECOMPUTE MAKES THIS FAIL, AND THAT IS CORRECT. Changing the plan is a
+    deliberate act with money attached; it should be committed, not left dirty for
+    the next reader to discover. Recompute, check the golden, commit, and this
+    goes green with the new plan as the new baseline.
+    """
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    if not (root / ".git").exists():
+        pytest.skip("not a git checkout, so there is no committed baseline to compare against")
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "output/weekly_break_schedule.csv"],
+        cwd=root, capture_output=True, text=True, check=False,
+    )
+    if tracked.returncode != 0:
+        pytest.skip("the plan artifact is not tracked on this tree")
+    dirty = subprocess.run(
+        ["git", "diff", "--name-only", "--",
+         "output/weekly_break_schedule.csv", "output/weekly_break_schedule.csv.fingerprint.json"],
+        cwd=root, capture_output=True, text=True, check=False,
+    )
+    changed = [line for line in dirty.stdout.splitlines() if line.strip()]
+    assert not changed, (
+        "the plan artifact on disk is not the one that was committed: "
+        f"{changed}. Either something re-exported it without meaning to, which is "
+        "what the exporter's default path makes easy, or a recompute was run and "
+        "not committed. Run `git diff --stat output/` to see which. If it was "
+        "unintended: `git checkout -- output/`. If it was deliberate: verify the "
+        "golden and commit it, because a changed plan is a change to money."
+    )
