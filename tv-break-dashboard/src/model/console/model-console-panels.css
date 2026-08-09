@@ -63,16 +63,19 @@
 
 .mc-gate, .mc-layer {
   border: 1px solid var(--line);
-  border-inline-start-width: 3px;
   border-radius: var(--radius-md);
   padding: var(--space-3);
   background: var(--surface);
 }
 
-.mc-gate.mc-active { border-inline-start-color: var(--teal); }
-.mc-gate.mc-tested_and_lost { border-inline-start-color: var(--red); }
-.mc-gate.mc-no_contrast { border-inline-start-color: var(--amber); }
-.mc-gate.mc-not_measured { border-inline-start-color: var(--line-strong); }
+/* The gate's verdict colours the whole border. The soft fill and the ink come
+   from the unqualified state classes below, which the verdict pill shares, so a
+   gate and its pill are never two different greens. mc-not_measured is absent
+   on purpose: it takes the dashed line-strong border from that shared rule and
+   has nothing to add. */
+.mc-gate.mc-active { border-color: var(--teal); }
+.mc-gate.mc-tested_and_lost { border-color: var(--red); }
+.mc-gate.mc-no_contrast { border-color: var(--amber); }
 
 .mc-gate-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .mc-gate-name { font-weight: var(--weight-semibold); font-size: var(--text-md); }
@@ -261,9 +264,14 @@
    sits above the evidence because it is the first thing a later reader asks,
    and it carries the figure it was taken on so it can never read as an opinion. */
 .mc-candidate-verdict { margin-block-end: var(--space-3); }
-.mc-verdict-block { border: 1px solid var(--line); border-inline-start-width: 3px; border-radius: var(--radius-md); padding: var(--space-3); background: var(--surface-muted); }
-.mc-verdict-block.mc-shipped { border-inline-start-color: var(--teal); }
-.mc-verdict-block.mc-not_shipped { border-inline-start-color: var(--red); }
+.mc-verdict-block { border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); background: var(--surface-muted); }
+/* Border only, and the block keeps its neutral fill. The soft fill the house
+   pattern asks for is already inside this box, on the verdict pill in its head,
+   which takes the same colour from the shared state classes. Tinting the block
+   as well would put that pill on a field of its own colour, and it would drop
+   the recorded_at and version lines from 4.61:1 to 3.99:1 on the red. */
+.mc-verdict-block.mc-shipped { border-color: var(--teal); }
+.mc-verdict-block.mc-not_shipped { border-color: var(--red); }
 .mc-verdict-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); }
 .mc-verdict-actor { font-size: var(--text-sm); color: var(--muted); }
 .mc-verdict-when, .mc-verdict-version { font-size: var(--text-2xs); color: var(--subtle); }

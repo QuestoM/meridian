@@ -17,18 +17,22 @@
   background: var(--surface);
 }
 
+/* The state colours the strip's whole border, against the fill it already had.
+   A rule down the leading edge would have said the same thing on the right in
+   Hebrew and on the left in English, which is how a state marker stops being
+   one. */
 .plan-goal.is-on_plan {
-  border-inline-start-color: var(--teal);
+  border-color: var(--teal);
   background: var(--teal-soft);
 }
 
 .plan-goal.is-at_risk {
-  border-inline-start-color: var(--amber);
+  border-color: var(--amber);
   background: var(--amber-soft);
 }
 
 .plan-goal.is-behind {
-  border-inline-start-color: var(--red);
+  border-color: var(--red);
   background: var(--red-soft);
 }
 

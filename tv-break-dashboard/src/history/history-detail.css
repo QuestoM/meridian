@@ -203,9 +203,10 @@
 }
 
 /* A whole row that would be added or removed, identified. One block per row so
-   two rows of the same store can be told apart at a glance, and the marker on
-   the inline start says which direction it goes without reading the heading
-   again. */
+   two rows of the same store can be told apart at a glance, and the chip's own
+   border and fill say which direction it goes without reading the heading
+   again. Border and fill rather than a rule down one edge, which swaps sides
+   under Hebrew: direction is the one thing that marker cannot be trusted with. */
 .hist-diff-chips {
   display: grid;
   gap: var(--space-1);
@@ -224,8 +225,8 @@
   border-radius: var(--radius-xs);
 }
 
-.hist-diff-chip.add { border-inline-start-color: var(--teal-ink); }
-.hist-diff-chip.remove { border-inline-start-color: var(--red); }
+.hist-diff-chip.add { border-color: var(--teal-ink); background: var(--teal-soft); }
+.hist-diff-chip.remove { border-color: var(--red); background: var(--red-soft); }
 
 .hist-diff-chip-name {
   font-size: var(--text-xs);
@@ -249,8 +250,11 @@
   overflow-wrap: anywhere;
 }
 
+/* --muted, not --subtle: every chip is add or remove, so this label always sits
+   on a tinted fill, where --subtle measures 4.21:1 on the teal and 3.99:1 on
+   the red. --muted clears AA on both, at 5.25 and 4.98. */
 .hist-diff-chip-key {
-  color: var(--subtle);
+  color: var(--muted);
 }
 
 /* A title that is a bare key carries a word saying what the key is. The two are
@@ -262,7 +266,7 @@
    that runs either way. */
 .hist-diff-chip-part bdi + bdi::before {
   content: '\00B7';
-  color: var(--subtle);
+  color: var(--muted);
   margin-inline-end: 4px;
 }
 

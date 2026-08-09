@@ -181,6 +181,9 @@ export const WORDS = {
   'history.standing': { en: 'In force', he: 'בתוקף' },
   'history.superseded': { en: 'Superseded by a later verdict', he: 'הוחלפה בהכרעה מאוחרת יותר' },
   'history.version': { en: 'Against model version', he: 'מול גרסת מודל' },
+  // Not a blank and not a zero. A version name is a stored string and its
+  // absence is a fact about the record, so the surface says so in words.
+  'history.version_none': { en: 'No version name recorded', he: 'לא נרשם שם גרסה' },
   'history.basis': { en: 'What it rests on', he: 'על מה היא נשענת' },
   'history.on_comparison': { en: 'This comparison', he: 'ההשוואה הזו' },
   'history.before_comparison': { en: 'Before it existed', he: 'לפני שהתקיימה' },

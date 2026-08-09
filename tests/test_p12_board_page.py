@@ -13,9 +13,8 @@ route with the product's own payload. So every claim below is measured on the
 real component with the real published figures, and the only thing the missing
 mount changes is which page it is measured on.
 
-The plumbing is P7's ``test_p7_console_bridge_harness``, imported rather than
-copied. It is a frozen file, so depending on it cannot rot, and copying a
-hundred and twenty lines of stand-in server would be the worse failure.
+The stand-in, the harness script and the payload shapes live in
+``test_p12_board_harness``, which this file and its sibling measurements share.
 """
 
 from __future__ import annotations
@@ -23,144 +22,23 @@ from __future__ import annotations
 import json
 import os
 import re
-from pathlib import Path
 
 import pytest
 
-from tests.test_p7_console_bridge_harness import (
-    build_harness,
-    run_scenario,
-    skip_unless_a_real_browser_is_available,
+from tests.test_p12_board_harness import (
+    BOARD_DIR,
+    JS19_TARGET_S,
+    ROOT,
+    drive_board,
+    read_board,
+    served_payload,
 )
-
-ROOT = Path(__file__).resolve().parents[1]
-BOARD_DIR = ROOT / "tv-break-dashboard" / "src" / "model" / "candidates"
-BOARD_JSON = BOARD_DIR / "candidate-board.json"
-BOARD_JSX = BOARD_DIR / "CandidateBoard.jsx"
-BOARD_MOUNT = BOARD_DIR / "board-mount.jsx"
-
-# JS-19's whole route on this surface, in one page load: read whether the
-# comparison is about the artifacts on disk now, read the ranked table, open one
-# artifact's evidence, and read what its verdict was decided on.
-JS19_TARGET_S = 120
-
-HARNESS_JS = """
-import { mountBoard } from '%(board)s';
-
-const marks = {};
-const started = performance.now();
-const at = (name) => { if (marks[name] === undefined) marks[name] = performance.now() - started; };
-
-mountBoard(document.getElementById('root'), '%(locale)s');
-
-const text = () => document.body.innerText;
-const one = (selector) => document.querySelector(selector);
-const all = (selector) => Array.from(document.querySelectorAll(selector));
-
-function step() {
-  if (all('.cb-table tbody tr').length > 1) at('table');
-  const word = one('.cb-state-word');
-  const state = one('.cb-state');
-  if (word && state && !state.className.includes('cb-blue')) at('state');
-  if (marks.state === undefined && word && %(allow_unknown)s) at('state');
-  if (marks.table !== undefined && marks.state !== undefined && marks.picked === undefined) {
-    // By name when a scenario names one, because which artifact is interesting
-    // depends on what is being measured and the ranked first row is not always
-    // it. The name is rendered inside an isolated run, so it is matched by
-    // containment rather than by equality.
-    const want = '%(pick_name)s';
-    const pick = all('.cb-row:not(.cb-reference)')
-      .filter((row) => !want || ((row.querySelector('.cb-name') || {}).textContent || '').includes(want))
-      .map((row) => row.querySelector('.cb-pick'))[0];
-    if (pick) { pick.click(); marks.clicked = performance.now() - started; }
-  }
-  if (marks.clicked !== undefined && one('.cb-detail h3 code')) at('picked');
-  if (marks.picked !== undefined || performance.now() - started > 20000) {
-    report();
-    return;
-  }
-  requestAnimationFrame(step);
-}
-
-function report() {
-  fetch('/testctl/result', {
-    method: 'POST',
-    body: JSON.stringify({
-      marks,
-      state_word: (one('.cb-state-word') || {}).textContent || '',
-      state_class: (one('.cb-state') || {}).className || '',
-      state_reason: (one('.cb-state-reason') || {}).textContent || '',
-      moved: all('.cb-state-moved li').map((node) => node.textContent),
-      rows: all('.cb-row:not(.cb-reference) .cb-name').map((node) => node.textContent),
-      opened: (one('.cb-detail h3 code') || {}).textContent || '',
-      detail: (one('.cb-detail') || {}).innerText || '',
-      body: text(),
-      dir: (one('.cb-board') || {}).getAttribute('dir'),
-      cells_rows: all('.cb-cells-table tbody tr').length,
-      basis_marks: all('.cb-basis-mark').map((node) => node.textContent),
-      basis_rows: all('.cb-basis-rows li').map((node) => node.textContent),
-      self_block: (one('.cb-self') || {}).innerText || '',
-      purposes: all('.cb-purpose').map((node) => node.textContent),
-      purpose_block: (one('.cb-purpose-block') || {}).innerText || '',
-      provenance: (one('.cb-provenance') || {}).innerText || '',
-      meters: all('.cb-meter-fill').map((node) => node.style.inlineSize),
-      meter_widths: all('.cb-meter-fill').map((node) => node.getBoundingClientRect().width),
-      meter_tracks: all('.cb-meter').map((node) => node.getBoundingClientRect().width),
-      gates_block: (one('.cb-gates') || {}).innerText || '',
-      gate_rows: all('.cb-gates .cb-cells-table tbody tr').length,
-      notes: all('.cb-notes .cb-note').map((node) => node.textContent),
-      history_block: (one('.cb-history') || {}).innerText || '',
-      history_rows: all('.cb-history .cb-cells-table tbody tr').length,
-      live_block: (one('.cb-live-verdict') || {}).innerText || '',
-      live_rows: all('.cb-live-verdict .cb-cells-table tbody tr').length,
-      live_class: (one('.cb-live-verdict') || {}).className || '',
-    }),
-  });
-}
-
-requestAnimationFrame(step);
-"""
-
-
-def _board():
-    return json.loads(BOARD_JSON.read_text(encoding="utf-8"))
-
-
-def _served(board, *, shipped_digest=None, candidate_digests=None):
-    """The candidate route's own shape, with the digests a scenario asks for."""
-    digests = candidate_digests or {}
-    return {
-        "model_version": {
-            "available": True,
-            "id": board["shipped"]["version_id"],
-            "artifacts": {"retention": {
-                "sha256": shipped_digest or board["shipped"]["sha256"],
-                "path": board["shipped"]["file"],
-            }},
-        },
-        "candidates": [{"id": row["id"], "sha256": digests.get(row["id"], row["sha256"]),
-                        "file": row["file"], "bytes": row["bytes"]}
-                       for row in board["candidates"]],
-    }
-
-
-def _run(tmp_path, payloads, locale="he", allow_unknown="false", pick_name=""):
-    skip_unless_a_real_browser_is_available()
-    work = tmp_path.resolve()
-    (work / "src").mkdir(parents=True, exist_ok=True)
-    script = HARNESS_JS % {
-        "board": os.path.relpath(BOARD_MOUNT, work / "src"),
-        "locale": locale,
-        "allow_unknown": allow_unknown,
-        "pick_name": pick_name,
-    }
-    return run_scenario(build_harness(work, script), work, payloads)
 
 
 def test_the_whole_route_runs_in_a_browser_and_lands_inside_its_target(tmp_path):
     """Open the board, learn whether it is current, and open one artifact."""
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     marks = result["marks"]
     assert result["state_word"], "the freshness strip never rendered"
     assert set(result["rows"]) == {row["id"] for row in board["candidates"]}
@@ -172,12 +50,12 @@ def test_the_whole_route_runs_in_a_browser_and_lands_inside_its_target(tmp_path)
 
 
 def test_a_matching_digest_reads_current_and_a_moved_one_reads_stale(tmp_path):
-    board = _board()
-    current = _run(tmp_path / "a", {"/api/model/candidates": _served(board)})
+    board = read_board()
+    current = drive_board(tmp_path / "a", {"/api/model/candidates": served_payload(board)})
     assert current["state_class"].endswith("cb-teal") or "cb-teal" in current["state_class"]
     assert current["moved"] == []
 
-    moved = _run(tmp_path / "b", {"/api/model/candidates": _served(
+    moved = drive_board(tmp_path / "b", {"/api/model/candidates": served_payload(
         board, candidate_digests={board["candidates"][0]["id"]: "0" * 64})})
     assert "cb-amber" in moved["state_class"]
     assert len(moved["moved"]) == 1
@@ -186,7 +64,7 @@ def test_a_matching_digest_reads_current_and_a_moved_one_reads_stale(tmp_path):
 
 def test_a_route_that_does_not_answer_reads_unknown_and_never_current(tmp_path):
     """Unknown is not stale and it is not current. Three states, all reachable."""
-    result = _run(tmp_path, {}, allow_unknown="true")
+    result = drive_board(tmp_path, {}, allow_unknown="true")
     assert "cb-blue" in result["state_class"]
     assert result["moved"] == []
     assert result["state_reason"].strip()
@@ -194,8 +72,8 @@ def test_a_route_that_does_not_answer_reads_unknown_and_never_current(tmp_path):
 
 def test_every_figure_on_the_screen_is_one_the_published_board_carries(tmp_path):
     """No figure is computed in the browser, so each one is findable in the file."""
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     body = result["body"]
     assert f"{board['shipped']['rmse']:.6f}" in body
     for row in board["candidates"]:
@@ -205,8 +83,8 @@ def test_every_figure_on_the_screen_is_one_the_published_board_carries(tmp_path)
 
 
 def test_the_board_reads_right_to_left_and_in_the_campaign_vocabulary(tmp_path):
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     assert result["dir"] == "rtl"
     assert "ברייקים" in result["body"]
     assert "משתמש" not in result["body"]
@@ -225,15 +103,15 @@ def test_no_rival_channel_reaches_this_screen(tmp_path):
     channels = {str(name) for name in load_spots()["Channel"].unique()}
     rivals = channels - {channel_scope.operator_channel()}
     assert rivals, "no rival channel in the sources, so this test proves nothing"
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     assert [name for name in rivals if name in result["body"]] == []
 
 
 def test_the_screen_offers_no_act_and_names_no_path_into_one(tmp_path):
     """The training line, held on the one surface most able to blur it."""
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     for name in ("adopt_candidate", "adopt-candidate", "adoptCandidate"):
         assert name not in result["body"]
     # Every control on this screen either sorts the table or opens an artifact.
@@ -248,11 +126,11 @@ def test_the_row_fitted_on_fewer_breaks_carries_the_caveat_on_the_row(tmp_path):
     comparison is made without. Measured on the real screen: the marked rows are
     exactly the rows the published measurement says do not cover the evaluation.
     """
-    board = _board()
+    board = read_board()
     uneven = [row["id"] for row in board["candidates"]
               if (row.get("fit_basis") or {}).get("state") in ("fewer", "unknown")]
     assert uneven, "no uneven row on this tree, so this test would prove nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     assert len(result["basis_marks"]) == len(uneven)
     assert all(mark.strip() for mark in result["basis_marks"])
     # And the shortfall itself is on screen with both of its denominators.
@@ -267,20 +145,20 @@ def test_the_row_fitted_on_fewer_breaks_carries_the_caveat_on_the_row(tmp_path):
 
 def test_the_limit_on_screen_is_the_measured_one_and_not_the_constant(tmp_path):
     """The sentence that was false, no longer asserted on this tree."""
-    board = _board()
+    board = read_board()
     assert board["limit"]["state"] == "in_sample_uneven"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     assert board["limit"]["he"] in result["body"]
     assert "כל קובץ שנמדד כאן אומן על כל הברייקים האלה" not in result["body"]
 
 
 def test_opening_an_artifact_shows_what_its_own_producer_recorded(tmp_path):
     """Carried, and carried with the sentence that stops it reading as a rank."""
-    board = _board()
+    board = read_board()
     first = sorted(board["candidates"], key=lambda row: row["rmse"])[0]
     reported = first.get("self_reported") or {}
     assert reported.get("state") == "advised_against", reported
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     assert result["opened"] == first["id"]
     assert result["self_block"].strip()
     assert reported["reading_he"] in result["self_block"]
@@ -296,10 +174,10 @@ def test_opening_an_artifact_shows_what_its_gates_decided(tmp_path):
     differently, so the assertion is about a real disagreement and not about an
     empty table. Both of its values are on screen and neither is judged.
     """
-    board = _board()
+    board = read_board()
     row = next(r for r in board["candidates"] if r["gates"]["differing"])
     assert row["id"] == "calibrated", "the shelf changed, so this row is the wrong one"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     assert result["opened"] == row["id"]
     block = result["gates_block"]
     assert block.strip(), "the gate block never rendered"
@@ -310,10 +188,10 @@ def test_opening_an_artifact_shows_what_its_gates_decided(tmp_path):
 
 def test_a_candidate_that_carries_no_gate_keys_is_not_shown_as_ten_disagreements(tmp_path):
     """The count that lies, refused on the screen as well as in the payload."""
-    board = _board()
+    board = read_board()
     row = next(r for r in board["candidates"]
                if r["gates"]["state"] == "absent_only_candidate")
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     block = result["gates_block"]
     assert row["gates"]["reading_he"] in block
     # Every row of its gate table reads as an absence rather than as a value.
@@ -329,9 +207,9 @@ def test_the_held_out_amounts_reach_the_screen_with_the_noun_they_count(tmp_path
     sentence beside it is the measured one: on this pair the amounts agree, and
     saying they disagree would be stating a confound this pair does not carry.
     """
-    board = _board()
+    board = read_board()
     row = next(r for r in board["candidates"] if r["gates"]["held_out_state"] == "even")
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     block = result["gates_block"]
     assert "34,560" in block and "דקות" in block
     assert "2,532" in block and "ברייקים" in block
@@ -341,9 +219,9 @@ def test_the_held_out_amounts_reach_the_screen_with_the_noun_they_count(tmp_path
 
 def test_the_measurement_window_reads_as_two_israeli_dates_and_never_as_iso(tmp_path):
     """dd/mm/yyyy in both locales, through the one file that decides it."""
-    board = _board()
+    board = read_board()
     for locale in ("he", "en"):
-        result = _run(tmp_path / locale, {"/api/model/candidates": _served(board)},
+        result = drive_board(tmp_path / locale, {"/api/model/candidates": served_payload(board)},
                       locale=locale)
         body = result["body"]
         assert "01/11/2024-30/11/2024" in body, body[:400]
@@ -353,10 +231,10 @@ def test_the_measurement_window_reads_as_two_israeli_dates_and_never_as_iso(tmp_
 
 def test_the_table_says_how_it_is_worked_and_how_many_verdicts_a_row_holds(tmp_path):
     """Two things that were true of the payload and readable only by discovery."""
-    board = _board()
+    board = read_board()
     twice = [row for row in board["candidates"] if row["decision"]["count"] > 1]
     assert twice, "no candidate here was decided twice, so this proves nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, locale="en")
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, locale="en")
     assert "Up and down move the selection" in " ".join(result["notes"])
     assert "verdicts on record" in result["body"]
     assert str(twice[0]["decision"]["count"]) in result["body"]
@@ -370,11 +248,11 @@ def test_the_shelf_says_what_each_artifact_was_built_for_before_anything_is_open
     now under its own name, verbatim, and a row that records none says so rather
     than leaving a blank that reads like a row nobody wrote a note for.
     """
-    board = _board()
+    board = read_board()
     recorded = [row for row in board["candidates"] if (row["origin"] or {}).get("purpose")]
     absent = [row for row in board["candidates"] if not (row["origin"] or {}).get("purpose")]
     assert recorded and absent, "this tree no longer has both states, so this proves nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     body = result["body"]
     for row in recorded:
         assert row["origin"]["purpose"] in body, row["id"]
@@ -389,9 +267,9 @@ def test_opening_an_artifact_that_records_no_purpose_shows_the_absence_and_no_gu
     screen already. What is shown instead is the absence and the field that
     would supply it, in the reader's own language.
     """
-    board = _board()
+    board = read_board()
     row = next(r for r in board["candidates"] if not (r["origin"] or {}).get("purpose"))
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     assert result["opened"] == row["id"]
     block = result["purpose_block"]
     assert block.strip(), "the purpose block never rendered"
@@ -402,9 +280,9 @@ def test_opening_an_artifact_that_records_no_purpose_shows_the_absence_and_no_gu
 
 def test_opening_an_artifact_shows_the_data_it_read_and_whether_that_data_is_here(tmp_path):
     """The reproduction half, and the half of it this tree cannot answer."""
-    board = _board()
+    board = read_board()
     row = next(r for r in board["candidates"] if r["origin"]["sources"])
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     block = result["provenance"]
     assert block.strip(), "the provenance block never rendered"
     for item in row["origin"]["sources"]:
@@ -424,8 +302,8 @@ def test_every_bar_on_the_screen_is_the_share_the_payload_carries(tmp_path):
     would be the visual form of a fabricated number, and it would pass every
     other test on this file.
     """
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     tracks, fills = result["meter_tracks"], result["meter_widths"]
     assert tracks and len(tracks) == len(fills)
     # The evaluation's own bar, first on the page: the live model's error as a
@@ -444,12 +322,12 @@ def test_every_bar_on_the_screen_is_the_share_the_payload_carries(tmp_path):
 
 def test_a_row_that_covers_the_evaluation_carries_no_caveat_and_no_self_block(tmp_path):
     """The tri-state on screen: an absent state renders nothing, not a reassurance."""
-    board = _board()
+    board = read_board()
     covered = [row for row in board["candidates"]
                if (row.get("fit_basis") or {}).get("state") == "all"
                and (row.get("self_reported") or {}).get("state") == "absent"]
     assert covered, "no covered row on this tree, so this test would prove nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     marked = set(result["basis_marks"])
     assert covered[0]["id"] not in " ".join(marked)
 
@@ -462,11 +340,11 @@ def test_the_verdict_on_the_live_model_is_on_the_board_and_accounts_for_the_log(
     force, so the shelf showed five verdicts and said nothing about a standing
     verdict on the artifact all five are measured against.
     """
-    board = _board()
+    board = read_board()
     live = board["live_model"]
     log = board["decision_log"]
     assert live["rows"], "no verdict on the live model on this tree, so this proves nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     block = result["live_block"]
     assert live["reading_he"] in block
     assert live["rows"][0]["actor"] in block
@@ -489,12 +367,12 @@ def test_the_earlier_verdict_on_a_restated_candidate_is_on_the_screen(tmp_path):
     two beside it, which cannot tell a restatement from a repeat, and the earlier
     record reached no surface at all.
     """
-    board = _board()
+    board = read_board()
     restated = [row for row in board["candidates"]
                 if (row.get("history") or {}).get("state") == "restated"]
     assert restated, "no restated candidate on this tree, so this proves nothing"
     row = restated[0]
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, pick_name=row["id"])
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, pick_name=row["id"])
     assert result["opened"].strip() == row["id"]
     block = result["history_block"]
     assert result["history_rows"] == len(row["history"]["rows"])
@@ -522,8 +400,8 @@ def test_no_steward_sentence_from_the_decision_log_is_rendered_on_the_board(tmp_
                for line in decisions.read_text(encoding="utf-8").splitlines() if line.strip()]
     reasons = [reason for reason in reasons if len(reason) > 20]
     assert reasons, "no reason long enough to search for, so this proves nothing"
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)},
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)},
                   pick_name=board["candidates"][0]["id"])
     assert [reason for reason in reasons if reason in result["body"]] == []
     assert board["live_model"]["reason_he"] in result["live_block"]

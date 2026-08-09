@@ -31,7 +31,7 @@ const SRC = 'src';
 
 // Measured 2026-08-09 across 11 files. Lower it in the same commit that removes
 // bars; do not raise it.
-const BUDGET = 23;
+const BUDGET = 0;
 
 // A named exception needs a reason that would survive somebody asking why this
 // one is different. There are none yet, deliberately: the owner asked for none

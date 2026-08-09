@@ -192,7 +192,11 @@
 }
 
 .mc-rail-item:hover { background: var(--surface-muted); color: var(--ink); }
-.mc-rail-item.on { color: var(--ink); font-weight: var(--weight-semibold); border-inline-start-color: var(--teal); background: var(--teal-soft); }
+/* The active entry was also drawing a teal rule down its leading edge. Dropped:
+   the fill, the ink and the weight already say which entry is open three times
+   over, aria-current says it a fourth, and the rule was the one signal that
+   moved to the other side of the item under Hebrew. */
+.mc-rail-item.on { color: var(--teal-ink); font-weight: var(--weight-semibold); background: var(--teal-soft); }
 .mc-rail-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 
 .mc-rail-item kbd {

@@ -146,7 +146,13 @@ def test_the_card_that_offers_the_file_says_what_is_inside_it(client: TestClient
     assert scope, "the weekly plan card offers a file and says nothing about what is in it"
     if scope["state"] != "real":
         pytest.skip("no channel column on the saved plan, so there is no split to state")
-    assert scope["rows_total"] == report["rows"], "the disclosure counts a different file from the button"
+    # Ruling 009 split these apart. rows_total is what the FILE holds and the
+    # button's count is what the DOWNLOAD serves, the operator's own channel, so
+    # a card that made them equal would be advertising rows it does not deliver.
+    # Both are asserted, and the relationship between them is the disclosure.
+    assert scope["rows_served"] == report["rows"], "the button offers a count the disclosure does not"
+    assert scope["rows_served"] == scope["rows_owned"], "the download serves something other than your own rows"
+    assert scope["rows_total"] > scope["rows_served"], "the file holds no more than the download, so there is nothing to disclose"
     assert scope["rows_owned"] + scope["rows_other"] == scope["rows_total"], "the split does not sum to the file"
     assert scope["rows_other"] > 0, "the shipped plan file carries rows this operator does not own"
     assert scope["channels_other"] > 0, "rows on other channels came from no other channel"

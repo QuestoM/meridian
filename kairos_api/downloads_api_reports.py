@@ -121,9 +121,17 @@ SCOPES: dict[str, dict[str, str]] = {
 # beside them counts named channels only, so both halves are true of a file
 # nobody has looked at yet and not only of the one measured today.
 DOWNLOAD_SCOPE: dict[str, dict[str, str]] = {
+    # RULING 009, 2026-08-09. This sentence said the download carries the WHOLE
+    # plan file, which was true and is not any more: the route serves the
+    # operator's own channel, because a download of a rival's titles and revenue
+    # is the same breach as printing them on a screen.
+    #
+    # The other half is still worth saying, and is now the more useful half. A
+    # reader who counts 2,540 rows against a plan of 8,704 needs to know why the
+    # number is smaller, or they will think the download is truncated.
     "real": {
-        "en": "This download carries the whole plan file: {owned} rows are on your own channel and {other} rows are not. The file names {channels} other channel(s).",
-        "he": "ההורדה הזו נושאת את כל קובץ התוכנית: {owned} שורות בערוץ שלכם ו־{other} שורות שאינן שלכם, ובקובץ מופיעים ערוצים נוספים, {channels} במספר.",
+        "en": "This download carries the {owned} rows on your own channel. The plan file also holds {other} rows on {channels} other channel(s), which this download does not carry.",
+        "he": "ההורדה הזו נושאת את {owned} השורות בערוץ שלכם. בקובץ התוכנית יש עוד {other} שורות ב־{channels} ערוצים אחרים, וההורדה הזו אינה נושאת אותן.",
     },
     "owned_only": {
         "en": "Every one of the {owned} rows in this download is on your own channel.",
@@ -159,10 +167,29 @@ def _scope_record(code: str, figures: dict[str, int]) -> dict[str, Any]:
     words = DOWNLOAD_SCOPE[code]
     return {
         "state": SCOPE_STATE[code],
+        # Two numbers since ruling 009, and both are needed. rows_total is what
+        # the FILE holds and rows_served is what the BUTTON delivers, which is
+        # the operator's own channel. A card that showed only one of them would
+        # either look truncated or hide the boundary.
         "rows_total": int(figures["total"]),
+        "rows_served": int(figures.get("owned", 0)),
         "en": words["en"].format(**plain),
         "he": words["he"].format(**isolated),
     }
+
+
+def _owned_rows(schedule: pd.DataFrame, channel: str) -> int:
+    """How many plan rows the download will actually serve.
+
+    With no operator channel the route refuses rather than serving everything,
+    so the honest count for a report card is zero rather than the whole file.
+    """
+    if schedule is None or getattr(schedule, "empty", True):
+        return 0
+    owned = str(channel or "").strip()
+    if not owned or "channel" not in schedule.columns:
+        return 0
+    return int((schedule["channel"].astype(str).str.strip() == owned).sum())
 
 
 def download_scope(schedule: pd.DataFrame, channel: str) -> dict[str, Any] | None:
@@ -293,6 +320,7 @@ def build(
 ) -> list[dict[str, Any]]:
     """The five reports, each with the exact number of rows its download carries."""
     plan_rows = int(len(schedule)) if schedule is not None else 0
+    owned_plan_rows = _owned_rows(schedule, channel)
     plan_scope = download_scope(schedule, channel)
     period = _period(summary.get("date_from"), summary.get("date_to"))
     plan_updated = _modified(plan_path)
@@ -304,7 +332,11 @@ def build(
             "id": "weekly-plan",
             "title": "Weekly traffic plan",
             "status": "ready" if plan_rows else "empty",
-            "rows": plan_rows,
+            # The rows this download really serves, which is the operator's own
+            # channel since ruling 009. It said len(schedule), the whole file,
+            # and a report card that advertises a row count the download does not
+            # deliver is a fabricated number by any other name.
+            "rows": owned_plan_rows,
             "owner": "Traffic",
             "unit": {"code": "weekly-plan", **UNITS["weekly-plan"]},
             # The one report whose file carries more than the operator's own

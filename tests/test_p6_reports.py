@@ -124,15 +124,33 @@ def test_the_two_server_streamed_reports_open_the_rows_their_file_carries(client
 
 
 def test_the_weekly_plan_preview_matches_the_file_total_and_hides_the_rest(client: TestClient, owned: str) -> None:
-    """The download carries the whole plan file and Bar 3 freezes that. The
-    preview is a screen, so it states the file's own total and shows only the
-    operator's rows, with the count it withheld disclosed and unnamed."""
+    """The preview states the FILE's total and shows only the operator's rows.
+
+    Ruling 009 split these two numbers apart and the split is the point. The
+    preview names the file's own total, 8,704, because a reader looking at a
+    preview is asking what the plan contains. The report card's row count is what
+    the DOWNLOAD serves, the operator's own channel, because a card that
+    advertises a count the download does not deliver is a fabricated number by
+    another name. The card says so in words beside it.
+
+    So this asserts the relationship rather than an equality: the download is a
+    subset of the file, and the preview shows no more than the file holds.
+    """
     reports = {report["id"]: report for report in client.get("/api/reports").json()["reports"]}
     body = client.get("/api/reports/weekly-plan/preview?limit=5").json()
     if not body["available"]:
         pytest.skip("no saved plan on disk to preview")
-    assert body["total_rows"] == reports["weekly-plan"]["rows"]
+    served = reports["weekly-plan"]["rows"]
+    assert served <= body["total_rows"], (
+        f"the download serves {served} rows and the plan file holds {body['total_rows']}. "
+        "The download is the operator's own channel, so it can never exceed the file."
+    )
     assert body["scoped_rows"] <= body["total_rows"]
+    assert body["scoped_rows"] == served, (
+        "the preview shows the operator's rows and the download serves the operator's "
+        "rows, so the two counts are the same number and a reader can check one against "
+        "the other"
+    )
     from kairos.data.loaders import CHANNELS
 
     payload = json.dumps(body, ensure_ascii=False)

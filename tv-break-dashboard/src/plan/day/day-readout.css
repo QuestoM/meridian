@@ -146,19 +146,22 @@
   border: 1px solid var(--line);
 }
 
+/* Three states on one note, each colouring the whole border and the fill behind
+   it rather than a rule down the leading edge. Unknown keeps the neutral border
+   it inherits, so it needs no border declaration of its own. */
 .day-committed-note.is-unknown {
   color: var(--subtle);
-  border-inline-start-color: var(--line);
 }
 
 .day-committed-note.is-matched {
   color: var(--teal-ink);
-  border-inline-start-color: var(--teal-ink);
+  border-color: var(--teal-ink);
+  background: var(--teal-soft);
 }
 
 .day-committed-note.is-diverged {
   color: var(--amber-ink);
-  border-inline-start-color: var(--amber);
+  border-color: var(--amber);
   background: var(--amber-soft);
 }
 

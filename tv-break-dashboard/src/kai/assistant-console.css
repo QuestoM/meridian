@@ -93,7 +93,7 @@
 
 /* The licence-limit disclosure on a proposal that would move a regulatory number */
 .asst-permission { margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border: 1px solid var(--teal); border-radius: var(--radius-xs); padding: var(--space-2); background: var(--surface); font-size: var(--text-2xs); color: var(--muted); }
-.asst-permission.blocked { border-inline-start-color: var(--amber); }
+.asst-permission.blocked { border-color: var(--amber); background: var(--amber-soft); }
 .asst-permission p { margin: 0; display: flex; align-items: baseline; gap: var(--space-1); }
 .asst-permission-fields { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .asst-permission-fields code { border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 var(--space-1); background: var(--surface-muted); }

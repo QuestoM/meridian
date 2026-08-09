@@ -28,17 +28,17 @@
   padding: var(--space-4);
 }
 
+/* Whole border plus fill, per state. Unknown and muted are not listed: the
+   neutral border they inherit is already the state they mean, and restating it
+   on one edge only ever added a direction the state does not have. */
 .model-strip.ok {
-  border-inline-start-color: var(--teal);
+  border-color: var(--teal);
+  background: var(--teal-soft);
 }
 
 .model-strip.warn {
-  border-inline-start-color: var(--amber);
-}
-
-.model-strip.unknown,
-.model-strip.muted {
-  border-inline-start-color: var(--line-strong);
+  border-color: var(--amber);
+  background: var(--amber-soft);
 }
 
 .model-strip-head {
@@ -69,6 +69,14 @@
   margin: 0;
   color: var(--subtle);
   font-size: var(--text-xs);
+}
+
+/* --subtle measures 4.21:1 on the teal fill and 4.38:1 on the amber one, both
+   under AA, where on the plain surface it clears at 4.74. On a strip that
+   carries a state fill this line steps up one tier, to 5.25 and 5.47. */
+.model-strip.ok .model-strip-sources,
+.model-strip.warn .model-strip-sources {
+  color: var(--muted);
 }
 
 .model-source {

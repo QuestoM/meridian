@@ -8,7 +8,7 @@ import { freshness, movementShare, reveal, sortRows, SORTS } from './board-compa
 // Shekels comes from there because this file carried a byte-identical copy.
 import BoardDetail, { Shekels } from './board-detail.jsx';
 import Evaluation from './board-evaluation.jsx';
-import { LiveModelVerdict } from './board-history.jsx';
+import { LiveModelVerdict, VersionName } from './board-history.jsx';
 import Meter from './board-meter.jsx';
 import { PurposeLine } from './board-origin.jsx';
 import { pick, t } from './board-words';
@@ -58,16 +58,20 @@ function Figure({ value, digits = 6, sign = false, fallback = '-' }) {
   return <Numeric>{text}</Numeric>;
 }
 
+// Money on the table, in one form. A current figure and a stale one are printed
+// to the same precision on purpose: what separates them is the amber word beside
+// the stale one, not the number of decimals it survived. See Shekels in
+// board-detail.jsx for why the knob that allowed two forms was removed.
 function Money({ money, locale }) {
   const state = String((money || {}).state || 'not_measured');
   if (state === 'measured') {
-    return <Shekels value={money.revenue_delta} locale={locale} digits={2} />;
+    return <Shekels value={money.revenue_delta} locale={locale} />;
   }
   if (state === 'stale' && typeof money.last_known_revenue_delta === 'number') {
     return (
       <span className="cb-money-stale">
         <span className="cb-tag cb-amber">{t('money.stale', locale)}</span>
-        <Shekels value={money.last_known_revenue_delta} locale={locale} digits={0} />
+        <Shekels value={money.last_known_revenue_delta} locale={locale} />
       </span>
     );
   }
@@ -185,13 +189,15 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
             <code className="cb-digest"><Code>{reference.short}</Code></code>
           </th>
           <td><BidiFigure><Figure value={reference.rmse} /></BidiFigure></td>
+          {/* The version the whole table is measured against, read as a date
+              when it is one. It was printed raw here, and a version with no name
+              printed nothing at all, which reads as a reference row that simply
+              has no version rather than as one whose version is not recorded. */}
           <td colSpan={6} className="cb-reference-note">
-            {reference.version_name ? (
-              <span>
-                <span className="cb-label">{t('table.version', locale)}</span>
-                <BidiFigure><Numeric>{String(reference.version_name)}</Numeric></BidiFigure>
-              </span>
-            ) : null}
+            <span>
+              <span className="cb-label">{t('table.version', locale)}</span>
+              <VersionName value={reference.version_name} locale={locale} />
+            </span>
           </td>
         </tr>
         {rows.map((row) => (

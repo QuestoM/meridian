@@ -34,11 +34,15 @@
   display: grid;
   gap: var(--space-1);
   border: 1px solid var(--line);
-  padding-inline-start: var(--space-2);
+  padding: var(--space-1) var(--space-2);
 }
 
+/* Warn colours the whole border and fills behind it. The block padding above is
+   what makes that readable: the row had a border on all four sides and no
+   inset, so text sat on the line, which nobody saw while the fill was absent. */
 .source-stored li.warn {
-  border-inline-start-color: var(--amber);
+  border-color: var(--amber);
+  background: var(--amber-soft);
 }
 
 .source-stored-line {
@@ -47,6 +51,11 @@
   align-items: baseline;
   gap: var(--space-2);
   color: var(--subtle);
+}
+
+/* On the amber fill --subtle measures 4.38:1, under AA. One tier up is 5.47. */
+.source-stored li.warn .source-stored-line {
+  color: var(--muted);
 }
 
 .source-stored-rows {

@@ -238,8 +238,20 @@ def _build_reports(schedule: pd.DataFrame, settings: KairosSettings) -> dict[str
 
 
 @lru_cache(maxsize=16)
-def _reports_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
-    del signature
+def _reports_cached(signature: tuple[tuple[str, int, int], ...], channel: str) -> dict[str, Any]:
+    """The reports catalogue, keyed on the files AND on the operator's channel.
+
+    The channel was not part of the key, and every count on this catalogue is
+    scoped by it: how many plan rows the download serves, how many days the
+    revenue report covers, what the disclosure says the file holds that is not
+    yours. So an operator who set their channel kept being served the previous
+    channel's catalogue until a source file happened to change underneath it.
+
+    Found by two tests disagreeing about the same number, 1,268 against 2,540,
+    where each was right about the channel it had asked for and one of them was
+    reading the other's cached answer.
+    """
+    del signature, channel
     return _build_reports(_load_break_schedule(), _load_settings())
 
 
@@ -261,7 +273,8 @@ def reports() -> dict[str, Any]:
             paths.append(newest_daily)
     except Exception:
         logger.exception("newest daily file lookup failed for the reports cache key")
-    return _reports_cached(_signature(paths))
+    # The channel is part of the key because every count below is scoped by it.
+    return _reports_cached(_signature(paths), str(channel_scope.operator_channel() or ""))
 
 
 @router.get("/api/reports/{report_id}/preview", tags=["catalog"])

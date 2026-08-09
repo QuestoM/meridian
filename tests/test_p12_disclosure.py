@@ -30,7 +30,7 @@ import pytest
 from scripts import adopt_candidate_decide as verdict
 from scripts import adopt_candidate_words as words
 
-from tests.test_p12_board_page import _board, _run, _served
+from tests.test_p12_board_harness import drive_board, read_board, served_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 BOARD_DIR = ROOT / "tv-break-dashboard" / "src" / "model" / "candidates"
@@ -102,11 +102,11 @@ def test_the_two_words_the_screens_use_are_both_accepted_at_the_keyboard():
 
 
 def test_the_board_explains_its_own_mark_in_ink_rather_than_in_a_tooltip(tmp_path):
-    board = _board()
+    board = read_board()
     marked = [row for row in board["candidates"]
               if (row.get("decision") or {}).get("state") and not (row.get("decision") or {}).get("on_rescore")]
     assert marked, "no marked verdict on this tree, so this proves nothing"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)})
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)})
     body = result["body"]
     assert "*" in body
     # The sentence itself, on the page, not in an attribute.
@@ -114,17 +114,17 @@ def test_the_board_explains_its_own_mark_in_ink_rather_than_in_a_tooltip(tmp_pat
 
 
 def test_the_board_states_whether_anything_has_ever_been_adopted(tmp_path):
-    board = _board()
+    board = read_board()
     assert all(row.get("adopted") is False for row in board["candidates"]), \
         "something is adopted on this tree, so the sentence under test is the wrong one"
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, locale="en")
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, locale="en")
     assert "Nothing has ever been adopted here" in result["body"]
     assert "a decision, not a replacement" in result["body"]
 
 
 def test_the_board_says_how_many_artifacts_it_is_comparing(tmp_path):
-    board = _board()
-    result = _run(tmp_path, {"/api/model/candidates": _served(board)}, locale="en")
+    board = read_board()
+    result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, locale="en")
     assert f"{len(board['candidates'])}" in result["body"]
     assert "artifacts compared, beside the shipped one" in result["body"]
 
@@ -138,8 +138,8 @@ def test_no_machine_timestamp_reaches_this_screen_in_either_locale(tmp_path, loc
     left on this screen and it is reported as a payload-shape change rather than
     silently accepted here.
     """
-    board = _board()
-    result = _run(tmp_path / locale, {"/api/model/candidates": _served(board)}, locale=locale)
+    board = read_board()
+    result = drive_board(tmp_path / locale, {"/api/model/candidates": served_payload(board)}, locale=locale)
     assert not ISO_INSTANT.search(result["body"]), result["body"][:400]
     assert ISRAELI_STAMP.search(result["body"]), result["body"][:400]
 

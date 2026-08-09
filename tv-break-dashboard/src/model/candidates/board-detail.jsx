@@ -191,12 +191,32 @@ function Number6({ value, digits = 6, sign = false }) {
 
 // Exported because the table renders shekels too and carried its own identical
 // copy of this. One renderer decides the sign, the separators and the locale.
-export function Shekels({ value, locale, digits = 2 }) {
+//
+// ONE FORM, TWO DECIMALS, AND NO KNOB TO CHOOSE A SECOND.
+//
+// This renderer took a `digits` argument and two call sites answered it
+// differently: a current figure printed at two decimals and a stale one at
+// none, in the same block. So the stale +902,998.61 reached the screen as
+// +902,999 and its exact value was readable at the terminal and nowhere else,
+// and a reader comparing two rows saw a difference in shape that was about the
+// reading's STATE rather than about the money.
+//
+// The precision of a figure is a property of the measurement, not of its
+// freshness. The state is already named beside every one of these in words --
+// an amber "Stale" tag, a "Last measured" label, a reason line under it -- and
+// a state said in words does not need to be said a second time by rounding,
+// which is the one channel that also destroys information. Rounding as a signal
+// also fails in the direction that matters: a rounded figure looks like a
+// rounder measurement, not a less current one.
+//
+// The argument is gone rather than defaulted, so no later call site can
+// reintroduce the second form without changing this function.
+export function Shekels({ value, locale }) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return <span className="cb-absent-figure">-</span>;
   }
   const number = Number(value);
-  return <Numeric>{`${number > 0 ? '+' : ''}${number.toLocaleString(locale === 'en' ? 'en-US' : 'he-IL', { minimumFractionDigits: digits, maximumFractionDigits: digits })} ₪`}</Numeric>;
+  return <Numeric>{`${number > 0 ? '+' : ''}${number.toLocaleString(locale === 'en' ? 'en-US' : 'he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪`}</Numeric>;
 }
 
 function MoneyBlock({ money, locale }) {
@@ -224,7 +244,7 @@ function MoneyBlock({ money, locale }) {
         {typeof money.last_known_revenue_delta === 'number' ? (
           <span className="cb-detail-scope">
             <span className="cb-label">{t('money.last_known', locale)}</span>
-            <Shekels value={money.last_known_revenue_delta} locale={locale} digits={0} />
+            <Shekels value={money.last_known_revenue_delta} locale={locale} />
           </span>
         ) : null}
       </p>

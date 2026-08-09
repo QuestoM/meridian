@@ -28,10 +28,18 @@ import '../../shell/card.css';
 // coefficient as "36 / 0" where the figure is 0 moved of 36 compared, and every
 // negative movement with its minus at the far end of the run.
 
-export function mountBoard(node, locale = 'he') {
+// The third argument is a board payload to render INSTEAD of the published one,
+// and it exists because some of what this panel promises is about payload shapes
+// the published file does not contain. A model version named something other
+// than a calendar day, or not named at all, are both shapes the reader-facing
+// rule has to hold for, and the only file on this tree carries the one name
+// `2026-07-29`. Left undefined it changes nothing: the panel's own default
+// parameter supplies the published board, which is what every other caller and
+// every other measurement gets.
+export function mountBoard(node, locale = 'he', board = undefined) {
   if (!node) return null;
   const root = createRoot(node);
-  root.render(<CandidateBoard locale={locale} />);
+  root.render(<CandidateBoard locale={locale} board={board} />);
   return root;
 }
 

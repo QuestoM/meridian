@@ -1,6 +1,6 @@
 import React from 'react';
 import { Numeric } from '../../shell/format';
-import { formatStamp } from '../../shell/dates';
+import { formatDay, formatStamp, parseDay } from '../../shell/dates';
 import { Figure as BidiFigure, Code, Name } from '../../shell/bidi';
 import { pick, t } from './board-words';
 
@@ -18,6 +18,29 @@ import { pick, t } from './board-words';
 // it from the store, and a second copy inside a bundled file is a second source
 // that can disagree with the first. The payload says the sentence exists and
 // where it is read, and the block says so on the screen.
+
+// A MODEL VERSION NAME, read.
+//
+// The stored name on this tree is `2026-07-29`, a calendar day, and three
+// surfaces in this piece printed it back exactly as stored: the shipped row of
+// the table, the amber tag on a verdict taken against another version, and the
+// log's own version line. That is the machine format the date rules ban in both
+// locales, and the date guard could not see it, because its raw-ISO rule
+// enumerates calendar-day payload FIELDS and a version NAME is not on that list.
+//
+// So the day is read out through shell/dates.js like every other day in the
+// product, and ONLY when it is a day. parseDay decides. A version named anything
+// else -- and nothing stops one being named `retention-v3` tomorrow -- is handed
+// back unchanged in the identifier face it arrived in, because inventing a date
+// for a name would be the worse defect. An absent name is stated as absent
+// instead of printed as an empty code span, which is what two of these three
+// sites did.
+export function VersionName({ value, locale }) {
+  const text = String(value ?? '').trim();
+  if (!text) return <span className="cb-absent-figure">{t('history.version_none', locale)}</span>;
+  if (!parseDay(text)) return <Code>{text}</Code>;
+  return <BidiFigure>{formatDay(text)}</BidiFigure>;
+}
 
 // A cell is a state and its qualifiers, never a paragraph. The sentence behind
 // the short word is printed once under the table, on the states that appear.
@@ -42,7 +65,7 @@ function Row({ row, locale }) {
         {row.against_version_in_force ? null : (
           <span className="cb-tag cb-amber">
             {t('history.other_version', locale)}
-            <Code>{String(row.model_version_name || '')}</Code>
+            <VersionName value={row.model_version_name} locale={locale} />
           </span>
         )}
       </td>
@@ -129,7 +152,7 @@ export function LiveModelVerdict({ live, log, locale }) {
       </p>
       <p className="cb-note cb-fact-line">
         <span className="cb-label">{t('history.version', locale)}</span>
-        <Code>{String((log || {}).version_name || '')}</Code>
+        <VersionName value={(log || {}).version_name} locale={locale} />
       </p>
     </section>
   );

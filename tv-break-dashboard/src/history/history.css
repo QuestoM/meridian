@@ -290,9 +290,13 @@
   background: var(--surface-muted);
 }
 
+/* Selected is carried by the fill and the ink, not by a rule down the leading
+   edge. A row sits flush against its neighbours, so a full border would double
+   with theirs; the fill already covers the whole row and reads the same in
+   Hebrew as in English. */
 .hist-row.selected {
   background: var(--teal-soft);
-  border-inline-start-color: var(--teal);
+  color: var(--teal-ink);
 }
 
 .hist-row:focus-visible {

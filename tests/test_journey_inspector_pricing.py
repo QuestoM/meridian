@@ -161,17 +161,35 @@ def test_effect_preview_baseline_matches_committed_day(client, plan, owned_chann
 
 
 def test_export_download_is_the_saved_plan(client, plan):
-    """Journey 3, step 5: the CSV download equals the saved weekly plan."""
+    """Journey 3, step 5: the download equals the operator's slice of the plan.
+
+    It said "equals the saved weekly plan" until ruling 009. The route serves the
+    operator's own channel now, because a download of a rival's programme titles
+    and revenue is the same breach as printing them on a screen. So the journey's
+    step is unchanged in what it is FOR, a planner downloading what they just
+    saw, and the comparison is against their own rows rather than the file.
+    """
     response = client.get("/api/export/schedule.csv")
     assert response.status_code == 200
     assert response.headers["content-disposition"].startswith("attachment")
     exported = pd.read_csv(io.StringIO(response.text))
     assert list(exported.columns) == list(plan.columns)
-    assert len(exported) == len(plan)
-    assert exported["segment_id"].tolist() == plan["segment_id"].tolist()
-    pd.testing.assert_series_equal(exported["num_breaks"], plan["num_breaks"])
+    from kairos_api import channel_scope
+
+    owned = str(channel_scope.operator_channel() or "").strip()
+    assert owned, "no operator channel is configured, so the route would refuse"
+    mine = plan[plan["channel"].astype(str).str.strip() == owned]
+    assert len(exported) == len(mine)
+    assert exported["segment_id"].tolist() == mine["segment_id"].tolist()
+    assert set(exported["channel"].astype(str).str.strip()) == {owned}, (
+        "the download carried a channel this operator does not own"
+    )
+    pd.testing.assert_series_equal(
+        exported["num_breaks"].reset_index(drop=True),
+        mine["num_breaks"].reset_index(drop=True),
+    )
     assert exported["predicted_revenue"].sum() == pytest.approx(
-        plan["predicted_revenue"].sum()
+        mine["predicted_revenue"].sum()
     )
 
 
