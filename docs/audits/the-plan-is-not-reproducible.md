@@ -10,8 +10,13 @@
 > So the committed plan is **STALE**. Every recompute produced the correct
 > current answer and I restored an out-of-date file over it four times.
 >
-> The evidence is five independent occurrences of the same bytes: four rewrites
-> plus one deliberate export. Byte-identical recurrence is evidence AGAINST
+> **CONFIRMED BY TWO BACK-TO-BACK EXPORTS.** Both full exports, run consecutively
+> to separate scratch paths on the same machine, produced byte-identical output:
+> `TWO RUNS IDENTICAL: True`. So the recompute IS deterministic under this
+> machine's normal load, and the difference from git is drift, not a race.
+>
+> The evidence is six independent occurrences of the same bytes: four rewrites
+> plus two deliberate consecutive exports. Byte-identical recurrence is evidence AGAINST
 > load-randomness for this artifact, and the agent that proposed the mechanism
 > downgraded its own explanation on exactly that ground before I measured it.
 >
