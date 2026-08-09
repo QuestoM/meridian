@@ -302,22 +302,57 @@ def test_precondition_placement_pins_falls_back():
     assert out.counts == {"a": 0, "b": 0}  # the input counts, untouched
 
 
-def test_precondition_override_floor_falls_back():
+def test_override_floor_is_honored_on_the_exact_path():
+    """A floor bounds the counts the sweep explores; it no longer blocks the day."""
     group = _two_overlapping_segments()
-    out = _call(group, floors={"a": 1})
-    assert out.fell_back and "override floor" in out.reason
+    out = _call(group, floors={"a": 2})
+    assert not out.fell_back, out.reason
+    assert out.counts["a"] >= 2
 
 
-def test_precondition_override_cap_falls_back():
+def test_override_cap_is_honored_on_the_exact_path():
+    """A cap bounds the counts the sweep explores; it no longer blocks the day."""
     group = _two_overlapping_segments()
     out = _call(group, caps={"a": 0})
-    assert out.fell_back and "override cap" in out.reason
+    assert not out.fell_back, out.reason
+    assert out.counts["a"] == 0
+    assert out.counts["b"] > 0  # the rest of the day still gets solved exactly
 
 
-def test_precondition_gold_forcing_falls_back():
+def test_gold_mark_is_honored_on_the_exact_path():
+    """The headline defect: one gold mark used to take the exact tier off the day.
+
+    The mark must reach the DP's daily gold budget through ``gold_by_id`` (the
+    segment's own ``is_gold`` is False here), which is what makes charging it
+    correct rather than merely unblocked.
+    """
     group = _two_overlapping_segments()
+    assert not any(s.is_gold for s in group)
     out = _call(group, gold_by_id={"a": True})
-    assert out.fell_back and "gold-forcing" in out.reason
+    assert not out.fell_back, out.reason
+    assert out.counts == _call(group).counts  # a non-binding mark changes nothing
+
+    # With a cap of one gold break per day the mark must BIND: the marked segment
+    # can carry at most one break, and the plan must survive the engine's own check
+    # on the gold-marked reconstruction.
+    tight = replace(GR, gold_breaks_max_per_day=1)
+    scale = max(sum(_segment_revenue(s, s.max_breaks) for s in group), 1e-9)
+    bound = dp_refine_group(
+        group, {s.segment_id: 0 for s in group}, tight, revenue_weight=0.6,
+        revenue_scale=scale, total_tvr=sum(s.baseline_tvr for s in group),
+        objective_mode=OBJECTIVE_BLEND, gold_by_id={"a": True},
+    )
+    assert not bound.fell_back, bound.reason
+    assert bound.counts["a"] <= 1
+    assert is_compliant(_group_breaks(group, bound.counts, {"a": True}), tight)
+
+
+def test_override_floor_above_every_feasible_count_falls_back():
+    """A floor no legal count can satisfy is reported, never silently lowered."""
+    group = _two_overlapping_segments()
+    out = _call(group, floors={"a": 3}, caps={"a": 2})
+    assert out.fell_back and out.reason_code == "no_allowed_count"
+    assert out.counts == {"a": 0, "b": 0}  # the input counts, untouched
 
 
 def test_precondition_non_finite_input_falls_back():
