@@ -304,6 +304,69 @@ about capability, not about moving a number that is already in use.
 
 ---
 
+## 9. The hour past midnight, and a cap that cannot bind
+
+Both found 2026-08-09 while checking whether the plan breaches its own hourly
+limit. It does not. The check turned up two things that matter more.
+
+**9a. Hour 24 exists and no rule was written for it.**
+
+A break's hour is its seconds-from-midnight divided by 3600, and that division is
+not bounded at 23. A programme starting at 23:xx carries breaks past midnight,
+which come back as hour 24 or 25 of the SAME broadcast day, because the day does
+not roll with them. Measured: 9,026 breaks on the shipped plan, 143 of them past
+midnight, 30 on your own channel.
+
+The day not rolling is defensible and probably right: a programme belongs to the
+broadcast day it started in. But the hourly cap is then applied to a bucket the
+cited regulation does not describe, since it caps commercial time "in any hour",
+which reads as a clock hour. Bucket (day D, hour 24) and (day D+1, hour 0) are
+the same sixty minutes of real time and two different keys, so nothing is ever
+added up across them.
+
+I changed nothing. Moving which bucket a break falls in moves the plan and
+therefore money, and the source listing overlaps heavily around midnight, so the
+excess the merge would reveal may be an artifact of the listing rather than real
+concurrent airtime. It is measured, named in the code where the hour is defined,
+and pinned by `tests/test_the_hour_past_midnight.py`.
+
+**What I need:** does a programme that starts at 23:40 and runs to 00:30 belong,
+for the purpose of an hourly limit, to the day it started in or to the clock?
+
+**9b. The hourly minutes cap CANNOT BIND, and lowering it would change nothing.**
+
+Every break in the plan is 120 seconds, and that length is a hardcoded constant
+with no settings key. So `max_breaks_per_hour` at 4 gives 4 x 120s = 8 minutes as
+a HARD CEILING, and `max_ad_minutes_per_hour` at 12 sits two thirds above a
+ceiling nothing can reach. It would take 7 breaks in an hour before the minutes
+cap could ever bite.
+
+This changes the answer to decision 8. Setting the hourly limit to the ten
+minutes the regulation cites WOULD CHANGE NOTHING AT ALL, because the plan cannot
+reach even eight. The lever that actually shapes ad load is the break count, and
+404 of 713 hours sit exactly at 4 breaks and exactly 8 minutes.
+
+Two things follow that you should know:
+
+  * The protected-content cap is 8 minutes, which is EXACTLY the ceiling. It has
+    never been violated only because the test is a strict greater-than. One
+    second lower and it would bind on those 404 hours.
+  * The daily cap is 160 minutes and 28 of 30 days sit exactly on it, minimum
+    146. There is no headroom. And 160 minutes is more than ten percent of a
+    24-hour day, which is 144, so against a ten-percent rule every single day
+    would be over.
+
+**What I need:** whether the break length should be configurable at all. Today it
+is one constant for every break on every channel, and it is the number that
+silently decides what your hourly limit means.
+
+**A correction to what I told you in decision 8.** I said the whole-day cap does
+not exist anywhere. That was wrong. `max_daily_ad_minutes` exists, defaults to
+160 and is enforced. What it is not is a percentage, and it is deliberately held
+as sales policy rather than as a licence limit.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from

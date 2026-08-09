@@ -39,7 +39,28 @@ class ProgramSegment:
     """One programme the optimizer may load with breaks.
 
     ``start_seconds`` is measured from midnight, so a break's clock hour is
-    ``start_seconds // 3600``. ``impact_coefficient`` is the retention change per
+    ``start_seconds // 3600``.
+
+    THAT DIVISION IS NOT BOUNDED AT 23, ON PURPOSE, AND IT IS NOT A CLOCK HOUR
+    PAST MIDNIGHT. A programme starting at 23:xx can carry a break past midnight,
+    and it comes back as hour 24 or 25 of the SAME broadcast day. Measured on the
+    shipped plan 2026-08-09: 143 breaks in all, 30 of them the operator's.
+
+    That is defensible and it is a divergence worth naming. A programme that
+    starts before midnight belongs to the broadcast day it started in, which is
+    why the day never rolls. But the hourly cap is then applied to a bucket the
+    regulator's own words do not describe: the cited rule caps commercial time
+    "in any hour", meaning a clock hour, and bucket (day D, hour 24) never merges
+    with (day D+1, hour 0) even though they are the same sixty minutes of real
+    time. Whichever is right, no rule was written for hour 24.
+
+    Nothing here is changed on that account, because changing which bucket a
+    break falls in moves the plan and therefore money, and because the source
+    listing overlaps heavily around midnight, so the excess merging would reveal
+    may be a data artifact rather than real concurrent airtime. It is measured in
+    ``tests/test_the_hour_past_midnight.py`` and raised as an owner decision.
+
+    ``impact_coefficient`` is the retention change per
     break (normally negative) and defaults to zero so a caller without a fitted
     impact model still gets a revenue-only allocation.
 
