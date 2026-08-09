@@ -125,7 +125,7 @@ def test_configured_but_disabled_cap_is_still_a_no_op() -> None:
     breaks = [make_break(hour=20, start_seconds=20 * 3600.0 + i * 700.0) for i in range(8)]
     off = Guardrails(airtime_caps=AirtimeCaps(
         window=WindowAdCap(start_hour=20, end_hour=24, max_ad_seconds=120.0, enabled=False),
-        day_fraction=DayFractionAdCap(max_fraction=0.001, enabled=False),
+        day_fraction=DayFractionAdCap(max_fraction_of_calendar_day=0.001, enabled=False),
     ))
     assert check_window_ad_load(breaks, off) == []
     assert check_day_fraction_ad_load(breaks, off) == []
@@ -204,10 +204,36 @@ def test_window_cap_counts_a_break_by_its_own_start() -> None:
     inside = [make_break(hour=20, start_seconds=20 * 3600.0),
               make_break(hour=23, start_seconds=23 * 3600.0)]
     assert [v.code for v in check_window_ad_load(inside, cap)] == ["window_ad_load"]
-    # 19:59 is before the window and hour 24 (past midnight) is after it.
-    outside = [make_break(hour=19, start_seconds=19 * 3600.0 + 3540.0),
-               make_break(hour=24, start_seconds=24 * 3600.0)]
+    outside = [make_break(hour=19, start_seconds=19 * 3600.0 + 3540.0)]
     assert check_window_ad_load(outside, cap) == []
+
+
+def test_hours_24_and_25_are_outside_a_window_that_ends_at_24() -> None:
+    """THE HOUR-24 DECISION, driven rather than documented.
+
+    A break's hour is int(start_seconds // 3600), unbounded at 23, so a 23:xx
+    programme yields hour 24 and 25 of the same broadcast day (143 such breaks on
+    the shipped plan; see tests/test_the_hour_past_midnight.py). This window is a
+    half-open CLOCK interval, so 24 and 25 are OUTSIDE a window ending at 24.
+    If someone later decides the broadcast day should continue instead, this test
+    is the one that must be consciously changed.
+    """
+    cap = Guardrails(airtime_caps=AirtimeCaps(window=WindowAdCap(
+        start_hour=20, end_hour=24, max_ad_seconds=120.0, enabled=True,
+    )))
+    past_midnight = [make_break(hour=24, start_seconds=24 * 3600.0),
+                     make_break(hour=25, start_seconds=25 * 3600.0 + 600.0)]
+    # Two breaks, 240s, against a 120s cap: they would breach if counted at all.
+    assert sum(b.duration_seconds for b in past_midnight) == 240.0
+    assert check_window_ad_load(past_midnight, cap) == []
+
+    # And they are not silently dropped everywhere: a window stated to include
+    # them does count them, so the exclusion is the interval's doing, not a bug.
+    reaching = Guardrails(airtime_caps=AirtimeCaps(window=WindowAdCap(
+        start_hour=20, end_hour=26, max_ad_seconds=120.0, enabled=True,
+    )))
+    assert [v.code for v in check_window_ad_load(past_midnight, reaching)] == [
+        "window_ad_load"]
 
 
 def test_window_cap_is_scoped_per_channel_day() -> None:
@@ -243,7 +269,7 @@ def whole_day_plan(caps: AirtimeCaps):
 def test_day_fraction_cap_changes_a_plan_and_the_count_is_exact() -> None:
     baseline = whole_day_plan(AirtimeCaps())
     capped = whole_day_plan(AirtimeCaps(day_fraction=DayFractionAdCap(
-        max_fraction=DAY_FRACTION, enabled=True,
+        max_fraction_of_calendar_day=DAY_FRACTION, enabled=True,
     )))
 
     baseline_seconds = total_ad_seconds(baseline)
@@ -267,23 +293,38 @@ def test_day_fraction_bite_disappears_when_the_rule_is_removed(monkeypatch) -> N
         guardrails_module, "check_day_fraction_ad_load", lambda breaks, guardrails: [],
     )
     capped = whole_day_plan(AirtimeCaps(day_fraction=DayFractionAdCap(
-        max_fraction=DAY_FRACTION, enabled=True,
+        max_fraction_of_calendar_day=DAY_FRACTION, enabled=True,
     )))
     assert total_ad_seconds(capped) > DAY_FRACTION * 86400.0
 
 
-def test_day_fraction_denominator_is_configurable() -> None:
-    """A shorter broadcast day makes the same fraction a tighter cap."""
-    breaks = [make_break(hour=20, start_seconds=20 * 3600.0 + i * 700.0) for i in range(5)]
-    full = Guardrails(airtime_caps=AirtimeCaps(day_fraction=DayFractionAdCap(
-        max_fraction=0.01, day_seconds=86400.0, enabled=True,
-    )))
-    short = Guardrails(airtime_caps=AirtimeCaps(day_fraction=DayFractionAdCap(
-        max_fraction=0.01, day_seconds=43200.0, enabled=True,
-    )))
-    assert check_day_fraction_ad_load(breaks, full) == []          # 600s <= 864s
-    assert [v.code for v in check_day_fraction_ad_load(breaks, short)] == [
-        "day_fraction_ad_load"]                                     # 600s > 432s
+def test_the_day_fraction_denominator_is_the_calendar_day_and_nothing_else() -> None:
+    """THE DENOMINATOR DECISION, driven rather than documented.
+
+    A tenth is 144 minutes, always, on every channel and every day. It is NOT a
+    tenth of whatever the channel happened to transmit, and there is no field to
+    make it one: offering both readings would let two operators mean different
+    things by the same stored number.
+    """
+    cap = DayFractionAdCap(max_fraction_of_calendar_day=0.1)
+    assert cap.max_ad_seconds == 8640.0            # 144 minutes of 1440
+    assert DayFractionAdCap(max_fraction_of_calendar_day=1.0).max_ad_seconds == 86400.0
+
+    # There is no denominator knob to reach for, by any spelling.
+    fields = set(DayFractionAdCap.__dataclass_fields__)
+    assert fields == {"max_fraction_of_calendar_day", "enabled"}, fields
+    with pytest.raises(TypeError):
+        DayFractionAdCap(max_fraction_of_calendar_day=0.1, day_seconds=43200.0)
+
+    # The denominator does not move with how much the day actually carries: the
+    # same limit applies to a day holding one break and a day holding fifty.
+    quiet = [make_break(hour=3, start_seconds=3 * 3600.0)]
+    busy = [make_break(hour=h, start_seconds=h * 3600.0 + i * 700.0)
+            for h in range(20, 24) for i in range(5)]
+    guardrails = Guardrails(airtime_caps=AirtimeCaps(day_fraction=DayFractionAdCap(
+        max_fraction_of_calendar_day=0.001, enabled=True)))          # 86.4 seconds
+    assert [v.limit for v in check_day_fraction_ad_load(quiet, guardrails)] == [86.4]
+    assert [v.limit for v in check_day_fraction_ad_load(busy, guardrails)] == [86.4]
 
 
 def test_both_caps_reach_is_compliant() -> None:
@@ -293,7 +334,7 @@ def test_both_caps_reach_is_compliant() -> None:
     window_on = Guardrails(airtime_caps=AirtimeCaps(window=WindowAdCap(
         start_hour=20, end_hour=24, max_ad_seconds=120.0, enabled=True)))
     day_on = Guardrails(airtime_caps=AirtimeCaps(day_fraction=DayFractionAdCap(
-        max_fraction=0.001, enabled=True)))
+        max_fraction_of_calendar_day=0.001, enabled=True)))
     assert not is_compliant(breaks, window_on)
     assert not is_compliant(breaks, day_on)
 
@@ -346,7 +387,7 @@ def test_an_operator_can_turn_a_cap_on_from_stored_json() -> None:
         "window_ad_cap": {
             "enabled": True, "start_hour": 20, "end_hour": 24, "max_ad_minutes": 40.0,
         },
-        "day_fraction_ad_cap": {"enabled": True, "max_fraction_of_day": 0.1},
+        "day_fraction_ad_cap": {"enabled": True, "max_fraction_of_calendar_day": 0.1},
     }))
     guardrails = _settings_to_guardrails(KairosSettings(**stored))
     assert guardrails.airtime_caps.states() == {
