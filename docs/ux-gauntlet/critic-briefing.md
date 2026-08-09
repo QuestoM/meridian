@@ -54,7 +54,8 @@ Seventeen destinations, from `tv-break-dashboard/src/shell/nav.js`:
 
 | piece | contract | subject |
 |---|---|---|
-| P2 | `contracts/P2.md` | Plan, the week — PASSED in an earlier round |
+| P1 | no contract file | Today — **UNDER FIRST JUDGEMENT**, see below |
+| P2 | `contracts/P2.md` | Plan, the week — **UNDER FIRST JUDGEMENT**, see below |
 | P3 | `contracts/P3.md` | Plan: the day and the break |
 | P4 | `contracts/P4.md` | Clients |
 | P5 | `contracts/P5.md` | Rules |
@@ -88,6 +89,17 @@ reproduced it today. Say which of the two you did. **A finding you cannot
 reproduce is a closed finding, and reporting it closed is a real result rather
 than an empty round.** P10, P11 and P12 have no critic file at all and nothing
 to inherit.
+
+**P1 AND P2 WERE RECORDED AS PASSED AND THE CLAIM HAS NO ARTIFACT.** This table
+said so until 2026-08-10 and it was wrong. There is no `state/P1.json`, no
+`state/P2.json`, no P1 contract, and P2's contract carries no verdict; neither
+file was ever committed and no state file has ever been deleted, so the record
+does not exist and was not lost. The claim traces to a commit where the lead
+asserted it while correcting a different error. Both pieces ARE built — 17 files
+under `src/today/`, 46 under `src/plan/week/`, 19 test files between them — so
+they are built and unjudged, exactly like P3 to P9. Both are now under their
+first blind judgement. **The standard the campaign holds the product to is that a
+claim is not evidence, and it does not get an exemption when the claim is ours.**
 
 ## 5. Known state, so nobody reports it as a finding
 
