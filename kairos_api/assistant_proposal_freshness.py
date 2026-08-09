@@ -118,7 +118,7 @@ def verdict(stamp: Any) -> dict[str, Any]:
     """
     now = plan_stamp()
     if not isinstance(stamp, dict) or not stamp.get("sha256") or now is None:
-        return {"state": CURRENT}
+        return {"state": UNKNOWN, "reason_en": UNKNOWN_EN, "reason_he": UNKNOWN_HE}
     if stamp.get("sha256") == now.get("sha256") and stamp.get("settings") == now.get("settings"):
         return {"state": CURRENT}
     moved = sorted(
