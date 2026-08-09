@@ -492,6 +492,61 @@ lowered for a fast preview without editing the module.
 
 ---
 
+## 12. Your committed plan is out of date by 17,966.31 shekels
+
+Measured 2026-08-09, and it corrects four things I told you today.
+
+**What I got wrong.** Four times today `output/weekly_break_schedule.csv` changed
+under us and four times I called it pollution and restored it from git. I was
+restoring the OLD file over the correct one.
+
+**The measurement that settled it.** I ran a fresh export to a scratch path,
+touching nothing. It produced bytes IDENTICAL to the file I had been calling
+polluted, and different from the one in git. Five independent occurrences now
+agree: four rewrites plus one deliberate export.
+
+**So the engine has been right every time and the committed plan is stale.**
+
+**The drift, measured exactly:**
+
+| | |
+|---|---|
+| committed plan revenue | 221,891,590.23 |
+| what the current tree produces | 221,873,623.92 |
+| difference | **-17,966.31** |
+| on your own channel | -9,350.68 |
+| segments with a different break count | 68 of 8,704 |
+| total breaks | IDENTICAL, 9,026 both ways |
+
+Same number of breaks, distributed differently, slightly less money.
+
+**Why it drifted.** Almost certainly this session's own engine work. The gold
+override that was moving 131,878.70 was set inert, 41 advertiser rules were bound
+where none had been, and the preferred-position set stopped being guessed. Each
+of those changes what the optimizer sees. I have NOT isolated which, and I am not
+guessing at the split.
+
+**What I need from you, and there are two questions.**
+
+1. **Do I commit the fresh plan as the new baseline?** Right now the file the
+   dashboard reads and the file in version control disagree, and every
+   measurement anyone takes against the committed one is against a fiction. My
+   recommendation is yes, because an artifact that does not match what the code
+   produces is worse than a slightly different artifact. But it changes what your
+   dashboard shows, so it is your call.
+
+2. **Do you want the 17,966.31 attributed before I do?** It is 0.008 percent, and
+   it is the price of three corrections that were each independently right. I can
+   isolate which change costs what, one at a time, if it matters to you. It is a
+   day's compute, not a day's argument.
+
+**Related but separate: decision 11**, that the plan is not reproducible across
+machines because the DP tier stops on a wall clock. That is a real defect and it
+is NOT what happened here; the same bytes came back five times, which is the
+opposite of a race.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from

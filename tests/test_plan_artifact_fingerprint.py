@@ -214,7 +214,11 @@ def test_the_committed_artifact_is_the_one_on_disk():
         "what the exporter's default path makes easy, or a recompute was run and "
         "not committed. Run `git diff --stat output/` to see which. If it was "
         "unintended: `git checkout -- output/`. If it was deliberate: verify the "
-        "golden and commit it, because a changed plan is a change to money."
+        "golden and commit it, because a changed plan is a change to money. AND "
+        "BEFORE YOU RESTORE, CHECK WHICH ONE IS STALE: on 2026-08-09 a fresh "
+        "export reproduced the on-disk file byte for byte and the COMMITTED one "
+        "was the out-of-date side, so restoring put an old plan back four times. "
+        "Export to a scratch path and compare before deciding which way to go."
     )
 
 

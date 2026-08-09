@@ -1,5 +1,34 @@
 # The plan is a function of machine load
 
+> ## CORRECTED THE SAME DAY: THIS DOES NOT EXPLAIN THE ARTIFACT
+>
+> The four rewrites of `output/weekly_break_schedule.csv` were **NOT pollution
+> and NOT this mechanism.** A fresh export run to a scratch path produced
+> `d4573c0037f557dd2cfdb4badba57320`, **byte-identical to the file that kept
+> appearing**, and different from the committed `6a5944b4a3e0504ca761c0bab937c598`.
+>
+> So the committed plan is **STALE**. Every recompute produced the correct
+> current answer and I restored an out-of-date file over it four times.
+>
+> The evidence is five independent occurrences of the same bytes: four rewrites
+> plus one deliberate export. Byte-identical recurrence is evidence AGAINST
+> load-randomness for this artifact, and the agent that proposed the mechanism
+> downgraded its own explanation on exactly that ground before I measured it.
+>
+> **What survives below is a direct experiment and it stands:** varying only the
+> DP wall budget changed the plan on five of six real channel-days, always for
+> the worse. The plan is not reproducible ACROSS MACHINES OR LOADS. That is a
+> real defect and decision 11 still needs an answer.
+>
+> **What does not survive:** the suggestion that it explains this artifact.
+>
+> The measured drift between the committed plan and what the current tree
+> produces: 68 of 8,704 segments carry a different break count, the break total
+> is IDENTICAL at 9,026, and revenue is **17,966.31 lower**, of which 9,350.68 is
+> on the operator's own channel. That is the effect of this session's engine
+> changes on the plan, not a race.
+
+
 Measured 2026-08-09. This is the answer to the question left open in commit
 `9dbe5d31`, which asked why the same inputs were reaching a different and worse
 plan.
