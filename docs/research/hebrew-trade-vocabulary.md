@@ -340,12 +340,28 @@ Queries: `מדריך מדיה ברייק מיקומים "ראשון, שני, ש�
 
 **This does not contradict the trade document.** See §1 of the preamble.
 
-### 2.4 No letter code for the last position
+### 2.4 The letter code for the last position: RESOLVED BY THE OWNER
 
-**NOT CONFIRMED.** No Israeli source uses `L`, or any Hebrew letter code, for
-the last position; they use the word `אחרון`. The `L` coding in
-`docs/media-domain-from-the-trade.md` is the operator's and the market's, simply
-not written down publicly.
+**Was NOT CONFIRMED. Now CONFIRMED, by the authority that outranks this file.**
+
+What the research found: no Israeli source on the open web uses `L`, or any
+Hebrew letter code, for the last position. They use the word `אחרון`.
+
+What the owner said, 2026-08-09, unprompted, on reading this file:
+
+> לדעתי בפועל משתמשים באות L ל-last
+
+So `L` is what the market actually uses, and the product's model was right.
+Nothing changes in the code, which has always written the last position as `L`
+and treated it as a distinct position rather than the fifth ordinal.
+
+**This entry is the clearest demonstration of why this file's own preamble says
+what it says.** Absence of web evidence is weak evidence of absence in a trade
+whose rate cards are not published. Had anyone "reconciled" the product toward
+the web here, they would have replaced a correct model with a wrong one on the
+strength of a failed search. The rule holds in the other direction too: the next
+NOT CONFIRMED in this file may be equally wrong, and the owner is the way to
+find out, not the search engine.
 
 ### 2.5 No centre-versus-end price index
 

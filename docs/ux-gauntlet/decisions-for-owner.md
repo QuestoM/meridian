@@ -260,56 +260,47 @@ knows the file. It just is not yet the product's own vocabulary.
 
 ---
 
-## 8. Three regulatory caps, one of which you already have and two of which do not exist here
+## 8. Three regulatory caps: ANSWERED by the owner, 2026-08-09
 
-Raised 2026-08-09, out of the broadcast research. I am asking rather than acting
-because every one of these numbers moves real money and none of them is mine to
-set.
+Raised and answered the same day. Kept here because the reasoning is worth
+having, not because anything is still open.
 
-**What a research agent found, and its source.** The Second Authority's 1992
-placement rules, `כללי הרשות השניה לטלויזיה ורדיו (שיבוץ תשדירי פרסומת בשידורי
-טלויזיה), תשנ"ב-1992`, at https://www.nevo.co.il/law_html/law00/4941.htm, cap
-commercial time three separate ways:
+**What a research agent found.** The Second Authority's 1992 placement rules,
+`כללי הרשות השניה לטלויזיה ורדיו (שיבוץ תשדירי פרסומת בשידורי טלויזיה), תשנ"ב-1992`,
+at https://www.nevo.co.il/law_html/law00/4941.htm, cap commercial time three
+ways: clause 3(א), ten minutes in any hour; clause 3(ב)(1), forty minutes IN
+TOTAL across 20:00 to 24:00; clause 3(ג), ten percent of the whole broadcast day.
+Clause 10(ב) additionally allows a mid-programme cluster only at an אתנחתה.
 
-  * clause 3(א), ten minutes in any hour;
-  * clause 3(ב)(1), forty minutes IN TOTAL across 20:00 to 24:00;
-  * clause 3(ג), ten percent of the whole broadcast day.
+Three Israeli regimes carry three different sets of numbers. The public
+broadcaster runs nine minutes an hour and up to four pods; designated cable and
+satellite channels run up to ten pods, eight when drama or film exceeds half the
+hour. Our operator is in the Second Authority regime, so those two are context.
 
-**What this product has today.** One of the three. `max_ad_minutes_per_hour` is
-a setting and it is set to **12.0**, not 10. The evening-window cap and the
-whole-day cap DO NOT EXIST anywhere in the engine, the settings or the
-compliance read: there is no field, so there is nothing set wrongly, there is
-simply no way to express them.
+**What the product has today.** One of the three. `max_ad_minutes_per_hour` is a
+setting at 12.0, not 10. The evening-window cap and the whole-day cap do not
+exist anywhere: no field, so nothing is set wrongly, there is simply no way to
+express them.
 
-**What I am NOT claiming.** That your plan breaches anything. I have not
-established that, the exact measurement is in flight, and my first crude attempt
-used a unit the guardrail may not use. I am also not claiming the 1992 text is
-current: it may have been amended since, your licence may carry different terms,
-and one web page read by an agent is not a legal opinion. That is precisely why
-this is a question and not a change.
+**THE OWNER'S RULING.** Do not turn these on by default, because the commercial
+channels do not always work to the regulation. Build the technical ability to
+turn them on when somebody asks.
 
-**What I need from you.**
+**What that means, precisely, and it is a better answer than the question.** The
+caps become constraints the product CAN express and does not apply. Off is the
+default and off is honest: a cap that is not enforced must not appear as though
+it were, and a plan produced without it must not carry a compliance badge earned
+by a rule nobody ran. Three states, as everywhere else: enforced, available and
+off, and absent.
 
-1. What are the numbers that actually bind you? If the hourly limit is ten and
-   not twelve, that is not a settings tweak: it is a constraint that reshapes
-   every plan the optimizer produces, and it should be measured before it is
-   moved.
-2. Do the evening-window and whole-day caps bind you? If they do, they are two
-   constraints the engine cannot currently express at all, which is a build and
-   not a setting.
-3. Is `אתנחתה` a real constraint in your operation? Clause 10(ב) says a
-   mid-programme cluster may be placed ONLY at a natural pause. If your traffic
-   department treats that as binding, it is a placement rule the optimizer does
-   not know about.
+It also settles what I would have got wrong on my own. I was preparing to ask
+which numbers legally bind us, as though the answer were a value. The answer is
+that the value is not the product's to hold: the operator decides whether a rule
+applies, and the product's job is to be able to apply it and to say plainly
+whether it did.
 
-**Related and already asked: decision 5b**, which is about WHO may change these
-numbers. This one is about WHAT they should be. Answering 5b without this one
-protects the wrong values well.
-
-**What happens until you answer:** nothing changes. `max_ad_minutes_per_hour`
-stays at 12.0 because lowering it on the strength of a web citation would move
-real money on my judgement rather than yours, and the two missing caps stay
-missing rather than being invented at values nobody confirmed.
+**Still not changed:** `max_ad_minutes_per_hour` stays at 12.0. The ruling is
+about capability, not about moving a number that is already in use.
 
 ---
 

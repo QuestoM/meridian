@@ -59,6 +59,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["plan-day"])
 router.include_router(pod.router)
+# The preferred-position percentage, which had zero callers until 2026-08-09.
+from kairos_api import preferred_rate as _preferred_rate  # noqa: E402
+router.include_router(_preferred_rate.router)
 
 
 class BreakMove(BaseModel):
