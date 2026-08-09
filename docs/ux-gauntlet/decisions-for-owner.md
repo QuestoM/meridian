@@ -441,6 +441,57 @@ BECAUSE of that difference, not in spite of it.
 
 ---
 
+## 11. The plan is a function of machine load, and the fix moves money
+
+Measured 2026-08-09, full write-up in `docs/audits/the-plan-is-not-reproducible.md`.
+
+**What was found.** The exact DP tier aborts on a WALL CLOCK deadline, five
+seconds per channel-day, so a group that finishes on an idle machine and times
+out on a busy one adopts a DIFFERENT PLAN. The plan this product exports depends
+on how loaded the computer was when it ran.
+
+**The measurement.** Six real channel-days, varying nothing but that budget:
+five of six produced a different plan, and the starved plan was WORSE every
+single time, by between 2,318 and 122,886 shekels on a single day. The one day
+that did not move is exactly the day where the DP had nothing better to offer,
+so the exception predicts itself.
+
+On an idle machine the worst real day uses 1.89 of its 5 seconds, so there is
+about 2.6x headroom. A full export is 120 independent groups each with its own
+budget, so any subset can flip on any run.
+
+**This is almost certainly what has been rewriting your plan file.** Four times
+in one session the committed artifact changed underneath us with the same
+signature every time: identical rows, identical break count, identical total ad
+seconds to the second, breaks redistributed inside a day, and revenue slightly
+lower. That is exactly what this mechanism produces. I say almost certainly
+because the load conditions at those moments are gone and cannot be re-measured.
+
+**The fix, and why I did not make it.** Replace the wall clock with a
+deterministic work budget. There is already a deterministic gate beside it
+counting states, and it already bounds the compute; counting work instead of
+seconds would make the same inputs give the same plan on any machine.
+
+I did not make it because ON THE DAYS WHERE THE DP CURRENTLY TIMES OUT, THE PLAN
+WOULD CHANGE, and it would change in the direction of more revenue. That is a
+real money movement on my judgement rather than yours, and it is exactly the kind
+of change this campaign has agreed I do not make alone.
+
+**What I need:** whether to make the budget deterministic. My recommendation is
+yes, and to measure the revenue difference across all 120 groups before and after
+so you can see what it is worth rather than take my word for it.
+
+**One thing that follows either way, and you should know it.** Until this is
+fixed, a single green golden run is weaker evidence than it looks, because if the
+golden exercises the DP near its budget then the golden is load-sensitive too.
+Every measurement in this repository inherits that caveat.
+
+**A smaller finding alongside it:** the budget is not settable by any caller. It
+is a definition-time default, so it cannot be raised for a production export or
+lowered for a fast preview without editing the module.
+
+---
+
 ## What I did not ask you
 
 For completeness, so you can see the line I drew. I answered these myself from
