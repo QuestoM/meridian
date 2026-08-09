@@ -6,12 +6,39 @@ handed. Everything below was measured, not remembered.
 
 ---
 
-## The one-line state
+## The one-line state, 2026-08-10
 
-Waves two, three and six are closed. Four and five are in flight with agents
-live. The suite went from 111 failures to 3 over the session, and every one of
-the three was closed. Six frontend guards are green and all their quarantines are
-empty.
+ALL WAVES ARE CLOSED. Two, three, four, five and six. **Wave two closed by
+measurement rather than by work:** its 80-row backlog is 12 CLASSES, and 76 of
+the 80 rows were already covered by guards that exist and are green, including
+all 62 rows of its single largest class. Of the four left, three are judgement
+for the owner and one was a gap in a guard, now closed.
+
+SIX frontend guards, all green, all quarantines empty, and `npm run test:all`
+runs the BUILD FIRST because five design guards passed twice on a tree that would
+not compile.
+
+    npm run test:all      build, then the six
+    npm run test:guards   the six alone
+
+## The two things a new session must not repeat
+
+**THE PLAN ARTIFACT IS NOT POLLUTED, IT IS STALE.** I restored it four times,
+each time calling the correct file damage. A fresh export reproduces the on-disk
+file byte for byte, and the tree at the commit that COMMITTED the plan produces
+the same thing, so the artifact was never what its own commit's code produced.
+The golden asserts against its OWN embedded baseline and not against this file,
+which is why it stayed green throughout and why I misread it as confirmation.
+Decision 12: replace it, nothing to attribute.
+
+**A MEASUREMENT WHOSE FAILURE MODE IS A COMFORTABLE ANSWER IS NOT A MEASUREMENT.**
+Caught four times in one day, three of them by agents and once by me: a cap
+fixture measured on hours holding zero breaks; a determinism probe patching a
+value bound at definition time; a bite harness whose cleanup did not run, leaving
+an injected `revenue_delta: -1.0` that I then COMMITTED with `git add -A`; and my
+own grep with a malformed flag reporting zero literal colours where there were 67.
+`tests/lever_probe.py` enforces the rule for levers: refuse to rule on a fixture
+you cannot show is binding.
 
 ## What is running RIGHT NOW, and do not duplicate it
 
