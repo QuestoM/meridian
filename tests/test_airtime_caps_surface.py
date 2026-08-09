@@ -111,3 +111,48 @@ def test_the_compliance_route_says_which_caps_ran() -> None:
         assert row["observed"] is None and row["limit"] is None
     # And the disclosure did not disturb the seven the licence already had.
     assert len(payload["checks"]) == 7
+
+
+# An absent cap is absent ON DISK too -----------------------------------------
+def test_an_unset_cap_is_written_by_not_being_written(tmp_path) -> None:
+    """The store has never carried a null and must not start now.
+
+    The caps are the first fields on ``KairosSettings`` that default to None, and
+    a plain dump materialized them as two null keys on the first PUT after they
+    shipped. That turned an unrelated save into a dirty tracked store, which the
+    leftovers guard reads as agent litter and which cost a real restore.
+
+    The second half is the part that matters: ``exclude_none`` dropping a cap the
+    operator actually configured would fail SILENTLY and look exactly like a
+    pass. So the configured case is asserted here as a positive control, and it
+    is what proves the instrument moves rather than merely staying quiet.
+    """
+    import json
+    from unittest.mock import patch
+
+    from kairos_api import core
+    from kairos_api.airtime_cap_settings import DayFractionAdCapSettings
+    from kairos_api.core import KairosSettings
+
+    store = tmp_path / "kairos_settings.json"
+    with patch.object(core, "SETTINGS_PATH", store):
+        core._save_settings(KairosSettings())
+        on_disk = json.loads(store.read_text(encoding="utf-8"))
+        assert "window_ad_cap" not in on_disk
+        assert "day_fraction_ad_cap" not in on_disk
+        assert [key for key, value in on_disk.items() if value is None] == []
+        assert core._load_settings() == KairosSettings()
+
+        configured = KairosSettings(
+            window_ad_cap=WindowAdCapSettings(
+                enabled=True, start_hour=20, end_hour=24, max_ad_minutes=10
+            ),
+            day_fraction_ad_cap=DayFractionAdCapSettings(
+                enabled=True, max_fraction_of_calendar_day=0.1
+            ),
+        )
+        core._save_settings(configured)
+        on_disk = json.loads(store.read_text(encoding="utf-8"))
+        assert on_disk["window_ad_cap"]["max_ad_minutes"] == 10
+        assert on_disk["day_fraction_ad_cap"]["enabled"] is True
+        assert core._load_settings() == configured

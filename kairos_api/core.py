@@ -184,6 +184,13 @@ def _model_dump(model: BaseModel) -> dict[str, Any]:
     return model.dict()
 
 
+def _model_dump_for_store(model: BaseModel) -> dict[str, Any]:
+    """The on-disk shape: an unset optional is written by not being written."""
+    if hasattr(model, "model_dump"):
+        return model.model_dump(exclude_none=True)
+    return {key: value for key, value in model.dict().items() if value is not None}
+
+
 # Serializes settings file access within the process. _save_settings holds it for
 # the whole tmp-write-plus-replace, and a caller doing a read-modify-write (load,
 # mutate, save) can hold it across both calls (it is reentrant) so two concurrent
@@ -222,7 +229,21 @@ def _save_settings(settings: KairosSettings) -> KairosSettings:
         SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = SETTINGS_PATH.with_name(SETTINGS_PATH.name + ".tmp")
         with tmp_path.open("w", encoding="utf-8") as handle:
-            json.dump(_model_dump(settings), handle, ensure_ascii=False, indent=2)
+            # ABSENT MEANS ABSENT, and it is the write that has to say so. The
+            # airtime caps are the first fields on this model that default to
+            # None, and a plain dump materialized them as two null keys on the
+            # very first PUT. Measured: this store carries ZERO nulls across
+            # every field it has ever had, so a null would be a new convention
+            # introduced by accident, and a tracked store going dirty on an
+            # unrelated save is what the leftovers guard reads as agent litter.
+            # The round-trip stays lossless because an absent optional loads
+            # back as None, which is the value that was dropped.
+            #
+            # Scoped to the WRITE on purpose. The API payloads share
+            # _model_dump and want the opposite: a consumer needs the key
+            # present and null to tell "no cap configured" from "this build
+            # does not have caps".
+            json.dump(_model_dump_for_store(settings), handle, ensure_ascii=False, indent=2)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
