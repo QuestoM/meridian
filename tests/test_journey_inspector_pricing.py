@@ -212,7 +212,19 @@ def test_pricing_state_declares_live_and_wired_off_layers(client):
     assert layers["day"]["live_today"] is True
     for name in ("show", "position", "ad_type"):
         assert layers[name]["live_today"] is False, f"{name} must ship wired off"
-    assert body["activation"] == {"show": False, "position": False, "ad_type": False}
+    # qh_settlement joined this block on 2026-08-09. The assistant's prompt tells
+    # the model to state whether the settlement restatement is on, and the block
+    # did not carry it, so the model was told to state a fact it was never given.
+    # Asserted by name and by value rather than by set equality, so a NEW flag
+    # appearing here is not a failure while a flag silently flipping still is.
+    activation = body["activation"]
+    assert activation["show"] is False
+    assert activation["position"] is False
+    assert activation["ad_type"] is False
+    assert activation["qh_settlement"] is False, (
+        "the quarter-hour settlement restatement is ON. It moves measured revenue by "
+        "7.45 percent and ships off, so this is an owner decision rather than a default."
+    )
     ad_type_warnings = layers["ad_type"]["warnings"]
     assert any(w["kind"] == "zeroes_on_activation" for w in ad_type_warnings), (
         "the promo=0 activation hazard must be disclosed"
