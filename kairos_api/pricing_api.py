@@ -155,6 +155,18 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             "show": effective.enable_show,
             "position": effective.enable_position,
             "ad_type": effective.enable_ad_type,
+            # The quarter-hour settlement restatement. It was missing here while
+            # the assistant's prompt rule 17 instructs the model to "say whether
+            # the settlement restatement flag is on or off", so the model was
+            # told to state a fact this payload never carried. That is the same
+            # shape as the compliance effective date found the same day: a
+            # persona instructed to state something it is not given states it
+            # anyway, and a confident wrong answer about a billing flag is worse
+            # than a refusal.
+            #
+            # It restates measured revenue by +7.45 percent when activated and
+            # ships OFF, so whether it is on is a question about money.
+            "qh_settlement": effective.enable_qh_settlement,
         },
         # Event-date layer state: operator-asserted multipliers stored on calendar
         # events (data/calendar_events.csv), gated on pricing_activation.events.

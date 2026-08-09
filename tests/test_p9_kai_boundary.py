@@ -48,10 +48,13 @@ def channel_account(tmp_path, monkeypatch):
 
 
 # --- the propose-only contract, the Bar 3 floor for this piece ---------------
-def test_the_tool_surface_is_still_33_read_8_propose_and_0_write() -> None:
-    # 33 since the two pod read tools landed: the traffic operator's own object
-    # was the one thing Kai was told to be exact about and could not read.
-    assert len(assistant_tools.READ_TOOL_NAMES) == 33
+def test_the_tool_surface_is_still_38_read_8_propose_and_0_write() -> None:
+    # 38 since the coverage gap closed. Three objects the prompt tells Kai to
+    # answer in were unreadable: the pod the traffic operator assembles (2
+    # tools), the break the scheduler places (2), and pacing against goal with
+    # the remedy the campaign manager is told to name (3). Every one of them
+    # reads a route's own function, and not one of them writes.
+    assert len(assistant_tools.READ_TOOL_NAMES) == 38
     assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 8
     every_name = assistant_tools.READ_TOOL_NAMES | assistant_tools.PROPOSE_TOOL_NAMES
     assert len(assistant_tools.anthropic_tools()) == len(every_name)

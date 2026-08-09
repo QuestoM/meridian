@@ -92,12 +92,18 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
     ),
 ]
 
-# The pod tools' schemas are defined beside their executors, so the description
-# and what the executor returns cannot drift apart. They ride in this list so
-# READ_TOOL_NAMES, which freezes at import, carries them.
+# The pod, break and pacing tools' schemas are defined beside their executors, so
+# the description and what the executor returns cannot drift apart. They ride in
+# this list so READ_TOOL_NAMES, which freezes at import, carries them: a schema
+# registered after that frozenset is built is invisible to handle_tool_use, and
+# the model can never call the tool.
+from kairos_api.assistant_read_tools_break import BREAK_READ_TOOL_SCHEMAS  # noqa: E402
+from kairos_api.assistant_read_tools_pacing import PACING_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_pod import POD_READ_TOOL_SCHEMAS  # noqa: E402
 
 EXTRA_READ_TOOL_SCHEMAS.extend(POD_READ_TOOL_SCHEMAS)
+EXTRA_READ_TOOL_SCHEMAS.extend(BREAK_READ_TOOL_SCHEMAS)
+EXTRA_READ_TOOL_SCHEMAS.extend(PACING_READ_TOOL_SCHEMAS)
 
 EXTRA_PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
     _tool(

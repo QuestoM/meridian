@@ -239,3 +239,26 @@ def test_the_compliance_tool_gives_the_date_the_prompt_tells_kai_to_name():
         "a regulatory claim a reader cannot follow to its source is worth less than one "
         "they can"
     )
+
+
+def test_the_pricing_tool_says_whether_the_settlement_restatement_is_on():
+    """Rule 17 tells Kai to state a flag the payload did not carry.
+
+    The prompt says: "say whether the settlement restatement flag is on or off."
+    The activation block carried show, position and ad_type and never
+    qh_settlement, while PricingModel.enable_qh_settlement and
+    qh_billing.qh_settlement_enabled both exist.
+
+    Third instance of one shape in a day, after the compliance effective date and
+    the pod itself: a persona instructed to state a fact it is not given states it
+    anyway. This one is about money, because the restatement moves measured
+    revenue by 7.45 percent when it is activated.
+    """
+    from kairos_api.assistant_read_tools import _read_get_pricing
+
+    activation = _read_get_pricing({}).get("activation") or {}
+    assert "qh_settlement" in activation, (
+        "the pricing tool does not say whether the settlement restatement is on, and the "
+        "prompt tells the assistant to state it"
+    )
+    assert isinstance(activation["qh_settlement"], bool), "the flag is a state, not a guess"

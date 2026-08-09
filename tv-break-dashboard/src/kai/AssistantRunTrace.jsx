@@ -50,6 +50,11 @@ const STEP_LABELS = {
   get_top_advertisers: ['Reading the advertiser ledger', 'קורא את ספר המפרסמים'],
   get_break_pods: ['Reading the day\'s break contents', 'קורא את תוכן הברייקים של היום'],
   get_pod: ['Reading one break\'s contents', 'קורא את תוכן הברייק'],
+  get_day_breaks: ['Reading the day\'s breaks', 'קורא את הברייקים של היום'],
+  get_break: ['Reading one break', 'קורא ברייק אחד'],
+  get_pacing_board: ['Reading the pacing board', 'קורא את לוח הקצב'],
+  get_campaign_pacing: ['Reading one campaign\'s pacing', 'קורא את הקצב של קמפיין אחד'],
+  get_make_good_ledger: ['Reading the make-good ledger', 'קורא את ספר פיצויי השידור'],
   list_uploads: ['Listing your uploaded files', 'מציג את הקבצים שהעליתם'],
   get_upload: ['Reading an uploaded file', 'קורא קובץ שהועלה'],
   find_advertiser: ['Matching an advertiser', 'מאתר מפרסם'],
@@ -105,6 +110,11 @@ const SOURCE_HE = {
   'assistant uploads (own)': 'הקבצים שהעליתם',
   'daily traffic files on disk (data/daily_input), the pods of one broadcast day': 'קובצי הטראפיק היומיים בדיסק, תוכן הברייקים של יום שידור אחד',
   'daily traffic files on disk (data/daily_input), the pod of one break': 'קובצי הטראפיק היומיים בדיסק, תוכן ברייק אחד',
+  'the day plan for one channel-day, re-planned live, with the saved weekly plan beside it': 'תוכנית היום של הערוץ שלכם, מתוכננת מחדש עכשיו, לצד התוכנית השבועית השמורה',
+  'the day plan for one channel-day, one break': 'תוכנית היום של הערוץ שלכם, ברייק אחד',
+  'the pacing board: the campaign store and the delivery ledger, owned channel': 'לוח הקצב: מאגר הקמפיינים וספר האספקה, בערוץ שלכם',
+  'the pacing board and the delivery ledger, the broadcast days behind one campaign': 'לוח הקצב וספר האספקה, ימי השידור שמאחורי קמפיין אחד',
+  'the make-good decision ledger': 'ספר ההחלטות של פיצויי השידור',
   'unknown tool': 'כלי לא מוכר',
 };
 

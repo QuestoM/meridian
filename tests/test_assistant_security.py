@@ -133,6 +133,24 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
     pods = break_api_pod.pods_for_day(covered[0]) if covered else []
     if pods:
         args["get_pod"] = {"pod_id": pods[0]["pod_id"]}
+    # The break tool needs a real break id, for the same reason: the day plan it
+    # opens carries the programme titles, and a scan run against an error stub
+    # would never touch them.
+    from kairos_api import break_store
+
+    planned = break_store.plan_days()
+    if planned:
+        args["get_day_breaks"] = {"day": planned[0]}
+        records = break_store.break_records(break_store.day_plan(planned[0]))
+        if records:
+            args["get_break"] = {"break_id": records[0]["break_id"]}
+    # And the pacing drill needs a real campaign id, so the scan bites on a real
+    # campaign with its real advertiser, agency and delivery days.
+    from kairos_api import pacing_alerts_api_read as pacing_read
+
+    rows = pacing_read.board_payload().get("rows") or []
+    if rows:
+        args["get_campaign_pacing"] = {"campaign_id": rows[0]["campaign_id"]}
     return args
 
 
