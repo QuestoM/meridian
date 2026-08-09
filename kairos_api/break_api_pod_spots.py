@@ -11,9 +11,9 @@ last spot of the same break, which is two positions in one pod, and a product th
 numbered Last could not express it. The file encodes Last as 99 and an unrequested
 position as 0, so neither is returned as an ordinal.
 
-Which codes count as preferred is agreed per client, so the preferred set travels
-with the payload as a stated default rather than as a reading of anybody's
-contract.
+Which codes count as preferred is agreed per client, so the preferred set is READ
+from the channel's own configuration and never guessed. Unset means the question
+cannot be answered, not that every position qualifies.
 
 **A blank field is never an empty string standing in for a value.** An advertiser,
 a creative, a house number or a length that the file does not carry comes back as
@@ -52,19 +52,38 @@ PREFERRED_UNSET = "No preferred set is configured for this channel, so whether t
 PREFERRED_UNSET_HE = "לא הוגדרה לערוץ קבוצת מיקומים מועדפים, ולכן לא ניתן לקרוא אם המיקום הזה מועדף."
 
 
-def _preferred_set() -> frozenset[str] | None:
-    """The configured preferred codes, or None when the channel has not set one.
+_UNREAD = object()
+
+
+def preferred_reading() -> dict[str, Any]:
+    """The configured preferred codes AND why they are absent when they are.
 
     Through the pricing seam, which is the one home for operator pricing, so this
     surface and the pricing screen cannot disagree about the same question.
+
+    Three states, because the swallow this replaced had two. It returned None
+    both when no set is configured and when reading the settings RAISED, so a
+    corrupt settings file presented as a deliberate operator choice not to
+    configure one. Those are different facts and the surface now says which.
     """
     try:
         from kairos.optimize.pricing import pricing_from_settings
 
-        model = pricing_from_settings()
-        return getattr(model, "preferred_positions_default", None) or None
-    except Exception:
-        return None
+        codes = getattr(pricing_from_settings(), "preferred_positions_default", None) or None
+    except Exception as error:  # noqa: BLE001 - the reason travels, it is not discarded
+        return {"codes": None, "state": "unreadable", "reason": str(error)}
+    return {"codes": codes, "state": "real" if codes else "unavailable"}
+
+
+def _preferred_set() -> frozenset[str] | None:
+    """The configured preferred codes, or None when they cannot be read.
+
+    Kept as the thin accessor for callers that only need the set. Anything that
+    reads it more than once in a request reads it ONCE and threads it: every
+    call re-reads settings off disk, and a set that changed between two calls
+    inside one response would answer the same question two ways.
+    """
+    return preferred_reading()["codes"]
 
 # A run of digits immediately followed by a seconds mark is a length. The three
 # marks really present in the shipped file are the double quote (28", 35"), the
@@ -143,13 +162,18 @@ def duration_of(value: Any) -> dict[str, Any]:
     return {"state": "real", "seconds": round(seconds, 1)}
 
 
-def position_of(raw: Any) -> dict[str, Any]:
+def position_of(raw: Any, preferred: frozenset[str] | None | object = _UNREAD) -> dict[str, Any]:
     """One spot's position, with Last as its own thing rather than an ordinal.
 
     Last comes back as the code ``L`` with no ordinal, an unrequested position
     comes back with no code at all, and a field the file does not carry comes back
     unknown. None of the three is ever a number.
+
+    ``preferred`` is the configured set, passed in by a caller that already read
+    it. Left unread it reads its own, which keeps every existing caller working
+    and costs a settings read per spot; the pod passes it.
     """
+    codes = _preferred_set() if preferred is _UNREAD else preferred
     value = number(raw)
     if value is None:
         return {
@@ -163,15 +187,17 @@ def position_of(raw: Any) -> dict[str, Any]:
         }
     code = int(round(value))
     if code == LAST_POSITION_CODE:
-        preferred = _preferred_set()
         return {"state": "real", "code": "L", "kind": "last", "ordinal": None,
-                "preferred": ("L" in preferred) if preferred else None}
+                "preferred": ("L" in codes) if codes else None}
     if code == UNPOSITIONED_CODE:
         return {
             "state": "real",
             "code": None,
             "kind": "unpositioned",
             "ordinal": None,
+            # False and not None even with no configured set: this spot holds no
+            # position at all, so no code of its can be in any set. It is the one
+            # answer that does not depend on what the channel configured.
             "preferred": False,
             "reason": "No position was requested for this spot.",
             "reason_he": "לא התבקש מיקום עבור התשדיר הזה.",
@@ -181,7 +207,7 @@ def position_of(raw: Any) -> dict[str, Any]:
         "code": str(code),
         "kind": "ordinal",
         "ordinal": code,
-        "preferred": (str(code) in (_preferred_set() or ())) if _preferred_set() else None,
+        "preferred": (str(code) in codes) if codes else None,
     }
 
 
@@ -227,8 +253,12 @@ def copy_length_check(creative: dict[str, Any], duration: dict[str, Any]) -> dic
     }
 
 
-def spot(index: int, row: Any) -> dict[str, Any]:
-    """One row of a traffic file as one addressable spot inside its pod."""
+def spot(index: int, row: Any, preferred: frozenset[str] | None | object = _UNREAD) -> dict[str, Any]:
+    """One row of a traffic file as one addressable spot inside its pod.
+
+    ``preferred`` is threaded from the caller for the reason on ``position_of``:
+    a pod of 28 spots read the settings file 56 times to answer one question.
+    """
     start = clock_seconds(row.get("spot_time"))
     duration = duration_of(row.get("duration_sec"))
     creative = known(row.get("creative"), "This spot names no creative version in the traffic file.", "התשדיר הזה אינו נוקב בגרסת קריאייטיב בקובץ הטראפיק.")
@@ -240,7 +270,7 @@ def spot(index: int, row: Any) -> dict[str, Any]:
         "end_seconds": None if end is None else round(end, 1),
         "end_clock": clock(end),
         "duration": duration,
-        "position": position_of(row.get("position_in_break")),
+        "position": position_of(row.get("position_in_break"), preferred),
         "advertiser": known(row.get("advertiser"), "This spot names no advertiser in the traffic file.", "התשדיר הזה אינו נוקב במפרסם בקובץ הטראפיק."),
         "campaign": known(row.get("campaign"), "This spot names no campaign in the traffic file.", "התשדיר הזה אינו נוקב בקמפיין בקובץ הטראפיק."),
         "creative": creative,
@@ -274,3 +304,26 @@ def top_and_tail(spots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "positions": ["1", "L"],
                 })
     return held
+
+
+def positions_summary(spots: list[dict[str, Any]], preferred: dict[str, Any],
+                      violations: list[Any], top_and_tail: Any) -> dict[str, Any]:
+    """The pod's position block, split out under the 450-line law.
+
+    ``preferred`` is the single reading taken once for the whole pod. The set is
+    None when unset AND when unreadable, so the state carries which, and the
+    reason travels only when there is one.
+    """
+    codes = preferred["codes"]
+    return {
+        "preferred_set": sorted(codes) if codes else None,
+        "preferred_state": preferred["state"],
+        "preferred_unreadable_reason": preferred.get("reason"),
+        "basis": PREFERRED_BASIS if codes else PREFERRED_UNSET,
+        "basis_he": PREFERRED_BASIS_HE if codes else PREFERRED_UNSET_HE,
+        "last_held": any(item["position"].get("kind") == "last" for item in spots),
+        "unpositioned": sum(1 for item in spots if item["position"].get("kind") == "unpositioned"),
+        "top_and_tail": top_and_tail,
+        "violations": violations,
+        "violation_count": len(violations),
+    }

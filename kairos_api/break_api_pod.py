@@ -56,7 +56,8 @@ from kairos_api.break_api_pod_spots import (
     PREFERRED_BASIS_HE,
     PREFERRED_UNSET,
     PREFERRED_UNSET_HE,
-    _preferred_set,
+    positions_summary,
+    preferred_reading,
     UNPOSITIONED_CODE,
     clock_seconds,
     duration_of,
@@ -203,7 +204,10 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
     from kairos_api import break_api_pod_order as order_store
 
     ordered = rows.sort_values("spot_time")
-    spots = [spot(index, row) for index, (_, row) in enumerate(ordered.iterrows())]
+    # ONE read for the whole pod. It was 60 on a 28-spot pod, each re-reading
+    # settings off disk to answer one question, and two could have disagreed.
+    preferred = preferred_reading()
+    spots = [spot(index, row, preferred["codes"]) for index, (_, row) in enumerate(ordered.iterrows())]
     for sequence, item in enumerate(spots, start=1):
         item["sequence"] = sequence
     start_clock = text(ordered.iloc[0]["break_start"])
@@ -233,18 +237,7 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
         "declared_break_length": declared,
         "against_declared": against_declared(declared, arithmetic),
         "copy_length_disagreements": copy_disagreements,
-        "positions": {
-            # None, not a guessed default: an unset set means unanswerable.
-            "preferred_set": sorted(_preferred_set()) if _preferred_set() else None,
-            "preferred_state": "real" if _preferred_set() else "unavailable",
-            "basis": PREFERRED_BASIS if _preferred_set() else PREFERRED_UNSET,
-            "basis_he": PREFERRED_BASIS_HE if _preferred_set() else PREFERRED_UNSET_HE,
-            "last_held": any(item["position"].get("kind") == "last" for item in spots),
-            "unpositioned": sum(1 for item in spots if item["position"].get("kind") == "unpositioned"),
-            "top_and_tail": top_and_tail(spots),
-            "violations": violations,
-            "violation_count": len(violations),
-        },
+        "positions": positions_summary(spots, preferred, violations, top_and_tail(spots)),
         # A lead spot and its short closer. NOT ``positions.top_and_tail`` above,
         # the other thing the trade calls Top and Tail: one campaign holding both
         # position 1 and Last. See docs/top-and-tail-design.md.

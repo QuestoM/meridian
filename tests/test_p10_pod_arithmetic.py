@@ -14,6 +14,10 @@ from __future__ import annotations
 import pytest
 
 from kairos_api import break_api_pod as pod
+# The module that READS the set. ``pod`` re-exports ``position_of``, so patching
+# the re-export patches a name the reader never looks at: the first run of the
+# test below passed None where it expected True, and the patch was the reason.
+from kairos_api import break_api_pod_spots as SPOTS
 
 DAY = "2025-04-27"
 POD_CLOCK = "20:40:09"
@@ -232,3 +236,51 @@ def test_a_pod_id_survives_a_round_trip_and_refuses_a_malformed_one():
     for bad in ("", "2025-04-27", "~20:40:09", "2025-04-27~"):
         with pytest.raises(ValueError):
             pod.parse_pod_id(bad)
+
+
+def test_a_configured_set_actually_separates_preferred_from_not(monkeypatch):
+    """The flag reads None everywhere on this tree, so nothing proved it can read True.
+
+    Every other assertion about ``preferred`` in this file is ``is None``,
+    because no preferred set is configured here. That is the honest state, and
+    it is also a check whose failure mode is silence: a ``_preferred_set`` that
+    returned None unconditionally would pass all of them, and so would one that
+    never consulted the configured codes at all.
+
+    This one configures a set and drives the branch that separates the two
+    answers. It is the only test in the file that can fail if the lookup stops
+    looking anything up.
+    """
+    monkeypatch.setattr(SPOTS, "preferred_reading", lambda: {"codes": frozenset({"1", "2", "L"}), "state": "real"})
+    assert pod.position_of(1)["preferred"] is True
+    assert pod.position_of(2)["preferred"] is True
+    assert pod.position_of(3)["preferred"] is False
+    assert pod.position_of(99)["preferred"] is True
+    # Last is its own code, so a set without it makes Last unpreferred while the
+    # ordinals it does name stay preferred. A model that numbered Last could not
+    # express this, which is the whole reason L is not the fifth ordinal.
+    monkeypatch.setattr(SPOTS, "preferred_reading", lambda: {"codes": frozenset({"1", "2"}), "state": "real"})
+    assert pod.position_of(99)["preferred"] is False
+    assert pod.position_of(1)["preferred"] is True
+    # Threaded from the caller rather than read per spot, and the threaded value
+    # is what answers. The pod reads the set once for the whole break.
+    assert pod.position_of(3, frozenset({"3"}))["preferred"] is True
+    assert pod.position_of(1, frozenset({"3"}))["preferred"] is False
+    assert pod.position_of(1, None)["preferred"] is None
+
+
+def test_settings_that_cannot_be_read_are_not_reported_as_settings_nobody_set(monkeypatch):
+    """Unreadable and unconfigured were the same answer, and they are different facts.
+
+    The reading swallowed every exception and returned None, which is exactly
+    what an unset set returns. A corrupt settings file therefore presented on the
+    surface as a deliberate operator choice not to configure a preferred set.
+    """
+    def explode():
+        raise RuntimeError("settings file is not valid JSON")
+
+    monkeypatch.setattr("kairos.optimize.pricing.pricing_from_settings", explode)
+    reading = SPOTS.preferred_reading()
+    assert reading["codes"] is None
+    assert reading["state"] == "unreadable"
+    assert "not valid JSON" in reading["reason"]

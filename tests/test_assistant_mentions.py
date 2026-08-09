@@ -20,6 +20,8 @@ have come from the market read.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -230,26 +232,139 @@ def test_the_free_text_paths_this_piece_must_not_touch_still_work() -> None:
 
     assert _question_dates("what happened on 01/11/2024", ["2024-11-01"]) == ["2024-11-01"]
     assert _strip_hebrew_prefixes("בחדשות") == "חדשות"
+    # find_advertiser still answers exactly as it did, which is what "untouched"
+    # means. What it answers is measured below rather than assumed here.
+    assert "candidates" in execute_read_tool("find_advertiser", {"name": "Coca"}, None)
+
+
+def test_find_advertiser_cannot_match_a_hebrew_name_and_the_picker_routes_around_it() -> None:
+    """A measured finding, written down so it cannot be quietly assumed away.
+
+    Part four takes for granted that the free-text path resolves a typed name
+    through find_advertiser. For a HEBREW advertiser it does not, and never has:
+    ``_normalize_name`` reduces a string to ``[a-z0-9]``, so every Hebrew
+    advertiser_id normalises to the empty string and is skipped by the loop
+    before it is ever scored. Measured on the store here: 45 advertisers, and
+    the tool returns zero candidates for a name that is sitting in the file.
+
+    That is the strongest argument for this picker existing at all, and it is a
+    bug in a tool this piece does not own. It is pinned rather than fixed: the
+    day somebody repairs find_advertiser, this test fails and gets deleted,
+    which is exactly the notice that should be served.
+    """
+    from kairos_api.assistant_read_tools import execute_read_tool
+
+    hebrew = [row["label"] for row in mentions.build_index()
+              if row["type"] == "advertiser" and row["label"][:1] in "אבגדהוזחטיכלמנסעפצקרשת"]
+    if not hebrew:
+        pytest.skip("no Hebrew advertiser in the store")
+    assert execute_read_tool("find_advertiser", {"name": hebrew[0]}, None)["candidates"] == []
+
+
+def test_the_label_the_picker_inserts_is_the_exact_store_key_a_read_tool_wants() -> None:
+    """R1's whole contract: what lands in the question is a string the existing
+    read tools already resolve, so a mention needs no new resolution path.
+
+    get_advertiser_pricing matches ``advertiser_id`` exactly and says so in its
+    own error text -- "provide the advertiser id (exact store name)". This
+    drives it with what the picker would have inserted and requires a record
+    back, so the claim is exercised rather than argued.
+    """
+    from kairos_api.assistant_read_tools import execute_read_tool
+
     advertisers = [row for row in mentions.build_index() if row["type"] == "advertiser"]
-    if advertisers:
-        found = execute_read_tool("find_advertiser", {"name": advertisers[0]["label"]}, None)
-        assert found["candidates"], "find_advertiser stopped resolving a name it used to resolve"
+    if not advertisers:
+        pytest.skip("no advertiser in the store")
+    for row in advertisers[:5]:
+        payload = execute_read_tool("get_advertiser_pricing", {"advertiser": row["label"]}, None)
+        assert "error" not in payload, row["label"]
+        assert payload["baseline"]["advertiser_id"] == row["label"]
 
 
-def test_the_label_the_picker_inserts_is_the_store_s_own_identifier_or_name() -> None:
-    """R1's whole contract with the model: what lands in the question is a
-    string the existing read tools already resolve, so no new resolution path is
-    needed for a mention to be useful."""
-    from kairos_api.advertisers import _load_frame, _row_to_record
+# --- the trigger, driven in node against the shipped module -------------------------
+TRIGGER = ROOT / "tv-break-dashboard" / "src" / "kai" / "mention-trigger.js"
 
-    names = set()
-    for _, raw in _load_frame().iterrows():
-        record = _row_to_record(raw)
-        names.add(str(record.get("display_name") or record.get("name") or "").strip())
-        names.add(str(record.get("advertiser_id") or "").strip())
-    for row in mentions.build_index():
-        if row["type"] == "advertiser":
-            assert row["label"] in names, row["label"]
+HARNESS = """
+import { writeFileSync } from 'node:fs';
+import { readMentionQuery, insertMention } from './mention-trigger.js';
+
+const at = (text) => readMentionQuery(text, text.length);
+const out = {};
+
+// Opens: at the start, after a space, and after a Hebrew word.
+out.opensAtStart = at('@as');
+out.opensAfterSpace = at('what about @co');
+out.opensAfterHebrew = at('כמה הרוויח @אס');
+
+// Does NOT open: mid-word, and once the run holds a space. These two are what
+// protect ordinary typing, and an operator typing an address or a price is the
+// case that would otherwise lose keystrokes to a popup.
+out.midWord = at('mail me at person@questo');
+out.afterSpaceInRun = at('@coca cola');
+out.noSigil = at('how did coca cola do');
+
+// The caret, not the end of the line: an @ AFTER the caret is not being typed.
+out.caretBeforeSigil = readMentionQuery('ask @aa about it', 3);
+
+// Insertion puts the store's own name in, with the caret past it.
+const run = at('what about @co');
+out.inserted = insertMention('what about @co', run, 'Coca-Cola');
+const middle = readMentionQuery('ask @co about it', 6);
+out.insertedMidLine = insertMention('ask @co about it', middle, 'אסם');
+
+writeFileSync(process.argv[2], JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def trigger(tmp_path_factory) -> dict:
+    """Run the SHIPPED trigger module in node, unmodified.
+
+    It has no imports for exactly this reason: nothing is rewritten on the way
+    into the temp directory, so what is proved is the module's own behaviour
+    rather than a description of it. Same harness shape as the keep-warm test.
+    """
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not on this machine")
+    if not TRIGGER.exists():
+        pytest.skip("mention-trigger.js is not in this tree")
+    work = tmp_path_factory.mktemp("mention-trigger")
+    (work / "mention-trigger.js").write_text(TRIGGER.read_text(encoding="utf-8"), encoding="utf-8")
+    (work / "harness.mjs").write_text(HARNESS, encoding="utf-8")
+    out = work / "out.json"
+    result = subprocess.run([node, str(work / "harness.mjs"), str(out)],
+                            capture_output=True, text=True, check=False, cwd=str(work))
+    if result.returncode != 0:
+        pytest.fail(f"the shipped trigger module did not run: {result.stderr.strip()[:600]}")
+    return json.loads(out.read_text(encoding="utf-8"))
+
+
+def test_an_at_sign_at_a_word_boundary_opens_a_query(trigger: dict) -> None:
+    assert trigger["opensAtStart"] == {"start": 0, "query": "as"}
+    assert trigger["opensAfterSpace"] == {"start": 11, "query": "co"}
+    assert trigger["opensAfterHebrew"]["query"] == "אס"
+
+
+def test_ordinary_typing_never_opens_the_picker(trigger: dict) -> None:
+    """The rule that protects the free-text path. An address mid-word, a run
+    that has taken a space, and a question with no sigil at all: none of them
+    opens a popup, so none of them loses a keystroke to one."""
+    assert trigger["midWord"] is None
+    assert trigger["afterSpaceInRun"] is None
+    assert trigger["noSigil"] is None
+
+
+def test_an_at_sign_after_the_caret_is_not_being_typed(trigger: dict) -> None:
+    assert trigger["caretBeforeSigil"] is None
+
+
+def test_choosing_inserts_the_store_s_own_name_and_moves_the_caret_past_it(trigger: dict) -> None:
+    assert trigger["inserted"]["text"] == "what about Coca-Cola "
+    assert trigger["inserted"]["caret"] == len("what about Coca-Cola ")
+    # Mid-line, the tail survives and the caret lands between the two.
+    assert trigger["insertedMidLine"]["text"] == "ask אסם  about it"
+    assert trigger["insertedMidLine"]["caret"] == len("ask אסם ")
 
 
 # --- the size law -------------------------------------------------------------------
@@ -259,6 +374,7 @@ def test_every_file_this_piece_added_is_under_the_size_law() -> None:
         "kairos_api/assistant_mentions_words.py",
         "tests/test_assistant_mentions.py",
         "tv-break-dashboard/src/kai/MentionPicker.jsx",
+        "tv-break-dashboard/src/kai/mention-trigger.js",
         "tv-break-dashboard/src/kai/mention-picker.css",
         "tv-break-dashboard/src/kai/AssistantComposer.jsx",
         "tv-break-dashboard/src/kai/assistant-console.css",
