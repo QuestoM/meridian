@@ -43,6 +43,7 @@ from kairos_api.campaigns_api_models import (  # noqa: F401 - re-exported for ev
     FlightCreate,
     FlightUpdate,
 )
+from kairos_api.campaigns_api_onboarding_models import OnboardRequest
 from kairos_api.condition_validation import validate_weekday_scope
 
 router = APIRouter(prefix="/api/clients", tags=["clients"])
@@ -433,11 +434,20 @@ def onboarding_options(request: Request = None) -> dict[str, Any]:
 
 
 @router.post("/onboarding", status_code=201)
-def onboard(payload: dict[str, Any], request: Request = None) -> dict[str, Any]:
-    """Agency, advertiser link, campaign, flights and terms, in one pass."""
-    from kairos_api.campaigns_api_onboarding import OnboardRequest, onboard_client
+def onboard(payload: OnboardRequest, request: Request = None) -> dict[str, Any]:
+    """Agency, advertiser link, campaign, flights and terms, in one pass.
 
-    return onboard_client(OnboardRequest(**payload), request)
+    THE BODY IS TYPED HERE AND THAT IS THE WHOLE FIX. It used to arrive as a raw
+    ``dict``, so FastAPI validated nothing and the model was built inside the
+    handler instead; a malformed body raised pydantic's ValidationError where
+    nobody caught it and the caller got a 500. A 500 tells an operator the
+    product broke, when what happened is that the product understood them
+    perfectly and declined. Measured on the four sibling write routes, which all
+    take typed bodies: every one already answered 422 and only this one did not.
+    """
+    from kairos_api.campaigns_api_onboarding import onboard_client
+
+    return onboard_client(payload, request)
 
 
 # The per-campaign detail reads mount here, so they publish under this prefix.
