@@ -112,6 +112,41 @@ claim is not evidence, and it does not get an exemption when the claim is ours.*
   runs the build first. A guard being green is not a verdict on a piece.
 - **The suite is 3,969 passing** with one deliberate failure, the artifact guard
   above.
+- **`data/break_pod_order.csv` carries one committed row** for pod
+  `2025-04-27~22:53:49` with a zeroed fingerprint, an empty `actor` and
+  `locked_by`, and the placeholder note "the reason this order was chosen". It is
+  residue from a live check committed in `e4c9f29e`, no test depends on it (the
+  P10 tests isolate to `tmp_path` and say so in their own docstring), and the lead
+  will clear it. Do not report it. It IS legitimate to report what the product
+  does with a locked pod.
+
+## 5b. The instruments, each paid for by a critic that got it wrong first
+
+**Ground truth for a write is the SERVER ACCESS LOG, not an in-page hook.** A
+critic patched `window.fetch` to record writes and it recorded nothing. It did
+not conclude "no write happened": it checked uvicorn's access log, found no PUT
+there either, then proved the path worked by making a real change and watching a
+400 and then a 200 appear. Cheapest reliable instrument in this stack.
+
+**A programmatic `element.click()` on a submit button fires nothing in this app.**
+Playwright's real click works. Two attempts were lost to this.
+
+**Geometry measured the wrong way lies quietly.** A gap formula paired
+`boxes[i-1].left` against `boxes[i].right` on a row computing `direction: ltr`
+and returned 131, 125, 121, 145 px where the truth was 12, 12, 12, 12. It was
+caught only because the numbers contradicted the row's own declared `gap: 12px`.
+**Check any geometry result against a value the CSS already declares.**
+
+**Contention is not the piece.** Several critics share this machine. One measured
+a 44,866 ms first paint, proved it was contention (the API answered in 66 to
+72 ms and no resource exceeded 300 ms on repeat) and did NOT charge it to the
+piece. Do the same, and say you did.
+
+**A verdict that does not arrive is not a verdict.** Eight critics went idle
+without reporting and one had to send three times before a message landed. If a
+long report fails to reach the lead, RESEND IT SHORT: pass or fail, one number
+per bar, the bars not reached, the largest gap. Five lines that arrive beat forty
+that do not.
 
 ## 6. How to measure, from the workbench's own rules
 
