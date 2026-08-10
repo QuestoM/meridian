@@ -178,6 +178,19 @@ def live_state() -> dict[str, Any]:
         (str(item.get("version_id")) for item in all_manifests() if item.get("plan_sha256") == digest),
         None,
     )
+    # WHAT A FREEZE WOULD CAPTURE, IN FIGURES, AND NOT ONLY WHETHER IT IS FROZEN.
+    # Without this the publish panel could only compare AFTER the act, by opening
+    # the diff, and a warning that arrives after the freeze is not a warning. A
+    # blind critic measured a plan collapsed to zero breaks and zero shekels on
+    # the operator's own channel being named and published with the version row
+    # rendering in the same neutral type as its neighbours.
+    try:
+        state["summary"] = _summarize(pd.read_csv(path))
+    except Exception as exc:  # pragma: no cover - a plan that will not parse
+        # Honest unknown rather than a fabricated zero: a plan whose totals
+        # cannot be read must not present as a plan worth nothing.
+        state["summary"] = None
+        state["summary_reason"] = "the saved plan could not be read for totals: %s" % exc
     return state
 
 

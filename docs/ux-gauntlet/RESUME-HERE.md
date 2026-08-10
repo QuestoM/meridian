@@ -79,6 +79,19 @@ speed.** P3, P5, P6 and P8 all MET their stopwatch targets by wide margins (P8 a
 3 s target; P3's money verdict at 3.2 ms against 500 ms). The product is fast.
 What it is not yet is honest at the edges, and that is a different repair.
 
+**HALF A FIX IS ON MAIN AND NOTHING READS IT YET — START HERE.** `live_state()`
+in `kairos_api/plan_version_store.py` now returns a `summary` block carrying the
+operator-scoped totals a freeze would capture (measured live: 2,391 breaks,
+₪40,935,408.65). It was added for ONE named consumer that has not landed: the
+publish panel's collapse guard. Until that consumer exists this is a value
+computed and carried that reaches nobody, which is the INERT LEVER class by this
+campaign's own definition, and it is recorded here as such rather than counted as
+a fix. The remaining half, all in P2's row: a helper deciding whether the plan has
+collapsed against the newest version's `summary.owned`, an amber note plus a
+required second act in `PublishPanel.jsx` before the freeze enables, a run toast
+in `RunPanel.jsx` that refuses to be quiet at zero breaks, and a test. 394 tests
+pass with the field added; it changes no behaviour.
+
 **Four more located fixes, from the three verdicts that closed the round:**
 - **P3, the worst of the round.** JS-3's own sequence dead-ends silently: with a
   pending move, pinning a gold break re-plans the segment, deletes the edited
