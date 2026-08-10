@@ -20,10 +20,15 @@ media file, so all four technical facts are honestly unavailable, and a
 fabricated "verified" would clear a corrupt file to air. The rule the design
 turns on: **unavailable is not a pass and not a failure, and only a MEASURED
 failure blocks a lock** — if absence blocked, no pod could be locked at all today.
-**What remains is the SURFACE**, and I deliberately did not ship an unwired
-component for it: `PodBoard.jsx` is at exactly the 450-line cap, so the next step
-is to split that file first, then print the verdict on the spot row. A component
-nothing renders is the inert-lever class this campaign is named after.
+**THE SURFACE IS NOW BUILT TOO.** `PodBoard.jsx` was split rather than
+compressed, along a real seam (the two readouts describing what is wrong or
+missing moved to `PodBoardNotes.jsx`; the pod's own shape and order stayed), and
+it now sits at 433. The verdict rides the pod payload rather than one request per
+spot, and prints as a quiet mark in a new File column. Measured on the live
+payload: all ten pods carry the block, zero assets on file, no lock blocked.
+**What remains for P13 is NOT code: it is a data source.** Connect a real ingest
+or transcode report and the verdict computes for real with no code change. That
+is an owner question. The piece is built and unjudged.
 
 **P9 and P12 were stopped mid-round by a controlled stop and neither invented a
 verdict.** P9 reached about a third of bar 1; its one hard number is a first
