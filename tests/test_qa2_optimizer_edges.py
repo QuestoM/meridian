@@ -4,7 +4,7 @@ Locks the fix wave on the optimizer engine: non-finite segment inputs raise a
 clear ValueError and non-finite CI bounds degrade to None; an undersized
 revenue_scale can no longer let refinement ship a plan the reported (clamped)
 objective rates below pure greedy (the revert is labeled in result.notes); the
-exact DP falls back honestly when its per-group state or wall budget is
+exact DP falls back honestly when its deterministic per-group work budget is
 exhausted instead of stalling; the DP's per-segment count feasibility scans
 every k so a positive coefficient reaches above-floor counts and a below-floor
 middle k is never proposed; placement pins obey the count-pin max_breaks
@@ -34,7 +34,7 @@ if str(ROOT) not in sys.path:
 
 from kairos.optimize.dp_refine import (  # noqa: E402
     DEFAULT_MAX_STATES,
-    DEFAULT_WALL_BUDGET_SECONDS,
+    DEFAULT_MAX_WORK_UNITS,
     _allowed_break_counts,
     dp_refine_group,
 )
@@ -199,15 +199,15 @@ def test_state_budget_exhaustion_falls_back_labeled_not_hang() -> None:
     assert out.counts == {s.segment_id: 0 for s in group}  # input kept, never-worse
 
 
-def test_wall_budget_exhaustion_falls_back_labeled_not_hang() -> None:
+def test_work_budget_exhaustion_falls_back_labeled_and_deterministic() -> None:
     group = _pathological_group()
     start = time.perf_counter()
-    out = _dp_call(group, _LOOSE, wall_budget_seconds=0.0)
+    out = _dp_call(group, _LOOSE, max_work_units=1)
     elapsed = time.perf_counter() - start
     assert elapsed < 2.0, f"budget fallback must be fast, took {elapsed:.2f}s"
     assert out.fell_back
-    assert out.reason_code == "wall_budget"
-    assert "wall budget" in out.reason
+    assert out.reason_code == "work_budget"
+    assert "transition count" in out.reason
     assert out.counts == {s.segment_id: 0 for s in group}
 
 
@@ -215,7 +215,7 @@ def test_default_budgets_clear_an_ordinary_day() -> None:
     """The budgets are backstops: a small ordinary group stays on the exact path
     (the real corpus peaks at 40,485 states / 0.70s, well inside the defaults)."""
     assert DEFAULT_MAX_STATES == 200_000
-    assert DEFAULT_WALL_BUDGET_SECONDS == 5.0
+    assert DEFAULT_MAX_WORK_UNITS == 5_000_000
     group = [
         make_segment(segment_id="a", start_seconds=0.0),
         make_segment(segment_id="b", start_seconds=1800.0),

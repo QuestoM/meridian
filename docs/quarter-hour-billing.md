@@ -4,8 +4,12 @@ Status: owner-provided market convention recorded 2026-07-07, MEASURED the same
 day on the real Nov-2024 month (two lanes: analysis/quarter-hour/settlement and
 analysis/quarter-hour/dynamics), and now EXPRESSED in the engine as an
 owner-gated revenue-basis option (kairos/optimize/qh_billing.py, activation
-flag `pricing_activation.qh_settlement`, OFF by default). Every claim below is
-labeled owner-stated, code-fact, or measured with its artifact path.
+flag `pricing_activation.qh_settlement`, OFF by default). Activation is also
+data-gated: configuration and every billed segment must carry matching explicit
+`jewish_households`, `overnight_plus_1`, and source provenance. The committed
+inputs do not currently carry that metadata, so the option cannot be activated
+by relabeling generic TVR. Every claim below is labeled owner-stated, code-fact,
+or measured with its artifact path.
 
 ## The market mechanic (owner-stated, refined 2026-07-07)
 
@@ -119,7 +123,9 @@ sitting above 4-6m is the measured reality, kept as is).
   break length), and bills each break at its windows' averages with the same
   price stack. restate_on_billed_points restates a finished schedule's
   revenue onto that basis; maybe_restate gates it behind
-  pricing_activation.qh_settlement (PricingModel.enable_qh_settlement),
+  pricing_activation.qh_settlement (PricingModel.enable_qh_settlement), plus
+  matching audience-basis, vintage and source provenance on the pricing config
+  and every segment,
   wired at the single shared seam every optimize path uses
   (kairos/optimize/day_core.py), and is an exact identity (the same result
   object) while the flag is off. Tests: tests/test_qh_billing.py.
@@ -129,9 +135,10 @@ sitting above 4-6m is the measured reality, kept as is).
 Decided 2026-07-07 from the measurements above. Three pieces, in order of
 what the evidence supports.
 
-1. Billed points as a revenue-basis option: SHIPPED, owner-gated OFF.
-   The mechanic is confirmed in the plan data and the dips are measured, so
-   the currency is computable today. With the flag on, the schedule the
+1. Billed points as a revenue-basis option: SHIPPED, owner- and data-gated OFF.
+   The mechanic is confirmed in the plan data and the dips are measured, but
+   the existing generic rating inputs are not proven to be the required Jewish-
+   household overnight+1 currency. With verified, labeled inputs and the flag on, the schedule the
    optimizer already chose is REVALUED in the settlement currency: every
    break bills at its round-window average (own dip diluted by content,
    co-window breaks compounding in one average, straddles split across two

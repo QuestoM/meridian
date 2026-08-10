@@ -76,7 +76,27 @@ def check_engine_golden(python: str, ref: Path, work: Path, scratch: Path, timeo
     same_csv = ref_out["csv_sha256"] == work_out["csv_sha256"]
     same_agg = ref_out.get("aggregate_sha256") == work_out.get("aggregate_sha256")
     measurements = {"reference_csv_sha256": ref_out["csv_sha256"],
-                    "working_csv_sha256": work_out["csv_sha256"]}
+                    "working_csv_sha256": work_out["csv_sha256"],
+                    "reference_returncode": ref_out["returncode"],
+                    "working_returncode": work_out["returncode"]}
+    if ref_out["returncode"] != 0:
+        return r.cannot_check(
+            "the reference golden script exited %d, so it is not a valid comparison baseline"
+            % ref_out["returncode"]
+        )
+    if work_out["returncode"] != 0:
+        return r.failed(
+            "the working golden script exited %d; its shipped artifact did not pass its own gate"
+            % work_out["returncode"],
+            **measurements,
+        )
+    if not ref_out["matches_own_golden"] or not all(ref_out["matches_own_golden"]):
+        return r.cannot_check("the reference does not reproduce its own committed golden")
+    if not work_out["matches_own_golden"] or not all(work_out["matches_own_golden"]):
+        return r.failed(
+            "the working tree does not reproduce its own committed golden",
+            **measurements,
+        )
     if same_csv and same_agg:
         return r.passed("byte identical on both sides", **measurements)
     return r.failed("the schedule moved: CSV hash %s, aggregate hash %s"

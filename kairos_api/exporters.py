@@ -169,7 +169,7 @@ def _blank(value: Optional[Any]) -> Any:
     return "" if value is None else value
 
 
-def _load_daily_pricing():
+def _load_daily_pricing(path=None):
     """Run the real per-spot daily pricing pipeline over the newest daily file.
 
     Loads every input the same way the rest of kairos_api does: the newest daily
@@ -188,7 +188,7 @@ def _load_daily_pricing():
     from kairos.optimize.pricing import pricing_from_settings
     from kairos.export.spots import price_daily_file
 
-    path = _newest_daily()
+    path = Path(path) if path is not None else _newest_daily()
     if path is None:
         return None
 

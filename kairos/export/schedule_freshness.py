@@ -270,7 +270,12 @@ def schedule_input_fingerprints(root: str | Path) -> dict[str, str]:
     return prints
 
 
-def write_schedule_meta(csv_path: str | Path, root: str | Path) -> None:
+def write_schedule_meta(
+    csv_path: str | Path,
+    root: str | Path,
+    *,
+    fingerprints: Optional[dict[str, str]] = None,
+) -> None:
     """Stamp the sidecar next to ``csv_path`` with the current input fingerprints.
 
     Writes ``{"computed_at": <now UTC ISO>, "fingerprints": {...}}`` so a later
@@ -283,7 +288,9 @@ def write_schedule_meta(csv_path: str | Path, root: str | Path) -> None:
     meta_path = _meta_path(csv_path)
     payload = {
         COMPUTED_AT_KEY: datetime.now(timezone.utc).isoformat(),
-        FINGERPRINTS_KEY: schedule_input_fingerprints(root),
+        FINGERPRINTS_KEY: dict(
+            fingerprints if fingerprints is not None else schedule_input_fingerprints(root)
+        ),
     }
     meta_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = meta_path.with_suffix(meta_path.suffix + ".tmp")

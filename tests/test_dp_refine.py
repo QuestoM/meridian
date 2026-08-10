@@ -381,6 +381,23 @@ def test_covered_group_does_not_fall_back():
     out = _call(group)
     assert not out.fell_back and out.reason == ""
     assert out.max_open_depth >= 1 and out.peak_states >= 1
+    assert out.work_units >= 1
+
+
+def test_wall_clock_cannot_change_the_dp_plan(monkeypatch):
+    """Machine load may change telemetry, never counts or fallback choice."""
+    group = _two_overlapping_segments()
+    fast = iter((10.0, 10.1))
+    monkeypatch.setattr("kairos.optimize.dp_refine.time.perf_counter", lambda: next(fast))
+    fast_out = _call(group)
+
+    slow = iter((20.0, 2000.0))
+    monkeypatch.setattr("kairos.optimize.dp_refine.time.perf_counter", lambda: next(slow))
+    slow_out = _call(group)
+
+    assert fast_out.counts == slow_out.counts
+    assert fast_out.fell_back == slow_out.fell_back is False
+    assert fast_out.work_units == slow_out.work_units
 
 
 # ---------------------------------------------------------------------------

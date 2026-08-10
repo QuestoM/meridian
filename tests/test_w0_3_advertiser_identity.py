@@ -345,15 +345,35 @@ def test_a_missing_name_space_is_empty_rather_than_an_error(tmp_path) -> None:
 
 
 def test_an_unavailable_ledger_reports_no_figure(monkeypatch) -> None:
-    monkeypatch.setattr(spot_ledger, "_basis_name", lambda: None)
-    import kairos_api.exporters as exporters
+    import kairos_api.uploads as uploads
 
-    monkeypatch.setattr(exporters, "_load_daily_pricing", lambda: None)
+    monkeypatch.setattr(uploads, "_newest_daily", lambda: None)
     ledger = spot_ledger.read_ledger()
     assert not ledger.available
     assert ledger.gross is None and ledger.net is None and ledger.spots is None
     assert ledger.reason
     assert ledger.by_advertiser == {}
+
+
+def test_ledger_prices_and_names_the_same_daily_file(monkeypatch, tmp_path) -> None:
+    """An upload between reads cannot label file A's money as file B."""
+    import kairos_api.exporters as exporters
+    import kairos_api.uploads as uploads
+
+    selected = tmp_path / "daily-a.csv"
+    seen = []
+    marker = object()
+    monkeypatch.setattr(uploads, "_newest_daily", lambda: selected)
+
+    def load(*, path=None):
+        seen.append(path)
+        return marker
+
+    monkeypatch.setattr(exporters, "_load_daily_pricing", load)
+    monkeypatch.setattr(spot_ledger, "group_result", lambda result, basis=None: (result, basis))
+
+    assert spot_ledger.read_ledger() == (marker, "daily-a.csv")
+    assert seen == [selected]
 
 
 # --- the migration ------------------------------------------------------------

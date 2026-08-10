@@ -28,6 +28,11 @@ from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.layer_overrides import apply_overrides, resolve_layer_overrides
 from kairos.optimize.price_guardrails import Guardrails
 from kairos.optimize.positions import label as position_label
+from kairos.optimize.qh_billing import (
+    QHSettlementConfigurationError,
+    qh_settlement_enabled,
+    validate_qh_settlement_provenance,
+)
 from kairos.optimize.pricing import (
     PriceBreakdown,
     PricingModel,
@@ -110,6 +115,39 @@ def _is_number(value: Any) -> bool:
     return True
 
 
+def _qh_activation(model: PricingModel) -> dict[str, Any]:
+    """Effective QH state, including proof from the currently ingested ratings."""
+    state = {
+        "qh_settlement": False,
+        "qh_settlement_requested": model.enable_qh_settlement,
+        "qh_audience_basis": model.qh_audience_basis or None,
+        "qh_rating_vintage": model.qh_rating_vintage or None,
+        "qh_rating_source": model.qh_rating_source or None,
+        "qh_configuration_valid": (
+            not model.enable_qh_settlement or qh_settlement_enabled(model)
+        ),
+        "qh_data_provenance_valid": None,
+    }
+    if not model.enable_qh_settlement:
+        return state
+    if not qh_settlement_enabled(model):
+        state["qh_data_provenance_valid"] = False
+        state["qh_blocked_reason"] = "The requested QH rating-currency configuration is incomplete."
+        return state
+    try:
+        from kairos_api.preview_inputs import preview_inputs
+
+        segments, _ = preview_inputs(None, None, None)
+        validate_qh_settlement_provenance(model, segments)
+    except Exception as exc:  # an unavailable source is a refusal, never activation
+        state["qh_data_provenance_valid"] = False
+        state["qh_blocked_reason"] = str(exc)[:300]
+        return state
+    state["qh_data_provenance_valid"] = True
+    state["qh_settlement"] = True
+    return state
+
+
 def _state_payload(settings: Any) -> dict[str, Any]:
     """The full pricing hierarchy: effective values, YAML defaults, and activation.
 
@@ -166,7 +204,7 @@ def _state_payload(settings: Any) -> dict[str, Any]:
             #
             # It restates measured revenue by +7.45 percent when activated and
             # ships OFF, so whether it is on is a question about money.
-            "qh_settlement": effective.enable_qh_settlement,
+            **_qh_activation(effective),
         },
         # Event-date layer state: operator-asserted multipliers stored on calendar
         # events (data/calendar_events.csv), gated on pricing_activation.events.
@@ -272,7 +310,24 @@ def put_pricing(update: PricingUpdate, request: Request = None) -> dict[str, Any
         require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
     merged: dict[str, Any] = {} if update.reset else _deep_merge(current, update.overrides)
     try:
-        PricingModel.from_config(merged)  # validate before persisting
+        candidate = PricingModel.from_config(merged)  # validate before persisting
+        if candidate.enable_qh_settlement and not qh_settlement_enabled(candidate):
+            raise ValueError(
+                "qh_settlement requires qh_audience_basis='jewish_households', "
+                "qh_rating_vintage='overnight_plus_1', and a non-empty qh_rating_source"
+            )
+        if candidate.enable_qh_settlement:
+            from kairos_api.preview_inputs import preview_inputs
+
+            try:
+                segments, _ = preview_inputs(None, None, None)
+            except Exception as exc:
+                raise QHSettlementConfigurationError(
+                    f"QH settlement rating provenance could not be validated: {exc}"
+                ) from exc
+            validate_qh_settlement_provenance(candidate, segments)
+    except QHSettlementConfigurationError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid pricing edit: {exc}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"Invalid pricing edit: {exc}") from exc
     from kairos_api import version_store

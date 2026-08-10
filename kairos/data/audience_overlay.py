@@ -173,7 +173,16 @@ def apply_audience_model(
             # An unpredictable row keeps its honest historical value and says so.
             _mark(segment, BASIS_HISTORICAL)
             continue
-        rebased = replace(segment, baseline_tvr=float(value))
+        # A forecast produced by the audience model is not the input file's
+        # observed rating currency. Clear settlement provenance so a modeled
+        # baseline can never masquerade as overnight+1 Jewish-household data.
+        rebased = replace(
+            segment,
+            baseline_tvr=float(value),
+            rating_audience_basis="",
+            rating_vintage="",
+            rating_source="",
+        )
         basis = bases[position] if position < len(bases) else BASIS_MODEL
         _mark(rebased, str(basis) if basis else BASIS_MODEL)
         result[index] = rebased

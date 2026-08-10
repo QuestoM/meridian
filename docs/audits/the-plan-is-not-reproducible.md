@@ -1,5 +1,16 @@
 # The plan is a function of machine load
 
+> ## FIXED 2026-08-10
+>
+> The wall clock is no longer a planning input. The exact DP now falls back only
+> on deterministic state and transition budgets. Elapsed seconds remain
+> telemetry and cannot change counts. The hardest measured production day used
+> 328,877 of 5,000,000 transition units, and the full 120 channel-day export
+> reproduced the committed `1b9d4298...` plan byte for byte. pytest also forces
+> the shipped plan read-only, and the golden now compares directly with the
+> shipped CSV and fingerprint. The historical experiment below remains as the
+> evidence for the defect and the reason for the repair.
+
 > ## CORRECTED THE SAME DAY: THIS DOES NOT EXPLAIN THE ARTIFACT
 >
 > The four rewrites of `output/weekly_break_schedule.csv` were **NOT pollution

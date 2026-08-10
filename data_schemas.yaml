@@ -15,6 +15,9 @@ datasets:
       - {name: "End time", type: "string (parsable time)", description: "End time"}
       - {name: "Duration", type: "integer", description: "Duration in seconds"}
       - {name: "TVR", type: "float", description: "Average TV Rating"}
+      - {name: "rating_audience_basis", type: "string", required: false, nullable: false, description: "Optional rating-currency column; if present, required on every row for QH settlement"}
+      - {name: "rating_vintage", type: "string", required: false, nullable: false, description: "Optional rating-vintage column; QH settlement requires overnight_plus_1 on every row"}
+      - {name: "rating_source", type: "string", required: false, nullable: false, description: "Optional auditable source identifier; if present, required on every row"}
     processed_columns_added: # By DataProcessor
       - {name: "Date_dt", type: "date object", description: "Parsed date"}
       - {name: "Start_Time_dt", type: "datetime", description: "Parsed start datetime"}
@@ -100,6 +103,9 @@ datasets:
       - {name: "Ad_Type", type: "string"}
       - {name: "Pricing_Model", type: "string", enum: ["CPP", "FIX"], nullable: true}
       - {name: "Planned_Break_Rating", type: "float", nullable: true}
+      - {name: "rating_audience_basis", type: "string", required: false, nullable: false, description: "Optional dataset-wide rating-currency audience basis"}
+      - {name: "rating_vintage", type: "string", required: false, nullable: false, description: "Optional dataset-wide rating vintage"}
+      - {name: "rating_source", type: "string", required: false, nullable: false, description: "Optional dataset-wide auditable rating source identifier"}
       - {name: "Agreed_Price", type: "float", nullable: true}
       - {name: "Position_In_Break_Target", type: "integer", nullable: true}
       - {name: "True_Profit_Weight", type: "float", nullable: true}

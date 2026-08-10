@@ -93,6 +93,12 @@ class ProgramSegment:
     impact_confidence: str = "low"                # high / medium / low label
     program_title: str = ""                       # programme title, for cross-date matching
     first_break_multiplier: float = 1.0           # extra retention cost on the show's first break
+    # Provenance of ``baseline_tvr``. Empty is the honest legacy/default state;
+    # quarter-hour settlement refuses activation unless every billed segment
+    # explicitly carries the required market basis, vintage and source.
+    rating_audience_basis: str = ""
+    rating_vintage: str = ""
+    rating_source: str = ""
 
     def __post_init__(self) -> None:
         # A credible interval with a non-finite bound cannot inform a risk
@@ -252,6 +258,10 @@ class OptimizationResult:
     risk_lambda: float = 0.0                    # uncertainty preference applied to costs
     notes: tuple[str, ...] = ()                 # run-level honesty notes, usually empty
     dp_stats: Optional[Mapping[str, Any]] = None  # DP tier coverage counters, when it ran
+    revenue_basis: str = "engine_segment_tvr"
+    rating_audience_basis: str = ""
+    rating_vintage: str = ""
+    rating_source: str = ""
 
     @property
     def total_breaks(self) -> int:

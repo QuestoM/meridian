@@ -42,6 +42,8 @@ if str(ROOT) not in sys.path:
 from kairos.export.schedule import build_weekly_schedule  # noqa: E402
 
 SETTINGS_PATH = ROOT / "data" / "kairos_settings.json"
+SHIPPED_PLAN_PATH = ROOT / "output" / "weekly_break_schedule.csv"
+SHIPPED_FINGERPRINT_PATH = ROOT / "output" / "weekly_break_schedule.csv.fingerprint.json"
 
 # Reference date for the delivery-pacing urgency signal. Frozen (never date.today())
 # so this byte-hash golden is deterministic across days. Pacing is the only consumer
@@ -157,6 +159,18 @@ def evaluate():
     h = csv_hash(frame)
     if h != GOLDEN_CSV_SHA256:
         problems.append(f"full-CSV hash drift: {h} != {GOLDEN_CSV_SHA256}")
+    try:
+        shipped = SHIPPED_PLAN_PATH.read_bytes()
+        fingerprint = json.loads(SHIPPED_FINGERPRINT_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError) as exc:
+        problems.append(f"shipped plan or fingerprint is unreadable: {exc}")
+    else:
+        built = frame.to_csv(index=False).encode("utf-8")
+        if built != shipped:
+            problems.append("the rebuilt golden bytes differ from the shipped plan")
+        shipped_hash = hashlib.sha256(shipped).hexdigest()
+        if shipped_hash != fingerprint.get("sha256"):
+            problems.append("the shipped plan differs from its committed fingerprint")
     records = aggregate_records(frame)
     ah = agg_hash(records)
     if ah != GOLDEN_AGG_SHA256:

@@ -4,6 +4,11 @@ Measured on `main` on 2026-08-10. This closes the ambiguity between the P1-P13
 gauntlet, whose implementation ended at wave 2, and the broader campaign plan,
 which defined four additional waves.
 
+An independent multi-agent re-audit later found material gaps in this first
+closure. They were repaired and rechecked. The superseding evidence is
+`audits/independent-agent-reaudit-2026-08-10.md`; this file remains the record of
+the first pass rather than silently rewriting its original measurements.
+
 ## Outcome
 
 | Wave | Intended result | Current result | Evidence |
@@ -41,12 +46,12 @@ or guessed standard was added to make that dependency look closed.
 
 Rating-currency settlement is also an owner and data dependency, not another
 code wave. Round-quarter-hour settlement is implemented behind
-`pricing_activation.qh_settlement` and remains off by default. The repository
-does not contain the Jewish-household audience basis or the applicable held-TVR
-vintage needed to settle on the documented Israeli trade currency. The owner
-must provide that basis and decide when to activate it; the campaign must not
-invent either input or silently move money. Top and Tail is already implemented
-and tested, in both positional and paired-creative forms.
+`pricing_activation.qh_settlement` and remains off by default. The re-audit added
+the missing schema, ingestion and refusal gate: activation now requires an
+explicit Jewish-household basis, overnight+1 vintage and a matching named source
+on every billed segment. The current repository contains none of those values,
+so it remains blocked without guessing. Top and Tail is already implemented and
+tested, in both positional and paired-creative forms.
 
 The two pre-existing modified schedule artifacts were not staged or rewritten:
 `output/weekly_break_schedule.csv` and its fingerprint sidecar.

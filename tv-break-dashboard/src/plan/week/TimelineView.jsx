@@ -28,6 +28,28 @@ export function minutesToTime(minutes) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
+export function breakSpanMinutes(item) {
+  const exactStart = Number(item?.start_seconds);
+  const durationSeconds = Number(item?.duration_sec);
+  const start = Number.isFinite(exactStart) ? exactStart / 60 : timeToMinutes(item?.start_time);
+  const duration = Number.isFinite(durationSeconds) && durationSeconds >= 0
+    ? durationSeconds / 60
+    : Math.max(0, timeToMinutes(item?.end_time) - start);
+  return [start, start + duration];
+}
+
+export function programmeSpanMinutes(item) {
+  const exactStart = Number(item?.start_seconds);
+  const exactEnd = Number(item?.end_seconds);
+  if (Number.isFinite(exactStart) && Number.isFinite(exactEnd) && exactEnd >= exactStart) {
+    return [exactStart / 60, exactEnd / 60];
+  }
+  const start = timeToMinutes(item?.start_time);
+  let end = timeToMinutes(item?.end_time);
+  if (end < start) end += 24 * 60;
+  return [start, end];
+}
+
 // When break-operations arrives empty, the timeline still lays out the real
 // programme bands from the schedule rows, but it does NOT invent break chips:
 // synthesized evenly-spaced break start times would read as real placements.
@@ -77,15 +99,22 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
   const { programs, breaks, summary } = normalizedTimeline(timeline, rows);
   const lanes = Array.from(new Set([...programs.map((item) => item.lane), ...breaks.map((item) => item.lane)].filter(Boolean)));
   const allMinutes = [
-    ...programs.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
-    ...breaks.flatMap((item) => [timeToMinutes(item.start_time), timeToMinutes(item.end_time)]),
+    ...programs.flatMap((item) => programmeSpanMinutes(item)),
+    ...breaks.flatMap((item) => breakSpanMinutes(item)),
   ].filter((value) => Number.isFinite(value));
   // Shared time axis and zoom, so the timeline and the editor line up on the
   // same hour window and pixel mapping at whatever scale is set.
   const axis = timeWindow(allMinutes.length ? allMinutes : [20 * 60, 23 * 60]);
   const localZoom = useScheduleZoom();
   const { pxPerMin, setZoom, zoomBy } = zoom || localZoom;
-  const positionStyle = (startTime, endTime) => spanStyle(axis, pxPerMin, timeToMinutes(startTime), timeToMinutes(endTime));
+  const programmePositionStyle = (item) => {
+    const [start, end] = programmeSpanMinutes(item);
+    return spanStyle(axis, pxPerMin, start, end);
+  };
+  const breakPositionStyle = (item) => {
+    const [start, end] = breakSpanMinutes(item);
+    return spanStyle(axis, pxPerMin, start, end);
+  };
 
   // Owned-channel segment anchors, resolved through the shared hook so a click
   // on a programme band opens the same inspector the editor uses. A programme
@@ -158,7 +187,7 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
                     title={program.title}
                     classLabel={programTypeLabel(program.program_type, locale)}
                     windowText={`${program.start_time} - ${program.end_time}`}
-                    style={positionStyle(program.start_time, program.end_time)}
+                    style={programmePositionStyle(program)}
                     clickable
                     onOpen={() => openInspector(program)}
                   />
@@ -186,20 +215,22 @@ export function TimelineView({ timeline, rows, locale, notify, zoom, onGlobalRef
                     breakItem.status === 'at_risk' ? 'risk' : '',
                     breakItem.is_gold ? 'gold' : '',
                   ].filter(Boolean).join(' ');
-                  // Anchor the chip at its start time and let the shared chip
-                  // width govern legibility. A break is a fixed 120s span, so
-                  // scaling the width to that duration collapses it to a few
-                  // pixels at low zoom; keeping only the left keeps every chip
-                  // as readable as the editor's.
-                  const { left } = positionStyle(breakItem.start_time, breakItem.end_time);
+                  // Keep the break's real start and duration on the time axis.
+                  // When the duration is too narrow for a whole clock, CSS
+                  // hides every text line and leaves a clean marker; the full
+                  // identity remains in title and aria-label.
+                  const position = breakPositionStyle(breakItem);
+                  const accessibleLabel = `${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`;
                   return (
-                    <Tooltip title={`${breakItem.program_title} / ${breakItem.start_time}-${breakItem.end_time}`} arrow placement="bottom" key={breakItem.id}>
+                    <Tooltip title={accessibleLabel} arrow placement="bottom" key={breakItem.id}>
                     <Button
                       className={className}
                       type="button"
                       variant="contained"
                       disableRipple
-                      style={{ left }}
+                      style={position}
+                      title={accessibleLabel}
+                      aria-label={accessibleLabel}
                       aria-pressed={selected}
                       onClick={() => onSelectProgram(selectedProgram)}
                     >

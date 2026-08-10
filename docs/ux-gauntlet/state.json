@@ -98,23 +98,23 @@
       }
     ],
     "tree_note_he": "מדידות גל 0 בקובץ הזה נלקחו מעץ העבודה ולא מקומיט: בזמן המדידה הקבצים של חמשת החלקים היו על הדיסק ועדיין לא נכנסו להיסטוריה. ה־HEAD שנרשם כאן הוא זה שהיה בתוקף באותו רגע.",
-    "updated_at": "2026-08-10T18:11:11+03:00"
+    "updated_at": "2026-08-10T23:36:31+03:00"
   },
   "campaign": {
     "title_he": "גאונטלט החוויה של מרידיאן",
     "title_en": "Meridian experience gauntlet",
     "subtitle_he": "בנייה מחדש של חוויית המפעיל עד שהיא עוברת את הרף",
     "phase": {
-      "id": "all_code_waves_complete_owner_input_pending",
-      "label_he": "כל גלי הקוד 0 עד 6 הושלמו",
-      "label_en": "all code waves complete",
+      "id": "verified_code_complete_external_inputs_pending",
+      "label_he": "כל גלי הקוד ושני מעברי התיקון אומתו",
+      "label_en": "all code waves and two adversarial repair passes verified",
       "since": "2026-08-10",
-      "summary_he": "גלים 0 עד 6 הושלמו ונבדקו. P1 עד P12 עברו, P13 הושלם בקוד וממתין לקלט QC ותקני שידור אמיתיים. settlement לפי מטבע הרייטינג בנוי וכבוי עד לקבלת בסיס מסחרי והחלטת בעלים.",
+      "summary_he": "גלים 0 עד 6 ושני מעברי הביקורת העצמאית הושלמו ונבדקו. המנוע דטרמיניסטי, זוג התוכנית וה-fingerprint מוגן, והתוכנית המחויבת משתחזרת ב-120 מתוך 120 ימי ערוץ. נותרו קלטים והחלטות חיצוניים בלבד.",
       "build_started": true,
-      "build_started_note_he": "כל עבודת הקוד של גלים 0 עד 6 הושלמה ונבדקה.",
-      "next_action_he": "לקבל ולחבר דוח QC אמיתי ותקני שידור עבור P13; בנפרד, לקבל בסיס משקי בית יהודיים, vintage רייטינג והחלטת הפעלה עבור settlement. אין להמציא נתונים או להפעיל שינוי כספי כדי לסגור תלות.",
-      "next_action_owner_he": "בעלי מערכת המדיה, תקני השידור ומטבע הרייטינג",
-      "next_action_source": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md"
+      "build_started_note_he": "כל עבודת הקוד הידועה מהגלים ומשני מעברי הביקורת העצמאית הושלמה ונבדקה.",
+      "next_action_he": "לקבל קלטים אמיתיים עבור P13, מטבע הרייטינג, השבוע הנוכחי, flights ו-as-run; ולהכריע בשאלות המסחר הפתוחות במסמך הבעלים. אין למלא ערך חסר בניחוש.",
+      "next_action_owner_he": "בעלי המדיה, המסחר, הרייטינג ונתוני השידור",
+      "next_action_source": "docs/ux-gauntlet/audits/independent-agent-reaudit-2026-08-10.md"
     },
     "references_product_wide": [
       {
@@ -137,7 +137,12 @@
       "tests_skipped": 6,
       "post_gauntlet_waves_status": "passed",
       "post_gauntlet_waves_note_he": "גלים 3 עד 6 עברו את השערים הממוקדים; תוכנית ה-golden נשארה זהה על מאגר היעדים הנוכחי, שכולו demo.",
-      "post_gauntlet_waves_source": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md"
+      "post_gauntlet_waves_source": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md",
+      "independent_agent_reaudit_status": "passed_after_two_adversarial_passes",
+      "independent_agent_reaudit_note_he": "שלושה מבקרים עצמאיים החזירו תחילה FAIL/PARTIAL, מצאו פערים נוספים גם אחרי התיקון הראשון, ולבסוף החזירו PASS לאחר הרצת counter-probes חוזרים.",
+      "independent_agent_reaudit_source": "docs/ux-gauntlet/audits/independent-agent-reaudit-2026-08-10.md",
+      "deterministic_plan_sha256": "1b9d42983fc0cb38c0c288984e2e69b2f6c042cdca084b40672fc62b392b8f5c",
+      "deterministic_plan_channel_days": 120
     },
     "provenance_warning_he": "נסגר בראיות. הכותרת של מדידת הבסיס נקבה ב־342a2896, שהוא 31 קומיטים ושלושה עשר ימים לפני העץ שממנו המספרים נלקחו בפועל. אילו זה היה נכון, רף 3 היה שבור לכל הקמפיין, כי כל מבקר בכל גל משווה מול הקובץ הזה. זה לא היה נכון: המדידות נלקחו מול 5a80a709, רק ההעתקה של ההאש הייתה שגויה, והכותרת תוקנה. רצפת הנסיגה תקפה כפי שנרשמה.",
     "provenance_warning_source": "docs/ux-gauntlet/discovery/06-baseline.md, הפסקה שכותרתה מקור, נסגר בראיות; ואימות עצמאי שנרשם כאן",
@@ -2301,7 +2306,8 @@
         "P13-R2",
         "P13-R3",
         "P13-R4",
-        "CAMPAIGN-WAVES-3-6-CLOSE-2026-08-10"
+        "CAMPAIGN-WAVES-3-6-CLOSE-2026-08-10",
+        "CAMPAIGN-INDEPENDENT-REAUDIT-2026-08-10"
       ]
     }
   ],
@@ -4313,6 +4319,92 @@
       "piece_id": "P13",
       "round": 5,
       "at": "2026-08-10T18:05:48+03:00"
+    },
+    {
+      "id": "CAMPAIGN-INDEPENDENT-REAUDIT-2026-08-10",
+      "changed_he": "שלושה סוכנים עצמאיים הפריכו את הסגירה הראשונה ואת תיקוני הביניים. שני מעברי הביקורת סגרו דטרמיניזם, בידוד כתיבות, coupling של golden, גבולות ערוץ ושיוך, קריאות version/adoption, spot-ledger, מטבע QH, provenance של artifact, פרסום אטומי של CSV+fingerprint, בסיס incremental מהימן וגאומטריה חוצת חצות.",
+      "verdict": "pass",
+      "verdict_he": "עבר לאחר שני מעברי ביקורת יריבים",
+      "verdict_detail_he": "הכשל הראשוני וכל כשלי הביניים נשמרו בראיות ולא עוגלו לירוק. לאחר counter-probes חוזרים של אותם סוכנים, שלושת המבקרים החזירו PASS. כל 120 ימי-הערוץ חזרו לתוכנית המחויבת באופן דטרמיניסטי, ה-CSV נשאר byte-exact, וה-fingerprint נושא את הקלטים, מטבע ההכנסה וה-run context שיצרו אותו. לא נותר פגם קוד ידוע מהגלים; קלטים והחלטות חיצוניים נשארים חיצוניים.",
+      "measurements": [
+        {
+          "label_he": "סוכני ביקורת עצמאיים",
+          "value": 3,
+          "unit": "agents",
+          "note_he": "כולם החזירו PASS סופי"
+        },
+        {
+          "label_he": "מעברי ביקורת יריבים",
+          "value": 2,
+          "unit": "passes",
+          "note_he": "כולל counter-probes אחרי תיקון"
+        },
+        {
+          "label_he": "רוחבי Chrome שנמדדו",
+          "value": 7,
+          "unit": "viewports",
+          "note_he": "עברו ללא overflow"
+        },
+        {
+          "label_he": "ימי ערוץ בייצוא הדטרמיניסטי",
+          "value": 120,
+          "unit": "channel-days",
+          "note_he": "זהים לבייטים המחויבים"
+        },
+        {
+          "label_he": "שורות בתוכנית המחויבת",
+          "value": 8704,
+          "unit": "rows",
+          "note_he": "hash 1b9d4298..."
+        },
+        {
+          "label_he": "ברייקים בתוכנית המחויבת",
+          "value": 9026,
+          "unit": "breaks",
+          "note_he": "221,891,590 ש״ח הכנסה חזויה"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "docs/ux-gauntlet/audits/independent-agent-reaudit-2026-08-10.md"
+        },
+        {
+          "path": "tests/test_dp_refine.py"
+        },
+        {
+          "path": "tests/golden_weekly_schedule.py"
+        },
+        {
+          "path": "tests/test_golden_gate_coupling.py"
+        },
+        {
+          "path": "tests/test_gauntlet_engine_gate.py"
+        },
+        {
+          "path": "tests/test_plan_write_guard.py"
+        },
+        {
+          "path": "tests/test_incremental_recompute.py"
+        },
+        {
+          "path": "tests/test_assistant_version_tools.py"
+        },
+        {
+          "path": "tests/test_qa8_permissions.py"
+        },
+        {
+          "path": "tests/test_qh_billing.py"
+        },
+        {
+          "path": "tests/test_wave3_owner_defects.py"
+        },
+        {
+          "path": "docs/ux-gauntlet/contracts/W0-3.md"
+        }
+      ],
+      "piece_id": "P13",
+      "round": 6,
+      "at": "2026-08-10T21:58:21+03:00"
     }
   ],
   "decisions": [
@@ -4344,9 +4436,9 @@
       ],
       "blocks_note_he": "W0-3 יכול להתחיל בלי התשובה: העמודות והפותר זהים בשתי האפשרויות ו־41 השמות נקשרים תחת שתיהן. רק גורל 45 השורות הסינתטיות ממתין.",
       "asked_on": "2026-07-31",
-      "answered_on": null,
-      "answer": null,
-      "status": "open"
+      "answered_on": "2026-08-01",
+      "answer": "אושר במפורש במסמך הבעלים: אפשרות א, מיפתוח על 41 השמות הנצפים וארכוב הנתונים הסינתטיים כ-demo.",
+      "status": "closed"
     },
     {
       "id": "D2",
@@ -4373,9 +4465,9 @@
       ],
       "blocks_note_he": "P3 עדיין יכול לבנות את ישות הברייק, כי זהות הברייק מגיעה מצד התוכנית ולא מהקובץ היומי. רק מילוי ברייק בתשדירים היסטוריים אמיתיים ממתין.",
       "asked_on": "2026-07-31",
-      "answered_on": null,
-      "answer": null,
-      "status": "open"
+      "answered_on": "2026-08-01",
+      "answer": "אושר במפורש במסמך הבעלים: מזהה ברייק מפורש, עם כלל הפיצול המתועד כנפילה אחורה לנתונים היסטוריים.",
+      "status": "closed"
     },
     {
       "id": "D3",
@@ -4459,9 +4551,9 @@
       ],
       "blocks_note_he": "שני החלקים יכולים לבנות את כל השאר בינתיים. מחסן המעקים נוחת בכל מקרה ורק ההרשאה שלו ממתינה.",
       "asked_on": "2026-07-31",
-      "answered_on": null,
-      "answer": null,
-      "status": "open"
+      "answered_on": "2026-08-01",
+      "answer": "אושר במפורש במסמך הבעלים: freeze פנימי בעל שם והפרדת guardrails למחסן מורשה ומתוארך.",
+      "status": "closed"
     }
   ],
   "deferred": [
@@ -4725,7 +4817,9 @@
       "owner_he": "מוביל הריצה, ואז החלק שמחזיק את נקודת הקצה",
       "source": "docs/ux-gauntlet/discovery/10-spec-critique-3.md, מה שכדאי לעקוב אחריו",
       "blocks_he": "סיפור הגבול",
-      "status": "open"
+      "status": "closed",
+      "closed_detail_he": "נסגר בביקורת העצמאית. /api/parameters מחזיר רק את ערוץ המפעיל או רשימה ריקה; רשימת EPG מלאה נשארת במסלול declaration המוגן.",
+      "closed_source": "tests/test_p2_parameters_training.py; docs/ux-gauntlet/audits/independent-agent-reaudit-2026-08-10.md"
     },
     {
       "id": "OI-5",
@@ -4734,7 +4828,9 @@
       "owner_he": "החלקים שיוצרים אותן, בפרסום החוזה שלהם",
       "source": "docs/ux-gauntlet/discovery/10-spec-critique-3.md",
       "blocks_he": "החלק הראשון בגל 1 שיזדקק לקורא נוסף",
-      "status": "partly_closed"
+      "status": "closed",
+      "closed_detail_he": "נסגר. חוזה plan-read כבר היה מפורסם, וכעת פורסם גם חוזה W0-3 של spot-ledger עם חתימות, סמנטיקה וצרכנים.",
+      "closed_source": "docs/ux-gauntlet/contracts/W0-3.md"
     },
     {
       "id": "OI-6",
@@ -4743,7 +4839,9 @@
       "owner_he": "החלק שמחזיק את החומה",
       "source": "docs/ux-gauntlet/discovery/10-spec-critique-3.md",
       "blocks_he": "סיפור הגבול",
-      "status": "open"
+      "status": "closed",
+      "closed_detail_he": "נסגר בביקורת העצמאית. שיוך חסר או לא מוכר הופך ל-unknown ונכשל סגור; admin יכול לתקן אותו דרך המסלול הקיים בלי לאפס חשבון.",
+      "closed_source": "tests/test_qa8_permissions.py; docs/ux-gauntlet/audits/independent-agent-reaudit-2026-08-10.md"
     }
   ]
 }

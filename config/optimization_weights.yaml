@@ -56,6 +56,11 @@ pricing_activation:
   ad_type: false
   show: false
   qh_settlement: false
+  # Required before qh_settlement may turn on. These remain blank until the
+  # ingested rating rows carry the same explicit, auditable provenance.
+  qh_audience_basis: ""
+  qh_rating_vintage: ""
+  qh_rating_source: ""
   events: false
 
 # --- Preferred positions (per client and per agreement, so never a constant) ---

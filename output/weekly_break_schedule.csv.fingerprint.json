@@ -6,7 +6,24 @@
     "revenue_weight": 60,
     "min_retention_floor": 0.72,
     "operator_channel": "רשת 13",
-    "risk_lambda": 0.0
+    "risk_lambda": 0.0,
+    "pricing_overrides": {
+      "pricing_activation": {
+        "show": false,
+        "events": true
+      }
+    }
+  },
+  "pricing_config_sha256": "8c5ea15fe34c7eaf4a29714518881423c559098d52367b83a4b8d78c602247de",
+  "revenue_provenance": {
+    "basis": "engine_segment_tvr",
+    "audience_basis": null,
+    "rating_vintage": null,
+    "rating_source": null
+  },
+  "run_context": {
+    "pacing_today": "2026-08-10",
+    "objective_mode": "blend"
   },
   "active_overrides": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "note": "Committed on purpose. The freshness sidecar beside this file is gitignored and answers unknown on a fresh checkout, so it cannot guard the artifact. tests/test_plan_artifact_fingerprint.py compares this against the file, against data/kairos_settings.json, and against the active rows of data/manual_overrides.csv."

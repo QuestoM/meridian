@@ -67,6 +67,27 @@ def test_segment_fields_come_from_data_and_assumptions(pricing: PricingModel) ->
     assert news.start_seconds == 20 * 3600       # 20:00 from midnight
 
 
+def test_rating_provenance_is_ingested_only_as_a_complete_uniform_bundle(
+    pricing: PricingModel,
+) -> None:
+    from kairos.data import ProgramClassifier
+
+    classifier = ProgramClassifier.from_yaml()
+    frame = make_frame()
+    frame["rating_audience_basis"] = "jewish_households"
+    frame["rating_vintage"] = "overnight_plus_1"
+    frame["rating_source"] = "file://verified-ratings.csv"
+    segments = build_segments_from_programmes(frame, classifier, pricing, channel="קשת 12")
+    assert {(s.rating_audience_basis, s.rating_vintage, s.rating_source) for s in segments} == {
+        ("jewish_households", "overnight_plus_1", "file://verified-ratings.csv")
+    }
+
+    # A mixed source cannot be collapsed to a plausible-looking first value.
+    frame.loc[1, "rating_source"] = "file://other.csv"
+    segments = build_segments_from_programmes(frame, classifier, pricing, channel="קשת 12")
+    assert all(s.rating_source == "" for s in segments)
+
+
 def test_channel_filter_excludes_other_channels(pricing: PricingModel) -> None:
     from kairos.data import ProgramClassifier
 

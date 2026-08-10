@@ -1,5 +1,12 @@
 # The campaign, everything open, and how the next wave is built
 
+> **Authority update, 2026-08-10.** This document preserves the campaign's
+> original queue and the reasoning behind it. The sections labelled “everything
+> open”, “in flight”, and “not started” below are historical, not the current
+> handoff. Current status is governed by `RESUME-HERE.md`, `state.json`, and
+> `audits/independent-agent-reaudit-2026-08-10.md` after the independent
+> multi-agent closure audit.
+
 Written 2026-08-08. The owner asked why wave two is still wasteful, what would
 let an agent finish correctly on its first round, and for a list of everything
 still to do including the waves not yet run. This is that.

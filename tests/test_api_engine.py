@@ -23,7 +23,9 @@ def test_parameters_exposes_every_adjustable_knob() -> None:
     assert _ENGINE_AVAILABLE, "engine should import in the test environment"
     assert "guardrails" in body and "assumptions" in body
     assert body["pricing"]["base_price_per_second_per_tvr_point"] == 60.0
-    assert "קשת 12" in body["channels"]
+    owned = body["operator_channel"]
+    assert body["channels"] == ([owned] if owned else [])
+    assert body["available_channels"] == body["channels"]
 
 
 def test_scenario_runs_the_real_engine() -> None:

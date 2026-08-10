@@ -20,12 +20,14 @@ from kairos.optimize.pricing import PricingModel
 from kairos.optimize.qh_billing import (
     MEASURED_DIP_BY_LENGTH,
     QH_WINDOW_SECONDS,
+    QHSettlementConfigurationError,
     billed_points,
     break_window_spans,
     maybe_restate,
     measured_dip_fraction,
     qh_settlement_enabled,
     restate_on_billed_points,
+    validate_qh_settlement_provenance,
     window_start_of,
 )
 
@@ -43,6 +45,9 @@ def _segment(**kwargs) -> ProgramSegment:
         impact_coefficient=-0.02,
         max_breaks=4,
         break_length_seconds=120.0,
+        rating_audience_basis="jewish_households",
+        rating_vintage="overnight_plus_1",
+        rating_source="fixture://verified-ratings",
     )
     base.update(kwargs)
     return ProgramSegment(**base)
@@ -204,7 +209,12 @@ def test_unknown_segment_raises() -> None:
 def _pricing(qh_on: bool) -> PricingModel:
     return PricingModel.from_weights({
         "base_price_per_second_per_tvr_point": 60.0,
-        "pricing_activation": {"qh_settlement": qh_on},
+        "pricing_activation": {
+            "qh_settlement": qh_on,
+            "qh_audience_basis": "jewish_households",
+            "qh_rating_vintage": "overnight_plus_1",
+            "qh_rating_source": "fixture://verified-ratings",
+        },
     })
 
 
@@ -220,6 +230,87 @@ def test_flag_defaults_off_from_config() -> None:
     assert qh_settlement_enabled(None) is False
     assert qh_settlement_enabled(_pricing(False)) is False
     assert qh_settlement_enabled(_pricing(True)) is True
+
+
+def test_requested_flag_without_currency_provenance_is_not_enabled() -> None:
+    pricing = PricingModel.from_weights({
+        "pricing_activation": {"qh_settlement": True},
+    })
+    assert pricing.enable_qh_settlement is True
+    assert qh_settlement_enabled(pricing) is False
+    segments = _two_segments()
+    result = optimize_breaks(segments, revenue_weight=0.6)
+    with pytest.raises(QHSettlementConfigurationError, match="not proven"):
+        maybe_restate(result, segments, pricing)
+
+
+def test_config_claim_cannot_substitute_for_segment_provenance() -> None:
+    segments = _two_segments()
+    segments[0] = _segment(rating_audience_basis="", rating_vintage="", rating_source="")
+    result = optimize_breaks(segments, revenue_weight=0.6)
+    with pytest.raises(QHSettlementConfigurationError, match="segment 'seg-a'"):
+        maybe_restate(result, segments, _pricing(True))
+
+
+def test_segment_source_must_match_the_configured_provenance() -> None:
+    segments = _two_segments()
+    segments[0] = _segment(rating_source="file://different-ratings.csv")
+    result = optimize_breaks(segments, revenue_weight=0.6)
+    with pytest.raises(QHSettlementConfigurationError, match="does not match"):
+        maybe_restate(result, segments, _pricing(True))
+
+
+def test_pricing_state_does_not_call_config_only_effective(monkeypatch) -> None:
+    import kairos_api.preview_inputs as preview_module
+    from kairos_api.pricing_api import _qh_activation
+
+    unproven = _two_segments()
+    unproven[0] = _segment(rating_audience_basis="", rating_vintage="", rating_source="")
+    monkeypatch.setattr(preview_module, "preview_inputs", lambda *_args: (unproven, {}))
+    blocked = _qh_activation(_pricing(True))
+    assert blocked["qh_settlement_requested"] is True
+    assert blocked["qh_settlement"] is False
+    assert blocked["qh_data_provenance_valid"] is False
+
+    monkeypatch.setattr(preview_module, "preview_inputs", lambda *_args: (_two_segments(), {}))
+    enabled = _qh_activation(_pricing(True))
+    assert enabled["qh_settlement"] is True
+    assert enabled["qh_data_provenance_valid"] is True
+
+
+def test_requested_qh_refuses_an_empty_rating_dataset() -> None:
+    with pytest.raises(QHSettlementConfigurationError, match="no billed segments"):
+        validate_qh_settlement_provenance(_pricing(True), [])
+
+
+def test_pricing_write_refuses_activation_against_unproven_current_data(monkeypatch) -> None:
+    from fastapi import HTTPException
+    import kairos_api.preview_inputs as preview_module
+    import kairos_api.pricing_api as pricing_api
+
+    class _Settings:
+        pricing_overrides = {}
+
+    unproven = _two_segments()
+    unproven[0] = _segment(rating_audience_basis="", rating_vintage="", rating_source="")
+    monkeypatch.setattr(preview_module, "preview_inputs", lambda *_args: (unproven, {}))
+    monkeypatch.setattr(
+        pricing_api,
+        "_settings_io",
+        lambda: (lambda: _Settings(), lambda _settings: pytest.fail("invalid activation was saved")),
+    )
+    update = pricing_api.PricingUpdate(overrides={
+        "pricing_activation": {
+            "qh_settlement": True,
+            "qh_audience_basis": "jewish_households",
+            "qh_rating_vintage": "overnight_plus_1",
+            "qh_rating_source": "fixture://verified-ratings",
+        }
+    })
+    with pytest.raises(HTTPException) as caught:
+        pricing_api.put_pricing(update)
+    assert caught.value.status_code == 422
+    assert "not proven" in str(caught.value.detail)
 
 
 def test_flag_off_returns_the_same_object() -> None:
@@ -241,6 +332,10 @@ def test_flag_on_restates_revenue_only() -> None:
     assert restated.aggregate_retention == result.aggregate_retention
     assert restated.violations == result.violations
     assert restated.revenue_scale == result.revenue_scale
+    assert restated.revenue_basis == "round_quarter_hour_rating_points"
+    assert restated.rating_audience_basis == "jewish_households"
+    assert restated.rating_vintage == "overnight_plus_1"
+    assert restated.rating_source == "fixture://verified-ratings"
     # Only the currency changed, and coherently: totals equal the sum of parts,
     # and the objective is the same blend recomputed on the restated revenue.
     assert restated.total_revenue != result.total_revenue

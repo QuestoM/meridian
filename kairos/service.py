@@ -206,7 +206,14 @@ def result_to_dict(
         "average_retention": round(result.aggregate_retention * 100, 1),
         "objective": round(result.objective, 4),
         "compliant": result.is_compliant,
+        "revenue_basis": result.revenue_basis,
     }
+    if result.rating_audience_basis or result.rating_vintage or result.rating_source:
+        summary["rating_provenance"] = {
+            "audience_basis": result.rating_audience_basis or None,
+            "vintage": result.rating_vintage or None,
+            "source": result.rating_source or None,
+        }
     # Additive observability: DP-tier coverage counters (which groups ran exact,
     # which fell back and why) and any optimizer notes (e.g. a labeled
     # never-worse revert), so run logs can tell "DP proved this optimal" from

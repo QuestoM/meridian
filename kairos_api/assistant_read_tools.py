@@ -413,6 +413,11 @@ from kairos_api.assistant_read_tools_campaign import register as _register_campa
 
 _register_campaign(_READ_EXECUTORS, SOURCE_BY_TOOL)
 
+# The run-side plan versions and the company-side model adoption record.
+from kairos_api.assistant_read_tools_versions import register as _register_versions  # noqa: E402
+
+_register_versions(_READ_EXECUTORS, SOURCE_BY_TOOL)
+
 
 def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
     """Run one READ tool, stamping the result with its provenance source.
@@ -421,7 +426,7 @@ def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) 
     a non-empty "source" so the model can name where each figure came from. ``user``
     is passed to every executor; only the per-user upload tools consult it.
 
-    This is also the single chokepoint for the model-disclosure wall: the three
+    This is also the single chokepoint for the model-disclosure wall: the four
     tools that carry training content are walled here, once, so a channel
     account cannot reach a gate verdict through any caller of this function.
     """

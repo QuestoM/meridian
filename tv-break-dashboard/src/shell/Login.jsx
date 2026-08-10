@@ -91,14 +91,14 @@ export function roleLabel(role, locale) {
   return locale === 'he' ? labels.he : labels.en;
 }
 
-// A missing affiliation reads as company, matching the server-side default.
 const AFFILIATION_LABELS = {
   company: { en: 'Company', he: 'חברה' },
   channel: { en: 'Channel', he: 'ערוץ' },
+  unknown: { en: 'Unresolved', he: 'לא הוגדר' },
 };
 
 export function affiliationLabel(affiliation, locale) {
-  const labels = AFFILIATION_LABELS[affiliation] || AFFILIATION_LABELS.company;
+  const labels = AFFILIATION_LABELS[affiliation] || AFFILIATION_LABELS.unknown;
   return locale === 'he' ? labels.he : labels.en;
 }
 

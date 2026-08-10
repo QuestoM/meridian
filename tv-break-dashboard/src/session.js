@@ -221,7 +221,8 @@ export function normalizeSession(body) {
   const record = body && typeof body === 'object' ? body : {};
   const authDisabled = record.auth_disabled === true;
   const role = String(record.role || '');
-  const affiliation = record.affiliation === 'channel' ? 'channel' : 'company';
+  const rawAffiliation = String(record.affiliation || '').trim().toLowerCase();
+  const affiliation = ['company', 'channel'].includes(rawAffiliation) ? rawAffiliation : 'unknown';
   const job = String(record.job || UNSET_JOB) || UNSET_JOB;
   return {
     authDisabled,

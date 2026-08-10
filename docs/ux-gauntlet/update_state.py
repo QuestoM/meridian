@@ -34,6 +34,8 @@ CLAIM_FIELDS = (
     "verdict_detail_he",
     "largest_gap_he",
     "measurements",
+    "open_item_updates",
+    "decision_updates",
 )
 
 # Fields a record may carry onto the piece itself, rather than onto the round.
@@ -44,8 +46,9 @@ PIECE_FIELDS = {
 }
 
 CAMPAIGN_FIELDS = {"campaign_phase", "campaign_verification"}
+TRACKER_FIELDS = {"open_item_updates": "open_items", "decision_updates": "decisions"}
 
-RESERVED = set(PIECE_FIELDS) | CAMPAIGN_FIELDS | {"piece_id"}
+RESERVED = set(PIECE_FIELDS) | CAMPAIGN_FIELDS | set(TRACKER_FIELDS) | {"piece_id"}
 
 
 class Refused(Exception):
@@ -129,6 +132,14 @@ def check_piece_fields(rec):
     for field in CAMPAIGN_FIELDS:
         if field in rec and not isinstance(rec[field], dict):
             raise Refused("%s must be an object" % field)
+    for field in TRACKER_FIELDS:
+        if field not in rec:
+            continue
+        if not isinstance(rec[field], list):
+            raise Refused("%s must be a list" % field)
+        for index, update in enumerate(rec[field]):
+            if not isinstance(update, dict) or not update.get("id"):
+                raise Refused("%s[%d] must be an object with an id" % (field, index))
 
 
 def next_round_number(state, piece_id):
@@ -169,6 +180,21 @@ def merge_campaign(state, rec):
         campaign["phase"] = rec["campaign_phase"]
     if "campaign_verification" in rec:
         campaign.setdefault("verification", {}).update(rec["campaign_verification"])
+
+
+def merge_trackers(state, rec):
+    """Update existing decisions/open items without creating parallel truth."""
+    for source, target in TRACKER_FIELDS.items():
+        if source not in rec:
+            continue
+        records = state.get(target, [])
+        by_id = {item.get("id"): item for item in records}
+        for update in rec[source]:
+            record_id = update["id"]
+            if record_id not in by_id:
+                known = ", ".join(sorted(str(key) for key in by_id if key))
+                raise Refused("unknown %s id %r. Known: %s" % (target, record_id, known))
+            by_id[record_id].update(update)
 
 
 def write_atomic(path, state):
@@ -226,6 +252,7 @@ def main(argv=None):
     round_id, how = merge_round(state, rec)
     merge_piece(piece, rec, round_id)
     merge_campaign(state, rec)
+    merge_trackers(state, rec)
     state.setdefault("meta", {})["updated_at"] = now_iso()
 
     if args.dry_run:

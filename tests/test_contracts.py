@@ -134,6 +134,25 @@ def test_valid_daily_input_passes() -> None:
     assert report.is_valid, str(report)
 
 
+def test_optional_rating_provenance_must_be_complete_and_uniform() -> None:
+    frame = _valid_programmes()
+    frame["rating_audience_basis"] = "jewish_households"
+    assert not validate_programmes(frame).is_valid
+
+    frame["rating_vintage"] = "overnight_plus_1"
+    frame["rating_source"] = "file://verified.csv"
+    assert validate_programmes(frame).is_valid
+
+    frame.loc[1, "rating_source"] = ""
+    assert not validate_programmes(frame).is_valid
+
+    frame.loc[1, "rating_source"] = "file://other.csv"
+    report = validate_programmes(frame)
+    assert ("rating_source", "ambiguous_provenance") in {
+        (violation.field, violation.code) for violation in report.errors
+    }
+
+
 # ---------------------------------------------------------------------------
 # Missing column -> error
 # ---------------------------------------------------------------------------

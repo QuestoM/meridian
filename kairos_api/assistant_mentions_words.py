@@ -2,7 +2,7 @@
 
 Every Hebrew word here is READ from somewhere that already shipped it, never
 minted for this route. A kind whose word had to be invented does not appear,
-which is why this table has four rows and not the twenty-odd of the full
+which is why this table has six rows and not the twenty-odd of the full
 taxonomy: the other kinds arrive as their coverage does, each with the word the
 product already uses for it.
 
@@ -17,6 +17,7 @@ Where each word comes from, so the next reader can check rather than trust:
                                    MoneyDetail, GoldBreakManager, ScheduleInspector,
                                    RestrictionComposer, constraint-predicate) and in
                                    src/history/history-row-words.js
+``break``       ``ברייק``           tv-break-dashboard/src/vocabulary.js, ``object.break``
 ``event``       ``אירוע לוח שנה``    src/history/history-fields.js and
                                    src/rules/pricing-layers-lib.js
 
@@ -40,6 +41,7 @@ from __future__ import annotations
 KINDS: dict[str, dict[str, object]] = {
     "day": {"rank": 10, "he": "יום שידור", "en": "broadcast day", "icon": "nav:Schedule"},
     "program": {"rank": 20, "he": "תוכנית", "en": "programme", "icon": "MonitorPlay"},
+    "break": {"rank": 30, "he": "ברייק", "en": "break", "icon": "nav:Break Library"},
     "advertiser": {"rank": 40, "he": "מפרסם", "en": "advertiser", "icon": "nav:Advertisers"},
     "agency": {"rank": 41, "he": "סוכנות", "en": "agency", "icon": "nav:Agencies"},
     "event": {"rank": 60, "he": "אירוע לוח שנה", "en": "calendar event", "icon": "CalendarDays"},
@@ -56,13 +58,12 @@ KIND_NAMES: tuple[str, ...] = tuple(KINDS)
 # same object is reachable from two parents without being two objects.
 #
 # Only edges whose CHILD store can be produced under the operator's own scope
-# appear here. The plan spine below the programme (break, pod, spot) is absent
-# for the reason the build order gives: a mention resolving to a card the model
-# has no read tool to follow up on is a dead end, so coverage lands first and
-# the kind follows it. Nothing here is a placeholder for those.
+# appear here. Break coverage now exists, so the first complete plan-spine path
+# is day -> programme -> break. Pod and spot remain absent until their identities
+# can be carried across the same scoped graph rather than inferred from labels.
 EDGES: dict[str, tuple[str, ...]] = {
     "day": ("program",),
-    "program": ("day",),
+    "program": ("day", "break"),
     "agency": ("advertiser",),
 }
 

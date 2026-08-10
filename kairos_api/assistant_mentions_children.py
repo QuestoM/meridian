@@ -56,6 +56,11 @@ router = APIRouter(tags=["assistant"])
 SHOW_CAP = index.SHOW_CAP
 FETCH_CAP = index.FETCH_CAP
 ID_MAX = 200
+# A programme reached through a day needs that day only for its next edge. Its
+# public mention id stays the programme's store key, so accepting it still
+# resolves exactly as a programme mention. This separate drill id preserves the
+# graph context without corrupting the typed reference.
+DRILL_SEPARATOR = "␟"
 
 
 # --- the edges ---------------------------------------------------------------------
@@ -96,7 +101,10 @@ def _day_to_program(parent_id: str) -> list[dict[str, Any]]:
             parent.append({"kind": "figure", "text": str(starts[0])})
         parent.append({"kind": "figure", "text": str(int(len(group)))})
         parent.append({"kind": "name", "text": owned})
-        rows.append(index._row("program", name, name, parent))
+        row = index._row("program", name, name, parent)
+        row["drill_id"] = f"{parent_id}{DRILL_SEPARATOR}{name}"
+        row["drill_edge"] = "break"
+        rows.append(row)
     return rows
 
 
@@ -126,6 +134,41 @@ def _program_to_day(parent_id: str) -> list[dict[str, Any]]:
     return rows
 
 
+def _program_to_break(parent_id: str) -> list[dict[str, Any]]:
+    """The real breaks inside one programme on one owned broadcast day.
+
+    The day context comes from the row produced by ``_day_to_program``. A flat
+    programme search still descends to its days first, because a recurring
+    programme has no single set of breaks until a day is selected.
+    """
+    day, separator, programme = str(parent_id or "").partition(DRILL_SEPARATOR)
+    if not separator or not day or not programme:
+        return []
+    from kairos_api import break_store
+    from kairos_api.break_api_detail import _clock
+
+    frame, _owned_channel = _owned()
+    if frame is None:
+        return []
+    match_field = "programme" if _program_column(frame) == "program_title" else "genre"
+    try:
+        records = break_store.break_records(break_store.day_plan(day))
+    except LookupError:
+        return []
+    rows: list[dict[str, Any]] = []
+    for record in records:
+        if str(record.get(match_field) or "").strip() != programme:
+            continue
+        label = _clock(float(record.get("start_seconds") or 0))
+        parent = [
+            {"kind": "span", "from": day, "to": day},
+            {"kind": "name", "text": programme},
+            {"kind": "figure", "text": str(record.get("ordinal") or "")},
+        ]
+        rows.append(index._row("break", str(record.get("break_id") or ""), label, parent))
+    return rows
+
+
 def _agency_to_advertiser(parent_id: str) -> list[dict[str, Any]]:
     """The advertisers effectively linked to one agency.
 
@@ -148,6 +191,7 @@ def _agency_to_advertiser(parent_id: str) -> list[dict[str, Any]]:
 _EDGE_BUILDERS = {
     ("day", "program"): _day_to_program,
     ("program", "day"): _program_to_day,
+    ("program", "break"): _program_to_break,
     ("agency", "advertiser"): _agency_to_advertiser,
 }
 

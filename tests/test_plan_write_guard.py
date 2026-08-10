@@ -19,8 +19,10 @@ untouched; the allowed-write test relocates the shipped path to a tmp file first
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -41,6 +43,34 @@ from kairos.export.schedule import COLUMNS, DEFAULT_OUTPUT_PATH, write_weekly_sc
 def _one_row_frame() -> pd.DataFrame:
     """A frame shaped like the export, small enough to make a write obvious."""
     return pd.DataFrame([{column: "" for column in COLUMNS}], columns=COLUMNS)
+
+
+def _frame_with_current_snapshots() -> pd.DataFrame:
+    from kairos.export.schedule_fingerprint import (
+        active_override_digest,
+        pricing_config_digest,
+        settings_slice,
+    )
+    from kairos.export.schedule_freshness import schedule_input_fingerprints
+    from kairos_api.server import _load_settings
+
+    frame = _one_row_frame()
+    frame.attrs["fingerprint_snapshot"] = {
+        "settings": settings_slice(_load_settings()),
+        "pricing_config_sha256": pricing_config_digest(ROOT),
+        "active_overrides": active_override_digest(ROOT),
+        "run_context": None,
+    }
+    frame.attrs["input_fingerprints_snapshot"] = schedule_input_fingerprints(ROOT)
+    frame.attrs["revenue_provenance"] = {"basis": "engine_segment_tvr"}
+    frame.attrs["shipped_input_eligible"] = True
+    frame.attrs["shipped_input_refusal_reasons"] = ()
+    return frame
+
+
+def test_pytest_defaults_the_shipped_plan_to_read_only() -> None:
+    """The shared test bootstrap protects the plan before product code imports."""
+    assert os.environ.get(READONLY_ENV) == "1"
 
 
 def test_readonly_mode_refuses_a_deliberate_recompute(monkeypatch) -> None:
@@ -90,7 +120,7 @@ def test_an_allowed_write_records_who_made_it(monkeypatch, tmp_path) -> None:
     relocated = tmp_path / "weekly_break_schedule.csv"
     monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", relocated)
 
-    write_weekly_schedule(frame=_one_row_frame(), replace_shipped_plan=True)
+    write_weekly_schedule(frame=_frame_with_current_snapshots(), replace_shipped_plan=True)
 
     record = json.loads(Path(str(relocated) + PROVENANCE_SUFFIX).read_text(encoding="utf-8"))
     assert len(record["writes"]) == 1
@@ -99,3 +129,80 @@ def test_an_allowed_write_records_who_made_it(monkeypatch, tmp_path) -> None:
     assert Path(__file__).name in entry["caller"], (
         "the record must name the calling frame, or it cannot attribute the next one"
     )
+
+
+def test_fingerprint_publish_failure_rolls_back_the_csv_pair(monkeypatch, tmp_path) -> None:
+    target = tmp_path / "weekly_break_schedule.csv"
+    first = _one_row_frame()
+    first.loc[0, "channel"] = "before"
+    write_weekly_schedule(target, frame=first)
+    fingerprint = Path(str(target) + ".fingerprint.json")
+    before_csv = target.read_bytes()
+    before_fingerprint = fingerprint.read_bytes()
+
+    second = _one_row_frame()
+    second.loc[0, "channel"] = "after"
+    real_replace = schedule_module.os.replace
+    calls = 0
+
+    def fail_fingerprint_replace(source, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected fingerprint publish failure")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(schedule_module.os, "replace", fail_fingerprint_replace)
+    with pytest.raises(OSError, match="injected fingerprint"):
+        write_weekly_schedule(target, frame=second)
+
+    assert target.read_bytes() == before_csv
+    assert fingerprint.read_bytes() == before_fingerprint
+
+
+def test_successful_recompute_test_is_redirected_and_never_dirties_output(
+    monkeypatch, tmp_path,
+) -> None:
+    """Exercise the real recompute body while its writer targets ``tmp_path``.
+
+    The global read-only default proves an accidental shipped-path write would
+    fail. This test also proves the intended testing pattern remains useful: a
+    successful recompute can run against a temporary artifact without changing
+    either committed output file.
+    """
+    from kairos_api import recompute_api
+
+    fingerprint = Path(str(DEFAULT_OUTPUT_PATH) + ".fingerprint.json")
+    before_plan = DEFAULT_OUTPUT_PATH.read_bytes()
+    before_fingerprint = fingerprint.read_bytes()
+    target = tmp_path / "weekly_break_schedule.csv"
+    frame = _one_row_frame()
+    frame.loc[0, "channel"] = "רשת 13"
+    frame.loc[0, "date"] = "2024-11-01"
+    frame.loc[0, "num_breaks"] = 1
+    frame.loc[0, "predicted_revenue"] = 10.0
+    saved = SimpleNamespace(
+        revenue_weight=60,
+        risk_lambda=0.0,
+        operator_channel="רשת 13",
+        objective_mode="blend",
+    )
+
+    monkeypatch.setattr(recompute_api, "_load_settings", lambda: saved)
+    monkeypatch.setattr(recompute_api, "_model_dump", lambda _saved: {})
+    monkeypatch.setattr(recompute_api, "_reference_today", lambda _saved: None)
+    monkeypatch.setattr(recompute_api, "build_weekly_schedule", lambda **_kwargs: frame)
+
+    def write_to_tmp(*, frame, replace_shipped_plan):
+        assert replace_shipped_plan is True
+        return write_weekly_schedule(target, frame=frame)
+
+    monkeypatch.setattr(recompute_api, "write_weekly_schedule", write_to_tmp)
+
+    result = recompute_api._run_recompute()
+
+    assert result["ok"] is True
+    assert result["path"] == str(target)
+    assert target.exists()
+    assert DEFAULT_OUTPUT_PATH.read_bytes() == before_plan
+    assert fingerprint.read_bytes() == before_fingerprint

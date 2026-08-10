@@ -40,12 +40,13 @@ question straight to it, so there is exactly one implementation of "is this
 requester company" in the process and the five existing call sites are
 untouched.
 
-Unknown identity stays tolerant, exactly as the events guard already is: with
+An unresolvable request identity stays tolerant, exactly as the events guard already is: with
 auth disabled, with no request object (direct in-process calls and bare-router
 tests), or with no resolvable session (the server middleware already answers
 401 before any route runs) the requester reads as company and as permitted. A
-deployment without login keeps every surface open, and only a resolved session
-whose account is stored as channel-affiliated is walled.
+deployment without login keeps every surface open. A resolved account with a
+channel or unresolved stored affiliation is walled; unresolved is the
+fail-closed legacy migration state, not an unresolvable request identity.
 
 Because unknown identity is tolerant, the guard must never mistake a parameter
 for the request, or the tolerant path becomes a hole. It therefore finds the

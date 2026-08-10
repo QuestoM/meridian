@@ -107,24 +107,17 @@ def read_ledger() -> LedgerRead:
     """
     try:
         from kairos_api.exporters import _load_daily_pricing
+        from kairos_api.uploads import _newest_daily
 
-        result = _load_daily_pricing()
+        path = _newest_daily()
+        if path is None:
+            return LedgerRead(reason=_NO_DAILY_FILE)
+        result = _load_daily_pricing(path=path)
     except Exception:  # noqa: BLE001 - an unreadable ledger is a state, not a crash
         return LedgerRead(reason=_PIPELINE_FAILED)
     if result is None:
         return LedgerRead(reason=_NO_DAILY_FILE)
-    return group_result(result, basis=_basis_name())
-
-
-def _basis_name() -> Optional[str]:
-    """The daily file the totals came from, or None when it cannot be named."""
-    try:
-        from kairos_api.uploads import _newest_daily
-
-        path = _newest_daily()
-    except Exception:  # noqa: BLE001 - naming the basis must never fail the read
-        return None
-    return path.name if path is not None else None
+    return group_result(result, basis=path.name)
 
 
 def group_result(result: Any, *, basis: Optional[str] = None) -> LedgerRead:

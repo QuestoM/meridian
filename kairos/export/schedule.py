@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import os
+import json
+from copy import deepcopy
 from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Mapping, Optional
@@ -236,7 +238,61 @@ def build_weekly_schedule(
     SKIPPED at commit time (same guard as the /api/overrides/effect preview);
     the skipped list is logged and returned on ``frame.attrs["skipped_overrides"]``.
     """
+    explicit_input_reasons: list[str] = []
+    if programmes is not None:
+        explicit_input_reasons.append("programmes frame")
+    if programmes_path is not None:
+        explicit_input_reasons.append("programmes_path")
+    if pricing is not None:
+        explicit_input_reasons.append("pricing model")
+    if assumptions is not None:
+        explicit_input_reasons.append("optimizer assumptions")
+    if classifier is not None:
+        explicit_input_reasons.append("program classifier")
+    if impact_model is not None:
+        explicit_input_reasons.append("impact model")
+    if overrides is not None:
+        explicit_input_reasons.append("override set")
+    if placement_pins is not None:
+        explicit_input_reasons.append("placement pins")
+    if existing_csv is not None and Path(existing_csv).resolve() != DEFAULT_OUTPUT_PATH.resolve():
+        explicit_input_reasons.append("non-canonical incremental base")
+    if constraints_path is not None:
+        from kairos.optimize.constraints_store import DEFAULT_CONSTRAINTS_PATH
+
+        if Path(constraints_path).resolve() != Path(DEFAULT_CONSTRAINTS_PATH).resolve():
+            explicit_input_reasons.append("non-canonical constraints path")
+
+    from kairos.export.schedule_fingerprint import (
+        active_override_digest,
+        csv_sha256,
+        pricing_config_digest,
+        read_fingerprint,
+        settings_slice,
+    )
+    from kairos.export.schedule_freshness import schedule_input_fingerprints
+
+    input_fingerprints_snapshot = schedule_input_fingerprints(ROOT)
+    pricing_config_before = pricing_config_digest(ROOT)
     pricing = pricing_from_settings(settings, pricing)
+    pricing_config_after = pricing_config_digest(ROOT)
+    if pricing_config_before != pricing_config_after:
+        raise RuntimeError("pricing configuration changed while the schedule inputs were loading")
+    settings_snapshot = deepcopy(settings_slice(settings or {}))
+    if not settings:
+        explicit_input_reasons.append("missing saved settings snapshot")
+    else:
+        expected_weight = float(settings_snapshot.get("revenue_weight") or 0) / 100.0
+        if revenue_weight is None or abs(float(revenue_weight) - expected_weight) > 1e-12:
+            explicit_input_reasons.append("revenue_weight differs from saved settings")
+        if abs(float(risk_lambda) - float(settings_snapshot.get("risk_lambda") or 0)) > 1e-12:
+            explicit_input_reasons.append("risk_lambda differs from saved settings")
+        expected_channel = str(settings_snapshot.get("operator_channel") or "")
+        if operator_channel and str(operator_channel) != expected_channel:
+            explicit_input_reasons.append("operator_channel differs from saved settings")
+        expected_mode = str((settings or {}).get("objective_mode", "blend") or "blend")
+        if str(objective_mode or "blend") != expected_mode:
+            explicit_input_reasons.append("objective_mode differs from saved settings")
     assumptions = assumptions or OptimizerAssumptions()
     # Default to the SAME classifier seam the live service uses: the YAML classifier
     # wrapped with any trusted AI genres on disk. With the AI-overrides file absent
@@ -255,8 +311,46 @@ def build_weekly_schedule(
     assumptions = _apply_first_break_multiplier(assumptions)
     if programmes is None:
         programmes = load_programmes(programmes_path)
-    if overrides is None and OverrideSet.from_csv().overrides:
-        overrides = OverrideSet.from_csv()
+    active_overrides_before = active_override_digest(ROOT)
+    if overrides is None:
+        loaded_overrides = OverrideSet.from_csv()
+        if loaded_overrides.overrides:
+            overrides = loaded_overrides
+    active_overrides_after = active_override_digest(ROOT)
+    if active_overrides_before != active_overrides_after:
+        raise RuntimeError("active overrides changed while the schedule inputs were loading")
+
+    fingerprint_snapshot = {
+        "settings": settings_snapshot,
+        "pricing_config_sha256": pricing_config_after,
+        "active_overrides": active_overrides_after,
+        "run_context": {
+            "pacing_today": today.isoformat() if today is not None else None,
+            "objective_mode": str(objective_mode or "blend"),
+        },
+    }
+    prior_revenue_provenance: Optional[dict[str, Any]] = None
+    incremental_base_sha256: Optional[str] = None
+    if only_days is not None:
+        prior_path = Path(existing_csv) if existing_csv is not None else DEFAULT_OUTPUT_PATH
+        prior_fingerprint = read_fingerprint(prior_path)
+        if prior_path.exists() and isinstance(prior_fingerprint, dict):
+            try:
+                prior_hash = csv_sha256(prior_path)
+            except OSError:
+                prior_hash = ""
+            if prior_hash and prior_hash == prior_fingerprint.get("sha256"):
+                incremental_base_sha256 = prior_hash
+                prior_snapshot = {
+                    "settings": prior_fingerprint.get("settings"),
+                    "pricing_config_sha256": prior_fingerprint.get("pricing_config_sha256"),
+                    "active_overrides": prior_fingerprint.get("active_overrides"),
+                    "run_context": prior_fingerprint.get("run_context"),
+                }
+                if prior_snapshot == fingerprint_snapshot:
+                    candidate = prior_fingerprint.get("revenue_provenance")
+                    if isinstance(candidate, dict) and candidate.get("basis"):
+                        prior_revenue_provenance = dict(candidate)
 
     # Load scoped placement constraints once. When the caller gives an explicit
     # path use it; otherwise fall back to the default file only when it exists, so
@@ -294,6 +388,8 @@ def build_weekly_schedule(
 
     skipped_overrides: list[dict[str, Any]] = []
     seen_segment_ids: set[str] = set()
+    revenue_provenance_seen: set[tuple[str, str, str, str]] = set()
+    revenue_provenance_complete = only_days is None
 
     def _segments_for(channel: str, day: str) -> list:
         return build_segments_from_programmes(
@@ -340,26 +436,40 @@ def build_weekly_schedule(
             optimize_fn=optimize_breaks,
             pricing=pricing,
         )
+        revenue_provenance_seen.add((
+            str(result.revenue_basis or ""),
+            str(result.rating_audience_basis or ""),
+            str(result.rating_vintage or ""),
+            str(result.rating_source or ""),
+        ))
         return _rows_from_result(segments, result)
 
     pairs = _channel_days(programmes)
     frame: Optional[pd.DataFrame] = None
     if only_days is not None:
         requested = list(dict.fromkeys((str(c), str(d)) for c, d in only_days))
-        frame = incremental_weekly_frame(
-            pairs=pairs,
-            requested=requested,
-            existing_csv_path=Path(existing_csv) if existing_csv is not None else DEFAULT_OUTPUT_PATH,
-            columns=COLUMNS,
-            day_rows=_day_rows,
-            has_segments=lambda channel, day: bool(_segments_for(channel, day)),
-            progress_cb=progress_cb,
-        )
+        if incremental_base_sha256:
+            frame = incremental_weekly_frame(
+                pairs=pairs,
+                requested=requested,
+                existing_csv_path=Path(existing_csv) if existing_csv is not None else DEFAULT_OUTPUT_PATH,
+                columns=COLUMNS,
+                day_rows=_day_rows,
+                has_segments=lambda channel, day: bool(_segments_for(channel, day)),
+                progress_cb=progress_cb,
+            )
+        else:
+            logger.warning(
+                "Incremental base has no matching committed fingerprint; rebuilding the full schedule."
+            )
+        if frame is not None:
+            revenue_provenance_complete = set(requested) == set(pairs)
         if frame is None:
             # Honest escape hatch: a precondition failed, so rebuild everything.
             # Reset the accumulators a partial incremental pass may have filled.
             skipped_overrides.clear()
             seen_segment_ids.clear()
+            revenue_provenance_complete = True
 
     if frame is None:
         rows: list[dict[str, Any]] = []
@@ -382,6 +492,38 @@ def build_weekly_schedule(
     # Surfaced on the frame itself (no new API surface): callers that persist or
     # summarize this build can read frame.attrs["skipped_overrides"].
     frame.attrs["skipped_overrides"] = skipped_overrides
+    computed_revenue_provenance: Optional[dict[str, Any]] = None
+    if len(revenue_provenance_seen) == 1:
+        basis, audience, vintage, source = next(iter(revenue_provenance_seen))
+        computed_revenue_provenance = {
+            "basis": basis or None,
+            "audience_basis": audience or None,
+            "rating_vintage": vintage or None,
+            "rating_source": source or None,
+        }
+    if revenue_provenance_complete and computed_revenue_provenance is not None:
+        frame.attrs["revenue_provenance"] = computed_revenue_provenance
+    elif (
+        prior_revenue_provenance is not None
+        and computed_revenue_provenance == prior_revenue_provenance
+    ):
+        frame.attrs["revenue_provenance"] = prior_revenue_provenance
+    else:
+        frame.attrs["revenue_provenance"] = {
+            "basis": None,
+            "reason": (
+                "incremental schedule reuses rows whose revenue provenance was not recomputed"
+                if not revenue_provenance_complete
+                else "no schedule rows" if not revenue_provenance_seen
+                else "mixed revenue provenance"
+            ),
+        }
+    frame.attrs["fingerprint_snapshot"] = fingerprint_snapshot
+    frame.attrs["input_fingerprints_snapshot"] = input_fingerprints_snapshot
+    frame.attrs["shipped_input_eligible"] = not explicit_input_reasons
+    frame.attrs["shipped_input_refusal_reasons"] = tuple(explicit_input_reasons)
+    if incremental_base_sha256:
+        frame.attrs["incremental_base_sha256"] = incremental_base_sha256
     return frame
 
 
@@ -434,14 +576,102 @@ def write_weekly_schedule(
     if frame is None:
         frame = build_weekly_schedule(**kwargs)
     target = Path(path) if path is not None else DEFAULT_OUTPUT_PATH
-    # Refuses when the shipped plan is read-only on this tree, and records who
-    # wrote it when it is not. Covers the explicit-path caller the flag above
-    # cannot see, and runs before any byte is written.
+    is_shipped_plan = target.resolve() == DEFAULT_OUTPUT_PATH.resolve()
+    # The read-only wall is the first shipped-path decision. Tests and agent
+    # trees must fail here before snapshot validation or any provenance write.
     authorize_shipped_plan_write(target, DEFAULT_OUTPUT_PATH)
+    fingerprint_snapshot = frame.attrs.get("fingerprint_snapshot")
+    input_fingerprints_snapshot = frame.attrs.get("input_fingerprints_snapshot")
+    if is_shipped_plan:
+        if not isinstance(fingerprint_snapshot, dict) or not isinstance(
+            input_fingerprints_snapshot, dict
+        ):
+            raise ValueError(
+                "the shipped plan can only be replaced by a frame carrying the input "
+                "snapshot captured by build_weekly_schedule"
+            )
+        if frame.attrs.get("shipped_input_eligible") is not True:
+            reasons = ", ".join(frame.attrs.get("shipped_input_refusal_reasons") or ())
+            raise ValueError(
+                "the shipped plan cannot be replaced from explicit inputs that are not "
+                f"represented by its repository snapshot: {reasons or 'unknown input source'}"
+            )
+        from kairos.export.schedule_fingerprint import (
+            active_override_digest,
+            csv_sha256,
+            pricing_config_digest,
+            settings_slice,
+        )
+        from kairos.export.schedule_freshness import schedule_input_fingerprints
+        from kairos_api.server import _load_settings
+
+        current_snapshot = {
+            "settings": settings_slice(_load_settings()),
+            "pricing_config_sha256": pricing_config_digest(ROOT),
+            "active_overrides": active_override_digest(ROOT),
+            "run_context": fingerprint_snapshot.get("run_context"),
+        }
+        if current_snapshot != fingerprint_snapshot:
+            raise RuntimeError(
+                "schedule inputs changed during recompute; refusing to stamp old money "
+                "with the new settings, pricing config, or overrides"
+            )
+        if schedule_input_fingerprints(ROOT) != input_fingerprints_snapshot:
+            raise RuntimeError(
+                "schedule inputs changed during recompute; refusing to replace the plan"
+            )
+        incremental_base = frame.attrs.get("incremental_base_sha256")
+        if incremental_base and (
+            not target.exists() or csv_sha256(target) != incremental_base
+        ):
+            raise RuntimeError(
+                "the saved plan changed while an incremental recompute was running; "
+                "refusing to overwrite the newer base"
+            )
     target.parent.mkdir(parents=True, exist_ok=True)
+    from kairos.export.schedule_fingerprint import build_fingerprint, fingerprint_path
+    from kairos_api.server import _load_settings
+
+    stamped = fingerprint_snapshot if isinstance(fingerprint_snapshot, dict) else {}
+    settings_for_stamp = stamped["settings"] if "settings" in stamped else _load_settings()
     tmp = target.with_name(target.name + ".tmp")
+    committed_fingerprint = fingerprint_path(target)
+    fingerprint_tmp = committed_fingerprint.with_name(committed_fingerprint.name + ".tmp")
     frame.to_csv(tmp, index=False, encoding="utf-8")
-    os.replace(tmp, target)
+    fingerprint_payload = build_fingerprint(
+        tmp,
+        settings_for_stamp,
+        revenue_provenance=frame.attrs.get("revenue_provenance"),
+        pricing_config_sha256=stamped.get("pricing_config_sha256"),
+        active_overrides_sha256=stamped.get("active_overrides"),
+        run_context=stamped.get("run_context"),
+    )
+    fingerprint_payload["artifact"] = target.name
+    fingerprint_tmp.write_text(
+        json.dumps(fingerprint_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    # Publish the CSV+committed fingerprint as one recoverable pair. There is no
+    # two-file atomic rename primitive, so if the second rename fails the first
+    # is rolled back from bytes captured before publication and the write fails.
+    previous_csv = target.read_bytes() if target.exists() else None
+    csv_replaced = False
+    try:
+        os.replace(tmp, target)
+        csv_replaced = True
+        os.replace(fingerprint_tmp, committed_fingerprint)
+    except Exception:
+        if csv_replaced:
+            if previous_csv is None:
+                target.unlink(missing_ok=True)
+            else:
+                restore_tmp = target.with_name(target.name + ".restore.tmp")
+                restore_tmp.write_bytes(previous_csv)
+                os.replace(restore_tmp, target)
+        tmp.unlink(missing_ok=True)
+        fingerprint_tmp.unlink(missing_ok=True)
+        raise
     # Stamp a freshness sidecar next to the CSV so the dashboard can tell honestly
     # whether this saved schedule still matches its inputs (settings, constraints,
     # overrides, coefficients, data). Imported lazily to avoid an import cycle, and
@@ -450,20 +680,14 @@ def write_weekly_schedule(
     try:
         from kairos.export.schedule_freshness import write_schedule_meta
 
-        write_schedule_meta(target, ROOT)
+        write_schedule_meta(
+            target,
+            ROOT,
+            fingerprints=(
+                input_fingerprints_snapshot
+                if isinstance(input_fingerprints_snapshot, dict) else None
+            ),
+        )
     except Exception:  # pragma: no cover - meta is best-effort, never blocks export
         logger.warning("Could not write schedule freshness sidecar for %s.", target, exc_info=True)
-    # And a COMMITTED fingerprint, which the sidecar above cannot be: output/
-    # *.meta.json is gitignored, so on a fresh checkout freshness reads unknown
-    # and nothing guards the artifact at all. This plan was silently overwritten
-    # twice with a stale copy from a temp mirror, caught both times only because
-    # a person hashed the file by hand. Same best-effort contract: a fingerprint
-    # failure never blocks the write, because the CSV is the critical path.
-    try:
-        from kairos.export.schedule_fingerprint import write_fingerprint
-        from kairos_api.server import _load_settings
-
-        write_fingerprint(target, _load_settings())
-    except Exception:  # pragma: no cover - fingerprint is best-effort, never blocks export
-        logger.warning("Could not write schedule fingerprint for %s.", target, exc_info=True)
     return target

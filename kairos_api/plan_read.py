@@ -160,6 +160,9 @@ def build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
         program_key = f"{channel}-{program_id}-{row['start_dt'].strftime('%H%M')}"
         duration_seconds = int(_safe_number(row.get("duration_seconds"), 0))
         duration_minutes = round(duration_seconds / 60, 1)
+        broadcast_midnight = row["start_dt"].normalize()
+        program_start_seconds = int((row["start_dt"] - broadcast_midnight).total_seconds())
+        program_end_seconds = int((row["end_dt"] - broadcast_midnight).total_seconds())
         # Look up THIS program's own planned row on (channel, date, HH:MM); the EPG
         # has no program_type so a type-level join would stamp one row onto every
         # program of the type. No match means no plan for this slot: honest 0/null,
@@ -189,6 +192,8 @@ def build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
                 "date": row["start_dt"].date().isoformat(),
                 "start_time": row["start_dt"].strftime("%H:%M"),
                 "end_time": row["end_dt"].strftime("%H:%M"),
+                "start_seconds": program_start_seconds,
+                "end_seconds": program_end_seconds,
                 "duration_minutes": duration_minutes,
                 "revenue": revenue_total,
                 "retention": retention,
@@ -267,6 +272,10 @@ def build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
                     "breaks_in_program": break_count,
                     "start_time": candidate.strftime("%H:%M"),
                     "end_time": break_end.strftime("%H:%M"),
+                    # Seconds from this programme's broadcast-day midnight, not
+                    # clock seconds. A 00:10 break inside a 23:30 programme is
+                    # therefore 87,000, preserving its next-day position.
+                    "start_seconds": int((candidate - broadcast_midnight).total_seconds()),
                     "duration_sec": break_seconds,
                     "sponsorships_count": 1 if is_gold else 0,
                     "is_gold": is_gold,

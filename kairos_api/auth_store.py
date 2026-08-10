@@ -47,9 +47,11 @@ ROLES = ("admin", "operator", "viewer")
 
 # Company staff manage everything; channel-affiliated accounts are walled off
 # the event-management surface (calendar event writes and the event pricing
-# activation switch). A record without the field reads as company, so every
-# account that predates the field keeps its full access.
+# activation switch). A missing or unrecognized value reads as ``unknown`` and
+# therefore fails closed; an administrator can resolve that legacy record using
+# the existing affiliation endpoint without resetting the account or session.
 AFFILIATIONS = ("company", "channel")
+UNKNOWN_AFFILIATION = "unknown"
 
 # What this person's work is, which decides the view they land on and the order
 # of their sidebar. It is not a permission: role and affiliation decide those,
@@ -160,9 +162,15 @@ def normalize_username(value: str) -> str:
 
 
 def normalize_affiliation(value: Any) -> str:
-    """Missing, empty or unrecognized values read as company (the permissive
-    legacy default), so only an explicitly stored channel value restricts."""
-    return "channel" if str(value or "").strip().lower() == "channel" else "company"
+    """Return a stored affiliation, failing closed for legacy/invalid records.
+
+    ``unknown`` is a read-only migration state, not a value new or updated
+    accounts may store.  This keeps old accounts usable for sign-in while
+    withholding company-only data until an administrator makes the missing
+    authorization decision explicitly.
+    """
+    text = str(value or "").strip().lower()
+    return text if text in AFFILIATIONS else UNKNOWN_AFFILIATION
 
 
 def normalize_job(value: Any) -> str:
@@ -277,9 +285,10 @@ def is_company_user(username: str) -> bool:
     """Whether this account may manage the company-only surfaces (calendar
     events and the event pricing activation switch).
 
-    True when the stored affiliation reads company (including every legacy
-    record without the field) and whenever auth is off (bypass env or an
-    uninitialized store), so a deployment without login keeps full access.
+    True only when the stored affiliation is explicitly company, and whenever
+    auth is off (bypass env or an uninitialized store), so a deployment without
+    login keeps full access. Missing, empty and malformed legacy values are an
+    ``unknown`` migration state and fail closed.
     With auth on, an unknown username reads False: never grant the company
     surface to an identity the store cannot vouch for.
     """

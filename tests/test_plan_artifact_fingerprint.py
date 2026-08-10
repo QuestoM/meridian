@@ -36,6 +36,7 @@ from kairos.export.schedule_fingerprint import (
     STAMPED_SETTINGS,
     csv_sha256,
     fingerprint_path,
+    pricing_config_digest,
     read_fingerprint,
 )
 
@@ -103,6 +104,18 @@ def test_the_artifact_was_produced_under_the_settings_on_disk():
         + "\n".join(f"  {k}: plan has {was!r}, settings say {now!r}" for k, was, now in drifted)
         + "\nRe-export with scripts/export_schedule.py, or restore the settings. Do not "
         "edit the fingerprint."
+    )
+    assert recorded.get("pricing_config_sha256") == pricing_config_digest(ROOT), (
+        "the saved plan was produced under a different pricing config; this includes "
+        "QH activation and rating-currency provenance"
+    )
+    provenance = recorded.get("revenue_provenance")
+    assert isinstance(provenance, dict) and provenance.get("basis"), (
+        "the saved plan does not say which revenue basis produced its money"
+    )
+    run_context = recorded.get("run_context")
+    assert isinstance(run_context, dict) and run_context.get("objective_mode"), (
+        "the saved plan does not identify its effective run context"
     )
 
 

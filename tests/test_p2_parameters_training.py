@@ -81,6 +81,19 @@ def test_a_channel_account_reads_the_parameters_it_needs(sessions):
     assert "settings" in body
     assert "pricing" in body
     assert body["training_visible"] is False
+    owned = body["operator_channel"]
+    expected = [owned] if owned else []
+    assert body["channels"] == expected
+    assert body["available_channels"] == expected
+
+
+def test_parameters_never_publish_rival_channel_names(sessions):
+    """The shared bootstrap carries only the declared operator channel."""
+    for client in sessions.values():
+        body = client.get("/api/parameters").json()
+        allowed = {body["operator_channel"]} if body["operator_channel"] else set()
+        exposed = set(body["channels"]) | set(body["available_channels"])
+        assert exposed <= allowed
 
 
 def test_a_channel_account_gets_no_training_content_at_all(sessions):

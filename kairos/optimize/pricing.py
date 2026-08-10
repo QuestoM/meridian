@@ -204,6 +204,12 @@ class PricingModel:
     # round-window billed-points basis. OFF by default because it moves real
     # reported revenue (docs/quarter-hour-billing.md, Design section).
     enable_qh_settlement: bool = False
+    # Activation claims alone are insufficient for a billing-currency change.
+    # These values declare which ratings the owner intends to settle on; the
+    # QH gate also verifies matching provenance on every ProgramSegment.
+    qh_audience_basis: str = ""
+    qh_rating_vintage: str = ""
+    qh_rating_source: str = ""
     # Event-date price multipliers (day-iso -> multiplier), built by
     # pricing_from_settings from the ACTIVE calendar events the operator stored
     # with a non-1.0 price_multiplier. Overlapping events compose multiplicatively.
@@ -261,6 +267,9 @@ class PricingModel:
             enable_ad_type=bool(activation.get("ad_type", False)),
             enable_show=bool(activation.get("show", False)),
             enable_qh_settlement=bool(activation.get("qh_settlement", False)),
+            qh_audience_basis=str(activation.get("qh_audience_basis") or "").strip(),
+            qh_rating_vintage=str(activation.get("qh_rating_vintage") or "").strip(),
+            qh_rating_source=str(activation.get("qh_rating_source") or "").strip(),
             enable_events=bool(activation.get("events", False)),
             preferred_positions_default=parse_preferred(preferred.get("channel_default")),
             preferred_positions_by_advertiser=by_advertiser,

@@ -2,6 +2,24 @@
 
 ## FINAL CODE-WAVE RE-AUDIT, 2026-08-10
 
+### Independent-agent correction after the first closure
+
+Three independent agents challenged the closure, then challenged the repair
+again. They found real gaps: a
+load-sensitive DP wall deadline, pytest writing the shipped plan, unmeasured
+header overflow, incomplete Kai version/drill coverage, two open boundary
+findings, a missing spot-ledger contract and unproven rating provenance. All were
+repaired and rechecked. The second pass also closed false-green golden coupling,
+historical plan-version scope, frontend legacy affiliation, spot-ledger and
+fingerprint races, incomplete QH provenance, pair publication failure and
+cross-midnight timeline geometry. The full before-and-after record is
+`audits/independent-agent-reaudit-2026-08-10.md`.
+
+The corrected status is: no known code defect from waves 0 through 6 remains,
+and the canonical 120 channel-day plan is deterministic and byte-identical to
+the committed artifact. External facts and owner choices remain external; see
+the current handoff near the end of this file and `decisions-for-owner.md`.
+
 Wave 0 and every piece from P1 through P13 were re-run on the current tree.
 The disjoint gauntlet groups report **2,182 passed and 6 skipped**: 183 for W0,
 739 for P1-P4, 593 for P5-P8, and 667 for P9-P13. P1-P12 are passed. P13's
@@ -524,15 +542,19 @@ regression was already closed by restoring the polluted override and reproducing
 all 120 channel-days. Waves 3, 4 and 5 are now complete in code and verified; the
 measured record is `audits/remaining-waves-completion-2026-08-10.md`.
 
-Zero code waves remain. Two external owner and data dependencies remain. P13
+Zero numbered code waves remain, and the independent repair wave is complete.
+P13
 needs a real House Number QC report and approved broadcast standards. Its schema,
 importer, API, surface and server-side lock gate are complete, and the empty
 owner-supplied files remain empty rather than carrying invented evidence.
 Rating-currency settlement is implemented behind an off-by-default activation
-flag, but the repository has neither the Jewish-household audience basis nor the
-held-TVR vintage required for the documented trade currency. The owner must
-provide those inputs and decide when to activate settlement. Top and Tail is
-already complete and tested; it is not another remaining wave.
+flag. Its schema, ingestion and refusal gates now require a Jewish-household
+basis, overnight+1 vintage and a matching source on every segment, but the
+repository does not contain those real values. The owner must provide them and
+decide when to activate settlement. The current-week, campaign-flight and as-run
+inputs and the remaining trade questions in `decisions-for-owner.md` are also
+external. Top and Tail is already complete and tested; it is not another
+remaining wave.
 
 The operational source-size threshold is now 500 lines. Files from 451 through
 499 are not work merely because of their size; functional changes still take

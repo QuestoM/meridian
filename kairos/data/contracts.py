@@ -33,6 +33,11 @@ except Exception:  # pragma: no cover - loaders should always import.
 
 
 SEVERITIES = ("error", "warning")
+RATING_PROVENANCE_COLUMNS = (
+    "rating_audience_basis",
+    "rating_vintage",
+    "rating_source",
+)
 
 
 @dataclass(frozen=True)
@@ -222,6 +227,36 @@ def _check_datetime(
         )
 
 
+def _check_optional_rating_provenance(
+    df: pd.DataFrame, report: ValidationReport
+) -> None:
+    """Validate the all-or-none optional settlement provenance bundle."""
+    present = [column for column in RATING_PROVENANCE_COLUMNS if column in df.columns]
+    if not present:
+        return
+    if len(present) != len(RATING_PROVENANCE_COLUMNS):
+        missing = sorted(set(RATING_PROVENANCE_COLUMNS) - set(present))
+        report.add(
+            "rating_provenance",
+            "partial_provenance",
+            f"rating provenance is all-or-none; missing {', '.join(missing)}",
+            "error",
+        )
+        return
+    for column in RATING_PROVENANCE_COLUMNS:
+        cleaned = df[column].map(
+            lambda value: "" if value is None or pd.isna(value) else str(value).strip()
+        )
+        values = set(cleaned)
+        if "" in values or len(values) != 1:
+            report.add(
+                column,
+                "ambiguous_provenance",
+                "expected one non-empty dataset-wide value",
+                "error",
+            )
+
+
 def _check_channels(
     values: Iterable[object], column: str, report: ValidationReport
 ) -> None:
@@ -293,6 +328,8 @@ def validate_programmes(df: pd.DataFrame) -> ValidationReport:
 
     if "Channel" in df.columns:
         _check_channels(df["Channel"], "Channel", report)
+
+    _check_optional_rating_provenance(df, report)
 
     return report
 
@@ -376,5 +413,7 @@ def validate_daily_input(df: pd.DataFrame) -> ValidationReport:
     position = _check_numeric_coercible(df, "position_in_break", report)
     if position is not None:
         _check_non_negative(position, "position_in_break", report)
+
+    _check_optional_rating_provenance(df, report)
 
     return report

@@ -44,7 +44,11 @@ FINGERPRINT_SUFFIX = ".fingerprint.json"
 
 # The settings that change what the optimizer produces. A change to any of these
 # without a re-export means the saved plan is not this configuration's plan.
-STAMPED_SETTINGS = ("revenue_weight", "min_retention_floor", "operator_channel", "risk_lambda")
+STAMPED_SETTINGS = (
+    "revenue_weight", "min_retention_floor", "operator_channel", "risk_lambda",
+    "pricing_overrides",
+)
+PRICING_CONFIG = "config/optimization_weights.yaml"
 
 # Settings that do NOT change the plan, and are guarded anyway, because they are
 # in the same shared writable file and an agent that walks the UI writes them.
@@ -123,12 +127,21 @@ def csv_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def pricing_config_digest(root: str | Path) -> str:
+    """Hash the shipped pricing config, including QH activation/provenance."""
+    path = Path(root) / PRICING_CONFIG
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
 def fingerprint_path(csv_path: str | Path) -> Path:
     path = Path(csv_path)
     return path.with_name(path.name + FINGERPRINT_SUFFIX)
 
 
-def _settings_slice(settings: Any) -> dict[str, Any]:
+def settings_slice(settings: Any) -> dict[str, Any]:
     """The stamped settings, read from a mapping or an object, missing ones as None."""
     out: dict[str, Any] = {}
     for key in STAMPED_SETTINGS:
@@ -139,7 +152,15 @@ def _settings_slice(settings: Any) -> dict[str, Any]:
     return out
 
 
-def build_fingerprint(csv_path: str | Path, settings: Any) -> dict[str, Any]:
+def build_fingerprint(
+    csv_path: str | Path,
+    settings: Any,
+    revenue_provenance: Optional[dict[str, Any]] = None,
+    *,
+    pricing_config_sha256: Optional[str] = None,
+    active_overrides_sha256: Optional[str] = None,
+    run_context: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """The record to commit beside the CSV. Counts are read back from the file."""
     path = Path(csv_path)
     rows = 0
@@ -153,8 +174,17 @@ def build_fingerprint(csv_path: str | Path, settings: Any) -> dict[str, Any]:
         "artifact": path.name,
         "sha256": csv_sha256(path),
         "rows": rows,
-        "settings": _settings_slice(settings),
-        "active_overrides": active_override_digest(root),
+        "settings": settings_slice(settings),
+        "pricing_config_sha256": (
+            pricing_config_sha256
+            if pricing_config_sha256 is not None else pricing_config_digest(root)
+        ),
+        "revenue_provenance": dict(revenue_provenance or {}),
+        "run_context": dict(run_context or {}),
+        "active_overrides": (
+            active_overrides_sha256
+            if active_overrides_sha256 is not None else active_override_digest(root)
+        ),
         "note": (
             "Committed on purpose. The freshness sidecar beside this file is gitignored "
             "and answers unknown on a fresh checkout, so it cannot guard the artifact. "
@@ -165,11 +195,26 @@ def build_fingerprint(csv_path: str | Path, settings: Any) -> dict[str, Any]:
     }
 
 
-def write_fingerprint(csv_path: str | Path, settings: Any) -> Optional[Path]:
+def write_fingerprint(
+    csv_path: str | Path,
+    settings: Any,
+    revenue_provenance: Optional[dict[str, Any]] = None,
+    *,
+    pricing_config_sha256: Optional[str] = None,
+    active_overrides_sha256: Optional[str] = None,
+    run_context: Optional[dict[str, Any]] = None,
+) -> Optional[Path]:
     """Stamp the fingerprint beside the CSV. Never raises into the write path."""
     try:
         target = fingerprint_path(csv_path)
-        payload = build_fingerprint(csv_path, settings)
+        payload = build_fingerprint(
+            csv_path,
+            settings,
+            revenue_provenance,
+            pricing_config_sha256=pricing_config_sha256,
+            active_overrides_sha256=active_overrides_sha256,
+            run_context=run_context,
+        )
         target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return target
     except Exception:

@@ -1,8 +1,8 @@
 """Company/channel affiliation permissions for the event-management surface.
 
 Event management is company-staff only: accounts carry an ``affiliation`` of
-company or channel (missing reads company, so every legacy account keeps full
-access). A channel-affiliated session reads everything but gets 403 on event
+company or channel. Missing or malformed legacy values read as unresolved and
+fail closed until an administrator assigns one. A channel-affiliated session reads everything but gets 403 on event
 writes and on the event pricing activation switch. These tests run the FULL
 server app (middleware included), with the auth store, the events store, the
 version store and the settings file all relocated to tmp so nothing under
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -77,10 +78,10 @@ def create_operator(admin: TestClient, username: str, password: str, affiliation
 
 
 # ---------------------------------------------------------------------------
-# Store semantics: persistence, the legacy default, the helper
+# Store semantics: persistence, the fail-closed legacy state, the helper
 # ---------------------------------------------------------------------------
 
-def test_affiliation_persists_and_legacy_records_read_company(env):
+def test_affiliation_persists_and_legacy_records_fail_closed(env):
     admin = seeded_admin()
     create_operator(admin, "chan1", CHANNEL_PASSWORD, "channel")
 
@@ -89,18 +90,77 @@ def test_affiliation_persists_and_legacy_records_read_company(env):
     stored = {user["username"]: user for user in on_disk["users"]}
     assert stored["chan1"]["affiliation"] == "channel"
 
-    # A legacy record without the field (pre-affiliation store) reads company.
+    # Legacy records remain sign-in capable, but missing authorization is not
+    # silently promoted to company access.
     users = auth_store.load_users()
     for user in users:
-        user.pop("affiliation", None)
+        if user["username"] == "chan1":
+            user.pop("affiliation", None)
     auth_store.save_users(users)
-    assert auth_store.is_company_user("chan1") is True
+    assert auth_store.is_company_user("chan1") is False
     listing = admin.get("/api/auth/users")
     assert listing.status_code == 200
-    assert all(user["affiliation"] == "company" for user in listing.json()["users"])
+    listed = {user["username"]: user for user in listing.json()["users"]}
+    assert listed["chan1"]["affiliation"] == "unknown"
 
-    # The seeded admin itself carries the company default.
+    legacy = signed_in("chan1", CHANNEL_PASSWORD)
+    assert legacy.get("/api/auth/me").json()["affiliation"] == "unknown"
+    assert legacy.get("/api/model/audience").status_code == 403
+    parameters = legacy.get("/api/parameters").json()
+    assert parameters["training_visible"] is False
+    assert parameters["channels"] in ([], [parameters["operator_channel"]])
+
+    # The same session recovers when an administrator explicitly resolves the
+    # legacy record; no password reset or destructive store migration is needed.
+    resolved = admin.put("/api/auth/users/chan1/affiliation", json={"affiliation": "company"})
+    assert resolved.status_code == 200
+    assert legacy.get("/api/model/audience").status_code == 200
+
+    # The seeded admin itself carries an explicit company value.
     assert auth_store.is_company_user("admin") is True
+
+
+def test_unrecognized_stored_affiliation_fails_closed(env):
+    admin = seeded_admin()
+    create_operator(admin, "chan1", CHANNEL_PASSWORD, "channel")
+    users = auth_store.load_users()
+    next(user for user in users if user["username"] == "chan1")["affiliation"] = "agency"
+    auth_store.save_users(users)
+    legacy = signed_in("chan1", CHANNEL_PASSWORD)
+    assert legacy.get("/api/auth/me").json()["affiliation"] == "unknown"
+    assert legacy.get("/api/model/audience").status_code == 403
+
+
+def test_frontend_unknown_affiliation_hides_company_routes(tmp_path):
+    """Drive the shipped session policy, not a Python copy of its rules."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not on PATH")
+    source = (ROOT / "tv-break-dashboard" / "src" / "session.js").read_text(encoding="utf-8")
+    source = source.replace(
+        "export const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';",
+        "export const API_BASE = '';",
+        1,
+    )
+    module = tmp_path / "session.mjs"
+    module.write_text(source, encoding="utf-8")
+    script = f"""
+import {{ normalizeSession, doorFor, jobPickerRows, sessionCanEdit, WALLS }} from {json.dumps(module.as_uri())};
+const session = normalizeSession({{role: 'operator', affiliation: 'unknown', job: 'model_steward'}});
+const rows = jobPickerRows(session, 'en');
+const gate = sessionCanEdit(session, WALLS.companySurface);
+if (session.affiliation !== 'unknown' || session.isCompany !== false) throw new Error('unknown became company');
+if (doorFor(session) !== 'today') throw new Error('company route stayed visible');
+if (rows.some((row) => row.id === 'model_steward')) throw new Error('company job stayed visible');
+if (gate.canEdit !== false) throw new Error('company wall stayed editable');
+"""
+    result = subprocess.run(
+        [node, "--input-type=module", "-e", script],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_is_company_user_when_auth_is_off(env, monkeypatch):

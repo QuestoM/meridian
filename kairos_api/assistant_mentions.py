@@ -30,12 +30,15 @@ shipping the index to the browser would put rival rows in it.
    programme's title and an outright typo all return the same empty result with
    the same absent reason. "None on your channel" would confirm the name exists,
    which is the disclosure the boundary exists to prevent.
-3. NO KIND IS SEARCHABLE WHOSE STORE CANNOT BE SCOPED. Of the four kinds here,
-   the programme comes out of ``assistant_context._owned_frame()`` and is scoped
-   by construction. The other three are operator-owned rule stores with no
-   channel column at all: ``advertisers.COLUMNS``, ``agencies.COLUMNS`` and
-   ``events_api.COLUMNS`` are checked against that claim at import-safe call
-   time by the test, so the claim is measured rather than asserted.
+3. NO KIND IS SEARCHABLE WHOSE STORE CANNOT BE SCOPED. Of the five flat-search
+   kinds here, the day and programme come out of
+   ``assistant_context._owned_frame()`` and are scoped by construction. The
+   other three are operator-owned rule stores with no channel column at all:
+   ``advertisers.COLUMNS``, ``agencies.COLUMNS`` and ``events_api.COLUMNS`` are
+   checked against that claim at import-safe call time by the test, so the claim
+   is measured rather than asserted. Break is intentionally drill-only: it is
+   built from one already-scoped day instead of optimizing every day on the
+   first ``@`` keystroke.
 
 HEBREW. ``בחדשות`` must match ``חדשות`` or the picker is useless in the language
 the product is written in, which is the requirement neither reference product
@@ -318,6 +321,12 @@ def _fingerprint() -> tuple[Any, ...]:
 def build_index() -> list[dict[str, Any]]:
     """Every candidate, already scoped, cached on the fingerprint above.
 
+    Breaks are deliberately drill-only: their addressable ids and exact clocks
+    exist in the live day plan, which costs one optimization per day. Building
+    all seven days on the first ``@`` keystroke would turn an accelerator into
+    a several-second gate. Selecting a day and programme builds only that one
+    day through the children route, then the same break is fully resolvable.
+
     A builder that raises takes its own kind out of the index and leaves the
     rest standing. An unreadable store is an absent kind, never an invented row:
     the operator who cannot find an advertiser learns that from an empty picker,
@@ -326,9 +335,9 @@ def build_index() -> list[dict[str, Any]]:
 
     def _build() -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
-        for kind in words.KIND_NAMES:
+        for kind, builder in _BUILDERS.items():
             try:
-                rows.extend(_BUILDERS[kind]())
+                rows.extend(builder())
             except Exception:  # noqa: BLE001 - an unreadable store is an absent kind
                 continue
         return rows

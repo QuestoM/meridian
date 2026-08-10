@@ -87,6 +87,7 @@ STATE_UNAVAILABLE = "unavailable"
 BASIS = {
     "day": "the saved weekly plan, scoped to the operator's own channel",
     "program": "the saved weekly plan, scoped to the operator's own channel",
+    "break": "the live day plan for the operator's own channel, one addressable break",
     "advertiser": "the advertiser rules store",
     "agency": "the agencies store, and agency terms bite on the daily ledger's reporting net rather than the weekly plan",
     "event": "the calendar events store",
@@ -163,9 +164,44 @@ def _day_card(day_id: str) -> dict[str, Any]:
     }
 
 
+def _break_card(break_id: str) -> dict[str, Any]:
+    """One addressable break, rebuilt only inside the operator's own day plan."""
+    from kairos_api import break_store
+    from kairos_api.break_api_detail import _clock
+
+    try:
+        segment_id, _ordinal = break_store.parse_break_id(break_id)
+    except ValueError:
+        return {"status": "not_found"}
+    day = segment_id.split("|", 1)[0]
+    try:
+        records = break_store.break_records(break_store.day_plan(day))
+    except LookupError:
+        return {"status": "not_found"}
+    record = next((row for row in records if row.get("break_id") == break_id), None)
+    if record is None:
+        return {"status": "not_found"}
+    return {
+        "break_id": break_id,
+        "day": record.get("day"),
+        "channel": record.get("channel"),
+        "programme": record.get("programme"),
+        "start_clock": _clock(float(record.get("start_seconds") or 0)),
+        "duration_seconds": record.get("duration_seconds"),
+        "ordinal": record.get("ordinal"),
+        "breaks_in_programme": record.get("breaks_in_segment"),
+        "is_gold": record.get("is_gold"),
+        "projected_revenue": record.get("projected_revenue"),
+        "segment_retention": record.get("segment_retention"),
+        "detail_tool": "get_break reads this break whole",
+    }
+
+
 def _build_card(kind: str, ident: str) -> dict[str, Any]:
     if kind == "day":
         return _day_card(ident)
+    if kind == "break":
+        return _break_card(ident)
     from kairos_api.assistant_page_context import _ENTITY_BUILDERS
 
     return _ENTITY_BUILDERS[kind](ident)
@@ -185,7 +221,7 @@ def _current_label(kind: str, ident: str, data: dict[str, Any]) -> str:
             value = _clip(record.get(field), LABEL_MAX)
             if value:
                 return value
-    for field in ("name", "date"):
+    for field in ("name", "date", "start_clock"):
         value = _clip(data.get(field), LABEL_MAX)
         if value:
             return value

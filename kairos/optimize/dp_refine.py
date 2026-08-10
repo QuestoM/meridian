@@ -52,10 +52,10 @@ Preconditions, each a silent fallback to the greedy+F1 counts (never an exceptio
     embed a 0/1 knapsack and the small integer break-count state is no longer exact);
   * measured open depth above the guard (worst-case cost is exponential in this
     data-dependent depth; see ``DEFAULT_MAX_OPEN_DEPTH``);
-  * an exhausted per-group compute budget mid-sweep (pruned state count above
-    ``DEFAULT_MAX_STATES`` or wall time above ``DEFAULT_WALL_BUDGET_SECONDS``), so
-    an adversarial in-guard day degrades honestly to the greedy+F1 counts with a
-    named reason instead of stalling the recompute.
+  * an exhausted deterministic per-group compute budget mid-sweep (pruned state
+    count above ``DEFAULT_MAX_STATES`` or transition count above
+    ``DEFAULT_MAX_WORK_UNITS``), so an adversarial in-guard day degrades honestly
+    to the greedy+F1 counts with a named reason instead of stalling the recompute.
 
 Every fallback is labeled (``fell_back`` / ``reason`` / ``reason_code``) and
 :func:`apply_dp_tier` aggregates per-run coverage counters, so an auditor can see
@@ -73,7 +73,7 @@ from kairos.optimize._types import ProgramSegment
 from kairos.optimize.dp_refine_prep import (
     DEFAULT_MAX_OPEN_DEPTH,
     DEFAULT_MAX_STATES,
-    DEFAULT_WALL_BUDGET_SECONDS,
+    DEFAULT_MAX_WORK_UNITS,
     OBJECTIVE_BLEND,
     OBJECTIVE_REVENUE_NET,
     DPBudgetExceeded,
@@ -89,7 +89,7 @@ from kairos.optimize.dp_refine_prep import (
 # Re-exported so the module's public surface (and every existing importer) is
 # unchanged by the prep-layer split.
 __all__ = [
-    "DEFAULT_MAX_OPEN_DEPTH", "DEFAULT_MAX_STATES", "DEFAULT_WALL_BUDGET_SECONDS",
+    "DEFAULT_MAX_OPEN_DEPTH", "DEFAULT_MAX_STATES", "DEFAULT_MAX_WORK_UNITS",
     "OBJECTIVE_BLEND", "OBJECTIVE_REVENUE_NET", "DPBudgetExceeded",
     "DPRefineOutcome", "apply_dp_tier", "dp_refine_group",
 ]
@@ -117,11 +117,12 @@ class DPRefineOutcome:
     max_open_depth: int   # measured simultaneous-open depth (-1 on fallback)
     elapsed: float        # wall seconds
     dp_objective: float   # the DP's accumulated group objective (0.0 on fallback)
+    work_units: int = 0   # deterministic candidate transitions examined
     reason_code: str = ""  # stable key for the fallback reason ("" on the exact path)
 
 
 def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
-             gold_flags, deadline, wall_budget_seconds, max_states):
+             gold_flags, max_states, max_work_units):
     """Interval-sweep DP over one start-sorted channel-day.
 
     Returns ``(counts_list, objective, peak_states)`` where ``counts_list[i]`` is
@@ -130,8 +131,9 @@ def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
     ``gold_flags[i]`` is the segment-or-override gold union the daily gold budget
     is charged against, the same union :func:`~kairos.optimize.guardrails
     .check_gold_breaks` counts. Raises :class:`DPBudgetExceeded` when the pruned
-    state table outgrows ``max_states`` or the wall clock passes ``deadline``,
-    which the caller turns into the labeled never-worse fallback. Raises
+    state table outgrows ``max_states`` or the deterministic transition count
+    exceeds ``max_work_units``, which the caller turns into the labeled
+    never-worse fallback. Raises
     :class:`RuntimeError` when the sweep empties, which an unconstrained day (k = 0
     always feasible) never does but an override-floored one can; the caller turns
     that into a fallback too.
@@ -144,13 +146,6 @@ def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
                  for i, s in enumerate(group)]
     starts = [s.start_seconds for s in group]
     window_end = _window_ends(group, guardrails, bl)
-
-    def _check_wall(j: int) -> None:
-        if time.perf_counter() > deadline:
-            raise DPBudgetExceeded(
-                "wall_budget",
-                f"per-group wall budget of {wall_budget_seconds:.1f}s exhausted at segment {j} of {n}",
-            )
 
     def feasible_local(local):
         items = []
@@ -181,21 +176,21 @@ def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
     states = {(0, 0, ()): (0.0, None, None)}
     trace = []
     peak = 1
-    expansions = 0
+    work_units = 0
     for j in range(n):
-        _check_wall(j)
         next_start = starts[j + 1] if j + 1 < n else float("inf")
         new_states = {}
         for key, (value, _, _) in states.items():
-            # The wall check must live INSIDE the sweep too: a single stage over a
-            # bloated state table can burn the whole budget before the next
-            # per-stage check, so probe the clock every 512 expansions.
-            expansions += 1
-            if expansions % 512 == 0:
-                _check_wall(j)
             budget, gold, open_ks = key
             # ``allowed[j]`` ascends, so the budget/gold breaks below stay valid.
             for k in allowed[j]:
+                work_units += 1
+                if work_units > max_work_units:
+                    raise DPBudgetExceeded(
+                        "work_budget",
+                        f"transition count exceeds the {max_work_units} budget "
+                        f"at segment {j} of {n}",
+                    )
                 budget2 = budget + k
                 if budget2 > max_total:
                     break
@@ -242,7 +237,7 @@ def _dp_core(group, contributions, kmax, allowed, guardrails, *, protected,
         _, parent, k = trace[j][key]
         counts[j] = k
         key = parent
-    return counts, best_val, peak
+    return counts, best_val, peak, work_units
 
 
 def dp_refine_group(
@@ -261,7 +256,7 @@ def dp_refine_group(
     placements: Optional[Mapping[str, Sequence]] = None,
     max_open_depth: int = DEFAULT_MAX_OPEN_DEPTH,
     max_states: int = DEFAULT_MAX_STATES,
-    wall_budget_seconds: float = DEFAULT_WALL_BUDGET_SECONDS,
+    max_work_units: int = DEFAULT_MAX_WORK_UNITS,
 ) -> DPRefineOutcome:
     """Exactly optimize ONE channel-day's break counts, or keep the greedy+F1 input.
 
@@ -273,9 +268,10 @@ def dp_refine_group(
     per-segment net primitive. ``floors``, ``caps`` and ``gold_by_id`` are honored
     exactly (bounds on the explored counts, and the daily gold budget charged off
     the segment-or-override union); ``placements`` still forces the fallback.
-    ``max_states`` and ``wall_budget_seconds`` bound the sweep's per-group compute
-    (see :data:`DEFAULT_MAX_STATES` / :data:`DEFAULT_WALL_BUDGET_SECONDS` for the
-    measured real-corpus headroom).
+    ``max_states`` and ``max_work_units`` bound the sweep's per-group compute with
+    counters determined entirely by the input (see :data:`DEFAULT_MAX_STATES` /
+    :data:`DEFAULT_MAX_WORK_UNITS`). Elapsed wall time is reported but never
+    changes the selected plan.
 
     Returns a :class:`DPRefineOutcome`. On the exact path ``counts`` is the DP
     optimum and ``fell_back`` is False; on any precondition failure or exhausted
@@ -334,10 +330,10 @@ def dp_refine_group(
         objective_mode=objective_mode, revenue_weight=revenue_weight, net_of=net_of,
     )
     try:
-        counts_list, dp_objective, peak = _dp_core(
+        counts_list, dp_objective, peak, work_units = _dp_core(
             ordered, contribs, kmax, allowed, guardrails, protected=protected,
-            gold_flags=gold_flags, deadline=t0 + wall_budget_seconds,
-            wall_budget_seconds=wall_budget_seconds, max_states=max_states)
+            gold_flags=gold_flags, max_states=max_states,
+            max_work_units=max_work_units)
     except DPBudgetExceeded as exc:
         return _fallback(exc.code, f"dp budget exceeded ({exc})")
     except RuntimeError as exc:
@@ -353,7 +349,8 @@ def dp_refine_group(
         return _fallback("dp_noncompliant", "dp plan failed engine is_compliant")
 
     return DPRefineOutcome(
-        counts, False, "", peak, depth, time.perf_counter() - t0, dp_objective)
+        counts, False, "", peak, depth, time.perf_counter() - t0, dp_objective,
+        work_units=work_units)
 
 
 def apply_dp_tier(

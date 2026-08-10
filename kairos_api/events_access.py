@@ -1,7 +1,8 @@
 """Company-only edit access and the training-gate disclosure for the events surface.
 
 Event management belongs to company staff. Accounts carry an ``affiliation``
-of company or channel (kairos_api/auth_store.py, missing reads company); a
+of company or channel (kairos_api/auth_store.py; missing or malformed stored
+values read as unresolved and fail closed); a
 channel-affiliated account reads the calendar freely but every event write
 (POST/PUT/DELETE /api/events*) and the event pricing activation switch
 (PUT /api/pricing carrying ``pricing_activation.events``) answer 403 with a
@@ -9,13 +10,13 @@ clear Hebrew detail. Split out of events_api.py to keep that module under the
 file-size cap; pricing_api.py imports the same guard so both surfaces enforce
 one rule.
 
-The guard is deliberately tolerant where identity is genuinely unknown: with
+The guard is deliberately tolerant where a request identity cannot be resolved: with
 auth disabled, with no request object (direct in-process calls, bare-router
 tests), or with no resolvable session (the server middleware already walls
 unauthenticated API requests with 401 before any route runs) the requester
-reads as company. Only a resolved session whose account is stored as
-channel-affiliated is denied, so existing deployments keep today's behavior
-byte-identically until an admin marks an account as channel.
+reads as company. A resolved session whose stored affiliation is channel,
+missing or malformed is denied; the latter two normalize to ``unknown`` until
+an admin resolves the legacy record.
 
 ``training_gate`` turns the ``event_layer_gate`` key that the model rebuild
 writes into the coefficients metadata into a tri-state honest block: absent or

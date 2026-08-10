@@ -6,7 +6,7 @@ measurement, no coefficient. What a channel account gets instead is the release
 note and the model version, which is the only training-authored text allowed to
 cross the line, because the alternative is money moving with no legible cause.
 
-Three read tools and two grounding sections carry training content today, so
+Four read tools and three grounding sections carry training content today, so
 they are the whole surface this module walls:
 
 * ``get_audience_model`` and the ``audience_model`` section, whose gates carry
@@ -15,6 +15,10 @@ they are the whole surface this module walls:
   monitor
 * ``get_event_pipeline`` and the ``event_pipeline`` section, whose fourth stage
   is the event gate verdict
+* ``get_model_adoption``, whose candidate shelf carries gate, held-out and
+  coefficient deltas and recorded company adoption decisions
+* ``model_state``, whose grounding snapshot carries the same company-side model
+  evidence
 
 The wall is applied at one chokepoint per surface: ``execute_read_tool`` for
 tools and ``extend_with_keyword_sections`` for sections. Affiliation is the only
@@ -65,6 +69,7 @@ WALLED_READ_TOOLS = frozenset({
     "get_audience_model",
     "get_audience_stability",
     "get_event_pipeline",
+    "get_model_adoption",
 })
 
 # The grounding sections with the same content.

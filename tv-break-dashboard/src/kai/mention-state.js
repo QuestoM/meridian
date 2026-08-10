@@ -137,7 +137,12 @@ export function useMentions({ locale, composerRef, question, onQuestionChange, r
 
   function descend(row) {
     if (!row || !row.container || trail.length >= LADDER_LIMIT) return;
-    setTrail((prev) => [...prev, { type: row.type, id: row.id, label: row.label, edge: '' }]);
+    setTrail((prev) => [...prev, {
+      type: row.type,
+      id: row.drill_id || row.id,
+      label: row.label,
+      edge: row.drill_edge || '',
+    }]);
   }
 
   function ascend() {

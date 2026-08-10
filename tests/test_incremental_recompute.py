@@ -5,8 +5,8 @@ Proves the three contracts of ``build_weekly_schedule(only_days=...)``:
   (i) rebuilding ONE channel-day incrementally produces a frame byte-identical
       (all columns, full CSV text) to a fresh FULL rebuild, against the real
       engine on the real committed reference data;
- (ii) untouched days' rows are preserved byte-identical from the prior CSV
-      (proven with a tampered cell that a recompute would never produce);
+ (ii) untouched days are reused only from a CSV whose committed fingerprint
+      matches; a tampered or unstamped base falls back to a full rebuild;
 (iii) classify_change maps a segment-scope override to exactly its channel-day
       and EVERYTHING else (settings included) to 'all'.
 
@@ -29,7 +29,7 @@ import pandas as pd
 
 from kairos.data.loaders import load_programmes
 from kairos.export.incremental import classify_change
-from kairos.export.schedule import build_weekly_schedule
+from kairos.export.schedule import build_weekly_schedule, write_weekly_schedule
 
 CHANNEL = "קשת 12"
 DAY_A = "2024-11-01"
@@ -74,18 +74,37 @@ def test_single_day_incremental_matches_full_rebuild() -> None:
     assert pairs == [(CHANNEL, DAY_A), (CHANNEL, DAY_B)]
     with tempfile.TemporaryDirectory() as td:
         csv_path = Path(td) / "weekly_break_schedule.csv"
-        full.to_csv(csv_path, index=False, encoding="utf-8")
+        write_weekly_schedule(csv_path, frame=full)
         progress: list = []
         merged = _incremental(csv_path, [(CHANNEL, DAY_B)], progress)
     assert merged.to_csv(index=False) == full.to_csv(index=False), (
         "incremental merge must be byte-identical to the full rebuild"
     )
     assert progress == [(1, 1)], "progress_cb must fire once for the one recomputed day"
+    assert merged.attrs["revenue_provenance"] == full.attrs["revenue_provenance"]
 
 
-def test_untouched_day_rows_come_from_the_prior_csv() -> None:
-    """(ii) hard proof: a tampered untouched-day cell survives the merge verbatim,
-    while the recomputed day's rows are fresh (equal to a full rebuild's)."""
+def test_full_rebuild_carries_whole_artifact_revenue_provenance() -> None:
+    provenance = _full_frame().attrs["revenue_provenance"]
+    assert provenance == {
+        "basis": "engine_segment_tvr",
+        "audience_basis": None,
+        "rating_vintage": None,
+        "rating_source": None,
+    }
+
+
+def test_incremental_carries_verified_provenance_from_its_base() -> None:
+    full = _full_frame()
+    with tempfile.TemporaryDirectory() as td:
+        csv_path = Path(td) / "weekly_break_schedule.csv"
+        write_weekly_schedule(csv_path, frame=full)
+        merged = _incremental(csv_path, [(CHANNEL, DAY_B)])
+    assert merged.attrs["revenue_provenance"] == full.attrs["revenue_provenance"]
+
+
+def test_tampered_unfingerprinted_base_falls_back_to_full_rebuild() -> None:
+    """An untrusted untouched row is rebuilt, never laundered into a fresh stamp."""
     full = _full_frame()
     with tempfile.TemporaryDirectory() as td:
         csv_path = Path(td) / "weekly_break_schedule.csv"
@@ -95,15 +114,11 @@ def test_untouched_day_rows_come_from_the_prior_csv() -> None:
         tampered.loc[day_a_index, "program_type"] = "TAMPERED-PROGRAMME"
         tampered.to_csv(csv_path, index=False, encoding="utf-8")
         merged = _incremental(csv_path, [(CHANNEL, DAY_B)])
-    day_a_merged = merged[merged["date"] == DAY_A].to_csv(index=False)
-    day_a_tampered = tampered[tampered["date"] == DAY_A].to_csv(index=False)
-    assert day_a_merged == day_a_tampered, (
-        "untouched-day rows must be preserved verbatim from the prior CSV"
-    )
-    assert "TAMPERED-PROGRAMME" in set(merged["program_type"])
+    assert merged.to_csv(index=False) == full.to_csv(index=False)
+    assert "TAMPERED-PROGRAMME" not in set(merged["program_type"])
     day_b_merged = merged[merged["date"] == DAY_B].to_csv(index=False)
     day_b_full = full[full["date"] == DAY_B].to_csv(index=False)
-    assert day_b_merged == day_b_full, "the recomputed day must carry fresh engine rows"
+    assert day_b_merged == day_b_full, "the full fallback must carry fresh engine rows"
 
 
 def test_missing_csv_falls_back_to_full_build() -> None:

@@ -14,7 +14,6 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from kairos_api.core import (
-    KAIROS_CHANNELS,
     MODELS_DIR,
     ROOT,
     OptimizerAssumptions,
@@ -35,8 +34,8 @@ def parameters(request: Request) -> dict[str, Any]:
     """Every adjustable parameter the optimizer uses, in one place.
 
     Surfaces the guardrails (derived from the saved settings), the declared
-    optimizer assumptions, the pricing model, and the known channels, so the
-    dashboard can show and edit each one.
+    optimizer assumptions, the pricing model, and the caller's declared channel,
+    so the dashboard can show and edit each legitimate operator parameter.
 
     **This is the fourth of the four open reads, and it is closed here rather
     than walled.** Section 4.5 of the specification lists this route beside
@@ -78,23 +77,20 @@ def parameters(request: Request) -> dict[str, Any]:
         return payload
     payload["guardrails"] = _asdict(guardrails_from_settings(_model_dump(settings)))
     payload["assumptions"] = _asdict(OptimizerAssumptions())
-    payload["channels"] = list(KAIROS_CHANNELS)
     payload["operator_channel"] = settings.operator_channel
     # Honest flag: when no channel is selected the competitor-boundary filter is
     # inactive (constraints match any channel). The dashboard uses this to warn
     # the operator so they know to visit OperatorChannelPanel and pick a channel.
     payload["operator_channel_unset"] = not bool(settings.operator_channel)
-    # available_channels drives the operator-channel picker. Derive it from the
-    # real loaded EPG (the same channel_options the constraint engine uses) so the
-    # picker can never drift from the channel ids the optimizer actually schedules
-    # on. Fall back to the canonical channel constant only if the EPG is missing.
-    try:
-        from kairos_api._constraint_options import channel_options as _channel_options
-
-        _data_channels = _channel_options()
-    except Exception:
-        _data_channels = []
-    payload["available_channels"] = _data_channels or list(KAIROS_CHANNELS)
+    # This route is loaded by every operator workspace.  A channel operator may
+    # read their own declared channel, but the names of rival channels are not a
+    # parameter they need and must not ride along in the shared bootstrap
+    # payload.  The admin-only declaration workflow has its own scoped endpoint
+    # (/api/rules/operator-channel), which remains the legitimate place for the
+    # full EPG-backed option list.
+    owned_channels = [settings.operator_channel] if settings.operator_channel else []
+    payload["channels"] = owned_channels
+    payload["available_channels"] = owned_channels
     try:
         # The LIVE rate card: the YAML defaults with the operator's saved
         # pricing_overrides merged on top (pricing_from_settings, the same seam

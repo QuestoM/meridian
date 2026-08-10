@@ -370,11 +370,11 @@ def compare_objectives(
     net on the same honest money model. Nothing here is synthesized; the two legs
     differ only in what the optimizer maximised.
 
-    Both legs run pure greedy (``refine=False``) so the comparison ISOLATES the
-    objective, not the refiner. The F1 refiner is a blend-objective local search
-    (net mode has no equivalent yet), so leaving it on would compare a refined blend
-    plan against a greedy net plan and muddy what the net objective itself bought.
-    An honest apples-to-apples comparison holds refinement equal.
+    Both legs run pure greedy (``refine=False``) so this narrow diagnostic holds
+    the search tier fixed while it isolates the objective. The production
+    optimizer now supports both blend and net objectives through the greedy, F1
+    and exact-DP tiers; this helper deliberately disables both refiners on BOTH
+    legs rather than comparing two fully refined plans.
 
     Both legs are priced on the plans' DECISION basis: the segments are put
     through the same risk-adjustment pre-pass the optimizer applied

@@ -165,6 +165,63 @@ def test_a_container_row_says_so_and_a_leaf_does_not() -> None:
         assert row["container"] is words.is_container(row["type"])
 
 
+def test_day_programme_break_is_one_scoped_drill_path() -> None:
+    """The day context survives the programme row without changing the typed
+    programme id, and the final rows are the real addressable break objects."""
+    day = _a_day()
+    programmes = children.children(type="day", id=day)["rows"]
+    chosen = None
+    breaks = None
+    for programme in programmes:
+        if programme.get("drill_edge") != "break" or not programme.get("drill_id"):
+            continue
+        candidate = children.children(
+            type="program", id=programme["drill_id"], edge=programme["drill_edge"]
+        )
+        if candidate["rows"]:
+            chosen, breaks = programme, candidate
+            break
+    assert chosen is not None and breaks is not None, "no programme on the owned day exposes its real breaks"
+    owned = channel_scope.operator_channel()
+    for row in breaks["rows"]:
+        assert row["type"] == "break"
+        assert f"|{owned}|" in row["id"]
+        assert row["parent"][0] == {"kind": "span", "from": day, "to": day}
+        assert row["parent"][1] == {"kind": "name", "text": chosen["label"]}
+        assert row["container"] is False
+
+
+def test_a_break_from_the_drill_resolves_at_send_time() -> None:
+    from kairos_api import assistant_mentions_resolve as resolve
+
+    day = _a_day()
+    for programme in children.children(type="day", id=day)["rows"]:
+        payload = children.children(type="program", id=programme.get("drill_id", ""), edge="break")
+        if payload["rows"]:
+            row = payload["rows"][0]
+            card = resolve.resolve_one({"type": "break", "id": row["id"], "label": row["label"]})
+            assert card["state"] == resolve.STATE_RESOLVED
+            assert card["data"]["channel"] == channel_scope.operator_channel()
+            assert card["data"]["break_id"] == row["id"]
+            return
+    pytest.fail("no real break was reachable for the resolution proof")
+
+
+def test_rival_and_typo_break_descent_are_indistinguishable() -> None:
+    day = _a_day()
+    rival = f"{day}{children.DRILL_SEPARATOR}{_rival_program()}"
+    typo = f"{day}{children.DRILL_SEPARATOR}{TYPO}"
+    assert children.children(type="program", id=rival, edge="break") == children.children(
+        type="program", id=typo, edge="break"
+    )
+
+
+def test_client_preserves_the_drill_edge_separately_from_the_reference_id() -> None:
+    source = (KAI / "mention-state.js").read_text(encoding="utf-8")
+    assert "id: row.drill_id || row.id" in source
+    assert "edge: row.drill_edge || ''" in source
+
+
 # --- the offsets, driven in node against the shipped module -------------------------
 REFS = KAI / "mention-refs.js"
 TRIGGER = KAI / "mention-trigger.js"

@@ -171,6 +171,34 @@ _DEFAULT_PROGRAMME_SECONDS = 3600.0
 # daily csv carries no channel column, so the channel is supplied or defaulted.
 _DEFAULT_DAILY_CHANNEL = "רשת 13"
 
+_RATING_PROVENANCE_COLUMNS = (
+    "rating_audience_basis",
+    "rating_vintage",
+    "rating_source",
+)
+
+
+def _rating_provenance(frame: pd.DataFrame) -> dict[str, str]:
+    """Ingest dataset-level rating provenance without guessing or collapsing.
+
+    A source may add the three canonical columns to either supported input.
+    Each must contain exactly one non-empty value across the selected dataset;
+    absent, partial or mixed metadata degrades to the empty (unproven) bundle.
+    The settlement activation gate then refuses it explicitly.
+    """
+    if any(column not in frame.columns for column in _RATING_PROVENANCE_COLUMNS):
+        return {column: "" for column in _RATING_PROVENANCE_COLUMNS}
+    values: dict[str, str] = {}
+    for column in _RATING_PROVENANCE_COLUMNS:
+        cleaned = frame[column].map(
+            lambda value: "" if value is None or pd.isna(value) else str(value).strip()
+        )
+        unique = set(cleaned)
+        if "" in unique or len(unique) != 1:
+            return {name: "" for name in _RATING_PROVENANCE_COLUMNS}
+        values[column] = unique.pop()
+    return values
+
 
 def _hhmm_to_seconds(value: object) -> float | None:
     """Parse a 'HH:MM' programme start into seconds from midnight, or None."""
@@ -220,6 +248,7 @@ def build_segments_from_daily_input(
         return []
 
     day = _daily_day(frame)
+    rating_provenance = _rating_provenance(frame)
     grouped = (
         frame.groupby(["program", "program_start"], sort=False)
         .agg(start_seconds=("_start_seconds", "first"), baseline_tvr=("planned_tvr", "mean"))
@@ -269,6 +298,7 @@ def build_segments_from_daily_input(
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
+            **rating_provenance,
         ))
     return apply_audience_model(segments)
 
@@ -354,6 +384,7 @@ def build_segments_from_programmes(
     if day is not None:
         frame = frame[frame["start_dt"].dt.strftime("%Y-%m-%d") == day]
     frame = frame.sort_values("start_dt").reset_index(drop=True)
+    rating_provenance = _rating_provenance(frame)
 
     titles_categories: list[tuple[str, str]] = []
     classifications = []
@@ -404,5 +435,6 @@ def build_segments_from_programmes(
             max_breaks=assumptions.default_max_breaks,
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
+            **rating_provenance,
         ))
     return apply_audience_model(segments)

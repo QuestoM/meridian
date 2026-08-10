@@ -49,21 +49,22 @@ OBJECTIVE_REVENUE_NET = "revenue_net"
 # than the guard falls back to greedy+F1 rather than risk a runtime blowup.
 DEFAULT_MAX_OPEN_DEPTH = 14
 
-# Per-group compute budgets, the honest backstop behind the depth guard: depth is a
-# proxy, and an adversarial in-guard day (many long overlapping segments) can still
-# blow the state table or the clock. Measured across all 120 real channel-days
-# (2026-07-17): the worst day peaks at 40,485 pruned states and 0.70 wall seconds
-# (the depth-13 Kan 11 2024-11-09), so 200k states / 5.0 seconds keep the whole real
-# corpus on the exact path with about 5x headroom while an adversarial day degrades
-# to the labeled greedy+F1 fallback instead of stalling.
+# Per-group deterministic compute budgets, the honest backstop behind the depth
+# guard. Depth is a proxy, and an adversarial in-guard day can still blow either a
+# stage's state table or the cumulative transition count. Wall time must never be
+# a planning input: the same schedule on a busy and an idle machine must be the
+# same schedule. The two counters below depend only on the ordered input and are
+# therefore safe fallback gates. The measured depth-13 production day uses
+# 40,485 peak states and 328,877 transition units, leaving more than 4.9x state
+# headroom and 15x cumulative-work headroom under these defaults.
 DEFAULT_MAX_STATES = 200_000
-DEFAULT_WALL_BUDGET_SECONDS = 5.0
+DEFAULT_MAX_WORK_UNITS = 5_000_000
 
 
 class DPBudgetExceeded(Exception):
-    """The sweep exhausted its per-group state or wall budget (honest fallback).
+    """The sweep exhausted its deterministic per-group work budget (honest fallback).
 
-    ``code`` is the stable histogram key (``state_budget`` / ``wall_budget``);
+    ``code`` is the stable histogram key (``state_budget`` / ``work_budget``);
     ``str(exc)`` carries the measured detail for the human-readable reason.
     """
 

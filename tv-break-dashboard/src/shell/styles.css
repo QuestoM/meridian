@@ -1068,19 +1068,18 @@ button {
   white-space: nowrap;
 }
 
-/* The read-only timeline break chip reuses the editor chip's visual language
-   through the shared break-chip base classes below. It is anchored at the break
-   start time with a fixed, legible width rather than scaled to the invisible
-   120s span, so it never collapses to a sliver at low zoom. */
+/* The read-only timeline break chip keeps the break's real duration width. At a
+   compressed zoom that width is only a marker, so the container query below
+   removes every text line instead of clipping one character and pretending it
+   is a reading. The tooltip and aria-label keep the full identity available. */
 .timeline-break.MuiButton-root {
   position: absolute;
   top: 74px;
-  min-width: 68px;
-  width: auto;
+  min-width: 0;
   height: 46px;
   min-height: 46px;
   border-radius: var(--radius-md);
-  padding: 6px 10px;
+  padding: 6px min(10px, 10%);
   background: var(--primary);
   color: var(--surface);
   box-shadow: none;
@@ -1090,6 +1089,21 @@ button {
   align-items: stretch;
   gap: 2px;
   text-transform: none;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+/* 68 px border-box is the measured minimum for the HH:MM line plus inline
+   padding. Container queries measure the content box; with this chip's 10%
+   inline padding that boundary is about 55 px. Below it the chip is a clean
+   marker; partial text is less truthful than no text. */
+@container (max-width: 55px) {
+  .timeline-break > .break-chip-clock,
+  .timeline-break > .break-chip-detail,
+  .timeline-break > .break-chip-meta,
+  .timeline-break > .break-chip-gold {
+    display: none;
+  }
 }
 
 .timeline-break.MuiButton-root:hover {
@@ -3277,8 +3291,28 @@ button {
 }
 
 /* The update stamp is informational and appears in the refreshed page state.
-   Remove its duplicate header rendering before the controls collide. */
+   Remove its duplicate header rendering before the controls collide. At this
+   width the header also becomes three yielding rows. The old one-row grid kept
+   two max-content groups beside a shrinking title, so 861-1280 px could still
+   overflow even after Compare disappeared. */
 @media (max-width: 1500px) {
+  .workspace {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .top-bar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+  }
+
+  .title-group,
+  .command-group,
+  .status-group {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .status-group > .freshness {
     display: none;
   }

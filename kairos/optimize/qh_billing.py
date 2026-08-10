@@ -29,8 +29,11 @@ This module makes the settlement currency computable for a placed schedule:
 Activation follows the owner-gated pricing-layer pattern
 (:mod:`kairos.optimize.pricing`): the ``qh_settlement`` flag under
 ``pricing_activation`` defaults OFF, and :func:`maybe_restate` is an exact
-identity (the same result object) until the owner switches it on, because
-switching the revenue basis MOVES REAL REPORTED REVENUE.
+identity (the same result object) while it is off. A requested activation is
+refused unless both configuration and every billed segment explicitly carry
+Jewish-household, overnight+1 rating provenance from the same named source;
+switching the revenue basis MOVES REAL REPORTED REVENUE and an unlabeled TVR
+must never be silently promoted to the market currency.
 
 Measured inputs: the in-break dip fractions are the Nov-2024 median dips by
 length bin from analysis/quarter-hour/settlement/settlement_results.json
@@ -48,6 +51,12 @@ from kairos.optimize._types import BreakPlacement, OptimizationResult, ProgramSe
 from kairos.optimize.objective import break_revenue, weighted_objective
 
 QH_WINDOW_SECONDS = 900.0
+REQUIRED_AUDIENCE_BASIS = "jewish_households"
+REQUIRED_RATING_VINTAGE = "overnight_plus_1"
+
+
+class QHSettlementConfigurationError(ValueError):
+    """The owner requested settlement without provable market-currency input."""
 
 # Median in-break audience dip as a fraction of the surrounding content level,
 # by break length, measured on 5,747 real Nov-2024 breaks
@@ -275,7 +284,8 @@ def restate_on_billed_points(
     (the scale stays the engine-basis normaliser, so the retention term's weight
     is unchanged and the two objective values are directly comparable).
     """
-    report = billed_points(segments, result.placements, dip_fn=dip_fn)
+    segment_list = list(segments)
+    report = billed_points(segment_list, result.placements, dip_fn=dip_fn)
     billed_by_key = {(b.segment_id, b.position_in_segment): b.billed_revenue for b in report.breaks}
     new_plans: list[SegmentPlan] = []
     new_flat: list[BreakPlacement] = []
@@ -301,17 +311,66 @@ def restate_on_billed_points(
         placements=tuple(new_flat),
         total_revenue=total,
         objective=objective,
+        revenue_basis="round_quarter_hour_rating_points",
+        rating_audience_basis=segment_list[0].rating_audience_basis,
+        rating_vintage=segment_list[0].rating_vintage,
+        rating_source=segment_list[0].rating_source,
     )
 
 
 def qh_settlement_enabled(pricing: Any) -> bool:
-    """Whether the owner switched the settlement-currency restatement on.
+    """Whether the requested settlement has a complete config provenance.
 
-    Reads the ``enable_qh_settlement`` flag from a
-    :class:`~kairos.optimize.pricing.PricingModel` (or anything shaped like
-    one). Absent or ``None`` pricing means OFF, the shipped default.
+    Dataset provenance is validated separately by :func:`maybe_restate`, since
+    it lives on the segments. This helper never reports an incomplete flag as
+    effectively enabled.
     """
-    return bool(getattr(pricing, "enable_qh_settlement", False))
+    if not bool(getattr(pricing, "enable_qh_settlement", False)):
+        return False
+    return (
+        str(getattr(pricing, "qh_audience_basis", "")).strip().lower()
+        == REQUIRED_AUDIENCE_BASIS
+        and str(getattr(pricing, "qh_rating_vintage", "")).strip().lower()
+        == REQUIRED_RATING_VINTAGE
+        and bool(str(getattr(pricing, "qh_rating_source", "")).strip())
+    )
+
+
+def validate_qh_settlement_provenance(
+    pricing: Any, segments: Sequence[ProgramSegment]
+) -> None:
+    problems: list[str] = []
+    configured_basis = str(getattr(pricing, "qh_audience_basis", "")).strip()
+    configured_vintage = str(getattr(pricing, "qh_rating_vintage", "")).strip()
+    configured_source = str(getattr(pricing, "qh_rating_source", "")).strip()
+    if configured_basis.lower() != REQUIRED_AUDIENCE_BASIS:
+        problems.append(f"qh_audience_basis must be {REQUIRED_AUDIENCE_BASIS!r}")
+    if configured_vintage.lower() != REQUIRED_RATING_VINTAGE:
+        problems.append(f"qh_rating_vintage must be {REQUIRED_RATING_VINTAGE!r}")
+    if not configured_source:
+        problems.append("qh_rating_source must identify the ingested rating source")
+    if not segments:
+        problems.append("no billed segments carry rating provenance")
+    for segment in segments:
+        if str(segment.rating_audience_basis).strip().lower() != REQUIRED_AUDIENCE_BASIS:
+            problems.append(f"segment {segment.segment_id!r} lacks Jewish-household rating provenance")
+            break
+        if str(segment.rating_vintage).strip().lower() != REQUIRED_RATING_VINTAGE:
+            problems.append(f"segment {segment.segment_id!r} lacks overnight+1 rating provenance")
+            break
+        if not str(segment.rating_source).strip():
+            problems.append(f"segment {segment.segment_id!r} lacks a rating source")
+            break
+        if str(segment.rating_source).strip() != configured_source:
+            problems.append(
+                f"segment {segment.segment_id!r} rating source does not match qh_rating_source"
+            )
+            break
+    if problems:
+        raise QHSettlementConfigurationError(
+            "QH settlement is requested but its rating currency is not proven: "
+            + "; ".join(problems)
+        )
 
 
 def maybe_restate(
@@ -327,6 +386,8 @@ def maybe_restate(
     same object, so every shipped path is byte-identical until the owner
     activates ``pricing_activation.qh_settlement``.
     """
-    if not qh_settlement_enabled(pricing):
+    if not bool(getattr(pricing, "enable_qh_settlement", False)):
         return result
-    return restate_on_billed_points(result, segments, dip_fn=dip_fn)
+    segment_list = list(segments)
+    validate_qh_settlement_provenance(pricing, segment_list)
+    return restate_on_billed_points(result, segment_list, dip_fn=dip_fn)

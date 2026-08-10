@@ -8,10 +8,15 @@ placeholder fallback never has to fire).
 
 from __future__ import annotations
 
+from datetime import date
+
 import pandas as pd
+import pytest
 
 from kairos.export.incremental import rows_from_result
+from kairos.export import schedule as schedule_module
 from kairos.export.schedule import COLUMNS, build_weekly_schedule, write_weekly_schedule
+from kairos.optimize import goal_seam
 from kairos.optimize.optimizer import PlacementPin, ProgramSegment, optimize_breaks
 from kairos.optimize.guardrails import Guardrails
 
@@ -76,6 +81,85 @@ def test_write_round_trips_through_csv(tmp_path) -> None:
     reloaded = pd.read_csv(target)
     assert list(reloaded.columns) == COLUMNS
     assert len(reloaded) == len(frame)
+
+
+def test_shipped_write_refuses_settings_that_changed_during_recompute(
+    tmp_path, monkeypatch
+) -> None:
+    from kairos_api import server
+
+    saved = server._load_settings()
+    settings = server._model_dump(saved)
+    frame = build_weekly_schedule(
+        programmes=make_frame(),
+        settings=settings,
+        revenue_weight=saved.revenue_weight / 100.0,
+        operator_channel=saved.operator_channel,
+    )
+    changed = dict(settings)
+    changed["revenue_weight"] = int(settings["revenue_weight"]) + 1
+    # This test isolates the persistent-config race. The synthetic programme
+    # source is covered by the separate explicit-input refusal below.
+    frame.attrs["shipped_input_eligible"] = True
+    frame.attrs["shipped_input_refusal_reasons"] = ()
+    target = tmp_path / "shipped.csv"
+    monkeypatch.delenv("KAIROS_PLAN_READONLY", raising=False)
+    monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", target)
+    monkeypatch.setattr(server, "_load_settings", lambda: changed)
+
+    with pytest.raises(RuntimeError, match="changed during recompute"):
+        write_weekly_schedule(frame=frame, replace_shipped_plan=True)
+    assert not target.exists()
+
+
+def test_shipped_write_refuses_unstamped_explicit_programmes(tmp_path, monkeypatch) -> None:
+    from kairos_api import server
+
+    saved = server._load_settings()
+    frame = build_weekly_schedule(
+        programmes=make_frame(),
+        settings=server._model_dump(saved),
+        revenue_weight=saved.revenue_weight / 100.0,
+        operator_channel=saved.operator_channel,
+    )
+    target = tmp_path / "shipped.csv"
+    monkeypatch.delenv("KAIROS_PLAN_READONLY", raising=False)
+    monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", target)
+
+    with pytest.raises(ValueError, match="explicit inputs"):
+        write_weekly_schedule(frame=frame, replace_shipped_plan=True)
+    assert not target.exists()
+
+
+def test_weekly_goal_stores_are_preloaded_once_not_once_per_day(monkeypatch) -> None:
+    """Two channel-days still read each goal store exactly once per export."""
+    calls = {"orders": 0, "delivery": 0}
+    order = goal_seam.GoalOrder(
+        campaign_id="CMP_REAL",
+        channel="רשת 13",
+        audience=goal_seam.ALL_VIEWERS,
+        goal_points=5.0,
+        starts_on="2024-11-05",
+        ends_on="2024-11-05",
+    )
+
+    def load_orders():
+        calls["orders"] += 1
+        return [order]
+
+    def load_delivery():
+        calls["delivery"] += 1
+        return {}
+
+    monkeypatch.setattr(goal_seam, "load_goal_orders", load_orders)
+    monkeypatch.setattr(goal_seam, "load_delivered_points", load_delivery)
+
+    result = build_weekly_schedule(
+        programmes=make_frame(), revenue_weight=1.0, today=date(2024, 11, 5),
+    )
+
+    assert len(result) == 5
+    assert calls == {"orders": 1, "delivery": 1}
 
 
 # ---------------------------------------------------------------------------

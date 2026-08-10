@@ -199,11 +199,14 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                       <td>
                         <Select
                           size="small"
-                          value={account.affiliation === 'channel' ? 'channel' : 'company'}
+                          value={['company', 'channel'].includes(account.affiliation) ? account.affiliation : 'unknown'}
                           disabled={busy}
                           aria-label={t('Affiliation', 'שיוך')}
                           onChange={(event) => submitAffiliation(account.username, event.target.value)}
                         >
+                          {account.affiliation === 'unknown' && (
+                            <MenuItem value="unknown" disabled>{affiliationLabel('unknown', locale)}</MenuItem>
+                          )}
                           <MenuItem value="company">{affiliationLabel('company', locale)}</MenuItem>
                           <MenuItem value="channel">{affiliationLabel('channel', locale)}</MenuItem>
                         </Select>
