@@ -6,10 +6,14 @@ This section supersedes every older status sentence below it. The old material
 is retained as evidence of what was found, not as a current queue.
 
 **PASSED NOW:** P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11 and P12.
-**OWNER-BLOCKED:** P13 only. Its backend and surface pass, but the repository
-contains no real ingest or transcode row from which duration, container, aspect
-ratio and audio presence can be read. D4 is still open. Do not fabricate a row
-to turn that unavailable state green.
+**OWNER-BLOCKED:** P13 only. Round P13-R4 supersedes the earlier code-complete
+claim. A cold audit found and fixed two real defects: the asset was joined on
+version name instead of House Number, and `blocks_lock` never reached the lock
+route. The internal path now passes, including the full JS-8 metadata contract,
+an atomic importer and independent server and surface lock gates. Live delivery
+still has zero real media rows and zero owner-supplied playout standards. Do not
+fabricate either to turn the unavailable state green. D4 remains the broader
+current-week and as-run decision; the media QC source is a separate owner input.
 
 The completion wave closed the following items:
 
@@ -35,12 +39,19 @@ The completion wave closed the following items:
   keeping the adoption act unreachable from the application. The guard is
   proven both ways on a temporary tree: incorrect or absent approval refuses;
   an exact approval passes; revert restores the original bytes.
+- P13 consumes a QC report keyed by House Number, not copy version, carries all
+  eight measurement families from JS-8, and refuses finalisation on a measured
+  failure in both the API and the dashboard. `config/media_standards.json` and
+  `data/media_assets.csv` remain honestly empty until their real owners supply
+  the rules and measurements.
 - The fabricated row in `data/break_pod_order.csv` was removed. The two dirty
   weekly schedule output files predated this wave and must remain unstaged.
 
 Validation recorded in this wave: focused groups of 217, 46, 19 and 74 tests;
 198 P9/P12 browser and core tests after the evidence fix; 215 P8/P10 and trade
 tests; 55 P10/P13 tests; the full dashboard build and every dashboard guard.
+The P13 cold re-audit then added 18 contract tests; the complete P10/P13 group
+now passes 66 tests, followed by the full dashboard build and all guards.
 The broad P9/P12/P13 collection first reported 46 failures and two errors: 45
 plus two were Chrome or localhost sandbox denials, all 67 passed in the approved
 browser run; the one real training-line failure was fixed and its 131-test core

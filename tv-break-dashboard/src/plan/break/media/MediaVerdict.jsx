@@ -27,9 +27,13 @@ const WORDS = {
 
 const FACT_WORDS = {
   duration: ['length', 'אורך'],
-  format: ['format', 'פורמט'],
-  aspect_ratio: ['frame shape', 'צורת פריים'],
+  container: ['container', 'מכל'],
+  codec: ['codec', 'קודק'],
+  frame_rate: ['frame rate', 'קצב פריימים'],
+  frame_shape: ['frame shape', 'צורת פריים'],
   audio: ['audio', 'שמע'],
+  loudness: ['loudness', 'עוצמת שמע'],
+  approval: ['approval', 'אישור'],
 };
 
 // What the reader is told when they rest on the mark. A failure names WHICH fact
@@ -66,5 +70,19 @@ export default function MediaVerdict({ verdict, locale }) {
       <span className="media-verdict-dot" aria-hidden="true" />
       <span className="media-verdict-word">{pageText(locale, en, he)}</span>
     </span>
+  );
+}
+
+export function MediaLockNotice({ media, locale }) {
+  if (!media || !media.blocks_lock) return null;
+  const houses = Array.isArray(media.blocking_house_numbers) ? media.blocking_house_numbers : [];
+  return (
+    <p className="media-lock-refusal" role="alert">
+      {pageText(
+        locale,
+        `This pod cannot be locked. Measured media verification failed for House Number: ${houses.join(', ') || 'unknown'}.`,
+        `לא ניתן לנעול את התוכן. אימות המדיה המדוד נכשל עבור House Number: ${houses.join(', ') || 'לא ידוע'}.`,
+      )}
+    </p>
   );
 }

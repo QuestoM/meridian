@@ -1,5 +1,5 @@
 import { ContinuityNote, CreativePairNote, PodErrors, PositionPreferenceNote } from './PodBoardNotes';
-import MediaVerdict from './media/MediaVerdict';
+import MediaVerdict, { MediaLockNotice } from './media/MediaVerdict';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Lock, Unlock } from 'lucide-react';
 import { pageText } from '../../shell/format';
@@ -95,6 +95,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
   // block at all, and an absent verdict reads as not-checked rather than
   // as clean, which is what the component's unavailable state is for.
   const mediaBySpot = useMemo(() => (pod.media && pod.media.spots) || [], [pod]);
+  const mediaBlocked = Boolean(pod.media && pod.media.blocks_lock);
   const errors = useMemo(() => [
     ...verificationList(spots, locale),
     ...pairVerificationList(pod.creative_pairs, spots, locale),
@@ -393,6 +394,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
         </ol>
       </div>
 
+      <MediaLockNotice media={pod.media} locale={locale} />
       {!readOnly && (
         <div className="pod-acts">
           <button
@@ -425,7 +427,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
               {pageText(locale, 'Unlock', 'ביטול נעילה')}
             </button>
           ) : (
-            <button type="button" className="pod-act pod-act-lock" disabled={busy || changed || !onLock} onClick={() => onLock()}>
+            <button type="button" className="pod-act pod-act-lock" disabled={busy || changed || mediaBlocked || !onLock} onClick={() => onLock()}>
               <Lock size={13} aria-hidden="true" />
               {pageText(locale, 'Lock this pod', 'נעילת התוכן')}
             </button>

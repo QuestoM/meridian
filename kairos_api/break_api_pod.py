@@ -43,7 +43,7 @@ from pydantic import BaseModel
 
 from kairos_api import campaigns_assets_constraints as pair_constraints
 from kairos_api import read_cache
-from kairos_api.media_verdict import verdicts_for as media_verdicts
+from kairos_api.media_verdict import lock_refusal as media_lock_refusal, verdicts_for as media_verdicts
 from kairos_api.break_api_pod_math import (
     against_declared,
     declared_length,
@@ -420,9 +420,9 @@ def lock_pod(pod_id: str, request: Request = None) -> dict[str, Any]:
     The trade's own step is verification, then finalising. This is that second
     step. Locking always pins whichever order is on screen, file or operator,
     so the frozen order is never ambiguous, and a further order write is
-    refused until the pod is unlocked. Nothing here requires the verification
-    list to be clear first, because a traffic operator sometimes finalises a
-    pod that carries a known, already-handled disagreement. Locking never
+    refused until the pod is unlocked. Ordinary, already-handled traffic
+    disagreements may be finalised, but a measured media failure cannot be.
+    Locking never
     invents an operator order: a pod nobody reordered is frozen as the file's
     own order, and stays reported that way, rather than being recorded as a
     decision an operator made.
@@ -430,6 +430,9 @@ def lock_pod(pod_id: str, request: Request = None) -> dict[str, Any]:
     from kairos_api import break_api_pod_order as order_store
 
     pod = _pod_or_404(pod_id)
+    refusal = media_lock_refusal(pod.get("media"))
+    if refusal:
+        raise HTTPException(status_code=409, detail=refusal)
     if pod["order"].get("locked"):
         raise HTTPException(status_code=409, detail="This pod is already locked")
     record = order_store.lock(pod_id, pod["fingerprint"], _actor(request))

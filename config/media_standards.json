@@ -1,0 +1,17 @@
+{
+  "source": null,
+  "effective_from": null,
+  "duration_tolerance_seconds": null,
+  "accepted_container_formats": [],
+  "accepted_video_codecs": [],
+  "accepted_frame_rates": [],
+  "accepted_display_aspect_ratios": [],
+  "accepted_pixel_dimensions": [],
+  "required_audio": null,
+  "accepted_audio_channel_layouts": [],
+  "accepted_loudness_standards": [],
+  "loudness_target_lufs": null,
+  "loudness_tolerance_lu": null,
+  "approved_states": [],
+  "rejected_states": []
+}

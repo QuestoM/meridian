@@ -1,10 +1,10 @@
 """The technical facts about a commercial's actual file, and the store holding them.
 
 WHY THIS SHIPS EMPTY, AND WHY THAT IS THE HONEST SHAPE. The verdict this piece
-prints is about the FILE that will air: its measured duration, its format, its
-frame shape and whether it carries audio. Nothing in this repository observes a
+prints is about the FILE that will air: its measured duration and frame count,
+format and codec, frame shape, audio, loudness and approval. Nothing here observes a
 media file. There is no media feed, no transcode report and no ingest log, so
-today every one of those four facts is genuinely UNAVAILABLE, and the one thing
+today every one of those measurement families is genuinely UNAVAILABLE, and the one thing
 this module must never do is invent one. A fabricated "verified" here is worse
 than a blank: it would clear a corrupt file to air.
 
@@ -39,18 +39,29 @@ ASSETS_PATH = DATA_DIR / "media_assets.csv"
 # appended, per the store-column rule: the writer is not the authority on which
 # columns exist, because migrations and seeds add columns and never edit writers.
 COLUMNS = (
-    "creative_id",
+    "house_number",
     "duration_seconds",
+    "duration_frames",
+    "frame_rate",
     "container_format",
-    "aspect_ratio",
-    "has_audio",
+    "video_codec",
+    "pixel_width",
+    "pixel_height",
+    "display_aspect_ratio",
+    "audio_present",
+    "audio_channel_layout",
+    "loudness_lufs",
+    "loudness_standard",
+    "approval_state",
+    "approval_authority",
+    "approved_at",
     "measured_at",
     "source",
 )
 
-# The four technical facts a verdict is made of, each answerable only from a real
+# The technical facts a verdict is made of, each answerable only from a real
 # media row. Named once here so the API cannot drift from the store.
-FACTS = ("duration", "format", "aspect_ratio", "audio")
+FACTS = ("duration", "container", "codec", "frame_rate", "frame_shape", "audio", "loudness", "approval")
 
 # Tri-state, and never a fourth. `unavailable` is not a failure: it means nobody
 # has measured this file, which is a different thing from measuring it and
@@ -98,6 +109,19 @@ def _flag(row: dict[str, Any], key: str) -> bool | None:
     return None
 
 
+def _rate(row: dict[str, Any], key: str) -> float | None:
+    """A decimal or the rational form ffprobe emits, such as ``25/1``."""
+    raw = _text(row, key)
+    if "/" not in raw:
+        return _number(row, key)
+    left, right = raw.split("/", 1)
+    try:
+        denominator = float(right)
+        return None if denominator == 0 else float(left) / denominator
+    except ValueError:
+        return None
+
+
 def read_assets(path: Path | None = None) -> list[dict[str, Any]]:
     """Every media row on disk, normalised. An absent file reads as no rows."""
     target = Path(path) if path is not None else ASSETS_PATH
@@ -107,23 +131,36 @@ def read_assets(path: Path | None = None) -> list[dict[str, Any]]:
         rows = list(csv.DictReader(handle))
     assets = []
     for row in rows:
-        creative = _text(row, "creative_id")
-        if not creative:
+        # ``creative_id`` is accepted only as a migration alias for the first
+        # header-only implementation.  Every returned and newly written row is
+        # keyed by the traffic industry's own identifier: House Number.
+        house = _text(row, "house_number") or _text(row, "creative_id")
+        if not house:
             continue
         asset = dict(row)
-        asset["creative_id"] = creative
+        asset["house_number"] = house
+        asset.pop("creative_id", None)
         asset["duration_seconds"] = _number(row, "duration_seconds")
-        asset["has_audio"] = _flag(row, "has_audio")
+        asset["duration_frames"] = _number(row, "duration_frames")
+        asset["frame_rate"] = _rate(row, "frame_rate")
+        asset["pixel_width"] = _number(row, "pixel_width")
+        asset["pixel_height"] = _number(row, "pixel_height")
+        asset["loudness_lufs"] = _number(row, "loudness_lufs")
+        asset["audio_present"] = _flag(row, "audio_present")
         asset["container_format"] = _text(row, "container_format") or None
-        asset["aspect_ratio"] = _text(row, "aspect_ratio") or None
+        asset["video_codec"] = _text(row, "video_codec") or None
+        asset["display_aspect_ratio"] = _text(row, "display_aspect_ratio") or None
+        asset["audio_channel_layout"] = _text(row, "audio_channel_layout") or None
+        asset["loudness_standard"] = _text(row, "loudness_standard") or None
+        asset["approval_state"] = _text(row, "approval_state") or None
         assets.append(asset)
     return assets
 
 
-def assets_by_creative(path: Path | None = None) -> dict[str, dict[str, Any]]:
-    """The rows keyed for lookup. A later row for the same creative wins, so a
+def assets_by_house_number(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """The rows keyed for lookup. A later row for the same asset wins, so a
     re-ingest supersedes rather than duplicating."""
-    return {asset["creative_id"]: asset for asset in read_assets(path)}
+    return {asset["house_number"]: asset for asset in read_assets(path)}
 
 
 def write_assets(rows: Iterable[dict[str, Any]], path: Path | None = None) -> Path:

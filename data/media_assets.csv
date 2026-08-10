@@ -1,1 +1,1 @@
-creative_id,duration_seconds,container_format,aspect_ratio,has_audio,measured_at,source
+house_number,duration_seconds,duration_frames,frame_rate,container_format,video_codec,pixel_width,pixel_height,display_aspect_ratio,audio_present,audio_channel_layout,loudness_lufs,loudness_standard,approval_state,approval_authority,approved_at,measured_at,source
