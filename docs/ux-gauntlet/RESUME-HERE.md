@@ -1,5 +1,22 @@
 # Resume here
 
+## FINAL CODE-WAVE RE-AUDIT, 2026-08-10
+
+Wave 0 and every piece from P1 through P13 were re-run on the current tree.
+The disjoint gauntlet groups report **2,182 passed and 6 skipped**: 183 for W0,
+739 for P1-P4, 593 for P5-P8, and 667 for P9-P13. P1-P12 are passed. P13's
+implementation is passed and its live state is owner-blocked only on a real QC
+report keyed by House Number and owner-approved playout standards. The complete
+matrix and the four findings closed during the re-audit are in
+`audits/completion-reaudit-2026-08-10.md`.
+
+Two audit findings changed the tree after the P13 commit: the P4/P11 empty
+make-good reason now follows the reader's locale, and a stale W0 guard now
+protects the single shared genre table rather than requiring the duplicate P1
+removed. Two oversized test files were split at real seams. Per the owner's
+latest ruling, an existing file below 500 lines is no longer work by itself.
+The two pre-existing weekly schedule output modifications remain unstaged.
+
 ## AUTHORITY UPDATE, 2026-08-10, after the completion wave
 
 This section supersedes every older status sentence below it. The old material

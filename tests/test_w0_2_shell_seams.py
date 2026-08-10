@@ -431,31 +431,3 @@ def test_every_duplicated_shell_export_is_identical_or_a_declared_fork() -> None
     for name, modules in forked.items():
         assert sorted(duplicated[name]) == modules, f"{name} now comes from {sorted(duplicated[name])}"
         assert len(set(duplicated[name].values())) == 2, f"{name} was merged without a ruling in contracts/W0-2.md"
-
-
-def test_the_two_shell_program_type_tables_are_the_same_table() -> None:
-    """`programTypeLabel` is a real duplicate, so both copies stay one table."""
-    helpers = _object_pairs(_read("shell/surface-helpers.js"), "const PROGRAM_TYPE_LABELS_HE")
-    labels = _object_pairs(_read("shell/labels.js"), "export function programTypeLabel")
-    assert len(helpers) == 18, f"the classifier vocabulary moved to {len(helpers)} entries"
-    assert helpers == labels, f"the two copies disagree on {sorted(set(helpers.items()) ^ set(labels.items()))}"
-
-
-def test_removed_dead_exports_stay_gone_and_unreferenced() -> None:
-    """The dead helpers were deleted and nothing under src/ still references them."""
-    removed = [
-        "DAYPART_PRESETS",
-        "chipOptions",
-        "filterAdvertisers",
-        "sortAdvertisers",
-        "computeSummary",
-        "collectDaypartTokens",
-        "fetchJsonOrError",
-    ]
-    sources = {
-        path.relative_to(SRC).as_posix(): path.read_text(encoding="utf-8")
-        for path in _sources(".js", ".jsx")
-    }
-    for name in removed:
-        hits = [path for path, text in sources.items() if name in text]
-        assert hits == [], f"dead export {name!r} is still referenced in {hits}"

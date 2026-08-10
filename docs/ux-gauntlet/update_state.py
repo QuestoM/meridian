@@ -43,7 +43,9 @@ PIECE_FIELDS = {
     "piece_progress": "progress",
 }
 
-RESERVED = set(PIECE_FIELDS) | {"piece_id"}
+CAMPAIGN_FIELDS = {"campaign_phase", "campaign_verification"}
+
+RESERVED = set(PIECE_FIELDS) | CAMPAIGN_FIELDS | {"piece_id"}
 
 
 class Refused(Exception):
@@ -124,6 +126,9 @@ def check_piece_fields(rec):
         raise Refused(
             "piece_status %r is not one of: %s" % (status, ", ".join(PIECE_STATUSES))
         )
+    for field in CAMPAIGN_FIELDS:
+        if field in rec and not isinstance(rec[field], dict):
+            raise Refused("%s must be an object" % field)
 
 
 def next_round_number(state, piece_id):
@@ -155,6 +160,15 @@ def merge_piece(piece, rec, round_id):
     history = piece.setdefault("rounds", [])
     if round_id not in history:
         history.append(round_id)
+
+
+def merge_campaign(state, rec):
+    """Update campaign-wide facts through the same atomic publish path."""
+    campaign = state.setdefault("campaign", {})
+    if "campaign_phase" in rec:
+        campaign["phase"] = rec["campaign_phase"]
+    if "campaign_verification" in rec:
+        campaign.setdefault("verification", {}).update(rec["campaign_verification"])
 
 
 def write_atomic(path, state):
@@ -211,6 +225,7 @@ def main(argv=None):
 
     round_id, how = merge_round(state, rec)
     merge_piece(piece, rec, round_id)
+    merge_campaign(state, rec)
     state.setdefault("meta", {})["updated_at"] = now_iso()
 
     if args.dry_run:

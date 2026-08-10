@@ -8,6 +8,7 @@ import {
   normalizeRows,
   pageText,
 } from '../shell/surface-helpers';
+import { localized } from './clients-money-helpers';
 
 // MakeGoodAlerts: under-delivery (make-good) risk per campaign, from
 // GET /api/make-good-alerts. Today campaign_flights.csv is header-only, so the
@@ -83,7 +84,9 @@ export default function MakeGoodAlerts({ locale, refreshKey = 0 }) {
               'התראות תת-אספקה דורשות נתוני קמפיינים אמיתיים. העלו את campaign_flights.csv עם תאריכי התחלה וסיום ויעדי אספקה כדי להתחיל לעקוב אחר קצב ואחר סיכון פיצוי.',
             )}
           </p>
-          {payload?.reason && <small className="makegood-reason">{payload.reason}</small>}
+          {localized(payload, 'reason', locale) && (
+            <small className="makegood-reason">{localized(payload, 'reason', locale)}</small>
+          )}
         </div>
       );
     }

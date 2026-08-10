@@ -349,16 +349,26 @@ def make_good_alerts() -> dict[str, Any]:
     try:
         from kairos.optimize.pacing import load_campaigns, project_make_goods
     except Exception as exc:  # pragma: no cover - module optional
-        return {"alerts": [], "data_available": False, "reason": f"Pacing module unavailable: {str(exc)[:200]}"}
+        reason_en = f"Pacing module unavailable: {str(exc)[:200]}"
+        return {
+            "alerts": [],
+            "data_available": False,
+            "reason": reason_en,
+            "reason_en": reason_en,
+            "reason_he": "מודול הקצב אינו זמין כרגע, ולכן לא חושבו התראות פיצוי.",
+        }
 
     settings = _server()._load_settings()
     today = _reference_today(settings)
     campaigns = load_campaigns()
     if not campaigns:
+        reason_en = "campaign_flights.csv has no campaign rows yet (header-only seed)."
         return {
             "alerts": [],
             "data_available": False,
-            "reason": "campaign_flights.csv has no campaign rows yet (header-only seed).",
+            "reason": reason_en,
+            "reason_en": reason_en,
+            "reason_he": "בקובץ campaign_flights.csv אין עדיין שורות קמפיין, אלא כותרת בלבד.",
             "as_of": today.isoformat(),
         }
 
