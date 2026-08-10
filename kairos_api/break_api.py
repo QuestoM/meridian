@@ -228,7 +228,10 @@ def score_day(payload: ScoreRequest) -> dict[str, Any]:
     try:
         return board.score_arrangement(plan, moves)
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from None
+        raise HTTPException(
+            status_code=409,
+            detail=f"The day plan changed and this arrangement is stale: {exc}",
+        ) from None
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
 

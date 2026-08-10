@@ -102,6 +102,14 @@ _NOTES: dict[str, dict[str, str]] = {
         "en": "The measured model version every retention figure on the plan rests on. Its name and its state are on the inputs view.",
         "he": "גרסת המודל שנמדדה, שעליה נשען כל נתון שימור בתוכנית. השם והמצב שלה מופיעים בתצוגת הקלטים.",
     },
+    "inventory_live": {
+        "en": "The engine read this inventory file and built {slots} demand slots from it.",
+        "he": "המנוע קרא את קובץ המלאי הזה ובנה ממנו {slots} משבצות ביקוש.",
+    },
+    "inventory_empty": {
+        "en": "The engine reads this file, but its loader produced no demand slots. The inventory placement steer is therefore inactive; this is not an absent file.",
+        "he": "המנוע קורא את הקובץ הזה, אך ה-loader לא הפיק ממנו משבצות ביקוש. לכן הכוונת המיקום לפי מלאי אינה פעילה; הקובץ אינו חסר.",
+    },
 }
 
 # The one file on the audit whose name is also a word the run side never
@@ -109,6 +117,7 @@ _NOTES: dict[str, dict[str, str]] = {
 # every retention number is worse than a name, and it carries no verdict, no
 # coverage and no value from inside it.
 MODEL_ARTIFACT = "models/tv_break_coefficients.json"
+INVENTORY_INPUT = "data/Spots - inventory.csv"
 
 
 def _note(code: str, **fields: str) -> dict[str, str]:
@@ -343,6 +352,12 @@ def _also_read_paths() -> list[Path]:
     candidates.append(ROOT / "config" / "optimization_weights.yaml")
     candidates.append(uploads.DATA_DIR / "campaign_flights.csv")
     candidates.append(MODELS_DIR / "tv_break_coefficients.json")
+    candidates.extend([
+        DATA_DIR / "Spots - inventory.csv",
+        DATA_DIR / "manual_overrides.csv",
+        MODELS_DIR / "audience_model.json",
+        SETTINGS_PATH,
+    ])
     newest_daily = uploads._newest_daily()
     if newest_daily is not None:
         candidates.append(newest_daily)
@@ -363,8 +378,27 @@ def _also_read_record(path: Path) -> dict[str, Any]:
     is_model = path.suffix in {".pkl", ".json"} and path.parent.name == "models"
     record["role"] = "model" if is_model else "input"
     record["in_use"] = True
-    record["note"] = _note("model_live") if record["path"].replace("\\", "/") == MODEL_ARTIFACT else dict(_NO_NOTE)
+    normalized = record["path"].replace("\\", "/")
+    if normalized == MODEL_ARTIFACT:
+        record["note"] = _note("model_live")
+    elif normalized == INVENTORY_INPUT:
+        stat = path.stat()
+        slots = _inventory_pool_size(str(path), stat.st_mtime_ns, stat.st_size)
+        record["read_state"] = "read_yielding" if slots else "read_yielding_nothing"
+        record["yielded_items"] = slots
+        record["note"] = _note("inventory_live", slots=str(slots)) if slots else _note("inventory_empty")
+    else:
+        record["note"] = dict(_NO_NOTE)
     return record
+
+
+@lru_cache(maxsize=8)
+def _inventory_pool_size(path: str, modified_ns: int, size: int) -> int:
+    """The loader's result, cached by file state rather than by path alone."""
+    del modified_ns, size
+    from kairos.optimize.inventory import load_inventory
+
+    return len(load_inventory(path))
 
 
 def _stored_records() -> list[dict[str, Any]]:

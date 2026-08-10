@@ -3,6 +3,7 @@ import { pageText } from '../../shell/format';
 import { Figure, Name, Prose } from '../../shell/bidi';
 import { formatDay, todayIso } from '../../shell/dates';
 import PodBoard from './PodBoard';
+import PreferredPositionRate from './PreferredPositionRate';
 import { countLabel, figureText, podAttentionScore } from './pod-model';
 import './break-pod.css';
 import './break-pod-list.css';
@@ -197,6 +198,7 @@ function PodPage({ locale, notify, requestedDay }) {
 
       {payload && payload.available && (
         <>
+          <PreferredPositionRate day={day} locale={locale} />
           <div className="pod-list-tools">
             <button
               type="button"

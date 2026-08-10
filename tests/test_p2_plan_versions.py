@@ -15,11 +15,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
+from fastapi import HTTPException
 
-from kairos_api import plan_version_store
+from kairos_api import plan_version_store, week_api_publish
 
 
 COLUMNS = ["channel", "date", "day", "num_breaks", "total_break_time", "predicted_revenue"]
@@ -111,6 +113,44 @@ def test_live_state_reports_whether_the_plan_on_disk_is_already_frozen(store):
     # A sha256 comparison, so a re-run that produced the same plan reads as
     # already frozen rather than as a change.
     assert after["frozen_as"] == manifest["version_id"]
+
+
+def test_live_state_names_a_zero_plan_as_a_collapse_against_the_latest_freeze(store):
+    previous = plan_version_store.freeze(name="healthy week", actor="dana")
+    _plan([]).to_csv(store, index=False, encoding="utf-8")
+
+    warning = plan_version_store.live_state()["collapse"]
+
+    assert warning["collapsed"] is True
+    assert warning["breaks_collapsed"] is True
+    assert warning["revenue_collapsed"] is True
+    assert warning["against_version_id"] == previous["version_id"]
+    assert warning["current"]["breaks"] == 0
+    assert warning["previous"]["breaks"] == 5
+    assert warning["delta"]["breaks"] == -5
+    assert warning["delta"]["revenue"] == -1800.0
+
+
+def test_the_publish_route_requires_an_explicit_collapse_confirmation(store, monkeypatch):
+    plan_version_store.freeze(name="healthy week", actor="dana")
+    _plan([]).to_csv(store, index=False, encoding="utf-8")
+    monkeypatch.setattr(week_api_publish, "PUBLISH_WALL", SimpleNamespace(
+        require=lambda request: None,
+        stamp=lambda payload, request: payload,
+    ))
+
+    with pytest.raises(HTTPException) as refused:
+        week_api_publish.publish_plan_version(
+            week_api_publish.PublishRequest(name="zero week"), None
+        )
+    assert refused.value.status_code == 409
+    assert "confirm" in str(refused.value.detail).lower()
+
+    accepted = week_api_publish.publish_plan_version(
+        week_api_publish.PublishRequest(name="zero week", confirm_collapse=True), None
+    )
+    assert accepted["summary"]["owned"]["breaks"] == 0
+    assert accepted["owned_delta_from_previous"]["breaks"] == -5
 
 
 def test_the_first_version_says_there_is_nothing_before_it(store):

@@ -1,5 +1,51 @@
 # Resume here
 
+## AUTHORITY UPDATE, 2026-08-10, after the completion wave
+
+This section supersedes every older status sentence below it. The old material
+is retained as evidence of what was found, not as a current queue.
+
+**PASSED NOW:** P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11 and P12.
+**OWNER-BLOCKED:** P13 only. Its backend and surface pass, but the repository
+contains no real ingest or transcode row from which duration, container, aspect
+ratio and audio presence can be read. D4 is still open. Do not fabricate a row
+to turn that unavailable state green.
+
+The completion wave closed the following items:
+
+- P2 refuses to freeze a plan collapsed to zero without a separate deliberate
+  confirmation, and a zero-break run is an amber warning rather than an ordinary
+  completion toast. The server independently enforces the confirmation.
+- P3 refuses Gold while unsaved edits exist, refuses a stale partial save, turns
+  stale score calls into a named conflict, and normalises rounded negative zero.
+- P5 measures the exact draft constraint before save and refuses an empty or
+  zero-match rule. The preview is invalidated by any subsequent edit.
+- P6 lists all four previously invisible engine reads, and the inventory source
+  now distinguishes a file being read from a pool that actually yields items.
+- P1 localises every raw programme genre inside recommendation prose. P11 shows
+  its trigger and threshold before the expandable explanation.
+- P8 renders `airtime_caps` as a translated record with real, partial and not-set
+  states, never `[object Object]`.
+- P9 emits an honest local first line after grounding and before any provider
+  call. The applied-change and addressable-restore paths remain green.
+- P10 has no fabricated order row. Preferred-position status and both rate
+  methods reach the surface, and the lead/closer pair check is recomputed on the
+  order currently shown. Unknown configuration is printed as unavailable.
+- P12 browser verdicts freeze the complete published common-basis evidence while
+  keeping the adoption act unreachable from the application. The guard is
+  proven both ways on a temporary tree: incorrect or absent approval refuses;
+  an exact approval passes; revert restores the original bytes.
+- The fabricated row in `data/break_pod_order.csv` was removed. The two dirty
+  weekly schedule output files predated this wave and must remain unstaged.
+
+Validation recorded in this wave: focused groups of 217, 46, 19 and 74 tests;
+198 P9/P12 browser and core tests after the evidence fix; 215 P8/P10 and trade
+tests; 55 P10/P13 tests; the full dashboard build and every dashboard guard.
+The broad P9/P12/P13 collection first reported 46 failures and two errors: 45
+plus two were Chrome or localhost sandbox denials, all 67 passed in the approved
+browser run; the one real training-line failure was fixed and its 131-test core
+batch passed. No output schedule was regenerated.
+
 Rewritten 2026-08-09 at the end of a very long session. If you are a new session
 picking this up, read this file first and trust it over any summary you were
 handed. Everything below was measured, not remembered.

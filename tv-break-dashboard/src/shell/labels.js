@@ -80,30 +80,31 @@ export function daypartLabel(daypart, locale) {
   return locale === 'he' ? labels[daypart] || daypart : daypart;
 }
 
+export const PROGRAM_TYPE_LABELS_HE = {
+  News: 'חדשות',
+  Reality: 'ריאליטי',
+  Drama: 'דרמה',
+  Sports: 'ספורט',
+  Comedy: 'קומדיה',
+  Promo: 'פרומו',
+  Kids: 'ילדים',
+  Children: 'ילדים',
+  Digital: 'דיגיטל',
+  Documentary: 'דוקומנטרי',
+  Lifestyle: 'לייפסטייל',
+  'Morning Program': 'תוכנית בוקר',
+  Music: 'מוזיקה',
+  Religious: 'תוכן דתי',
+  'Special Event': 'אירוע מיוחד',
+  'Talk Show': 'תוכנית אירוח',
+  Other: 'אחר',
+  Mixed: 'מעורב',
+};
+
 export function programTypeLabel(type, locale) {
   // Covers the full classifier vocabulary observed in the live payloads, so
   // genre names never leak as raw English into the Hebrew planning surfaces.
-  const labels = {
-    News: 'חדשות',
-    Reality: 'ריאליטי',
-    Drama: 'דרמה',
-    Sports: 'ספורט',
-    Comedy: 'קומדיה',
-    Promo: 'פרומו',
-    Kids: 'ילדים',
-    Children: 'ילדים',
-    Digital: 'דיגיטל',
-    Documentary: 'דוקומנטרי',
-    Lifestyle: 'לייפסטייל',
-    'Morning Program': 'תוכנית בוקר',
-    Music: 'מוזיקה',
-    Religious: 'תוכן דתי',
-    'Special Event': 'אירוע מיוחד',
-    'Talk Show': 'תוכנית אירוח',
-    Other: 'אחר',
-    Mixed: 'מעורב',
-  };
-  return locale === 'he' ? labels[type] || type || '' : type || '';
+  return locale === 'he' ? PROGRAM_TYPE_LABELS_HE[type] || type || '' : type || '';
 }
 
 export function breakPositionLabel(position, locale) {
@@ -140,7 +141,13 @@ export function localizedModelText(text, locale) {
   if (locale !== 'he' || !text) {
     return text || '';
   }
-  return String(text)
+  const translated = Object.keys(PROGRAM_TYPE_LABELS_HE)
+    .sort((left, right) => right.length - left.length)
+    .reduce((value, type) => value.replace(
+      new RegExp(`\\b${type.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'g'),
+      programTypeLabel(type, locale),
+    ), String(text));
+  return translated
     .replace(/\bRevenue priority\b/g, 'מקסום הכנסה')
     .replace(/\bRetention guardrail\b/g, 'הגנת שימור')
     .replace(/\bBalanced\b/g, 'מאוזן')
@@ -152,14 +159,7 @@ export function localizedModelText(text, locale) {
     .replace(/\bearly\b/gi, 'מוקדם')
     .replace(/\bfirst\b/gi, 'ראשון')
     .replace(/\blast\b/gi, 'אחרון')
-    .replace(/\blate\b/gi, 'מאוחר')
-    .replace(/\bOther\b/g, 'אחר')
-    .replace(/\bNews\b/g, 'חדשות')
-    .replace(/\bReality\b/g, 'ריאליטי')
-    .replace(/\bDrama\b/g, 'דרמה')
-    .replace(/\bSports\b/g, 'ספורט')
-    .replace(/\bComedy\b/g, 'קומדיה')
-    .replace(/\bPromo\b/g, 'פרומו');
+    .replace(/\blate\b/gi, 'מאוחר');
 }
 
 export function dayLabel(day, locale) {

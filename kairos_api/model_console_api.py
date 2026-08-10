@@ -359,7 +359,7 @@ def record_decision(payload: DecisionRequest, request: Request) -> dict[str, Any
     through, so declaring it costs the route nothing.
     """
     version = artifacts.model_version()
-    evidence = payloads.decision_evidence(payload.subject, payload.candidate_id)
+    evidence = payloads.complete_decision_evidence(payload.subject, payload.candidate_id)
     try:
         record = store.record_decision(
             model_version=version,

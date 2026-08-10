@@ -51,6 +51,19 @@ router = APIRouter(tags=["assistant"])
 HEARTBEAT_SECONDS = 5.0
 
 
+def _opening_line(question: str) -> str:
+    """An honest first line that needs no model and claims no result.
+
+    The model's first network token is not a reliable two-second boundary. The
+    stream can still begin the answer immediately by stating the work it is
+    actually starting, in the language the question itself uses. It contains
+    no figure, conclusion or promise, so later evidence cannot contradict it.
+    """
+    if any("\u0590" <= character <= "\u05ff" for character in question):
+        return "בודק את השאלה מול נתוני המערכת. "
+    return "Checking the question against the system data. "
+
+
 class StreamAskRequest(BaseModel):
     """Same body contract as the non-streaming ask. Declared locally (not
     imported from kairos_api.assistant, which imports this module to mount the
@@ -92,6 +105,11 @@ def assistant_ask_stream(request: StreamAskRequest, http_request: Request) -> St
 
     def on_stage(name: str, detail: dict[str, Any] | None = None) -> None:
         events.put(("stage", {"stage": name, "elapsed_seconds": elapsed(), **(detail or {})}))
+        # Grounding is the last internal step before the first provider call.
+        # Begin the answer here, after the visible scope fact and before any
+        # external latency, so the prose and its evidence keep their order.
+        if name == "grounded":
+            events.put(("delta", {"text": _opening_line(question)}))
 
     def on_step(step: dict[str, Any]) -> None:
         events.put(

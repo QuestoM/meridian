@@ -230,7 +230,8 @@ export function boardView(score, board) {
 export function committedGap(basis, saved) {
   const committed = basis && basis.committed;
   if (!committed || !saved) return { state: 'unavailable', committed: null };
-  const revenueGap = Math.round((Number(saved.revenue) - Number(committed.revenue)) * 100) / 100;
+  const roundedGap = Math.round((Number(saved.revenue) - Number(committed.revenue)) * 100) / 100;
+  const revenueGap = Math.abs(roundedGap) < 0.005 ? 0 : roundedGap;
   const breaksGap = Number(saved.breaks) - Number(committed.breaks);
   const percent = committed.revenue ? Math.round((revenueGap / committed.revenue) * 1000) / 10 : null;
   const matches = Math.abs(revenueGap) < 0.005 && breaksGap === 0;

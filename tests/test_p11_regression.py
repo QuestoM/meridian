@@ -147,6 +147,8 @@ def test_the_published_triggers_are_on_the_payload_and_named_as_a_policy() -> No
     assert block["on_pace_ratio"] == pacing_alerts_api_words.ON_PACE_RATIO
     assert block["at_risk_ratio"] == pacing_alerts_api_words.AT_RISK_RATIO
     assert block["rule_he"] and block["not_a_commercial_term_he"]
+    surface = (ROOT / "tv-break-dashboard/src/clients/pacing/PacingBoard.jsx").read_text(encoding="utf-8")
+    assert surface.index("localized(trigger, 'rule'") < surface.index("pacing-basis-details")
 
 
 def test_every_unavailable_state_names_both_what_is_missing_and_the_way_to_supply_it() -> None:

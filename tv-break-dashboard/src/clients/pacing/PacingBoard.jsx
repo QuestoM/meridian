@@ -81,14 +81,14 @@ function Basis({ payload, locale }) {
           who never opened the disclosure could take an at-risk verdict for a
           delivery shortfall. The long basis stays where it was. */}
       <p className="pacing-basis-planned">{localized(payload, 'counted_is_planned', locale)}</p>
+      <p className="pacing-basis-planned">
+        {localized(trigger, 'rule', locale)}
+        {' '}
+        {localized(trigger, 'not_a_commercial_term', locale)}
+      </p>
       <details className="pacing-basis-details">
         <summary>{pick(locale, 'How this is counted', 'איך זה נספר')}</summary>
         <p>{localized(payload, 'counted_basis', locale)}</p>
-        <p>
-          {localized(trigger, 'rule', locale)}
-          {' '}
-          {localized(trigger, 'not_a_commercial_term', locale)}
-        </p>
         {/* Which clock the two instants on this screen are on. The ledger's own
             counted_as_of carries no offset and a decision's raised_at carries
             UTC, so a reader meets one stamp labelled and one bare and nothing

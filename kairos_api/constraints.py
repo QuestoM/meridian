@@ -36,10 +36,10 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from kairos.optimize.constraints_store import (
     COLUMNS,
+    PlacementConstraint,
     _SCOPES,
     _EFFECTS,
     load_constraints,
-    resolve_constraints,
 )
 from kairos_api import constraints_sentence
 from kairos_api.constraints_language import AUTHORING_COLUMNS
@@ -378,67 +378,39 @@ def constraint_effect(
     constraints bite: a position pin forces a segment's count, a forbid zeroes it,
     and a count pin sets it.
     """
-    from kairos.optimize.day_core import _optimize_one_day
-    from kairos_api.overrides import _resolved_store_overrides
-    from kairos_api.preview_inputs import preview_inputs
+    from kairos_api.constraints_effect import measure
 
-    try:
-        segments, engine_kwargs = preview_inputs(channel, day, daily_input)
-    except Exception as exc:  # pragma: no cover - data/environment dependent
-        raise constraints_sentence.refuse("segments_failed", 503)
-    if not segments:
-        raise constraints_sentence.refuse("no_segments", 404)
+    return measure(load_constraints(CONSTRAINTS_PATH), channel, day, daily_input)
 
-    # Resolve once for the honest report (matched / skipped); the WITH leg passes
-    # the raw constraint list into the shared core, which resolves them again
-    # through the same single resolver, so the report and the plan cannot drift.
-    constraints = load_constraints(CONSTRAINTS_PATH)
-    placement_pins, count_pins, forbids, skipped = resolve_constraints(
-        segments, constraints, operator_channel=engine_kwargs["operator_channel"],
+
+@router.post("/effect")
+def preview_constraint_effect(
+    payload: ConstraintCreate,
+    channel: str | None = None,
+    day: str | None = None,
+    daily_input: str | None = None,
+) -> dict[str, Any]:
+    """Measure one draft through the same engine without writing it."""
+    from kairos_api.constraints_effect import measure
+
+    candidate = PlacementConstraint(
+        constraint_id="draft-preview",
+        scope_type=_validate_scope(payload.scope_type),
+        scope_value=str(payload.scope_value or "").strip(),
+        channel=str(payload.channel or "").strip(),
+        effect=_validate_effect(payload.effect),
+        offset_seconds=payload.offset_seconds,
+        offset_min_seconds=payload.offset_min_seconds,
+        offset_max_seconds=payload.offset_max_seconds,
+        count=payload.count,
+        duration_seconds=payload.duration_seconds,
+        duration_min_seconds=payload.duration_min_seconds,
+        duration_max_seconds=payload.duration_max_seconds,
+        order_index=payload.order_index,
+        notes=payload.notes,
+        where=_validate_where(payload.where),
     )
-    # The stored manual overrides ride along on BOTH legs (the commit path applies
-    # them beside the constraints), resolved through the same anchor guard. None
-    # when the store is empty, mirroring the commit's argument exactly.
-    active_overrides, _stale = _resolved_store_overrides(segments)
-    stored = active_overrides if active_overrides.overrides else None
-
-    baseline = _optimize_one_day(segments, overrides=stored, **engine_kwargs)
-    constrained = _optimize_one_day(
-        segments, constraints=constraints, overrides=stored, **engine_kwargs,
-    )
-
-    base_counts = {s.segment_id: s.num_breaks for s in baseline.segments}
-    new_counts = {s.segment_id: s.num_breaks for s in constrained.segments}
-    changed = [
-        {
-            "segment_id": segment_id,
-            "before": base_counts.get(segment_id, 0),
-            "after": new_counts.get(segment_id, 0),
-        }
-        for segment_id in sorted(new_counts)
-        if base_counts.get(segment_id, 0) != new_counts.get(segment_id, 0)
-    ]
-    return {
-        "channel": channel,
-        "day": day,
-        "summary": {
-            "before_total_breaks": baseline.total_breaks,
-            "after_total_breaks": constrained.total_breaks,
-            "before_revenue": round(baseline.total_revenue, 2),
-            "after_revenue": round(constrained.total_revenue, 2),
-            "changed_segments": len(changed),
-            "matched_segments": len(set(placement_pins) | set(count_pins) | forbids),
-        },
-        "changed": changed,
-        "skipped_constraints": [
-            {"constraint_id": s.constraint_id, "segment_id": s.segment_id, "reason": s.reason}
-            for s in skipped
-        ],
-        "rejected_overrides": [
-            {"segment_id": r.segment_id, "kind": r.kind, "requested": r.requested, "reason": r.reason}
-            for r in constrained.rejected_overrides
-        ],
-    }
+    return measure([candidate], channel, day, daily_input)
 
 
 # The restriction routes ride on this router: they read and write the same store

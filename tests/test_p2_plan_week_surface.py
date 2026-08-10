@@ -346,6 +346,19 @@ def test_an_open_version_keeps_its_place_in_the_set():
     assert "onDiff(next.version_id);" in panel
 
 
+def test_a_collapsed_plan_needs_a_separate_deliberate_act_before_freeze():
+    panel = _text(WEEK / "PublishPanel.jsx")
+    model = _text(WEEK / "plan-week-model.js")
+    api = _text(WEEK / "plan-week-api.js")
+
+    assert "collapseWarning(live)" in panel
+    assert "setCollapseConfirmed(true)" in panel
+    assert "collapse.collapsed && !collapseConfirmed" in panel
+    assert "onPublish(collapseConfirmed)" in panel
+    assert "live?.collapse" in model
+    assert "confirm_collapse: Boolean(confirmCollapse)" in api
+
+
 def test_a_channel_name_inside_a_sentence_carries_its_own_direction():
     """RTL law: a Hebrew name inside an English sentence reorders the
     punctuation around it unless it is isolated."""

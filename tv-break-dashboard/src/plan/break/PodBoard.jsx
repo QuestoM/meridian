@@ -1,4 +1,4 @@
-import { ContinuityNote, PodErrors } from './PodBoardNotes';
+import { ContinuityNote, CreativePairNote, PodErrors, PositionPreferenceNote } from './PodBoardNotes';
 import MediaVerdict from './media/MediaVerdict';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Lock, Unlock } from 'lucide-react';
@@ -29,6 +29,7 @@ import {
   spotsInOrder,
   verificationList,
 } from './pod-model';
+import { pairVerificationList } from './pod-pair-model';
 import './break-pod.css';
 
 // One break's pod, seen and reordered.
@@ -94,7 +95,10 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
   // block at all, and an absent verdict reads as not-checked rather than
   // as clean, which is what the component's unavailable state is for.
   const mediaBySpot = useMemo(() => (pod.media && pod.media.spots) || [], [pod]);
-  const errors = useMemo(() => verificationList(spots, locale), [spots, locale]);
+  const errors = useMemo(() => [
+    ...verificationList(spots, locale),
+    ...pairVerificationList(pod.creative_pairs, spots, locale),
+  ], [pod.creative_pairs, spots, locale]);
   const elapsed = useMemo(() => elapsedSeconds(spots), [spots]);
   const coverage = useMemo(() => copyCheckCoverage(spots), [spots]);
   const lock = useMemo(() => lockState(pod), [pod]);
@@ -214,6 +218,8 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
         </div>
       </div>
       <ContinuityNote continuity={continuity} label={label} />
+      <PositionPreferenceNote positions={pod.positions} label={label} />
+      <CreativePairNote pairs={pod.creative_pairs} label={label} />
 
       {missing > 0 && (
         <p className="pod-warning">

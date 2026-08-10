@@ -157,6 +157,56 @@ def _summarize(frame: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def _owned_delta(current: dict[str, Any], previous: dict[str, Any]) -> dict[str, Any]:
+    """The operator totals that moved, current minus previous."""
+    return {
+        "rows": int(_number(current.get("rows"))) - int(_number(previous.get("rows"))),
+        "breaks": int(_number(current.get("breaks"))) - int(_number(previous.get("breaks"))),
+        "ad_seconds": int(_number(current.get("ad_seconds"))) - int(_number(previous.get("ad_seconds"))),
+        "revenue": round(_number(current.get("revenue")) - _number(previous.get("revenue")), 2),
+    }
+
+
+def collapse_against_latest(
+    live_summary: Optional[dict[str, Any]] = None,
+    manifests: Optional[list[dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    """Whether the live operator plan fell to zero from the newest freeze.
+
+    Breaks and money are checked separately. Either falling from a positive
+    value to zero is a collapse that needs an explicit confirmation. With no
+    prior freeze, an absolute zero still needs confirmation: the absence of a
+    comparison must not make a zero plan safe to publish.
+    """
+    if live_summary is None:
+        state = live_state()
+        live_summary = state.get("summary")
+    items = all_manifests() if manifests is None else manifests
+    current = (live_summary or {}).get("owned") if isinstance(live_summary, dict) else None
+    if not isinstance(current, dict):
+        return {"available": False, "collapsed": False, "reason": "live operator totals are unavailable"}
+
+    latest = items[0] if items else None
+    previous = ((latest or {}).get("summary") or {}).get("owned") if latest else None
+    current_breaks = int(_number(current.get("breaks")))
+    current_revenue = _number(current.get("revenue"))
+    previous_breaks = int(_number((previous or {}).get("breaks"))) if isinstance(previous, dict) else None
+    previous_revenue = _number((previous or {}).get("revenue")) if isinstance(previous, dict) else None
+    breaks_collapsed = current_breaks == 0 and (previous_breaks is None or previous_breaks > 0)
+    revenue_collapsed = current_revenue == 0 and (previous_revenue is None or previous_revenue > 0)
+    return {
+        "available": True,
+        "collapsed": breaks_collapsed or revenue_collapsed,
+        "breaks_collapsed": breaks_collapsed,
+        "revenue_collapsed": revenue_collapsed,
+        "current": current,
+        "previous": previous,
+        "against_version_id": (latest or {}).get("version_id"),
+        "against_name": (latest or {}).get("name"),
+        "delta": _owned_delta(current, previous) if isinstance(previous, dict) else None,
+    }
+
+
 def live_state() -> dict[str, Any]:
     """What a freeze would capture right now, and whether it already is frozen.
 
@@ -174,8 +224,9 @@ def live_state() -> dict[str, Any]:
     state["sha256"] = digest
     state["bytes"] = len(payload)
     state["computed_at"] = _read_meta().get("computed_at")
+    manifests = all_manifests()
     state["frozen_as"] = next(
-        (str(item.get("version_id")) for item in all_manifests() if item.get("plan_sha256") == digest),
+        (str(item.get("version_id")) for item in manifests if item.get("plan_sha256") == digest),
         None,
     )
     # WHAT A FREEZE WOULD CAPTURE, IN FIGURES, AND NOT ONLY WHETHER IT IS FROZEN.
@@ -186,6 +237,7 @@ def live_state() -> dict[str, Any]:
     # rendering in the same neutral type as its neighbours.
     try:
         state["summary"] = _summarize(pd.read_csv(path))
+        state["collapse"] = collapse_against_latest(state["summary"], manifests)
     except Exception as exc:  # pragma: no cover - a plan that will not parse
         # Honest unknown rather than a fabricated zero: a plan whose totals
         # cannot be read must not present as a plan worth nothing.
@@ -257,6 +309,8 @@ def freeze(name: str, actor: str, note: str = "", source: str = "publish") -> di
     meta = _read_meta()
     if meta:
         _atomic_write(directory / META_FILENAME, json.dumps(meta, ensure_ascii=False, indent=1).encode("utf-8"))
+    summary = _summarize(frame)
+    previous_owned = (((manifests[0] if manifests else {}).get("summary") or {}).get("owned"))
     manifest = {
         "version_id": version_id,
         "seq": _next_seq(manifests),
@@ -273,8 +327,12 @@ def freeze(name: str, actor: str, note: str = "", source: str = "publish") -> di
         "computed_at": meta.get("computed_at"),
         "input_fingerprints": meta.get("fingerprints") or {},
         "settings_basis": _settings_basis(),
-        "summary": _summarize(frame),
+        "summary": summary,
         "previous_version_id": str(manifests[0].get("version_id")) if manifests else None,
+        "owned_delta_from_previous": (
+            _owned_delta(summary["owned"], previous_owned)
+            if isinstance(previous_owned, dict) else None
+        ),
     }
     _atomic_write(directory / MANIFEST_FILENAME,
                   json.dumps(manifest, ensure_ascii=False, indent=1).encode("utf-8"))

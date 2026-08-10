@@ -398,6 +398,27 @@ def test_the_second_list_never_grows_the_audited_one(client: TestClient) -> None
         assert record["in_use"] is True
 
 
+def test_every_engine_read_file_missing_from_the_old_audit_is_now_named(client: TestClient) -> None:
+    records = {row["path"].replace("\\", "/"): row for row in client.get("/api/files").json()["also_read"]}
+    expected = {
+        "data/Spots - inventory.csv",
+        "data/manual_overrides.csv",
+        "models/audience_model.json",
+        "data/kairos_settings.json",
+    }
+    existing = {path for path in expected if (ROOT / path).exists()}
+    assert existing <= set(records)
+
+    inventory = records.get("data/Spots - inventory.csv")
+    if inventory is not None:
+        assert inventory["read_state"] in {"read_yielding", "read_yielding_nothing"}
+        assert inventory["yielded_items"] >= 0
+        assert inventory["note"]["en"] and inventory["note"]["he"]
+        if inventory["yielded_items"] == 0:
+            assert inventory["read_state"] == "read_yielding_nothing"
+            assert "loader produced no demand slots" in inventory["note"]["en"]
+
+
 def test_the_posterior_is_marked_a_fallback_that_is_not_read(client: TestClient) -> None:
     """Measured: the measured model version resolves first, so the pkl is not in use."""
     record = next(r for r in client.get("/api/files").json()["files"] if r["path"].endswith("tv_break_posterior.pkl"))

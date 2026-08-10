@@ -93,8 +93,12 @@ export function readPlanVersions() {
   return call('/api/plan-versions');
 }
 
-export function publishPlanVersion(name, note) {
-  return call('/api/plan-versions', jsonPost({ name, note: note || '' }));
+export function publishPlanVersion(name, note, confirmCollapse = false) {
+  return call('/api/plan-versions', jsonPost({
+    name,
+    note: note || '',
+    confirm_collapse: Boolean(confirmCollapse),
+  }));
 }
 
 export function readPlanVersionDiff(versionId, against) {

@@ -320,7 +320,7 @@ def test_every_act_that_writes_goes_through_the_one_settlement_seam():
     assert "export async function undoGold({ lastGold, settleAfter, forgetGold, notify }) {" in acts
 
     board = read("plan/day/DayBoard.jsx")
-    assert "return writes.applyGold({ item, live, notify, settleAfter, rememberGold: setLastGold });" in board
+    assert "pendingEditCount: Object.keys(edits).length" in board
     assert "const goldSettled = Boolean(settlement) && settlement.act === 'gold';" in board
     assert "canUndo={(goldSettled ? Boolean(lastGold) : Boolean(lastSave)) && !saving}" in board
     assert "onUndo={goldSettled ? undoLastGold : undoLastSave}" in board

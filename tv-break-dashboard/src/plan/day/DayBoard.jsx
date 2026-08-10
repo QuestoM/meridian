@@ -191,7 +191,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   // settles, this one included: see that file for what a gold change costs.
   function toggleGold(item) {
     const live = liveOf(item);
-    return writes.applyGold({ item, live, notify, settleAfter, rememberGold: setLastGold });
+    return writes.applyGold({ item, live, pendingEditCount: Object.keys(edits).length, notify, settleAfter, rememberGold: setLastGold });
   }
 
   function handleKeyDown(event, item) {

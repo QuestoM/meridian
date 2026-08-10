@@ -406,6 +406,28 @@ def test_the_save_button_counts_one_change_in_hebrew_as_one():
     assert "editCount === 1 ? 'שמירת שינוי אחד'" in readout
 
 
+def test_a_zero_gap_is_positive_zero_and_never_prints_as_minus_zero():
+    measured = node_board_model("""
+      const gap = m.committedGap(
+        { committed: { revenue: 100, breaks: 2 } },
+        { revenue: 99.999, breaks: 2 },
+      );
+      process.stdout.write(JSON.stringify({ gap, negativeZero: Object.is(gap.revenueGap, -0) }));
+    """)
+    assert measured["gap"]["revenueGap"] == 0
+    assert measured["negativeZero"] is False
+
+
+def test_gold_cannot_replan_away_a_pending_placement_edit():
+    writes = read("plan/day/day-board-writes.js")
+    board = read("plan/day/DayBoard.jsx")
+    assert "if (pendingEditCount > 0)" in writes
+    assert "Save or discard the pending placement changes" in writes
+    assert "edited.length !== Object.keys(edits).length" in writes
+    assert "No placement was saved" in writes
+    assert "pendingEditCount: Object.keys(edits).length" in board
+
+
 def test_no_money_figure_on_this_surface_renders_without_its_scope():
     readout = read("plan/day/DayBoardReadout.jsx")
     assert "day-figure-scope" in readout

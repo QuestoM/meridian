@@ -38,7 +38,11 @@ export function applyStage(prev, stage) {
   const next = { ...prev, stage };
   if (stage.facts && typeof stage.facts === 'object') next.facts = stage.facts;
   if (Number.isFinite(stage.deadline_seconds)) next.deadlineSeconds = stage.deadline_seconds;
-  if (TURN_START.has(stage.stage)) next.text = '';
+  // The first thinking turn follows the local opening line. Keep that honest
+  // line on screen; only a later model turn or verification replaces prose
+  // from a turn that has actually ended.
+  if (TURN_START.has(stage.stage)
+      && (stage.stage === 'verifying' || Number(stage.turn || 0) > 1)) next.text = '';
   if (stage.stage === 'verifying') next.verifying = true;
   return next;
 }

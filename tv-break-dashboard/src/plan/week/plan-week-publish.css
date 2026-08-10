@@ -9,6 +9,13 @@
   align-items: center;
 }
 
+.plan-collapse-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .plan-version-list {
   display: flex;
   flex-direction: column;

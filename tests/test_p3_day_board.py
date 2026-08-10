@@ -174,7 +174,8 @@ def test_an_edit_naming_a_break_that_is_not_in_the_day_is_refused(client, day):
     response = client.post("/api/plan/day/score", json={
         "day": day, "moves": [{"break_id": "not-a-real-segment~1", "offset_seconds": 10}],
     })
-    assert response.status_code == 404
+    assert response.status_code == 409
+    assert "stale" in response.json()["detail"]
     malformed = client.post("/api/plan/day/score", json={
         "day": day, "moves": [{"break_id": "no-ordinal-at-all", "offset_seconds": 10}],
     })

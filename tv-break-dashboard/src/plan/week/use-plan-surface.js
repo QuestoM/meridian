@@ -5,6 +5,7 @@ import { objectiveFromLevers } from './plan-week-model';
 import { streamCompare } from './plan-week-compare-stream';
 import { compareKey, compareRequestBody, useComparePrepare } from './use-compare-prepare';
 import { usePlanFreshness } from './use-plan-freshness';
+import { announceRunResult } from './plan-run-result';
 
 // Every piece of state Plan, the week owns, and every call it makes.
 //
@@ -250,12 +251,9 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
       return;
     }
     setRunResult(result.data);
-    setRunState('done');
     const owned = result.data?.owned;
-    notify?.(
-      `The weekly plan was run: ${owned?.total_breaks ?? '-'} breaks on your channel.`,
-      `התוכנית השבועית רצה: ${owned?.total_breaks ?? '-'} ברייקים בערוץ שלכם.`,
-    );
+    const zeroBreaks = announceRunResult(owned, notify);
+    setRunState(zeroBreaks ? 'warning' : 'done');
     loadVersions();
     // The plan moved, so the figures that stand on it and its state moved too.
     loadProgress();
@@ -338,11 +336,11 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     settledKey: comparedKey,
   });
 
-  const publish = useCallback(async () => {
+  const publish = useCallback(async (confirmCollapse = false) => {
     if (!versionName.trim()) return;
     setPublishState('running');
     setPublishError(null);
-    const result = await api.publishPlanVersion(versionName.trim(), versionNote.trim());
+    const result = await api.publishPlanVersion(versionName.trim(), versionNote.trim(), confirmCollapse);
     if (!result.ok) {
       setPublishState('error');
       setPublishError(result.error);

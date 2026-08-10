@@ -279,6 +279,15 @@ export function diffReason(payload, locale) {
   return payload.reason || null;
 }
 
+// The server owns the comparison because it owns both frozen and live totals.
+// Keeping the reading in one helper gives every publish control the same answer
+// without recomputing money from display rows in the browser.
+export function collapseWarning(live) {
+  const warning = live?.collapse;
+  if (!warning || warning.available !== true) return { available: false, collapsed: false };
+  return warning;
+}
+
 // The scope a money figure was summed on, printed beside the figure and never
 // in a tooltip. Returns null when the payload does not state one, which is the
 // case a caller must render as an absence rather than fill in.

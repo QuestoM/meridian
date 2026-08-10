@@ -10,6 +10,8 @@ which is what a reader wants it to be.
 from __future__ import annotations
 
 import logging
+import json
+from pathlib import Path
 from typing import Any, Optional
 
 from kairos_api import model_console_artifacts as artifacts
@@ -18,6 +20,8 @@ from kairos_api import model_console_gates as gates
 from kairos_api import model_version_store as store
 
 logger = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parents[1]
+CANDIDATE_BOARD = ROOT / "tv-break-dashboard" / "src" / "model" / "candidates" / "candidate-board.json"
 
 
 def current_version() -> dict[str, Any]:
@@ -134,4 +138,64 @@ def decision_evidence(subject: str, candidate_id: Optional[str]) -> dict[str, An
     evidence["revenue_delta_pct"] = delta.get("revenue_delta_pct")
     evidence["scope"] = (record.get("scope") or {}).get("operator_channel")
     evidence["measured_at"] = record.get("measured_at")
+    return evidence
+
+
+def complete_decision_evidence(subject: str, candidate_id: Optional[str]) -> dict[str, Any]:
+    """Freeze the published common-basis snapshot into a browser verdict.
+
+    The candidate board is P12's read-only publication of the measurement. It
+    carries the same re-score, gates, baselines, fit limit and coefficient
+    movement as the terminal, but no route into the training act. Reading that
+    artifact here keeps the console rich without making adoption reachable
+    from the application package.
+    """
+    if subject != "candidate" or not candidate_id:
+        return decision_evidence(subject, candidate_id)
+    evidence = decision_evidence(subject, candidate_id)
+    try:
+        board = json.loads(CANDIDATE_BOARD.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        evidence["comparison_state"] = "unavailable"
+        evidence["comparison_reason"] = f"published candidate measurement unavailable: {exc}"
+        return evidence
+    row = next((item for item in board.get("candidates") or []
+                if item.get("id") == candidate_id), None)
+    if row is None:
+        evidence["comparison_state"] = "unavailable"
+        evidence["comparison_reason"] = "candidate is absent from the published common-basis measurement"
+        return evidence
+    evidence.update({
+        "basis_en": "This verdict uses the published common-basis comparison.",
+        "basis_he": "ההכרעה הזו משתמשת בהשוואה המפורסמת על בסיס משותף.",
+        "rescore": {
+            "rmse": row.get("rmse"),
+            "shipped_rmse": (board.get("shipped") or {}).get("rmse"),
+            "rmse_delta": row.get("rmse_delta"),
+            "paired_statistic": row.get("paired_statistic"),
+            "paired_bar": row.get("paired_bar"),
+            "fold_dispersion": row.get("fold_dispersion"),
+            "breaks_improved": row.get("breaks_improved"),
+            "breaks_worsened": row.get("breaks_worsened"),
+            "state": row.get("verdict"),
+            "en": row.get("verdict_en"),
+            "he": row.get("verdict_he"),
+            "rule_en": row.get("rule_en"),
+            "rule_he": row.get("rule_he"),
+            "duplicate_of": row.get("duplicate_of") or [],
+            "breaks_fitted_on": row.get("breaks_fitted_on"),
+            "self_reported": row.get("self_reported") or {},
+            "cells": row.get("cells") or {},
+            "sha256": row.get("sha256"),
+            "file": row.get("file"),
+            "measured_at": board.get("measured_at"),
+            "fingerprint": board.get("fingerprint"),
+        },
+        "gates": row.get("gates") or {},
+        "evaluation": board.get("evaluation"),
+        "limit": board.get("limit"),
+        "fit_basis": board.get("fit_basis"),
+        "baselines": board.get("baselines") or [],
+        "cell_structure": board.get("cell_structure"),
+    })
     return evidence

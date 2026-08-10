@@ -46,6 +46,7 @@ export function RunPanel({
   const changed = Array.isArray(freshness?.changed) ? freshness.changed.filter(Boolean) : [];
   const running = runState === 'running';
   const owned = runResult?.owned;
+  const zeroBreaks = Number(owned?.total_breaks) === 0;
   const ownedScope = scopeLine(owned?.scope, locale);
 
   const stateLine = reading
@@ -105,6 +106,16 @@ export function RunPanel({
       {runError && (
         <p className="plan-note plan-note-red" role="alert">
           {pageText(locale, `The run failed and the saved plan is unchanged: ${runError}`, `ההרצה נכשלה והתוכנית השמורה לא השתנתה: ${runError}`)}
+        </p>
+      )}
+
+      {runResult && owned && zeroBreaks && (
+        <p className="plan-note plan-note-amber" role="alert">
+          {pageText(
+            locale,
+            'The run finished with zero breaks on your channel. This is not a routine completion. Review the objective and inputs before freezing the plan.',
+            'ההרצה הסתיימה עם אפס ברייקים בערוץ שלכם. זו אינה השלמה שגרתית. יש לבדוק את המטרה ואת הקלטים לפני הקפאת התוכנית.',
+          )}
         </p>
       )}
 

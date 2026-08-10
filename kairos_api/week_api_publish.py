@@ -43,6 +43,7 @@ class PublishRequest(BaseModel):
 
     name: str = Field(min_length=1, max_length=120)
     note: str = Field(default="", max_length=400)
+    confirm_collapse: bool = False
 
 
 def _actor(request: Optional[Request]) -> str:
@@ -69,6 +70,16 @@ def list_plan_versions(request: Request) -> dict[str, Any]:
 def publish_plan_version(payload: PublishRequest, request: Request) -> dict[str, Any]:
     """Freeze the saved plan under a name. The one write on this surface."""
     PUBLISH_WALL.require(request)
+    collapse = plan_version_store.collapse_against_latest()
+    if collapse.get("collapsed") and not payload.confirm_collapse:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "The operator plan has collapsed to zero breaks or zero revenue "
+                "against the newest frozen version. Read the warning and confirm "
+                "the collapse explicitly before freezing it."
+            ),
+        )
     try:
         manifest = plan_version_store.freeze(
             name=payload.name, actor=_actor(request), note=payload.note

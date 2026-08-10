@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, TextField } from '@mui/material';
 import { ChevronDown, ChevronUp, History, Lock, RotateCcw } from 'lucide-react';
 import { Numeric, formatCurrency, formatNumber, pageText } from '../../shell/format';
 import { formatStamp } from '../../shell/dates';
 import { Figure, Name } from '../../shell/bidi';
-import { diffReason, scopeLine } from './plan-week-model';
+import { collapseWarning, diffReason, scopeLine } from './plan-week-model';
 
 // Step four: freeze the plan under a name.
 //
@@ -76,6 +76,8 @@ export function PublishPanel({
   onRestore,
 }) {
   const alreadyFrozen = Boolean(live?.frozen_as);
+  const collapse = collapseWarning(live);
+  const [collapseConfirmed, setCollapseConfirmed] = useState(false);
   const frozenVersion = alreadyFrozen ? versions.find((item) => item.version_id === live.frozen_as) : null;
   const selectedIndex = selectedId ? versions.findIndex((item) => item.version_id === selectedId) : -1;
   // Walking the set selects and opens in one move, because a counter that only
@@ -86,6 +88,8 @@ export function PublishPanel({
     onSelect(next.version_id);
     onDiff(next.version_id);
   };
+  const collapseKey = `${collapse.against_version_id || 'none'}:${collapse.current?.breaks ?? 'unknown'}:${collapse.current?.revenue ?? 'unknown'}`;
+  useEffect(() => setCollapseConfirmed(false), [collapseKey]);
 
   return (
     <section className="plan-section" aria-labelledby="plan-publish-title">
@@ -115,34 +119,64 @@ export function PublishPanel({
           )}
         </p>
       ) : (
-        <div className="plan-publish-form">
-          <TextField
-            size="small"
-            label={pageText(locale, 'Name this plan version', 'שם לגרסת התוכנית')}
-            value={name}
-            onChange={(event) => onNameChange(event.target.value)}
-            disabled={!canEdit}
-            inputProps={{ maxLength: 120, dir: 'auto' }}
-          />
-          <TextField
-            size="small"
-            label={pageText(locale, 'Why, in one line', 'למה, בשורה אחת')}
-            value={note}
-            onChange={(event) => onNoteChange(event.target.value)}
-            disabled={!canEdit}
-            inputProps={{ maxLength: 400, dir: 'auto' }}
-          />
-          <Button
-            className="run-button"
-            type="button"
-            variant="contained"
-            disabled={!canEdit || !name.trim() || publishState === 'running'}
-            onClick={onPublish}
-          >
-            <Lock size={15} />
-            {publishState === 'running' ? pageText(locale, 'Freezing', 'מקפיא') : words.publish}
-          </Button>
-        </div>
+        <>
+          {collapse.collapsed && (
+            <div className="plan-note plan-note-amber plan-collapse-warning" role="alert">
+              <p>
+                {collapse.previous
+                  ? pageText(
+                    locale,
+                    `This plan has collapsed to ${formatNumber(collapse.current?.breaks, locale)} breaks and ${formatCurrency(collapse.current?.revenue, locale)} on your channel. The newest frozen plan had ${formatNumber(collapse.previous?.breaks, locale)} breaks and ${formatCurrency(collapse.previous?.revenue, locale)}.`,
+                    `התוכנית הזאת קרסה ל־${formatNumber(collapse.current?.breaks, locale)} ברייקים ול־${formatCurrency(collapse.current?.revenue, locale)} בערוץ שלכם. בתוכנית המוקפאת החדשה ביותר היו ${formatNumber(collapse.previous?.breaks, locale)} ברייקים ו־${formatCurrency(collapse.previous?.revenue, locale)}.`,
+                  )
+                  : pageText(
+                    locale,
+                    `This first plan contains ${formatNumber(collapse.current?.breaks, locale)} breaks and ${formatCurrency(collapse.current?.revenue, locale)} on your channel. There is no frozen baseline to make that zero safe.`,
+                    `התוכנית הראשונה הזאת כוללת ${formatNumber(collapse.current?.breaks, locale)} ברייקים ו־${formatCurrency(collapse.current?.revenue, locale)} בערוץ שלכם. אין תוכנית מוקפאת קודמת שהופכת את האפס הזה לבטוח.`,
+                  )}
+              </p>
+              <Button
+                className="secondary-button compact"
+                type="button"
+                variant="outlined"
+                disabled={!canEdit || collapseConfirmed}
+                onClick={() => setCollapseConfirmed(true)}
+              >
+                {collapseConfirmed
+                  ? pageText(locale, 'Zero-plan freeze enabled', 'הקפאת תוכנית האפס הופעלה')
+                  : pageText(locale, 'I understand. Enable this zero-plan freeze', 'הבנתי. אפשר להקפיא את תוכנית האפס')}
+              </Button>
+            </div>
+          )}
+          <div className="plan-publish-form">
+            <TextField
+              size="small"
+              label={pageText(locale, 'Name this plan version', 'שם לגרסת התוכנית')}
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              disabled={!canEdit}
+              inputProps={{ maxLength: 120, dir: 'auto' }}
+            />
+            <TextField
+              size="small"
+              label={pageText(locale, 'Why, in one line', 'למה, בשורה אחת')}
+              value={note}
+              onChange={(event) => onNoteChange(event.target.value)}
+              disabled={!canEdit}
+              inputProps={{ maxLength: 400, dir: 'auto' }}
+            />
+            <Button
+              className="run-button"
+              type="button"
+              variant="contained"
+              disabled={!canEdit || !name.trim() || publishState === 'running' || (collapse.collapsed && !collapseConfirmed)}
+              onClick={() => onPublish(collapseConfirmed)}
+            >
+              <Lock size={15} />
+              {publishState === 'running' ? pageText(locale, 'Freezing', 'מקפיא') : words.publish}
+            </Button>
+          </div>
+        </>
       )}
 
       {alreadyFrozen && (

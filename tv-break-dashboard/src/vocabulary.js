@@ -334,7 +334,7 @@ export const PROGRAMME_GENRES = {
   },
   Documentary: {
     en: 'Documentary',
-    he: 'תיעודי',
+    he: 'דוקומנטרי',
   },
   Drama: {
     en: 'Drama',
@@ -342,7 +342,7 @@ export const PROGRAMME_GENRES = {
   },
   Lifestyle: {
     en: 'Lifestyle',
-    he: 'אורח חיים',
+    he: 'לייפסטייל',
   },
   'Morning Program': {
     en: 'Morning show',

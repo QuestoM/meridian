@@ -32,7 +32,14 @@ import { clearGold, markGold, saveBreakPlacement, undoBreakPlacement } from './d
 // It settles against no prediction. There is no cheap preview of a gold change
 // the way there is of a move, and a prediction of zero would be an invented
 // figure, so the panel prints the realised change alone and says why.
-export async function applyGold({ item, live, notify, settleAfter, rememberGold }) {
+export async function applyGold({ item, live, pendingEditCount = 0, notify, settleAfter, rememberGold }) {
+  if (pendingEditCount > 0) {
+    notify(
+      'Save or discard the pending placement changes before changing gold. Gold re-plans the programme and can replace those break ids.',
+      'יש לשמור או לבטל את שינויי המיקום הממתינים לפני שינוי הזהב. זהב מתכנן את התוכנית מחדש ועלול להחליף את מזהי הברייקים האלה.',
+    );
+    return false;
+  }
   await settleAfter('gold', null, async () => {
     if (live.isGold) {
       await clearGold(item.break_id);
@@ -54,6 +61,7 @@ export async function applyGold({ item, live, notify, settleAfter, rememberGold 
     // the cost can also offer the way back.
     rememberGold({ breakId: item.break_id, wasGold: Boolean(live.isGold) });
   });
+  return true;
 }
 
 // The inverse of the gold act, taken on the break the act named.
@@ -95,7 +103,14 @@ export async function saveEditedBreaks({
   notify,
 }) {
   const edited = breaks.filter((item) => edits[item.break_id]);
-  if (!edited.length) return;
+  if (edited.length !== Object.keys(edits).length) {
+    notify(
+      'The plan changed and at least one edited break is no longer on this board. No placement was saved. Discard the stale edit and make it on the current plan.',
+      'התוכנית השתנתה ולפחות ברייק אחד שנערך כבר אינו בלוח הזה. לא נשמר אף מיקום. יש לבטל את העריכה הישנה ולבצע אותה בתוכנית הנוכחית.',
+    );
+    return false;
+  }
+  if (!edited.length) return false;
   await settleAfter('save', predicted, async () => {
     const saved = [];
     for (const item of edited) {
@@ -110,6 +125,7 @@ export async function saveEditedBreaks({
       `נשמרו ${saved.length} מיקומי ברייק. כל אחד נעוץ לשידור שלו בלבד.`,
     );
   });
+  return true;
 }
 
 // The inverse of the save this browser tab remembers.

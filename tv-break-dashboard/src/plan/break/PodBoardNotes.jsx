@@ -1,5 +1,6 @@
 import React from 'react';
 import { Figure, Name } from '../../shell/bidi';
+import './pod-board-notes.css';
 
 // Two readouts lifted out of PodBoard, which had reached exactly 450 lines and
 // could not take another line without breaking the size law. Splitting rather
@@ -50,5 +51,44 @@ export function PodErrors({ errors, openSpot }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+export function PositionPreferenceNote({ positions, label }) {
+  const block = positions || {};
+  const state = block.preferred_state || 'unavailable';
+  const codes = Array.isArray(block.preferred_set) ? block.preferred_set : [];
+  if (state !== 'real' || !codes.length) {
+    return (
+      <p className="pod-preference pod-preference-unavailable">
+        <strong>{label('Preferred position status unavailable.', 'סטטוס מיקום מועדף אינו זמין.')}</strong>
+        {' '}{label(block.basis || 'No preferred set is configured for this channel.', block.basis_he || 'לא הוגדרה לערוץ קבוצת מיקומים מועדפים.')}
+        {block.preferred_unreadable_reason ? ` ${block.preferred_unreadable_reason}` : ''}
+      </p>
+    );
+  }
+  return (
+    <p className="pod-preference">
+      <strong>{label('Preferred positions', 'מיקומים מועדפים')}:</strong>
+      {' '}<Figure>{codes.join(', ')}</Figure>.{' '}
+      {label('A marked position is preferred; an unmarked configured position is not.', 'מיקום מסומן הוא מועדף; מיקום מוגדר שאינו מסומן אינו מועדף.')}
+    </p>
+  );
+}
+
+export function CreativePairNote({ pairs, label }) {
+  const block = pairs || {};
+  const authored = Number(block.authored || 0);
+  const states = block.states || {};
+  if (!authored) {
+    return <p className="pod-pairs">{label('No lead-and-closer pair rule is configured.', 'לא הוגדר כלל לצמד תשדיר מוביל וסוגר.')}</p>;
+  }
+  return (
+    <p className="pod-pairs">
+      <strong>{label('Creative-pair check', 'בדיקת צמדי תשדירים')}:</strong>
+      {' '}<Figure>{Number(states.satisfied || 0)}</Figure> {label('satisfied', 'תקינים')},{' '}
+      <Figure>{Number(states.violated || 0)}</Figure> {label('violated', 'מופרים')},{' '}
+      <Figure>{Number(states.unknown || 0)}</Figure> {label('unknown', 'לא ידועים')}.
+    </p>
   );
 }

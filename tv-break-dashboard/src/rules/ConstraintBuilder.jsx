@@ -86,6 +86,20 @@ function buildBody(draft, where) {
   return body;
 }
 
+function predicateComplete(node) {
+  if (!node || typeof node !== 'object') return false;
+  if (Array.isArray(node.conditions)) {
+    return node.conditions.length > 0 && node.conditions.every(predicateComplete);
+  }
+  const value = node.value;
+  if (Array.isArray(value)) return value.length > 0 && value.every((item) => String(item).trim());
+  if (value && typeof value === 'object') {
+    return value.min !== '' && value.min !== null && value.min !== undefined
+      && value.max !== '' && value.max !== null && value.max !== undefined;
+  }
+  return String(value ?? '').trim().length > 0;
+}
+
 // ---- Main ConstraintBuilder export -----------------------------------------
 // onGlobalRefresh (optional) is called after a successful save or delete so the
 // page-level freshness banner re-reads its verdict; both mutate a fingerprinted
@@ -102,6 +116,10 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
   const [sentences, setSentences] = useState(() => new Map());
   const [available, setAvailable] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [previewKey, setPreviewKey] = useState('');
+  const [previewError, setPreviewError] = useState('');
 
   const [draft, setDraft] = useState({
     effect: 'FIX_OFFSET',
@@ -172,12 +190,50 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
 
   function updateDraft(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
+    setPreviewKey('');
+  }
+
+  function updateWhere(next) {
+    setWhereTree(next);
+    setPreviewKey('');
+  }
+
+  async function previewConstraint() {
+    const body = buildBody(draft, whereTree);
+    if (!predicateComplete(body.where)) {
+      setPreview(null);
+      setPreviewError(t(locale, 'Complete every filter condition before measuring this rule.', 'יש להשלים כל תנאי סינון לפני מדידת הכלל.'));
+      return;
+    }
+    setPreviewing(true);
+    setPreviewError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/constraints/effect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw await failure(res);
+      const measured = await res.json();
+      setPreview(measured);
+      setPreviewKey(JSON.stringify(body));
+    } catch (err) {
+      setPreview(null);
+      setPreviewError(detailWords(err, locale));
+    } finally {
+      setPreviewing(false);
+    }
   }
 
   async function saveConstraint() {
+    const body = buildBody(draft, whereTree);
+    const currentPreview = previewKey === JSON.stringify(body) && preview;
+    if (!currentPreview || Number(currentPreview.summary?.matched_segments || 0) === 0) {
+      notify('Measure a complete rule that matches the plan before saving it.', 'יש למדוד כלל שלם שתואם לתוכנית לפני שמירתו.');
+      return;
+    }
     setSaving(true);
     try {
-      const body = buildBody(draft, whereTree);
       const res = await fetch(`${API_BASE}/api/constraints`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -193,6 +249,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       const savedId = saved.constraint_id ?? saved.id;
       setItems((current) => [...current, { ...body, id: savedId || `constraint-${current.length + 1}` }]);
       notify('Constraint saved.', 'האילוץ נשמר.');
+      setPreviewKey('');
       onGlobalRefresh?.();
     } catch (err) {
       notify(`Saving the constraint failed (${detailWords(err, 'en')}).`, `שמירת האילוץ נכשלה (${detailWords(err, 'he')}).`);
@@ -219,6 +276,9 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
   }
 
   const { effect } = draft;
+  const currentBody = buildBody(draft, whereTree);
+  const previewCurrent = previewKey === JSON.stringify(currentBody);
+  const matchedSegments = previewCurrent ? Number(preview?.summary?.matched_segments || 0) : 0;
 
   return (
     <section className="settings-panel wide constraint-builder">
@@ -249,7 +309,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       <div className="cb-tree-root">
         <GroupNode
           group={whereTree}
-          onUpdate={setWhereTree}
+          onUpdate={updateWhere}
           onDelete={null}
           hints={hints}
           locale={locale}
@@ -322,7 +382,10 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       </div>
 
       <div className="constraint-builder-actions">
-        <Button type="button" variant="contained" className="run-button" disabled={saving || !available} onClick={saveConstraint}>
+        <Button type="button" variant="outlined" className="run-button" disabled={previewing || saving || !available} onClick={previewConstraint}>
+          {previewing ? t(locale, 'Measuring', 'מודד') : t(locale, 'Measure effect', 'מדידת ההשפעה')}
+        </Button>
+        <Button type="button" variant="contained" className="run-button" disabled={saving || !available || !previewCurrent || matchedSegments === 0} onClick={saveConstraint}>
           <Save size={14} />
           {t(locale, 'Save constraint', 'שמירת אילוץ')}
         </Button>
@@ -331,6 +394,17 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
           {t(locale, 'Run the weekly plan', 'הרצת הלוח השבועי')}
         </Button>
       </div>
+
+      {previewError && <p className="constraint-builder-warning" role="alert">{previewError}</p>}
+      {previewCurrent && preview && (
+        <p className="cb-scope-note" role="status">
+          {t(
+            locale,
+            `Measured without writing: ${matchedSegments} plan segments match; breaks move from ${preview.summary.before_total_breaks} to ${preview.summary.after_total_breaks}, and revenue from ${preview.summary.before_revenue} to ${preview.summary.after_revenue}.`,
+            `נמדד ללא כתיבה: ${matchedSegments} רצועות בתוכנית תואמות; מספר הברייקים נע מ־${preview.summary.before_total_breaks} ל־${preview.summary.after_total_breaks}, וההכנסה מ־${preview.summary.before_revenue} ל־${preview.summary.after_revenue}.`,
+          )}
+        </p>
+      )}
 
       <div className="constraint-list">
         <div className="panel-head">

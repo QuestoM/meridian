@@ -168,6 +168,19 @@ def test_a_failed_read_names_its_reason_and_prints_no_state_word():
     assert "setVerdict(null);" in hook, "an unreadable state carries no verdict"
 
 
+def test_a_zero_break_run_refuses_to_look_like_a_routine_completion():
+    surface = _text("use-plan-surface.js")
+    panel = _text("RunPanel.jsx")
+    result = _text("plan-run-result.js")
+
+    assert "announceRunResult(owned, notify)" in surface
+    assert "setRunState(zeroBreaks ? 'warning' : 'done')" in surface
+    assert "Number(owned?.total_breaks) === 0" in result
+    assert "The run finished with zero breaks on your channel" in result
+    assert "runResult && owned && zeroBreaks" in panel
+    assert 'className="plan-note plan-note-amber" role="alert"' in panel
+
+
 def test_the_verdict_the_surface_reads_is_really_on_the_route_it_reads(client):
     """The read is only honest if the route answers with one of the three states
     and never with a fabricated fresh."""
