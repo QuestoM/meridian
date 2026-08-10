@@ -62,7 +62,31 @@ tell the replacement to report in five lines, not forty.
    patches. Measured, not guessed: 2 distinct strings, 3 sites, 6 views swept,
    and 2 further single-language fields exist that reach no surface at all.
 
-**A pattern worth naming across 2 and 3: THE HALF-APPLIED SEAM.** The correct
+4. **The inputs page never names four of the files the engine reads**, and one of
+   them is the INERT LEVER on that page's own purpose. `data/Spots - inventory.csv`
+   holds 994 data rows, is read on every run (`kairos/service.py:344`) and is
+   checksummed into the plan freshness fingerprint
+   (`kairos/export/schedule_freshness.py:226`), and `load_inventory()` returns a
+   pool of **0**. The discard itself is OLD NEWS and owner-gated, because fixing
+   the parse activates a steer and moves money. **The new half is that P6's
+   surface is silent about the file entirely**: 0 occurrences across `/api/files`,
+   `/api/uploads/status`, `/api/reports`, `/api/parameters`, `/api/overview` and
+   the whole frontend, on the destination whose stated purpose is "the inputs a
+   run reads". One pass fixes it: `_also_read_paths()` at
+   `kairos_api/downloads_api.py:326` is a hand-written list whose own docstring
+   promises "no name on any card is a dead end". Add the file and give it a
+   verdict FROM THE POOL rather than the row count, so a file whose 994 rows all
+   die reads as read-and-yielding-nothing instead of absent. Three more
+   engine-read files are undeclared the same way (`data/manual_overrides.csv`,
+   `models/audience_model.json`, `data/kairos_settings.json`), so fixing the list
+   once closes the class.
+
+**CLOSED, and worth knowing before anyone re-reports it:** P6 contract §14's
+declared competitor leak in `GET /api/export/schedule.csv` is GONE. Measured
+today: 2,540 rows, all רשת 13, zero rival rows, against 6,164 rival rows and
+₪180,938,215 when it was filed. That was the row's one standing red test.
+
+**A pattern worth naming across 2, 3 and 4: THE HALF-APPLIED SEAM.** The correct
 answer exists in the repository, is written down, sometimes with a comment
 stating the invariant, and one site does not use it. That is cheaper to fix and
 easier to miss than an absent solution, and it is now the shape to look for.
