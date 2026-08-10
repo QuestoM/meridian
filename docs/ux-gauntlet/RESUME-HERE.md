@@ -6,6 +6,69 @@ handed. Everything below was measured, not remembered.
 
 ---
 
+## THE JUDGING ROUND, where it stands 2026-08-10
+
+**Published: P1 PASSED, P4 PASSED, P7 PASSED, P10 FAILED.** Four of thirteen
+rounds are on the board, all through `update_state.py` and none hand-edited.
+Before today `state.json` carried eight rounds, all SPEC and wave zero.
+
+**Still unjudged: P2, P3, P5, P6, P8, P9, P11, P12.** Fresh critics were running
+for P2, P3, P5, P6 and P8 when the session ended; P9, P11 and P12 were
+deliberately held back, because eight critics on one machine produced a
+44,866 ms first paint and bar 1 is a TIMING bar, so concurrency poisons the
+measurement it exists to take.
+
+**Eight of the first nine critics went idle without ever reporting**, after three
+wake attempts each. One had to send three times before a message landed. They
+were replaced rather than chased further. If it happens again, replace sooner and
+tell the replacement to report in five lines, not forty.
+
+### Three measured findings not yet fixed, each with its fix already located
+
+1. **A Hebrew sentence prints the English genre, on 22.1% of the plan.**
+   `overview_api.py:167` interpolates the raw English `program_type` into the
+   Hebrew title. The frontend repairs it with a hand-kept regex list covering 7
+   genres (`shell/labels.js:143-162`), and 9 of the 15 types in the plan are
+   uncovered: **1,924 of 8,704 rows**. The complete 15-type map already exists
+   **47 lines above in the same file** (`programTypeLabel`, `labels.js:83-106`),
+   and its own comment states the invariant the title line breaks. Route the
+   substitution through it. Four parallel genre vocabularies exist and two give
+   DIFFERENT Hebrew words for the same genre, so reconcile them in the same pass.
+   Nothing tests this; the fix must ship an assertion over all 15 types.
+
+2. **`GET /api/parameters` ships every rival channel name to the browser on every
+   boot**, unguarded: `.channels` and `.available_channels` both carry קשת 12,
+   כאן 11 and עכשיו 14. It is NOT obviously a breach, because the list drives the
+   operator-channel picker and you cannot choose your own channel from a list of
+   one. It is a defect because **the fully worked-out right answer is already in
+   this repository and this site does not use it**:
+   `compliance_api_licence.py:301-307` gates the same list on
+   `CHANNEL_WALL.allows(request)`, narrows to the current channel otherwise, and
+   publishes `lists_every_channel` so the client knows which it got.
+   `scenario_api_parameters.py:97` has no wall check at all. **Before fixing,
+   settle whether a channel account can change the operator channel**; if it
+   cannot, the narrowed shape is strictly correct for it. Two sites is a lead,
+   three is a class, so count first.
+
+3. **Two English-only sentences reach a Hebrew operator surface, at 3 render
+   sites across 2 pieces.** `counted_as_of_basis` renders raw on both the
+   campaigns board (`DeliveryState.jsx:107-126`) and the pacing board
+   (`PacingBoard.jsx:136`), plus a single-language `reason` at
+   `MakeGoodAlerts.jsx:86`. The seam exists and is HALF-APPLIED EVEN IN THE PIECE
+   THAT INVENTED IT: `pacing_alerts_api_read.py:72-80` names this exact class and
+   fixes it by publishing a bilingual pair, but only for rating and spend. One
+   small fix at the ledger (publish `counted_as_of_basis` as an `_en`/`_he` pair
+   the way `rating_basis` and `spend_basis` already are) beats two frontend
+   patches. Measured, not guessed: 2 distinct strings, 3 sites, 6 views swept,
+   and 2 further single-language fields exist that reach no surface at all.
+
+**A pattern worth naming across 2 and 3: THE HALF-APPLIED SEAM.** The correct
+answer exists in the repository, is written down, sometimes with a comment
+stating the invariant, and one site does not use it. That is cheaper to fix and
+easier to miss than an absent solution, and it is now the shape to look for.
+
+---
+
 ## The one-line state, 2026-08-10, CORRECTED
 
 I wrote "all waves are closed" here and it was WRONG. It is true of the
