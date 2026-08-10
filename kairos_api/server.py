@@ -158,6 +158,7 @@ app.add_middleware(
 # objects, including the single lru_cache instances and the one frontier background
 # state and its lock.
 from kairos_api.advertiser_conditions import router as advertiser_conditions_router  # noqa: E402
+from kairos_api.media_api import router as media_router  # noqa: E402
 from kairos_api.advertisers import router as advertisers_router  # noqa: E402
 from kairos_api.constraints import router as constraints_router  # noqa: E402
 from kairos_api.exporters import router as exporters_router  # noqa: E402
@@ -205,6 +206,7 @@ from kairos_api.agency_conditions import router as agency_conditions_router  # n
 app.include_router(uploads_router)
 app.include_router(advertisers_router)
 app.include_router(advertiser_conditions_router)
+app.include_router(media_router)
 app.include_router(agencies_router)
 app.include_router(agency_conditions_router)
 app.include_router(exporters_router)
