@@ -39,5 +39,14 @@ supplies a real House Number QC report and approved broadcast standards. The cod
 contract, importer, lock gate and tests are complete. No placeholder QC verdict
 or guessed standard was added to make that dependency look closed.
 
+Rating-currency settlement is also an owner and data dependency, not another
+code wave. Round-quarter-hour settlement is implemented behind
+`pricing_activation.qh_settlement` and remains off by default. The repository
+does not contain the Jewish-household audience basis or the applicable held-TVR
+vintage needed to settle on the documented Israeli trade currency. The owner
+must provide that basis and decide when to activate it; the campaign must not
+invent either input or silently move money. Top and Tail is already implemented
+and tested, in both positional and paired-creative forms.
+
 The two pre-existing modified schedule artifacts were not staged or rewritten:
 `output/weekly_break_schedule.csv` and its fingerprint sidecar.

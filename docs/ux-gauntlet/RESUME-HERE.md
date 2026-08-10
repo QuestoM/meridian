@@ -524,10 +524,15 @@ regression was already closed by restoring the polluted override and reproducing
 all 120 channel-days. Waves 3, 4 and 5 are now complete in code and verified; the
 measured record is `audits/remaining-waves-completion-2026-08-10.md`.
 
-The only stated dependency left from P1-P13 is external to the code waves: P13
+Zero code waves remain. Two external owner and data dependencies remain. P13
 needs a real House Number QC report and approved broadcast standards. Its schema,
 importer, API, surface and server-side lock gate are complete, and the empty
 owner-supplied files remain empty rather than carrying invented evidence.
+Rating-currency settlement is implemented behind an off-by-default activation
+flag, but the repository has neither the Jewish-household audience basis nor the
+held-TVR vintage required for the documented trade currency. The owner must
+provide those inputs and decide when to activate settlement. Top and Tail is
+already complete and tested; it is not another remaining wave.
 
 The operational source-size threshold is now 500 lines. Files from 451 through
 499 are not work merely because of their size; functional changes still take
