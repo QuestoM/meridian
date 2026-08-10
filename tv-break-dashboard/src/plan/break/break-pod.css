@@ -161,7 +161,7 @@
    heading can never drift off the column it names. */
 .pod-spot-head,
 .pod-spot {
-  grid-template-columns: 16px 28px 32px minmax(0, 1.4fr) minmax(0, 1.6fr) 96px 92px 72px 72px 64px 56px;
+  grid-template-columns: 16px 28px 32px minmax(0, 1.4fr) minmax(0, 1.6fr) 96px 92px 72px 72px 64px 56px 104px;
 }
 
 /* The heading stays with the list. Real pods run to 38 spots and 1.66 screens,

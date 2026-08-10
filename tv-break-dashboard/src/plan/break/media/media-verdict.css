@@ -1,0 +1,52 @@
+/* The technical verdict as it sits on a spot row.
+ *
+ * Every colour is read from tokens.css and none is written literally here, which
+ * the colour guard enforces across the tree.
+ *
+ * The visual weight is deliberately uneven. A measured FAILURE is the only state
+ * that earns colour and a solid dot, because it is the only one that stops a
+ * commercial going to air. `unavailable` is the state of every row today and is
+ * drawn as quietly as possible: an outlined dot in muted ink. A board where
+ * every row is flagged tells a reader nothing, so absence must not shout.
+ */
+
+.media-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.media-verdict-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  flex: 0 0 auto;
+}
+
+.media-verdict-unavailable {
+  color: var(--muted);
+}
+
+.media-verdict-unavailable .media-verdict-dot {
+  border: 1px solid var(--muted);
+  background: transparent;
+}
+
+.media-verdict-verified {
+  color: var(--teal-ink);
+}
+
+.media-verdict-verified .media-verdict-dot {
+  background: var(--teal);
+}
+
+.media-verdict-failed {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.media-verdict-failed .media-verdict-dot {
+  background: var(--red);
+}

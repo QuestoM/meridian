@@ -43,6 +43,7 @@ from pydantic import BaseModel
 
 from kairos_api import campaigns_assets_constraints as pair_constraints
 from kairos_api import read_cache
+from kairos_api.media_verdict import verdicts_for as media_verdicts
 from kairos_api.break_api_pod_math import (
     against_declared,
     declared_length,
@@ -241,6 +242,11 @@ def build_pod(day: str, rows: Any) -> dict[str, Any]:
         # A lead spot and its short closer. NOT ``positions.top_and_tail`` above,
         # the other thing the trade calls Top and Tail: one campaign holding both
         # position 1 and Last. See docs/top-and-tail-design.md.
+        # The technical verdict on each commercial's own FILE, which is a
+        # different question from the copy-length check above: that one reads
+        # the copy version's declared length, this one reads the file. Rides
+        # the pod payload so the row can print it without one request per spot.
+        "media": media_verdicts(saved["spots"]),
         "creative_pairs": pairs,
         "verification": {"errors": errors, "count": len(errors)},
         "fingerprint": _fingerprint_of(spots),

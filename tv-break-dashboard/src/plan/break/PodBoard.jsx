@@ -1,3 +1,5 @@
+import { ContinuityNote, PodErrors } from './PodBoardNotes';
+import MediaVerdict from './media/MediaVerdict';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Lock, Unlock } from 'lucide-react';
 import { pageText } from '../../shell/format';
@@ -87,6 +89,11 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
   // Over the spots as the surface currently shows them, not only as served, so
   // a move shows its consequence before a save spends a write on it.
   const violations = useMemo(() => positionViolationMap(spots), [spots]);
+  // The technical verdict per row, carried on the pod payload so the board
+  // prints it without one request per spot. An older payload has no media
+  // block at all, and an absent verdict reads as not-checked rather than
+  // as clean, which is what the component's unavailable state is for.
+  const mediaBySpot = useMemo(() => (pod.media && pod.media.spots) || [], [pod]);
   const errors = useMemo(() => verificationList(spots, locale), [spots, locale]);
   const elapsed = useMemo(() => elapsedSeconds(spots), [spots]);
   const coverage = useMemo(() => copyCheckCoverage(spots), [spots]);
@@ -206,23 +213,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
           </span>
         </div>
       </div>
-
-      {continuity.length > 0 && (
-        <p className="pod-continuity">
-          <span className="pod-continuity-label">{label('Where the uncovered seconds sit', 'היכן יושבות השניות הלא מכוסות')}</span>
-          {continuity.map((row) => (
-            <span key={row.key} className="pod-continuity-part">
-              {row.count}, <Figure>{row.seconds}</Figure>
-            </span>
-          ))}
-          <span className="pod-figure-basis">
-            {label(
-              'the dead air before the first spot plus the holes between spots, from the times the traffic file declares. These sit inside the uncovered figure above.',
-              'האוויר המת לפני התשדיר הראשון בתוספת הרווחים בין התשדירים, לפי השעות שקובץ הטראפיק מצהיר עליהן. אלה נמצאים בתוך המספר הלא מכוסה שלמעלה.',
-            )}
-          </span>
-        </p>
-      )}
+      <ContinuityNote continuity={continuity} label={label} />
 
       {missing > 0 && (
         <p className="pod-warning">
@@ -255,18 +246,7 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
         )}
       </div>
 
-      {errors.length > 0 && (
-        <ul className="pod-errors">
-          {errors.map((error) => (
-            <li key={error.key} className={`pod-error pod-error-${error.kind}`}>
-              <button type="button" className="pod-error-open" onClick={() => openSpot(error.spotKey)}>
-                <span className="pod-error-advertiser"><Name>{error.advertiser}</Name></span>
-                <span>{error.detail}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <PodErrors errors={errors} openSpot={openSpot} />
 
       <div className="pod-order-note">
         <p>{orderNote(pod, locale)}</p>
@@ -397,6 +377,9 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
                 </span>
                 <span className={`pod-len${spot.duration.state === 'real' ? '' : ' pod-missing'}`} role="cell">
                   {spot.duration.state === 'real' ? <Figure>{secondsLabel(spot.duration.seconds, locale)}</Figure> : label('length unknown', 'אורך לא ידוע')}
+                </span>
+                <span className="pod-media" role="cell">
+                  <MediaVerdict verdict={mediaBySpot[index]} locale={locale} />
                 </span>
               </li>
             );

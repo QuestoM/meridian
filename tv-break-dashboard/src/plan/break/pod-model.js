@@ -171,6 +171,9 @@ export function spotColumns(locale) {
     { key: 'clock', label: pick('Declared start', 'התחלה מוצהרת') },
     { key: 'elapsed', label: pick('Elapsed', 'זמן שחלף') },
     { key: 'len', label: pick('Length', 'אורך') },
+    // The file's own technical verdict, last because it is about the asset
+    // rather than the booking every column before it describes.
+    { key: 'media', label: pick('File', 'קובץ') },
   ];
 }
 
