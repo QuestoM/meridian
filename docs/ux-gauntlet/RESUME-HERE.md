@@ -8,10 +8,22 @@ handed. Everything below was measured, not remembered.
 
 ## THE JUDGING ROUND, where it stands 2026-08-10
 
-**ALL TWELVE BUILT PIECES NOW CARRY A ROUND.** PASSED: P1, P2, P4, P7, P11.
-FAILED: P3, P5, P6, P8, P10. PARTIAL, no verdict claimed: P9, P12. Not started:
-P13. All through `update_state.py`, none hand-edited. Before today `state.json`
-carried eight rounds, all SPEC and wave zero.
+**EVERY PIECE NOW CARRIES A ROUND, INCLUDING P13.** PASSED: P1, P2, P4, P7, P11.
+FAILED: P3, P5, P6, P8, P10. PARTIAL, no verdict claimed: P9, P12. BUILDING,
+backend only: P13. All through `update_state.py`, none hand-edited. Before today
+`state.json` carried eight rounds, all SPEC and wave zero; it carries 21.
+
+**P13 existed nowhere and now has a tested backend.** `media_store.py`,
+`media_verdict.py`, `media_api.py`, `data/media_assets.csv` and 11 tests. It
+ships with an EMPTY store deliberately: nothing in this repository observes a
+media file, so all four technical facts are honestly unavailable, and a
+fabricated "verified" would clear a corrupt file to air. The rule the design
+turns on: **unavailable is not a pass and not a failure, and only a MEASURED
+failure blocks a lock** — if absence blocked, no pod could be locked at all today.
+**What remains is the SURFACE**, and I deliberately did not ship an unwired
+component for it: `PodBoard.jsx` is at exactly the 450-line cap, so the next step
+is to split that file first, then print the verdict on the spot row. A component
+nothing renders is the inert-lever class this campaign is named after.
 
 **P9 and P12 were stopped mid-round by a controlled stop and neither invented a
 verdict.** P9 reached about a third of bar 1; its one hard number is a first
