@@ -8,12 +8,35 @@ handed. Everything below was measured, not remembered.
 
 ## THE JUDGING ROUND, where it stands 2026-08-10
 
-**Published: P1, P4, P7 PASSED. P3, P5, P6, P8, P10 FAILED.** Eight of thirteen
-pieces judged, all through `update_state.py` and none hand-edited. Before today
-`state.json` carried eight rounds, all SPEC and wave zero; it now carries 16.
+**Published: P1, P2, P4, P7 PASSED. P3, P5, P6, P8, P10 FAILED.** Nine of
+thirteen pieces judged, all through `update_state.py` and none hand-edited.
+Before today `state.json` carried eight rounds, all SPEC and wave zero.
 
-**Still unjudged: P2, P9, P11, P12.** A P2 critic was running when the session
-ended. P9, P11 and P12 were deliberately held back, because eight critics on one
+**P2's own largest gap is the most dangerous single finding of the round, and it
+did not cost it the bar: THE PRODUCT WILL FREEZE, NAME AND PUBLISH A PLAN WORTH
+₪0 ON THE OPERATOR'S OWN CHANNEL WITHOUT ONE WORD OF WARNING.** Measured: with
+the plan collapsed to 0 breaks, the run reported done, the freeze button was
+enabled, and the version rendered as "0 ברייקים · ₪0" in the SAME grey type as
+four neighbours reading "2,391 ברייקים · ₪40.9M". The only place the collapse is
+stated in figures is the diff, behind a click. The story's done-condition is that
+everyone downstream reads the published plan, so this ships them a zero and calls
+it a version. Fix: `PublishPanel.jsx` (compare owned breaks and revenue against
+the predecessor before enabling the freeze; a collapse to zero raises the amber
+note the panel already has and demands a second deliberate act),
+`RunPanel.jsx`/`use-plan-surface.js:240` (a zero-break run is a refusal to be
+quiet, not a completion toast), `week_api_publish.py` (publish should carry the
+owned-vs-predecessor delta it already computes for the diff route).
+
+**Two harness facts from P2 worth keeping.** It RETRACTED both of its first two
+findings after reproducing them, and said so. And another critic's state reached
+its ISOLATED /tmp mirror: `data/` there was rewritten twice by the server's own
+restore machinery with NO restore request in its access log, cycling in a
+historical snapshot that carried a rival `operator_channel` and a constraint row
+literally named `CRITIC-P8-PROBE-ROW`. The live tree was never touched. Worth a
+look on its own terms: a restore that rewrites `data/` with nothing in the log
+is a product behaviour, not only a test artifact.
+
+**Still unjudged: P9, P11, P12.** They were deliberately held back, because eight critics on one
 machine produced a 44,866 ms first paint and bar 1 is a TIMING bar, so
 concurrency poisons the measurement it exists to take.
 
