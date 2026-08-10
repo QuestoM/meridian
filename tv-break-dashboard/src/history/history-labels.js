@@ -293,7 +293,28 @@ export const FORCE_LABELS = {
   retention_impact_per_break: ['Retention given up per break', 'שימור שנגרע לכל ברייק', 'ratio'],
   revenue_weight: ['Weight on revenue against retention', 'המשקל של ההכנסה מול השימור', 'ratio'],
   risk_lambda: ['Caution level', 'רמת זהירות', 'ratio'],
+  // A record rather than a number, and the only one on this readout. It arrives
+  // as {window, day_fraction}, both null when no cap is configured, which is the
+  // shipped default. Without this row it fell through to String(key) beside an
+  // [object Object], printing a raw engine key next to nothing readable, one
+  // line above nine guardrails rendered correctly in Hebrew.
+  airtime_caps: ['Airtime caps', 'תקרות זמן פרסום', 'record'],
 };
+
+// The members of a recorded RECORD, kept out of FORCE_LABELS on purpose. That
+// map is pinned by a test to exactly the keys the run log records at the top
+// level, and it should stay that way: a nested member is not a recorded
+// guardrail, and adding one there would quietly widen what the guard asserts.
+const RECORD_MEMBER_LABELS = {
+  window: ['Cap over a window of hours', 'תקרה על חלון שעות'],
+  day_fraction: ['Cap as a share of the day', 'תקרה כחלק מהיממה'],
+};
+
+export function recordMemberLabel(key, locale) {
+  const found = RECORD_MEMBER_LABELS[key];
+  if (!found) return String(key || '');
+  return locale === 'he' ? found[1] : found[0];
+}
 
 export function forceLabel(key, locale) {
   const found = FORCE_LABELS[key];

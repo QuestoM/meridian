@@ -114,11 +114,27 @@ console.log(JSON.stringify({wrong, person: actorLabel('admin', 'he'),
   unknown: forceLabel('something_nobody_labelled', 'he')}));
 """
 
-# Every guardrail and assumption the run log records, present in every record of
-# output/run_log.jsonl. Re-measured this round: 545 records, and the union of the
-# recorded keys equals their intersection, so all fifteen are on all of them. The
-# log is append-only, so the record count grows and the key set does not.
+# Every guardrail and assumption the run log records, from output/run_log.jsonl.
+#
+# RE-MEASURED 2026-08-10, AND THE OLD SENTENCE HERE IS NOW FALSE. It said 545
+# records and that the union of the recorded keys EQUALS their intersection, so
+# all fifteen were on all of them. Today: 852 records, union 16, intersection 15.
+# The log is append-only, so the count grew as expected, but the key set grew
+# too, which that sentence said could not happen.
+#
+# The sixteenth is airtime_caps, and the gap is honest rather than a defect: the
+# field is newer than the older records, so runs made before it existed cannot
+# carry it. What this list pins is therefore the keys the log records AT ALL, not
+# the keys present on every record. Anything that must hold on every record needs
+# its own assertion, because this one no longer implies it.
 RECORDED_FORCE_KEYS = sorted((
+    # A RECORD, not a number, and the only one here. A blind critic found it
+    # rendering as the raw key beside [object Object], one line above nine
+    # guardrails rendered correctly in Hebrew, because it had no entry and fell
+    # through to String(). Its own two members are labelled separately and are
+    # deliberately NOT in this list: it pins the keys the run log records at the
+    # TOP level, and a nested member added here would quietly widen it.
+    "airtime_caps",
     "default_break_length_seconds", "default_max_breaks", "first_break_multiplier",
     "gold_breaks_max_per_day", "max_ad_seconds_per_hour", "max_breaks_per_hour",
     "max_daily_ad_seconds", "min_break_spacing_seconds", "min_retention_floor",

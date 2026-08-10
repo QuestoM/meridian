@@ -14,6 +14,7 @@ import {
   actorHint,
   actorLabel,
   forceLabel,
+  recordMemberLabel,
   forceUnit,
   pair,
   stampLabel,
@@ -67,6 +68,17 @@ function forceValue(key, value, locale) {
   if (unit === 'fraction') return formatPercent(Number(value) * 100, locale);
   if (unit === 'ratio') return formatRatio(value, locale);
   if (unit === 'count') return formatNumber(value, locale);
+  // A RECORD IS NOT A NUMBER AND MUST NOT FALL THROUGH TO String(). It used to,
+  // and printed [object Object]: an absent value shown as neither real,
+  // unavailable nor unknown, which is the one thing the tri-state forbids. A
+  // record whose every member is empty is NOT SET, said in those words; a record
+  // with some members set names the ones that are, so "partly configured" can
+  // never read the same as "off".
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const set = Object.keys(value).filter((name) => value[name] !== null && value[name] !== undefined);
+    if (!set.length) return pageText(locale, 'Not set', 'לא הוגדר');
+    return set.map((name) => recordMemberLabel(name, locale)).join(', ');
+  }
   return String(value);
 }
 
