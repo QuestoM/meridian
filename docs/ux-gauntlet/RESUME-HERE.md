@@ -8,15 +8,38 @@ handed. Everything below was measured, not remembered.
 
 ## THE JUDGING ROUND, where it stands 2026-08-10
 
-**Published: P1 PASSED, P4 PASSED, P7 PASSED, P10 FAILED.** Four of thirteen
-rounds are on the board, all through `update_state.py` and none hand-edited.
-Before today `state.json` carried eight rounds, all SPEC and wave zero.
+**Published: P1, P4, P7 PASSED. P3, P5, P6, P8, P10 FAILED.** Eight of thirteen
+pieces judged, all through `update_state.py` and none hand-edited. Before today
+`state.json` carried eight rounds, all SPEC and wave zero; it now carries 16.
 
-**Still unjudged: P2, P3, P5, P6, P8, P9, P11, P12.** Fresh critics were running
-for P2, P3, P5, P6 and P8 when the session ended; P9, P11 and P12 were
-deliberately held back, because eight critics on one machine produced a
-44,866 ms first paint and bar 1 is a TIMING bar, so concurrency poisons the
-measurement it exists to take.
+**Still unjudged: P2, P9, P11, P12.** A P2 critic was running when the session
+ended. P9, P11 and P12 were deliberately held back, because eight critics on one
+machine produced a 44,866 ms first paint and bar 1 is a TIMING bar, so
+concurrency poisons the measurement it exists to take.
+
+**Every one of the five failures failed on bar 4 or on a single clause, never on
+speed.** P3, P5, P6 and P8 all MET their stopwatch targets by wide margins (P8 at
+90 ms against a 27,000 to 53,000 ms baseline; P5's preview at 124 ms against a
+3 s target; P3's money verdict at 3.2 ms against 500 ms). The product is fast.
+What it is not yet is honest at the edges, and that is a different repair.
+
+**Four more located fixes, from the three verdicts that closed the round:**
+- **P3, the worst of the round.** JS-3's own sequence dead-ends silently: with a
+  pending move, pinning a gold break re-plans the segment, deletes the edited
+  chip, and leaves an ENABLED Save that issues zero HTTP requests, after which
+  every score call 404s. `break_api.py:218-232` plus the three day-board files.
+- **P5.** The condition builder saves a live rule from an entirely empty form:
+  two clicks, 201 Created, store 7→9 rows, no preview, no cost, no validation.
+  `/api/constraints/effect` — which P5's own contract publishes as "what a
+  constraint would do before it is saved" — is referenced ZERO times in the
+  frontend while its sibling is wired twice. `ConstraintBuilder.jsx:177` and 325.
+- **P8.** `airtime_caps` renders as `[object Object]` beside its raw engine key,
+  one line above nine guardrails rendered correctly in Hebrew. An absent value
+  shown as neither real, unavailable nor unknown. `HistoryDetail.jsx:61` and
+  `history-labels.js:298`. NOTE: that field is recent work of mine.
+- **P3 again.** The board prints a gap of "-0 ₪ (0%)" at rest with nothing
+  edited, deterministic over three reads, because `day-board-model.js:236`
+  compares a whole-day sum against a per-break tolerance.
 
 **Eight of the first nine critics went idle without ever reporting**, after three
 wake attempts each. One had to send three times before a message landed. They
