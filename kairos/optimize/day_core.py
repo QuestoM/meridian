@@ -28,6 +28,8 @@ from __future__ import annotations
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from kairos.optimize.guardrails import Guardrails
+from kairos.optimize.goal_seam import DeliveredPoints, GoalOrder
+from kairos.optimize.goal_seam_integration import prepare_goal_inputs
 from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.qh_billing import maybe_restate
@@ -50,6 +52,8 @@ def _optimize_one_day(
     operator_channel: str = "",
     refine: bool = True,
     objective_mode: str = "blend",
+    goal_orders: Optional[Sequence[GoalOrder]] = None,
+    goal_delivered: Optional[Mapping[str, DeliveredPoints]] = None,
     optimize_fn: Callable[..., OptimizationResult] = optimize_breaks,
     pricing: Optional[Any] = None,
 ) -> OptimizationResult:
@@ -77,10 +81,11 @@ def _optimize_one_day(
     the call. ``refine`` is forwarded unchanged (the frontier's ``refine=False`` is a
     deliberate performance choice, not incoherence).
 
-    ``objective_mode`` is forwarded to the primitive: ``'blend'`` (the default,
-    every shipped path) keeps the convex-blend behaviour byte-identical, while
-    ``'revenue_net'`` maximises the ILS net directly. It is a keyword pass-through so
-    no default caller changes.
+    ``objective_mode`` is normally forwarded to the primitive. A real applicable
+    rating goal folds into the demand ranking and upgrades the default blend to a
+    commitment-aware net objective shared by every optimizer tier. ``goal_orders``
+    and ``goal_delivered`` let a multi-day caller preload those stores once. With
+    no real order, the mode and optimizer arguments stay unchanged.
 
     ``pricing`` is the caller's live :class:`~kairos.optimize.pricing.PricingModel`,
     used only for the owner-gated ``enable_qh_settlement`` flag: when on, the
@@ -100,20 +105,33 @@ def _optimize_one_day(
         inventory_pool=inventory_pool,
         campaigns=campaigns,
     )
+    demand_weights, effective_mode, goal_net_of = prepare_goal_inputs(
+        segments,
+        demand_weights,
+        pacing_today,
+        objective_mode,
+        orders=goal_orders,
+        delivered_of=goal_delivered,
+    )
     merged_pins, merged_overrides = _constraint_inputs(
         segments, constraints, overrides, placement_pins,
         operator_channel=operator_channel,
     )
-    result = optimize_fn(
-        segments,
-        guardrails,
+    optimize_kwargs = dict(
         revenue_weight=revenue_weight,
         risk_lambda=risk_lambda,
         overrides=merged_overrides,
         placement_pins=merged_pins,
         demand_weights=demand_weights,
         refine=refine,
-        objective_mode=objective_mode,
+        objective_mode=effective_mode,
+    )
+    if goal_net_of is not None:
+        optimize_kwargs["net_of"] = goal_net_of
+    result = optimize_fn(
+        segments,
+        guardrails,
+        **optimize_kwargs,
     )
     # Owner-gated settlement currency: an exact identity (the same result object)
     # until pricing_activation.qh_settlement is switched on.

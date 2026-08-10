@@ -271,6 +271,14 @@ def build_weekly_schedule(
     # leave every weight at 1.0, so the schedule is byte-identical to today.
     inventory_pool = load_inventory()
     campaigns = load_campaigns()
+    # Goal orders share the same once-per-export I/O contract. The default store
+    # currently contains demo rows only, so this is an empty list and the shared
+    # day core remains byte-identical. Delivery is not read until a real order
+    # exists.
+    from kairos.optimize.goal_seam import load_delivered_points, load_goal_orders
+
+    goal_orders = load_goal_orders()
+    goal_delivered = load_delivered_points() if goal_orders else {}
     # Pacing urgency needs a reference date. We pass it in (deterministic, no
     # datetime.now in the math); a caller that omits it gets none, so even with
     # campaign data present the pacing signal stays inert until a date is given.
@@ -327,6 +335,8 @@ def build_weekly_schedule(
             placement_pins=placement_pins,
             operator_channel=operator_channel,
             objective_mode=objective_mode,
+            goal_orders=goal_orders,
+            goal_delivered=goal_delivered,
             optimize_fn=optimize_breaks,
             pricing=pricing,
         )

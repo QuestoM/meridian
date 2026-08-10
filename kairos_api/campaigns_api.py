@@ -30,6 +30,7 @@ it does price, as an agency condition, and says exactly what that covers.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -319,6 +320,35 @@ def list_campaigns(request: Request = None) -> dict[str, Any]:
         },
         **commitment.vocabularies(),
     }, request)
+
+
+@router.get("/campaigns/goal-orders")
+def goal_orders(as_of: str = "", include_demo: bool = False,
+                request: Request = None) -> dict[str, Any]:
+    """Goal-order feasibility on the owned channel, with its stated basis."""
+    from kairos_api import campaigns_goal_order, channel_scope
+
+    try:
+        reference = date.fromisoformat(as_of) if as_of else date.today()
+    except ValueError:
+        raise store.refuse(
+            400,
+            "as_of must be an ISO date (YYYY-MM-DD)",
+            "as_of חייב להיות תאריך ISO בתבנית YYYY-MM-DD",
+        ) from None
+    channel = channel_scope.operator_channel()
+    if not channel:
+        raise store.refuse(
+            409,
+            "The operator channel is not configured, so goal orders cannot be scoped",
+            "ערוץ המפעיל אינו מוגדר, ולכן אי אפשר לתחום את הזמנות היעד",
+        )
+    payload = campaigns_goal_order.goal_orders_read(
+        today=reference,
+        include_demo=include_demo,
+        channel=channel,
+    )
+    return CLIENTS_WALL.stamp(payload, request)
 
 
 @router.post("/campaigns", status_code=201)

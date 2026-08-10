@@ -386,3 +386,32 @@ def test_the_whole_read_runs_on_the_data_on_disk() -> None:
     assert payload["seam"]["inert_en"]
     assert payload["orders"] == []
     assert payload["vocabularies"]["order_kinds"]
+
+
+def test_the_http_read_is_scoped_and_uses_a_caller_supplied_date(monkeypatch) -> None:
+    from kairos_api import campaigns_api, campaigns_goal_order, channel_scope
+
+    monkeypatch.setattr(channel_scope, "operator_channel", lambda: "רשת 13")
+    captured = {}
+
+    def fake_read(**kwargs):
+        captured.update(kwargs)
+        return {"orders": [], "seam": {"is_identity": True}}
+
+    monkeypatch.setattr(campaigns_goal_order, "goal_orders_read", fake_read)
+    payload = campaigns_api.goal_orders(as_of="2025-05-01", include_demo=True)
+    assert captured == {
+        "today": TODAY,
+        "include_demo": True,
+        "channel": "רשת 13",
+    }
+    assert payload["orders"] == []
+
+
+def test_the_http_read_refuses_an_invalid_reference_date() -> None:
+    from fastapi import HTTPException
+    from kairos_api import campaigns_api
+
+    with pytest.raises(HTTPException) as exc:
+        campaigns_api.goal_orders(as_of="01-05-2025")
+    assert exc.value.status_code == 400

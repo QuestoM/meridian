@@ -98,23 +98,23 @@
       }
     ],
     "tree_note_he": "מדידות גל 0 בקובץ הזה נלקחו מעץ העבודה ולא מקומיט: בזמן המדידה הקבצים של חמשת החלקים היו על הדיסק ועדיין לא נכנסו להיסטוריה. ה־HEAD שנרשם כאן הוא זה שהיה בתוקף באותו רגע.",
-    "updated_at": "2026-08-10T16:52:20+03:00"
+    "updated_at": "2026-08-10T18:05:48+03:00"
   },
   "campaign": {
     "title_he": "גאונטלט החוויה של מרידיאן",
     "title_en": "Meridian experience gauntlet",
     "subtitle_he": "בנייה מחדש של חוויית המפעיל עד שהיא עוברת את הרף",
     "phase": {
-      "id": "code_waves_complete_owner_input_pending",
-      "label_he": "כל גלי הקוד הושלמו",
-      "label_en": "code waves complete",
+      "id": "all_code_waves_complete_owner_input_pending",
+      "label_he": "כל גלי הקוד 0 עד 6 הושלמו",
+      "label_en": "all code waves complete",
       "since": "2026-08-10",
-      "summary_he": "גל 0 וכל החלקים P1 עד P13 נבדקו מחדש. P1 עד P12 עברו. המימוש של P13 עבר, והמצב החי שלו ממתין רק לדוח QC אמיתי ולתקני שידור מאושרים מהבעלים.",
+      "summary_he": "גלים 0 עד 6 הושלמו ונבדקו. P1 עד P12 עברו, P13 הושלם בקוד וממתין לקלט QC ותקני שידור אמיתיים מהבעלים.",
       "build_started": true,
-      "build_started_note_he": "כל עבודת הקוד של גלים 0, 1 ו-2 הושלמה ונבדקה.",
+      "build_started_note_he": "כל עבודת הקוד של גלים 0 עד 6 הושלמה ונבדקה.",
       "next_action_he": "לחבר ל-P13 דוח QC אמיתי לפי House Number ולמלא תקני שידור מאושרים. אין להמציא נתונים כדי לסגור את התלות.",
       "next_action_owner_he": "בעלי מערכת המדיה ותקני השידור",
-      "next_action_source": "docs/ux-gauntlet/audits/completion-reaudit-2026-08-10.md"
+      "next_action_source": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md"
     },
     "references_product_wide": [
       {
@@ -134,7 +134,10 @@
       "tests_collected_correction_he": "תיקון למספר שהקמפיין נשא. הספירות הקודמות, 3102 ואחר כך 3234, נלקחו מהשורש של המאגר, ושם pytest אוסף גם ספריית צד שלישי שמוטמעת תחת meridian/ עם 20 קבצי בדיקה משלה. השורש מחזיר 3281 היום; חבילת הבדיקות של המוצר עצמו היא 1621. המשמעות היא שהמספר בתדריך, 1438 עוברות ו־4 מדולגות, היה קרוב לאמת לגבי המוצר, והמספר שהמפרט העמיד במקומו מדד גם קוד שאינו שלנו.",
       "tests_collected_repo_root": 3281,
       "tests_collected_repo_root_note_he": "כולל את הספרייה המוטמעת, ולכן אינו מספר על המוצר.",
-      "tests_skipped": 6
+      "tests_skipped": 6,
+      "post_gauntlet_waves_status": "passed",
+      "post_gauntlet_waves_note_he": "גלים 3 עד 6 עברו את השערים הממוקדים; תוכנית ה-golden נשארה זהה על מאגר היעדים הנוכחי, שכולו demo.",
+      "post_gauntlet_waves_source": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md"
     },
     "provenance_warning_he": "נסגר בראיות. הכותרת של מדידת הבסיס נקבה ב־342a2896, שהוא 31 קומיטים ושלושה עשר ימים לפני העץ שממנו המספרים נלקחו בפועל. אילו זה היה נכון, רף 3 היה שבור לכל הקמפיין, כי כל מבקר בכל גל משווה מול הקובץ הזה. זה לא היה נכון: המדידות נלקחו מול 5a80a709, רק ההעתקה של ההאש הייתה שגויה, והכותרת תוקנה. רצפת הנסיגה תקפה כפי שנרשמה.",
     "provenance_warning_source": "docs/ux-gauntlet/discovery/06-baseline.md, הפסקה שכותרתה מקור, נסגר בראיות; ואימות עצמאי שנרשם כאן",
@@ -2297,7 +2300,8 @@
         "P13-R1",
         "P13-R2",
         "P13-R3",
-        "P13-R4"
+        "P13-R4",
+        "CAMPAIGN-WAVES-3-6-CLOSE-2026-08-10"
       ]
     }
   ],
@@ -4244,6 +4248,56 @@
       "round": 3,
       "at": "2026-08-10T16:52:20+03:00",
       "id": "P12-R3"
+    },
+    {
+      "id": "CAMPAIGN-WAVES-3-6-CLOSE-2026-08-10",
+      "changed_he": "גלים 3 עד 6 של הקמפיין הרחב נסגרו בקוד ונבדקו. גל 3 מחזיק את ארבע מחלקות תקלות הבעלים; גל 4 כולל mentions, drill-down וכיסוי מלא לרשומת קמפיין; גל 5 מחבר יעד אמיתי לליבת היום ולכל שכבות האופטימיזציה; גל 6 נשאר משוחזר וזהה ל-golden.",
+      "verdict": "pass",
+      "verdict_he": "עבר",
+      "verdict_detail_he": "כל גלי הקוד שהוגדרו בתוכנית הקמפיין הושלמו. הנתונים הנוכחיים מכילים יעדי demo בלבד, ולכן חיבור גל 5 נשאר no-op מדויק על התוכנית השמורה. P13 עדיין ממתין לקלט בעלים אמיתי ואינו מוצג כסגור חי.",
+      "measurements": [
+        {
+          "label_he": "בדיקות גל 3 בקבוצה הממוקדת",
+          "value": 34,
+          "unit": "tests",
+          "note_he": "עברו"
+        },
+        {
+          "label_he": "בדיקות גל 4 בקבוצת הכיסוי וה-mentions",
+          "value": 164,
+          "unit": "tests",
+          "note_he": "עברו"
+        },
+        {
+          "label_he": "בדיקות גל 5 בקבוצת היעד",
+          "value": 43,
+          "unit": "tests",
+          "note_he": "עברו"
+        },
+        {
+          "label_he": "שער המנוע וה-golden",
+          "value": 71,
+          "unit": "tests",
+          "note_he": "עברו"
+        }
+      ],
+      "evidence": [
+        {
+          "path": "docs/ux-gauntlet/audits/remaining-waves-completion-2026-08-10.md"
+        },
+        {
+          "path": "tests/test_wave3_owner_defects.py"
+        },
+        {
+          "path": "tests/test_assistant_campaign_tool.py"
+        },
+        {
+          "path": "tests/test_goal_seam_integration.py"
+        }
+      ],
+      "piece_id": "P13",
+      "round": 5,
+      "at": "2026-08-10T18:05:48+03:00"
     }
   ],
   "decisions": [

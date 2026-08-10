@@ -227,6 +227,20 @@ changes a data model rather than a screen and deserves its own wave.
 **Wave six, the engine.** The remaining regression, and whatever the golden test
 still disagrees about after it.
 
+## Closure update, 2026-08-10
+
+All four post-gauntlet waves are now closed in code. Wave 6 had already finished
+through the data restore and 120-day golden reproduction. Wave 5 is now wired at
+the shared day core: real goal orders affect both demand ranking and the scalar
+used by greedy, F1 and DP, while the demo-only store leaves the shipped plan
+byte-identical. Wave 4 now includes the full scoped campaign record in addition
+to the mention, drill-down, break, pod, pacing, restriction-cost and account
+coverage. Wave 3's four owner-reported classes have focused guards, and the
+dashboard build plus card, direction and accent guards pass.
+
+The measured commands and the remaining external P13 dependency are recorded in
+`audits/remaining-waves-completion-2026-08-10.md`.
+
 ## D. Standing, not a wave
 
 - Check `data/kairos_settings.json` and the plan fingerprint before every commit.

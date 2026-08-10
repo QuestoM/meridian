@@ -62,9 +62,10 @@ PLACEHOLDERS = ("TODO", "TBD", "FIXME", "<fill", "XXX", "...tbd")
 # A file inventory row: | `path/to/file.py` | 312 lines | note |
 INVENTORY_ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(\d+)\s+lines?\s*\|")
 
-# The line cap from the size law. A dossier that hands a builder a file already
-# at the cap without saying so buys a round of surprise.
-SIZE_CAP = 450
+# The operational cap was raised by the owner on 2026-08-10. Existing files in
+# the 451-499 band are no longer wave work by themselves; 500 remains the point
+# where a dossier must force an explicit split decision.
+SIZE_CAP = 500
 
 PINNED = {"locale": "he", "direction": "rtl"}
 

@@ -271,59 +271,40 @@ Read honestly:
 
 ---
 
-## 6. The call sites the lead must land
+## 6. The live integration
 
-Neither is in this piece's owned paths, and both are one line.
+Both halves land once at `kairos/optimize/day_core.py`, the shared call site for
+the live day plan, scenario path and weekly exporter. The adapter in
+`kairos/optimize/goal_seam_integration.py` prepares the goal-folded demand
+weights, the effective objective mode and an optional `net_of` callable.
 
-**A. The ranking half, into the single demand fold.** In
-`kairos/service.py::_assemble_demand_weights`, replace the closing `return
-build_demand_weights(...)` with the same call bound and folded:
+No real applicable order returns the caller's objective mode unchanged and no
+callable. That is operational identity as well as arithmetic identity: existing
+test doubles and the shipped demo-only store receive the same optimizer argument
+shape they received before this connection.
 
-```python
-weights = build_demand_weights(
-    segments, engine,
-    inventory_weights=inventory_weights,
-    pacing_weights=pacing_weights,
-)
-return goal_seam.fold_into_demand_weights(weights, segments, today)
-```
+A real applicable order upgrades an ordinary blend run to `revenue_net` and
+passes the goal-adjusted scalar through `optimize_breaks(net_of=...)`. Greedy,
+F1, DP and the final never-worse comparison already share that scalar, so no
+later tier can optimise the commitment back out. Reported revenue still comes
+from the ordinary result builder and is not restated.
 
-plus `from kairos.optimize import goal_seam` at the top. This is the one fold
-every optimize path reaches through `day_core._optimize_one_day`, so the live day
-plan, the scenario slider and the weekly export all get it at once. It is proved
-inert on today's data. Section 4.1 is the honest caveat: land it for correctness
-and composition, not expecting it to move anything until the refiner reads it.
-
-**B. The objective half, into the net-mode primitive.** In
-`kairos/optimize/optimizer.py`, inside the existing `if net_mode:` block:
-
-```python
-_net_of = goal_seam.goal_adjusted_net(
-    segment_net_revenue, originals, goal_seam.load_goal_orders(), pacing_today,
-)
-```
-
-This is the half that measurably works. It needs a reference date reaching
-`optimize_breaks`, which today stops at `day_core`. Two honest options for the
-lead: thread the existing `pacing_today` one level further, or have `day_core`
-build the wrapper and pass it in. The seam is indifferent to which.
-
-Both call sites are gated by the same arithmetic identity: with no real
-goal-based order on disk, `load_goal_orders()` is empty, `goal_adjusted_net`
-returns the original function object, and `fold_into_demand_weights` returns its
-input map. The golden cannot move.
+The weekly exporter preloads goal orders once and reads delivered points only
+when a real order exists. This preserves the existing once-per-export I/O
+contract rather than reading two CSV files for every channel-day.
 
 ---
 
-## 7. What this piece did not reach
+## 7. What remains outside the live integration
 
 * **No dashboard surface.** The order kind and the feasibility read are on the
   API record and in both languages, and nothing renders them yet. The hook is
   `record["order"]` on every campaign from `campaigns_with_flights`, and
   `campaigns_goal_order.goal_orders_read()` for the pre-flight answer.
-* **No route.** `kairos_api/campaigns_api.py` is not this piece's to edit. The
-  read is a function, not an endpoint. One `@router.get("/campaigns/goal-orders")`
-  returning `goal_orders_read()` lands it.
+* **The read is now reachable.** `GET /api/clients/campaigns/goal-orders` returns
+  the scoped pre-flight result with a caller-supplied reference date, and Kai's
+  `get_campaign` includes the matching `goal_preflight` block for a goal-based
+  order.
 * **G1-c cannot be measured on real data.** The plan on disk covers 2024-11 on
   the operator channel; every stored goal's window is 2025-04 to 2025-05. So
   `expected_supply_per_day` honestly returns `None` for every stored order and
@@ -332,6 +313,6 @@ input map. The golden cannot move.
 * **G1-d is already true and was not rebuilt.** The pacing board already reads
   the goal as its denominator and the make-good ledger already settles a
   shortfall. Nothing here changed either, deliberately.
-* **The refiner erasure is unfixed.** Section 4.1 is a finding about the whole
-  demand-weight class. Fixing it means the group objective reading the weights,
-  which is an engine internal this piece does not own.
+* **There is still no real order on disk.** All stored goals are demo rows. The
+  integration is exercised with real-order fixtures, while the production-data
+  proof is necessarily the byte-identical no-op until an actual booking lands.

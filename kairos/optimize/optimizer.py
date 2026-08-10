@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import replace
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 from kairos.optimize.guardrails import Break, Guardrails, evaluate, is_compliant
 from kairos.optimize.objective import weighted_objective
@@ -105,6 +105,7 @@ def optimize_breaks(
     refine: bool = True,
     dp_refine: bool = True,
     objective_mode: str = OBJECTIVE_BLEND,
+    net_of: Optional[Callable[[ProgramSegment, int], float]] = None,
 ) -> OptimizationResult:
     """Allocate breaks across ``segments`` to maximise the weighted objective.
 
@@ -158,8 +159,13 @@ def optimize_breaks(
     ``'revenue_net'``, whose greedy step values each break by its marginal net
     revenue in ILS and adds it only while that net is positive and the schedule
     stays compliant. Net mode requires a real rating and rate on at least one
-    segment (else it raises, never a degenerate plan) and ships pure greedy (the
-    blend refiner optimises the blend, so it runs only in blend mode).
+    segment (else it raises, never a degenerate plan); the greedy step and both
+    refiner tiers all evaluate that same net scalar.
+
+    ``net_of`` optionally supplies the scalar used by every tier in net mode.
+    It is ignored in blend mode. The default remains
+    :func:`kairos.optimize.revenue_net.segment_net_revenue`; the goal-order seam
+    supplies a wrapper only while a real, applicable commitment is under pressure.
 
     ``refine`` (default ``True``) runs the per-channel-day F1 refiner
     (:mod:`kairos.optimize.refiner`) after greedy converges, from the greedy
@@ -206,7 +212,7 @@ def optimize_breaks(
         from kairos.optimize.revenue_net import require_monetizable, segment_net_revenue
 
         require_monetizable(originals)
-        _net_of = segment_net_revenue
+        _net_of = net_of or segment_net_revenue
 
     # Decide against the risk-adjusted coefficient (more conservative where the
     # estimate is uncertain, else the point); originals kept for reporting.

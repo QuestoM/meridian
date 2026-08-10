@@ -240,6 +240,7 @@ def goal_orders_read(
     today: Optional[date] = None,
     include_demo: bool = False,
     plan_path: Optional[str | Path] = None,
+    channel: str = "",
 ) -> dict[str, Any]:
     """Every goal-based order the engine can see, and what the seam is doing with them.
 
@@ -249,10 +250,13 @@ def goal_orders_read(
     """
     reference = today or date.today()
     orders = goal_seam.load_goal_orders(include_demo=include_demo)
+    if channel:
+        orders = [order for order in orders if order.channel == channel]
     delivered_of = goal_seam.load_delivered_points()
     state = goal_seam.seam_state(orders)
     return {
         "as_of": reference.isoformat(),
+        "scope": {"channel": channel, "scoped": bool(channel)},
         "seam": {**state, **words.seam_words(bool(state["is_identity"]))},
         "orders": [
             goal_order_read(

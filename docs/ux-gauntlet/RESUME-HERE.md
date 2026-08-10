@@ -517,25 +517,21 @@ counterexample.** I wanted to split the day at `_window_ends`; that closes the
 three LOCAL guardrails and not the two DAILY ones, and the split doubles the
 reported objective by shipping a plan that breaches the daily cap.
 
-## What is open, ranked
+## Current handoff after closing waves 3 through 6
 
-1. **Wave five, the goal-based order.** Dossier at `dossiers/G1.md`. The headline:
-   the goal is ALREADY modelled on 51 to 55 campaigns and reaches the optimizer
-   ZERO times. Not "add a goal": carry it across one seam.
-2. **Wave four R2**, the mention drill-down. Dossier at `dossiers/K2.md`.
-3. **Top and Tail**, in flight, and the owner asked for full handling at every
-   level.
-4. **The rating currency**, re-audit finding 3. Probably the largest correctness
-   gap left in the product.
-5. **Kai's remaining coverage**: no propose tool records a remedy, so it can read
-   a problem it cannot act on. Also the campaign record, what a restriction would
-   cost, and the account-administrator persona with zero coverage.
-6. **CLOSED, both of them, and both were classes rather than sites.**
-   `advertisers.py::_write_frame` was one of FIVE writers projecting through a
-   hardcoded column list; `f2aa1bc6`. The version-store name was one of TWO
-   callers naming a file the store had never heard of; `af928059`, and fixing it
-   forced a register split because putting campaigns in the full restore set
-   would make restoring a settings version revert campaign bookings.
+The broader campaign is no longer waiting at the end of wave 2. Wave 6's engine
+regression was already closed by restoring the polluted override and reproducing
+all 120 channel-days. Waves 3, 4 and 5 are now complete in code and verified; the
+measured record is `audits/remaining-waves-completion-2026-08-10.md`.
+
+The only stated dependency left from P1-P13 is external to the code waves: P13
+needs a real House Number QC report and approved broadcast standards. Its schema,
+importer, API, surface and server-side lock gate are complete, and the empty
+owner-supplied files remain empty rather than carrying invented evidence.
+
+The operational source-size threshold is now 500 lines. Files from 451 through
+499 are not work merely because of their size; functional changes still take
+precedence, and a file at or above 500 requires an explicit split decision.
 
 ## Closed today, in case a stale note sends you back to one
 

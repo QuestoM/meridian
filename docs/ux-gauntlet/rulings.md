@@ -524,3 +524,15 @@ business. The operator's own plan is an operator artifact. Splitting the route,
 company-walled for the market file and scoped for the operator file, satisfies
 both tests and both pieces. That is a design change, not a repair, so it is
 proposed here and not made.
+
+## Ruling 010: the operational source threshold is 500 lines
+
+**Owner ruling, 2026-08-10.** The original request named 450 lines, but files that
+exceed it by less than fifty lines are not to become work by themselves. The
+operational gate is therefore 500 lines: 451 through 499 is accepted unless a
+functional change gives another reason to split; 500 or above requires an
+explicit split decision.
+
+`scripts/gauntlet/wave_preflight.py` enforces 500. Historical documents and tests
+that describe what a completed earlier wave measured at its then-current 450-line
+contract remain historical evidence and are not mass-rewritten.

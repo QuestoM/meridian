@@ -306,6 +306,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .section-title {
@@ -331,6 +332,7 @@ button {
   justify-content: center;
   gap: 8px;
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
 
 .secondary-button.compact {
@@ -394,6 +396,7 @@ button {
 .api-state {
   font-size: var(--text-sm);
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .api-state {
@@ -3263,6 +3266,21 @@ button {
 
   .metric-copy strong {
     font-size: var(--text-xl);
+  }
+
+  /* Compare remains a first-class Forecasts destination. At widths where the
+     global row cannot hold every act, do not crush button labels to keep a
+     duplicate shortcut visible. */
+  .command-group > .secondary-button {
+    display: none;
+  }
+}
+
+/* The update stamp is informational and appears in the refreshed page state.
+   Remove its duplicate header rendering before the controls collide. */
+@media (max-width: 1500px) {
+  .status-group > .freshness {
+    display: none;
   }
 }
 

@@ -408,6 +408,11 @@ from kairos_api.assistant_read_tools_catalog import register as _register_catalo
 
 _register_catalog(_READ_EXECUTORS, SOURCE_BY_TOOL)
 
+# One full campaign record, kept separate from the pacing projection.
+from kairos_api.assistant_read_tools_campaign import register as _register_campaign  # noqa: E402
+
+_register_campaign(_READ_EXECUTORS, SOURCE_BY_TOOL)
+
 
 def execute_read_tool(name: str, args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
     """Run one READ tool, stamping the result with its provenance source.
