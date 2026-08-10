@@ -8,9 +8,25 @@ handed. Everything below was measured, not remembered.
 
 ## THE JUDGING ROUND, where it stands 2026-08-10
 
-**Published: P1, P2, P4, P7 PASSED. P3, P5, P6, P8, P10 FAILED.** Nine of
-thirteen pieces judged, all through `update_state.py` and none hand-edited.
-Before today `state.json` carried eight rounds, all SPEC and wave zero.
+**ALL TWELVE BUILT PIECES NOW CARRY A ROUND.** PASSED: P1, P2, P4, P7, P11.
+FAILED: P3, P5, P6, P8, P10. PARTIAL, no verdict claimed: P9, P12. Not started:
+P13. All through `update_state.py`, none hand-edited. Before today `state.json`
+carried eight rounds, all SPEC and wave zero.
+
+**P9 and P12 were stopped mid-round by a controlled stop and neither invented a
+verdict.** P9 reached about a third of bar 1; its one hard number is a first
+token at 3,310 ms against a 2,000 ms clause, and it disowned its own 150 s wall
+clock after working out its completion detector never fired. P12 passed what it
+reached; its escalation guard is PROVEN TO FIRE (a real adoption refused with
+four named stop reasons, coefficients byte-identical) but NOT proven to pass,
+because the counter-probe never finished. **A guard seen refusing and never seen
+approving is not yet proven to discriminate.** Both need a finishing round, not
+a fresh one.
+
+**P11 passed and REFUTED a lead I had written into this file as fact.** See
+item 3 below. That is the second time this round a first-hand measurement
+overturned a second-hand claim of mine, and the pattern is worth more than
+either finding.
 
 **P2's own largest gap is the most dangerous single finding of the round, and it
 did not cost it the bar: THE PRODUCT WILL FREEZE, NAME AND PUBLISH A PLAN WORTH
@@ -96,17 +112,22 @@ tell the replacement to report in five lines, not forty.
    cannot, the narrowed shape is strictly correct for it. Two sites is a lead,
    three is a class, so count first.
 
-3. **Two English-only sentences reach a Hebrew operator surface, at 3 render
-   sites across 2 pieces.** `counted_as_of_basis` renders raw on both the
-   campaigns board (`DeliveryState.jsx:107-126`) and the pacing board
-   (`PacingBoard.jsx:136`), plus a single-language `reason` at
-   `MakeGoodAlerts.jsx:86`. The seam exists and is HALF-APPLIED EVEN IN THE PIECE
-   THAT INVENTED IT: `pacing_alerts_api_read.py:72-80` names this exact class and
-   fixes it by publishing a bilingual pair, but only for rating and spend. One
-   small fix at the ledger (publish `counted_as_of_basis` as an `_en`/`_he` pair
-   the way `rating_basis` and `spend_basis` already are) beats two frontend
-   patches. Measured, not guessed: 2 distinct strings, 3 sites, 6 views swept,
-   and 2 further single-language fields exist that reach no surface at all.
+3. **English-only sentences on a Hebrew surface — HALF OF THIS WAS REFUTED, read
+   the correction before acting.** I recorded that `counted_as_of_basis` renders
+   raw at three sites and that the seam was "half-applied even in the piece that
+   invented it". **P11's critic went and looked, and that half is WRONG.** On the
+   pacing board the sentence renders inside a disclosure, prefixed with a Hebrew
+   lead-in announcing that the source is English-only, and marked `<q lang="en">`.
+   That is honest disclosure of a source string that genuinely has no Hebrew
+   twin, not a leak. The whole Hebrew board carries 4 Latin tokens and two of
+   them are advertiser names. **The seam is FULLY applied there.**
+   What survives, and is NOT yet re-measured by anyone who owns it: the campaigns
+   board site (`DeliveryState.jsx:107-126`) and the single-language `reason` at
+   `MakeGoodAlerts.jsx:86`. Treat those as leads, not findings, and check whether
+   they already do what the pacing board does before writing any code.
+   **The lesson is the one this round keeps paying for: I wrote a second-hand
+   finding into this file as fact, and the critic who owned the file refuted it in
+   one measurement.**
 
 4. **The inputs page never names four of the files the engine reads**, and one of
    them is the INERT LEVER on that page's own purpose. `data/Spots - inventory.csv`
