@@ -1,0 +1,244 @@
+{
+  "document_id": "heb-sponsorship-bundle-2026",
+  "title": "הסכם חסות וחבילה משולבת — בנק אופק 2026",
+  "agreement_level": "advertiser",
+  "instances": [
+    {
+      "instance_id": "sb-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "advertiser_via_agency",
+        "agency": "כרמל תקשורת בע\"מ",
+        "advertiser": "בנק אופק בע\"מ",
+        "direct_client": false,
+        "signatories": ["דנה לוין, סמנכ\"לית מסחר", "אבי מזרחי, מנכ\"ל"]
+      },
+      "cite": [
+        {"clause_id": "pre-2", "quote": "כרמל תקשורת בע\"מ"},
+        {"clause_id": "pre-2", "quote": "בשמו ועבורו של בנק אופק בע\"מ"}
+      ]
+    },
+    {
+      "instance_id": "sb-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-01-01",
+        "ends_on": "2026-12-31",
+        "auto_renewal": false
+      },
+      "cite": [{"clause_id": "1.1", "quote": "מיום 01.01.2026 ועד ליום 31.12.2026"}]
+    },
+    {
+      "instance_id": "sb-level",
+      "term_id": "agreement-level",
+      "params": {
+        "level": "advertiser",
+        "parent_agreement": "הסכם המסגרת שבין הערוץ לבין הסוכנות מיום 15.12.2025"
+      },
+      "cite": [{"clause_id": "1.2", "quote": "הסכם מפרסם הנערך תחת הסכם המסגרת"}]
+    },
+    {
+      "instance_id": "sb-precedence",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "הסכם זה (הסכם המפרסם)",
+        "loser": "הסכם המסגרת מיום 15.12.2025",
+        "scope_note": "בכל הנוגע למפרסם בלבד",
+        "verbatim": "הסכם זה הינו הסכם מפרסם הנערך תחת הסכם המסגרת שבין הערוץ לבין הסוכנות מיום 15.12.2025, וגובר עליו בכל הנוגע למפרסם."
+      },
+      "cite": [{"clause_id": "1.2", "quote": "וגובר עליו בכל הנוגע למפרסם"}]
+    },
+    {
+      "instance_id": "sb-brands",
+      "term_id": "brand-scope",
+      "params": {
+        "included_brands": ["בנק אופק", "אופק פיי"]
+      },
+      "cite": [{"clause_id": "1.2", "quote": "מותגי המפרסם \"בנק אופק\" ו\"אופק פיי\" בלבד"}]
+    },
+    {
+      "instance_id": "sb-sponsorship",
+      "term_id": "sponsorship-terms",
+      "params": {
+        "programme": "בוקר חדש",
+        "airings": 90,
+        "period": "עונת השידורים ינואר—יוני 2026",
+        "price_per_airing": {"amount": 2400, "currency": "ILS", "basis": "gross"},
+        "notice_length_seconds": 6
+      },
+      "scope": {"programmes": ["בוקר חדש"]},
+      "notes": "חובה רגולטורית: נוסח ההודעות טעון אישור מראש של הערוץ ועמידה בכללי הרשות השנייה, לרבות הצגת שם המפרסם על המסך בכיתוב קריא למשך ההודעה כולה; סך העונה 216,000 ₪",
+      "cite": [
+        {"clause_id": "2.1", "quote": "90 שידורים של הודעת חסות באורך 6 שניות"},
+        {"clause_id": "2.1", "quote": "במחיר קבוע של 2,400 ₪ להודעת חסות"},
+        {"clause_id": "2.2", "quote": "הצגת שם המפרסם על המסך"}
+      ]
+    },
+    {
+      "instance_id": "sb-bundle",
+      "term_id": "package-bundle",
+      "params": {
+        "components": [
+          {"component": "חסות התוכנית \"בוקר חדש\"", "in_product": true},
+          {"component": "שידורי פרסומת ברצועות הערוץ", "in_product": true},
+          {"component": "פרה-רול בנגן הדיגיטלי של הערוץ", "in_product": false},
+          {"component": "הגברה ברשתות החברתיות של התוכנית", "in_product": false}
+        ],
+        "bundle_discount_percent": 8
+      },
+      "notes": "מרכיבי הדיגיטל מחוץ למוצר: נמסרים, נמדדים ומחויבים על ידי מערך הדיגיטל בנפרד משידורי הטלוויזיה ושלא על פי נתוני ועדת המדרוג; הנחת החבילה חלה על מרכיב שידורי הפרסומת בלבד",
+      "cite": [
+        {"clause_id": "3.1", "quote": "הנחת חבילה בשיעור 8%"},
+        {"clause_id": "3.2", "quote": "1,500,000 חשיפות פרה-רול"}
+      ]
+    },
+    {
+      "instance_id": "sb-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 6500000, "currency": "ILS", "basis": "ratecard"},
+        "period": "year"
+      },
+      "scope": {"brands": ["בנק אופק", "אופק פיי"]},
+      "cite": [{"clause_id": "4.1", "quote": "היקף רכישות כולל של 6,500,000 ₪"}]
+    },
+    {
+      "instance_id": "sb-seasonal",
+      "term_id": "seasonal-coefficients",
+      "params": {
+        "rows": [
+          {"period_label": "ינואר—אוגוסט", "coefficient": 1.00},
+          {"period_label": "ספטמבר", "coefficient": 1.10},
+          {"period_label": "אוקטובר", "coefficient": 1.15},
+          {"period_label": "נובמבר", "coefficient": 1.10},
+          {"period_label": "דצמבר", "coefficient": 1.00}
+        ]
+      },
+      "cite": [
+        {"clause_id": "4.2", "quote": "מקדמי עונתיות חודשיים"},
+        {"clause_id": "4.2", "quote": "1.15"}
+      ]
+    },
+    {
+      "instance_id": "sb-newbiz",
+      "term_id": "new-business-incentive",
+      "params": {
+        "award_note": "הנחה נוספת בשיעור 5% על כל רכישות המותג בשנת ההסכם הראשונה, מעבר לכל הנחה אחרת",
+        "qualification": "מותג חדש: \"אופק פיי\" לא פורסם בטלוויזיה מעולם; ההטבה אינה חלה על המותג \"בנק אופק\""
+      },
+      "scope": {"brands": ["אופק פיי"]},
+      "window": {"from": "2026-01-01", "to": "2026-12-31"},
+      "cite": [{"clause_id": "4.3", "quote": "הנחה נוספת בשיעור 5%"}]
+    },
+    {
+      "instance_id": "sb-share-bonus",
+      "term_id": "share-bonus",
+      "params": {
+        "share_threshold_percent": 25,
+        "award_discount_percent": 2,
+        "denominator_source": "הצהרה שנתית חתומה של הסוכנות על סך השקעות הטלוויזיה של המפרסם בשנת 2026, למסירה עד 31.01.2027; באין הצהרה — אין הטבה",
+        "period": "year"
+      },
+      "cite": [
+        {"clause_id": "4.4", "quote": "הנחה נוספת בשיעור 2%"},
+        {"clause_id": "4.4", "quote": "הצהרה שנתית חתומה"}
+      ]
+    },
+    {
+      "instance_id": "sb-success",
+      "term_id": "success-deal",
+      "params": {
+        "share_percent": 2.5,
+        "measurement_basis": "העלייה המדודה במכירות המותג בתקופת הקמפיין, על פי פאנל המחקר המוסכם של חברת מדד-צרכן בע\"מ",
+        "settlement_cycle": "התחשבנות חד-פעמית בתוך 60 יום מתום הקמפיין, על יסוד דוח הפאנל"
+      },
+      "scope": {"brands": ["אופק פיי"], "campaigns": ["קמפיין ההשקה של אופק פיי"]},
+      "notes": "בסיס המדידה חיצוני לערוץ: פאנל מחקר קמעונאי של צד שלישי, לא נתוני ועדת המדרוג ולא נתוני הערוץ",
+      "cite": [{"clause_id": "4.5", "quote": "2.5% מהעלייה המדודה במכירות"}]
+    },
+    {
+      "instance_id": "sb-gold",
+      "term_id": "gold-break-allocation",
+      "params": {
+        "count": 6,
+        "period": "quarter",
+        "first_refusal": true
+      },
+      "notes": "זכות הסירוב הראשונה חלה על ברייק זהב פנוי מעבר להקצאה, למשך 48 שעות ממועד ההודעה",
+      "cite": [
+        {"clause_id": "5.1", "quote": "6 ברייקי זהב בכל רבעון קלנדרי"},
+        {"clause_id": "5.1", "quote": "זכות סירוב ראשונה"}
+      ]
+    },
+    {
+      "instance_id": "sb-reporting",
+      "term_id": "reporting-obligations",
+      "params": {
+        "reports": [
+          {"report": "דוח שידורי חסות מפורט: מועדי השידור בפועל של כל הודעת חסות", "cadence": "חודשי"},
+          {"report": "דוח אספקת חבילה: שידורי הפרסומת, נתוני הרייטינג שנמדדו ונתוני מרכיב הדיגיטל", "cadence": "רבעוני"}
+        ]
+      },
+      "cite": [{"clause_id": "6.1", "quote": "דוח שידורי חסות מפורט"}]
+    },
+    {
+      "instance_id": "sb-audit",
+      "term_id": "audit-rights",
+      "params": {
+        "summary": "ביקורת של רואה חשבון מטעם המפרסם על נתוני האספקה וההתחשבנות, בהודעה מראש של 21 יום, פעם אחת בתקופת ההסכם ועל חשבון המפרסם"
+      },
+      "cite": [{"clause_id": "6.2", "quote": "רואה חשבון מטעמו"}]
+    },
+    {
+      "instance_id": "sb-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 45 מיום הפקת חשבונית מס",
+        "billing_cycle": "מרכיב החסות בחשבונית נפרדת בתחילת כל חודש שידור"
+      },
+      "cite": [{"clause_id": "7.1", "quote": "שוטף + 45"}]
+    },
+    {
+      "instance_id": "sb-confidentiality",
+      "term_id": "confidentiality",
+      "params": {
+        "summary": "סודיות מוחלטת על תנאי ההסכם ועל מידע מסחרי שהוחלף אגב ההתקשרות, למעט גילוי על פי דין או לרשות מוסמכת"
+      },
+      "cite": [{"clause_id": "7.2", "quote": "בסודיות מוחלטת"}]
+    },
+    {
+      "instance_id": "sb-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט ייחודית לבתי המשפט המוסמכים בתל אביב-יפו; הדין החל — דין מדינת ישראל"
+      },
+      "cite": [{"clause_id": "7.5", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["sb-parties"]},
+    "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי"},
+    "1.1": {"disposition": "mapped", "instance_ids": ["sb-window"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["sb-level", "sb-precedence", "sb-brands"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["sb-sponsorship"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["sb-sponsorship"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["sb-bundle"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["sb-bundle"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["sb-budget"]},
+    "4.2": {"disposition": "mapped", "instance_ids": ["sb-seasonal"]},
+    "4.3": {"disposition": "mapped", "instance_ids": ["sb-newbiz"]},
+    "4.4": {"disposition": "mapped", "instance_ids": ["sb-share-bonus"]},
+    "4.5": {"disposition": "mapped", "instance_ids": ["sb-success"]},
+    "5.1": {"disposition": "mapped", "instance_ids": ["sb-gold"]},
+    "6.1": {"disposition": "mapped", "instance_ids": ["sb-reporting"]},
+    "6.2": {"disposition": "mapped", "instance_ids": ["sb-audit"]},
+    "7.1": {"disposition": "mapped", "instance_ids": ["sb-payment"]},
+    "7.2": {"disposition": "mapped", "instance_ids": ["sb-confidentiality"]},
+    "7.3": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון משלוח הודעות בלבד"},
+    "7.4": {"disposition": "irrelevant", "irrelevant_class": "severability", "reason": "סעיף עצמאות סעיפים"},
+    "7.5": {"disposition": "mapped", "instance_ids": ["sb-jurisdiction"]},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"}
+  },
+  "expected_conflicts": []
+}

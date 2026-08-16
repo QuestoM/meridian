@@ -1,0 +1,144 @@
+{
+  "document_id": "heb-scanned-smallbiz-2026",
+  "title": "הסכם פרסום — מאפיית הגליל (סרוק)",
+  "agreement_level": "advertiser",
+  "instances": [
+    {
+      "instance_id": "sc-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "advertiser",
+        "advertiser": "מאפיית הגליל בע\"מ",
+        "direct_client": true
+      },
+      "cite": [{"clause_id": "pre-1", "quote": "לקוח ישיר ללא סוכנות מדיה"}]
+    },
+    {
+      "instance_id": "sc-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-03-01",
+        "ends_on": "2026-08-31"
+      },
+      "cite": [{"clause_id": "1", "quote": "מיום 01.03.2026 ועד ליום 31.08.2026"}]
+    },
+    {
+      "instance_id": "sc-fixed",
+      "term_id": "fixed-spot-pricing",
+      "params": {
+        "rows": [
+          {"slot_note": "רצועת בוקר (07:00—12:00)", "length_seconds": 20, "price": {"amount": 850, "currency": "ILS", "basis": "gross"}},
+          {"slot_note": "רצועת צהריים (12:00—17:00)", "length_seconds": 20, "price": {"amount": 1050, "currency": "ILS", "basis": "gross"}}
+        ]
+      },
+      "notes": "מחיר קבוע לזמן שידור, ללא תלות בנתוני צפייה — אין סיכון רייטינג ואין התחייבות אספקה",
+      "cite": [
+        {"clause_id": "2", "quote": "מחיר קבוע וסופי שאינו תלוי בנתוני צפייה"},
+        {"clause_id": "2", "quote": "1,050"}
+      ]
+    },
+    {
+      "instance_id": "sc-length",
+      "term_id": "spot-length-constraints",
+      "params": {
+        "allowed_lengths_seconds": [20],
+        "notes": "אורך אחר טעון אישור מראש של הערוץ ותמחור נפרד"
+      },
+      "cite": [{"clause_id": "3", "quote": "20 שניות בלבד"}]
+    },
+    {
+      "instance_id": "sc-daypart",
+      "term_id": "programme-daypart-restrictions",
+      "params": {
+        "mode": "allow",
+        "hard": true
+      },
+      "scope": {
+        "dayparts": ["רצועות היום (07:00—17:00)"],
+        "weekdays": ["א'", "ב'", "ג'", "ד'", "ה'", "ו'"]
+      },
+      "notes": "רשימת היתר בלבד: רצועות היום; נאסר במפורש פריים ומוצאי שבת",
+      "cite": [{"clause_id": "4", "quote": "ברצועות היום בלבד (07:00—17:00)"}]
+    },
+    {
+      "instance_id": "sc-added-value",
+      "term_id": "added-value-media",
+      "params": {
+        "percent": 10,
+        "basis": "היקף הרכישות בפועל",
+        "delivery_window": "עד תום תקופת ההסכם",
+        "quality_note": "שידורים ברצועות היום לפי זמינות מלאי"
+      },
+      "cite": [{"clause_id": "5", "quote": "תוספת מדיה ללא חיוב בשיעור 10%"}]
+    },
+    {
+      "instance_id": "sc-margin-window",
+      "term_id": "term-effective-windows",
+      "params": {
+        "applies_to": "תוספת המדיה בשיעור 10% שבסעיף 5",
+        "window_note": "בתוקף עד 30.6 בלבד, בכפוף לאישור מנהל המכירות — הערה בכתב יד בשולי העמוד ליד סעיף 5"
+      },
+      "window": {"to": "2026-06-30"},
+      "notes": "הסתייגות בכתב יד על גבי עותק סרוק: מצמצמת את חלון ההטבה ומתנה אותה באישור פנימי; מקרה הבוחן של הערת שוליים במסלול הסריקה",
+      "cite": [{"clause_id": "margin-1", "quote": "בתוקף עד 30.6 בלבד"}]
+    },
+    {
+      "instance_id": "sc-freq-break",
+      "term_id": "frequency-caps",
+      "params": {"unit": "break", "cap": 1},
+      "cite": [{"clause_id": "6", "quote": "לא ישודר יותר מתשדיר אחד של המפרסם באותו מקבץ"}]
+    },
+    {
+      "instance_id": "sc-freq-day",
+      "term_id": "frequency-caps",
+      "params": {"unit": "day", "cap": 3},
+      "cite": [{"clause_id": "6", "quote": "לא יותר משלושה תשדירים ביממה"}]
+    },
+    {
+      "instance_id": "sc-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "מזומן מראש: תשלום בהעברה בנקאית לפני תחילת כל חודש שידור; אין שידור בטרם נפרעה התמורה במלואה",
+        "billing_cycle": "חודשי, מראש"
+      },
+      "cite": [{"clause_id": "7", "quote": "מזומן מראש"}]
+    },
+    {
+      "instance_id": "sc-cancellation",
+      "term_id": "cancellation-terms",
+      "params": {
+        "windows": [
+          {"days_before_air": 2, "fee_percent": 0, "allowed": true},
+          {"days_before_air": 0, "fee_percent": 100, "allowed": true}
+        ],
+        "notes": "2 ימי עסקים ומעלה — ללא חיוב; פחות מכך — חיוב מלא של השיבוץ שבוטל"
+      },
+      "cite": [{"clause_id": "8", "quote": "בהודעה של 2 ימי עסקים לפחות"}]
+    },
+    {
+      "instance_id": "sc-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט לבית משפט השלום בנצרת; הדין החל — דין מדינת ישראל"
+      },
+      "cite": [{"clause_id": "10", "quote": "בית משפט השלום בנצרת"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "mapped", "instance_ids": ["sc-parties"]},
+    "pre-2": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי"},
+    "1": {"disposition": "mapped", "instance_ids": ["sc-window"]},
+    "2": {"disposition": "mapped", "instance_ids": ["sc-fixed"]},
+    "3": {"disposition": "mapped", "instance_ids": ["sc-length"]},
+    "4": {"disposition": "mapped", "instance_ids": ["sc-daypart"]},
+    "5": {"disposition": "mapped", "instance_ids": ["sc-added-value"]},
+    "margin-1": {"disposition": "mapped", "instance_ids": ["sc-margin-window"]},
+    "6": {"disposition": "mapped", "instance_ids": ["sc-freq-break", "sc-freq-day"]},
+    "7": {"disposition": "mapped", "instance_ids": ["sc-payment"]},
+    "8": {"disposition": "mapped", "instance_ids": ["sc-cancellation"]},
+    "9": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון מסירת הודעות בלבד"},
+    "10": {"disposition": "mapped", "instance_ids": ["sc-jurisdiction"]},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"}
+  },
+  "expected_conflicts": []
+}

@@ -1,0 +1,301 @@
+{
+  "document_id": "heb-contradictory-2026",
+  "title": "הסכם מסגרת — מדיה סנטר 2026 (מסמך סתירות)",
+  "agreement_level": "agency_framework",
+  "instances": [
+    {
+      "instance_id": "ct-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "agency",
+        "agency": "מדיה סנטר בע\"מ",
+        "signatories": ["דנה לוין, סמנכ\"לית מסחר", "רונית אלבז, מנכ\"לית"]
+      },
+      "cite": [{"clause_id": "pre-2", "quote": "מדיה סנטר בע\"מ"}]
+    },
+    {
+      "instance_id": "ct-definitions",
+      "term_id": "definitions",
+      "params": {
+        "entries": [
+          {"term": "רצועת פריים", "definition": "משדרי הערוץ בין השעות 20:00 ועד 24:00", "daypart_bounds": {"start": "20:00", "end": "24:00"}},
+          {"term": "רצועת שוליים", "definition": "כל רצועת שידור שאינה רצועת פריים"},
+          {"term": "המחירון", "definition": "מחירון הערוץ בגרסה 2026-B"}
+        ]
+      },
+      "notes": "הגוף מגדיר 'רצועת שוליים' אחת; נספח ב' מפצל אותה לשלוש רצועות מתומחרות (יום/ערב/לילה) — רישול ניסוח אופייני, לא סתירה מסחרית",
+      "cite": [{"clause_id": "1.1", "quote": "בגרסה 2026-B"}]
+    },
+    {
+      "instance_id": "ct-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-01-01",
+        "ends_on": "2026-12-31",
+        "auto_renewal": false
+      },
+      "cite": [
+        {"clause_id": "1.2", "quote": "מיום 01.01.2026 ועד ליום 31.12.2026"},
+        {"clause_id": "1.2", "quote": "לא יתחדש מאליו"}
+      ]
+    },
+    {
+      "instance_id": "ct-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 8000000, "currency": "ILS", "basis": "ratecard"},
+        "period": "year"
+      },
+      "cite": [{"clause_id": "2.1", "quote": "היקף רכישות כולל של 8,000,000 ₪"}]
+    },
+    {
+      "instance_id": "ct-ladder",
+      "term_id": "volume-discount-ladder",
+      "params": {
+        "tiers": [
+          {"threshold": 0, "discount_percent": 10},
+          {"threshold": 4000000, "discount_percent": 12},
+          {"threshold": 9000000, "discount_percent": 14}
+        ],
+        "basis": "ratecard_gross",
+        "mechanics": "retroactive",
+        "period": "year"
+      },
+      "notes": "המדרגות חופפות: 'עד 5,000,000' (10%) מול 'מ-4,000,000 ועד 9,000,000' (12%) — הרצועה 4—5 מיליון ₪ נתבעת פעמיים ואין בהסכם הוראה מיישבת",
+      "cite": [
+        {"clause_id": "2.2", "quote": "עד 5,000,000 ₪ — הנחה בשיעור 10%"},
+        {"clause_id": "2.2", "quote": "מ-4,000,000 ₪ ועד 9,000,000 ₪ — הנחה בשיעור 12%"},
+        {"clause_id": "2.2", "quote": "רטרואקטיבית"}
+      ]
+    },
+    {
+      "instance_id": "ct-commission",
+      "term_id": "agency-commission",
+      "params": {
+        "percent": 12,
+        "base": "gross",
+        "form": "invoice_deduction"
+      },
+      "cite": [{"clause_id": "2.3", "quote": "עמלת הסוכנות תעמוד על 12% ממחזור הרכישות ברוטו"}]
+    },
+    {
+      "instance_id": "ct-cpp",
+      "term_id": "cpp-daypart-table",
+      "params": {
+        "rows": [
+          {"daypart": "פריים (20:00—24:00)", "cpp": 1380},
+          {"daypart": "שוליים — יום (06:00—17:00)", "cpp": 445},
+          {"daypart": "שוליים — ערב (17:00—20:00)", "cpp": 780},
+          {"daypart": "שוליים — לילה (24:00—02:00)", "cpp": 590}
+        ],
+        "audience": "בתי אב יהודיים",
+        "base_length_seconds": 30
+      },
+      "cite": [
+        {"clause_id": "appB-1", "quote": "1,380"},
+        {"clause_id": "3.1", "quote": "מפורטים בנספח ב' סעיף 1"}
+      ]
+    },
+    {
+      "instance_id": "ct-settlement",
+      "term_id": "settlement-mechanics",
+      "params": {
+        "grain": "רייטינג רבע השעה הקלנדרי שבו שודר הספוט בפועל, כפול מקדם האורך",
+        "cadence": "שבועי"
+      },
+      "cite": [{"clause_id": "3.2", "quote": "רייטינג רבע השעה הקלנדרי שבו שודר בפועל"}]
+    },
+    {
+      "instance_id": "ct-truth-source",
+      "term_id": "delivery-truth-source",
+      "params": {
+        "source_order": "השידור בפועל על פי As Run; נתוני ועדת המדרוג לרייטינג"
+      },
+      "cite": [{"clause_id": "3.2", "quote": "נתוני As Run"}]
+    },
+    {
+      "instance_id": "ct-measurement",
+      "term_id": "measurement-source",
+      "params": {
+        "source": "ועדת המדרוג",
+        "audience_basis": "בתי אב יהודיים",
+        "vintage": "overnight +1"
+      },
+      "cite": [
+        {"clause_id": "3.2", "quote": "בתי אב יהודיים"},
+        {"clause_id": "3.2", "quote": "overnight +1"}
+      ]
+    },
+    {
+      "instance_id": "ct-guarantee-body",
+      "term_id": "trp-delivery-guarantee",
+      "params": {
+        "audience": "קהל היעד שהוגדר בהזמנת הקמפיין",
+        "window": "campaign",
+        "tolerance_percent": 7
+      },
+      "missing": ["points"],
+      "notes": "התחייבות מסגרת פרמטרית — כמות הנקודות נקבעת בכל הזמנת קמפיין; הסטייה 7% כאן נסתרת על ידי נספח ב' סעיף 3 (10%)",
+      "cite": [{"clause_id": "4.1", "quote": "בסטייה מותרת של עד 7% כלפי מטה"}]
+    },
+    {
+      "instance_id": "ct-cure",
+      "term_id": "shortfall-cure",
+      "params": {
+        "cure_form": "bonus_spots",
+        "quality_rule": "רצועות מקבילות (like for like)",
+        "cure_window": "45 יום מתום הקמפיין"
+      },
+      "cite": [{"clause_id": "4.2", "quote": "שידורי בונוס ללא חיוב"}]
+    },
+    {
+      "instance_id": "ct-payment-45",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 45 מיום הפקת חשבונית מס"
+      },
+      "notes": "נסתר על ידי נספח ב' סעיף 2 (שוטף + 60); אין לשון עדיפות באיש מהסעיפים",
+      "cite": [{"clause_id": "5.1", "quote": "שוטף + 45"}]
+    },
+    {
+      "instance_id": "ct-cash",
+      "term_id": "cash-discount",
+      "params": {
+        "percent": 1,
+        "qualifying_terms": "תשלום בתוך 14 יום ממועד הפקת החשבונית"
+      },
+      "cite": [{"clause_id": "5.2", "quote": "הנחת מזומן בשיעור 1%"}]
+    },
+    {
+      "instance_id": "ct-reporting",
+      "term_id": "reporting-obligations",
+      "params": {
+        "reports": [
+          {"report": "דוח אספקה: שידורים בפועל ונקודות רייטינג שנמדדו לכל קמפיין פעיל", "cadence": "שבועי"}
+        ]
+      },
+      "cite": [{"clause_id": "6.1", "quote": "דוח אספקה"}]
+    },
+    {
+      "instance_id": "ct-audit",
+      "term_id": "audit-rights",
+      "params": {
+        "summary": "עיון רואה חשבון מטעם הסוכנות בנתוני השידור וההתחשבנות של לקוחותיה, בהודעה מראש של 21 יום, אחת לשנה"
+      },
+      "cite": [{"clause_id": "6.2", "quote": "רואה חשבון מטעמה"}]
+    },
+    {
+      "instance_id": "ct-precedence-body",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "גוף ההסכם",
+        "loser": "הנספחים",
+        "verbatim": "בכל מקרה של סתירה בין הוראות גוף ההסכם לבין הנספחים, יגברו הוראות גוף ההסכם."
+      },
+      "notes": "סותר חזיתית את נספח ב' סעיף 4 הקובע את ההפך",
+      "cite": [{"clause_id": "7.1", "quote": "יגברו הוראות גוף ההסכם"}]
+    },
+    {
+      "instance_id": "ct-confidentiality",
+      "term_id": "confidentiality",
+      "params": {
+        "summary": "תנאי ההסכם סודיים; גילוי רק ליועצים מקצועיים או על פי דרישת דין"
+      },
+      "cite": [{"clause_id": "7.2", "quote": "תנאי הסכם זה סודיים"}]
+    },
+    {
+      "instance_id": "ct-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט בלעדית לבתי המשפט המוסמכים בתל אביב-יפו; הדין החל — דין מדינת ישראל"
+      },
+      "cite": [{"clause_id": "7.3", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    },
+    {
+      "instance_id": "ct-payment-60",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 60 מיום הפקת החשבונית"
+      },
+      "notes": "סותר את סעיף 5.1 (שוטף + 45); אין לשון עדיפות ספציפית וסעיפי העדיפות הכלליים סותרים זה את זה",
+      "cite": [{"clause_id": "appB-2", "quote": "שוטף + 60"}]
+    },
+    {
+      "instance_id": "ct-guarantee-appendix",
+      "term_id": "trp-delivery-guarantee",
+      "params": {
+        "window": "campaign",
+        "tolerance_percent": 10
+      },
+      "missing": ["points", "audience"],
+      "notes": "רוכב על התחייבות סעיף 4.1 ומעדכן את הסטייה בלבד; לשון 'על אף האמור בכל מקום אחר בהסכם זה' מקנה לו עדיפות על ה-7% שבגוף ההסכם",
+      "cite": [
+        {"clause_id": "appB-3", "quote": "על אף האמור בכל מקום אחר בהסכם זה"},
+        {"clause_id": "appB-3", "quote": "תעמוד על 10% כלפי מטה"}
+      ]
+    },
+    {
+      "instance_id": "ct-precedence-appendix",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "נספח ב'",
+        "loser": "גוף ההסכם",
+        "scope_note": "סותר חזיתית את סעיף 7.1 לגוף ההסכם",
+        "verbatim": "על אף האמור בכל מקום אחר בהסכם, בכל מקרה של סתירה בין הוראות נספח זה לבין הוראות גוף ההסכם — יגברו הוראות הנספח."
+      },
+      "cite": [{"clause_id": "appB-4", "quote": "יגברו הוראות הנספח"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["ct-parties"]},
+    "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי"},
+    "1.1": {"disposition": "mapped", "instance_ids": ["ct-definitions"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["ct-window"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["ct-budget"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["ct-ladder"]},
+    "2.3": {"disposition": "mapped", "instance_ids": ["ct-commission"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["ct-cpp"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["ct-settlement", "ct-truth-source", "ct-measurement"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["ct-guarantee-body"]},
+    "4.2": {"disposition": "mapped", "instance_ids": ["ct-cure"]},
+    "5.1": {"disposition": "mapped", "instance_ids": ["ct-payment-45"]},
+    "5.2": {"disposition": "mapped", "instance_ids": ["ct-cash"]},
+    "6.1": {"disposition": "mapped", "instance_ids": ["ct-reporting"]},
+    "6.2": {"disposition": "mapped", "instance_ids": ["ct-audit"]},
+    "7.1": {"disposition": "mapped", "instance_ids": ["ct-precedence-body"]},
+    "7.2": {"disposition": "mapped", "instance_ids": ["ct-confidentiality"]},
+    "7.3": {"disposition": "mapped", "instance_ids": ["ct-jurisdiction"]},
+    "7.4": {"disposition": "irrelevant", "irrelevant_class": "severability", "reason": "סעיף עצמאות סעיפים"},
+    "7.5": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון משלוח הודעות בלבד"},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"},
+    "appB-1": {"disposition": "mapped", "instance_ids": ["ct-cpp"]},
+    "appB-2": {"disposition": "mapped", "instance_ids": ["ct-payment-60"]},
+    "appB-3": {"disposition": "mapped", "instance_ids": ["ct-guarantee-appendix"]},
+    "appB-4": {"disposition": "mapped", "instance_ids": ["ct-precedence-appendix"]}
+  },
+  "expected_conflicts": [
+    {
+      "instances": ["ct-precedence-body", "ct-precedence-appendix"],
+      "contested": "כלל העדיפות עצמו: סעיף 7.1 קובע כי גוף ההסכם גובר על הנספחים; נספח ב' סעיף 4 קובע את ההפך בלשון 'על אף האמור בכל מקום אחר'. לשון ההתגברות יושבת בתוך המסמך שמעמדו הוא עצם המחלוקת — סעיף עדיפות אינו יכול להכריע את דירוגו של עצמו",
+      "resolution": "open"
+    },
+    {
+      "instances": ["ct-ladder"],
+      "contested": "מדרגות ההנחה חופפות: הרצועה 4,000,000—5,000,000 ₪ נתבעת גם על ידי מדרגת ה-10% ('עד 5,000,000') וגם על ידי מדרגת ה-12% ('מ-4,000,000 ועד 9,000,000'), ואין בהסכם הוראה מיישבת",
+      "resolution": "open"
+    },
+    {
+      "instances": ["ct-guarantee-body", "ct-guarantee-appendix"],
+      "contested": "סטיית האספקה המותרת: 7% בסעיף 4.1 (פרק ההתחייבויות) מול 10% בנספח ב' סעיף 3",
+      "resolution": "resolved_by_rule",
+      "winner": "ct-guarantee-appendix",
+      "via": "לשון 'על אף האמור בכל מקום אחר בהסכם זה' בנספח ב' סעיף 3 — הוראה ספציפית לפרמטר הסטייה, המכריעה בלי תלות במבוי הסתום שבין סעיפי העדיפות הכלליים"
+    },
+    {
+      "instances": ["ct-payment-45", "ct-payment-60"],
+      "contested": "תנאי התשלום: שוטף + 45 בסעיף 5.1 מול שוטף + 60 בנספח ב' סעיף 2; אין לשון עדיפות באיש מהסעיפים, וסעיפי העדיפות הכלליים (7.1 מול נספח ב' סעיף 4) סותרים זה את זה",
+      "resolution": "open"
+    }
+  ]
+}

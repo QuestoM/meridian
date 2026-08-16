@@ -1,0 +1,117 @@
+{
+  "document_id": "heb-amendment-q4-2026",
+  "title": "תיקון מס' 1 להסכם המסגרת — אופק מדיה, רבעון רביעי 2026",
+  "agreement_level": "agency_framework",
+  "instances": [
+    {
+      "instance_id": "am-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "agency",
+        "agency": "אופק מדיה בע\"מ",
+        "signatories": ["דנה לוין, סמנכ\"לית מסחר", "יואב פרידמן, מנכ\"ל"],
+        "represented_advertisers": ["לבנדר קוסמטיקה בע\"מ"]
+      },
+      "notes": "אותם צדדים כבהסכם העיקרי; לבנדר קוסמטיקה בע\"מ מתווספת לרשימת נספח ד' מיום 01.10.2026",
+      "cite": [
+        {"clause_id": "pre-2", "quote": "אופק מדיה בע\"מ"},
+        {"clause_id": "3.2", "quote": "תתווסף לרשימת המפרסמים המיוצגים"}
+      ]
+    },
+    {
+      "instance_id": "am-layer",
+      "term_id": "amendment-layer",
+      "params": {
+        "base_agreement": "heb-annual-framework-2026",
+        "effective_on": "2026-10-01",
+        "modifies": ["2.1", "2.4", "נספח א' סעיף 1", "נספח ד'"],
+        "summary": "עדכון היקף ההתקשרות ל-15,500,000 ₪; העלאת CPP פריים ל-1,580 ₪ לרבעון הרביעי; ביטול חסימת ההנחה של דצמבר (סעיף 2.4 להסכם העיקרי); בלעדיות קטגוריאלית ומפרסם מיוצג חדש"
+      },
+      "notes": "סעיף 2.4 להסכם העיקרי (אי-תחולת ההנחה המדורגת בדצמבר 2026) מבוטל מיום 01.10.2026 — הביטול פותח גרסה חדשה של הסעיף ואינו מוחק את ההיסטוריה; יתר הוראות ההסכם העיקרי עומדות בעינן",
+      "cite": [
+        {"clause_id": "1.1", "quote": "חלק בלתי נפרד מההסכם העיקרי"},
+        {"clause_id": "1.1", "quote": "ייכנסו לתוקף ביום 01.10.2026"},
+        {"clause_id": "2.3", "quote": "סעיף 2.4 להסכם העיקרי — בטל"},
+        {"clause_id": "4.1", "quote": "יעמדו בתוקפן ללא שינוי"}
+      ]
+    },
+    {
+      "instance_id": "am-precedence",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "תיקון מס' 1",
+        "loser": "ההסכם העיקרי ונספחיו",
+        "scope_note": "עדיפות רק בעניינים המוסדרים בתיקון",
+        "verbatim": "הוראות תיקון זה גוברות על הוראות ההסכם העיקרי ונספחיו בכל עניין המוסדר בתיקון זה."
+      },
+      "cite": [{"clause_id": "1.2", "quote": "גוברות על הוראות ההסכם העיקרי"}]
+    },
+    {
+      "instance_id": "am-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 15500000, "currency": "ILS", "basis": "ratecard"},
+        "period": "year"
+      },
+      "notes": "מחליף את סכום 14,000,000 ₪ שבסעיף 2.1 להסכם העיקרי מיום 01.10.2026; המינימום הרבעוני (3,000,000 ₪) נותר בעינו מכוח ההסכם העיקרי",
+      "cite": [{"clause_id": "2.1", "quote": "יעמוד על 15,500,000 ₪"}]
+    },
+    {
+      "instance_id": "am-q4-cpp",
+      "term_id": "cpp-daypart-table",
+      "params": {
+        "rows": [
+          {"daypart": "רצועת פריים", "cpp": 1580}
+        ],
+        "audience": "בתי אב יהודיים",
+        "base_length_seconds": 30
+      },
+      "window": {"from": "2026-10-01", "to": "2026-12-31"},
+      "notes": "חלף 1,450 ₪ שבנספח א' סעיף 1 להסכם העיקרי, לרבעון הרביעי בלבד; יתר תעריפי נספח א' עומדים בעינם",
+      "cite": [
+        {"clause_id": "2.2", "quote": "1,580 ₪"},
+        {"clause_id": "2.2", "quote": "חלף 1,450 ₪"}
+      ]
+    },
+    {
+      "instance_id": "am-q4-window",
+      "term_id": "term-effective-windows",
+      "params": {
+        "applies_to": "תעריף CPP לרצועת פריים (נספח א' סעיף 1 להסכם העיקרי)",
+        "window_note": "מיום 01.10.2026 ועד ליום 31.12.2026 — 1,580 ₪ חלף 1,450 ₪; שתי גרסאות של התעריף אינן חלות ביום אחד"
+      },
+      "cite": [{"clause_id": "2.2", "quote": "בתקופה שמיום 01.10.2026 ועד ליום 31.12.2026"}]
+    },
+    {
+      "instance_id": "am-exclusivity",
+      "term_id": "category-exclusivity",
+      "params": {
+        "category": "קוסמטיקה וטיפוח",
+        "exclusivity_scope": "רצועת הפריים — לא ישובץ בה תשדיר של מפרסם קוסמטיקה מתחרה",
+        "premium_percent": 10
+      },
+      "scope": {"brands": ["לבנדר קוסמטיקה"], "dayparts": ["רצועת הפריים"]},
+      "window": {"from": "2026-10-01", "to": "2026-12-31"},
+      "notes": "בלעדיות רבעון רביעי בלבד; מתומחרת — תוספת 10% על תעריפי הפריים החלים על שידורי המותג",
+      "cite": [
+        {"clause_id": "3.1", "quote": "בלעדיות קטגוריאלית"},
+        {"clause_id": "3.1", "quote": "תוספת של 10%"}
+      ]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["am-parties"]},
+    "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיפי הואיל — הפניה מבואית להסכם העיקרי"},
+    "1.1": {"disposition": "mapped", "instance_ids": ["am-layer"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["am-precedence"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["am-budget"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["am-q4-cpp", "am-q4-window"]},
+    "2.3": {"disposition": "mapped", "instance_ids": ["am-layer"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["am-exclusivity"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["am-parties"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["am-layer"]},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"}
+  },
+  "expected_conflicts": []
+}

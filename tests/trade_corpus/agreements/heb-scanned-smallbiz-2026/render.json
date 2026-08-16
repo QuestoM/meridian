@@ -1,0 +1,11 @@
+{
+  "document_id": "heb-scanned-smallbiz-2026",
+  "ingest_route": "scanned-vision",
+  "pages": {
+    "1": ["pre-1", "pre-2", "1", "2"],
+    "2": ["3", "4", "5", "margin-1"],
+    "3": ["6", "7", "8", "9"],
+    "4": ["10", "sig-1"]
+  },
+  "tables": ["2"]
+}

@@ -1,0 +1,537 @@
+{
+  "document_id": "heb-annual-framework-2026",
+  "title": "הסכם מסגרת שנתי — אופק מדיה 2026",
+  "agreement_level": "agency_framework",
+  "instances": [
+    {
+      "instance_id": "gt-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "agency",
+        "agency": "אופק מדיה בע\"מ",
+        "signatories": ["דנה לוין, סמנכ\"לית מסחר", "יואב פרידמן, מנכ\"ל"],
+        "represented_advertisers": ["Delta Motors", "שדות תעשיות מזון בע\"מ", "בנק הבירה בע\"מ", "Nova Pharm בע\"מ", "רשת מלונות גלים"]
+      },
+      "cite": [
+        {"clause_id": "pre-2", "quote": "אופק מדיה בע\"מ"},
+        {"clause_id": "appD-1", "quote": "Delta Motors (יבואן רכב); שדות תעשיות מזון בע\"מ"}
+      ]
+    },
+    {
+      "instance_id": "gt-definitions",
+      "term_id": "definitions",
+      "params": {
+        "entries": [
+          {"term": "רצועת פריים", "definition": "משדרי הערוץ בין השעות 20:30 ועד 23:30 בכל ימות השבוע", "daypart_bounds": {"start": "20:30", "end": "23:30"}},
+          {"term": "רצועת דיי-טיים", "definition": "בין השעות 07:00 ועד 17:00", "daypart_bounds": {"start": "07:00", "end": "17:00"}},
+          {"term": "רצועת אקסס", "definition": "בין השעות 17:00 ועד 20:30", "daypart_bounds": {"start": "17:00", "end": "20:30"}},
+          {"term": "רצועת לילה", "definition": "בין השעות 23:30 ועד 01:00", "daypart_bounds": {"start": "23:30", "end": "01:00"}},
+          {"term": "ברייק זהב", "definition": "מקבץ הכולל עד שלושה תשדירים בלבד"}
+        ]
+      },
+      "cite": [{"clause_id": "1.1", "quote": "רצועת פריים\" — משדרי הערוץ בין השעות 20:30 ועד 23:30"}]
+    },
+    {
+      "instance_id": "gt-ratecard-version",
+      "term_id": "definitions",
+      "params": {
+        "entries": [
+          {"term": "מחירון", "definition": "מחירון הערוץ התקף במועד השידור, בגרסה 2026-A שנמסרה לסוכנות, כפי שיעודכן מעת לעת בהודעה מראש של 30 יום"}
+        ]
+      },
+      "cite": [{"clause_id": "1.3", "quote": "בגרסה 2026-A"}]
+    },
+    {
+      "instance_id": "gt-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-01-01",
+        "ends_on": "2026-12-31",
+        "auto_renewal": true,
+        "renewal_notice_days": 60
+      },
+      "cite": [{"clause_id": "1.4", "quote": "מיום 01.01.2026 ועד ליום 31.12.2026"}]
+    },
+    {
+      "instance_id": "gt-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 14000000, "currency": "ILS", "basis": "ratecard"},
+        "period": "year",
+        "splits": [
+          {"label": "מינימום רבעוני", "amount": 3000000}
+        ]
+      },
+      "cite": [{"clause_id": "2.1", "quote": "היקף רכישות כולל של 14,000,000 ₪"}]
+    },
+    {
+      "instance_id": "gt-ladder-body",
+      "term_id": "volume-discount-ladder",
+      "params": {
+        "tiers": [
+          {"threshold": 0, "discount_percent": 12},
+          {"threshold": 8000000, "discount_percent": 15},
+          {"threshold": 12000000, "discount_percent": 18}
+        ],
+        "basis": "ratecard_gross",
+        "mechanics": "retroactive",
+        "period": "year"
+      },
+      "cite": [{"clause_id": "2.2", "quote": "הנחה מדורגת מהמחירון"}]
+    },
+    {
+      "instance_id": "gt-ladder-appendix",
+      "term_id": "volume-discount-ladder",
+      "params": {
+        "tiers": [
+          {"threshold": 12000000, "discount_percent": 17}
+        ],
+        "basis": "ratecard_gross",
+        "mechanics": "retroactive",
+        "period": "year"
+      },
+      "notes": "נספח א' סעיף 3 קובע במפורש כי המדרגה העליונה 17% על אף האמור בסעיף 2.2",
+      "cite": [{"clause_id": "appA-3", "quote": "יעמוד על 17% בלבד"}]
+    },
+    {
+      "instance_id": "gt-true-up",
+      "term_id": "underspend-true-up",
+      "params": {
+        "trigger_note": "אי עמידה בהתחייבות ההיקף שבסעיף 2.1",
+        "re_rating_rule": "חישוב מחדש של שיעור ההנחה לפי ההיקף שנרכש בפועל והשבת ההפרש בתוך 30 יום"
+      },
+      "cite": [{"clause_id": "2.3", "quote": "התחשבנות מתקנת"}]
+    },
+    {
+      "instance_id": "gt-december-blackout",
+      "term_id": "seasonal-coefficients",
+      "params": {
+        "rows": [
+          {"period_label": "דצמבר 2026", "discount_blackout": true}
+        ]
+      },
+      "cite": [{"clause_id": "2.4", "quote": "לא תחול על רכישות ברצועות שידור בחודש דצמבר 2026"}]
+    },
+    {
+      "instance_id": "gt-commission",
+      "term_id": "agency-commission",
+      "params": {
+        "percent": 15,
+        "base": "net_of_discount",
+        "form": "invoice_deduction"
+      },
+      "notes": "סדר היישום מפורש: ההנחה המדורגת תחילה ועמלת הסוכנות לאחריה",
+      "cite": [{"clause_id": "2.5", "quote": "עמלת הסוכנות תעמוד על 15% ממחזור הרכישות נטו לאחר הנחות"}]
+    },
+    {
+      "instance_id": "gt-cpp-table",
+      "term_id": "cpp-daypart-table",
+      "params": {
+        "rows": [
+          {"daypart": "פריים (20:30—23:30)", "cpp": 1450},
+          {"daypart": "אקסס (17:00—20:30)", "cpp": 820},
+          {"daypart": "דיי-טיים (07:00—17:00)", "cpp": 470},
+          {"daypart": "לילה (23:30—01:00)", "cpp": 610}
+        ],
+        "audience": "בתי אב יהודיים",
+        "base_length_seconds": 30
+      },
+      "cite": [
+        {"clause_id": "appA-1", "quote": "1,450"},
+        {"clause_id": "3.1", "quote": "מפורטים בנספח א'"}
+      ]
+    },
+    {
+      "instance_id": "gt-length-factors",
+      "term_id": "length-factor-table",
+      "params": {
+        "rows": [
+          {"length_seconds": 5, "factor": 0.30},
+          {"length_seconds": 10, "factor": 0.45},
+          {"length_seconds": 15, "factor": 0.65},
+          {"length_seconds": 20, "factor": 0.80},
+          {"length_seconds": 30, "factor": 1.00},
+          {"length_seconds": 40, "factor": 1.35},
+          {"length_seconds": 45, "factor": 1.50},
+          {"length_seconds": 60, "factor": 2.00}
+        ],
+        "rounding_rule": "אורכים אחרים פרו-רטה ביחס ל-30 שניות, עיגול לשנייה הקרובה"
+      },
+      "cite": [{"clause_id": "3.2", "quote": "15 שניות — 65%"}]
+    },
+    {
+      "instance_id": "gt-settlement",
+      "term_id": "settlement-mechanics",
+      "params": {
+        "grain": "רייטינג רבע השעה הקלנדרי שבו שודר הספוט בפועל, כפול מקדם האורך",
+        "cadence": "שבועי, ראשון עד שבת",
+        "application_order": "הנחה מדורגת תחילה, עמלת סוכנות לאחריה (סעיף 2.5)"
+      },
+      "cite": [{"clause_id": "3.3", "quote": "ברייטינג רבע השעה הקלנדרי שבו שודר הספוט בפועל"}]
+    },
+    {
+      "instance_id": "gt-gold-rates",
+      "term_id": "gold-break-rates",
+      "params": {
+        "surcharge_percent": 20,
+        "fixed_prices": [
+          {"scope_note": "מאסטר קלאס (גמר עונה), תשדיר עד 30 שניות", "price": {"amount": 95000, "currency": "ILS", "basis": "gross"}},
+          {"scope_note": "המרוץ הגדול, תשדיר עד 30 שניות", "price": {"amount": 70000, "currency": "ILS", "basis": "gross"}}
+        ]
+      },
+      "notes": "המחירים הקבועים בנספח א' סעיף 2 אינם נושאים הנחה מדורגת",
+      "cite": [
+        {"clause_id": "3.4", "quote": "תוספת של 20%"},
+        {"clause_id": "appA-2", "quote": "95,000 ₪"}
+      ]
+    },
+    {
+      "instance_id": "gt-trp-guarantee",
+      "term_id": "trp-delivery-guarantee",
+      "params": {
+        "audience": "קהל היעד שהוגדר בהזמנת הקמפיין",
+        "window": "campaign",
+        "tolerance_percent": 5,
+        "checkpoints": "נקודות ביקורת שבועיות; התראה כאשר הצפי יורד מתחת ל-90% ותוכנית תגבור בתוך שני ימי עסקים"
+      },
+      "missing": ["points"],
+      "notes": "התחייבות מסגרת פרמטרית: כמות הנקודות נקבעת בכל הזמנת קמפיין; סף תחולה — קמפיין שתקציבו מעל 400,000 ₪",
+      "cite": [
+        {"clause_id": "4.1", "quote": "בסטייה מותרת של עד 5% כלפי מטה"},
+        {"clause_id": "4.4", "quote": "אל מתחת ל-90% מההתחייבות"}
+      ]
+    },
+    {
+      "instance_id": "gt-cure",
+      "term_id": "shortfall-cure",
+      "params": {
+        "cure_form": "bonus_spots",
+        "quality_rule": "רצועות שידור מקבילות (like for like); באין רצועה מקבילה — שלוש דקות שאינן פריים כנגד כל דקת פריים חסרה",
+        "cure_window": "60 יום מתום הקמפיין"
+      },
+      "cite": [{"clause_id": "4.2", "quote": "שידורי בונוס ללא חיוב"}]
+    },
+    {
+      "instance_id": "gt-overdelivery",
+      "term_id": "overdelivery-treatment",
+      "params": {
+        "treatment": "absorbed",
+        "banking_cap": "עודף מעל 10% נזקף לזכות הערוץ בהתחשבנות מול השלמות עתידיות באותו רבעון עבור אותו מפרסם"
+      },
+      "cite": [{"clause_id": "4.3", "quote": "אספקת יתר של עד 10%"}]
+    },
+    {
+      "instance_id": "gt-makegood-accrual",
+      "term_id": "makegood-accrual-policy",
+      "params": {
+        "accruals": [
+          {"trigger": "רבעוני, על סך מחזור הרכישות נטו של הסוכנות", "rate_percent": 8, "level": "agency"}
+        ],
+        "utilisation": "ניצול על ידי הסוכנות עבור כל מפרסם מלקוחותיה, בשידורי בונוס בלבד, בתיאום מראש ובכפוף לזמינות מלאי",
+        "expiry": "שישה חודשים ממועד הצבירה",
+        "quality_note": "שידורי בונוס בלבד"
+      },
+      "cite": [{"clause_id": "4.5", "quote": "זיכוי מדיה בשיעור 8%"}]
+    },
+    {
+      "instance_id": "gt-preemption",
+      "term_id": "preemption-compensation",
+      "params": {
+        "qualifying_events": "ספוט שלא שודר עקב החלטת הערוץ, לרבות מהדורת חדשות מיוחדת או שינוי לוח משדרים",
+        "remedy_form": "זיכוי מלא ושיבוץ מחדש ברצועה מקבילה בתוך 14 יום, או המרה לזיכוי צבירת מייק גוד לפי בחירת הסוכנות",
+        "window": "14 יום"
+      },
+      "cite": [{"clause_id": "4.6", "quote": "מהדורת חדשות מיוחדת"}]
+    },
+    {
+      "instance_id": "gt-preferred-positions",
+      "term_id": "preferred-position-guarantee",
+      "params": {
+        "preferred_positions": ["ראשון", "שני", "אחרון (L)"],
+        "target_percent": 40,
+        "counting_method": "agency",
+        "window": "year"
+      },
+      "cite": [{"clause_id": "5.1", "quote": "הופעה כפולה באותו מקבץ נספרת פעמיים"}]
+    },
+    {
+      "instance_id": "gt-separation-delta",
+      "term_id": "competitive-separation",
+      "params": {
+        "category": "יבואן רכב",
+        "separation_unit": "same_break",
+        "separation_quantity": 0,
+        "hard": true
+      },
+      "scope": {"advertisers": ["Delta Motors"]},
+      "cite": [{"clause_id": "5.2", "quote": "יימנע משיבוץ תשדיר של יבואן רכב אחר באותו מקבץ"}]
+    },
+    {
+      "instance_id": "gt-exclusivity-sadot",
+      "term_id": "category-exclusivity",
+      "params": {
+        "category": "מזון",
+        "exclusivity_scope": "התוכנית \"מאסטר קלאס\" ומקבציה הצמודים, עונת אביב 2026",
+        "premium_percent": 12
+      },
+      "scope": {"brands": ["שדות"], "programmes": ["מאסטר קלאס"]},
+      "cite": [{"clause_id": "5.3", "quote": "בלעדיות קטגוריאלית"}]
+    },
+    {
+      "instance_id": "gt-adjacency-exclusion",
+      "term_id": "content-adjacency-exclusion",
+      "params": {
+        "excluded_content": ["סיקור אסונות", "פיגועים", "אירועי חירום ביטחוניים", "תכני חדשות קשים"],
+        "radius": "same_break",
+        "hard": true
+      },
+      "notes": "ההרחקה חלה גם על מקבץ צמוד לסיקור וגם בתוך תכנים קשים; חריגה באישור מראש של הסוכנות בלבד",
+      "cite": [{"clause_id": "5.4", "quote": "הצמוד לסיקור אסונות"}]
+    },
+    {
+      "instance_id": "gt-top-and-tail",
+      "term_id": "position-entitlements",
+      "params": {
+        "positions": ["ראשון", "אחרון (L)"],
+        "top_and_tail": true
+      },
+      "notes": "בין הפותח לסוגר יופרדו לפחות תשדיר אחד ולכל היותר שניים; תמחור לפי האורך המצטבר בתוספת מיקום ראשון בלבד",
+      "cite": [{"clause_id": "5.5", "quote": "טופ אנד טייל"}]
+    },
+    {
+      "instance_id": "gt-freq-hour",
+      "term_id": "frequency-caps",
+      "params": {"unit": "hour", "cap": 2},
+      "cite": [{"clause_id": "5.6", "quote": "יותר מפעמיים באותה שעת שידור עגולה"}]
+    },
+    {
+      "instance_id": "gt-freq-day",
+      "term_id": "frequency-caps",
+      "params": {"unit": "day", "cap": 4},
+      "cite": [{"clause_id": "5.6", "quote": "ולא יותר מארבע פעמים ביממת שידור"}]
+    },
+    {
+      "instance_id": "gt-daypart-mix",
+      "term_id": "daypart-mix",
+      "params": {
+        "rows": [
+          {"daypart": "רצועת פריים", "max_percent": 45},
+          {"daypart": "רצועת דיי-טיים", "min_percent": 20}
+        ],
+        "basis": "money"
+      },
+      "window": {},
+      "notes": "המסגרת נמדדת על התקציב הרבעוני",
+      "cite": [{"clause_id": "6.1", "quote": "לא יותר מ-45% מסך התקציב הרבעוני"}]
+    },
+    {
+      "instance_id": "gt-flighting",
+      "term_id": "flighting-obligation",
+      "params": {
+        "rules": [
+          {"rule": "פעילות שידור חודשית בהיקף שלא יפחת מ-600,000 ₪ בכל חודש קלנדרי"},
+          {"rule": "בחודש אוגוסט ניתן להפחית עד 300,000 ₪"}
+        ]
+      },
+      "cite": [{"clause_id": "6.2", "quote": "לא יפחת מ-600,000 ₪"}]
+    },
+    {
+      "instance_id": "gt-creatives",
+      "term_id": "creative-constraints",
+      "params": {
+        "rules": [
+          {"note": "מסירת חומרים עד 48 שעות לפני מועד השידור הראשון"},
+          {"note": "לכל גרסה מספר בית ממערך השידור; חובה לציין את מספר הבית בכל הזמנת שיבוץ"},
+          {"note": "תוקף אישור השידור עד לתאריך הנקוב בטופס המסירה; גרסה שפג תוקפה לא תשובץ"}
+        ],
+        "qc_gate": true
+      },
+      "cite": [
+        {"clause_id": "7.1", "quote": "מספר בית"},
+        {"clause_id": "7.2", "quote": "בקרת איכות טכנית"}
+      ]
+    },
+    {
+      "instance_id": "gt-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 60 מיום הפקת חשבונית מס",
+        "billing_cycle": "חשבונית אחת לחודש קלנדרי על בסיס ההתחשבנות השבועית המצטברת"
+      },
+      "cite": [{"clause_id": "8.1", "quote": "שוטף + 60"}]
+    },
+    {
+      "instance_id": "gt-cash-discount",
+      "term_id": "cash-discount",
+      "params": {
+        "percent": 1.5,
+        "qualifying_terms": "תשלום בתוך 10 ימים ממועד הפקת החשבונית"
+      },
+      "cite": [{"clause_id": "8.2", "quote": "הנחת מזומן בשיעור 1.5%"}]
+    },
+    {
+      "instance_id": "gt-late-interest",
+      "term_id": "payment-indexation",
+      "params": {
+        "summary": "פיגור מעל 14 יום נושא ריבית בנק ישראל + 3% לשנה, ומקנה לערוץ זכות לעכב שיבוצים עד הסדרת החוב"
+      },
+      "cite": [{"clause_id": "8.3", "quote": "ריבית בנק ישראל בתוספת 3%"}]
+    },
+    {
+      "instance_id": "gt-reporting",
+      "term_id": "reporting-obligations",
+      "params": {
+        "reports": [
+          {"report": "דוח אספקה: שידורים בפועל (As Run), נקודות רייטינג לכל קמפיין, יתרת צבירת מייק גוד, שיעור מיקומים מועדפים מצטבר", "cadence": "שבועי"},
+          {"report": "דוח התחשבנות מסכם", "cadence": "רבעוני"}
+        ]
+      },
+      "cite": [{"clause_id": "8.4", "quote": "דוח אספקה"}]
+    },
+    {
+      "instance_id": "gt-truth-source",
+      "term_id": "delivery-truth-source",
+      "params": {
+        "source_order": "השידור בפועל על פי As Run; נתוני ועדת המדרוג לרייטינג"
+      },
+      "cite": [
+        {"clause_id": "3.3", "quote": "נתוני השידור בפועל (As Run)"},
+        {"clause_id": "8.4", "quote": "פירוט שידורים בפועל על פי As Run"}
+      ]
+    },
+    {
+      "instance_id": "gt-measurement",
+      "term_id": "measurement-source",
+      "params": {
+        "source": "ועדת המדרוג הישראלית",
+        "audience_basis": "בתי אב יהודיים בעלי מקלט טלוויזיה",
+        "vintage": "רייטינג רבעי שעה כולל צפייה נדחית של 24 שעות (overnight +1)"
+      },
+      "cite": [{"clause_id": "1.2", "quote": "overnight +1"}]
+    },
+    {
+      "instance_id": "gt-audit",
+      "term_id": "audit-rights",
+      "params": {
+        "summary": "עיון של רואה חשבון מטעם הסוכנות בנתוני השידור וההתחשבנות של לקוחותיה, בהודעה מראש של 14 יום, אחת לתקופת ההסכם"
+      },
+      "cite": [{"clause_id": "8.5", "quote": "רואה חשבון מטעמה"}]
+    },
+    {
+      "instance_id": "gt-force-majeure",
+      "term_id": "force-majeure",
+      "params": {
+        "qualifying_events": "מצב חירום לאומי, מלחמה או מבצע צבאי רחב היקף ששינה את לוח השידורים מהותית מעל 7 ימים רצופים",
+        "relief": "הקפאת התחייבויות ההיקף (פרקים ב' ו-ו') לתקופת השינוי; טיפול בספוטים שלא שודרו לפי סעיף 4.6; פגישת עדכון בתוך 14 יום"
+      },
+      "cite": [{"clause_id": "9.1", "quote": "מצב חירום לאומי"}]
+    },
+    {
+      "instance_id": "gt-termination",
+      "term_id": "termination",
+      "params": {
+        "summary": "סיום בהודעה של 90 יום; הפרה יסודית שלא תוקנה בתוך 14 יום מקנה סיום לאלתר",
+        "notice_days": 90,
+        "survival": [
+          "זכויות שנצברו עד מועד הסיום",
+          "יתרת צבירת מייק גוד לניצול במשך 90 יום",
+          "התחשבנות ההנחה המדורגת על ההיקף שנרכש בפועל"
+        ]
+      },
+      "cite": [
+        {"clause_id": "9.2", "quote": "הודעה בכתב של 90 יום"},
+        {"clause_id": "9.3", "quote": "במשך 90 יום ממועד הסיום"}
+      ]
+    },
+    {
+      "instance_id": "gt-precedence-appendix",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "הנספחים",
+        "loser": "גוף ההסכם",
+        "verbatim": "בכל מקרה של סתירה בין הוראות גוף ההסכם לבין הנספחים, יגברו הוראות הנספחים."
+      },
+      "cite": [{"clause_id": "10.1", "quote": "יגברו הוראות הנספחים"}]
+    },
+    {
+      "instance_id": "gt-supersession",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "הסכם זה",
+        "loser": "הסכם המסגרת מיום 20.12.2024",
+        "scope_note": "ביטול הסכם קודם — ההסכם החדש גובר ומחליף",
+        "verbatim": "הסכם זה ממצה את מלוא המוסכם בין הצדדים ומבטל כל מצג, הבנה או הסכם קודמים בעניינים הנדונים בו, לרבות הסכם המסגרת מיום 20.12.2024."
+      },
+      "cite": [{"clause_id": "10.2", "quote": "לרבות הסכם המסגרת מיום 20.12.2024"}]
+    },
+    {
+      "instance_id": "gt-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט בלעדית לבתי המשפט בתל אביב-יפו; הדין החל — דין מדינת ישראל"
+      },
+      "cite": [{"clause_id": "10.4", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["gt-parties"]},
+    "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיפי הואיל — מבוא הצהרתי"},
+    "1.1": {"disposition": "mapped", "instance_ids": ["gt-definitions"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["gt-measurement"]},
+    "1.3": {"disposition": "mapped", "instance_ids": ["gt-ratecard-version"]},
+    "1.4": {"disposition": "mapped", "instance_ids": ["gt-window"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["gt-budget"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["gt-ladder-body"]},
+    "2.3": {"disposition": "mapped", "instance_ids": ["gt-true-up"]},
+    "2.4": {"disposition": "mapped", "instance_ids": ["gt-december-blackout"]},
+    "2.5": {"disposition": "mapped", "instance_ids": ["gt-commission"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["gt-cpp-table"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["gt-length-factors"]},
+    "3.3": {"disposition": "mapped", "instance_ids": ["gt-settlement", "gt-truth-source"]},
+    "3.4": {"disposition": "mapped", "instance_ids": ["gt-gold-rates"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["gt-trp-guarantee"]},
+    "4.2": {"disposition": "mapped", "instance_ids": ["gt-cure"]},
+    "4.3": {"disposition": "mapped", "instance_ids": ["gt-overdelivery"]},
+    "4.4": {"disposition": "mapped", "instance_ids": ["gt-trp-guarantee"]},
+    "4.5": {"disposition": "mapped", "instance_ids": ["gt-makegood-accrual"]},
+    "4.6": {"disposition": "mapped", "instance_ids": ["gt-preemption"]},
+    "5.1": {"disposition": "mapped", "instance_ids": ["gt-preferred-positions"]},
+    "5.2": {"disposition": "mapped", "instance_ids": ["gt-separation-delta"]},
+    "5.3": {"disposition": "mapped", "instance_ids": ["gt-exclusivity-sadot"]},
+    "5.4": {"disposition": "mapped", "instance_ids": ["gt-adjacency-exclusion"]},
+    "5.5": {"disposition": "mapped", "instance_ids": ["gt-top-and-tail"]},
+    "5.6": {"disposition": "mapped", "instance_ids": ["gt-freq-hour", "gt-freq-day"]},
+    "6.1": {"disposition": "mapped", "instance_ids": ["gt-daypart-mix"]},
+    "6.2": {"disposition": "mapped", "instance_ids": ["gt-flighting"]},
+    "7.1": {"disposition": "mapped", "instance_ids": ["gt-creatives"]},
+    "7.2": {"disposition": "mapped", "instance_ids": ["gt-creatives"]},
+    "8.1": {"disposition": "mapped", "instance_ids": ["gt-payment"]},
+    "8.2": {"disposition": "mapped", "instance_ids": ["gt-cash-discount"]},
+    "8.3": {"disposition": "mapped", "instance_ids": ["gt-late-interest"]},
+    "8.4": {"disposition": "mapped", "instance_ids": ["gt-reporting", "gt-truth-source"]},
+    "8.5": {"disposition": "mapped", "instance_ids": ["gt-audit"]},
+    "9.1": {"disposition": "mapped", "instance_ids": ["gt-force-majeure"]},
+    "9.2": {"disposition": "mapped", "instance_ids": ["gt-termination"]},
+    "9.3": {"disposition": "mapped", "instance_ids": ["gt-termination"]},
+    "10.1": {"disposition": "mapped", "instance_ids": ["gt-precedence-appendix"]},
+    "10.2": {"disposition": "mapped", "instance_ids": ["gt-supersession"]},
+    "10.3": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון משלוח הודעות בלבד"},
+    "10.4": {"disposition": "mapped", "instance_ids": ["gt-jurisdiction"]},
+    "10.5": {"disposition": "irrelevant", "irrelevant_class": "severability", "reason": "סעיף עצמאות סעיפים"},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"},
+    "appA-1": {"disposition": "mapped", "instance_ids": ["gt-cpp-table"]},
+    "appA-2": {"disposition": "mapped", "instance_ids": ["gt-gold-rates"]},
+    "appA-3": {"disposition": "mapped", "instance_ids": ["gt-ladder-appendix"]},
+    "appD-1": {"disposition": "mapped", "instance_ids": ["gt-parties"]}
+  },
+  "expected_conflicts": [
+    {
+      "instances": ["gt-ladder-body", "gt-ladder-appendix"],
+      "contested": "שיעור ההנחה במדרגה מעל 12,000,000 ₪ — 18% בגוף ההסכם מול 17% בנספח א'",
+      "resolution": "resolved_by_rule",
+      "winner": "gt-ladder-appendix",
+      "via": "precedence-clause gt-precedence-appendix (סעיף 10.1) וכן לשון 'על אף האמור' בנספח א' סעיף 3"
+    }
+  ]
+}

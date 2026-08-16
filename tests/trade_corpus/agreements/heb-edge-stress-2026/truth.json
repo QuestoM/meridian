@@ -1,0 +1,317 @@
+{
+  "document_id": "heb-edge-stress-2026",
+  "title": "הסכם פרסום שנתי — אלמוג מוצרי צריכה (FreshMint)",
+  "agreement_level": "advertiser",
+  "instances": [
+    {
+      "instance_id": "es-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "advertiser_via_agency",
+        "agency": "תובנה מדיה בע\"מ",
+        "advertiser": "אלמוג מוצרי צריכה בע\"מ",
+        "direct_client": false
+      },
+      "cite": [
+        {"clause_id": "pre-2", "quote": "תובנה מדיה בע\"מ"},
+        {"clause_id": "pre-2", "quote": "אלמוג מוצרי צריכה בע\"מ"}
+      ]
+    },
+    {
+      "instance_id": "es-definitions",
+      "term_id": "definitions",
+      "params": {
+        "entries": [
+          {"term": "רצועת הפריים", "definition": "משדרי הערוץ בין השעות 19:30 ועד 23:00 בלבד, על אף כל הגדרה אחרת הנוהגת אצל הערוץ", "daypart_bounds": {"start": "19:30", "end": "23:00"}},
+          {"term": "רצועת קדם-פריים", "definition": "בין השעות 17:00 ועד 19:30", "daypart_bounds": {"start": "17:00", "end": "19:30"}},
+          {"term": "המותגים", "definition": "FreshMint Ultra וכן FreshMint Kids"},
+          {"term": "יום עסקים", "definition": "ימים א'—ה' שאינם ערבי חג או חול המועד"}
+        ]
+      },
+      "notes": "הגדרת הפריים של ההסכם (19:30—23:00) גוברת במפורש על הגדרת הערוץ; כל סעיף בהסכם הנוקב ברצועת הפריים נמדד לפי ההגדרה הזו, לא לפי רצועות המפעיל",
+      "cite": [
+        {"clause_id": "1.1", "quote": "בין השעות 19:30 ועד 23:00 בלבד"},
+        {"clause_id": "1.1", "quote": "על אף כל הגדרה אחרת הנוהגת אצל הערוץ"}
+      ]
+    },
+    {
+      "instance_id": "es-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-02-01",
+        "ends_on": "2027-01-31",
+        "auto_renewal": false
+      },
+      "notes": "התקופה נחלקת לשני חלקים בספרות רומיות: חלק I עד 31.07.2026, חלק II עד 31.01.2027",
+      "cite": [{"clause_id": "1.2", "quote": "מיום 01.02.2026 ועד ליום 31.01.2027"}]
+    },
+    {
+      "instance_id": "es-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 9000000, "currency": "ILS", "basis": "ratecard"},
+        "period": "year"
+      },
+      "cite": [{"clause_id": "2.1", "quote": "היקף רכישות כולל של 9,000,000 ₪"}]
+    },
+    {
+      "instance_id": "es-ladder",
+      "term_id": "volume-discount-ladder",
+      "params": {
+        "tiers": [
+          {"threshold": 0, "discount_percent": 10},
+          {"threshold": 4000000, "discount_percent": 13},
+          {"threshold": 7000000, "discount_percent": 16}
+        ],
+        "basis": "ratecard_gross",
+        "mechanics": "retroactive",
+        "period": "year"
+      },
+      "notes": "המדרגות קבורות בנספח ג' סעיף 2; גוף ההסכם (סעיף 2.1) רק מפנה אליהן ואינו נוקב בשיעור כלשהו",
+      "cite": [
+        {"clause_id": "appC-2", "quote": "מעל 7,000,000 ₪ — הנחה בשיעור 16%"},
+        {"clause_id": "appC-2", "quote": "ההנחה תחושב רטרואקטיבית"},
+        {"clause_id": "2.1", "quote": "כמפורט בנספח ג' סעיף 2"}
+      ]
+    },
+    {
+      "instance_id": "es-cpp-cap",
+      "term_id": "effective-cpp-cap",
+      "params": {
+        "cap": 1120,
+        "audience": "בתי אב יהודיים",
+        "window": "year",
+        "spend_basis": "net_of_commission",
+        "true_up_form": "השלמת הפער בנקודות בונוס ללא חיוב במהלך הרבעון העוקב, עד לאיפוס החריגה"
+      },
+      "cite": [
+        {"clause_id": "2.2", "quote": "לא יעלה על 1,120 ₪ לנקודת רייטינג"},
+        {"clause_id": "2.2", "quote": "נטו לאחר ניכוי עמלת הסוכנות"},
+        {"clause_id": "2.2", "quote": "יושלם הפער בנקודות בונוס ללא חיוב"}
+      ]
+    },
+    {
+      "instance_id": "es-true-up",
+      "term_id": "underspend-true-up",
+      "params": {
+        "trigger_note": "אי עמידה בהיקף ההתחייבות שבסעיף 2.1",
+        "re_rating_rule": "עדכון רטרואקטיבי של שיעור ההנחה למדרגה התואמת את ההיקף שנרכש בפועל על פי נספח ג' סעיף 2, והשבת ההפרש בתוך 45 יום ממועד הדרישה"
+      },
+      "cite": [{"clause_id": "2.3", "quote": "עדכון רטרואקטיבי של שיעור ההנחה"}]
+    },
+    {
+      "instance_id": "es-daypart-mix",
+      "term_id": "daypart-mix",
+      "params": {
+        "rows": [
+          {"daypart": "רצועת הפריים כהגדרתה בסעיף 1.1 (19:30—23:00)", "max_percent": 50},
+          {"daypart": "רצועת קדם-פריים ורצועות היום יחדיו", "min_percent": 25}
+        ],
+        "basis": "money"
+      },
+      "notes": "המסגרת נמדדת על התקציב הרבעוני, לפי הגדרת הפריים של ההסכם ולא לפי רצועות המפעיל",
+      "cite": [{"clause_id": "3.1", "quote": "לא יותר מ-50% מתקציב המפרסם"}]
+    },
+    {
+      "instance_id": "es-restrict-ultra",
+      "term_id": "programme-daypart-restrictions",
+      "params": {
+        "mode": "allow",
+        "hard": true
+      },
+      "scope": {
+        "brands": ["FreshMint Ultra"],
+        "dayparts": ["רצועת הפריים כהגדרתה בסעיף 1.1 (19:30—23:00)"],
+        "weekdays": ["א'", "ב'", "ג'", "ד'", "ה'"]
+      },
+      "cite": [{"clause_id": "3.2", "quote": "התשדירים עבור המותג FreshMint Ultra ישודרו ברצועת הפריים כהגדרתה בסעיף 1.1 בלבד, בימים א'—ה'"}]
+    },
+    {
+      "instance_id": "es-restrict-kids",
+      "term_id": "programme-daypart-restrictions",
+      "params": {
+        "mode": "forbid",
+        "hard": true
+      },
+      "scope": {
+        "brands": ["FreshMint Kids"],
+        "dayparts": ["רצועת הפריים כהגדרתה בסעיף 1.1 (19:30—23:00)"]
+      },
+      "cite": [{"clause_id": "3.2", "quote": "תשדירי המותג FreshMint Kids לא ישודרו ברצועת הפריים כלל"}]
+    },
+    {
+      "instance_id": "es-lengths",
+      "term_id": "spot-length-constraints",
+      "params": {
+        "allowed_lengths_seconds": [15, 30, 45],
+        "notes": "אורך אחר טעון אישור מראש ובכתב של מנהל המכירות של הערוץ"
+      },
+      "cite": [{"clause_id": "3.3", "quote": "באורכים 15\", 30\" ו-45\" בלבד"}]
+    },
+    {
+      "instance_id": "es-cancellation",
+      "term_id": "cancellation-terms",
+      "params": {
+        "windows": [
+          {"days_before_air": 3, "fee_percent": 0, "allowed": true},
+          {"days_before_air": 1, "fee_percent": 50, "allowed": true},
+          {"days_before_air": 0, "fee_percent": 100, "allowed": true}
+        ],
+        "notes": "מניין הימים בימי עסקים כהגדרתם בסעיף 1.1; 3 ימי עסקים או יותר — ללא חיוב; 1—2 ימי עסקים — 50%; ביום השידור — 100%"
+      },
+      "cite": [
+        {"clause_id": "4.1", "quote": "3 ימי עסקים או יותר"},
+        {"clause_id": "4.1", "quote": "50% ממחיר השיבוץ"}
+      ]
+    },
+    {
+      "instance_id": "es-preemption",
+      "term_id": "preemption-compensation",
+      "params": {
+        "qualifying_events": "ספוט שלא שודר או הוזז ביוזמת הערוץ, לרבות עקב מהדורת חדשות מיוחדת או שינוי לוח משדרים",
+        "remedy_form": "שיבוץ מחדש ברצועה מקבילה ובאיכות מלאי שוות ערך; באין אפשרות — זיכוי מלא",
+        "window": "21 יום",
+        "quality_rule": "רצועה מקבילה ואיכות מלאי שוות ערך"
+      },
+      "cite": [{"clause_id": "4.2", "quote": "מהדורת חדשות מיוחדת"}]
+    },
+    {
+      "instance_id": "es-barter",
+      "term_id": "barter-inquiry",
+      "params": {
+        "summary": "תמורה בסך 400,000 ₪ מתוך היקף ההתקשרות תשולם באספקת מוצרי המפרסם לערוץ (עסקת ברטר), לשימוש בהפקות ובמבצעי צופים, על פי רשימת מוצרים ומחירון בנספח ה'; השווי נזקף על חשבון היקף ההתחייבות"
+      },
+      "notes": "מבנה עסקה ללא עדות ישראלית בתשתית המוצר (NOT_APPLICABLE): מסווג בשמו כדי שהסקירה תסמן אותו בקול ותסרב בנימוק, לא תשמיט בשקט",
+      "cite": [{"clause_id": "5.1", "quote": "עסקת ברטר — תמורה במוצרים"}]
+    },
+    {
+      "instance_id": "es-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 90 מיום הפקת חשבונית מס",
+        "billing_cycle": "חשבונית אחת לחודש קלנדרי"
+      },
+      "cite": [{"clause_id": "6.1", "quote": "שוטף + 90"}]
+    },
+    {
+      "instance_id": "es-indexation",
+      "term_id": "payment-indexation",
+      "params": {
+        "summary": "סכום בפיגור נושא הפרשי הצמדה למדד המחירים לצרכן וריבית פיגורים בשיעור 2% לחודש או חלק ממנו, ממועד החיוב ועד התשלום בפועל"
+      },
+      "cite": [{"clause_id": "6.2", "quote": "ריבית פיגורים בשיעור 2% לחודש"}]
+    },
+    {
+      "instance_id": "es-reporting",
+      "term_id": "reporting-obligations",
+      "params": {
+        "reports": [
+          {"report": "דוח שידורים בפועל (As Run) ונתוני רייטינג לכל קמפיין פעיל של המותגים", "cadence": "שבועי"}
+        ]
+      },
+      "cite": [{"clause_id": "7.1", "quote": "דוח שידורים בפועל (As Run)"}]
+    },
+    {
+      "instance_id": "es-fm",
+      "term_id": "force-majeure",
+      "params": {
+        "qualifying_events": "מצב חירום לאומי או מלחמה שבעטיים הופסקו או שונו שידורי הפרסומת מעל 10 ימים רצופים",
+        "relief": "הקפאת התחייבויות ההיקף שבסעיף 2.1 לתקופת ההפסקה והארכת תקופת ההסכם בהתאמה"
+      },
+      "cite": [{"clause_id": "8.1", "quote": "יוקפאו התחייבויות ההיקף שבסעיף 2.1"}]
+    },
+    {
+      "instance_id": "es-termination",
+      "term_id": "termination",
+      "params": {
+        "summary": "סיום בהודעה בכתב של 60 יום; הפרה יסודית שלא תוקנה בתוך 14 יום מקנה סיום לאלתר",
+        "notice_days": 60,
+        "survival": ["חיובים שנצברו עד מועד הסיום"]
+      },
+      "cite": [{"clause_id": "9.1", "quote": "הודעה בכתב של 60 יום"}]
+    },
+    {
+      "instance_id": "es-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט ייחודית לבתי המשפט המוסמכים בתל אביב-יפו"
+      },
+      "cite": [{"clause_id": "9.5", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    },
+    {
+      "instance_id": "es-cpp-table",
+      "term_id": "cpp-daypart-table",
+      "params": {
+        "rows": [
+          {"daypart": "פריים (19:30—23:00)", "cpp": 1380},
+          {"daypart": "קדם-פריים (17:00—19:30)", "cpp": 760},
+          {"daypart": "דיי-טיים (07:00—17:00)", "cpp": 445},
+          {"daypart": "לילה (23:00—01:00)", "cpp": 570}
+        ],
+        "audience": "בתי אב יהודיים",
+        "base_length_seconds": 30
+      },
+      "notes": "רצועות הטבלה עוקבות אחר הגדרות סעיף 1.1 של ההסכם — פריים 19:30—23:00, צר מהגדרת המפעיל",
+      "cite": [
+        {"clause_id": "appC-1", "quote": "1,380"},
+        {"clause_id": "appC-1", "quote": "רצועות כהגדרתן בסעיף 1.1 לגוף ההסכם"}
+      ]
+    },
+    {
+      "instance_id": "es-appendix-precedence",
+      "term_id": "precedence-clause",
+      "params": {
+        "winner": "נספח ג' ונספח ד'",
+        "loser": "גוף ההסכם",
+        "scope_note": "בענייני מחירים, הנחות ומקדמים בלבד",
+        "verbatim": "בענייני מחירים, הנחות ומקדמים יגברו הוראות נספח ג' ונספח ד' על הוראות גוף ההסכם."
+      },
+      "cite": [{"clause_id": "appC-3", "quote": "יגברו הוראות נספח ג' ונספח ד'"}]
+    },
+    {
+      "instance_id": "es-length-factors",
+      "term_id": "length-factor-table",
+      "params": {
+        "rows": [
+          {"length_seconds": 15, "factor": 0.65},
+          {"length_seconds": 30, "factor": 1.00},
+          {"length_seconds": 45, "factor": 1.45},
+          {"length_seconds": 60, "factor": 1.90}
+        ],
+        "rounding_rule": "אורך שאינו נקוב — פרו-רטה ביחס ל-30 שניות, עיגול לשנייה הקרובה"
+      },
+      "cite": [{"clause_id": "appD-1", "quote": "15\" — 65%"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["es-parties"]},
+    "1.1": {"disposition": "mapped", "instance_ids": ["es-definitions"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["es-window"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["es-budget", "es-ladder"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["es-cpp-cap"]},
+    "2.3": {"disposition": "mapped", "instance_ids": ["es-true-up"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["es-daypart-mix"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["es-restrict-ultra", "es-restrict-kids"]},
+    "3.3": {"disposition": "mapped", "instance_ids": ["es-lengths"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["es-cancellation"]},
+    "4.2": {"disposition": "mapped", "instance_ids": ["es-preemption"]},
+    "5.1": {"disposition": "mapped", "instance_ids": ["es-barter"]},
+    "5.2": {"disposition": "unmapped", "reason": "מעניק לסוכנות זכות למכור ללקוחות צד שלישי עד 10% מזמן השידור שנרכש (מכירה משנית), במחיר שלא יפחת ממחיר הרכישה ובהודעה לערוץ — זכות מסחר חוזר במלאי שידור שאין לה מונח בטקסונומיה; מובן אך לא נתמך, טעון הכרעה אנושית"},
+    "6.1": {"disposition": "mapped", "instance_ids": ["es-payment"]},
+    "6.2": {"disposition": "mapped", "instance_ids": ["es-indexation"]},
+    "7.1": {"disposition": "mapped", "instance_ids": ["es-reporting"]},
+    "8.1": {"disposition": "mapped", "instance_ids": ["es-fm"]},
+    "9.1": {"disposition": "mapped", "instance_ids": ["es-termination"]},
+    "9.2": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון משלוח הודעות בלבד"},
+    "9.3": {"disposition": "irrelevant", "irrelevant_class": "severability", "reason": "סעיף עצמאות סעיפים"},
+    "9.4": {"disposition": "irrelevant", "irrelevant_class": "headings-interpretation", "reason": "כותרות לנוחות בלבד"},
+    "9.5": {"disposition": "mapped", "instance_ids": ["es-jurisdiction"]},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"},
+    "appC-1": {"disposition": "mapped", "instance_ids": ["es-cpp-table"]},
+    "appC-2": {"disposition": "mapped", "instance_ids": ["es-ladder"]},
+    "appC-3": {"disposition": "mapped", "instance_ids": ["es-appendix-precedence"]},
+    "appD-1": {"disposition": "mapped", "instance_ids": ["es-length-factors"]}
+  },
+  "expected_conflicts": []
+}

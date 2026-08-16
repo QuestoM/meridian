@@ -1,0 +1,392 @@
+{
+  "document_id": "heb-direct-advertiser-2026",
+  "title": "הסכם התקשרות ישירה — טכנו-קור (TechnoCore) 2026",
+  "agreement_level": "advertiser",
+  "instances": [
+    {
+      "instance_id": "dt-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "advertiser",
+        "advertiser": "טכנו-קור בע\"מ",
+        "direct_client": true,
+        "signatories": ["דנה לוין, סמנכ\"לית מסחר", "אבי מזרחי, מנכ\"ל טכנו-קור"]
+      },
+      "notes": "לקוח ישיר — יבואנית אלקטרוניקה צרכנית תחת המותג TechnoCore, ללא סוכנות מדיה",
+      "cite": [
+        {"clause_id": "pre-2", "quote": "טכנו-קור בע\"מ"},
+        {"clause_id": "pre-2", "quote": "המתקשרת עם הערוץ במישרין וללא סוכנות מדיה"}
+      ]
+    },
+    {
+      "instance_id": "dt-level",
+      "term_id": "agreement-level",
+      "params": {
+        "level": "advertiser"
+      },
+      "notes": "הסכם מפרסם ישיר; הצהרה מפורשת שלא תשולם עמלת סוכנות",
+      "cite": [{"clause_id": "1.2", "quote": "הסכם מפרסם ישיר"}]
+    },
+    {
+      "instance_id": "dt-definitions",
+      "term_id": "definitions",
+      "params": {
+        "entries": [
+          {"term": "רצועת פריים", "definition": "משדרי הערוץ בין השעות 20:00 ועד 24:00", "daypart_bounds": {"start": "20:00", "end": "24:00"}},
+          {"term": "רצועת דיי-טיים", "definition": "בין השעות 06:30 ועד 17:00", "daypart_bounds": {"start": "06:30", "end": "17:00"}},
+          {"term": "רצועת אקסס", "definition": "בין השעות 17:00 ועד 20:00", "daypart_bounds": {"start": "17:00", "end": "20:00"}},
+          {"term": "קהל היעד", "definition": "גברים בני 18-44 על פי הגדרות ועדת המדרוג הישראלית"}
+        ]
+      },
+      "notes": "גבולות הפריים כאן (20:00—24:00) שונים מהסכם המסגרת של אופק מדיה — ההגדרה המקומית גוברת לכל סעיפי ההסכם הזה",
+      "cite": [{"clause_id": "1.1", "quote": "גברים בני 18-44 על פי הגדרות ועדת המדרוג הישראלית"}]
+    },
+    {
+      "instance_id": "dt-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2026-03-01",
+        "ends_on": "2026-11-30",
+        "auto_renewal": false
+      },
+      "notes": "תקופה של תשעה חודשים; הארכה רק בהסכם חדש בכתב",
+      "cite": [
+        {"clause_id": "1.3", "quote": "מיום 01.03.2026 ועד ליום 30.11.2026"},
+        {"clause_id": "1.3", "quote": "לא יתחדש מאליו"}
+      ]
+    },
+    {
+      "instance_id": "dt-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 4200000, "currency": "ILS", "basis": "ratecard"},
+        "period": "custom"
+      },
+      "notes": "התקופה — תשעת חודשי ההסכם (01.03.2026—30.11.2026), במונחי מחירון ברוטו",
+      "cite": [{"clause_id": "2.1", "quote": "היקף רכישות כולל של 4,200,000 ₪"}]
+    },
+    {
+      "instance_id": "dt-target-cpp",
+      "term_id": "target-cpp",
+      "params": {
+        "audience": "גברים בני 18-44",
+        "cpp": 2400,
+        "vintage": "overnight +1"
+      },
+      "notes": "CPP כנגד קהל היעד (TRP), לא על בסיס בתי אב — בסיס ההתחשבנות של כל ההסכם; חל בכל הרצועות למעט המחירים הקבועים שבסעיף 2.3",
+      "cite": [
+        {"clause_id": "2.2", "quote": "2,400 ₪"},
+        {"clause_id": "2.2", "quote": "ולא על בסיס בתי אב"}
+      ]
+    },
+    {
+      "instance_id": "dt-fixed",
+      "term_id": "fixed-spot-pricing",
+      "params": {
+        "rows": [
+          {"programme": "גמר \"קרב השפים\"", "length_seconds": 30, "price": {"amount": 85000, "currency": "ILS", "basis": "gross"}},
+          {"programme": "\"מוצ\"ש ספורט\" — תקציר המחזור", "length_seconds": 30, "price": {"amount": 38000, "currency": "ILS", "basis": "gross"}},
+          {"programme": "ערב הגאלה השנתי של הערוץ", "length_seconds": 30, "price": {"amount": 52000, "currency": "ILS", "basis": "gross"}}
+        ]
+      },
+      "notes": "מחיר קבוע — נרכש זמן אוויר ולא קהל; ללא תלות ברייטינג",
+      "cite": [
+        {"clause_id": "2.3", "quote": "85,000"},
+        {"clause_id": "2.3", "quote": "ללא תלות ברייטינג שנמדד"}
+      ]
+    },
+    {
+      "instance_id": "dt-added-value",
+      "term_id": "added-value-media",
+      "params": {
+        "percent": 18,
+        "basis": "כלל היקף הרכישות בפועל על פי ההסכם",
+        "delivery_window": "עד תום הרבעון העוקב לרבעון הצבירה",
+        "quality_note": "שידורי בונוס ברצועות מקבילות לרכישות שבגינן נצברה, בתיאום מראש ובכפוף לזמינות מלאי"
+      },
+      "notes": "התמורה הנהוגה ללקוח ישיר — מדיה נוספת הנצברת מעצם הרכישה, להבדיל מהשלמה בגין חוסר",
+      "cite": [{"clause_id": "2.4", "quote": "מדיה נוספת בשיעור 18%"}]
+    },
+    {
+      "instance_id": "dt-lengths",
+      "term_id": "spot-length-constraints",
+      "params": {
+        "allowed_lengths_seconds": [20, 30],
+        "notes": "אורכים אחרים רק בהסכמת הצדדים מראש ובכתב"
+      },
+      "cite": [{"clause_id": "2.5", "quote": "באורך 20 שניות או 30 שניות בלבד"}]
+    },
+    {
+      "instance_id": "dt-length-factor",
+      "term_id": "length-factor-table",
+      "params": {
+        "rows": [
+          {"length_seconds": 20, "factor": 0.85}
+        ]
+      },
+      "notes": "בסיס 30 שניות = 100%; 20 שניות מעל פרו-רטה (85% חלף 66.7%) — התמחור הקצר-מעל-ליניארי המקובל בשוק",
+      "cite": [{"clause_id": "2.5", "quote": "מקדם אורך של 85%"}]
+    },
+    {
+      "instance_id": "dt-guarantee",
+      "term_id": "trp-delivery-guarantee",
+      "params": {
+        "points": 320,
+        "audience": "גברים בני 18-44",
+        "vintage": "overnight +1",
+        "window": "custom",
+        "tolerance_percent": 8,
+        "checkpoints": "נקודת ביקורת חודשית עם צפי מעודכן לתום התקופה"
+      },
+      "notes": "התחייבות קונקרטית לתקופת ההסכם כולה (01.03.2026—30.11.2026), כנגד קהל היעד של סעיף 2.2",
+      "cite": [
+        {"clause_id": "3.1", "quote": "320 נקודות רייטינג בקהל היעד"},
+        {"clause_id": "3.1", "quote": "בסטייה מותרת של עד 8% כלפי מטה"},
+        {"clause_id": "3.1", "quote": "נקודת ביקורת חודשית"}
+      ]
+    },
+    {
+      "instance_id": "dt-cure-credit",
+      "term_id": "shortfall-cure",
+      "params": {
+        "cure_form": "credit",
+        "quality_rule": "זיכוי כספי — מכפלת הנקודות החסרות במחיר לנקודה שבסעיף 2.2; לא שידורי בונוס",
+        "cure_window": "במסגרת ההתחשבנות הסופית, בתוך 30 יום מתום תקופת ההסכם",
+        "valuation_basis": "המחיר לנקודה הקבוע בסעיף 2.2 (2,400 ₪ לנקודת קהל יעד)"
+      },
+      "notes": "סותר את סעיף 7.3 הקובע השלמה בשידורי בונוס בלבד; בהסכם אין סעיף עדיפות",
+      "cite": [
+        {"clause_id": "3.2", "quote": "יזכה הערוץ את המפרסם בזיכוי כספי"},
+        {"clause_id": "3.2", "quote": "בתוך 30 יום מתום תקופת ההסכם"}
+      ]
+    },
+    {
+      "instance_id": "dt-overdelivery",
+      "term_id": "overdelivery-treatment",
+      "params": {
+        "treatment": "charged",
+        "banking_cap": "עד 5% מעל הכמות המתחייבת — ללא חיוב; מעבר לכך — חיוב לפי המחיר לנקודה שבסעיף 2.2"
+      },
+      "notes": "הווריאנט הנדיר: עודף אספקה מחויב בתשלום ולא נספג",
+      "cite": [{"clause_id": "3.3", "quote": "אספקת יתר העולה על 5% תחויב"}]
+    },
+    {
+      "instance_id": "dt-separation-hard",
+      "term_id": "competitive-separation",
+      "params": {
+        "category": "סלולר ואלקטרוניקה צרכנית",
+        "separation_unit": "spots",
+        "separation_quantity": 2,
+        "hard": true
+      },
+      "notes": "הוראה יסודית: לפחות שני תשדירים מפרידים בתוך המקבץ",
+      "cite": [
+        {"clause_id": "4.1", "quote": "יופרדו לפחות שני תשדירים"},
+        {"clause_id": "4.1", "quote": "כהוראה יסודית"}
+      ]
+    },
+    {
+      "instance_id": "dt-separation-soft",
+      "term_id": "competitive-separation",
+      "params": {
+        "category": "סלולר ואלקטרוניקה צרכנית",
+        "separation_unit": "same_break",
+        "separation_quantity": 0,
+        "hard": false
+      },
+      "notes": "רובד רך נוסף: השתדלות להימנע כליל ממתחרה באותו מקבץ ('ככל הניתן')",
+      "cite": [{"clause_id": "4.1", "quote": "יפעל ככל הניתן להימנע כליל משיבוץ מתחרה"}]
+    },
+    {
+      "instance_id": "dt-adjacency",
+      "term_id": "adjacency-purchase",
+      "params": {
+        "target_content": "המהדורה המרכזית של חדשות הערוץ",
+        "break_relation": "המקבץ שלפני תחילת המהדורה והמקבץ הראשון שלאחריה",
+        "premium_note": "תוספת של 15% על התעריף החל; כפוף לזמינות מלאי במועד ההזמנה"
+      },
+      "cite": [{"clause_id": "4.2", "quote": "בתוספת של 15% על התעריף החל"}]
+    },
+    {
+      "instance_id": "dt-freq-break",
+      "term_id": "frequency-caps",
+      "params": {"unit": "break", "cap": 1},
+      "cite": [{"clause_id": "4.3", "quote": "לא ישודר יותר מתשדיר אחד של המפרסם באותו מקבץ"}]
+    },
+    {
+      "instance_id": "dt-freq-day",
+      "term_id": "frequency-caps",
+      "params": {"unit": "day", "cap": 6},
+      "cite": [{"clause_id": "4.3", "quote": "יותר משש פעמים ביממת שידור"}]
+    },
+    {
+      "instance_id": "dt-daypart-mix",
+      "term_id": "daypart-mix",
+      "params": {
+        "rows": [
+          {"daypart": "רצועת הפריים", "min_percent": 55},
+          {"daypart": "רצועת הדיי-טיים", "max_percent": 20}
+        ],
+        "basis": "rating_points"
+      },
+      "notes": "התמהיל נמדד בנקודות רייטינג בקהל היעד, לא בכסף",
+      "cite": [
+        {"clause_id": "4.4", "quote": "לפחות 55% מנקודות הרייטינג בקהל היעד"},
+        {"clause_id": "4.4", "quote": "לא יותר מ-20% מהן ברצועת הדיי-טיים"}
+      ]
+    },
+    {
+      "instance_id": "dt-creatives",
+      "term_id": "creative-constraints",
+      "params": {
+        "rules": [
+          {"note": "מסירת חומרים עד 72 שעות לפני השידור הראשון של כל גרסה"},
+          {"note": "מספר בית לכל גרסה ממערך השידור; אין שידור ללא אישור שידור בתוקף"}
+        ],
+        "qc_gate": true
+      },
+      "cite": [
+        {"clause_id": "5.1", "quote": "מספר בית"},
+        {"clause_id": "5.1", "quote": "בקרת איכות טכנית"}
+      ]
+    },
+    {
+      "instance_id": "dt-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 30 מיום הפקת חשבונית מס",
+        "billing_cycle": "חשבונית אחת לחודש קלנדרי"
+      },
+      "cite": [{"clause_id": "6.1", "quote": "שוטף + 30"}]
+    },
+    {
+      "instance_id": "dt-security",
+      "term_id": "credit-security",
+      "params": {
+        "summary": "ערבות בנקאית אוטונומית בסך 1,000,000 ₪ עד מועד השידור הראשון, בתוקף עד 90 יום מתום תקופת ההסכם; אי-המצאתה מקנה לערוץ זכות לעכב שיבוצים"
+      },
+      "cite": [{"clause_id": "6.2", "quote": "ערבות בנקאית אוטונומית בסך 1,000,000 ₪"}]
+    },
+    {
+      "instance_id": "dt-late-interest",
+      "term_id": "payment-indexation",
+      "params": {
+        "summary": "פיגור מעל 7 ימים נושא ריבית פיגורים בשיעור ריבית בנק ישראל בתוספת 2.5% לשנה"
+      },
+      "cite": [{"clause_id": "6.3", "quote": "ריבית בנק ישראל בתוספת 2.5%"}]
+    },
+    {
+      "instance_id": "dt-settlement",
+      "term_id": "settlement-mechanics",
+      "params": {
+        "grain": "רייטינג קהל היעד של רבע השעה הקלנדרי שבו שודר הספוט בפועל, כפול מקדם האורך",
+        "cadence": "חודשי",
+        "application_order": "המחירים הקבועים שבסעיף 2.3 גוברים על מנגנון ה-CPP לתוכניות הנקובות בהם"
+      },
+      "cite": [{"clause_id": "7.1", "quote": "רבע השעה הקלנדרי שבו שודר הספוט בפועל"}]
+    },
+    {
+      "instance_id": "dt-truth-source",
+      "term_id": "delivery-truth-source",
+      "params": {
+        "source_order": "השידור בפועל על פי As Run; נתוני ועדת המדרוג לרייטינג קהל היעד"
+      },
+      "cite": [{"clause_id": "7.1", "quote": "נתוני השידור בפועל (As Run)"}]
+    },
+    {
+      "instance_id": "dt-measurement",
+      "term_id": "measurement-source",
+      "params": {
+        "source": "ועדת המדרוג הישראלית",
+        "audience_basis": "קהל היעד — גברים בני 18-44",
+        "vintage": "רייטינג רבעי שעה כולל צפייה נדחית של 24 שעות (overnight +1)",
+        "final_rule": "הנתון הסופי ליום שידור — הנתון המתפרסם ביום שלמחרת"
+      },
+      "cite": [
+        {"clause_id": "7.2", "quote": "overnight +1"},
+        {"clause_id": "7.2", "quote": "הנתון המתפרסם ביום שלמחרת"}
+      ]
+    },
+    {
+      "instance_id": "dt-cure-bonus",
+      "term_id": "shortfall-cure",
+      "params": {
+        "cure_form": "bonus_spots",
+        "quality_rule": "שידורי בונוס ברצועות מקבילות לרצועות שבהן שודר הקמפיין; במפורש לא זיכוי כספי"
+      },
+      "missing": ["cure_window"],
+      "notes": "סותר חזיתית את סעיף 3.2 (זיכוי כספי בתוך 30 יום); הסעיף אינו נוקב חלון השלמה ובהסכם אין סעיף עדיפות — הסתירה נותרת פתוחה",
+      "cite": [
+        {"clause_id": "7.3", "quote": "בשידורי בונוס בלבד"},
+        {"clause_id": "7.3", "quote": "ולא בדרך של זיכוי כספי"}
+      ]
+    },
+    {
+      "instance_id": "dt-confidentiality",
+      "term_id": "confidentiality",
+      "params": {
+        "summary": "תנאי ההסכם, התעריפים והמחירים הקבועים — סודיים; גילוי רק ליועצים מקצועיים או על פי דרישת דין"
+      },
+      "cite": [{"clause_id": "8.1", "quote": "הינם סודיים"}]
+    },
+    {
+      "instance_id": "dt-reporting",
+      "term_id": "reporting-obligations",
+      "params": {
+        "reports": [
+          {"report": "דוח אספקה: שידורים בפועל, נקודות רייטינג בקהל היעד, יתרת מדיה נוספת שנצברה וטרם נוצלה", "cadence": "חודשי"}
+        ]
+      },
+      "cite": [{"clause_id": "8.2", "quote": "דוח אספקה"}]
+    },
+    {
+      "instance_id": "dt-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט בלעדית לבתי המשפט המוסמכים בתל אביב-יפו; הדין החל — דין מדינת ישראל"
+      },
+      "cite": [{"clause_id": "8.4", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["dt-parties"]},
+    "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיפי הואיל — מבוא הצהרתי"},
+    "1.1": {"disposition": "mapped", "instance_ids": ["dt-definitions"]},
+    "1.2": {"disposition": "mapped", "instance_ids": ["dt-level"]},
+    "1.3": {"disposition": "mapped", "instance_ids": ["dt-window"]},
+    "2.1": {"disposition": "mapped", "instance_ids": ["dt-budget"]},
+    "2.2": {"disposition": "mapped", "instance_ids": ["dt-target-cpp"]},
+    "2.3": {"disposition": "mapped", "instance_ids": ["dt-fixed"]},
+    "2.4": {"disposition": "mapped", "instance_ids": ["dt-added-value"]},
+    "2.5": {"disposition": "mapped", "instance_ids": ["dt-lengths", "dt-length-factor"]},
+    "3.1": {"disposition": "mapped", "instance_ids": ["dt-guarantee"]},
+    "3.2": {"disposition": "mapped", "instance_ids": ["dt-cure-credit"]},
+    "3.3": {"disposition": "mapped", "instance_ids": ["dt-overdelivery"]},
+    "4.1": {"disposition": "mapped", "instance_ids": ["dt-separation-hard", "dt-separation-soft"]},
+    "4.2": {"disposition": "mapped", "instance_ids": ["dt-adjacency"]},
+    "4.3": {"disposition": "mapped", "instance_ids": ["dt-freq-break", "dt-freq-day"]},
+    "4.4": {"disposition": "mapped", "instance_ids": ["dt-daypart-mix"]},
+    "5.1": {"disposition": "mapped", "instance_ids": ["dt-creatives"]},
+    "6.1": {"disposition": "mapped", "instance_ids": ["dt-payment"]},
+    "6.2": {"disposition": "mapped", "instance_ids": ["dt-security"]},
+    "6.3": {"disposition": "mapped", "instance_ids": ["dt-late-interest"]},
+    "7.1": {"disposition": "mapped", "instance_ids": ["dt-settlement", "dt-truth-source"]},
+    "7.2": {"disposition": "mapped", "instance_ids": ["dt-measurement"]},
+    "7.3": {"disposition": "mapped", "instance_ids": ["dt-cure-bonus"]},
+    "8.1": {"disposition": "mapped", "instance_ids": ["dt-confidentiality"]},
+    "8.2": {"disposition": "mapped", "instance_ids": ["dt-reporting"]},
+    "8.3": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון משלוח הודעות בלבד"},
+    "8.4": {"disposition": "mapped", "instance_ids": ["dt-jurisdiction"]},
+    "8.5": {"disposition": "irrelevant", "irrelevant_class": "severability", "reason": "סעיף עצמאות סעיפים"},
+    "8.6": {"disposition": "irrelevant", "irrelevant_class": "headings-interpretation", "reason": "כותרות לנוחות בלבד"},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"}
+  },
+  "expected_conflicts": [
+    {
+      "instances": ["dt-cure-credit", "dt-cure-bonus"],
+      "contested": "צורת ההשלמה בחוסר אספקה: סעיף 3.2 קובע זיכוי כספי בתוך 30 יום מתום התקופה; סעיף 7.3 קובע 'בשידורי בונוס בלבד ולא בדרך של זיכוי כספי'. בהסכם אין סעיף עדיפות, אין לשון 'על אף האמור' באיש מהסעיפים, ושניהם באותו מסמך ובאותו מועד — אין כלל הכרעה",
+      "resolution": "open"
+    }
+  ]
+}
