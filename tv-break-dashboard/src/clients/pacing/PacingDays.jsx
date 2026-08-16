@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../../studio/actions';
 import { Code, Figure, Name } from '../../shell/bidi';
 import { formatDay, isWeekendDay, weekdayName } from '../../shell/dates';
 import { amount, isolate, pick } from './pacing-helpers';
@@ -143,7 +144,7 @@ export default function PacingDays({ drill, line, second, vocabulary, locale, on
             'לא ניתן היה לקרוא את ימי השידור שמאחורי השורה. מה שחסר הוא כשל, לא טיסה ריקה.',
           )}
         </p>
-        <button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</button>
+        <Button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</Button>
       </div>
     );
   }

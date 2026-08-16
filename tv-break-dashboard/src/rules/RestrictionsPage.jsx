@@ -1,22 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
+import ConsequenceDialog, { focusAfterDialogClose } from '../safety/ConsequenceDialog';
 import RestrictionComposer from './RestrictionComposer';
 import ConstraintBuilder from './ConstraintBuilder';
 import { deleteRestriction, detailWords, effectLabel, fetchRestrictions, rulesWrittenSentence, unauthoredSentence } from './rules-lib';
 import { formatDay } from '../shell/dates';
+import { Pressable } from '../studio/dom-controls';
 
 // A restriction reads as one line. The store's own words are on the record, one
 // click away, but nobody has to read them to know what a rule does: the sentence
 // is generated from the same record the engine runs, so the list and the plan
 // cannot disagree about what is in force.
 
-function RestrictionRow({ record, locale, onDelete }) {
-  const [confirming, setConfirming] = useState(false);
+function RestrictionRow({ record, locale, onRequestDelete }) {
   const expired = record.status === 'expired';
   return (
-    <li className={`rules-restriction${expired ? ' expired' : ''}`}>
+    <li className={`card rules-restriction${expired ? ' expired' : ''}`}>
       <div className="rules-restriction-main">
         <p className="rules-restriction-sentence">
           {locale === 'he' ? record.sentence_he : record.sentence_en}
@@ -41,26 +41,14 @@ function RestrictionRow({ record, locale, onDelete }) {
           <span>{rulesWrittenSentence(record.row_count, locale)}</span>
         </p>
       </div>
-      {confirming ? (
-        <span className="rules-confirm" role="alertdialog">
-          <span>{pageText(locale, 'Remove this restriction from the plan?', 'להסיר את ההגבלה מהתוכנית?')}</span>
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => onDelete(record.restriction_id)}>
-            {pageText(locale, 'Remove', 'הסרה')}
-          </Button>
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirming(false)}>
-            {pageText(locale, 'Cancel', 'ביטול')}
-          </Button>
-        </span>
-      ) : (
-        <button
-          type="button"
-          className="rules-icon-button"
-          onClick={() => setConfirming(true)}
-          aria-label={pageText(locale, 'Remove this restriction', 'הסרת ההגבלה')}
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
+      <Pressable
+        type="button"
+        className="rules-icon-button"
+        onClick={() => onRequestDelete(record)}
+        aria-label={pageText(locale, 'Review removal of this restriction', 'סקירת הסרת ההגבלה')}
+      >
+        <Trash2 size={14} />
+      </Pressable>
     </li>
   );
 }
@@ -69,23 +57,39 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
   const [state, setState] = useState(null);
   const [error, setError] = useState('');
   const [advanced, setAdvanced] = useState(false);
+  const [deleteReview, setDeleteReview] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const restrictionsHeadingRef = React.useRef(null);
 
   const load = useCallback(() => {
-    fetchRestrictions()
+    return fetchRestrictions()
       .then((body) => { setState(body); setError(''); })
       .catch((problem) => setError(detailWords(problem, locale)));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  async function remove(restrictionId) {
+  async function remove(record) {
     try {
-      await deleteRestriction(restrictionId);
+      await deleteRestriction(record.restriction_id);
       notify?.('Restriction removed.', 'ההגבלה הוסרה.');
-      load();
+      await load();
       onGlobalRefresh?.();
+      return true;
     } catch (problem) {
       notify?.(`Removing the restriction failed (${detailWords(problem, 'en')}).`, `הסרת ההגבלה נכשלה (${detailWords(problem, 'he')}).`);
+      return false;
+    }
+  }
+
+  async function confirmRemove() {
+    if (!deleteReview) return;
+    setDeleting(true);
+    const removed = await remove(deleteReview);
+    setDeleting(false);
+    if (removed) {
+      setDeleteReview(null);
+      focusAfterDialogClose(restrictionsHeadingRef);
     }
   }
 
@@ -100,8 +104,8 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
         onSaved={() => { load(); onGlobalRefresh?.(); }}
       />
 
-      <section className="rules-card">
-        <h2>{pageText(locale, 'Restrictions in force', 'הגבלות בתוקף')}</h2>
+      <section className="card rules-card">
+        <h2 ref={restrictionsHeadingRef} tabIndex={-1}>{pageText(locale, 'Restrictions in force', 'הגבלות בתוקף')}</h2>
         {error && (
           <p className="rules-inline-error" role="status">
             {pageText(locale, `The restriction list is unreachable (${error}).`, `רשימת ההגבלות אינה זמינה (${error}).`)}
@@ -123,7 +127,7 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
                 key={record.restriction_id}
                 record={record}
                 locale={locale}
-                onDelete={remove}
+                onRequestDelete={setDeleteReview}
               />
             ))}
           </ul>
@@ -153,12 +157,37 @@ export default function RestrictionsPage({ locale, notify, onGlobalRefresh, onRe
             </ul>
           </div>
         )}
+
+        <ConsequenceDialog
+          open={Boolean(deleteReview)}
+          locale={locale}
+          title={pageText(locale, 'Remove this restriction?', 'להסיר את ההגבלה?')}
+          description={pageText(locale, 'Review the authored rule and every stored row that will leave the planning engine.', 'בדקו את הכלל שנכתב ואת כל השורות השמורות שיוסרו ממנוע התכנון.')}
+          object={deleteReview ? (
+            <span className="consequence-review__object">
+              {locale === 'he' ? deleteReview.sentence_he : deleteReview.sentence_en}
+              {' · ID '}<bdi>{String(deleteReview.restriction_id)}</bdi>
+            </span>
+          ) : ''}
+          scope={deleteReview ? pageText(
+            locale,
+            `This restriction and the ${Number(deleteReview.row_count || 0)} stored constraint rows it authored. No other restriction or constraint row changes.`,
+            `ההגבלה הזו ו-${Number(deleteReview.row_count || 0)} שורות האילוץ שהיא יצרה. אף הגבלה או שורת אילוץ אחרת לא משתנה.`,
+          ) : ''}
+          consequence={pageText(locale, 'The restriction stops governing future weekly plan runs. The saved plan is not recomputed by this removal and will need a new run.', 'ההגבלה תפסיק לחול בריצות התכנון השבועיות הבאות. ההסרה אינה מחשבת מחדש את התוכנית השמורה, ויהיה צורך להריץ אותה מחדש.')}
+          recovery={pageText(locale, 'A pre-change snapshot is kept on the Restore changes page.', 'תמונת מצב מלפני השינוי נשמרת בעמוד שחזור שינויים.')}
+          confirmLabel={pageText(locale, 'Remove restriction', 'הסרת ההגבלה')}
+          workingLabel={pageText(locale, 'Removing restriction', 'מסיר את ההגבלה')}
+          busy={deleting}
+          onCancel={() => setDeleteReview(null)}
+          onConfirm={confirmRemove}
+        />
       </section>
 
-      <section className="rules-card rules-advanced">
-        <button type="button" className="rules-disclosure" aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>
+      <section className="card rules-card rules-advanced">
+        <Pressable type="button" className="rules-disclosure" aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>
           {pageText(locale, 'The condition builder', 'בונה התנאים')}
-        </button>
+        </Pressable>
         <p className="rules-card-lead">
           {pageText(
             locale,

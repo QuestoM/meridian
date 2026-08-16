@@ -149,6 +149,41 @@ the plan toward or away from inventory depending on whether delivery is behind o
 ahead of pace. Because it only moves placement and not price, it is a safe lever
 to try; it cannot change gross by itself.
 
+## Advertiser airings (שידורי מפרסם)
+
+`get_advertiser_airings` is the direct read for what, when, where or how often a
+named advertiser appeared, including a question phrased as "up to today" (עד
+היום). It reads the raw rows of every daily traffic file currently available to
+the product and returns the matches across all covered broadcast days, rather
+than opening pods one by one. These are traffic-file airings, not invoices and
+not a projection. When several uploaded files cover the same broadcast day, the
+latest reupload is authoritative and the older day versions are disclosed but
+not counted twice. An optional inclusive date range narrows the read without
+changing that rule.
+
+Coverage is part of the answer. The tool names the files and broadcast dates it
+could read, any file it could not read, and whether the detailed row list has
+another page. Counts and grouped summaries use every matching row in the selected
+coverage even when only one page of details is shown. Complete means complete for
+those readable files and dates only. It never means the advertiser's lifetime
+history, and a day for which no traffic file exists is unknown rather than a day
+with zero airings. "Up to today" therefore means through the newest covered day
+on disk, with the covered span stated plainly.
+
+Keep three advertiser reads distinct. The advertiser rules store identifies the
+record and the pricing conditions that would apply; it is not evidence that a
+spot aired. `get_top_advertisers` ranks priced money from the newest daily file
+only, after pricing rules, and is for comparisons across advertisers rather than
+a lookup of one named advertiser. `get_advertiser_airings` reads the raw traffic
+rows for one advertiser across every covered daily file, including rows that a
+pricing or frequency rule might exclude from the priced ledger.
+
+The daily traffic-file contract belongs to the operator's configured channel and
+carries no competitor channel rows. The assistant never widens this read to the
+multi-channel historical reference data, never reconstructs history by fanning
+out across pods, and never turns absence outside the stated coverage into a
+claim that the advertiser did not air.
+
 ## Recompute and staleness (חישוב מחדש והתיישנות)
 
 Saved changes do not touch the weekly plan on their own. Settings, guardrails,

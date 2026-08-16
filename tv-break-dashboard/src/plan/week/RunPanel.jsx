@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@mui/material';
-import { Play, RefreshCcw } from 'lucide-react';
+import { Button } from '../../studio/actions';
+import { Check, Circle, Play, RefreshCcw, TriangleAlert } from 'lucide-react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../../shell/format';
 import { formatStamp } from '../../shell/dates';
 import { scopeLine } from './plan-week-model';
@@ -27,6 +27,21 @@ function Figure({ label, value, sub }) {
   );
 }
 
+function TraceNode({ state, label, detail }) {
+  const Icon = state === 'complete' ? Check : state === 'error' ? TriangleAlert : state === 'active' ? RefreshCcw : Circle;
+  return (
+    <li className={`plan-trace-node is-${state}`}>
+      <span className="plan-trace-marker" aria-hidden="true">
+        <Icon size={15} className={state === 'active' ? 'upload-spinner' : undefined} />
+      </span>
+      <span className="plan-trace-copy">
+        <strong>{label}</strong>
+        <small>{detail}</small>
+      </span>
+    </li>
+  );
+}
+
 export function RunPanel({
   locale,
   words,
@@ -39,6 +54,8 @@ export function RunPanel({
   elapsed,
   planScope,
   onRun,
+  actionDisabled,
+  actionDisabledReason,
 }) {
   // A read still in flight is not a verdict, so it is not drawn as one.
   const reading = freshnessState === 'loading';
@@ -48,6 +65,9 @@ export function RunPanel({
   const owned = runResult?.owned;
   const zeroBreaks = Number(owned?.total_breaks) === 0;
   const ownedScope = scopeLine(owned?.scope, locale);
+  const progressDone = Number(runProgress?.done);
+  const progressTotal = Number(runProgress?.total);
+  const progressKnown = Number.isFinite(progressDone) && Number.isFinite(progressTotal) && progressTotal > 0;
 
   const stateLine = reading
     ? pageText(locale, 'Reading the plan state from the server', 'קורא את מצב התוכנית מהשרת')
@@ -58,7 +78,7 @@ export function RunPanel({
         : pageText(locale, 'The plan state is unknown', 'מצב התוכנית אינו ידוע');
 
   return (
-    <section className="plan-section" aria-labelledby="plan-run-title">
+    <section className="card plan-section" aria-labelledby="plan-run-title">
       <div className="plan-section-head">
         <div>
           <h2 id="plan-run-title">{pageText(locale, 'Run the plan', 'הרצת התוכנית')}</h2>
@@ -70,7 +90,7 @@ export function RunPanel({
             )}
           </p>
         </div>
-        <Button className="run-button" type="button" variant="contained" disabled={running} onClick={onRun}>
+        <Button className="run-button" type="button" variant="contained" disabled={running || actionDisabled} title={actionDisabledReason || undefined} onClick={onRun}>
           {running ? <RefreshCcw size={15} className="upload-spinner" /> : <Play size={15} fill="currentColor" />}
           {running ? `${pageText(locale, `Running ${elapsed}s`, `רץ ${elapsed} שנ'`)}` : words.run}
         </Button>
@@ -85,6 +105,50 @@ export function RunPanel({
           </span>
         )}
         {status === 'fresh' && planScope ? <span>{planScope}</span> : null}
+      </div>
+
+      <div className="plan-run-console" aria-label={pageText(locale, 'Weekly plan run stages', 'שלבי הרצת התוכנית השבועית')}>
+        <div className="plan-run-console-head">
+          <span>{pageText(locale, 'Run stages', 'שלבי הרצה')}</span>
+          <Numeric>{running ? `${elapsed}s` : runResult ? formatStamp(runResult.computed_at) : '\u2014'}</Numeric>
+        </div>
+        <ol className="plan-run-trace">
+          <TraceNode
+            state={reading ? 'active' : 'complete'}
+            label={pageText(locale, 'Read plan state', 'קריאת מצב התוכנית')}
+            detail={stateLine}
+          />
+          <TraceNode
+            state={runError ? 'error' : running || runResult ? 'complete' : 'waiting'}
+            label={pageText(locale, 'Load the saved objective', 'טעינת המטרה השמורה')}
+            detail={running || runResult
+              ? pageText(locale, 'The saved objective is the run input', 'המטרה השמורה היא קלט ההרצה')
+              : pageText(locale, 'Starts only after the consequence review is confirmed', 'מתחיל רק לאחר אישור בדיקת ההשפעה')}
+          />
+          <TraceNode
+            state={runError ? 'error' : runResult ? 'complete' : running ? 'active' : 'waiting'}
+            label={pageText(locale, 'Decide each broadcast day', 'הכרעת כל יום שידור')}
+            detail={progressKnown
+              ? pageText(locale, `${formatNumber(progressDone, locale)} of ${formatNumber(progressTotal, locale)} days decided`, `${formatNumber(progressDone, locale)} מתוך ${formatNumber(progressTotal, locale)} ימים הוכרעו`)
+              : runResult
+                ? pageText(locale, `${formatNumber(owned?.days, locale)} broadcast days completed`, `${formatNumber(owned?.days, locale)} ימי שידור הושלמו`)
+                : pageText(locale, 'No day result is claimed before it arrives', 'לא מוצגת תוצאת יום לפני שהגיעה')}
+          />
+          <TraceNode
+            state={runError ? 'error' : runResult ? 'complete' : running ? 'active' : 'waiting'}
+            label={pageText(locale, 'Write the weekly result', 'כתיבת תוצאת השבוע')}
+            detail={runError
+              ? pageText(locale, 'The write did not complete; the saved plan is unchanged', 'הכתיבה לא הושלמה; התוכנית השמורה לא השתנתה')
+              : runResult
+                ? pageText(locale, `${formatNumber(owned?.rows, locale)} plan rows written`, `${formatNumber(owned?.rows, locale)} שורות תוכנית נכתבו`)
+                : pageText(locale, 'The live weekly plan moves only at this stage', 'התוכנית השבועית החיה משתנה רק בשלב הזה')}
+          />
+        </ol>
+        {running && progressKnown ? (
+          <div className="plan-run-progress" role="progressbar" aria-valuemin="0" aria-valuemax={progressTotal} aria-valuenow={progressDone}>
+            <i style={{ '--plan-run-progress': progressDone / progressTotal }} />
+          </div>
+        ) : null}
       </div>
 
       {running && (
@@ -120,7 +184,7 @@ export function RunPanel({
       )}
 
       {runResult && owned && (
-        <div className="plan-figure-row">
+        <div className="plan-result-ledger">
           <Figure
             label={pageText(locale, 'Plan rows written', 'שורות תוכנית שנכתבו')}
             value={formatNumber(owned.rows, locale)}

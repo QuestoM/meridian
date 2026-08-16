@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { CalendarClock, ExternalLink, ShieldCheck, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { Figure } from '../shell/bidi';
@@ -75,7 +75,7 @@ export default function LicencePage({ locale, session, notify }) {
   if (error) {
     return (
       <div className="rules-section">
-        <section className="rules-card">
+        <section className="card rules-card">
           <h2>{pageText(locale, 'The licence', 'הרישיון')}</h2>
           <p className="rules-inline-error" role="status">
             {pageText(locale, `The compliance verdict is unreachable (${error}).`, `חוות דעת התאימות אינה זמינה (${error}).`)}
@@ -87,7 +87,7 @@ export default function LicencePage({ locale, session, notify }) {
   if (!state) {
     return (
       <div className="rules-section">
-        <section className="rules-card">
+        <section className="card rules-card">
           <p>{pageText(locale, 'Reading the licence', 'קורא את הרישיון')}</p>
         </section>
       </div>
@@ -104,7 +104,7 @@ export default function LicencePage({ locale, session, notify }) {
 
   return (
     <div className="rules-section">
-      <section className="rules-card">
+      <section className="card rules-card">
         <div className="rules-card-head">
           <div>
             <h2>{pageText(locale, 'The verdict', 'חוות הדעת')}</h2>
@@ -187,7 +187,7 @@ export default function LicencePage({ locale, session, notify }) {
         </p>
       </section>
 
-      <section className="rules-card">
+      <section className="card rules-card">
         <div className="rules-card-head">
           <div>
             <h2>{pageText(locale, 'Has anything changed', 'האם משהו השתנה')}</h2>

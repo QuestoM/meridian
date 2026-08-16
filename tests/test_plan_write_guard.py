@@ -116,9 +116,12 @@ def test_read_only_mode_never_blocks_a_write_to_any_other_path(monkeypatch, tmp_
 
 def test_an_allowed_write_records_who_made_it(monkeypatch, tmp_path) -> None:
     """With the tree writable, the plan carries a record of the process that wrote it."""
+    from kairos.optimize import inventory as inventory_module
+
     monkeypatch.delenv(READONLY_ENV, raising=False)
     relocated = tmp_path / "weekly_break_schedule.csv"
     monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", relocated)
+    monkeypatch.setattr(inventory_module, "load_inventory", lambda **_kwargs: {})
 
     write_weekly_schedule(frame=_frame_with_current_snapshots(), replace_shipped_plan=True)
 
@@ -171,6 +174,13 @@ def test_successful_recompute_test_is_redirected_and_never_dirties_output(
     either committed output file.
     """
     from kairos_api import recompute_api
+    from kairos.optimize import inventory as inventory_module
+
+    # This test isolates the write redirection contract. The repository's
+    # intentionally quarantined inventory fixture is currently all-hourless and
+    # is covered by the dedicated strict-input tests; model an absent/neutral
+    # optional source here so the recompute can reach the writer under test.
+    monkeypatch.setattr(inventory_module, "load_inventory", lambda **_kwargs: {})
 
     fingerprint = Path(str(DEFAULT_OUTPUT_PATH) + ".fingerprint.json")
     before_plan = DEFAULT_OUTPUT_PATH.read_bytes()

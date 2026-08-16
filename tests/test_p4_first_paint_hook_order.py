@@ -168,6 +168,23 @@ export function pageText(locale, en, he) {
 }
 """
 
+ACTIONS = """
+import React from 'react';
+export function Button({ children, type = 'button', ...props }) {
+  return React.createElement('button', { ...props, type }, children);
+}
+export const ButtonBase = Button;
+export const IconButton = Button;
+"""
+
+CONTROLS = """
+import React from 'react';
+export function InputControl(props) { return React.createElement('input', props); }
+export function SelectControl({ children, ...props }) { return React.createElement('select', props, children); }
+export function TextAreaControl(props) { return React.createElement('textarea', props); }
+export function Pressable({ children, type = 'button', ...props }) { return React.createElement('button', { ...props, type }, children); }
+"""
+
 HARNESS = """
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire, registerHooks } from 'node:module';
@@ -185,6 +202,8 @@ const { transformWithOxc } = await import(pathToFileURL(req.resolve('vite')).hre
 const RECORDER = pathToFileURL(join(here, 'react-recorder.mjs')).href;
 const ICONS = pathToFileURL(join(here, 'icons.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
+const ACTIONS = pathToFileURL(join(here, 'actions.mjs')).href;
+const CONTROLS = pathToFileURL(join(here, 'controls.mjs')).href;
 const HELPERS = pathToFileURL(helpersPath).href;
 
 registerHooks({
@@ -192,6 +211,8 @@ registerHooks({
     if (specifier === 'react') return { url: RECORDER, shortCircuit: true };
     if (specifier === 'lucide-react') return { url: ICONS, shortCircuit: true };
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
+    if (specifier.endsWith('studio/actions')) return { url: ACTIONS, shortCircuit: true };
+    if (specifier.endsWith('studio/dom-controls')) return { url: CONTROLS, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
     return nextResolve(specifier, context);
   },
@@ -277,6 +298,8 @@ def _render(tmp_path: Path, source: str, payload_path: Path) -> dict[str, dict]:
     (tmp_path / "react-recorder.mjs").write_text(RECORDER, encoding="utf-8")
     (tmp_path / "icons.mjs").write_text(ICONS, encoding="utf-8")
     (tmp_path / "format.mjs").write_text(FORMAT, encoding="utf-8")
+    (tmp_path / "actions.mjs").write_text(ACTIONS, encoding="utf-8")
+    (tmp_path / "controls.mjs").write_text(CONTROLS, encoding="utf-8")
     harness = tmp_path / "harness.mjs"
     harness.write_text(HARNESS, encoding="utf-8")
     component = tmp_path / "ClientTree.jsx"

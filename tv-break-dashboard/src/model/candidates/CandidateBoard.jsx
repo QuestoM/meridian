@@ -12,6 +12,7 @@ import { LiveModelVerdict, VersionName } from './board-history.jsx';
 import Meter from './board-meter.jsx';
 import { PurposeLine } from './board-origin.jsx';
 import { pick, t } from './board-words';
+import { Pressable } from '../../studio/dom-controls';
 import './candidate-board.css';
 
 // The candidate board: five artifacts and the shipped one, on one basis.
@@ -142,10 +143,10 @@ function Head({ id, label, sort, onSort }) {
   const on = sort.key === id;
   return (
     <th scope="col" aria-sort={on ? (sort.ascending ? 'ascending' : 'descending') : 'none'}>
-      <button type="button" className={`cb-sort ${on ? 'on' : ''}`} onClick={() => onSort(id)}>
+      <Pressable type="button" className={`cb-sort ${on ? 'on' : ''}`} onClick={() => onSort(id)}>
         {label}
         <span className="cb-sort-mark" aria-hidden="true">{on ? (sort.ascending ? '▲' : '▼') : '○'}</span>
-      </button>
+      </Pressable>
     </th>
   );
 }
@@ -205,9 +206,9 @@ function Table({ board, rows, locale, selected, onSelect, sort, onSort }) {
             className={`cb-row ${selected === row.id ? 'on' : ''}`}
             aria-selected={selected === row.id}>
             <th scope="row">
-              <button type="button" className="cb-pick" onClick={() => onSelect(row.id)} aria-label={`${t('table.pick', locale)} ${row.id}`}>
+              <Pressable type="button" className="cb-pick" onClick={() => onSelect(row.id)} aria-label={`${t('table.pick', locale)} ${row.id}`}>
                 <span className="cb-name"><Code>{row.id}</Code></span>
-              </button>
+              </Pressable>
               <BasisMark basis={row.fit_basis} locale={locale} />
               {/* What this artifact was built for, in its producer's own words,
                   where the shelf is read as a shelf. Five identifiers with no

@@ -1,0 +1,168 @@
+.plan-recommendations {
+  border-block-start: 1px solid var(--line);
+  margin-block-start: 24px;
+  padding-block-start: var(--space-6);
+}
+
+.plan-recommendation-count,
+.plan-recommendation-state {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.plan-recommendation-state.is-approved {
+  background: var(--positive-soft);
+  border-color: var(--positive);
+  color: var(--positive);
+}
+
+.plan-recommendation-state.is-rejected {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.plan-recommendation-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr);
+}
+
+.plan-recommendation-list {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+  max-block-size: 620px;
+  overflow: auto;
+  padding: 2px;
+}
+
+.plan-recommendation-row {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  justify-content: space-between;
+  min-block-size: 56px;
+  padding: 10px var(--space-3);
+  text-align: start;
+  width: 100%;
+}
+
+.plan-recommendation-row:hover {
+  background: var(--surface-muted);
+}
+
+.plan-recommendation-row.is-active {
+  background: var(--surface-muted);
+  border-color: var(--chrome);
+}
+
+.plan-recommendation-row > span:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.plan-recommendation-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-recommendation-row small {
+  display: block;
+  max-inline-size: 100%;
+  color: var(--ink-subtle);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.plan-recommendation-detail {
+  min-width: 0;
+}
+
+.plan-recommendation-detail-head,
+.plan-recommendation-review-head,
+.plan-recommendation-actions,
+.plan-recommendation-review-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.plan-recommendation-detail-head h3,
+.plan-recommendation-review h4 {
+  margin: 8px 0 0;
+}
+
+.plan-recommendation-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0;
+}
+
+.plan-recommendation-facts > div {
+  border-block-start: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3) var(--space-2);
+}
+
+.plan-recommendation-facts dt {
+  color: var(--ink-subtle);
+  font-size: 12px;
+}
+
+.plan-recommendation-facts dd {
+  font-weight: 650;
+  margin: 0;
+}
+
+.plan-recommendation-actions {
+  justify-content: flex-start;
+}
+
+.plan-recommendation-actions button,
+.plan-recommendation-review-actions button,
+.plan-recommendation-detail-head button {
+  min-block-size: 44px;
+}
+
+.plan-recommendation-review {
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.plan-recommendation-review-head .icon-button {
+  inline-size: 44px;
+  min-inline-size: 44px;
+}
+
+.plan-action-status {
+  color: var(--positive);
+  font-weight: 650;
+  margin-block-end: 0;
+}
+
+@media (max-width: 1320px) {
+  .plan-recommendation-layout {
+    grid-template-columns: minmax(230px, .62fr) minmax(0, 1.38fr);
+  }
+}

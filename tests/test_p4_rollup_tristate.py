@@ -191,6 +191,15 @@ export function DataTable({ rows, emptyLabel, columns }) {
 }
 """
 
+ACTIONS = """
+import React from 'react';
+export function Button({ children, type = 'button', ...props }) {
+  return React.createElement('button', { ...props, type }, children);
+}
+export const ButtonBase = Button;
+export const IconButton = Button;
+"""
+
 # The read, held open so the test decides when and how it lands. The rollup's
 # own drill never opens in these scenarios (no click is simulated), so
 # `loadRollupDetail` only has to exist as a valid export, not do anything.
@@ -238,6 +247,7 @@ const RUNTIME = pathToFileURL(join(here, 'react-runtime.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
 const PLAN = pathToFileURL(join(here, 'plan-model.mjs')).href;
 const PRIMITIVES = pathToFileURL(join(here, 'primitives.mjs')).href;
+const ACTIONS = pathToFileURL(join(here, 'actions.mjs')).href;
 const API = pathToFileURL(join(here, 'clients-api.mjs')).href;
 const ALERTS = pathToFileURL(join(here, 'alerts.mjs')).href;
 const FALLBACKS = pathToFileURL(join(here, 'fallbacks.mjs')).href;
@@ -251,7 +261,8 @@ registerHooks({
     if (specifier === 'lucide-react') return { url: LUCIDE, shortCircuit: true };
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
     if (specifier.endsWith('shell/plan-model')) return { url: PLAN, shortCircuit: true };
-    if (specifier.endsWith('shell/primitives')) return { url: PRIMITIVES, shortCircuit: true };
+    if (specifier.endsWith('shell/primitives') || specifier.endsWith('/studio')) return { url: PRIMITIVES, shortCircuit: true };
+    if (specifier.endsWith('studio/actions')) return { url: ACTIONS, shortCircuit: true };
     if (specifier.endsWith('shell/fallbacks')) return { url: FALLBACKS, shortCircuit: true };
     if (specifier.endsWith('shell/bidi')) return { url: BIDI, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
@@ -364,7 +375,7 @@ def _node() -> str:
 def _run(tmp_path: Path, source: str) -> dict:
     stubs = {
         "react-runtime.mjs": RUNTIME, "format.mjs": FORMAT, "plan-model.mjs": PLAN_MODEL,
-        "primitives.mjs": PRIMITIVES, "clients-api.mjs": API, "alerts.mjs": ALERTS,
+        "primitives.mjs": PRIMITIVES, "actions.mjs": ACTIONS, "clients-api.mjs": API, "alerts.mjs": ALERTS,
         "fallbacks.mjs": FALLBACKS, "empty.mjs": "export default {};\n",
         "lucide.mjs": LUCIDE, "money-helpers.mjs": MONEY_HELPERS, "bidi.mjs": BIDI,
         "harness.mjs": HARNESS, "CampaignRollupPanel.jsx": source,

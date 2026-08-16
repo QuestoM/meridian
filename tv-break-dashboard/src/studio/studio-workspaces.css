@@ -1,0 +1,197 @@
+.studio-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: var(--surface-inset-dense);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.studio-state--error {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.studio-state__icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--control-height);
+  block-size: var(--control-height);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--info);
+}
+
+.studio-state--error .studio-state__icon {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.studio-state__copy {
+  min-inline-size: 0;
+}
+
+.studio-state__copy strong {
+  display: block;
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-emphasis-line);
+}
+
+.studio-state__copy p {
+  max-inline-size: var(--measure-readable);
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.studio-state__action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.studio-modal {
+  position: fixed;
+  inset: 0;
+  inline-size: 100vw;
+  max-inline-size: none;
+  block-size: 100dvh;
+  max-block-size: none;
+  margin: 0;
+  padding: var(--space-6);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.studio-modal[open] { display: grid; }
+.studio-modal::backdrop { background: var(--scrim); }
+
+.studio-modal__frame {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  max-block-size: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+}
+
+.studio-dialog {
+  place-items: center;
+  overflow: auto;
+}
+
+.studio-dialog .studio-modal__frame { inline-size: min(100%, 640px); }
+.studio-dialog[data-size='narrow'] .studio-modal__frame { inline-size: min(100%, 480px); }
+.studio-dialog[data-size='wide'] .studio-modal__frame { inline-size: min(100%, 880px); }
+
+.studio-sheet {
+  inset-block: var(--shell-header-height) 0;
+  block-size: auto;
+  padding: 0 var(--space-3);
+}
+
+.studio-sheet .studio-modal__frame {
+  inline-size: min(560px, calc(100vw - var(--space-6)));
+  block-size: 100%;
+  margin-inline-start: auto;
+}
+
+.studio-sheet[data-placement='start'] .studio-modal__frame {
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+
+.studio-sheet[data-size='narrow'] .studio-modal__frame { inline-size: min(440px, calc(100vw - var(--space-6))); }
+.studio-sheet[data-size='wide'] .studio-modal__frame { inline-size: min(760px, calc(100vw - var(--space-6))); }
+
+.studio-modal__header,
+.studio-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--surface-inset-dense) var(--surface-inset);
+}
+
+.studio-modal__header {
+  align-items: flex-start;
+  border-block-end: 1px solid var(--line);
+}
+
+.studio-modal__header > div { min-inline-size: 0; }
+
+.studio-modal__header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-section-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-section-line);
+  text-wrap: balance;
+}
+
+.studio-modal__header p {
+  max-inline-size: var(--measure-readable);
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.studio-modal__close { flex: 0 0 auto; }
+
+.studio-modal__body {
+  min-block-size: 0;
+  padding: var(--surface-inset);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.studio-modal__footer {
+  justify-content: flex-end;
+  border-block-start: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.data-table-wrap .MuiDataGrid-row,
+.data-table-wrap .MuiDataGrid-cell,
+.data-table-wrap .MuiDataGrid-columnHeaders {
+  min-block-size: var(--data-row-height);
+}
+
+@keyframes studio-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kairos-shell *,
+  .kairos-shell *::before,
+  .kairos-shell *::after,
+  .studio-modal *,
+  .studio-modal *::before,
+  .studio-modal *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .studio-status,
+  .studio-state,
+  .studio-modal__frame {
+    border-color: CanvasText;
+  }
+}

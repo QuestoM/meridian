@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Numeric, formatCurrency, formatNumber, formatPercent, pageText } from '../../shell/format';
 import { dayLabel } from '../../shell/labels';
 import { normalizeRows, programKey } from '../../shell/plan-model';

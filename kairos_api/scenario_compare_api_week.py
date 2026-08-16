@@ -45,6 +45,7 @@ from typing import Any, Iterator, Optional
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
+from kairos.optimize.inventory import load_inventory
 from kairos_api.core import (
     DATA_DIR,
     OUTPUT_DIR,
@@ -78,6 +79,7 @@ def _week_signature() -> tuple[tuple[str, int, int], ...]:
         SETTINGS_PATH,
         DATA_DIR / "reference" / "Programmes.xlsx",
         DATA_DIR / "Programmes.csv",
+        DATA_DIR / "Spots - inventory.csv",
     ])
 
 
@@ -187,6 +189,7 @@ def _day_leg_cached(
             settings=settings_map,
             channel=channel,
             day=day,
+            require_usable_inventory=True,
         )
     except Exception as exc:  # pragma: no cover - data/environment dependent
         logger.exception("the weekly comparison failed on %s", day)
@@ -228,6 +231,10 @@ def day_leg(channel: str, day: str, levers: dict[str, Any]) -> tuple[dict[str, A
     The key lock serialises everything about this key, so the mark the cached
     body leaves is this call's own answer and not another request's.
     """
+    # Validate before the cache lookup. A comparison prepared while inventory
+    # was valid may stream for several seconds; an all-invalid replacement must
+    # stop the next leg instead of letting an old cached figure escape.
+    load_inventory(require_usable=True)
     key = (_week_signature(), channel, day, _levers_key(levers))
     with _key_lock(key):
         with _KEY_LOCKS_GUARD:

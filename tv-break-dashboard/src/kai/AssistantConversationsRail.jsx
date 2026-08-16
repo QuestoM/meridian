@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Button } from '@mui/material';
-import { Check, MessageSquarePlus, Pencil, Trash2, X } from 'lucide-react';
+import { Button } from '../studio/actions';
+import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Name } from '../shell/bidi';
 import { formatStamp } from '../shell/dates';
+import { InputControl, Pressable } from '../studio/dom-controls';
 
 // The conversations section of the assistant rail: the saved conversations
-// newest first with title and last-activity time, a new-conversation button,
-// inline rename, and delete behind a confirm that names exactly what is
+// newest first with title and last-activity time, inline rename, and delete
+// behind a confirm that names exactly what is
 // removed. All mutations go through the useConversations hook so the panel,
 // the chat column and this list stay on one source of truth.
 
@@ -15,7 +16,7 @@ function whenLabel(iso) {
   return iso ? formatStamp(iso) : '';
 }
 
-export default function AssistantConversationsRail({ locale, conv, disabled }) {
+export default function AssistantConversationsRail({ locale, conv, disabled, onSelect = null }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
@@ -37,11 +38,7 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
   return (
     <div className="asst-conv-section">
       <div className="asst-conv-head">
-        <span className="asst-rail-title">{pageText(locale, 'Conversations', 'שיחות')}</span>
-        <button type="button" className="asst-conv-new" onClick={conv.create} disabled={busy}>
-          <MessageSquarePlus size={13} />
-          {pageText(locale, 'New conversation', 'שיחה חדשה')}
-        </button>
+        <span className="asst-rail-title">{pageText(locale, 'Conversation history', 'היסטוריית שיחות')}</span>
       </div>
 
       {conv.listState === 'loading' ? (
@@ -67,7 +64,7 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
               <div className={`asst-conv-row${conv.activeId === id ? ' active' : ''}`} key={id}>
                 {renamingId === id ? (
                   <span className="asst-conv-rename">
-                    <input
+                    <InputControl
                       value={renameValue}
                       onChange={(event) => setRenameValue(event.target.value)}
                       onKeyDown={(event) => { if (event.key === 'Enter') saveRename(item); if (event.key === 'Escape') setRenamingId(null); }}
@@ -76,21 +73,21 @@ export default function AssistantConversationsRail({ locale, conv, disabled }) {
                       maxLength={120}
                       aria-label={pageText(locale, 'Conversation title', 'כותרת השיחה')}
                     />
-                    <button type="button" className="asst-ver-rename-ok" onClick={() => saveRename(item)} aria-label={pageText(locale, 'Save the title', 'שמירת הכותרת')}><Check size={13} /></button>
-                    <button type="button" className="asst-ver-rename-x" onClick={() => setRenamingId(null)} aria-label={pageText(locale, 'Cancel', 'ביטול')}><X size={13} /></button>
+                    <Pressable type="button" className="asst-ver-rename-ok" onClick={() => saveRename(item)} aria-label={pageText(locale, 'Save the title', 'שמירת הכותרת')}><Check size={13} /></Pressable>
+                    <Pressable type="button" className="asst-ver-rename-x" onClick={() => setRenamingId(null)} aria-label={pageText(locale, 'Cancel', 'ביטול')}><X size={13} /></Pressable>
                   </span>
                 ) : (
                   <div className="asst-conv-line">
-                    <button type="button" className="asst-conv-open" onClick={() => conv.select(id)} disabled={busy}>
+                    <Pressable type="button" className="asst-conv-open" onClick={() => { conv.select(id); if (onSelect) onSelect(id); }} disabled={busy} aria-current={conv.activeId === id ? 'true' : undefined}>
                       <span className="asst-conv-title"><Name>{title}</Name></span>
                       <span className="asst-conv-meta">
                         <time><Figure>{whenLabel(item.updated_at || item.created_at)}</Figure></time>
                         <span>{count === 1 ? pageText(locale, 'one question', 'שאלה אחת') : pageText(locale, `${count} questions`, `${count} שאלות`)}</span>
                       </span>
-                    </button>
+                    </Pressable>
                     <span className="asst-conv-actions">
-                      <button type="button" onClick={() => startRename(item)} disabled={busy} aria-label={pageText(locale, 'Rename', 'שינוי שם')}><Pencil size={12} /></button>
-                      <button type="button" onClick={() => { setRenamingId(null); setDeletingId(id); }} disabled={busy} aria-label={pageText(locale, 'Delete', 'מחיקה')}><Trash2 size={12} /></button>
+                      <Pressable type="button" onClick={() => startRename(item)} disabled={busy} aria-label={pageText(locale, 'Rename', 'שינוי שם')}><Pencil size={12} /></Pressable>
+                      <Pressable type="button" onClick={() => { setRenamingId(null); setDeletingId(id); }} disabled={busy} aria-label={pageText(locale, 'Delete', 'מחיקה')}><Trash2 size={12} /></Pressable>
                     </span>
                   </div>
                 )}

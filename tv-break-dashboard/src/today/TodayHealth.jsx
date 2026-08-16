@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react';
 import { formatNumber, pageText } from '../shell/format';
 import { formatDay } from '../shell/dates';
@@ -21,13 +21,13 @@ const ICONS = { ok: CheckCircle2, attention: AlertTriangle, notice: Info, unknow
 // What the row does when it is pressed, printed on the row. A status that opens
 // something should say what, before it is clicked rather than after.
 const OPENS = {
-  operator_channel_unset: ['Open settings', 'פתחו את ההגדרות'],
-  plan_out_of_date: ['Run the plan', 'הריצו את התוכנית'],
-  newer_model_version: ['Run the plan', 'הריצו את התוכנית'],
-  plan_current: ['Open the plan', 'פתחו את התוכנית'],
-  plan_currency_unknown: ['Open the plan', 'פתחו את התוכנית'],
-  licence: ['Open the checks', 'פתחו את הבדיקות'],
-  inputs: ['Open the sources', 'פתחו את המקורות'],
+  operator_channel_unset: ['Open settings', 'פתיחת ההגדרות'],
+  plan_out_of_date: ['Run the plan', 'הרצת התוכנית'],
+  newer_model_version: ['Run the plan', 'הרצת התוכנית'],
+  plan_current: ['Open the plan', 'פתיחת התוכנית'],
+  plan_currency_unknown: ['Open the plan', 'פתיחת התוכנית'],
+  licence: ['Open the checks', 'פתיחת הבדיקות'],
+  inputs: ['Open the sources', 'פתיחת המקורות'],
 };
 
 function joinLabels(labels, locale) {
@@ -92,8 +92,8 @@ function rowCopy(check, locale, sourceFiles) {
     }
     return {
       title: check.checks_breached
-        ? pageText(locale, 'The plan is outside the licence', 'התוכנית חורגת מהרישיון')
-        : pageText(locale, 'The plan is inside the licence', 'התוכנית בתוך הרישיון'),
+        ? pageText(locale, 'The plan is outside the licence', 'התוכנית חורגת מתנאי הרישיון')
+        : pageText(locale, 'The plan is inside the licence', 'התוכנית עומדת בתנאי הרישיון'),
       detail: check.checks_breached
         ? pageText(locale, `${check.checks_breached} of ${check.checks_total} checks breached: ${breached}`, `${check.checks_breached} מתוך ${check.checks_total} בדיקות חורגות: ${breached}`)
         : pageText(locale, `${check.checks_total} of ${check.checks_total} checks pass, ${check.profile}`, `${check.checks_total} מתוך ${check.checks_total} בדיקות עוברות, ${check.profile}`),
@@ -111,8 +111,8 @@ function rowCopy(check, locale, sourceFiles) {
       : '';
     return {
       title: check.missing && check.missing.length
-        ? pageText(locale, 'The plan is missing an input it needs', 'לתוכנית חסר קלט שהיא זקוקה לו')
-        : pageText(locale, 'The plan read every input it needs', 'התוכנית קראה את כל הקלטים שהיא זקוקה להם'),
+        ? pageText(locale, 'The plan is missing an input it needs', 'חסר קלט שנדרש לתוכנית')
+        : pageText(locale, 'The plan read every input it needs', 'כל הקלטים הנדרשים נקראו בתוכנית'),
       detail: pageText(
         locale,
         `${formatNumber(check.programmes, 'en')} programme rows, ${formatNumber(check.spots, 'en')} spot rows, ${formatNumber(check.planned_break_rows, 'en')} planned break rows${filesPart}`,
@@ -128,15 +128,15 @@ export function TodayHealth({ today, locale, sourceFiles = null, onOpen }) {
   const checks = Array.isArray(health.checks) ? health.checks : [];
   const attention = Number(health.attention_count || 0);
   const headline = attention === 0
-    ? pageText(locale, 'Nothing needs attention', 'אין דבר שדורש טיפול')
+    ? pageText(locale, 'All checks clear', 'כל הבדיקות תקינות')
     : attention === 1
       ? pageText(locale, 'One thing needs attention', 'נושא אחד דורש טיפול')
       : pageText(locale, `${attention} things need attention`, `${attention} נושאים דורשים טיפול`);
 
   return (
-    <section className="page-panel today-answer today-answer-health" aria-label={pageText(locale, 'Is anything broken', 'האם משהו לא תקין')}>
+    <section className="page-panel today-answer today-answer-health" aria-label={pageText(locale, 'Operational checks', 'בדיקות תפעוליות')}>
       <div className="today-answer-head">
-        <h2>{pageText(locale, 'Is anything broken', 'האם משהו לא תקין')}</h2>
+        <h2>{pageText(locale, 'Operational checks', 'בדיקות תפעוליות')}</h2>
         <span className={`today-verdict ${attention ? 'behind' : 'on_plan'}`}>{headline}</span>
       </div>
       <div className="today-health-list">

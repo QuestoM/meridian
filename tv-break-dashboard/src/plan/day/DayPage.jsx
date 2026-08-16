@@ -1,12 +1,48 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Popover } from '@mui/material';
+import { Button } from '../../studio/actions';
+import { CircleHelp } from 'lucide-react';
 import { pageText } from '../../shell/format';
-import { PageHeader } from '../../shell/primitives';
 import DayBoard from './DayBoard';
 import DayPicker from './DayPicker';
 import ScheduleInspector from './ScheduleInspector';
+import './master-control-broadcast.css';
 import BreakInspector from '../break/BreakInspector';
 import { fetchDays } from './day-board-actions';
 import './day-board.css';
+
+function DayOperationsHeader({ locale }) {
+  const [helpAnchor, setHelpAnchor] = useState(null);
+  const helpOpen = Boolean(helpAnchor);
+  return (
+    <header className="broadcast-day-header">
+      <h1>{pageText(locale, 'Broadcast day', 'יום שידור')}</h1>
+      <Button
+        type="button"
+        variant="outlined"
+        aria-haspopup="dialog"
+        aria-expanded={helpOpen}
+        onClick={(event) => setHelpAnchor(event.currentTarget)}
+      >
+        <CircleHelp size={16} aria-hidden="true" />
+        {pageText(locale, 'Help', 'עזרה')}
+      </Button>
+      <Popover
+        open={helpOpen}
+        anchorEl={helpAnchor}
+        onClose={() => setHelpAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'end' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'end' }}
+      >
+        <div className="broadcast-day-help">
+          <h2>{pageText(locale, 'Editing the day', 'עריכת יום השידור')}</h2>
+          <p>{pageText(locale, 'Select a break on the timeline to move it, change its duration, mark it gold, or open its record. Review the projected effect before saving.', 'בחרו ברייק בציר הזמן כדי להזיז אותו, לשנות את אורכו, לסמן אותו כזהב או לפתוח את הרשומה שלו. בדקו את ההשפעה הצפויה לפני השמירה.')}</p>
+          <p>{pageText(locale, 'Arrow keys move the selected break by one snap unit; Shift moves five units and Alt moves one second. Up and down change duration. G marks gold and Enter opens the break.', 'מקשי החיצים מזיזים את הברייק הנבחר ביחידת הצמדה אחת; Shift מזיז חמש יחידות ו־Alt מזיז שנייה אחת. חיצי מעלה ומטה משנים את האורך. G מסמן זהב ו־Enter פותח את הברייק.')}</p>
+        </div>
+      </Popover>
+    </header>
+  );
+}
 
 // Plan, at day zoom. The scheduler's door.
 //
@@ -32,6 +68,7 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
   // The day's breaks in board order, so the drawer can walk the set it was
   // opened from instead of sending the person back to the board between two.
   const [breakIds, setBreakIds] = useState([]);
+  const returnFocusRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -45,31 +82,32 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
     return () => { alive = false; };
   }, [refreshKey]);
 
-  const onOpenBreak = useCallback((breakId) => setOpenBreak(breakId), []);
+  const onOpenBreak = useCallback((breakId) => {
+    returnFocusRef.current = document.activeElement;
+    setOpenProgramme(null);
+    setOpenBreak(breakId);
+  }, []);
   // A programme and a break are two records at two zooms, so one drawer is open
   // at a time and opening either puts the other away.
   const onOpenProgramme = useCallback((programme) => {
+    returnFocusRef.current = document.activeElement;
     setOpenBreak(null);
     setOpenProgramme({ segmentId: programme.segment_id, channel: programme.channel, day: programme.day });
+  }, []);
+
+  const closeInspector = useCallback(() => {
+    setOpenBreak(null);
+    setOpenProgramme(null);
+    window.setTimeout(() => returnFocusRef.current?.focus?.(), 0);
   }, []);
   const onDayLoaded = useCallback((payload) => {
     setBreakIds((payload.breaks || []).map((row) => row.break_id));
   }, []);
 
-  const header = useMemo(() => (
-    <PageHeader
-      locale={locale}
-      titleEn="Plan, the day"
-      titleHe="תוכנית, היום"
-      bodyEn="One broadcast day as a timeline. Move a break, change its length, mark it gold, and read what it cost before you save it."
-      bodyHe="יום שידור אחד כציר זמן. הזיזו ברייק, שנו את אורכו, סמנו אותו כזהב, וראו מה זה עלה לפני השמירה."
-    />
-  ), [locale]);
-
   if (error) {
     return (
-      <section className="page-workspace">
-        {header}
+      <section className="page-workspace broadcast-day">
+        <DayOperationsHeader locale={locale} />
         <div className="day-board-empty">
           <h3>{pageText(locale, 'The day board is not reachable', 'לוח היום אינו זמין')}</h3>
           <p>{error}</p>
@@ -80,8 +118,8 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
 
   if (days && !days.available) {
     return (
-      <section className="page-workspace">
-        {header}
+      <section className="page-workspace broadcast-day">
+        <DayOperationsHeader locale={locale} />
         <div className="day-board-empty">
           <h3>{pageText(locale, 'There is no day to open yet', 'אין עדיין יום לפתיחה')}</h3>
           <p>{(locale === 'he' && days.reason_he) || days.reason}</p>
@@ -98,8 +136,8 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
   }
 
   return (
-    <section className="page-workspace day-page">
-      {header}
+    <section className="page-workspace day-page broadcast-day">
+      <DayOperationsHeader locale={locale} />
       <DayPicker
         days={days ? days.days : []}
         value={day}
@@ -124,7 +162,7 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
           locale={locale}
           siblings={breakIds}
           onNavigate={setOpenBreak}
-          onClose={() => setOpenBreak(null)}
+          onClose={closeInspector}
           notify={notify}
           onGlobalRefresh={onGlobalRefresh}
         />
@@ -136,7 +174,7 @@ function DayPage({ locale, notify, onGlobalRefresh, refreshKey }) {
           day={openProgramme.day}
           locale={locale}
           notify={notify}
-          onClose={() => setOpenProgramme(null)}
+          onClose={closeInspector}
           onGlobalRefresh={onGlobalRefresh}
         />
       )}

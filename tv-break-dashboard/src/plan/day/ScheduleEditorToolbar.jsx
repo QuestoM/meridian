@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Send } from 'lucide-react';
 import { ZoomControl } from './schedule-track-view';
 
@@ -19,6 +19,8 @@ function ScheduleEditorToolbar({
   onSnapGrid,
   recomputeState,
   onRecompute,
+  recomputeDisabled,
+  recomputeDisabledReason,
   pxPerMin,
   onZoom,
   onZoomStep,
@@ -52,7 +54,9 @@ function ScheduleEditorToolbar({
         type="button"
         variant="outlined"
         className="run-button"
-        disabled={recomputeState === 'running'}
+        disabled={recomputeState === 'running' || recomputeDisabled}
+        aria-describedby={recomputeDisabled ? 'schedule-editor-run-lock' : undefined}
+        title={recomputeDisabledReason || undefined}
         onClick={() => onRecompute && onRecompute()}
       >
         <Send size={14} />
@@ -60,6 +64,7 @@ function ScheduleEditorToolbar({
           ? label('Running the weekly plan', 'מריץ את הלוח השבועי')
           : label('Run the weekly plan', 'הרצת הלוח השבועי')}
       </Button>
+      {recomputeDisabled ? <small id="schedule-editor-run-lock" className="plan-basis-note" role="status">{recomputeDisabledReason}</small> : null}
       <ZoomControl pxPerMin={pxPerMin} onZoom={onZoom} onStep={onZoomStep} locale={locale} />
     </div>
   );

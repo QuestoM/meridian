@@ -291,9 +291,9 @@ def test_a_chip_prints_no_number_it_would_have_to_cut(tmp_path):
     for tag in re.findall(r"<[a-z]+[^>]*>", painted["maximum"]):
         assert "dir=" not in tag, f"{tag} re-anchors its own alignment on a right-to-left board"
 
-    board = read("plan/day/DayBoard.jsx")
-    assert "widthPx={parseFloat(geometry.width)}" in board, "the width tested is the width the chip is drawn at"
-    assert "const geometry = positionStyle(" in board
+    timeline = read("plan/day/DayBoardTimeline.jsx")
+    assert "widthPx={parseFloat(geometry.width)}" in timeline, "the width tested is the width the chip is drawn at"
+    assert "const geometry = positionStyle(" in timeline
 
 
 def test_the_numbers_a_chip_cannot_hold_are_drawn_beside_it_and_never_lost(tmp_path):
@@ -396,5 +396,4 @@ def test_the_board_frames_the_whole_day_and_one_programme_in_one_press():
     assert "onFitDay={() => fitTheDay(axis, trackRef, fitTo)}" in board
     assert "fitTheProgramme(programmes.get(selectedItem.segment_id), trackRef, fitTo, selectedItem.break_id)" in board
     assert "floor={floor}" in board, "the wheel obeys the same floor the preset opened"
-
 

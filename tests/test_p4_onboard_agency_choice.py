@@ -172,6 +172,23 @@ FORMAT = """
 export function pageText(locale, en, he) { return locale === 'he' ? he : en; }
 """
 
+ACTIONS = """
+import React from 'react';
+export function Button({ children, type = 'button', ...props }) {
+  return React.createElement('button', { ...props, type }, children);
+}
+export const ButtonBase = Button;
+export const IconButton = Button;
+"""
+
+CONTROLS = """
+import React from 'react';
+export function InputControl(props) { return React.createElement('input', props); }
+export function SelectControl({ children, ...props }) { return React.createElement('select', props, children); }
+export function TextAreaControl(props) { return React.createElement('textarea', props); }
+export function Pressable({ children, type = 'button', ...props }) { return React.createElement('button', { ...props, type }, children); }
+"""
+
 # The api module, with the options read held open so the test decides when it
 # lands. That is the whole point: the operator acts while it is in flight.
 API = """
@@ -198,6 +215,8 @@ const { transformWithOxc } = await import(pathToFileURL(req.resolve('vite')).hre
 const RUNTIME = pathToFileURL(join(here, 'react-runtime.mjs')).href;
 const ICONS = pathToFileURL(join(here, 'icons.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
+const ACTIONS = pathToFileURL(join(here, 'actions.mjs')).href;
+const CONTROLS = pathToFileURL(join(here, 'controls.mjs')).href;
 const API = pathToFileURL(join(here, 'clients-api.mjs')).href;
 const HELPERS = pathToFileURL(helpersPath).href;
 // The weekday coverage sentence lives in one shared module now, because two
@@ -226,6 +245,8 @@ registerHooks({
     if (specifier === 'react') return { url: RUNTIME, shortCircuit: true };
     if (specifier === 'lucide-react') return { url: ICONS, shortCircuit: true };
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
+    if (specifier.endsWith('studio/actions')) return { url: ACTIONS, shortCircuit: true };
+    if (specifier.endsWith('studio/dom-controls')) return { url: CONTROLS, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
     if (specifier.endsWith('weekday-scope-helpers')) return { url: WEEKDAYS, shortCircuit: true };
@@ -382,7 +403,7 @@ def payload_path(tmp_path_factory) -> Path:
 
 def _run(tmp_path: Path, source: str, payload_path: Path) -> dict:
     """Drive one version of the form through the three sequences."""
-    stubs = {"react-runtime.mjs": RUNTIME, "icons.mjs": ICONS, "format.mjs": FORMAT,
+    stubs = {"react-runtime.mjs": RUNTIME, "icons.mjs": ICONS, "format.mjs": FORMAT, "actions.mjs": ACTIONS, "controls.mjs": CONTROLS,
              "clients-api.mjs": API, "harness.mjs": HARNESS, "OnboardClientFlow.jsx": source}
     for name, body in stubs.items():
         (tmp_path / name).write_text(body, encoding="utf-8")

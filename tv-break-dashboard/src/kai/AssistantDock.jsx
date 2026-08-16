@@ -1,10 +1,13 @@
-import React, { useRef, useState } from 'react';
-import { Bot, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+import { MabatIcon } from '../shell/kairos-icons';
 import AssistantPanel from './AssistantPanel';
+import { Pressable } from '../studio/dom-controls';
 import './kai-shortcuts';
 import './assistant-console.css';
 import './kai-conversation-head.css';
+import './studio-ledger-kai.css';
 
 // The docked assistant column: a real layout sibling of the workspace inside
 // the shell flex row, never an overlay, so opening it shrinks the content
@@ -16,7 +19,7 @@ import './kai-conversation-head.css';
 // The kai-shortcuts import is deliberate and load-bearing rather than
 // decorative: the shell imports this file at module scope, so importing the
 // shortcut module here is what makes Cmd J work from a screen where the dock is
-// closed and no component of Kai's is mounted. The conversation-head stylesheet
+// closed and no component of Mabat's is mounted. The conversation-head stylesheet
 // rides the same fact: it corrects a head that both this dock and the full page
 // render, and importing it here puts it on every screen without adding a line to
 // two files that are already at the size cap.
@@ -52,7 +55,19 @@ export default function AssistantDock({ locale, notify, onClose }) {
   const [width, setWidth] = useState(savedWidth);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef(null);
+  const dockRef = useRef(null);
+  const returnFocusRef = useRef(null);
   const isRtl = locale === 'he';
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement;
+    const frame = window.requestAnimationFrame(() => dockRef.current?.focus({ preventScroll: true }));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const target = returnFocusRef.current;
+      if (target instanceof HTMLElement && target.isConnected) target.focus({ preventScroll: true });
+    };
+  }, []);
 
   // Pointer drag on the grip. The dock sits at inline-end: in RTL it renders
   // leftmost with the grip on its right edge, so moving the pointer toward
@@ -95,7 +110,10 @@ export default function AssistantDock({ locale, notify, onClose }) {
   }
 
   return (
-    <aside className={dragging ? 'asst-dock dragging' : 'asst-dock'} style={{ width }} aria-label={pageText(locale, 'Kai, the Kairos operations assistant', 'קאי, העוזר התפעולי של קיירוס')}>
+    <aside ref={dockRef} tabIndex={-1} className={dragging ? 'asst-dock dragging' : 'asst-dock'} style={{ width }} aria-labelledby="assistant-dock-title">
+      <span className="studio-visually-hidden" role="status" aria-live="polite">
+        {pageText(locale, 'Mabat assistant panel opened', 'חלונית העוזר מבט נפתחה')}
+      </span>
       <div
         className="asst-dock-grip"
         role="separator"
@@ -113,15 +131,15 @@ export default function AssistantDock({ locale, notify, onClose }) {
       />
       <header className="asst-dock-head">
         <div className="asst-dock-title">
-          <span className="asst-dock-mark" aria-hidden="true"><Bot size={16} /></span>
+          <span className="asst-dock-mark" aria-hidden="true"><MabatIcon size={17} /></span>
           <div>
-            <strong>{pageText(locale, 'Kai', 'קאי')}</strong>
+            <strong id="assistant-dock-title">{pageText(locale, 'Mabat', 'מבט')}</strong>
             <small>{pageText(locale, 'The Kairos operations assistant', 'העוזר התפעולי של קיירוס')}</small>
           </div>
         </div>
-        <button type="button" className="asst-dock-close" onClick={onClose} aria-label={pageText(locale, 'Close the assistant panel', 'סגירת חלונית העוזר')}>
+        <Pressable type="button" className="asst-dock-close" onClick={onClose} aria-label={pageText(locale, 'Close the assistant panel', 'סגירת חלונית העוזר')}>
           <X size={15} />
-        </button>
+        </Pressable>
       </header>
       <div className="asst-dock-body">
         <AssistantPanel locale={locale} notify={notify} dock />

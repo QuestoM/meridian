@@ -1,0 +1,317 @@
+/* Weekly transmission board. The default view is a calibrated 24-hour grid.
+   Source rows keep their real start and duration; overlaps use parallel lanes. */
+
+.plan-board-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 284px;
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.plan-board-instrument { min-inline-size: 0; }
+
+.planner-context {
+  position: sticky;
+  inset-block-start: var(--space-4);
+  min-block-size: 320px;
+  padding: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.planner-context-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.planner-context-head .MuiButton-root {
+  min-inline-size: 44px;
+  inline-size: 44px;
+  block-size: 44px;
+  color: var(--ink-muted);
+}
+
+.planner-context h3 {
+  margin: var(--space-5) 0 var(--space-2);
+  color: var(--ink);
+  font-family: var(--font-display-hebrew);
+  font-size: 22px;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+[dir="ltr"] .planner-context h3 { font-family: var(--font-display-latin); }
+
+.planner-context > p {
+  margin: 0 0 var(--space-4);
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planner-context dl { margin: 0; }
+
+.planner-context dl div {
+  display: grid;
+  gap: var(--space-1);
+  min-block-size: 58px;
+  align-content: center;
+  border-block-end: 1px solid var(--line);
+}
+
+.planner-context dt { color: var(--ink-subtle); font-size: 12px; }
+.planner-context dd { margin: 0; color: var(--ink); font: 12px/1.4 var(--font-mono); }
+.planner-context.is-empty { background: transparent; }
+
+.planning-canvas-timeline {
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.planner-instrument-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: 44px;
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid var(--line);
+  color: var(--ink-subtle);
+  font-size: 12px;
+}
+
+.planner-instrument-legend span:first-child {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  letter-spacing: .03em;
+}
+
+.planner-day-scroll {
+  max-block-size: min(72vh, 820px);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.planner-channel { --planner-day-height: 1152px; }
+
+.planner-channel + .planner-channel {
+  border-block-start: 1px solid var(--line-strong);
+}
+
+.planner-channel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: 46px;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.planner-channel-head strong { color: var(--ink); font-size: 14px; }
+.planner-channel-head span { color: var(--ink-subtle); font: 12px var(--font-mono); }
+
+.planner-day-grid {
+  display: grid;
+  align-items: start;
+}
+
+.planner-time-head,
+.planner-day-head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+  display: grid;
+  align-content: center;
+  min-block-size: 54px;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--line-strong);
+  border-inline-end: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.planner-time-head {
+  color: var(--ink-subtle);
+  font: 12px var(--font-mono);
+}
+
+.planner-day-head strong { color: var(--ink); font-size: 13px; }
+.planner-day-head span { overflow: hidden; color: var(--warning); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.planner-day-head.is-weekend strong { color: var(--info); }
+
+.planner-time-axis,
+.planner-day-track {
+  position: relative;
+  block-size: var(--planner-day-height);
+  border-inline-end: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.planner-time-axis {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 20;
+  background: var(--surface-muted);
+}
+
+.planner-time-axis span {
+  position: absolute;
+  inset-block-start: calc((var(--planner-hour) / 24) * 100%);
+  inset-inline: var(--space-2);
+  transform: translateY(-50%);
+  color: var(--ink-subtle);
+  font: 12px var(--font-mono);
+  text-align: end;
+}
+
+.planner-hour-line {
+  position: absolute;
+  inset-block-start: calc((var(--planner-hour) / 24) * 100%);
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.planner-hour-line:nth-child(3n + 1) { background: var(--line-strong); }
+
+.planner-program {
+  position: absolute;
+  inset-block-start: var(--planner-top);
+  inset-inline-start: calc(var(--planner-inline) + 2px);
+  inline-size: calc(var(--planner-width) - 4px);
+  block-size: max(3px, var(--planner-height));
+  min-inline-size: 44px;
+  padding: 1px var(--space-1);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.planner-program:hover,
+.planner-program:focus-visible,
+.planner-program.is-selected {
+  z-index: 18;
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  color: var(--ink);
+  outline: none;
+}
+
+.planner-program:focus-visible {
+  min-block-size: 48px;
+  inline-size: max(calc(var(--planner-width) - 4px), 148px);
+  padding: var(--space-2);
+  box-shadow: none;
+}
+
+.planner-program-title,
+.planner-program-clock {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planner-program-title { font-size: 12px; font-weight: 600; line-height: 1.2; }
+.planner-program-clock { color: var(--ink-subtle); font: 12px/1.2 var(--font-mono); }
+.planner-program:hover .planner-program-clock,
+.planner-program:focus-visible .planner-program-clock,
+.planner-program.is-selected .planner-program-clock { color: var(--ink-muted); }
+
+.planner-program.is-compact .planner-program-title,
+.planner-program.is-compact .planner-program-clock { display: none; }
+.planner-program.is-compact:focus-visible .planner-program-title,
+.planner-program.is-compact:focus-visible .planner-program-clock { display: block; }
+
+.planner-program-breaks {
+  position: absolute;
+  inset-inline-end: 2px;
+  inset-block-end: 2px;
+  display: flex;
+  gap: 1px;
+}
+
+.planner-program-breaks i {
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.plan-week .plan-board-toolbar {
+  min-block-size: 56px;
+  padding: var(--space-1);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.plan-week .plan-board-views { gap: 1px; }
+
+.plan-week .plan-board-views .MuiButton-root,
+.plan-week .axis-control .MuiButton-root {
+  min-block-size: 44px;
+  border-color: transparent;
+  border-radius: calc(var(--radius-control) - 2px);
+  color: var(--ink-muted);
+}
+
+.plan-week .plan-board-views .MuiButton-root.active,
+.plan-week .axis-control .MuiButton-root.active {
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.plan-board-stage .timeline-view,
+.plan-board-stage .daypart-view {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.plan-board-stage > .plan-board-instrument > .planning-canvas:not(.planning-canvas-timeline) {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  scrollbar-gutter: stable;
+}
+
+.plan-board-stage .timeline-topbar {
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.plan-board-stage .timeline-scroll { min-block-size: 520px; max-block-size: 68vh; }
+
+.plan-board-stage .timeline-program-clickable:hover,
+.plan-board-stage .timeline-program-clickable:focus-visible {
+  z-index: 8;
+  min-inline-size: 180px;
+  overflow: visible;
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.plan-board-stage .timeline-program-clickable:hover .timeline-program-title,
+.plan-board-stage .timeline-program-clickable:focus-visible .timeline-program-title { color: var(--ink); }
+
+@media (max-width: 1420px) {
+  .plan-board-stage { grid-template-columns: minmax(0, 1fr) 248px; }
+  .planner-channel { --planner-day-height: 1056px; }
+}

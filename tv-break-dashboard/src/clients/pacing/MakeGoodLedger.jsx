@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '../../studio/actions';
 import { Figure, Name } from '../../shell/bidi';
 import { formatSpan } from '../../shell/dates';
 import { amount, instant, isolate, localized, pair, pick, unitWord, vocabularyLabel, vocabularyMeaning } from './pacing-helpers';
 import { Legend, chipReading } from './makegood-legend';
-
+import { InputControl, SelectControl } from '../../studio/dom-controls';
 // The decision ledger: what was measured, what was decided about it, and who
 // acted. Every row is a record with a state, and the states it may move to next
 // are the only controls it shows, so the machine is legible from the screen rather
@@ -19,6 +20,7 @@ import { Legend, chipReading } from './makegood-legend';
 // person copy a number out of their own memory.
 
 const ACCEPTANCE = 'acceptance';
+const DECISION_WINDOW = 12;
 
 // A control is named by the act it performs, not by the state it lands in. The
 // server publishes the states as nouns because a payload describes a record; a
@@ -130,23 +132,23 @@ function OfferForm({ record, locale, busy, onSubmit, onCancel }) {
             `ההצעה, ב${unitWord(record.shortfall.unit, locale)}`,
           )}
         </span>
-        <input type="number" step="0.01" min="0" className="bidi-figure" value={value} onChange={(e) => setValue(e.target.value)} required />
+        <InputControl type="number" step="0.01" min="0" className="bidi-figure" value={value} onChange={(e) => setValue(e.target.value)} required />
       </label>
       <label>
         <span>{pick(locale, 'Window opens', 'החלון נפתח')}</span>
-        <input type="date" className="bidi-figure" value={start} onChange={(e) => setStart(e.target.value)} />
+        <InputControl type="date" className="bidi-figure" value={start} onChange={(e) => setStart(e.target.value)} />
       </label>
       <label>
         <span>{pick(locale, 'Window closes', 'החלון נסגר')}</span>
-        <input type="date" className="bidi-figure" value={end} onChange={(e) => setEnd(e.target.value)} />
+        <InputControl type="date" className="bidi-figure" value={end} onChange={(e) => setEnd(e.target.value)} />
       </label>
       <label className="makegood-note">
         <span>{pick(locale, 'What was agreed', 'מה סוכם')}</span>
-        <input type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+        <InputControl type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
       <div className="makegood-offer-actions">
-        <button type="submit" disabled={busy}>{pick(locale, 'Record the offer', 'רשמו את ההצעה')}</button>
-        <button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Cancel', 'ביטול')}</button>
+        <Button type="submit" disabled={busy}>{pick(locale, 'Record the offer', 'רשמו את ההצעה')}</Button>
+        <Button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Cancel', 'ביטול')}</Button>
       </div>
     </form>
   );
@@ -185,22 +187,22 @@ function CloseForm({ record, state, locale, busy, vocabulary, onSubmit, onCancel
       </p>
       <label>
         <span>{pick(locale, 'Why', 'מדוע')}</span>
-        <select value={reason} required onChange={(e) => setReason(e.target.value)}>
+        <SelectControl value={reason} required onChange={(e) => setReason(e.target.value)}>
           <option value="">{pick(locale, 'Choose a reason', 'בחרו סיבה')}</option>
           {offered.map((entry) => (
             <option key={entry.value} value={entry.value}>{pick(locale, entry.label_en, entry.label_he)}</option>
           ))}
-        </select>
+        </SelectControl>
       </label>
       <label className="makegood-note">
         <span>{needsNote ? pick(locale, 'What happened', 'מה קרה') : pick(locale, 'What happened, if it helps', 'מה קרה, אם זה עוזר')}</span>
-        <input type="text" maxLength={500} required={needsNote} value={note} onChange={(e) => setNote(e.target.value)} />
+        <InputControl type="text" maxLength={500} required={needsNote} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
       <div className="makegood-offer-actions">
-        <button type="submit" disabled={busy}>
+        <Button type="submit" disabled={busy}>
           {pick(locale, `Yes, ${actWord(state, record.kind, 'en').toLowerCase()}`, `כן, ${actWord(state, record.kind, 'he')}`)}
-        </button>
-        <button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Keep it', 'השאירו אותה')}</button>
+        </Button>
+        <Button type="button" className="ghost" onClick={onCancel}>{pick(locale, 'Keep it', 'השאירו אותה')}</Button>
       </div>
     </form>
   );
@@ -274,6 +276,7 @@ export default function MakeGoodLedger({
   // records and leaves the reader to find the one it named is a dead end on any
   // ledger longer than one row, and this ledger only ever gets longer.
   const [marked, setMarked] = useState('');
+  const [visibleCount, setVisibleCount] = useState(DECISION_WINDOW);
   const markedRef = useRef(null);
   const vocabulary = payload.vocabulary || {};
   const asks = vocabulary.reason_required || [];
@@ -283,6 +286,7 @@ export default function MakeGoodLedger({
   // ending exists to make impossible. make_goods is the fallback for a payload
   // written before this read carried both.
   const rows = payload.decisions || payload.make_goods || [];
+  const shown = rows.slice(0, visibleCount);
   const accepted = payload.accepted_count || 0;
 
   // The request is taken once and held here, so the mark survives the request
@@ -291,9 +295,11 @@ export default function MakeGoodLedger({
   // waiting for the read that follows the write.
   useEffect(() => {
     if (!focusMakeGoodId) return;
+    const index = rows.findIndex((record) => record.make_good_id === focusMakeGoodId);
+    if (index >= 0) setVisibleCount(Math.max(DECISION_WINDOW, index + 1));
     setMarked(focusMakeGoodId);
     onFocused();
-  }, [focusMakeGoodId, onFocused]);
+  }, [focusMakeGoodId, onFocused, rows]);
 
   useEffect(() => {
     if (!marked || !markedRef.current) return;
@@ -301,7 +307,7 @@ export default function MakeGoodLedger({
   }, [marked, rows.length]);
 
   return (
-    <section className="makegood-ledger" aria-label={pick(locale, 'Decision ledger', 'ספר ההחלטות')}>
+    <section className="makegood-ledger" id="decision-ledger-list" aria-label={pick(locale, 'Decision ledger', 'ספר ההחלטות')}>
       <Legend entries={vocabulary.kinds} locale={locale} />
       <Legend entries={vocabulary.deficit_kinds} locale={locale} />
       <p className="pacing-basis">
@@ -330,7 +336,7 @@ export default function MakeGoodLedger({
         </p>
       ) : null}
 
-      {rows.map((record) => (
+      {shown.map((record) => (
         <article className={`card card-dense makegood-row ${record.state}${record.make_good_id === marked ? ' makegood-focused' : ''}`}
                  ref={record.make_good_id === marked ? markedRef : null}
                  key={record.make_good_id}>
@@ -346,10 +352,10 @@ export default function MakeGoodLedger({
                   aria-label={chipReading(vocabulary.kinds, record.kind, locale)}>
               {vocabularyLabel(vocabulary.kinds, record.kind, locale)}
             </span>
-            <button type="button" className="makegood-campaign"
+            <Button type="button" className="makegood-campaign"
                     onClick={() => onOpenCampaign(record.campaign_id)}>
               <Name>{record.campaign_name || record.campaign_id}</Name>
-            </button>
+            </Button>
             <small className="makegood-flight">
               {/* Read by shell/dates.js, so the window on a ledger record and the
                   window on the board row it came from print one shape. Both were
@@ -374,7 +380,7 @@ export default function MakeGoodLedger({
           {canEdit ? (
             <div className="makegood-actions">
               {record.next_states.map((state) => (
-                <button
+                <Button
                   key={state}
                   type="button"
                   disabled={busyId === record.make_good_id}
@@ -385,7 +391,7 @@ export default function MakeGoodLedger({
                   }}
                 >
                   {actWord(state, record.kind, locale)}
-                </button>
+                </Button>
               ))}
               {record.next_states.length === 0 ? (
                 <span className="makegood-closed">{pick(locale, 'Closed', 'סגור')}</span>
@@ -425,9 +431,7 @@ export default function MakeGoodLedger({
               busy={busyId === record.make_good_id}
               onCancel={() => setOffering('')}
               onSubmit={async (payloadOut) => {
-                // The form closes when the move landed, and only then. It used to
-                // close first, so a refused offer took the value, the window and
-                // the note down with it and the reader typed all three again.
+                // Close only after the move lands, preserving values on refusal.
                 const landed = await onMove(record.make_good_id, payloadOut);
                 if (landed) setOffering('');
               }}
@@ -435,6 +439,12 @@ export default function MakeGoodLedger({
           ) : null}
         </article>
       ))}
+      {shown.length < rows.length ? (
+        <div className="clients-window-more" role="status">
+          <span>{pick(locale, `Showing ${shown.length} of ${rows.length} decisions`, `מוצגות ${shown.length} מתוך ${rows.length} החלטות`)}</span>
+          <a href="#decision-ledger-list" role="button" className="clients-secondary" onClick={(event) => { event.preventDefault(); setVisibleCount((count) => count + DECISION_WINDOW); }} onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setVisibleCount((count) => count + DECISION_WINDOW); } }}>{pick(locale, 'Show the next decisions', 'הציגו את ההחלטות הבאות')}</a>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -5,9 +5,6 @@
 
 /* The opened record */
 .hist-detail {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
   overflow: hidden;
   position: sticky;
   inset-block-start: var(--space-3);
@@ -220,7 +217,6 @@
   gap: 2px;
   padding: var(--space-1) var(--space-2);
   background: var(--surface-muted);
-  border: 1px solid var(--line);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xs);
 }
@@ -308,6 +304,7 @@
 .hist-file-opt {
   display: inline-flex;
   align-items: center;
+  min-block-size: var(--control-height);
   gap: var(--space-1);
   font-size: var(--text-xs);
   color: var(--muted);
@@ -386,6 +383,9 @@
 }
 
 .hist-door {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
   color: var(--teal-ink);
   font-size: var(--text-sm);
 }
@@ -446,4 +446,3 @@
   gap: var(--space-2);
   color: var(--subtle);
 }
-

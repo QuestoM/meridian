@@ -36,7 +36,10 @@ from fastapi import APIRouter, HTTPException, Request
 from kairos_api import assistant_actions
 
 MAX_ENTRIES = 50
-_ENTRY_KEYS = ("question", "answer", "at", "batch_id", "conversation_id")
+_ENTRY_KEYS = (
+    "question", "answer", "at", "batch_id", "conversation_id", "sources",
+    "tool_trace", "coverage", "elapsed_seconds", "context_disclosure",
+)
 _SAFE_CHARS_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 # No prefix: kairos_api.assistant includes this router under /api/assistant.
@@ -105,7 +108,8 @@ def _write_atomic(path: Path, username: str, entries: list[dict[str, Any]]) -> N
 
 
 def append_entry(username: str, question: str, answer: str, batch_id: str | None = None,
-                 conversation_id: str | None = None) -> None:
+                 conversation_id: str | None = None,
+                 metadata: dict[str, Any] | None = None) -> None:
     """Append one successful ask to the user's thread, pruned to the newest
     MAX_ENTRIES per conversation (the newest conversation is used, or a fresh
     one minted, when no conversation_id is passed). Never raises: a memory
@@ -115,7 +119,7 @@ def append_entry(username: str, question: str, answer: str, batch_id: str | None
     try:
         with _LOCK:
             assistant_conversations.append_exchange(
-                username, conversation_id, question, answer, batch_id)
+                username, conversation_id, question, answer, batch_id, metadata)
     except Exception:  # noqa: BLE001 - memory is additive, the ask already succeeded
         logger.exception("assistant thread append failed for user %s", username)
 

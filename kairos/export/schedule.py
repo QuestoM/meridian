@@ -45,7 +45,10 @@ from kairos.export.incremental import (  # noqa: F401
     rows_from_result as _rows_from_result,
     unmatched_anchor_reports,
 )
-from kairos.export.plan_guard import authorize_shipped_plan_write
+from kairos.export.plan_guard import (
+    record_shipped_plan_write,
+    require_shipped_plan_writable,
+)
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.day_core import _optimize_one_day
@@ -188,6 +191,7 @@ def build_weekly_schedule(
     progress_cb: Optional[Callable[[int, int], None]] = None,
     existing_csv: Optional[str | Path] = None,
     objective_mode: str = "blend",
+    require_usable_inventory: bool = False,
 ) -> pd.DataFrame:
     """Optimise every channel-day and return one schedule row per segment.
 
@@ -218,6 +222,8 @@ def build_weekly_schedule(
     even if campaign data is present, so behaviour is unchanged. The inventory and
     pacing signals fold into demand_weights and steer placement only; with no
     inventory file and no campaign rows the schedule is byte-identical to today.
+    ``require_usable_inventory`` makes a present all-invalid inventory file a
+    refusal; it is enabled by money-publishing application paths only.
 
     ``only_days`` (incremental recompute) re-optimizes ONLY the listed
     ``(channel, date)`` pairs and merges the fresh rows into the saved CSV at
@@ -363,7 +369,7 @@ def build_weekly_schedule(
     # Load the two coupled placement signals once. Both are identity no-ops until
     # the owner uploads data: an empty inventory pool and an empty campaign list
     # leave every weight at 1.0, so the schedule is byte-identical to today.
-    inventory_pool = load_inventory()
+    inventory_pool = load_inventory(require_usable=require_usable_inventory)
     campaigns = load_campaigns()
     # Goal orders share the same once-per-export I/O contract. The default store
     # currently contains demo rows only, so this is an empty list and the shared
@@ -437,10 +443,10 @@ def build_weekly_schedule(
             pricing=pricing,
         )
         revenue_provenance_seen.add((
-            str(result.revenue_basis or ""),
-            str(result.rating_audience_basis or ""),
-            str(result.rating_vintage or ""),
-            str(result.rating_source or ""),
+            str(getattr(result, "revenue_basis", "") or ""),
+            str(getattr(result, "rating_audience_basis", "") or ""),
+            str(getattr(result, "rating_vintage", "") or ""),
+            str(getattr(result, "rating_source", "") or ""),
         ))
         return _rows_from_result(segments, result)
 
@@ -579,10 +585,18 @@ def write_weekly_schedule(
     is_shipped_plan = target.resolve() == DEFAULT_OUTPUT_PATH.resolve()
     # The read-only wall is the first shipped-path decision. Tests and agent
     # trees must fail here before snapshot validation or any provenance write.
-    authorize_shipped_plan_write(target, DEFAULT_OUTPUT_PATH)
+    require_shipped_plan_writable(target, DEFAULT_OUTPUT_PATH)
     fingerprint_snapshot = frame.attrs.get("fingerprint_snapshot")
     input_fingerprints_snapshot = frame.attrs.get("input_fingerprints_snapshot")
     if is_shipped_plan:
+        # This is the last common gate for every route, CLI and future caller
+        # that can replace the operator's plan. Re-check at commit time: an
+        # inventory source may have changed after a job's earlier preflight,
+        # and a present all-invalid file must never masquerade as an absent,
+        # deliberately neutral signal while money-moving rows are published.
+        from kairos.optimize.inventory import load_inventory
+
+        load_inventory(require_usable=True)
         if not isinstance(fingerprint_snapshot, dict) or not isinstance(
             input_fingerprints_snapshot, dict
         ):
@@ -690,4 +704,8 @@ def write_weekly_schedule(
         )
     except Exception:  # pragma: no cover - meta is best-effort, never blocks export
         logger.warning("Could not write schedule freshness sidecar for %s.", target, exc_info=True)
+    # Provenance describes a write that actually published. Record only after
+    # the recoverable CSV+fingerprint pair succeeded (and beside the best-effort
+    # freshness meta), never for a refusal or a rolled-back partial publish.
+    record_shipped_plan_write(target, DEFAULT_OUTPUT_PATH)
     return target

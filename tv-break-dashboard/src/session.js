@@ -240,16 +240,30 @@ export function normalizeSession(body) {
 
 export const ANONYMOUS_SESSION = normalizeSession({ auth_disabled: true });
 
-export async function fetchSession() {
-  try {
-    const response = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
-    if (!response.ok) {
-      return { ok: false, status: response.status, session: null };
-    }
-    return { ok: true, status: response.status, session: normalizeSession(await response.json()) };
-  } catch {
-    return { ok: false, status: 0, session: null };
+let sessionRequest = null;
+
+export function fetchSession() {
+  // Several route workspaces need the same authority snapshot. React's
+  // development remount deliberately runs their effects twice; share only the
+  // request that is currently in flight so that one screen load still means
+  // one authenticated read. The value is not cached after settlement, so a
+  // later refresh or account transition always asks the server again.
+  if (!sessionRequest) {
+    sessionRequest = (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+        if (!response.ok) {
+          return { ok: false, status: response.status, session: null };
+        }
+        return { ok: true, status: response.status, session: normalizeSession(await response.json()) };
+      } catch {
+        return { ok: false, status: 0, session: null };
+      }
+    })().finally(() => {
+      sessionRequest = null;
+    });
   }
+  return sessionRequest;
 }
 
 // The gate as this session sees it, for a wall declared in WALLS. Returns the

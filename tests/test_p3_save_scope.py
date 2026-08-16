@@ -340,7 +340,8 @@ def test_the_editor_offers_no_scope_wider_than_the_airing_it_is_looking_at():
         assert gone not in toolbar, f"the editor still offers {gone}"
     editor = read("plan/day/ScheduleEditor.jsx")
     assert "useState('date')" not in editor and "savePin(item, 'date')" not in editor
-    assert "savePin(item)" in editor, "Enter saves the one scope there is"
+    assert "requestPinReview(item)" in editor, "Enter reviews the one scope there is before saving"
+    assert "onSave={requestPinReview}" in editor, "the row Save control enters the same review"
     assert "scopeFor={scopeFor}" in editor and "return target ? scopeSentence(target.programme, locale) : '';" in editor, (
         "what a save binds is on the row that carries the Save button"
     )

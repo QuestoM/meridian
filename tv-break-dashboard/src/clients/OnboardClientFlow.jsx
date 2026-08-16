@@ -1,121 +1,105 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '../studio/actions';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
 import { localized, refusalText, vocabularyLabel } from './clients-money-helpers';
 import { weekdayCoverage } from './weekday-scope-helpers';
 import { isolate } from '../shell/bidi';
-
-// JS-5 in one form. The agency, the client under it, the campaign, its flights
-// and its terms are one submit, because the measured failure today is that two
-// of the three entities have no creation path and the third is linked through a
-// different endpoint on a different screen.
-//
-// Nothing here can create a duplicate. An agency the product already holds is
-// reused and reported as reused, a client already linked is left alone, and a
-// campaign whose name and client match an existing one is refused with the id
-// that already holds it. The result panel says which of the three happened.
-//
-// Every native form control below stays native, deliberately. Two suites
-// (test_p4_onboard_agency_choice.py, test_p4_onboard_refusal_opens.py) run
-// this exact file through a hand-written React stub with no createContext or
-// useContext, and Node's registerHooks routes even require('react') through
-// it, so importing '@mui/material' (which needs @emotion/react's own
-// React.createContext at module load) crashes both suites on the import
-// alone, no matter which control changed. Both also read the tree by literal
-// element type. verify-direction-rules.mjs, frozen and unowned here, is the
-// second lock: exactly one literal dir attribute, the one on Field below.
-
+import { formatSpan } from '../shell/dates';
+import { InputControl, SelectControl } from '../studio/dom-controls';
 const EMPTY_FLIGHT = { starts_on: '', ends_on: '', goal_kind: 'spots', goal_value: '' };
-
-// The word for the object a refusal names. Two of the refusals this flow can
-// raise name a record that already exists and tell the reader to open it, and
-// both of them arrived as a sentence with no way to the thing they named. A kind
-// this surface cannot open has no word here and grows no control, so a refusal
-// never carries a button that goes nowhere.
+const STEPS = [{ en: 'Identity', he: 'זהות' }, { en: 'Commercial terms', he: 'תנאים מסחריים' },
+  { en: 'Flights', he: 'טיסות שידור' }, { en: 'Review', he: 'בדיקה' }];
+const EMPTY_AGENCY = { name: '', agency_type: '', contact_name: '', contact_role: '', contact_phone: '',
+  contact_email: '', vat_id: '', rebate_percent: '', commission_percent: '', credit_limit_ils: '', payment_terms_days: '60' };
+function useDialogFocus(containerRef, initialFocusRef, onClose) {
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const before = document.activeElement;
+    const container = containerRef.current;
+    if (!container) return undefined;
+    const background = Array.from(document.querySelectorAll('.clients-workspace > .page-header, .clients-workspace > .clients-views, .clients-workspace > .clients-error, .clients-body > .clients-main, .clients-body > .clients-record'));
+    const previous = background.map((node) => ({ node, inert: node.inert, hidden: node.getAttribute('aria-hidden') }));
+    background.forEach((node) => {
+      node.inert = true;
+      node.setAttribute('aria-hidden', 'true');
+    });
+    const focusable = () => Array.from(container.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')).filter((node) => !node.closest('[hidden]'));
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+      if (event.key !== 'Tab') return;
+      const nodes = focusable();
+      if (!nodes.length) return;
+      const [first] = nodes;
+      const last = nodes.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    (initialFocusRef.current || focusable()[0] || container).focus();
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previous.forEach(({ node, inert, hidden }) => {
+        node.inert = inert;
+        if (hidden === null) node.removeAttribute('aria-hidden');
+        else node.setAttribute('aria-hidden', hidden);
+      });
+      if (before && typeof before.focus === 'function') before.focus();
+    };
+  }, [containerRef, initialFocusRef, onClose]);
+}
 function openWord(kind, locale) {
-  if (kind === 'campaign') {
-    return pageText(locale, 'Open that campaign', 'פתחו את הקמפיין הזה');
-  }
-  if (kind === 'agency') {
-    return pageText(locale, 'Open that agency record', 'פתחו את כרטיס הסוכנות');
-  }
+  if (kind === 'campaign') return pageText(locale, 'Open that campaign', 'פתחו את הקמפיין הזה');
+  if (kind === 'agency') return pageText(locale, 'Open that agency record', 'פתחו את כרטיס הסוכנות');
   return '';
 }
-
-// One refusal, with the way to the object it names when the endpoint sent one.
-// It is its own component because a refusal is the one state of this flow that
-// cannot be reached by rendering the form, and a state that cannot be rendered
-// cannot be measured.
 export function RefusalNotice({ error, opens, locale, onOpen }) {
-  if (!error) {
-    return null;
-  }
+  if (!error) return null;
   const word = opens && onOpen ? openWord(opens.kind, locale) : '';
   return (
     <p className="clients-error" role="alert">
       <span>{error}</span>
       {word ? (
-        // Native: test_p4_onboard_refusal_opens.py finds this control by
-        // comparing the rendered element's type to the literal string, so an
-        // MUI Button here (a different type) would simply not be found.
-        <button type="button" className="clients-retry" onClick={() => onOpen(opens)}>
+        <Button type="button" className="clients-retry" onClick={() => onOpen(opens)}>
           {word}
-        </button>
+        </Button>
       ) : null}
     </p>
   );
 }
-
-// Native: the shared field behind every text/date/number control here. See
-// the file header for why nothing in this component can become an MUI control.
 function Field({ label, value, onChange, type = 'text', ltr = false, list, required = false, hint }) {
   return (
     <label className="clients-field">
       <span>{label}</span>
-      <input
-        type={type}
-        value={value}
-        list={list}
-        required={required}
-        dir={ltr ? 'ltr' : 'auto'}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <InputControl type={type} value={value} list={list} required={required} dir={ltr ? 'ltr' : 'auto'}
+                    onChange={(event) => onChange(event.target.value)} />
       {hint ? <small>{hint}</small> : null}
     </label>
   );
 }
-
 export default function OnboardClientFlow({ locale, prefill, onClose, onDone, onOpenRefused }) {
+  const [step, setStep] = useState(0);
   const [options, setOptions] = useState(null);
   const [agencyMode, setAgencyMode] = useState('existing');
   const [agencyId, setAgencyId] = useState('');
-  const [agency, setAgency] = useState({
-    name: '',
-    agency_type: '',
-    contact_name: '',
-    contact_role: '',
-    contact_phone: '',
-    contact_email: '',
-    vat_id: '',
-    rebate_percent: '',
-    commission_percent: '',
-    credit_limit_ils: '',
-    payment_terms_days: '60',
-  });
+  const [agency, setAgency] = useState(EMPTY_AGENCY);
   const [advertiser, setAdvertiser] = useState((prefill && prefill.advertiser) || '');
   const [campaign, setCampaign] = useState({ name: '', starts_on: '', ends_on: '', rebate_percent: '' });
   const [discount, setDiscount] = useState({ percent: '', weekdays: ['6'], asAgencyRule: false });
   const [flights, setFlights] = useState([{ ...EMPTY_FLIGHT }]);
   const [state, setState] = useState({ status: 'idle', error: '', opens: null, result: null });
-  // A choice the operator already made outranks the read. The options land after
-  // the panel is on screen, so applying the default on arrival overwrote it:
-  // measured, "a new agency" chosen at t+0 reverted to the first agency on the
-  // list when the read landed, and a submit after that revert booked the
-  // campaign under an agency nobody picked, with that agency's rebate. The two
-  // halves are tracked apart, because the agency id sitting behind a hidden
-  // select is not a choice anybody made and must still get its default.
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+  const formRef = useRef(null);
+  const stepTitleRef = useRef(null);
+  // A choice already made outranks the later options read.
   const chosen = useRef({ mode: false, agency: false });
+  useDialogFocus(dialogRef, closeRef, onClose);
+  useEffect(() => { const target = step === STEPS.length - 1 ? closeRef.current : stepTitleRef.current; if (target) target.focus(); }, [step]);
 
   useEffect(() => {
     let active = true;
@@ -140,27 +124,14 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
     return () => { active = false; };
   }, [locale, prefill]);
 
-  // Every write to the agency block goes through one of these three, so making
-  // the choice is what records it and there is no flag to remember to set.
-  function chooseAgencyMode(mode) {
-    chosen.current.mode = true;
-    setAgencyMode(mode);
-  }
+  function chooseAgencyMode(mode) { chosen.current.mode = true; setAgencyMode(mode); }
 
-  function chooseAgency(id) {
-    chosen.current.agency = true;
-    setAgencyId(id);
-  }
+  function chooseAgency(id) { chosen.current.agency = true; setAgencyId(id); }
 
-  function editAgency(patch) {
-    chosen.current.mode = true;
-    setAgency((current) => ({ ...current, ...patch }));
-  }
-
+  function editAgency(patch) { chosen.current.mode = true; setAgency((current) => ({ ...current, ...patch })); }
   const weekdays = useMemo(() => (options && options.weekdays) || [], [options]);
   const goalKinds = useMemo(() => (options && options.goal_kinds) || ['spots'], [options]);
   const goalWords = useMemo(() => (options && options.goal_kind_vocabulary) || [], [options]);
-
   function toggleWeekday(key) {
     setDiscount((current) => ({
       ...current,
@@ -170,6 +141,9 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
     }));
   }
 
+  function nextStep() {
+    if (!formRef.current || formRef.current.reportValidity()) setStep((current) => Math.min(STEPS.length - 1, current + 1));
+  }
   async function submit(event) {
     event.preventDefault();
     setState({ status: 'saving', error: '', opens: null, result: null });
@@ -206,104 +180,95 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
       const result = await onboardClient(payload);
       setState({ status: 'done', error: '', opens: null, result });
     } catch (error) {
-      // The record the refusal names, as the endpoint addressed it. Two of these
-      // refusals tell the reader to open something that already exists, so the
-      // address travels with the sentence and the notice grows the way to it.
       setState({ status: 'idle', error: refusalText(error, locale), opens: error.opens || null, result: null });
     }
   }
-
   if (state.status === 'done') {
     const result = state.result;
+    const outcomeRows = [
+      [result.agency.agency_id, result.agency.outcome === 'created'
+        ? pageText(locale, 'agency created', 'סוכנות נוצרה') : pageText(locale, 'agency already existed, reused', 'הסוכנות כבר קיימת, נעשה בה שימוש')],
+      [result.advertiser.advertiser, result.advertiser.outcome === 'linked'
+        ? pageText(locale, 'client linked to the agency', 'הלקוח שויך לסוכנות') : pageText(locale, 'client was already linked', 'הלקוח כבר היה משויך')],
+      [pageText(locale, 'Client record', 'כרטיס הלקוח'), (result.advertiser.identity || {}).outcome === 'registered'
+        ? pageText(locale, 'named as a client of this operator, so a rule can be written against its name', 'נרשם כלקוח של המפעיל, ולכן אפשר לכתוב כלל על שמו')
+        : pageText(locale, 'already a named client, so nothing was written', 'כבר לקוח בשם, ולכן לא נכתב דבר')],
+      [result.campaign.campaign_id, pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ${isolate(result.flights.length)} טיסות שידור`)],
+      [pageText(locale, 'Terms', 'תנאים'), result.discount.outcome === 'priced_as_agency_condition'
+        ? localized(result.discount, 'covers', locale) : localized(result.discount, 'note', locale)],
+    ];
     return (
-      <aside className="clients-record clients-onboard" role="dialog">
+      <div className="clients-onboard-layer">
+      <aside className="card card-dense card-body clients-record clients-onboard" role="dialog" aria-modal="true"
+             aria-labelledby="clients-onboard-result-title" ref={dialogRef} tabIndex={-1}>
         <header className="clients-record-head">
-          <h3>{pageText(locale, 'The client is on file', 'הלקוח נקלט')}</h3>
-          <button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+          <h3 id="clients-onboard-result-title">{pageText(locale, 'The client is on file', 'הלקוח נקלט')}</h3>
+          <Button ref={closeRef} type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close onboarding result', 'סגירת תוצאת הקליטה')}>
             <X size={15} aria-hidden="true" />
-          </button>
+          </Button>
         </header>
         <ul className="clients-result">
-          <li>
-            <Check size={13} aria-hidden="true" />
-            <strong>{result.agency.agency_id}</strong>
-            <span>{result.agency.outcome === 'created'
-              ? pageText(locale, 'agency created', 'סוכנות נוצרה')
-              : pageText(locale, 'agency already existed, reused', 'הסוכנות כבר קיימת, נעשה בה שימוש')}</span>
-          </li>
-          <li>
-            <Check size={13} aria-hidden="true" />
-            <strong>{result.advertiser.advertiser}</strong>
-            <span>{result.advertiser.outcome === 'linked'
-              ? pageText(locale, 'client linked to the agency', 'הלקוח שויך לסוכנות')
-              : pageText(locale, 'client was already linked', 'הלקוח כבר היה משויך')}</span>
-          </li>
-          <li>
-            <Check size={13} aria-hidden="true" />
-            <strong>{pageText(locale, 'Client record', 'כרטיס הלקוח')}</strong>
-            <span>{(result.advertiser.identity || {}).outcome === 'registered'
-              ? pageText(locale, 'named as a client of this operator, so a rule can be written against its name', 'נרשם כלקוח של המפעיל, ולכן אפשר לכתוב כלל על שמו')
-              : pageText(locale, 'already a named client, so nothing was written', 'כבר לקוח בשם, ולכן לא נכתב דבר')}</span>
-          </li>
-          <li>
-            <Check size={13} aria-hidden="true" />
-            <strong>{result.campaign.campaign_id}</strong>
-            <span>{pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ${isolate(result.flights.length)} טיסות שידור`)}</span>
-          </li>
-          <li>
-            <Check size={13} aria-hidden="true" />
-            <strong>{pageText(locale, 'Terms', 'תנאים')}</strong>
-            <span>{result.discount.outcome === 'priced_as_agency_condition'
-              ? localized(result.discount, 'covers', locale)
-              : localized(result.discount, 'note', locale)}</span>
-          </li>
+          {outcomeRows.map(([title, detail]) => (
+            <li key={title}><Check size={13} aria-hidden="true" /><strong>{title}</strong><span>{detail}</span></li>
+          ))}
         </ul>
-        <button type="button" className="clients-primary" onClick={() => onDone(result.campaign.advertiser)}>
+        <Button type="button" className="clients-primary" onClick={() => onDone(result.campaign.advertiser)}>
           {pageText(locale, 'Open the client record', 'פתחו את כרטיס הלקוח')}
-        </button>
+        </Button>
       </aside>
+      </div>
     );
   }
-
   return (
-    <aside className="clients-record clients-onboard" role="dialog">
+    <div className="clients-onboard-layer">
+    <aside className="card card-dense card-body clients-record clients-onboard" role="dialog" aria-modal="true"
+           aria-labelledby="clients-onboard-title" aria-describedby="clients-onboard-intro"
+           aria-busy={!options || state.status === 'saving'} ref={dialogRef} tabIndex={-1}>
       <header className="clients-record-head">
-        <h3>{pageText(locale, 'Onboard a client', 'קליטת לקוח')}</h3>
-        <button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+        <h3 id="clients-onboard-title">{pageText(locale, 'Onboard a client', 'קליטת לקוח')}</h3>
+        <Button ref={closeRef} type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Cancel onboarding', 'ביטול הקליטה')}>
           <X size={15} aria-hidden="true" />
-        </button>
+        </Button>
       </header>
-      <p className="clients-basis-note">
-        {pageText(
-          locale,
-          'One insertion order, one submit. The agency, the client and the campaign are created and linked together.',
-          'הזמנה אחת, שליחה אחת. הסוכנות, הלקוח והקמפיין נוצרים ומקושרים יחד.',
-        )}
-      </p>
+      <p className="clients-basis-note" id="clients-onboard-intro">{pageText(locale,
+        'One insertion order, one submit. The agency, the client and the campaign are created and linked together.',
+        'הזמנה אחת, שליחה אחת. הסוכנות, הלקוח והקמפיין נוצרים ומקושרים יחד.')}</p>
 
-      <form onSubmit={submit} className="clients-form">
-        <fieldset>
+      <ol className="clients-workflow-steps" aria-label={pageText(locale, 'Onboarding progress', 'התקדמות הקליטה')}>
+        {STEPS.map((entry, index) => (
+          <li key={entry.en} className={index === step ? 'active' : index < step ? 'complete' : ''}>
+            <span className="clients-workflow-step" aria-current={index === step ? 'step' : undefined}>
+              <span>{index + 1}</span>
+              {pageText(locale, entry.en, entry.he)}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <form ref={formRef} onSubmit={submit} className="clients-form">
+        <div className="clients-workflow-panel" id="onboard-step-identity" hidden={step !== 0}>
+        <h4 ref={step === 0 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Identity', 'זהות')}</h4>
+        <fieldset disabled={step !== 0}>
           <legend>{pageText(locale, 'Agency', 'סוכנות')}</legend>
           <div className="clients-radio-row">
             <label>
-              <input type="radio" checked={agencyMode === 'existing'} onChange={() => chooseAgencyMode('existing')} />
+              <InputControl type="radio" checked={agencyMode === 'existing'} onChange={() => chooseAgencyMode('existing')} />
               {pageText(locale, 'An agency we already work with', 'סוכנות שאנחנו כבר עובדים איתה')}
             </label>
             <label>
-              <input type="radio" checked={agencyMode === 'new'} onChange={() => chooseAgencyMode('new')} />
+              <InputControl type="radio" checked={agencyMode === 'new'} onChange={() => chooseAgencyMode('new')} />
               {pageText(locale, 'A new agency', 'סוכנות חדשה')}
             </label>
           </div>
           {agencyMode === 'existing' ? (
             <label className="clients-field">
               <span>{pageText(locale, 'Agency', 'סוכנות')}</span>
-              <select value={agencyId} onChange={(event) => chooseAgency(event.target.value)}>
+              <SelectControl value={agencyId} onChange={(event) => chooseAgency(event.target.value)}>
                 {(options ? options.agencies : []).map((entry) => (
                   <option key={entry.agency_id} value={entry.agency_id}>
                     {`${entry.name} (${entry.agency_id}), ${entry.rebate_percent}%`}
                   </option>
                 ))}
-              </select>
+              </SelectControl>
             </label>
           ) : (
             <>
@@ -311,10 +276,10 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
               <Field label={pageText(locale, 'Agency name', 'שם הסוכנות')} value={agency.name} onChange={(value) => editAgency({ name: value })} required hint={pageText(locale, 'exactly as the daily file spells it', 'בדיוק כפי שהקובץ היומי מאיית')} />
               <label className="clients-field">
                 <span>{pageText(locale, 'Agency type', 'סוג הסוכנות')}</span>
-                <select value={agency.agency_type} onChange={(event) => editAgency({ agency_type: event.target.value })}>
+                <SelectControl value={agency.agency_type} onChange={(event) => editAgency({ agency_type: event.target.value })}>
                   <option value="">{pageText(locale, 'Not stated', 'לא צוין')}</option>
                   {(options ? options.agency_types : []).map((type) => <option key={type} value={type}>{type}</option>)}
-                </select>
+                </SelectControl>
               </label>
               <Field label={pageText(locale, 'Rebate percent', 'אחוז רבייט')} value={agency.rebate_percent} onChange={(value) => editAgency({ rebate_percent: value })} type="number" ltr />
               <Field label={pageText(locale, 'Commission percent', 'אחוז עמלה')} value={agency.commission_percent} onChange={(value) => editAgency({ commission_percent: value })} type="number" ltr />
@@ -337,7 +302,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           )}
         </fieldset>
 
-        <fieldset>
+        <fieldset disabled={step !== 0}>
           <legend>{pageText(locale, 'Client', 'לקוח')}</legend>
           <Field
             label={pageText(locale, 'Client name', 'שם הלקוח')}
@@ -353,8 +318,11 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             ))}
           </datalist>
         </fieldset>
+        </div>
 
-        <fieldset>
+        <div className="clients-workflow-panel" id="onboard-step-commercial" hidden={step !== 1}>
+        <h4 ref={step === 1 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Commercial terms', 'תנאים מסחריים')}</h4>
+        <fieldset disabled={step !== 1}>
           <legend>{pageText(locale, 'Campaign', 'קמפיין')}</legend>
           <div className="clients-field-grid">
             <Field label={pageText(locale, 'Campaign name', 'שם הקמפיין')} value={campaign.name} onChange={(value) => setCampaign({ ...campaign, name: value })} required />
@@ -364,21 +332,21 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset disabled={step !== 1}>
           <legend>{pageText(locale, 'Weekday surcharge discount', 'הנחה על תוספת יום בשבוע')}</legend>
           <div className="clients-field-grid">
             <Field label={pageText(locale, 'Discount percent off the surcharge', 'אחוז הנחה מהתוספת')} value={discount.percent} onChange={(value) => setDiscount({ ...discount, percent: value })} type="number" ltr />
           </div>
           <div className="clients-weekdays">
             {weekdays.map((day) => (
-              <button
+              <Button
                 key={day.key}
                 type="button"
                 className={discount.weekdays.includes(day.key) ? 'active' : ''}
                 onClick={() => toggleWeekday(day.key)}
               >
                 {locale === 'he' ? day.he : day.en}
-              </button>
+              </Button>
             ))}
           </div>
           <p className="clients-basis-note" role="status">
@@ -388,7 +356,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             })}
           </p>
           <label className="clients-checkbox">
-            <input type="checkbox" checked={discount.asAgencyRule} onChange={(event) => setDiscount({ ...discount, asAgencyRule: event.target.checked })} />
+            <InputControl type="checkbox" checked={discount.asAgencyRule} onChange={(event) => setDiscount({ ...discount, asAgencyRule: event.target.checked })} />
             {pageText(locale, 'Apply it as an agency rule so it prices spots', 'החילו ככלל סוכנות כדי שיתמחר תשדירים')}
           </label>
           <p className="clients-basis-note">
@@ -399,8 +367,11 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             )}
           </p>
         </fieldset>
+        </div>
 
-        <fieldset>
+        <div className="clients-workflow-panel" id="onboard-step-flights" hidden={step !== 2}>
+        <h4 ref={step === 2 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Flights', 'טיסות שידור')}</h4>
+        <fieldset disabled={step !== 2}>
           <legend>{pageText(locale, 'Flights', 'טיסות שידור')}</legend>
           {flights.map((flight, index) => (
             <div className="clients-flight-row" key={`flight-${index}`}>
@@ -408,22 +379,22 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
               <Field label={pageText(locale, 'To', 'עד תאריך')} value={flight.ends_on} onChange={(value) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, ends_on: value } : entry)))} type="date" ltr />
               <label className="clients-field">
                 <span>{pageText(locale, 'Goal unit', 'יחידת יעד')}</span>
-                <select value={flight.goal_kind} onChange={(event) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, goal_kind: event.target.value } : entry)))}>
+                <SelectControl value={flight.goal_kind} onChange={(event) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, goal_kind: event.target.value } : entry)))}>
                   {goalKinds.map((kind) => (
                     <option key={kind} value={kind}>{vocabularyLabel(goalWords, kind, locale)}</option>
                   ))}
-                </select>
+                </SelectControl>
               </label>
               <Field label={pageText(locale, 'Goal', 'יעד')} value={flight.goal_value} onChange={(value) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, goal_value: value } : entry)))} type="number" ltr />
-              <button type="button" className="clients-icon-button" onClick={() => setFlights(flights.filter((entry, position) => position !== index))} aria-label={pageText(locale, 'Remove flight', 'הסירו טיסת שידור')}>
+              <Button type="button" className="clients-icon-button" onClick={() => setFlights(flights.filter((entry, position) => position !== index))} aria-label={pageText(locale, 'Remove flight', 'הסירו טיסת שידור')}>
                 <Trash2 size={14} aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           ))}
-          <button type="button" className="clients-secondary" onClick={() => setFlights([...flights, { ...EMPTY_FLIGHT }])}>
+          <Button type="button" className="clients-secondary" onClick={() => setFlights([...flights, { ...EMPTY_FLIGHT }])}>
             <Plus size={13} aria-hidden="true" />
             {pageText(locale, 'Add a flight', 'הוסיפו טיסת שידור')}
-          </button>
+          </Button>
           <p className="clients-basis-note">
             {pageText(
               locale,
@@ -432,19 +403,48 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             )}
           </p>
         </fieldset>
+        </div>
+
+        <div className="clients-workflow-panel clients-workflow-review" id="onboard-step-review" hidden={step !== 3}>
+          <h4 ref={step === 3 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Review before creating', 'בדיקה לפני יצירה')}</h4>
+          <dl>
+            <div><dt>{pageText(locale, 'Agency', 'סוכנות')}</dt><dd>{agencyMode === 'existing' ? agencyId : agency.name}</dd></div>
+            <div><dt>{pageText(locale, 'Client', 'לקוח')}</dt><dd>{advertiser}</dd></div>
+            <div><dt>{pageText(locale, 'Campaign', 'קמפיין')}</dt><dd>{campaign.name}</dd></div>
+            <div><dt>{pageText(locale, 'Window', 'חלון')}</dt><dd>{formatSpan(campaign.starts_on, campaign.ends_on, locale)}</dd></div>
+            <div><dt>{pageText(locale, 'Flights ready', 'טיסות מוכנות')}</dt><dd>{flights.filter((flight) => flight.starts_on && flight.ends_on && flight.goal_value !== '').length}</dd></div>
+          </dl>
+          <p className="clients-basis-note">
+            {pageText(locale, 'Nothing is written until you choose Create and link below.', 'דבר אינו נכתב עד לבחירה ב״יצירה וקישור״ למטה.')}
+          </p>
+        </div>
 
         <RefusalNotice error={state.error} opens={state.opens} locale={locale} onOpen={onOpenRefused} />
         <div className="clients-form-actions">
-          <button type="submit" className="clients-primary" disabled={state.status === 'saving'}>
-            {state.status === 'saving'
-              ? pageText(locale, 'Saving', 'שומר')
-              : pageText(locale, 'Create and link all three', 'צרו וקשרו את שלושתם')}
-          </button>
-          <button type="button" className="clients-secondary" onClick={onClose}>
+          {step < STEPS.length - 1 ? (
+            <a href="#clients-onboard-title" role="button" className="clients-primary" onClick={(event) => { event.preventDefault(); nextStep(); }}
+               onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); nextStep(); } }}>
+              {pageText(locale, 'Continue', 'המשך')}
+            </a>
+          ) : (
+            <Button type="submit" className="clients-primary" disabled={state.status === 'saving'}>
+              {state.status === 'saving'
+                ? pageText(locale, 'Saving', 'שומר')
+                : pageText(locale, 'Create and link all three', 'צרו וקשרו את שלושתם')}
+            </Button>
+          )}
+          {step > 0 ? (
+            <a href="#clients-onboard-title" role="button" className="clients-secondary" onClick={(event) => { event.preventDefault(); setStep((current) => current - 1); }}
+               onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setStep((current) => current - 1); } }}>
+              {pageText(locale, 'Back', 'חזרה')}
+            </a>
+          ) : null}
+          <Button type="button" className="clients-secondary" onClick={onClose}>
             {pageText(locale, 'Cancel', 'ביטול')}
-          </button>
+          </Button>
         </div>
       </form>
     </aside>
+    </div>
   );
 }

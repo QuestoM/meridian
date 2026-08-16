@@ -6,29 +6,6 @@
    Logical properties throughout, so the whole surface mirrors correctly in
    Hebrew without a single direction-specific rule. */
 
-/* The context switcher. It names the destination and never the act, it renders
-   only for a company account, and it sits out of the operator's working area.
-   It is part of the bridge described in console-bridge.jsx: when the account
-   menu carries the switcher, this rule and that file go away together. */
-.mc-switcher {
-  position: fixed;
-  inset-block-end: var(--space-3);
-  inset-inline-start: var(--space-3);
-  z-index: var(--z-feed);
-  background: var(--teal-deep);
-  color: #f4f7f7;
-  border: 0;
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-4);
-  font: inherit;
-  font-size: var(--text-xs);
-  cursor: pointer;
-  box-shadow: var(--shadow);
-}
-
-.mc-switcher:hover { background: var(--primary-hover); }
-.mc-switcher:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-
 .mc-console {
   position: fixed;
   inset: 0;
@@ -43,14 +20,14 @@
 
 .mc-header {
   background: var(--teal-deep);
-  color: #f4f7f7;
+  color: var(--surface);
   padding: 0 0 var(--space-4);
   flex: 0 0 auto;
 }
 
 .mc-header-marker {
   background: var(--amber-ink);
-  color: #fff;
+  color: var(--surface);
   font-size: var(--text-xs);
   font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
@@ -74,7 +51,7 @@
 .mc-header-identity p {
   margin: var(--space-1) 0 0;
   font-size: var(--text-sm);
-  color: #b9cbc7;
+  color: var(--surface-muted);
   max-width: 62ch;
 }
 
@@ -88,7 +65,7 @@
 
 .mc-header-label {
   font-size: var(--text-xs);
-  color: #9db6b1;
+  color: var(--line-strong);
   margin-inline-end: var(--space-2);
 }
 
@@ -101,7 +78,7 @@
 
 .mc-header-hash {
   font-size: var(--text-xs);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--chrome-hover);
   border-radius: var(--radius-xs);
   padding: 0 var(--space-1);
 }
@@ -121,16 +98,16 @@
 }
 
 .mc-count strong { font-size: var(--text-xl); }
-.mc-count small { font-size: var(--text-2xs); color: #b9cbc7; }
-.mc-count.mc-active { border-color: #56c9b4; }
-.mc-count.mc-tested_and_lost { border-color: #e08b8b; }
-.mc-count.mc-no_contrast { border-color: #e2b46a; }
-.mc-count.mc-not_measured { border-color: #8b9aa6; }
+.mc-count small { font-size: var(--text-2xs); color: var(--surface-muted); }
+.mc-count.mc-active { border-color: var(--positive); }
+.mc-count.mc-tested_and_lost { border-color: var(--danger); }
+.mc-count.mc-no_contrast { border-color: var(--warning); }
+.mc-count.mc-not_measured { border-color: var(--line-strong); }
 
 .mc-header-counts-note {
   flex-basis: 100%;
   font-size: var(--text-2xs);
-  color: #9db6b1;
+  color: var(--line-strong);
   margin: 0;
 }
 
@@ -139,7 +116,7 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-2xs);
-  color: #b9cbc7;
+  color: var(--surface-muted);
 }
 
 .mc-header-activation {
@@ -148,7 +125,7 @@
   gap: var(--space-2);
 }
 
-.mc-header-activation small { font-size: var(--text-2xs); color: #9db6b1; }
+.mc-header-activation small { font-size: var(--text-2xs); color: var(--line-strong); }
 
 /* Controls inside the header, which is the one dark band on this surface.
    `.mc-link` is drawn for the body, where the background is light: measured on
@@ -156,7 +133,7 @@
    controls that sit here, the record link and the way to the switch on Rules.
    This colour measures 7.96:1 on the same background. Sized to the note the
    activation control replaced, so the strip's rhythm is unchanged. */
-.mc-header .mc-link { color: #a9dcd3; }
+.mc-header .mc-link { color: var(--positive-soft); }
 .mc-header-activation .mc-link { font-size: var(--text-2xs); }
 
 .mc-layout {

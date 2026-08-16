@@ -1,7 +1,7 @@
 import { programTypeLabel as sharedProgramTypeLabel } from './labels';
 
 // Shared helpers for the insights surface components
-// (YieldView, ScenarioCompare, GoldBreakManager, MakeGoodAlerts) and the
+// (YieldView, GoldBreakManager, MakeGoodAlerts) and the
 // upgraded frontier chart. These mirror the formatters in TVBreakDashboard.jsx
 // so each surface stays self-contained without reaching into that 3.8k-line file.
 

@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import time
 
 import pytest
@@ -86,6 +87,7 @@ MEASUREMENT_BUDGET_S = 600
 def bodies(tmp_path_factory) -> "dict":
     """One real money measurement, and the shelf payloads around it."""
     from kairos_api import model_console_api as console
+    from kairos_api import model_console_candidates as candidates
 
     store_dir = tmp_path_factory.mktemp("releases")
     seeded = json.loads(SHIPPED_MEASUREMENTS.read_text(encoding="utf-8"))
@@ -94,6 +96,18 @@ def bodies(tmp_path_factory) -> "dict":
         json.dumps(seeded, ensure_ascii=False), encoding="utf-8")
 
     with pytest.MonkeyPatch.context() as patch, _thread_failures() as failures:
+        # This module-scoped fixture is created before the function-scoped
+        # neutral-inventory fixture in conftest. Give this polling test the same
+        # explicit "not uploaded" identity itself: the candidate measurement is
+        # real, while the separate authoritative-inventory suites own the
+        # present-but-invalid refusal contract.
+        from kairos.optimize import inventory
+
+        neutral_inventory = store_dir / "inventory-not-uploaded.csv"
+        isolated_settings = store_dir / "kairos_settings.json"
+        shutil.copy(candidates.SETTINGS_PATH, isolated_settings)
+        patch.setattr(inventory, "DEFAULT_INVENTORY_PATH", neutral_inventory)
+        patch.setattr(candidates, "SETTINGS_PATH", isolated_settings)
         patch.setenv("KAIROS_MODEL_RELEASES_DIR", str(store_dir))
         untouched_before = {path: _sha256(path) for path in
                             (SHIPPED_MEASUREMENTS, SHIPPED_COEFFICIENTS, SUBJECT_ARTIFACT)}

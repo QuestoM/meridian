@@ -16,6 +16,9 @@
 }
 
 .plan-basis-details summary {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
   font-size: var(--text-sm);
   color: var(--subtle);
   cursor: pointer;

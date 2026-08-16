@@ -90,6 +90,18 @@ const LUCIDE = stub('lucide.mjs', [...icons].map((icon) => `export function ${ic
 const API = stub('api.mjs', 'export async function endCampaign() { return {}; }\\nexport async function loadOnboardingOptions() { return {}; }\\n');
 const PANEL = stub('panel.mjs', 'export default function Panel() { return null; }\\n');
 
+const ACTIONS = stub('actions.mjs', `
+import React from 'react';
+function action(tag) {
+  return React.forwardRef(function Action({ children, loading, loadingIndicator, ...props }, ref) {
+    return React.createElement(tag, { ...props, ref }, children);
+  });
+}
+export const Button = action('button');
+export const ButtonBase = action('button');
+export const IconButton = action('button');
+`);
+
 // Every package the transformed modules import, resolved before the hooks are
 // registered. Resolving inside the hook re-enters it, which is a recursion.
 const bare = new Map();
@@ -108,6 +120,7 @@ registerHooks({
     if (specifier.endsWith('shell/format')) return hit(FORMAT);
     if (specifier.endsWith('/bidi')) return hit(built.get('shell/bidi'));
     if (specifier.endsWith('shell/dates')) return hit(built.get('shell/dates'));
+    if (specifier.endsWith('studio/actions')) return hit(ACTIONS);
     if (specifier.endsWith('clients-api')) return hit(API);
     if (specifier === 'lucide-react') return hit(LUCIDE);
     if (specifier === './CampaignDetail' || specifier === './CampaignTerms') return hit(PANEL);
@@ -131,9 +144,22 @@ const payload = JSON.parse(fs.readFileSync(PAYLOAD, 'utf8'));
 function cell(html, value) {
   const at = html.indexOf(value);
   if (at < 0) return null;
-  const row = html.slice(html.lastIndexOf('<tr', at), html.indexOf('</tr>', at));
-  const found = row.split('</td>').map((part) => `${part}</td>`).find((part) => part.includes(value));
-  return found === undefined ? null : found;
+  const rowStart = html.lastIndexOf('<tr', at);
+  const rowEnd = html.indexOf('</tr>', at);
+  if (rowStart >= 0 && rowEnd >= at) {
+    const row = html.slice(rowStart, rowEnd);
+    const found = row.split('</td>').map((part) => `${part}</td>`).find((part) => part.includes(value));
+    if (found !== undefined) return found;
+  }
+  const candidates = [['<button', '</button>'], ['<dd', '</dd>'], ['<span', '</span>']]
+    .map(([open, close]) => ({ open, close, start: html.lastIndexOf(open, at) }))
+    .filter((part) => part.start >= 0)
+    .sort((a, b) => b.start - a.start);
+  for (const part of candidates) {
+    const end = html.indexOf(part.close, at);
+    if (end >= at) return html.slice(part.start, end + part.close.length);
+  }
+  return null;
 }
 
 // The one removed-spot row that holds this value. The same break id is printed
@@ -170,8 +196,8 @@ const board = (props) => renderToStaticMarkup(React.createElement(CampaignBoard,
   ...props,
 }));
 
-const wired = board({ onOpenAgency: () => {} });
-const unwired = board({});
+const wired = board({ openCampaignId: payload.campaign_id, onOpenAgency: () => {} });
+const unwired = board({ openCampaignId: payload.campaign_id });
 
 // The drill of a client whose day really had spots removed by a rule, and the
 // same drill with the ledger holding no row for the break one of them names,
@@ -265,6 +291,7 @@ def payload(tmp_path_factory) -> dict:
         "board": booked,
         "advertiser": advertiser["advertiser"],
         "campaign": advertiser["campaigns"][0]["campaign"],
+        "campaign_id": with_agency["campaign_id"],
         "break_id": str(advertiser["campaigns"][0]["breaks"][0]),
         "agency_id": with_agency["agency_id"],
         "agency_name": names.get(with_agency["agency_id"], ""),

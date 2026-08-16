@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Name } from '../shell/bidi';
+import { InputControl, Pressable } from '../studio/dom-controls';
 import { LAYER_TEXT, eventDatesLabel, readEventsLayer } from './pricing-layers-lib';
 
 // The expandable per-event list under the count line. When the server payload
@@ -21,7 +23,7 @@ function EventsList({ events, locale }) {
     );
   }
   return (
-    <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0 }}>
+    <ul className="pricing-events-list">
       {events.map((entry, index) => (
         <li key={`${entry.name || 'event'}-${entry.start || ''}-${index}`} className="pricing-break-row">
           <span>
@@ -66,7 +68,7 @@ function PricingEventsLayer({ state, locale, stagedEnabled, onToggle }) {
 
   const toggle = (
     <label className="pricing-toggle">
-      <input
+      <InputControl
         type="checkbox"
         checked={supported && shownEnabled}
         disabled={!supported}
@@ -77,13 +79,13 @@ function PricingEventsLayer({ state, locale, stagedEnabled, onToggle }) {
   );
 
   return (
-    <div className="pricing-layer-card">
+    <div className="card pricing-layer-card">
       <div className="pricing-layer-head">
         <div>
           <span className="pricing-layer-title">{pageText(locale, LAYER_TEXT.events.en, LAYER_TEXT.events.he)}</span>
           <p className="pricing-layer-desc">{pageText(locale, 'A price multiplier for days inside active calendar events. An operator assertion, not a measurement. Off until activated here.', LAYER_TEXT.events.descHe)}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="pricing-layer-heading">
           <span className={`pricing-chip ${chip}`}>{chipText}</span>
           {supported ? toggle : (
             <Tooltip title={pageText(locale, 'This server version does not carry the events pricing layer yet, so the toggle is disabled instead of showing an invented state.', 'גרסת השרת הזו עדיין אינה כוללת את שכבת האירועים בתמחור, ולכן ההפעלה מושבתת במקום להציג מצב מומצא.')} arrow>
@@ -93,19 +95,18 @@ function PricingEventsLayer({ state, locale, stagedEnabled, onToggle }) {
         </div>
       </div>
       {supported && count !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <p className="pricing-base-note" style={{ margin: 0 }}>{pageText(locale, `${count} active events carry a price multiplier other than 1.0.`, `${count} אירועים פעילים נושאים מכפיל תמחור שונה מ-1.0.`)}</p>
+        <div className="pricing-events-summary">
+          <p className="pricing-base-note compact">{pageText(locale, `${count} active events carry a price multiplier other than 1.0.`, `${count} אירועים פעילים נושאים מכפיל תמחור שונה מ-1.0.`)}</p>
           {count > 0 && (
-            <button
+            <Pressable
               type="button"
-              className="secondary-button compact"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              className="secondary-button compact pricing-events-disclosure"
               aria-expanded={listOpen}
               onClick={() => setListOpen((value) => !value)}
             >
-              <ChevronDown size={13} style={{ transform: listOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              <ChevronDown size={16} className={listOpen ? 'pricing-events-caret open' : 'pricing-events-caret'} />
               {listOpen ? pageText(locale, 'Hide the events', 'הסתרת האירועים') : pageText(locale, 'Show which events', 'אילו אירועים')}
-            </button>
+            </Pressable>
           )}
         </div>
       )}

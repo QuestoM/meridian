@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Figure } from '../shell/bidi';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Info, Plus, RefreshCcw, Search, Users, X } from 'lucide-react';
 import { normalizeRows, pageText, suggestNextId } from './advertisers-helpers';
 import {
@@ -14,6 +14,7 @@ import {
 } from './advertiser-stats-helpers';
 import { recordWrites } from './advertiser-record-writes';
 import { loadAdvertiserIdentity } from './clients-api';
+import { InputControl, SelectControl } from '../studio/dom-controls';
 import AdvertiserCardGrid from './AdvertiserCardGrid';
 import AdvertiserDetailDrawer from './AdvertiserDetailDrawer';
 import AddAdvertiserForm from './AddAdvertiserForm';
@@ -21,6 +22,7 @@ import './advertiser-management.css';
 import './advertiser-names.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
+const ADVERTISER_WINDOW = 18;
 
 // The store this panel edits holds pricing rows, not advertisers. A row prices
 // an advertiser only once its name cell carries that advertiser's name, which is
@@ -55,6 +57,7 @@ export function AdvertiserRecordsPanel({
   const [showAdd, setShowAdd] = useState(false);
   const [scopeOptions, setScopeOptions] = useState({});
   const [openId, setOpenId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(ADVERTISER_WINDOW);
   // Two-step delete interlock: the first confirmed click arms the id and warns
   // that the advertiser's scoped rules die with it; only the second click deletes.
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
@@ -167,6 +170,11 @@ export function AdvertiserRecordsPanel({
     [merged, openId],
   );
   const hasActiveQuery = Boolean(search.trim()) || filter !== 'all';
+  const windowed = visible.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(ADVERTISER_WINDOW);
+  }, [search, filter, sortKey]);
 
   const writes = useMemo(
     () => recordWrites({
@@ -197,10 +205,10 @@ export function AdvertiserRecordsPanel({
   ];
 
   return (
-    <section className="page-workspace">
+    <section className="page-workspace" aria-busy={loading} aria-label={pageText(locale, 'Advertiser pricing records', 'רשומות תמחור מפרסמים')}>
       <div className="page-header">
         <div>
-          <h1>{pageText(locale, 'Pricing rules', 'כללי תמחור')}</h1>
+          <h2>{pageText(locale, 'Pricing rules', 'כללי תמחור')}</h2>
           <p>
             {pageText(
               locale,
@@ -255,7 +263,7 @@ export function AdvertiserRecordsPanel({
       <div className="amz-toolbar">
         <div className="amz-search">
           <Search size={15} />
-          <input
+          <InputControl
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -265,7 +273,7 @@ export function AdvertiserRecordsPanel({
         </div>
         <div className="amz-filter-chips" role="group" aria-label={pageText(locale, 'Filter advertisers', 'סינון מפרסמים')}>
           {FILTERS.map((entry) => (
-            <button
+            <Button
               key={entry.key}
               type="button"
               className={`adv-chip${filter === entry.key ? ' active' : ''}`}
@@ -273,18 +281,18 @@ export function AdvertiserRecordsPanel({
               onClick={() => setFilter(entry.key)}
             >
               {pageText(locale, entry.en, entry.he)}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="amz-sort">
           <label htmlFor="amz-sort-select">{pageText(locale, 'Sort', 'מיון')}</label>
-          <select id="amz-sort-select" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+          <SelectControl id="amz-sort-select" value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
             <option value="name">{pageText(locale, 'Name (unnamed last)', 'שם (ללא שם בסוף)')}</option>
             <option value="rules-desc">{pageText(locale, 'Rule count (high to low)', 'מספר כללים (גבוה לנמוך)')}</option>
             <option value="premium-desc">{pageText(locale, 'Premium (high to low)', 'מקדם (גבוה לנמוך)')}</option>
             <option value="premium-asc">{pageText(locale, 'Premium (low to high)', 'מקדם (נמוך לגבוה)')}</option>
             <option value="id">{pageText(locale, 'ID (A to Z)', 'מזהה (א-ת)')}</option>
-          </select>
+          </SelectControl>
         </div>
         <Button
           className="secondary-button compact"
@@ -334,12 +342,23 @@ export function AdvertiserRecordsPanel({
       )}
 
       {!loading && online && visible.length > 0 && (
-        <AdvertiserCardGrid rows={visible} locale={locale} grouped={sortKey === 'name'} onOpen={setOpenId} />
+        <AdvertiserCardGrid rows={windowed} locale={locale} grouped={sortKey === 'name'} onOpen={setOpenId} />
       )}
 
-      {!loading && online && visible.length > 0 && hasActiveQuery && (
-        <div className="amz-result-note">
-          {pageText(locale, `Showing ${visible.length} of ${advertisers.length}`, `מוצגים ${visible.length} מתוך ${advertisers.length}`)}
+      {!loading && online && visible.length > 0 && (hasActiveQuery || windowed.length < visible.length) && (
+        <div className="amz-result-note clients-window-more" role="status">
+          <span>
+            {pageText(
+              locale,
+              `Showing ${windowed.length} of ${visible.length} matching records (${advertisers.length} total)`,
+              `מוצגות ${windowed.length} מתוך ${visible.length} רשומות תואמות (${advertisers.length} בסך הכול)`,
+            )}
+          </span>
+          {windowed.length < visible.length ? (
+            <Button type="button" variant="outlined" className="clients-secondary" onClick={() => setVisibleCount((count) => count + ADVERTISER_WINDOW)}>
+              {pageText(locale, 'Show the next records', 'הציגו את הרשומות הבאות')}
+            </Button>
+          ) : null}
         </div>
       )}
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Button } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Button } from '../studio/actions';
 import { ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
 import { formatDay, formatSpan } from '../shell/dates';
@@ -8,6 +8,8 @@ import TargetForm from './TargetForm';
 import TodayDayDetail from './TodayDayDetail';
 import { isolate } from '../shell/bidi';
 import { DAY_COLUMNS, download, scopeComment, toCsv } from './today-export';
+import { Pressable } from '../studio/dom-controls';
+import { Dialog } from '../studio/modal';
 
 // Answer one: is this window on plan.
 //
@@ -274,6 +276,8 @@ export function TodayMoney({ today, locale, onOpenPlan, onOpenSettings, onSaveTa
   const [drillOpen, setDrillOpen] = useState(false);
   const [openDate, setOpenDate] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [clearReviewOpen, setClearReviewOpen] = useState(false);
+  const cancelClearRef = useRef(null);
   const money = today.money || {};
   const verdict = today.verdict || {};
   const dayCount = Array.isArray(money.days) ? money.days.length : 0;
@@ -304,7 +308,7 @@ export function TodayMoney({ today, locale, onOpenPlan, onOpenSettings, onSaveTa
         <VerdictChip verdict={verdict} locale={locale} />
       </div>
       <div className="today-figure-block">
-        <button
+        <Pressable
           type="button"
           className="today-figure"
           onClick={() => setDrillOpen((open) => !open)}
@@ -312,7 +316,7 @@ export function TodayMoney({ today, locale, onOpenPlan, onOpenSettings, onSaveTa
         >
           <Numeric>{formatCurrency(money.amount_ils, locale)}</Numeric>
           {drillOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
+        </Pressable>
         <span className="today-figure-label">{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</span>
         <span className="today-scope">{scopeLine(money, locale)}</span>
         {notCalendarWeek ? (
@@ -339,8 +343,55 @@ export function TodayMoney({ today, locale, onOpenPlan, onOpenSettings, onSaveTa
           }}
         />
       ) : (
-        <TargetLine today={today} locale={locale} onEdit={() => setFormOpen(true)} onClear={onClearTarget} />
+        <TargetLine today={today} locale={locale} onEdit={() => setFormOpen(true)} onClear={() => setClearReviewOpen(true)} />
       )}
+      <Dialog
+        open={clearReviewOpen}
+        onClose={() => {
+          if (saveState !== 'saving') setClearReviewOpen(false);
+        }}
+        title={pageText(locale, 'Remove this revenue target?', 'להסיר את יעד ההכנסה הזה?')}
+        description={pageText(
+          locale,
+          'Review the exact scope before changing the commercial record.',
+          'בדקו את ההיקף המדויק לפני שינוי הרשומה המסחרית.',
+        )}
+        closeLabel={pageText(locale, 'Close review', 'סגירת הסקירה')}
+        dismissOnBackdrop={false}
+        initialFocusRef={cancelClearRef}
+        footer={(
+          <>
+            <Button ref={cancelClearRef} variant="outlined" onClick={() => setClearReviewOpen(false)} disabled={saveState === 'saving'}>
+              {pageText(locale, 'Cancel', 'ביטול')}
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              loading={saveState === 'saving'}
+              onClick={async () => {
+                await onClearTarget?.();
+                setClearReviewOpen(false);
+              }}
+            >
+              {pageText(locale, 'Remove target', 'הסרת היעד')}
+            </Button>
+          </>
+        )}
+      >
+        <div className="today-clear-review">
+          <dl>
+            <div>
+              <dt>{pageText(locale, 'Target', 'יעד')}</dt>
+              <dd><Numeric>{formatCurrency(today.target?.amount_ils, locale)}</Numeric></dd>
+            </div>
+            <div>
+              <dt>{pageText(locale, 'Window', 'חלון')}</dt>
+              <dd>{windowLabel(today.money || {}, locale) || pageText(locale, 'Current saved window', 'החלון השמור הנוכחי')}</dd>
+            </div>
+          </dl>
+          <p>{pageText(locale, 'This removes the target record. It does not change or rerun the saved broadcast plan.', 'הפעולה מסירה את רשומת היעד. היא אינה משנה או מריצה מחדש את תוכנית השידור השמורה.')}</p>
+        </div>
+      </Dialog>
     </section>
   );
 }

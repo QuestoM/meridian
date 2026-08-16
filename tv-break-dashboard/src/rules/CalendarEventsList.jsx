@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, TextField, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import DateField from '../shell/DateField';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
 import { formatDay, formatDayRange } from '../shell/dates';
 import { useAssistantEntity } from '../shell/assistant-page-context';
+import { InputControl, Pressable, SelectControl } from '../studio/dom-controls';
+import ConsequenceDialog from '../safety/ConsequenceDialog';
 import { EVENT_TYPES, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 
 // The operator-events panel of the Calendar page: search, type filter chips,
@@ -62,6 +65,7 @@ export function eventMatchesSearch(event, term) {
 // Shared with the month-grid view, which opens the same editor for the same
 // event fields; persistence stays with the container's onSave either way.
 export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
+  const fieldId = React.useId();
   const [form, setForm] = useState({
     name: initial?.name || '',
     type: initial?.type || 'special',
@@ -74,51 +78,50 @@ export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
   const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }));
   return (
     <div className="cal-editor">
-      <TextField
-        label={pageText(locale, 'Event name', 'שם האירוע')}
-        size="small"
-        value={form.name}
-        onChange={(event) => set('name')(event.target.value)}
-      />
-      <label className="cal-editor-field">
-        {pageText(locale, 'Type', 'סוג')}
-        <select value={form.type} onChange={(event) => set('type')(event.target.value)}>
+      <div className="cal-editor-field">
+        <label htmlFor={`${fieldId}-name`}>{pageText(locale, 'Event name', 'שם האירוע')}</label>
+        <InputControl id={`${fieldId}-name`} value={form.name} onChange={(event) => set('name')(event.target.value)} />
+      </div>
+      <div className="cal-editor-field">
+        <label htmlFor={`${fieldId}-type`}>{pageText(locale, 'Type', 'סוג')}</label>
+        <SelectControl id={`${fieldId}-type`} value={form.type} onChange={(event) => set('type')(event.target.value)}>
           {Object.keys(EVENT_TYPES).map((key) => (
             <option key={key} value={key}>{eventTypeLabel(key, locale)}</option>
           ))}
-        </select>
-      </label>
-      <DateField
-        label={pageText(locale, 'Start date', 'תאריך התחלה')}
-        value={form.start_date}
-        onChange={set('start_date')}
-      />
-      <DateField
-        label={pageText(locale, 'End date', 'תאריך סיום')}
-        value={form.end_date}
-        onChange={set('end_date')}
-        helperText={pageText(locale, 'Leave empty for an open-ended event', 'השאירו ריק לאירוע ללא תאריך סיום')}
-      />
-      <label className="cal-editor-field">
-        <Tooltip title={pageText(locale, 'Operator judgement on a 1 to 5 scale, stored with the event. It is not measured from data and does not change any retention or revenue number.', 'שיקול דעת של המפעיל בסולם 1 עד 5, נשמר עם האירוע. הערך אינו נמדד מנתונים ואינו משנה אף מספר שימור או הכנסה.')} arrow>
-          <span className="cal-label-hint">{pageText(locale, 'Intensity (operator judgement)', 'עוצמה (שיקול דעת מפעיל)')}</span>
+        </SelectControl>
+      </div>
+      <div className="cal-editor-field">
+        <label htmlFor={`${fieldId}-start`}>{pageText(locale, 'Start date', 'תאריך התחלה')}</label>
+        <DateField id={`${fieldId}-start`} value={form.start_date} onChange={set('start_date')} fullWidth />
+      </div>
+      <div className="cal-editor-field">
+        <label htmlFor={`${fieldId}-end`}>{pageText(locale, 'End date', 'תאריך סיום')}</label>
+        <DateField
+          id={`${fieldId}-end`}
+          value={form.end_date}
+          onChange={set('end_date')}
+          helperText={pageText(locale, 'Leave empty for an open-ended event', 'השאירו ריק לאירוע ללא תאריך סיום')}
+          fullWidth
+        />
+      </div>
+      <div className="cal-editor-field">
+        <Tooltip describeChild title={pageText(locale, 'Operator judgement on a 1 to 5 scale, stored with the event. It is not measured from data and does not change any retention or revenue number.', 'שיקול דעת של המפעיל בסולם 1 עד 5, נשמר עם האירוע. הערך אינו נמדד מנתונים ואינו משנה אף מספר שימור או הכנסה.')} arrow>
+          <label className="cal-label-hint" htmlFor={`${fieldId}-intensity`}>{pageText(locale, 'Intensity (operator judgement)', 'עוצמה (שיקול דעת מפעיל)')}</label>
         </Tooltip>
-        <select value={form.intensity} onChange={(event) => set('intensity')(Number(event.target.value))}>
+        <SelectControl id={`${fieldId}-intensity`} value={form.intensity} onChange={(event) => set('intensity')(Number(event.target.value))}>
           {[1, 2, 3, 4, 5].map((level) => <option key={level} value={level}>{level}</option>)}
-        </select>
-      </label>
-      <label className="cal-editor-field">
-        <Tooltip title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the rate card.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בכרטיס התעריפים.')} arrow placement="bottom">
-          <span className="cal-label-hint">{pageText(locale, 'Price multiplier', 'מכפיל תמחור')}</span>
+        </SelectControl>
+      </div>
+      <div className="cal-editor-field">
+        <Tooltip describeChild title={pageText(locale, 'An operator assertion, not a measurement; it affects the forecast only while the events layer is activated on the rate card.', 'הצהרת מפעיל, לא מדידה; משפיע על התחזית רק כאשר שכבת האירועים מופעלת בכרטיס התעריפים.')} arrow placement="bottom">
+          <label className="cal-label-hint" htmlFor={`${fieldId}-multiplier`}>{pageText(locale, 'Price multiplier', 'מכפיל תמחור')}</label>
         </Tooltip>
-        <input type="number" min="0.1" max="5" step="0.05" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
-      </label>
-      <TextField
-        label={pageText(locale, 'Notes', 'הערות')}
-        size="small"
-        value={form.notes}
-        onChange={(event) => set('notes')(event.target.value)}
-      />
+        <InputControl id={`${fieldId}-multiplier`} type="number" min="0.1" max="5" step="0.05" value={form.price_multiplier} onChange={(event) => set('price_multiplier')(event.target.value)} />
+      </div>
+      <div className="cal-editor-field">
+        <label htmlFor={`${fieldId}-notes`}>{pageText(locale, 'Notes', 'הערות')}</label>
+        <InputControl id={`${fieldId}-notes`} value={form.notes} onChange={(event) => set('notes')(event.target.value)} />
+      </div>
       <div className="cal-editor-actions">
         <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={() => onSave(form)}>
           {pageText(locale, 'Save', 'שמירה')}
@@ -133,7 +136,7 @@ export function EventEditor({ initial, locale, busy, onSave, onCancel }) {
 
 // One compact event row: the always-visible header line carries name, type and
 // dates; details and actions live in the expansion so the list stays scannable.
-function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirming, onToggle, onEdit, onConfirmDeactivate, onCancelConfirm, onDeactivate, onReactivate }) {
+function EventRow({ event, locale, busy, canEdit, expanded, highlighted, onToggle, onEdit, onConfirmDeactivate, onReactivate }) {
   const openEnded = !event.end_date;
   const classes = ['cal-event-row'];
   if (event.active === false) {
@@ -144,7 +147,7 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
   }
   return (
     <div className={classes.join(' ')}>
-      <button type="button" className="cal-event-head" aria-expanded={expanded} onClick={onToggle}>
+      <Pressable type="button" className="cal-event-head" aria-expanded={expanded} onClick={onToggle}>
         <ChevronDown size={14} className={`cal-row-caret${expanded ? ' open' : ''}`} aria-hidden="true" />
         <Name className="cal-event-name">{event.name}</Name>
         <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
@@ -161,7 +164,7 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
             <span className="bidi-figure figure-nowrap">{formatDayRange(event.start_date, event.end_date)}</span>
           )}
         </span>
-      </button>
+      </Pressable>
       {expanded && (
         <div className="cal-event-details">
           <div className="cal-event-facts">
@@ -175,32 +178,20 @@ function EventRow({ event, locale, busy, canEdit, expanded, highlighted, confirm
           {event.notes && <p className="cal-event-notes"><Name>{event.notes}</Name></p>}
           {canEdit && (
           <div className="cal-event-actions">
-            {!confirming && (
-              <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onEdit}>
-                {pageText(locale, 'Edit', 'עריכה')}
-              </Button>
-            )}
-            {!confirming && event.active !== false && (
-              <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onConfirmDeactivate}>
-                {pageText(locale, 'Deactivation', 'השבתה')}
-              </Button>
-            )}
-            {!confirming && event.active === false && (
-              <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onReactivate}>
-                {pageText(locale, 'Reactivation', 'הפעלה מחדש')}
-              </Button>
-            )}
-            {confirming && (
-              <span className="cal-confirm" role="alertdialog">
-                <span>{pageText(locale, 'Deactivation removes the event from every surface but keeps it in the list. It can be restored from the Restore changes page.', 'ההשבתה מסירה את האירוע מכל התצוגות אך שומרת אותו ברשימה. ניתן לשחזר מעמוד שחזור שינויים.')}</span>
-                <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onDeactivate}>
-                  {pageText(locale, 'Confirm deactivation', 'אישור השבתה')}
-                </Button>
-                <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onCancelConfirm}>
-                  {pageText(locale, 'Cancel', 'ביטול')}
-                </Button>
-              </span>
-            )}
+            <Button className="secondary-button compact" type="button" variant="outlined" disabled={busy} onClick={onEdit}>
+              {pageText(locale, 'Edit', 'עריכה')}
+            </Button>
+            <Button
+              className="secondary-button compact"
+              type="button"
+              variant="outlined"
+              disabled={busy}
+              onClick={event.active === false ? onReactivate : onConfirmDeactivate}
+            >
+              {event.active === false
+                ? pageText(locale, 'Reactivate', 'הפעלה מחדש')
+                : pageText(locale, 'Deactivate', 'השבתה')}
+            </Button>
           </div>
           )}
         </div>
@@ -219,6 +210,7 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const focusedEvent = useMemo(() => (events || []).find((event) => event.event_id === expandedId) || null, [events, expandedId]);
+  const reviewEvent = useMemo(() => (events || []).find((event) => event.event_id === confirmId) || null, [events, confirmId]);
   useAssistantEntity('event', focusedEvent ? focusedEvent.event_id : '', focusedEvent ? focusedEvent.name : '');
   const sorted = useMemo(() => sortEventsForList(events, todayIso), [events, todayIso]);
   const filtered = useMemo(() => {
@@ -273,6 +265,12 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
     }
   }
 
+  async function confirmDeactivate() {
+    if (!reviewEvent) return;
+    await onSetActive(reviewEvent, false);
+    setConfirmId(null);
+  }
+
   return (
     <section className="page-panel cal-panel">
       <div className="panel-head">
@@ -290,7 +288,7 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
       <div className="cal-toolbar">
         <div className="cal-search">
           <Search size={14} aria-hidden="true" />
-          <input
+          <InputControl
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -299,11 +297,11 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
           />
         </div>
         <div className="cal-filter-chips" role="group" aria-label={pageText(locale, 'Filter by type', 'סינון לפי סוג')}>
-          <button type="button" className={`adv-chip${typeFilter === 'all' ? ' active' : ''}`} aria-pressed={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
+          <Pressable type="button" className={`adv-chip${typeFilter === 'all' ? ' active' : ''}`} aria-pressed={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
             {pageText(locale, 'All', 'הכול')}
-          </button>
+          </Pressable>
           {TYPE_FILTER_ORDER.filter((key) => typeCounts[key]).map((key) => (
-            <button
+            <Pressable
               key={key}
               type="button"
               className={`adv-chip${typeFilter === key ? ' active' : ''}`}
@@ -311,7 +309,7 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
               onClick={() => setTypeFilter(key)}
             >
               {`${eventTypeLabel(key, locale)} (${typeCounts[key]})`}
-            </button>
+            </Pressable>
           ))}
         </div>
       </div>
@@ -339,12 +337,9 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
             canEdit={canEdit}
             expanded={expandedId === event.event_id}
             highlighted={highlightId === event.event_id}
-            confirming={confirmId === event.event_id}
             onToggle={() => setExpandedId((current) => (current === event.event_id ? null : event.event_id))}
             onEdit={() => { setConfirmId(null); setEditor({ event }); }}
             onConfirmDeactivate={() => setConfirmId(event.event_id)}
-            onCancelConfirm={() => setConfirmId(null)}
-            onDeactivate={async () => { await onSetActive(event, false); setConfirmId(null); }}
             onReactivate={() => onSetActive(event, true)}
           />
         )
@@ -359,6 +354,31 @@ function CalendarEventsList({ events, locale, busy, canEdit, highlightId, onSave
         </div>
       )}
       </div>
+
+      <ConsequenceDialog
+        open={Boolean(reviewEvent)}
+        locale={locale}
+        title={pageText(locale, 'Deactivate this event?', 'להשבית את האירוע?')}
+        description={pageText(locale, 'Deactivation keeps the record but removes it from every active-event calculation.', 'ההשבתה שומרת את הרשומה אך מוציאה אותה מכל חישוב של אירועים פעילים.')}
+        object={reviewEvent ? (
+          <span className="consequence-review__object">
+            <Name>{reviewEvent.name}</Name>
+            {' · '}
+            <span className="bidi-figure figure-nowrap">
+              {reviewEvent.end_date ? formatDayRange(reviewEvent.start_date, reviewEvent.end_date) : formatDay(reviewEvent.start_date)}
+            </span>
+            {' · ID '}<bdi>{String(reviewEvent.event_id)}</bdi>
+          </span>
+        ) : ''}
+        scope={pageText(locale, 'This event record only. It remains stored and visible in this list as deactivated; every other event remains unchanged.', 'רשומת האירוע הזו בלבד. היא תישאר שמורה וגלויה ברשימה כמושבתת; כל שאר האירועים נשארים ללא שינוי.')}
+        consequence={pageText(locale, 'It stops appearing as active or upcoming and stops contributing its dates and multiplier to event-aware forecasts and pricing while the events layer is enabled.', 'האירוע יפסיק להופיע כפעיל או קרוב, והתאריכים והמכפיל שלו יפסיקו להשתתף בתחזיות ובתמחור מבוססי אירועים כאשר שכבת האירועים פעילה.')}
+        recovery={pageText(locale, 'Reactivate it from this list at any time, or restore the pre-change event snapshot from Restore changes.', 'ניתן להפעיל אותו מחדש מהרשימה בכל עת, או לשחזר את תמונת המצב מלפני השינוי דרך שחזור שינויים.')}
+        confirmLabel={pageText(locale, 'Deactivate event', 'השבתת האירוע')}
+        workingLabel={pageText(locale, 'Deactivating event', 'משבית את האירוע')}
+        busy={busy}
+        onCancel={() => setConfirmId(null)}
+        onConfirm={confirmDeactivate}
+      />
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Download, Rows3, TriangleAlert } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from '../shell/format';
 import { normalizeRows } from '../shell/plan-model';
@@ -11,7 +12,7 @@ import {
   downloadScheduleCsv,
   downloadSpotsLedgerCsv,
 } from '../shell/downloads';
-import { StatusBadge } from '../shell/primitives';
+import { StatusBadge } from '../studio';
 import { serverText, text } from './sources-copy';
 import ReportRowsDrawer from './ReportRowsDrawer';
 import { formatStamp } from '../shell/dates';
@@ -153,7 +154,7 @@ export function DownloadsView({ reports, files, overview, locale, notify }) {
           const downloadable = isDownloadable(report);
           const title = info ? pageText(locale, info.titleEn, info.titleHe) : report.title;
           return (
-            <article className="report-card" key={report.id} data-report={report.id}>
+            <article className="card report-card" key={report.id} data-report={report.id}>
               <div className="report-card-head">
                 <strong>{title}</strong>
                 <span className="report-card-owner">{info ? pageText(locale, info.ownerEn, info.ownerHe) : report.owner}</span>

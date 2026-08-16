@@ -242,16 +242,16 @@
 .amz-effect-chip.red {
   color: var(--red);
   background: var(--red-soft);
-  border-color: #f0c9c9;
+  border-color: var(--danger);
 }
 .amz-effect-chip.blue {
   color: var(--blue);
   background: var(--blue-soft);
-  border-color: #c6d6e8;
+  border-color: var(--info);
 }
 .amz-effect-chip.muted {
   color: var(--muted);
-  background: #eef1f4;
+  background: var(--surface-muted);
   border-color: var(--line);
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Building2, CalendarClock, ExternalLink, Gauge, Layers, Lock, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
@@ -9,6 +9,7 @@ import ProposalSummary from './AssistantProposalSummary';
 import FieldName from './kai-field-name';
 import { inApprovedWords } from './kai-vocabulary';
 import { formatStamp } from '../shell/dates';
+import { InputControl, Pressable } from '../studio/dom-controls';
 
 // One proposal batch from the assistant, rendered for explicit approval. The
 // card never applies anything by itself: selection, an inline confirm step that
@@ -66,7 +67,7 @@ function appliedLabel(iso) {
   return formatStamp(iso);
 }
 
-// Four of the fields Kai may propose are the broadcast licence, not ordinary
+// Four of the fields Mabat may propose are the broadcast licence, not ordinary
 // settings. The server says so on the item, with the date the limits in force
 // took effect and whether this account may change them, and it is printed here
 // before the approval rather than discovered after it.
@@ -74,7 +75,7 @@ function PermissionView({ permission, locale }) {
   if (!permission) return null;
   const fields = Array.isArray(permission.fields) ? permission.fields : [];
   return (
-    <div className={permission.may_change ? 'asst-permission' : 'asst-permission blocked'} role="note">
+    <div className={permission.may_change ? 'card asst-permission' : 'card asst-permission blocked'} role="note">
       <p><Scale size={12} />{pageText(locale, permission.basis_en || '', permission.basis_he || '')}</p>
       {fields.length ? <div className="asst-permission-fields">{fields.map((field) => <Code key={field}>{field}</Code>)}</div> : null}
       {permission.effective_date ? (
@@ -270,7 +271,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
     : pageText(locale, `${selectedIds.length} selected actions will be applied to the saved data. A restore point is created automatically before applying, so the previous state can be recovered.`, `יוחלו ${selectedIds.length} פעולות נבחרות על הנתונים השמורים. לפני ההחלה נוצרת אוטומטית נקודת שחזור, כך שאפשר לחזור למצב הקודם.`);
 
   return (
-    <div className="asst-proposal">
+    <div className="card asst-proposal">
       <div className="asst-proposal-head">
         <span>{pageText(locale, 'Proposed actions', 'פעולות מוצעות')}</span>
         <Code>{String(batch.batch_id).slice(0, 8)}</Code>
@@ -301,7 +302,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
           <div className={`asst-item${item.status === 'rejected' ? ' rejected' : ''}`} key={item.key || item.id}>
             <div className="asst-item-check">
               {item.status === 'pending' && item.id ? (
-                <input type="checkbox" checked={checked.has(item.id)} onChange={() => toggleItem(item.id)} disabled={busy} aria-label={pageText(locale, 'Select this action', 'בחירת הפעולה הזו')} />
+                <InputControl type="checkbox" checked={checked.has(item.id)} onChange={() => toggleItem(item.id)} disabled={busy} aria-label={pageText(locale, 'Select this action', 'בחירת הפעולה הזו')} />
               ) : null}
             </div>
             <div className="asst-item-body">
@@ -341,7 +342,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
             {pageText(locale, 'Reject selected', 'דחה נבחרים')}
           </Button>
           <label className="asst-select-all">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={busy} />
+            <InputControl type="checkbox" checked={allSelected} onChange={toggleAll} disabled={busy} />
             {pageText(locale, 'Select all', 'בחירת הכל')}
           </label>
           {busy ? <span className="asst-busy-note">{pageText(locale, 'Working', 'מבצע')}</span> : null}
@@ -388,10 +389,10 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
             </div>
           ))}
-          <button type="button" className="asst-restore-chip" onClick={() => onShowRestore(restorePoints[restorePoints.length - 1].versionId)}>
+          <Pressable type="button" className="asst-restore-chip" onClick={() => onShowRestore(restorePoints[restorePoints.length - 1].versionId)}>
             <ExternalLink size={12} />
             {pageText(locale, 'See it in the history', 'הצגה בהיסטוריה')}
-          </button>
+          </Pressable>
         </div>
       ) : null}
     </div>

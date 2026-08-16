@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Info, RefreshCcw, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { InputControl, SelectControl, TextAreaControl } from '../../studio/dom-controls';
 import { formatCurrency, formatPercent, pageText } from '../../shell/surface-helpers';
-import { Figure, Code } from '../../shell/bidi';
+import { Figure, Code, Name } from '../../shell/bidi';
 import { asList, isNum, fmtNum, anchorText, isStale, runDayPlanJob, KINDS, kindLabel } from './override-console-lib';
 import { LIVE_PLAN, withBasis } from './plan-basis';
+import OverrideDecisionDialogs from './OverrideDecisionDialogs';
+import DayRunSafetyNotice from './DayRunSafetyNotice';
+import { useScopedDayRun } from './use-scoped-day-run';
 import './override-console.css';
-
+import './override-console-studio.css';
+import './master-control-broadcast.css';
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onPrefillConsumed }) {
@@ -20,22 +25,31 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
   const [kind, setKind] = useState('pin');
   const [countValue, setCountValue] = useState('');
   const [notes, setNotes] = useState('');
-  // When an override arrives from an approved recommendation the create POST is
-  // stamped source=recommendation with the originating rec_id, so its provenance is
-  // preserved exactly like the anchored break-decision route.
   const [prefillRecId, setPrefillRecId] = useState('');
   const [preview, setPreview] = useState(null);
   const [lastCreated, setLastCreated] = useState(null);
-  const [dayJobState, setDayJobState] = useState('idle');
   const [previewState, setPreviewState] = useState('idle'); // idle | loading | ready | unavailable
-
+  const [visibleOverrideCount, setVisibleOverrideCount] = useState(12);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const dayRun = useScopedDayRun({
+    scope: lastCreated ? [lastCreated] : null,
+    runner: runDayPlanJob,
+    locale,
+    notify,
+    success: {
+      en: 'The day ran. The plan now reflects the override.',
+      he: 'היום הורץ. התוכנית משקפת כעת את העקיפה.',
+    },
+    onDone: async () => {
+      setLastCreated(null);
+      onGlobalRefresh?.();
+    },
+  });
   const loadOverrides = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/overrides`);
       if (!response.ok) throw new Error(`${response.status}`);
       const payload = await response.json();
-      // The store groups overrides by scope ({segment: [...], spot: [...]}); flatten
-      // to one list, tolerating a flat array from older backends.
       const grouped = payload && payload.overrides ? payload.overrides : payload;
       setOverrides(Array.isArray(grouped) ? grouped : [...asList(grouped, 'segment'), ...asList(grouped, 'spot')]);
       setOnline(true);
@@ -43,7 +57,6 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
       setOnline(false);
     }
   }, []);
-
   const loadSegments = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/schedule/segments`);
@@ -54,18 +67,12 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
       setSegOnline(false);
     }
   }, []);
-
   const loadAll = useCallback(async () => {
     setLoading(true);
     await Promise.all([loadOverrides(), loadSegments()]);
     setLoading(false);
   }, [loadOverrides, loadSegments]);
-
   useEffect(() => { loadAll(); }, [loadAll]);
-
-  // Consume a recommendation prefill once: preselect its segment and kind, stamp the
-  // originating rec_id on the next create, and seed the search so the segment is
-  // visible in the (capped) dropdown. Cleared immediately so it applies a single time.
   useEffect(() => {
     if (!prefill || !prefill.segment_id) return;
     setSegId(prefill.segment_id);
@@ -74,15 +81,13 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
     setSearch(prefill.segment_id);
     onPrefillConsumed?.();
   }, [prefill, onPrefillConsumed]);
-
   const segById = useMemo(() => {
     const map = new Map();
     segments.forEach((s) => map.set(s.segment_id, s));
     return map;
   }, [segments]);
-
   const selectedSeg = segById.get(segId) || null;
-
+  const pendingDeleteOverride = overrides.find((item) => (item.override_id || item.id) === pendingDelete) || null;
   const visibleSegments = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return segments.slice(0, 200);
@@ -93,8 +98,6 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
     }).slice(0, 200);
   }, [segments, search]);
 
-  // Ask the engine for the WITH/WITHOUT delta of the candidate override before
-  // it is committed. Real numbers only; anything unparseable reads as honest empty.
   useEffect(() => {
     if (!selectedSeg) { setPreview(null); setPreviewState('idle'); return; }
     if (kind === 'force' && !(Number(countValue) >= 0)) { setPreview(null); setPreviewState('idle'); return; }
@@ -120,8 +123,6 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
   }, [selectedSeg, kind, countValue]);
 
   const previewRows = useMemo(() => {
-    // The /effect payload reports the channel-day totals WITH the stored
-    // overrides (before) versus WITH stored plus this candidate (after).
     const summary = preview && preview.summary;
     if (!summary) return [];
     const descriptors = [
@@ -144,9 +145,6 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
       return;
     }
     const seg = selectedSeg;
-    // A create carrying a rec_id came from an approved recommendation; stamp its
-    // provenance so the store records source=recommendation, matching the anchored
-    // break-decision route. A plain manual create keeps source=manual.
     const fromRecommendation = Boolean(prefillRecId);
     const body = {
       scope: 'segment',
@@ -181,34 +179,11 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
     }
   }
 
-  async function handleDayRun() {
-    if (!lastCreated) return;
-    setDayJobState('running');
-    try {
-      const result = await runDayPlanJob(API_BASE, [lastCreated]);
-      setDayJobState('idle');
-      if (result.status === 'done') {
-        setLastCreated(null);
-        notify('The day ran. The plan now reflects the override.',
-          'היום הורץ. התוכנית משקפת כעת את העקיפה.');
-        onGlobalRefresh?.();
-      } else if (result.status === 'missing') {
-        notify('Running one day needs the updated backend. Run the whole plan instead.',
-          'הרצת יום בודד דורשת שרת מעודכן. הריצו את התוכנית כולה במקום.');
-      } else {
-        const reason = result.error || (result.status === 'timeout' ? 'timed out' : 'unknown error');
-        notify(`The day run failed: ${reason}.`, `הרצת היום נכשלה: ${reason}.`);
-      }
-    } catch (error) {
-      setDayJobState('idle');
-      notify(`The day run failed (${error.message}).`, `הרצת היום נכשלה (${error.message}).`);
-    }
-  }
-
   async function handleDelete(id) {
     try {
       const response = await fetch(`${API_BASE}/api/overrides/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      setPendingDelete(null);
       notify('Override removed. Run the plan when ready.', 'העקיפה הוסרה. הריצו את התוכנית כשתרצו.');
       await loadOverrides();
       onGlobalRefresh?.();
@@ -218,13 +193,13 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
   }
 
   return (
-    <section className="page-workspace">
+    <section className="page-workspace broadcast-decisions" aria-busy={loading}>
       <div className="page-header">
         <div>
           <h1>{pageText(locale, 'Overrides', 'עקיפות')}</h1>
           <p>{pageText(locale,
-            'Manual decisions the optimizer honours. Pin, forbid, force a break count or mark a segment gold, carrying the segment anchor so the decision survives a re-ingest. Saving marks the plan out of date; run it when ready.',
-            'החלטות ידניות שהאופטימייזר מכבד. נעצו, מנעו, קבעו מספר ברייקים או סמנו משבצת כזהב, תוך נשיאת עוגן המשבצת כך שההחלטה שורדת קליטה מחדש. שמירה מסמנת את התוכנית כלא מעודכנת; הריצו אותה כשתרצו.')}</p>
+            'Plan input: manual segment decisions. Saving changes the input record; only a confirmed run rewrites the plan.',
+            'קלט לתוכנית: החלטות ידניות ברמת משבצת. שמירה משנה את רשומת הקלט; רק הרצה מאושרת משכתבת את התוכנית.')}</p>
         </div>
         <Button className="secondary-button compact" type="button" variant="outlined" onClick={loadAll}>
           <RefreshCcw size={14} />
@@ -240,7 +215,7 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
       </div>
 
       <div className="oc-grid">
-        <div className="oc-card">
+        <div className="card oc-card">
           <h3>{pageText(locale, 'Create an override', 'יצירת עקיפה')}</h3>
           <p className="oc-sub">{pageText(locale,
             'Pick an owned-channel segment, choose the decision, and read the projected change before you commit.',
@@ -265,19 +240,19 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
             <>
               <label className="oc-field">
                 <span>{pageText(locale, 'Find a segment', 'חיפוש משבצת')}</span>
-                <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
+                <InputControl type="search" value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder={pageText(locale, 'Search by day, title or id', 'חיפוש לפי יום, כותרת או מזהה')} />
               </label>
               <label className="oc-field">
                 <span>{pageText(locale, 'Segment', 'משבצת')}</span>
-                <select value={segId} onChange={(e) => setSegId(e.target.value)}>
+                <SelectControl value={segId} onChange={(e) => setSegId(e.target.value)}>
                   <option value="">{pageText(locale, 'Select a segment', 'בחרו משבצת')}</option>
                   {visibleSegments.map((s) => {
                     const a = s.anchor || {};
                     const label = [a.date, a.start_clock, a.program || a.title || s.segment_id].filter(Boolean).join(' - ');
                     return <option key={s.segment_id} value={s.segment_id}>{label}</option>;
                   })}
-                </select>
+                </SelectControl>
               </label>
 
               {selectedSeg && (
@@ -292,24 +267,24 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
 
               <label className="oc-field">
                 <span>{pageText(locale, 'Decision', 'החלטה')}</span>
-                <select value={kind} onChange={(e) => setKind(e.target.value)}>
+                <SelectControl value={kind} onChange={(e) => setKind(e.target.value)}>
                   {KINDS.map((entry) => (
                     <option key={entry.key} value={entry.key}>{pageText(locale, entry.en, entry.he)}</option>
                   ))}
-                </select>
+                </SelectControl>
               </label>
 
               {kind === 'force' && (
                 <label className="oc-field">
                   <span>{pageText(locale, 'Break count', 'מספר ברייקים')}</span>
-                  <input type="number" min="0" step="1" dir="ltr" value={countValue}
+                  <InputControl type="number" min="0" step="1" dir="ltr" value={countValue}
                     onChange={(e) => setCountValue(e.target.value)} />
                 </label>
               )}
 
               <label className="oc-field">
                 <span>{pageText(locale, 'Notes (optional)', 'הערות (רשות)')}</span>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <TextAreaControl value={notes} onChange={(e) => setNotes(e.target.value)} />
               </label>
 
               {selectedSeg && (
@@ -353,7 +328,7 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                 </div>
               )}
 
-              <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div className="oc-actions">
                 <Button className="primary-button compact" type="button" variant="contained"
                   disabled={!selectedSeg} onClick={handleCreate}>
                   <SlidersHorizontal size={14} />
@@ -361,26 +336,27 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                 </Button>
                 {lastCreated && (
                   <Button className="compact" type="button" variant="outlined"
-                    disabled={dayJobState === 'running'} onClick={handleDayRun}>
-                    <RefreshCcw size={14} className={dayJobState === 'running' ? 'spin' : undefined} />
-                    {dayJobState === 'running' ? pageText(locale, 'Running the day', 'מריץ את היום') : pageText(locale, 'Run this day', 'הרצת היום הזה')}
+                    disabled={dayRun.jobState === 'running' || dayRun.safety.status === 'checking'} onClick={dayRun.requestReview}>
+                    <RefreshCcw size={14} className={dayRun.jobState === 'running' ? 'spin' : undefined} />
+                    {dayRun.jobState === 'running' ? pageText(locale, 'Running the day', 'מריץ את היום') : pageText(locale, 'Review this day run', 'בדיקת הרצת היום')}
                   </Button>
                 )}
               </div>
+              <DayRunSafetyNotice safety={dayRun.safety} locale={locale} />
             </>
           )}
         </div>
 
-        <div className="oc-card">
+        <div className="card oc-card">
           <h3>{pageText(locale, 'Current overrides', 'עקיפות נוכחיות')}</h3>
           <p className="oc-sub">{pageText(locale,
             'Every override the optimizer will honor on the next run. A stale marker means the anchor no longer matches the live segment.',
             'כל עקיפה שהאופטימייזר יכבד בריצה הבאה. סימון ״לא מעודכן״ פירושו שהעוגן אינו תואם עוד את המשבצת החיה.')}</p>
 
-          {loading && <p className="oc-sub">{pageText(locale, 'Loading overrides...', 'טוען עקיפות...')}</p>}
+          {loading && <p className="oc-sub" role="status">{pageText(locale, 'Loading overrides...', 'טוען עקיפות...')}</p>}
 
           {!loading && !online && (
-            <div className="oc-empty">{pageText(locale,
+            <div className="oc-empty" role="alert">{pageText(locale,
               'The overrides service is unreachable. No list is shown rather than a fabricated one.',
               'שירות העקיפות אינו זמין. לא מוצגת רשימה במקום להמציא נתון.')}</div>
           )}
@@ -396,7 +372,7 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
 
           {!loading && online && overrides.length > 0 && (
             <div className="oc-list">
-              {overrides.map((o) => {
+              {overrides.slice(0, visibleOverrideCount).map((o) => {
                 const id = o.override_id || o.id;
                 const forceCount = String(o.value ?? '').trim();
                 const stale = isStale(o, segById);
@@ -405,8 +381,8 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                 return (
                   <div className={`oc-row${stale ? ' stale' : ''}`} key={id}>
                     <div className="oc-row-main">
-                      <p className="oc-row-title">{o.anchor_title || o.target_id}</p>
-                      <div style={{ marginBottom: 4 }}>
+                      <p className="oc-row-title"><Name>{o.anchor_title || o.target_id}</Name></p>
+                      <div className="oc-row-chips">
                         <span className="oc-chip kind">{kindLabel(o.kind, locale)}{o.kind === 'force' && forceCount ? ` (${forceCount})` : ''}</span>
                         {stale
                           ? <span className="oc-chip staleflag">{pageText(locale, 'Stale', 'לא מעודכנת')}</span>
@@ -416,34 +392,48 @@ function OverrideDecisions({ copy, locale, notify, onGlobalRefresh, prefill, onP
                         {fromRec && <span className="oc-chip rec">{pageText(locale, 'From recommendation', 'מהמלצה')}</span>}
                       </div>
                       <div className="oc-row-meta">
-                        {anchor && <Code>{anchor}</Code>}
-                        {anchor && <br />}
-                        {pageText(locale, 'Segment', 'משבצת')}: <Code>{o.target_id}</Code>
-                        {o.notes ? ` - ${o.notes}` : ''}
+                        {anchor && <span><Code>{anchor}</Code></span>}
+                        <span>
+                          {pageText(locale, 'Segment', 'משבצת')}: <Code>{o.target_id}</Code>
+                          {o.notes ? <> · <Code>{o.notes}</Code></> : null}
+                        </span>
                         {stale && (
-                          <>
-                            <br />
+                          <span className="oc-row-stale-copy">
                             {pageText(locale,
                               'The anchor no longer matches a live segment. Review it before the next run.',
                               'העוגן אינו תואם עוד משבצת חיה. בדקו לפני החישוב הבא.')}
-                          </>
+                          </span>
                         )}
                       </div>
                     </div>
                     <Button className="secondary-button compact" type="button" variant="outlined"
-                      onClick={() => handleDelete(id)}
-                      aria-label={pageText(locale, 'Delete override', 'מחיקת עקיפה')}>
-                      <Trash2 size={14} />
+                      onClick={() => setPendingDelete(id)}
+                      aria-label={pageText(locale, `Remove override for ${o.anchor_title || o.target_id}`, `הסרת עקיפה עבור ${o.anchor_title || o.target_id}`)}>
+                      <Trash2 size={16} aria-hidden="true" />
                     </Button>
                   </div>
                 );
               })}
+              {visibleOverrideCount < overrides.length && (
+                <Button type="button" className="oc-show-more" variant="outlined" onClick={() => setVisibleOverrideCount((count) => count + 12)}>
+                  {pageText(locale, `Show 12 more · ${overrides.length - visibleOverrideCount} remaining`, `הצגת 12 נוספות · נותרו ${overrides.length - visibleOverrideCount}`)}
+                </Button>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      <OverrideDecisionDialogs
+        locale={locale}
+        pendingDeleteOverride={pendingDeleteOverride}
+        dayRun={dayRun}
+        onCancelDelete={() => setPendingDelete(null)}
+        onConfirmDelete={() => handleDelete(pendingDelete)}
+        onCancelDayRun={dayRun.cancelReview}
+        onConfirmDayRun={dayRun.confirmReview}
+      />
     </section>
   );
 }
-
 export default OverrideDecisions;

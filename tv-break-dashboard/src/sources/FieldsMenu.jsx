@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Checkbox, FormControlLabel, Menu } from '@mui/material';
+import { Checkbox, FormControlLabel, Menu } from '@mui/material';
+import { Button } from '../studio/actions';
 import { SlidersHorizontal } from 'lucide-react';
 import { FIELDS, fieldLabel } from './sources-fields';
 import { text } from './sources-copy';

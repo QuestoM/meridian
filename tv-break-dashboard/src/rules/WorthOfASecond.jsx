@@ -48,7 +48,7 @@ export default function WorthOfASecond({ locale }) {
 
   if (error) {
     return (
-      <section className="rules-card rules-worth">
+      <section className="card rules-card rules-worth">
         <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
         <span className="rules-figure-reason">
           {pageText(locale, `The yield figure is unreachable (${error}).`, `נתון התשואה אינו זמין (${error}).`)}
@@ -59,7 +59,7 @@ export default function WorthOfASecond({ locale }) {
   if (!state) return null;
   if (!state.available) {
     return (
-      <section className="rules-card rules-worth">
+      <section className="card rules-card rules-worth">
         <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
         <span className="rules-figure-reason">{basisReason(state.reason, locale)}</span>
       </section>
@@ -80,7 +80,7 @@ export default function WorthOfASecond({ locale }) {
       `כל ${state.n_channels_total} הערוצים בתוכנית שנטענה`,
     );
   return (
-    <section className="rules-card rules-worth">
+    <section className="card rules-card rules-worth">
       <div>
         <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
         {/* Isolated for the same reason the rate card's own figures are. The

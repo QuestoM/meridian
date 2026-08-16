@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
 import { Code } from '../shell/bidi';
@@ -17,18 +17,23 @@ import { fetchPreview } from './sources-api';
 // can walk the other six without going back for them.
 export function RowsDrawer({ input, position, total, locale, onStep, onClose }) {
   const [state, setState] = useState({ loading: true, online: true, preview: null });
+  const [limit, setLimit] = useState(20);
+
+  useEffect(() => {
+    setLimit(20);
+  }, [input.kind]);
 
   useEffect(() => {
     let active = true;
     setState({ loading: true, online: true, preview: null });
-    fetchPreview(input.kind, 20).then((result) => {
+    fetchPreview(input.kind, limit).then((result) => {
       if (!active) return;
       setState({ loading: false, online: result.online, preview: result.preview });
     });
     return () => {
       active = false;
     };
-  }, [input.kind]);
+  }, [input.kind, limit]);
 
   // Back and forward are logical directions, so the arrow that means "the one
   // before this" points right in Hebrew and left in English.
@@ -41,6 +46,10 @@ export function RowsDrawer({ input, position, total, locale, onStep, onClose }) 
   const name = locale === 'he' ? input.label_he || input.label_en : input.label_en;
   // The counter and its arrows appear only where there is a set to walk.
   const walkable = Number(total) > 1 && typeof onStep === 'function';
+  const availableRows = preview
+    ? Number(preview.scoped_rows ?? preview.total_rows) || 0
+    : 0;
+  const shownRows = preview ? Number(preview.shown_rows) || 0 : 0;
 
   return (
     <aside className="rows-drawer" role="dialog" aria-label={text('rowsTitle', locale)}>
@@ -130,6 +139,16 @@ export function RowsDrawer({ input, position, total, locale, onStep, onClose }) 
               </tbody>
             </table>
           </div>
+          {shownRows < availableRows ? (
+            <div className="rows-drawer-more" role="status">
+              <span>
+                {text('rowsProgress', locale)} <Numeric>{formatNumber(shownRows, locale)}</Numeric> {text('position', locale)} <Numeric>{formatNumber(availableRows, locale)}</Numeric>
+              </span>
+              <Button className="secondary-button" type="button" variant="outlined" onClick={() => setLimit((current) => current + 20)}>
+                {text('rowsMore', locale)}
+              </Button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </aside>

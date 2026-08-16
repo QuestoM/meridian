@@ -1,0 +1,73 @@
+.oc-field input,
+.oc-field select,
+.oc-field textarea {
+  min-height: var(--control-height);
+}
+
+.oc-row {
+  flex-wrap: wrap;
+}
+
+.oc-actions,
+.oc-row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.oc-actions {
+  margin-top: var(--space-4);
+}
+
+.oc-delete-review {
+  display: grid;
+  flex: 1 1 100%;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+}
+
+.oc-delete-review p {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.oc-delete-review button,
+.oc-show-more {
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.oc-delete-review button.is-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--surface);
+}
+
+.oc-show-more {
+  align-self: center;
+  min-inline-size: 240px;
+}
+
+.oc-field input:focus-visible,
+.oc-field select:focus-visible,
+.oc-field textarea:focus-visible,
+.oc-delete-review button:focus-visible,
+.oc-show-more:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}

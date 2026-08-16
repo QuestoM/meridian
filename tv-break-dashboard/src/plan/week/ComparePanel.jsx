@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button } from '@mui/material';
-import { ArrowLeft, ArrowRight, Check, GitCompare, RefreshCcw, X } from 'lucide-react';
+import { Button } from '../../studio/actions';
+import { Check, GitCompare, RefreshCcw, X } from 'lucide-react';
 import { finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
 import ScenarioLegForm from './ScenarioLegForm';
@@ -22,7 +22,8 @@ import { formatDay, formatSpan } from '../../shell/dates';
 // plan's yield-per-second money uses, so expected revenue minus cost equals net
 // by construction. Every lever is on both legs, because measured on
 // רשת 13 / 2024-11-11 revenue weight 60 and 85 return the identical plan and
-// only the floor, the hourly cap, the caution and the engine focus move it. And
+// only the floor, the caution and the engine focus move it. The hourly cap is a
+// shared licence guardrail, not a scenario objective. And
 // both legs now run the plan's own week, the same seven dates the goal strip
 // reports, arriving one broadcast day at a time because fourteen real
 // optimizations are 11 to 13 seconds and a spinner would say nothing about
@@ -41,97 +42,128 @@ function blendedScore(value, locale) {
   });
 }
 
-function MoneyRow({ label, value, locale, tone }) {
-  return (
-    <div className={`plan-money-row${tone ? ` ${tone}` : ''}`}>
-      <span>{label}</span>
-      <strong className="numeric"><Figure>{formatCurrency(value, locale)}</Figure></strong>
-    </div>
-  );
-}
-
-export function ScenarioCard({ leg, title, summary, accent, locale, words, scopeText, windowText, onAdopt }) {
-  if (!summary) return null;
-  const money = summary.money_available === true;
-  return (
-    <div className={`plan-scenario-card${accent ? ` ${accent}` : ''}`}>
-      <div className="plan-scenario-head">
-        <strong>{title}</strong>
-        <Figure className="numeric">
-          {leverLabel('revenue_weight', locale)} {finiteNumber(summary.levers?.revenue_weight) ?? '-'}
-        </Figure>
-      </div>
-      {money ? (
-        <div className="plan-money-block">
-          {windowText ? <p className="plan-money-window">{windowText}</p> : null}
-          <MoneyRow label={words.expectedRevenue} value={summary.gross} locale={locale} />
-          <MoneyRow label={words.retentionCost} value={summary.retention_cost} locale={locale} tone="cost" />
-          <MoneyRow
-            label={pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור')}
-            value={summary.revenue_net}
-            locale={locale}
-            tone="net"
-          />
-          {scopeText ? <p className="plan-scope-line">{scopeText}</p> : null}
-        </div>
-      ) : (
-        <p className="plan-note plan-note-amber">
-          {pageText(
-            locale,
-            'Net after retention cost cannot be computed for this run, so no money figure is shown.',
-            'לא ניתן לחשב נטו אחרי עלות שימור עבור ההרצה הזאת, ולכן לא מוצג ערך כספי.',
-          )}
-          {summary.money_reason ? <small className="plan-note-detail"><Name>{summary.money_reason}</Name></small> : null}
-        </p>
-      )}
-      <dl className="plan-scenario-stats">
-        <div>
-          <dt>{pageText(locale, 'Average retention', 'שימור ממוצע')}</dt>
-          <dd className="numeric"><Figure>{formatPercent(summary.average_retention, locale)}</Figure></dd>
-        </div>
-        <div>
-          <dt>{words.breaks}</dt>
-          <dd className="numeric"><Figure>{formatNumber(summary.total_breaks, locale)}</Figure></dd>
-        </div>
-        <div>
-          <dt>{pageText(locale, 'Ad seconds', 'שניות פרסום')}</dt>
-          <dd className="numeric"><Figure>{formatNumber(summary.total_ad_seconds, locale)}</Figure></dd>
-        </div>
-        <div>
-          <dt>
-            {summary.objective_basis === 'mean_of_days'
-              ? pageText(locale, 'Blended score, mean of the days', 'ציון משוקלל, ממוצע הימים')
-              : pageText(locale, 'Blended score', 'ציון משוקלל')}
-          </dt>
-          <dd className="numeric"><Figure>{blendedScore(summary.objective, locale)}</Figure></dd>
-        </div>
-      </dl>
-      <span className={`plan-compliance${summary.compliant ? ' ok' : ' warn'}`}>
-        {summary.compliant
-          ? pageText(locale, 'Inside every guardrail', 'בתוך כל המגבלות')
-          : pageText(locale, 'Breaches a guardrail', 'חורג ממגבלה')}
-      </span>
-      {onAdopt ? <ScenarioAdopt leg={leg} summary={summary} locale={locale} onAdopt={onAdopt} /> : null}
-    </div>
-  );
-}
-
-function DeltaRow({ label, value, locale, formatter, suffix, emphasis }) {
+function MatrixValue({ value, locale, formatter = formatNumber, suffix = '', signed = false, display }) {
   const number = finiteNumber(value);
-  if (number === null) {
+  if (number === null) return <span className="is-unavailable">{'\u2014'}</span>;
+  return <Figure>{signed && number > 0 ? '+' : ''}{display ?? formatter(number, locale)}{suffix}</Figure>;
+}
+
+function scenarioMeasures(summary, locale) {
+  return {
+    net: summary.revenue_net,
+    objective: summary.objective,
+    objectiveText: blendedScore(summary.objective, locale),
+  };
+}
+
+function TradeoffTrace({ a, b, locale }) {
+  const points = [
+    { id: 'A', retention: finiteNumber(a?.average_retention), net: finiteNumber(a?.revenue_net) },
+    { id: 'B', retention: finiteNumber(b?.average_retention), net: finiteNumber(b?.revenue_net) },
+  ];
+  if (points.some((point) => point.retention === null || point.net === null)) {
     return (
-      <div className="plan-delta-row">
-        <span>{label}</span>
-        <strong>{pageText(locale, 'not available', 'לא זמין')}</strong>
+      <div className="plan-tradeoff-empty">
+        {pageText(locale, 'The two measured outcomes do not expose both net and retention, so no trade-off trace is drawn.', 'שתי התוצאות שנמדדו אינן חושפות גם נטו וגם שימור, ולכן לא מצויר מסלול הכרעה.')}
       </div>
     );
   }
-  const sign = number > 0 ? '+' : '';
-  const tone = number > 0 ? 'up' : number < 0 ? 'down' : '';
+  const retentionValues = points.map((point) => point.retention);
+  const netValues = points.map((point) => point.net);
+  const retentionSpan = Math.max(0.0001, Math.max(...retentionValues) - Math.min(...retentionValues));
+  const netSpan = Math.max(0.0001, Math.max(...netValues) - Math.min(...netValues));
+  const mapped = points.map((point) => ({
+    ...point,
+    x: 28 + ((point.retention - Math.min(...retentionValues)) / retentionSpan) * 164,
+    y: 116 - ((point.net - Math.min(...netValues)) / netSpan) * 88,
+  }));
+  // Equal measurements must occupy the same point. The tiny non-zero domain
+  // above only prevents division by zero; this explicit branch keeps the plot
+  // from implying a difference the server did not report.
+  if (retentionValues[0] === retentionValues[1]) mapped.forEach((point) => { point.x = 110; });
+  if (netValues[0] === netValues[1]) mapped.forEach((point) => { point.y = 72; });
   return (
-    <div className={`plan-delta-row${emphasis ? ' is-headline' : ''}`}>
-      <span>{label}</span>
-      <strong className={`numeric ${tone}`}><Figure>{sign}{formatter(number, locale)}{suffix || ''}</Figure></strong>
+    <figure className="plan-tradeoff" aria-label={pageText(locale, 'Two measured scenario outcomes: retention against net after retention cost', 'שתי תוצאות תרחיש שנמדדו: שימור מול נטו אחרי עלות שימור')}>
+      <div className="plan-tradeoff-head">
+        <strong>{pageText(locale, 'Outcome plot', 'גרף תוצאות')}</strong>
+        <span>{pageText(locale, 'two measured outcomes · no interpolation', 'שתי תוצאות שנמדדו · ללא אינטרפולציה')}</span>
+      </div>
+      <svg viewBox="0 0 220 142" role="img" aria-hidden="true">
+        <path className="plan-tradeoff-axis" d="M22 16V122H202" />
+        <path className="plan-tradeoff-link" d={`M${mapped[0].x} ${mapped[0].y}L${mapped[1].x} ${mapped[1].y}`} />
+        {mapped.map((point) => (
+          <g key={point.id} className={`plan-tradeoff-point is-${point.id.toLowerCase()}`} transform={`translate(${point.x} ${point.y})`}>
+            <circle r="7" />
+            <text x="0" y="3">{point.id}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="plan-tradeoff-labels">
+        <span>{pageText(locale, 'Net ↑', 'נטו ↑')}</span>
+        <span>{pageText(locale, 'Retention →', 'שימור ←')}</span>
+      </div>
+      <figcaption>
+        {pageText(locale, 'The line only connects A and B; it does not claim outcomes between them.', 'הקו רק מחבר בין A ל־B; הוא אינו טוען לתוצאות ביניהן.')}
+      </figcaption>
+    </figure>
+  );
+}
+
+function ComparisonInstrument({ payload, locale, words, windowText, scopeText, onAdopt }) {
+  const a = payload.a || {};
+  const b = payload.b || {};
+  const delta = payload.delta || {};
+  const measuredA = scenarioMeasures(a, locale);
+  const measuredB = scenarioMeasures(b, locale);
+  const netDelta = payload.delta?.revenue_net;
+  const rows = [
+    { key: 'net', label: pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור'), a: measuredA.net, b: measuredB.net, d: netDelta, formatter: formatCurrency, headline: true },
+    { key: 'gross', label: words.expectedRevenue, a: a.gross, b: b.gross, d: delta.gross, formatter: formatCurrency },
+    { key: 'cost', label: words.retentionCost, a: a.retention_cost, b: b.retention_cost, d: delta.retention_cost, formatter: formatCurrency },
+    { key: 'retention', label: pageText(locale, 'Average retention', 'שימור ממוצע'), a: a.average_retention, b: b.average_retention, d: delta.retention, formatter: formatPercent, deltaFormatter: formatNumber, deltaSuffix: 'pp' },
+    { key: 'breaks', label: words.breaks, a: a.total_breaks, b: b.total_breaks, d: delta.breaks, formatter: formatNumber },
+    { key: 'seconds', label: pageText(locale, 'Ad seconds', 'שניות פרסום'), a: a.total_ad_seconds, b: b.total_ad_seconds, d: delta.ad_seconds, formatter: formatNumber },
+    { key: 'score', label: pageText(locale, 'Blended score', 'ציון משוקלל'), a: measuredA.objective, b: measuredB.objective, aDisplay: measuredA.objectiveText, bDisplay: measuredB.objectiveText, d: finiteNumber(b.objective) !== null && finiteNumber(a.objective) !== null ? Number(b.objective) - Number(a.objective) : null, formatter: blendedScore, deltaFormatter: blendedScore },
+  ];
+  return (
+    <div className="plan-comparison-instrument">
+      <div className="plan-comparison-matrix-wrap">
+        <div className="plan-comparison-scope">
+          <span>{windowText}</span>
+          {scopeText ? <span>{scopeText}</span> : null}
+        </div>
+        <table className="plan-comparison-matrix">
+          <thead>
+            <tr>
+              <th scope="col">{pageText(locale, 'Measured outcome', 'תוצאה שנמדדה')}</th>
+              <th scope="col">A <span className={`plan-compliance${a.compliant ? ' ok' : ' warn'}`}>{a.compliant ? pageText(locale, 'within guardrails', 'בתוך המגבלות') : pageText(locale, 'breach', 'חריגה')}</span></th>
+              <th scope="col">B <span className={`plan-compliance${b.compliant ? ' ok' : ' warn'}`}>{b.compliant ? pageText(locale, 'within guardrails', 'בתוך המגבלות') : pageText(locale, 'breach', 'חריגה')}</span></th>
+              <th scope="col">B − A</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className={row.headline ? 'is-headline' : undefined}>
+                <th scope="row">{row.label}</th>
+                <td className="numeric"><MatrixValue value={row.a} locale={locale} formatter={row.formatter} display={row.aDisplay} /></td>
+                <td className="numeric"><MatrixValue value={row.b} locale={locale} formatter={row.formatter} display={row.bDisplay} /></td>
+                <td className="numeric"><MatrixValue value={row.d} locale={locale} formatter={row.deltaFormatter || row.formatter} suffix={row.deltaSuffix} signed /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TradeoffTrace a={a} b={b} locale={locale} />
+      <div className="plan-adopt-grid">
+        <div><strong>{pageText(locale, 'Scenario A controls', 'בקרי תרחיש A')}</strong><ScenarioAdopt leg="a" summary={a} locale={locale} onAdopt={onAdopt} /></div>
+        <div><strong>{pageText(locale, 'Scenario B controls', 'בקרי תרחיש B')}</strong><ScenarioAdopt leg="b" summary={b} locale={locale} onAdopt={onAdopt} /></div>
+      </div>
+      {(a.money_available !== true || b.money_available !== true) ? (
+        <p className="plan-note plan-note-amber">
+          {pageText(locale, 'At least one run did not expose money, so its monetary cells stay blank.', 'לפחות הרצה אחת לא חשפה נתוני כסף, ולכן התאים הכספיים שלה נשארים ריקים.')}
+          {[a.money_reason, b.money_reason].filter(Boolean).map((reason) => <small className="plan-note-detail" key={reason}><Name>{reason}</Name></small>)}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -177,10 +209,8 @@ function prepareLine(phase, locale) {
 
 export function ComparePanel({
   locale, words, legA, legB, state, payload, error, runWindow, liveDays, prepared,
-  onLegChange, onCompare, onCancel, onAdopt, onOpenDay,
+  actionDisabled, actionDisabledReason, onLegChange, onCompare, onCancel, onAdopt, onOpenDay,
 }) {
-  const he = locale === 'he';
-  const Flow = he ? ArrowLeft : ArrowRight;
   const running = state === 'running';
   const ready = state === 'ready' && payload;
   const scope = ready ? payload.scope : null;
@@ -234,7 +264,7 @@ export function ComparePanel({
   const preparing = running ? null : prepareLine(prepared, locale);
 
   return (
-    <section className="plan-section" aria-labelledby="plan-compare-title">
+    <section className="card plan-section" aria-labelledby="plan-compare-title">
       <div className="plan-section-head">
         <div>
           <h2 id="plan-compare-title">{pageText(locale, 'Compare two ways to run it', 'השוואה בין שתי דרכים להריץ')}</h2>
@@ -253,7 +283,7 @@ export function ComparePanel({
           </p>
         </div>
         <div className="plan-compare-actions">
-          <Button className="run-button" type="button" variant="contained" disabled={running} onClick={onCompare}>
+          <Button className="run-button" type="button" variant="contained" disabled={running || actionDisabled} title={actionDisabledReason || undefined} onClick={onCompare}>
             {running ? <RefreshCcw size={15} className="upload-spinner" /> : <GitCompare size={15} />}
             {running ? pageText(locale, 'Comparing', 'משווה') : pageText(locale, 'Compare', 'השוואה')}
           </Button>
@@ -350,28 +380,7 @@ export function ComparePanel({
             </p>
           )}
 
-          <div className="plan-scenario-grid">
-            <ScenarioCard leg="a" title={pageText(locale, 'Scenario A', 'תרחיש A')} summary={payload.a} accent="accent-a" locale={locale} words={words} scopeText={scopeText} windowText={windowText} onAdopt={onAdopt} />
-            <div className="plan-scenario-arrow" aria-hidden="true"><Flow size={18} /></div>
-            <ScenarioCard leg="b" title={pageText(locale, 'Scenario B', 'תרחיש B')} summary={payload.b} accent="accent-b" locale={locale} words={words} scopeText={scopeText} windowText={windowText} onAdopt={onAdopt} />
-          </div>
-
-          <div className="plan-delta">
-            <h3>{pageText(locale, 'What B does that A does not', 'מה B עושה ש-A לא')}</h3>
-            <p className="plan-delta-window">{windowText}</p>
-            <DeltaRow
-              label={pageText(locale, 'Net after retention cost', 'נטו אחרי עלות שימור')}
-              value={payload.delta?.revenue_net}
-              locale={locale}
-              formatter={formatCurrency}
-              emphasis
-            />
-            <DeltaRow label={words.expectedRevenue} value={payload.delta?.gross} locale={locale} formatter={formatCurrency} />
-            <DeltaRow label={words.retentionCost} value={payload.delta?.retention_cost} locale={locale} formatter={formatCurrency} />
-            <DeltaRow label={pageText(locale, 'Retention', 'שימור')} value={payload.delta?.retention} locale={locale} formatter={formatNumber} suffix="pp" />
-            <DeltaRow label={words.breaks} value={payload.delta?.breaks} locale={locale} formatter={formatNumber} />
-            <DeltaRow label={pageText(locale, 'Ad seconds', 'שניות פרסום')} value={payload.delta?.ad_seconds} locale={locale} formatter={formatNumber} />
-          </div>
+          <ComparisonInstrument payload={payload} locale={locale} words={words} scopeText={scopeText} windowText={windowText} onAdopt={onAdopt} />
 
           {week && days?.length ? (
             <CompareWeekTable
@@ -391,8 +400,8 @@ export function ComparePanel({
             <p className="plan-note plan-note-amber" role="status">
               {pageText(
                 locale,
-                'Both scenarios produced the same plan. At a fixed retention floor the engine settles on nearly the same schedule whatever the revenue weight, so the weight alone will not separate two scenarios. Change the retention floor, the hourly break cap, the caution or the engine focus to see the plan move.',
-                'שני התרחישים הפיקו את אותה תוכנית. ברצפת צפייה קבועה המנוע מתכנס כמעט לאותו לוח בכל משקל הכנסה, ולכן המשקל לבדו לא יפריד בין שני תרחישים. שנו את רצפת הצפייה, את תקרת הברייקים לשעה, את הזהירות או את מיקוד המנוע כדי לראות את התוכנית זזה.',
+                'Both scenarios produced the same plan. At a fixed retention floor the engine settles on nearly the same schedule whatever the revenue weight, so the weight alone will not separate two scenarios. Change the retention floor, the caution or the engine focus to see the plan move.',
+                'שני התרחישים הפיקו את אותה תוכנית. ברצפת צפייה קבועה המנוע מתכנס כמעט לאותו לוח בכל משקל הכנסה, ולכן המשקל לבדו לא יפריד בין שני תרחישים. שנו את רצפת הצפייה, את הזהירות או את מיקוד המנוע כדי לראות את התוכנית זזה.',
               )}
               {payload.sameness.levers_that_differ?.length > 0 && (
                 <span className="plan-note-detail">

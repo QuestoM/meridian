@@ -1,0 +1,120 @@
+/* Navigation continuity belongs to the shell: rail and header persist while
+   only the operational workspace acknowledges a page or tab change. */
+.side-rail {
+  view-transition-name: kairos-rail;
+}
+
+.top-bar {
+  view-transition-name: kairos-header;
+}
+
+.workspace > :where(.page-workspace, .rules-workspace) {
+  view-transition-name: kairos-workspace;
+}
+
+/* Broadcast and Governance own a real local rail. On desktop it shares the
+   orientation row with the title and utilities; only the bounded middle rail
+   may scroll, so controls never wrap or shrink below their 44px target. */
+.top-bar:has(.context-local-nav) {
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-areas: 'title local status';
+  align-items: center;
+}
+
+.top-bar:has(.context-local-nav) .top-bar-primary {
+  display: contents;
+}
+
+.top-bar:has(.context-local-nav) .title-group {
+  grid-area: title;
+  padding-inline-start: var(--space-6);
+}
+
+.top-bar:has(.context-local-nav) .status-group {
+  grid-area: status;
+  flex-wrap: nowrap;
+  padding-inline-end: var(--space-6);
+  white-space: nowrap;
+}
+
+.top-bar:has(.context-local-nav) .context-local-nav {
+  grid-area: local;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 56px;
+  padding-inline: var(--space-2);
+  border-block-start: 0;
+  overscroll-behavior-inline: contain;
+}
+
+@media (max-width: 1399px) and (min-width: 1200px) {
+  .top-bar:has(.context-local-nav) .title-group {
+    padding-inline-start: var(--space-4);
+  }
+
+  .top-bar:has(.context-local-nav) .status-group {
+    padding-inline-end: var(--space-4);
+  }
+}
+
+.shell-continuity-in {
+  animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both;
+}
+
+@keyframes shell-continuity-in {
+  from {
+    opacity: 0.9;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(kairos-rail),
+::view-transition-group(kairos-header),
+::view-transition-old(kairos-rail),
+::view-transition-new(kairos-rail),
+::view-transition-old(kairos-header),
+::view-transition-new(kairos-header) {
+  animation: none;
+}
+
+::view-transition-old(kairos-rail),
+::view-transition-old(kairos-header) {
+  opacity: 0;
+}
+
+::view-transition-old(kairos-workspace) {
+  animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both;
+}
+
+::view-transition-new(kairos-workspace) {
+  animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both;
+}
+
+@keyframes shell-workspace-out {
+  to {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes shell-workspace-in {
+  from {
+    opacity: 0.86;
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-continuity-in,
+  ::view-transition-old(kairos-workspace),
+  ::view-transition-new(kairos-workspace) {
+    animation: none;
+  }
+}

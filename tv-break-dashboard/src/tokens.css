@@ -1,87 +1,191 @@
-/* Design tokens: the scale, colour and typography variables every Meridian
-   surface reads. This file freezes at wave-zero close and is the only place a
-   token may be defined. A piece that needs a token that does not exist raises
-   it rather than adding one here or defining a local variable. */
+/* Studio Ledger foundations.
+   New work uses the role tokens at the top of each group. Compatibility aliases
+   keep the existing feature sheets on the same system while they are migrated. */
 :root {
-  --bg: #f7f8fa;
-  --surface: #ffffff;
-  --surface-muted: #fbfcfd;
-  --ink: #111827;
-  --muted: #5b6573;
-  --subtle: #6b7480;
-  --line: #dde2e8;
-  --line-strong: #cbd3dc;
-  --teal: #0f8b7e;
-  --teal-soft: #e8f4f2;
-  --teal-ink: #0c6b5f;
-  --blue: #315d8c;
-  --blue-soft: #e9f0f8;
-  --amber: #b86e00;
-  --amber-soft: #fff5e5;
-  --amber-ink: #8a5200;
-  --red: #c24141;
-  --red-soft: #f8e8e8;
-  --teal-deep: #0f3d36;
-  --focus-ring: var(--teal);
-  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-  --z-drawer: 1300;
-  --z-feed: 1350;
-  --z-toast: 1400;
-  --primary: #0d1b2a;
-  --primary-hover: #18304a;
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-pill: 999px;
+  color-scheme: light;
+
+  /* Material and ink */
+  --canvas: #f2eee4;
+  --surface: #fbf8f0;
+  --surface-muted: #eae4d7;
+  --surface-raised: #ded6c7;
+  --ink: #1d1b17;
+  --ink-muted: #5d574d;
+  --ink-subtle: #625c52;
+  --line: #d0c7b7;
+  --line-strong: #8f8572;
+  --chrome: #1d1e1a;
+  --chrome-hover: #31312b;
+  --chrome-line: #48483f;
+  --accent: #526d62;
+  --accent-strong: #344f47;
+  --positive: #376b50;
+  --positive-soft: #dfeadf;
+  --warning: #8c5b18;
+  --warning-soft: #f1e3c4;
+  --danger: #9e3f38;
+  --danger-soft: #f2dcd7;
+  --info: #3f6274;
+  --info-soft: #dce7e9;
+
+  /* Semantic tone ramps. Each status/category owns foreground, border and wash
+     roles together, so accents never appear as an isolated one-off colour. */
+  --positive-line: #78947f;
+  --positive-wash: #e7efe4;
+  --warning-line: #bb8a3c;
+  --warning-wash: #f5ead2;
+  --danger-line: #bc6d64;
+  --info-strong: #315365;
+  --info-line: #7895a3;
+  --info-wash: #e5edef;
+  --sport: #655f7a;
+  --sport-line: #928ba5;
+  --sport-soft: #e7e3ec;
+
+  /* Contrast roles for content placed on strong fills. */
+  --on-chrome-detail: #f6f1e7;
+  --on-chrome-meta: #c9c1b4;
+  --on-warning-subtle: #614418;
+  --on-strong-outline: rgba(255, 252, 245, 0.3);
+  --on-strong-line: rgba(255, 252, 245, 0.5);
+  --on-strong-wash: rgba(255, 252, 245, 0.22);
+  --on-strong-wash-subtle: rgba(255, 252, 245, 0.12);
+  --ink-pressed-outline: rgba(29, 27, 23, 0.2);
+  --scrim: rgba(29, 27, 23, 0.68);
+  --scrim-light: rgba(29, 27, 23, 0.42);
+  --heat-fill-leading: rgba(55, 107, 80, calc(var(--heat) * 0.5));
+  --heat-fill-trailing: rgba(55, 107, 80, calc(var(--heat) * 0.3));
+
+  /* Compatibility colour aliases */
+  --bg: var(--canvas);
+  --muted: var(--ink-muted);
+  --subtle: var(--ink-subtle);
+  --teal: var(--positive);
+  --teal-soft: var(--positive-soft);
+  --teal-ink: var(--positive);
+  --blue: var(--info);
+  --blue-soft: var(--info-soft);
+  --amber: var(--warning);
+  --amber-soft: var(--warning-soft);
+  --amber-ink: var(--warning);
+  --red: var(--danger);
+  --red-soft: var(--danger-soft);
+  --teal-deep: var(--chrome);
+  --primary: var(--chrome);
+  --primary-hover: var(--chrome-hover);
+  --focus-ring: var(--accent);
+  --studio-status-color: var(--ink-muted);
+  --studio-status-bg: var(--surface-muted);
+
+  /* Script-specific but visually compatible type voices. Noto supplies only
+     Hebrew glyphs; IBM Plex supplies Latin, figures and identifiers. */
+  --font-sans-hebrew: "Noto Sans Hebrew Variable", "IBM Plex Sans Hebrew", "IBM Plex Sans", "Arial Hebrew", Arial, sans-serif;
+  --font-sans-latin: "IBM Plex Sans", "Noto Sans Hebrew Variable", "IBM Plex Sans Hebrew", Arial, sans-serif;
+  --font-display-hebrew: "Noto Sans Hebrew Variable", "IBM Plex Sans Hebrew", "IBM Plex Sans", "Arial Hebrew", Arial, sans-serif;
+  --font-display-latin: "IBM Plex Sans", "Noto Sans Hebrew Variable", "IBM Plex Sans Hebrew", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+
   --weight-regular: 400;
   --weight-soft: 500;
-  --weight-medium: 600;
-  --weight-semibold: 680;
-  --weight-bold: 720;
-  --text-2xs: 10px;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 16px;
-  --text-xl: 18px;
-  --text-2xl: 21px;
-  --text-3xl: 24px;
-  --text-4xl: 28px;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 600;
+
+  --type-micro-size: 12px;
+  --type-micro-line: 16px;
+  --type-data-size: 12px;
+  --type-data-line: 18px;
+  --type-ui-size: 13px;
+  --type-ui-line: 20px;
+  --type-body-size: 14px;
+  --type-body-line: 22px;
+  --type-emphasis-size: 16px;
+  --type-emphasis-line: 24px;
+  --type-section-size: 18px;
+  --type-section-line: 24px;
+  --type-page-size: 30px;
+  --type-page-line: 36px;
+  --type-metric-size: 40px;
+  --type-metric-line: 44px;
+
+  /* Compatibility type aliases */
+  --text-2xs: var(--type-micro-size);
+  --text-xs: var(--type-data-size);
+  --text-sm: var(--type-data-size);
+  --text-base: var(--type-ui-size);
+  --text-md: var(--type-body-size);
+  --text-lg: var(--type-emphasis-size);
+  --text-xl: var(--type-section-size);
+  --text-2xl: var(--type-section-size);
+  --text-3xl: var(--type-page-size);
+  --text-4xl: var(--type-metric-size);
+
+  /* 4px subgrid, 8px primary rhythm */
+  --space-half: 2px;
   --space-1: 4px;
+  --space-1-5: 6px;
   --space-2: 8px;
   --space-3: 12px;
-  --space-4: 14px;
-  --space-5: 18px;
+  --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
 
-  /* The inset of content inside a card, and the only place it is stated. Every
-     card reads it, so does everything a card contains, and a table that reaches
-     the card's edge still aligns its first column to it. Change this one line
-     and every surface moves together.
+  --content-max: 1680px;
+  --desktop-min: 1200px;
+  --shell-header-height: 57px;
+  --rail-compact: 88px;
+  --rail-expanded: 96px;
+  --broadcast-gutter: 84px;
+  --control-height: 44px;
+  --icon-action-size: 44px;
+  --data-row-height: 48px;
+  --surface-inset-dense: 20px;
+  --surface-inset: 24px;
+  --surface-inset-major: 32px;
+  --measure-narrow: 42ch;
+  --measure-readable: 68ch;
 
-     It lives on :root rather than on the card so that it always resolves: a head
-     or a body rendered outside a card still lands on the scale instead of on
-     nothing. A card that wants the tighter figure sets the dense variant.
+  /* Compatibility inset aliases */
+  --card-inset: var(--surface-inset);
+  --card-inset-dense: var(--surface-inset-dense);
 
-     16px, and 16px is NOT on the scale above. That is deliberate and it is the
-     one value in this file that names its own number.
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-control: 7px;
+  --radius-surface: 10px;
+  --radius-overlay: 14px;
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-surface);
+  --radius-lg: var(--radius-overlay);
+  --radius-pill: 999px;
 
-     The product's real card inset is 16px: it is written out in sixty-two
-     declarations, nearly all of them in the inline position of a card's
-     content, and it is what the eye that built these surfaces settled on. The
-     scale omits it, along with 10px, which appears sixty-three times. Two of
-     the product's three most-used spacing values have no token, which is a gap
-     in the scale rather than a mistake in the surfaces.
+  /* One overhead light source; elevation zero remains the default. */
+  --shadow-0: none;
+  --shadow-1: 0 8px 24px rgba(58, 49, 36, 0.1);
+  --shadow-2: 0 20px 56px rgba(58, 49, 36, 0.16);
+  --shadow-tooltip: 0 12px 28px rgba(29, 27, 23, 0.22);
+  --shadow-sticky: 0 10px 30px rgba(58, 49, 36, 0.12);
+  --shadow-menu: 0 18px 44px rgba(58, 49, 36, 0.16);
+  --shadow-hairline: 0 1px 0 rgba(29, 27, 23, 0.05);
+  --shadow: var(--shadow-2);
 
-     So this token adopts the measured value instead of moving sixty
-     declarations by 2px to reach --space-5. The defect the owner reported was
-     never the value; it was that the value had no single home, so half of a
-     card's content got it and half ran to the border. Giving it a home fixes
-     that and moves nothing. Whether the SCALE should grow a 10px and a 16px
-     step is a real question and a visible one, and it belongs to the owner:
-     see docs/ux-gauntlet/design-rules.md section 8. */
-  --card-inset: 16px;
-  --card-inset-dense: var(--space-3);
+  /* Motion */
+  --motion-fast: 110ms;
+  --motion-standard: 180ms;
+  --motion-continuity: 260ms;
+  --ease-standard: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Layers */
+  --z-raised: 10;
+  --z-sticky: 100;
+  --z-popover: 1200;
+  --z-drawer: 1300;
+  --z-feed: 1350;
+  --z-dialog: 1400;
+  --z-toast: 1500;
 }

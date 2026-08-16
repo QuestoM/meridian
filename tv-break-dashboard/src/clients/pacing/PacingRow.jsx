@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../../studio/actions';
 import { Figure, Name } from '../../shell/bidi';
 import {
   AlertTriangle,
@@ -90,10 +91,10 @@ function Headline({ line, flight, locale, days, expanded, onToggle }) {
   return (
     <div className="pacing-headline">
       {days && onToggle ? (
-        <button type="button" className="pacing-figure pacing-figure-open"
+        <Button type="button" className="pacing-figure pacing-figure-open"
                 aria-expanded={expanded} aria-label={opens} onClick={onToggle}>
           {figures}
-        </button>
+        </Button>
       ) : <strong className="pacing-figure">{figures}</strong>}
       <small className="pacing-scope">
         {pick(
@@ -124,6 +125,29 @@ function Headline({ line, flight, locale, days, expanded, onToggle }) {
         </small>
       ) : null}
     </div>
+  );
+}
+
+function CompactHeadline({ line, locale, id }) {
+  const counted = line ? amount(line.counted.through_counted_day, line.unit, locale) : null;
+  const commitment = line ? amount(line.goal, line.unit, locale) : null;
+  const ratio = line?.pace ? percent(line.pace.ratio, locale) : null;
+  const unavailable = pick(locale, 'Not measured', 'לא נמדד');
+  return (
+    <dl className="pacing-compact-facts" id={id}>
+      <div>
+        <dt>{pick(locale, 'Counted delivery', 'אספקה שנספרה')}</dt>
+        <dd>{counted ? <Figure>{counted}</Figure> : unavailable}</dd>
+      </div>
+      <div>
+        <dt>{pick(locale, 'Flight commitment', 'התחייבות לקמפיין')}</dt>
+        <dd>{commitment ? <Figure>{commitment}</Figure> : unavailable}</dd>
+      </div>
+      <div className={line?.pace?.verdict || 'unknown'}>
+        <dt>{pick(locale, 'Pace / risk', 'קצב / סיכון')}</dt>
+        <dd>{ratio ? <Figure>{ratio}</Figure> : unavailable}</dd>
+      </div>
+    </dl>
   );
 }
 
@@ -247,8 +271,10 @@ export default function PacingRow({
   const second = otherLine(row);
   const flight = row.flight;
   const Chevron = expanded ? ChevronUp : ChevronDown;
+  const detailsId = `pacing-details-${row.campaign_id}`;
+  const compactId = `pacing-summary-${row.campaign_id}`;
   return (
-    <article className={`card card-dense pacing-row ${row.headline.verdict}`} aria-labelledby={`pacing-${row.campaign_id}`}>
+    <article className={`card card-dense pacing-row ${row.headline.verdict} ${expanded ? 'open' : ''}`} aria-labelledby={`pacing-${row.campaign_id}`}>
       <div className="pacing-row-head">
         <Verdict verdict={row.headline.verdict} vocabulary={vocabulary} locale={locale} />
         {/* A name is data and takes its own direction, never the surface's. The
@@ -267,10 +293,10 @@ export default function PacingRow({
               leaves it out regresses nothing: this stays the heading it was. */}
           <strong id={`pacing-${row.campaign_id}`}>
             {onOpenCampaign ? (
-              <button type="button" className="pacing-name-open"
-                      onClick={() => onOpenCampaign(row.campaign_id)}>
+              <Button type="button" className="pacing-name-open"
+                      onClick={(event) => { event.stopPropagation(); onOpenCampaign(row.campaign_id); }}>
                 <Name>{row.name || row.campaign_id}</Name>
-              </button>
+              </Button>
             ) : <Name>{row.name || row.campaign_id}</Name>}
           </strong>
           {/* The advertiser and the flight window are two facts, so a rule
@@ -293,25 +319,39 @@ export default function PacingRow({
             {pick(locale, 'Demo', 'הדגמה')}
           </span>
         ) : null}
-        <Headline line={line} flight={flight} locale={locale}
-                  days={row.days_available} expanded={expanded} onToggle={onToggle} />
+        {expanded ? (
+          <Headline line={line} flight={flight} locale={locale}
+                    days={row.days_available} expanded={expanded} onToggle={onToggle} />
+        ) : <CompactHeadline line={line} locale={locale} id={compactId} />}
+        <Button type="button" className="pacing-row-hit" aria-expanded={expanded}
+                aria-controls={detailsId} aria-describedby={expanded ? undefined : compactId}
+                onClick={onToggle}
+                aria-label={pick(
+                  locale,
+                  `${expanded ? 'Hide' : 'Show'} pacing details for ${row.name || row.campaign_id}`,
+                  `${expanded ? 'הסתירו' : 'הציגו'} פרטי קצב עבור ${isolate(row.name || row.campaign_id)}`,
+                )}>
+          <span className="pacing-row-hit-icon"><Chevron size={16} aria-hidden="true" /></span>
+        </Button>
       </div>
 
-      <Track line={line} locale={locale} />
+      {expanded ? (
+      <div className="pacing-row-detail" id={detailsId} role="region" aria-labelledby={`pacing-${row.campaign_id}`}>
+        <Track line={line} locale={locale} />
 
       {/* The campaign's other goal. It is a reading and not an act, so it sits
           with the track rather than in the foot, and it is the same component
           the day drill prints under its table. */}
-      <PacingGoalLine line={second} vocabulary={vocabulary} locale={locale}
-                      days={row.days_available} expanded={expanded}
-                      onOpen={row.days_available ? onToggle : null} />
+        <PacingGoalLine line={second} vocabulary={vocabulary} locale={locale}
+                        days={row.days_available} expanded={expanded}
+                        onOpen={row.days_available ? onToggle : null} />
 
-      {line && line.pace && line.pace.verdict === 'unknown' ? (
-        <Sentence block={line.pace} locale={locale} className="pacing-unknown" />
-      ) : null}
-      {!line ? <Sentence block={row.headline} locale={locale} className="pacing-unknown" /> : null}
+        {line && line.pace && line.pace.verdict === 'unknown' ? (
+          <Sentence block={line.pace} locale={locale} className="pacing-unknown" />
+        ) : null}
+        {!line ? <Sentence block={row.headline} locale={locale} className="pacing-unknown" /> : null}
 
-      <Forward line={line} vocabulary={vocabulary} locale={locale} />
+        <Forward line={line} vocabulary={vocabulary} locale={locale} />
 
       {/* Acts on one line at one height, and the disclosure that expands the card
           on its own below them. The owner reported the three weights and three
@@ -322,57 +362,51 @@ export default function PacingRow({
           every read-only account: a viewer could see that a campaign was at risk
           and not what would fix it. The permission governs the acts below, and
           those are still gated. */}
-      <RemedySentence remedy={remedy} locale={locale} />
+        <RemedySentence remedy={remedy} locale={locale} />
 
-      <div className="pacing-row-foot">
-        {canEdit ? (
-          <div className="pacing-row-acts">
-            <Remedy
-              remedy={remedy}
-              locale={locale}
-              busy={busy}
-              onRaise={onRaise}
-              onOpenMakeGood={onOpenMakeGood}
-              onOpenCampaign={onOpenCampaign ? () => onOpenCampaign(row.campaign_id) : null}
-            />
-            <Acceptance
-              acceptance={acceptance}
-              locale={locale}
-              busy={busy}
-              onAccept={onAccept}
-              onOpenLedger={onOpenMakeGood}
-            />
-          </div>
-        ) : (
-          <span className="pacing-remedy-note">{editRefusal}</span>
-        )}
-      </div>
+        <div className="pacing-row-foot">
+          {canEdit ? (
+            <div className="pacing-row-acts">
+              <Remedy
+                remedy={remedy}
+                locale={locale}
+                busy={busy}
+                onRaise={onRaise}
+                onOpenMakeGood={onOpenMakeGood}
+                onOpenCampaign={onOpenCampaign ? () => onOpenCampaign(row.campaign_id) : null}
+              />
+              <Acceptance
+                acceptance={acceptance}
+                locale={locale}
+                busy={busy}
+                onAccept={onAccept}
+                onOpenLedger={onOpenMakeGood}
+              />
+            </div>
+          ) : (
+            <span className="pacing-remedy-note">{editRefusal}</span>
+          )}
+        </div>
 
-      <div className="pacing-row-disclosure">
-        <RemedyDays remedy={remedy} locale={locale} />
+        <div className="pacing-row-disclosure">
+          <RemedyDays remedy={remedy} locale={locale} />
+          {row.days_available ? (
+            <Button type="button" className="pacing-days-toggle" aria-expanded={expanded} onClick={onToggle}>
+              <Chevron size={13} aria-hidden="true" />
+              {pick(locale, `Hide the ${row.days_available} broadcast days behind this`, `הסתירו את ${isolate(row.days_available)} ימי השידור שמאחורי זה`)}
+            </Button>
+          ) : (
+            <span className="pacing-remedy-note">
+              {pick(locale, 'The delivery ledger holds no broadcast day for this campaign at all.', 'ספר האספקה אינו מחזיק אף יום שידור לקמפיין הזה.')}
+            </span>
+          )}
+        </div>
+
         {row.days_available ? (
-          <button type="button" className="pacing-days-toggle" aria-expanded={expanded} onClick={onToggle}>
-            <Chevron size={13} aria-hidden="true" />
-            {pick(
-              locale,
-              `${expanded ? 'Hide' : 'Show'} the ${row.days_available} broadcast days behind this`,
-              `${expanded ? 'הסתירו' : 'הציגו'} את ${isolate(row.days_available)} ימי השידור שמאחורי זה`,
-            )}
-          </button>
-        ) : (
-          <span className="pacing-remedy-note">
-            {pick(
-              locale,
-              'The delivery ledger holds no broadcast day for this campaign at all.',
-              'ספר האספקה אינו מחזיק אף יום שידור לקמפיין הזה.',
-            )}
-          </span>
-        )}
+          <PacingDays drill={drill} line={line} second={second} vocabulary={vocabulary}
+                      locale={locale} onRetry={onRetryDays} />
+        ) : null}
       </div>
-
-      {expanded ? (
-        <PacingDays drill={drill} line={line} second={second} vocabulary={vocabulary}
-                    locale={locale} onRetry={onRetryDays} />
       ) : null}
     </article>
   );

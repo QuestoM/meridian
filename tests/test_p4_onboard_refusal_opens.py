@@ -141,6 +141,20 @@ function stub(name, body) {
 const REACT = stub('react.mjs', plan.react);
 const JSX = stub('jsx.mjs', plan.jsx);
 const FORMAT = stub('format.mjs', "export function pageText(locale, en, he) { return locale === 'he' ? he : en; }\\n");
+const ACTIONS = stub('actions.mjs', `
+  export const Button = 'button';
+  export const ButtonBase = 'button';
+  export const IconButton = 'button';
+`);
+const CONTROLS = stub('controls.mjs', `
+  import React from 'react';
+  export function InputControl(props) { return React.createElement('input', props); }
+  export function SelectControl({ children, ...props }) { return React.createElement('select', props, children); }
+  export function TextAreaControl(props) { return React.createElement('textarea', props); }
+  export function Pressable({ children, type = 'button', ...props }) {
+    return React.createElement('button', { ...props, type }, children);
+  }
+`);
 const CSS = stub('css.mjs', 'export default {};\\n');
 const LUCIDE = stub('lucide.mjs', [...icons].map((icon) => `export function ${icon}() { return null; }`).join('\\n'));
 const BASE = stub('base.mjs', "export const API_BASE = '';\\n");
@@ -152,6 +166,8 @@ registerHooks({
     if (specifier === 'react/jsx-runtime') return hit(JSX);
     if (specifier.endsWith('.css')) return hit(CSS);
     if (specifier.endsWith('shell/format')) return hit(FORMAT);
+    if (specifier.endsWith('studio/actions')) return hit(ACTIONS);
+    if (specifier.endsWith('studio/dom-controls')) return hit(CONTROLS);
     if (specifier.endsWith('shell/api')) return hit(BASE);
     if (specifier === 'lucide-react') return hit(LUCIDE);
     const stem = specifier.startsWith('./') ? specifier.slice(2).replace(/\\.jsx?$/, '') : '';

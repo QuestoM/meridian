@@ -21,6 +21,7 @@ import threading
 from functools import lru_cache
 from typing import Any
 
+from kairos.optimize.inventory import InventoryInputError, load_inventory
 from kairos_api.core import (
     KairosSettings,
     _pacing_call_kwargs,
@@ -77,6 +78,7 @@ def frontier_points_cached(
                 channel=channel,
                 day=day,
                 refine=True,
+                require_usable_inventory=True,
                 **pacing,
             )
         except Exception:
@@ -220,6 +222,7 @@ def frontier_net_bundle_cached(
             channel=channel,
             day=day,
             objective_mode=mode,
+            require_usable_inventory=True,
             **pacing,
         )
 
@@ -310,9 +313,11 @@ def frontier_async(settings: KairosSettings, scope: str | None = None) -> tuple[
     Status is one of: ``no_channel`` (no owned channel set yet, points empty: the
     dashboard prompts the operator to pick their channel), ``computing`` (a
     background sweep is in flight, points empty: an honest "forecast is being
-    computed" state, never a fabricated curve), or ``ready`` (points populated from
-    the finished sweep). The sweep itself is cached on the data-file signature plus
-    the guardrails, so it runs once and is reused across requests and weights.
+    computed" state, never a fabricated curve), ``unavailable`` (a present
+    inventory source cannot produce a usable slot, so no sweep is attempted), or
+    ``ready`` (points populated from the finished sweep). The sweep itself is cached
+    on the data-file signature plus the guardrails, so it runs once and is reused
+    across requests and weights.
     """
     points, _net_bundle, status = frontier_state(settings, scope)
     return points, status
@@ -338,6 +343,14 @@ def frontier_state(
     owned = str(settings.operator_channel or "").strip()
     if not owned:
         return [], None, "no_channel"
+    try:
+        # This check deliberately runs before consulting the background cache:
+        # cached money from a formerly valid source must not survive after the
+        # inventory file becomes present-but-unusable. A missing file remains the
+        # explicitly neutral signal and does not raise.
+        load_inventory(require_usable=True)
+    except InventoryInputError as exc:
+        return [], net_bundle_failure(owned, None, str(exc)), "unavailable"
     signature = frontier_data_signature()
     scope_kwargs = parse_frontier_scope(scope, settings)
     effective_day = scope_kwargs["day"] or owned_representative_day(signature, owned)

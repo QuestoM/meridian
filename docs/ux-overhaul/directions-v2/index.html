@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kairos — Direction Lab II</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./lab.css" />
+  </head>
+  <body>
+    <a class="skip" href="#workbench">דלג ללוח הבקרה</a>
+    <div class="app-shell">
+      <aside class="rail" aria-label="ניווט ראשי">
+        <a class="brand" href="?direction=master" aria-label="Kairos, היום">
+          <svg viewBox="0 0 48 48" role="img" aria-label="Kairos">
+            <circle cx="24" cy="24" r="18" />
+            <path d="M9 25c5-9 11-13 18-13 5 0 9 2 12 5" />
+            <path d="M39 23c-5 9-11 13-18 13-5 0-9-2-12-5" />
+            <circle cx="16" cy="22" r="2.5" class="brand-dot" />
+            <circle cx="32" cy="26" r="2.5" class="brand-dot" />
+          </svg>
+          <span class="brand-word">KAIROS</span>
+        </a>
+
+        <nav class="rail-nav">
+          <button class="rail-link active" aria-current="page"><span class="rail-index">01</span><span>עכשיו</span></button>
+          <button class="rail-link"><span class="rail-index">02</span><span>תכנון</span></button>
+          <button class="rail-link"><span class="rail-index">03</span><span>שידור</span></button>
+          <button class="rail-link"><span class="rail-index">04</span><span>מסחרי</span></button>
+          <button class="rail-link"><span class="rail-index">05</span><span>מקורות</span></button>
+          <button class="rail-link"><span class="rail-index">06</span><span>בקרה</span></button>
+        </nav>
+
+        <div class="rail-foot">
+          <div class="operator"><span>GA</span><div><b>גיא אגה</b><small>מפעיל ראשי</small></div></div>
+          <span class="build">KRS / 26.08</span>
+        </div>
+      </aside>
+
+      <main id="workbench" class="workbench" tabindex="-1">
+        <header class="masthead">
+          <div class="mast-title">
+            <span class="live-beacon" aria-hidden="true"></span>
+            <div><small>רשת 13 · חדר שידור</small><strong>יום שישי, 1 בנובמבר</strong></div>
+          </div>
+          <div class="mast-signal" aria-label="מצב המערכת">
+            <span><i></i> API חי</span>
+            <span class="timecode" dir="ltr">00:00:00:00</span>
+          </div>
+          <div class="mast-actions">
+            <button class="ghost-action" aria-label="פתיחת התראות"><span class="count">3</span> התראות</button>
+            <button class="kai-action"><span class="kai-spark">✦</span> שאל את Kai</button>
+          </div>
+        </header>
+
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div class="eyebrow"><span>TX / 13</span><span>חלון שידור 07 ימים</span></div>
+            <h1 id="hero-title"><span>השידור</span> עומד בקצב.</h1>
+            <p>התוכנית יציבה. שלוש החלטות דורשות עין אנושית לפני שהלוח הבא עובר לשידור.</p>
+          </div>
+          <div class="hero-score" aria-label="רמת ודאות">
+            <span class="score-label">ודאות תוכנית</span>
+            <strong>94.8</strong><small>%</small>
+            <div class="score-track"><i style="--score:94.8%"></i></div>
+          </div>
+        </section>
+
+        <section class="transmission" aria-label="ציר השידור החי">
+          <header class="section-head">
+            <div><span class="section-code">A / SIGNAL</span><h2>רצף השידור</h2></div>
+            <div class="legend"><span><i class="program-dot"></i>תוכן</span><span><i class="break-dot"></i>ברייק</span><span><i class="risk-dot"></i>בדיקה</span></div>
+          </header>
+          <div class="timeline-meta" dir="ltr"><span>18:00</span><span>19:00</span><span>20:00</span><span>21:00</span><span>22:00</span><span>23:00</span><span>00:00</span></div>
+          <div class="signal-grid" role="list" aria-label="רצועת תוכניות וברייקים">
+            <button class="slot program p1" role="listitem"><b>חדשות הערב</b><small>54 דק׳</small></button>
+            <button class="slot break b1" role="listitem"><span>BRK 18:54</span><b>₪84.2K</b></button>
+            <button class="slot program p2" role="listitem"><b>המהדורה</b><small>68 דק׳</small></button>
+            <button class="slot break warning b2" role="listitem" data-open-decision><span>BRK 20:02</span><b>פער 17%</b></button>
+            <button class="slot program p3" role="listitem"><b>משחקי השף</b><small>72 דק׳</small></button>
+            <button class="slot break b3" role="listitem"><span>BRK 21:31</span><b>₪116.4K</b></button>
+            <button class="slot program p4" role="listitem"><b>הצינור</b><small>49 דק׳</small></button>
+            <button class="slot break b4" role="listitem"><span>BRK 22:37</span><b>₪62.9K</b></button>
+            <div class="playhead" aria-hidden="true"><span>עכשיו</span></div>
+            <svg class="signal-wave" viewBox="0 0 1400 80" preserveAspectRatio="none" aria-hidden="true">
+              <path class="wave-shadow" d="M0 46 C70 45 72 46 140 46 S210 12 280 46 S350 47 420 46 S490 24 560 46 S630 46 700 46 S770 6 840 46 S910 46 980 46 S1050 28 1120 46 S1260 46 1400 46" />
+              <path class="wave-line" d="M0 46 C70 45 72 46 140 46 S210 12 280 46 S350 47 420 46 S490 24 560 46 S630 46 700 46 S770 6 840 46 S910 46 980 46 S1050 28 1120 46 S1260 46 1400 46" />
+            </svg>
+          </div>
+          <footer class="transmission-foot"><span>7 שעות · 4 תוכניות · 4 ברייקים</span><span class="live-value">צפי הכנסה <b>₪393.3K</b></span></footer>
+        </section>
+
+        <section class="decision-grid">
+          <article class="decision-primary">
+            <header class="section-head">
+              <div><span class="section-code">B / DECISIONS</span><h2>שלוש החלטות. אחת דחופה.</h2></div>
+              <button class="text-action">הצג הכול <span>←</span></button>
+            </header>
+            <div class="decision-list">
+              <button class="decision-row urgent" data-open-decision>
+                <span class="decision-no">01</span>
+                <span class="decision-copy"><b>הברייק של 20:02 קצר מהביקוש</b><small>משחקי השף · חסרות 38 שניות מסחריות · ₪42.6K בסיכון</small></span>
+                <span class="decision-state">לטיפול עכשיו</span>
+                <span class="decision-arrow">↙</span>
+              </button>
+              <button class="decision-row">
+                <span class="decision-no">02</span>
+                <span class="decision-copy"><b>שתי התחייבויות יגיעו ל־92%</b><small>יוניליוור ו־OMD · אפשר לתקן בהחלפה אחת</small></span>
+                <span class="decision-state calm">לפני פרסום</span>
+                <span class="decision-arrow">↙</span>
+              </button>
+              <button class="decision-row">
+                <span class="decision-no">03</span>
+                <span class="decision-copy"><b>הקמפיין החדש מוכן לכניסה</b><small>Wally Prime · כל חומרי הקריאייטיב עברו בדיקה</small></span>
+                <span class="decision-state calm">מוכן</span>
+                <span class="decision-arrow">↙</span>
+              </button>
+            </div>
+          </article>
+
+          <aside class="revenue-module" aria-label="מצב מסחרי">
+            <header><span class="section-code">C / REVENUE</span><span class="delta">+8.4%</span></header>
+            <div class="revenue-value"><small>הכנסה צפויה</small><strong>₪10.12M</strong><span>מתוך יעד שטרם הוגדר</span></div>
+            <div class="revenue-bars" aria-hidden="true">
+              <i style="--h:42%"></i><i style="--h:61%"></i><i style="--h:52%"></i><i style="--h:78%"></i><i style="--h:68%"></i><i style="--h:84%"></i><i style="--h:73%"></i><i class="active" style="--h:94%"></i><i style="--h:77%"></i><i style="--h:88%"></i><i style="--h:82%"></i><i style="--h:96%"></i>
+            </div>
+            <button class="target-action">הגדר יעד לשבוע <span>←</span></button>
+          </aside>
+        </section>
+
+        <footer class="system-footer"><span>PLAN / 10.08.2026 23:34</span><span>994 רשומות · 52 קמפיינים · 0 שגיאות חסימה</span><span>Asia/Jerusalem · RTL</span></footer>
+      </main>
+
+      <aside class="decision-drawer" aria-label="פרטי החלטה" aria-hidden="true">
+        <button class="drawer-close" aria-label="סגירת פרטי ההחלטה">×</button>
+        <span class="drawer-code">DECISION / 01</span>
+        <h2>הברייק של 20:02 קצר מהביקוש.</h2>
+        <p>38 שניות נוספות משמרות הכנסה של ₪42.6K בלי לפגוע ברישיון או באורך התוכנית.</p>
+        <div class="drawer-visual" aria-hidden="true"><i></i><i></i><i class="gap"></i><i></i><i></i></div>
+        <dl><div><dt>אורך נוכחי</dt><dd><span data-duration>142</span> שנ׳</dd></div><div><dt>נדרש</dt><dd>180 שנ׳</dd></div><div><dt>סיכון</dt><dd>נמוך</dd></div></dl>
+        <div class="duration-editor" aria-label="עריכת אורך הברייק"><button data-minus aria-label="הפחת 5 שניות">−</button><strong><span data-duration>142</span><small> שנ׳</small></strong><button data-plus aria-label="הוסף 5 שניות">+</button></div>
+        <div class="drawer-actions"><button class="drawer-primary">החל תיקון בלוח</button><button class="drawer-secondary">פתח ב־Plan</button></div>
+        <small class="drawer-foot">השינוי נשמר כטיוטה עד פרסום הלוח.</small>
+      </aside>
+    </div>
+
+    <nav class="direction-switcher" aria-label="כיווני עיצוב">
+      <a href="?direction=master" data-direction-link="master">A · Master Control</a>
+      <a href="?direction=frame" data-direction-link="frame">B · Signal Frame</a>
+      <a href="?direction=atlas" data-direction-link="atlas">C · Network Atlas</a>
+    </nav>
+    <script src="./lab.js"></script>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+/* The collapsed row is a compact decision ledger: identity, commitment,
+   counted delivery and risk stay visible, while the full evidence stays behind
+   one row-sized disclosure control. */
+
+.pacing-row-head {
+  position: relative;
+  isolation: isolate;
+}
+
+.pacing-row-head > :not(.pacing-row-hit) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pacing-row-head :is(.pacing-name-open, .pacing-figure-open) {
+  pointer-events: auto;
+}
+
+.pacing-row-hit,
+.pacing-row-hit.MuiButton-root {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  inline-size: auto;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+}
+
+.pacing-row-hit:hover,
+.pacing-row-hit.MuiButton-root:hover {
+  background: var(--surface-muted);
+}
+
+.pacing-row-hit:focus-visible,
+.pacing-row-hit.MuiButton-root:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.pacing-row-hit-icon {
+  position: absolute;
+  inset-inline-end: var(--space-3);
+  inset-block-start: 50%;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+}
+
+.pacing-row:not(.open) {
+  min-block-size: 68px;
+  padding: 0;
+}
+
+.pacing-row:not(.open) .pacing-row-head {
+  inline-size: 100%;
+  min-block-size: 68px;
+  padding: var(--card-inset);
+  padding-inline-end: calc(var(--card-inset) + var(--control-height));
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.pacing-row:not(.open) .pacing-verdict {
+  flex: 0 0 auto;
+}
+
+.pacing-row:not(.open) .pacing-names {
+  flex: 1 1 220px;
+  overflow: visible;
+}
+
+.pacing-row:not(.open) .pacing-name-open,
+.pacing-row:not(.open) .pacing-name-facts {
+  display: flex;
+  max-inline-size: 100%;
+}
+
+.pacing-row:not(.open) .pacing-name-open {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pacing-compact-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  flex: 1 1 420px;
+  max-inline-size: 520px;
+  min-inline-size: 0;
+  gap: 0;
+  margin: 0;
+  margin-inline-start: auto;
+}
+
+.pacing-compact-facts > div {
+  display: grid;
+  align-content: center;
+  min-inline-size: 0;
+  gap: 2px;
+  padding-inline: var(--space-3);
+  border-inline-start: 1px solid var(--line);
+}
+
+.pacing-compact-facts dt,
+.pacing-compact-facts dd {
+  margin: 0;
+}
+
+.pacing-compact-facts dt {
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  line-height: 1.35;
+}
+
+.pacing-compact-facts dd {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.pacing-compact-facts .behind dd { color: var(--red); }
+.pacing-compact-facts .at_risk dd { color: var(--amber-ink); }
+.pacing-compact-facts .on_pace dd { color: var(--teal-ink); }
+.pacing-compact-facts .unknown dd { color: var(--muted); }
+
+.pacing-row.open .pacing-row-head {
+  padding-inline-end: calc(var(--control-height) + var(--space-1));
+}

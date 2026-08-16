@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Code } from '../shell/bidi';
 import { text } from './sources-copy';

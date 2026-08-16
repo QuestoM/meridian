@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Figure, Code, Name } from '../shell/bidi';
-import { Button, Drawer, Switch, TextField, Tooltip } from '@mui/material';
+import { Drawer, Switch, TextField, Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Info, RotateCcw, Save, Trash2, TriangleAlert, X } from 'lucide-react';
 import { leverReasons } from '../shell/lever-state';
 import {
@@ -48,7 +49,7 @@ function ChipField({ label, presets, value, onChange, locale }) {
           const isAny = option.toUpperCase() === 'ANY';
           const active = isAny ? anyActive : tokens.includes(option);
           return (
-            <button
+            <Button
               key={option}
               type="button"
               className={`adv-chip${active ? ' active' : ''}${isAny ? ' any' : ''}`}
@@ -56,7 +57,7 @@ function ChipField({ label, presets, value, onChange, locale }) {
               onClick={() => onChange(serializeTokens(toggleToken(tokens, option)))}
             >
               <Figure>{isAny ? pageText(locale, 'Any', 'הכול') : option}</Figure>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -289,7 +290,13 @@ function AdvertiserDetailDrawer({
       anchor={anchor}
       open={open}
       onClose={onClose}
-      slotProps={{ paper: { className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' } }}
+      slotProps={{ paper: {
+        className: 'amz-drawer-paper',
+        dir: locale === 'he' ? 'rtl' : 'ltr',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': 'advertiser-drawer-title',
+      } }}
     >
       <div className="amz-drawer">
         <header className="amz-drawer-head">
@@ -301,12 +308,12 @@ function AdvertiserDetailDrawer({
             </span>
             {/* A Hebrew trade name inside dir=ltr reads with its punctuation
                 flipped, so the name is auto and only the raw id is ltr. */}
-            <h2><Name>{bound || row.advertiser_id}</Name></h2>
+            <h2 id="advertiser-drawer-title"><Name>{bound || row.advertiser_id}</Name></h2>
             {bound ? <Code className="amz-drawer-rawid">{row.advertiser_id}</Code> : null}
           </div>
-          <button type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+          <Button autoFocus type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close pricing record', 'סגירת רשומת התמחור')}>
             <X size={18} />
-          </button>
+          </Button>
         </header>
 
         <div className="amz-drawer-statgrid">
@@ -391,7 +398,7 @@ function AdvertiserDetailDrawer({
                 <Trash2 size={14} />
                 {pageText(locale, 'Confirm delete', 'אישור מחיקה')}
               </Button>
-              <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDelete(false)}>
+              <Button autoFocus className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmDelete(false)}>
                 {pageText(locale, 'Cancel', 'ביטול')}
               </Button>
             </>

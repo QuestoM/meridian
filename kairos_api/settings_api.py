@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from kairos_api.core import (
     MODELS_DIR,
@@ -24,6 +24,45 @@ from kairos_api.core import (
 )
 
 router = APIRouter(tags=["settings"])
+
+
+def _require_canonical_protected_writes(
+    incoming: KairosSettings, current: KairosSettings | None = None,
+) -> None:
+    """Keep protected settings behind the routes that own their consequences.
+
+    The generic settings client sends the whole model, so unchanged protected
+    values must pass. A moved value cannot: those routes add permission,
+    validation and (for the licence) the effective-date record that this body
+    cannot supply.
+    """
+    from kairos_api import guardrail_store, model_activation
+
+    current = current or _load_settings()
+    moved_limits = [
+        key for key in guardrail_store.GUARDRAIL_KEYS
+        if getattr(incoming, key, None) != getattr(current, key, None)
+    ]
+    if moved_limits:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Regulatory limits must be changed through /api/rules/guardrails "
+                "with an effective date, reason and append-only change record."
+            ),
+        )
+    if getattr(incoming, model_activation.SETTINGS_FIELD, False) != getattr(
+        current, model_activation.SETTINGS_FIELD, False
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Audience model activation must be changed through /api/rules/model-activation.",
+        )
+    if incoming.pricing_overrides != current.pricing_overrides:
+        raise HTTPException(
+            status_code=409,
+            detail="Pricing overrides must be changed through /api/pricing so the edit is validated.",
+        )
 
 
 @router.get("/api/health")
@@ -56,9 +95,34 @@ def update_settings(settings: KairosSettings, request: Request = None) -> dict[s
     from kairos_api.compliance_api_licence import guard_channel_move
     from kairos_api import version_store
 
-    guard_channel_move(settings, request)
-    version_store.snapshot_manual_edit(request, "settings")
-    return _model_dump(_save_settings(settings))
+    # The protected-field comparison and the replacement are one transaction.
+    # Without the outer lock, a canonical licence/model/pricing write could land
+    # between the comparison and this whole-document save, letting a stale
+    # generic body put the protected subtree back without its required record.
+    from kairos_api import core
+
+    with core._SETTINGS_LOCK:
+        current = _load_settings()
+        declared_fields = getattr(settings, "model_fields_set", None)
+        if declared_fields is None:  # Pydantic v1 compatibility
+            declared_fields = getattr(settings, "__fields_set__", None)
+        declared = set(declared_fields or ())
+        # FastAPI/Pydantic materializes defaults for omitted fields. Treat this
+        # whole-document endpoint conservatively as a merge of fields the
+        # caller actually sent, so a partial client cannot reset unrelated
+        # settings simply by not knowing they exist.
+        merged = _model_dump(current)
+        incoming = _model_dump(settings)
+        for field in declared:
+            if field in incoming:
+                merged[field] = incoming[field]
+        candidate = KairosSettings(**merged)
+        guard_channel_move(candidate, request)
+        _require_canonical_protected_writes(candidate, current)
+        if _model_dump(candidate) == _model_dump(current):
+            return _model_dump(current)
+        version_store.snapshot_manual_edit(request, "settings")
+        return _model_dump(_save_settings(candidate))
 
 
 @router.get("/api/settings/controls")

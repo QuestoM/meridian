@@ -404,6 +404,33 @@ def clear_login_failures(username: str) -> None:
 # Bootstrap
 # ---------------------------------------------------------------------------
 
+def _write_initial_password_marker(password: str) -> Path:
+    """Publish the generated bootstrap password atomically with mode 600.
+
+    ``users.json`` is what turns authentication enforcement on.  The marker is
+    therefore published first and the user store last: if password delivery
+    fails, the deployment must remain in setup-required state rather than gain
+    an administrator whose only password was never delivered.
+    """
+    marker = auth_dir() / "initial_admin_password.txt"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    tmp = marker.with_name(marker.name + ".tmp")
+    try:
+        with tmp.open("w", encoding="utf-8") as handle:
+            handle.write(password + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, marker)
+    except BaseException:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+    return marker
+
+
 def seed_initial_admin(password: str | None = None) -> tuple[str, str | None]:
     """Create the first admin account. Returns (username, generated_password).
 
@@ -413,26 +440,47 @@ def seed_initial_admin(password: str | None = None) -> tuple[str, str | None]:
     must_change_password, so a deliberately configured password is never
     persisted in plaintext anywhere.
     """
-    if load_users():
-        raise RuntimeError(f"The login store at {users_path()} already has accounts.")
-    chosen = password if password is not None else (os.getenv("KAIROS_ADMIN_PASSWORD") or None)
-    generated: str | None = None
-    if chosen is None:
-        generated = secrets.token_urlsafe(12)
-        chosen = generated
-    add_user("admin", chosen, "admin", "Admin", must_change_password=bool(generated))
-    if generated:
-        marker = auth_dir() / "initial_admin_password.txt"
-        marker.write_text(generated + "\n", encoding="utf-8")
-        os.chmod(marker, 0o600)
-        logger.warning(
-            "Seeded the admin account with a generated one-time password, written once to %s. "
-            "Sign in as admin and change it now.",
-            marker,
-        )
-    else:
-        logger.info("Seeded the admin account from the configured password.")
-    return "admin", generated
+    # One lock covers existence check, password delivery and account creation.
+    # Apart from closing the local interleaving, this matters when startup and a
+    # setup action share the same process: a losing seed must not overwrite the
+    # marker belonging to the account that won.
+    with _LOCK:
+        if load_users():
+            raise RuntimeError(f"The login store at {users_path()} already has accounts.")
+        chosen = password if password is not None else (os.getenv("KAIROS_ADMIN_PASSWORD") or None)
+        generated: str | None = None
+        marker: Path | None = None
+        if chosen is None:
+            generated = secrets.token_urlsafe(12)
+            chosen = generated
+            # Password delivery is the prepare step.  Only after it succeeds may
+            # add_user atomically publish users.json and activate enforcement.
+            marker = _write_initial_password_marker(generated)
+        try:
+            add_user("admin", chosen, "admin", "Admin", must_change_password=bool(generated))
+        except BaseException:
+            # Account publication failed, so the delivered password names no
+            # account.  Remove it when possible; even if cleanup itself fails,
+            # users.json is absent and the API remains setup-required.
+            if marker is not None:
+                try:
+                    marker.unlink(missing_ok=True)
+                except OSError:
+                    logger.warning(
+                        "Admin creation failed after password delivery; stale marker remains at %s.",
+                        marker,
+                        exc_info=True,
+                    )
+            raise
+        if marker is not None:
+            logger.warning(
+                "Seeded the admin account with a generated one-time password, written once to %s. "
+                "Sign in as admin and change it now.",
+                marker,
+            )
+        else:
+            logger.info("Seeded the admin account from the configured password.")
+        return "admin", generated
 
 
 def reset_runtime_state() -> None:

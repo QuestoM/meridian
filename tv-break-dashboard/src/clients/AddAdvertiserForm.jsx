@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Switch, TextField } from '@mui/material';
+import { Switch, TextField } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Plus } from 'lucide-react';
 import { Figure } from '../shell/bidi';
 import {
@@ -32,7 +33,7 @@ function ChipSelect({ label, presets, value, onChange, locale }) {
           const isAny = option.toUpperCase() === 'ANY';
           const active = isAny ? anyActive : tokens.includes(option);
           return (
-            <button
+            <Button
               key={option}
               type="button"
               className={`adv-chip${active ? ' active' : ''}${isAny ? ' any' : ''}`}
@@ -40,7 +41,7 @@ function ChipSelect({ label, presets, value, onChange, locale }) {
               onClick={() => onChange(serializeTokens(toggleToken(tokens, option)))}
             >
               <Figure>{isAny ? pageText(locale, 'Any', 'הכול') : option}</Figure>
-            </button>
+            </Button>
           );
         })}
       </div>

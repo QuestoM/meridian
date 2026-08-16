@@ -1,0 +1,704 @@
+{
+  "slug": "desktop-gate",
+  "address": "/",
+  "captures": [
+    {
+      "requestedUrl": "http://127.0.0.1:3000/",
+      "finalUrl": "http://127.0.0.1:3000/",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1024x768",
+        "width": 1024,
+        "height": 768
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "ממשיכים ממחשב שולחני"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1024,
+          "innerHeight": 768,
+          "outerWidth": 1024,
+          "outerHeight": 768,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "availWidth": 1024,
+          "availHeight": 768,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1024,
+          "clientHeight": 768,
+          "scrollWidth": 1024,
+          "scrollHeight": 768,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 0
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "main.desktop-gate",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1024,
+              "height": 768
+            },
+            "padding": {
+              "top": 24,
+              "right": 24,
+              "bottom": 24,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "main.desktop-gate",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1024,
+              "height": 768
+            },
+            "padding": {
+              "top": 24,
+              "right": 24,
+              "bottom": 24,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1024,
+            "top": 0,
+            "bottom": 768
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": 0,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.desktop-gate-card",
+              "rect": {
+                "x": 232,
+                "y": 175,
+                "width": 560,
+                "height": 418
+              },
+              "insets": {
+                "blockStart": 175,
+                "blockEnd": 175,
+                "inlineStart": 232,
+                "inlineEnd": 232
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": true,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 5,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "id": "ux-font-hebrew",
+            "selector": "p.desktop-gate-eyebrow",
+            "text": "Kairos · ניהול הכנסות",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": []
+          },
+          "latin": {
+            "selector": "p.desktop-gate-eyebrow",
+            "text": "Kairos · ניהול הכנסות",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 7
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 11
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 3
+              }
+            ]
+          },
+          "figure": {
+            "selector": "p.desktop-gate-requirement",
+            "text": "נדרש חלון דסקטופ ברוחב 1,200 פיקסלים לפחות.",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "500",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Medium",
+                "postScriptName": "IBMPlexSans-Medium",
+                "isCustomFont": true,
+                "glyphCount": 6
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew Medium",
+                "postScriptName": "IBMPlexSansHebrew-Medium",
+                "isCustomFont": true,
+                "glyphCount": 6
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Medium",
+                "isCustomFont": true,
+                "glyphCount": 31
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.7,
+          "domContentLoadedMs": 96.1,
+          "loadMs": 98.9,
+          "durationMs": 98.9,
+          "firstContentfulPaintMs": 120
+        },
+        "apiResourceList": []
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": []
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 3,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, box-shadow, border-color",
+              "transitionDurationMs": 250,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 3,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, box-shadow, border-color",
+              "transitionDurationMs": 250,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 1,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1607,
+        "settle": {
+          "elapsedMs": 852,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.7,
+          "domContentLoadedMs": 96.1,
+          "loadMs": 98.9,
+          "durationMs": 98.9,
+          "firstContentfulPaintMs": 120
+        }
+      },
+      "screenshots": {
+        "full": "desktop-gate/he/1024x768/full.png",
+        "top": {
+          "path": "desktop-gate/he/1024x768/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "desktop-gate/he/1024x768/middle.png",
+          "scrollY": 0
+        },
+        "bottom": {
+          "path": "desktop-gate/he/1024x768/bottom.png",
+          "scrollY": 0
+        }
+      },
+      "gateContract": {
+        "exactViewport": true,
+        "apiResourceListEmpty": true,
+        "apiNetworkRequestsEmpty": true
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/",
+      "finalUrl": "http://127.0.0.1:3000/",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1024x768",
+        "width": 1024,
+        "height": 768
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Continue on a desktop"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1024,
+          "innerHeight": 768,
+          "outerWidth": 1024,
+          "outerHeight": 768,
+          "screenWidth": 1024,
+          "screenHeight": 768,
+          "availWidth": 1024,
+          "availHeight": 768,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1024,
+          "clientHeight": 768,
+          "scrollWidth": 1024,
+          "scrollHeight": 768,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 0
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "main.desktop-gate",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1024,
+              "height": 768
+            },
+            "padding": {
+              "top": 24,
+              "right": 24,
+              "bottom": 24,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "main.desktop-gate",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1024,
+              "height": 768
+            },
+            "padding": {
+              "top": 24,
+              "right": 24,
+              "bottom": 24,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1024,
+            "top": 0,
+            "bottom": 768
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": 0,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.desktop-gate-card",
+              "rect": {
+                "x": 232,
+                "y": 175,
+                "width": 560,
+                "height": 418
+              },
+              "insets": {
+                "blockStart": 175,
+                "blockEnd": 175,
+                "inlineStart": 232,
+                "inlineEnd": 232
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": true,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 5,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "button.MuiButtonBase-root.MuiButton-root",
+            "text": "עברית",
+            "computedFamily": "Roboto, Helvetica, Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "500",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "Arial",
+                "postScriptName": "ArialMT",
+                "isCustomFont": false,
+                "glyphCount": 5
+              }
+            ]
+          },
+          "latin": {
+            "selector": "p.desktop-gate-eyebrow",
+            "text": "Kairos · Revenue operations",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 27
+              }
+            ]
+          },
+          "figure": {
+            "selector": "p.desktop-gate-requirement",
+            "text": "A desktop viewport of at least 1,200 pixels is required.",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "500",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Medium",
+                "postScriptName": "IBMPlexSans-Medium",
+                "isCustomFont": true,
+                "glyphCount": 56
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.9,
+          "domContentLoadedMs": 114,
+          "loadMs": 117,
+          "durationMs": 117,
+          "firstContentfulPaintMs": 140
+        },
+        "apiResourceList": []
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": []
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 3,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, box-shadow, border-color",
+              "transitionDurationMs": 250,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 3,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, box-shadow, border-color",
+              "transitionDurationMs": 250,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 1,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1216,
+        "settle": {
+          "elapsedMs": 896,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.9,
+          "domContentLoadedMs": 114,
+          "loadMs": 117,
+          "durationMs": 117,
+          "firstContentfulPaintMs": 140
+        }
+      },
+      "screenshots": {
+        "full": "desktop-gate/en/1024x768/full.png",
+        "top": {
+          "path": "desktop-gate/en/1024x768/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "desktop-gate/en/1024x768/middle.png",
+          "scrollY": 0
+        },
+        "bottom": {
+          "path": "desktop-gate/en/1024x768/bottom.png",
+          "scrollY": 0
+        }
+      },
+      "gateContract": {
+        "exactViewport": true,
+        "apiResourceListEmpty": true,
+        "apiNetworkRequestsEmpty": true
+      }
+    }
+  ]
+}

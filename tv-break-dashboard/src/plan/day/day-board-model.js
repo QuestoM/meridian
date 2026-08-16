@@ -355,12 +355,15 @@ export function weeksOf(days) {
 export function exactCurrency(value, locale = 'en') {
   const number = Number(value);
   if (!Number.isFinite(number)) return '-';
+  // This formatter intentionally prints whole shekels. Sub-half-shekel values
+  // therefore display as zero, never as the visually contradictory "-0".
+  const displayed = Math.abs(number) < 0.5 ? 0 : number;
   return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     style: 'currency',
     currency: 'ILS',
     maximumFractionDigits: 0,
     minimumFractionDigits: 0,
-  }).format(number);
+  }).format(displayed);
 }
 
 // What a chip can print inside itself at the width it is actually drawn at.

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Loader2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { formatSpan } from '../shell/dates';
@@ -66,7 +66,7 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
     : '';
 
   return (
-    <section className="rules-card rules-ratecard-effect">
+    <section className="card rules-card rules-ratecard-effect">
       <h3>{pageText(locale, 'What this edit does, before you save it', 'מה העריכה הזו עושה, לפני השמירה')}</h3>
 
       {loading && !effect && (
@@ -84,7 +84,7 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
       {effect && effect.available && (
         <>
           <div className="rules-figures">
-            <div className="rules-figure">
+            <div className="card rules-figure">
               <span className="rules-figure-label">{pageText(locale, 'A second of airtime is worth', 'שנייה של זמן שידור שווה')}</span>
               <strong
                 className="rules-figure-delta"
@@ -101,7 +101,7 @@ export default function RateCardEffect({ locale, overrides, dirty, onSave, onDis
                 )}
               </span>
             </div>
-            <div className="rules-figure">
+            <div className="card rules-figure">
               <span className="rules-figure-label">{pageText(locale, 'Projected revenue on this plan', 'הכנסה צפויה בתוכנית הזו')}</span>
               <strong className={`rules-figure-delta${Number(effect.delta.revenue) < 0 ? ' negative' : ' positive'}`}>
                 <Figure>{isolate(money(effect.delta.revenue, locale))}</Figure>

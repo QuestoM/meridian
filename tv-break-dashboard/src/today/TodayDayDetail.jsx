@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown, ChevronUp, Download, X } from 'lucide-react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
 import { formatDay } from '../shell/dates';

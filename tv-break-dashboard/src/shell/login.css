@@ -1,80 +1,127 @@
-/* Kairos login screen and account dialogs. Uses the app's design tokens from
-   styles.css, and logical properties so RTL and LTR both lay out correctly. */
-
 .login-screen {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: var(--card-inset);
-  background: var(--bg);
+  padding: var(--space-8);
+  background: var(--canvas);
   color: var(--ink);
   z-index: 60;
 }
 
+.login-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(380px, .92fr);
+  inline-size: min(980px, 100%);
+  min-block-size: 560px;
+  border-radius: var(--radius-overlay);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+}
+
+.login-context {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: var(--space-8);
+  border-inline-end: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
 .login-card {
-  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: 30px 28px var(--space-6);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--space-8);
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--accent-strong);
 }
 
 .login-brand strong {
   display: block;
-  font-size: var(--text-2xl);
+  color: var(--ink);
+  font-family: var(--font-sans-latin);
+  font-size: var(--type-ui-size);
   line-height: 1;
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-bold);
+  letter-spacing: .18em;
 }
 
 .login-brand small {
   display: block;
   margin-top: 5px;
-  color: var(--muted);
-  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
 }
 
-.login-brand-mark {
-  width: 24px;
-  display: grid;
-  gap: 3px;
+.login-context-copy {
+  margin-block: auto;
+  max-inline-size: 46ch;
 }
 
-.login-brand-mark span {
-  display: block;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--ink);
+.login-kicker,
+.login-form-head > span {
+  margin: 0 0 var(--space-2);
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
 }
 
-.login-brand-mark span:nth-child(1) { width: 10px; }
-.login-brand-mark span:nth-child(2) { width: 18px; }
-.login-brand-mark span:nth-child(3) { width: 24px; }
+.login-context h2 {
+  margin: 0;
+  max-inline-size: 18ch;
+  color: var(--ink);
+  font-size: var(--type-page-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-page-line);
+}
+
+.login-context-copy > p:last-child {
+  margin: var(--space-4) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.login-context-foot {
+  margin: 0;
+  color: var(--ink-subtle);
+  font-family: var(--font-sans-hebrew);
+  font-size: var(--type-micro-size);
+}
+
+.login-form-head {
+  margin-block-end: var(--space-6);
+}
 
 .login-card h1 {
-  margin: 0 0 4px;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-medium);
+  margin: 0;
+  font-size: 24px;
+  font-weight: var(--weight-semibold);
+  line-height: 30px;
 }
 
 .login-sub {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: var(--text-sm);
+  margin: var(--space-2) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
 }
 
 .login-field,
 .auth-field {
   display: block;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
 .login-field > span,
@@ -91,11 +138,11 @@
 .auth-field select {
   width: 100%;
   box-sizing: border-box;
-  min-height: 36px;
-  padding: 7px 10px;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--surface-muted);
   color: var(--ink);
   font: inherit;
   font-size: var(--text-base);
@@ -139,9 +186,9 @@
   appearance: none;
   border: 0;
   border-radius: var(--radius-sm);
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 0 var(--card-inset);
-  background: var(--primary);
+  background: var(--accent-strong);
   color: var(--surface);
   font: inherit;
   font-size: var(--text-base);
@@ -151,7 +198,18 @@
 
 .login-submit {
   width: 100%;
-  margin-top: 14px;
+  margin-top: var(--space-2);
+}
+
+.login-submit:not(:disabled):hover {
+  background: var(--accent);
+}
+
+.login-account-note {
+  margin: var(--space-4) 0 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
 }
 
 .login-submit:disabled,
@@ -169,41 +227,30 @@
   font-size: var(--text-base);
 }
 
-/* Shared overlay dialogs (change password, manage accounts) */
-
-.auth-overlay {
-  position: fixed;
-  inset: 0;
+.auth-session-unavailable {
   display: grid;
-  place-items: center;
-  padding: var(--card-inset);
-  background: rgba(13, 27, 42, 0.42);
-  z-index: 70;
+  justify-items: start;
+  inline-size: min(480px, 100%);
+  padding: var(--space-8);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-2);
 }
 
-.auth-dialog {
-  position: relative;
-  width: min(420px, 100%);
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: var(--space-6);
+.auth-session-unavailable .kairos-mark { color: var(--accent-strong); }
+
+.auth-session-unavailable h1 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
 }
 
-.auth-dialog-wide {
-  width: min(760px, 100%);
-}
+.auth-session-unavailable .login-submit { max-inline-size: 180px; }
 
-.auth-dialog h2 {
-  margin: 0 0 6px;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-}
+.auth-password-form { display: block; }
+.auth-dialog-forced .studio-modal__close { display: none; }
+.auth-user-dialog .studio-modal__body { background: var(--surface); }
 
-.auth-dialog h3 {
+.auth-user-dialog h3 {
   margin: 22px 0 10px;
   font-size: var(--text-base);
   font-weight: var(--weight-medium);
@@ -239,22 +286,6 @@
   font-size: var(--text-base);
   cursor: pointer;
 }
-
-.auth-close {
-  position: absolute;
-  top: 14px;
-  inset-inline-end: 14px;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: var(--text-xl);
-  line-height: 1;
-  cursor: pointer;
-  padding: var(--space-1);
-}
-
-/* Accounts table */
 
 .auth-table {
   width: 100%;

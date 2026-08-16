@@ -1,0 +1,57 @@
+.schedule-inspector {
+  inset-block: 16px;
+  inset-inline-end: 16px;
+  width: min(480px, calc(100vw - 32px));
+  height: calc(100vh - 32px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.si-head {
+  padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.si-close {
+  display: inline-grid;
+  inline-size: var(--icon-action-size);
+  block-size: var(--icon-action-size);
+  place-items: center;
+  padding: 0;
+}
+
+.si-body {
+  padding: var(--space-3) var(--space-5) 28px;
+}
+
+.si-row {
+  min-block-size: 40px;
+}
+
+.si-override-remove {
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+}
+
+.si-removal-ledger { margin: 0; border-block: 1px solid var(--line); }
+.si-removal-ledger > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-4); padding-block: var(--space-3); border-block-end: 1px solid var(--line); }
+.si-removal-ledger > div:last-child { border-block-end: 0; }
+.si-removal-ledger dt { color: var(--ink-muted); font-size: 12px; }
+.si-removal-ledger dd { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.5; }
+
+.si-field select,
+.si-field input {
+  min-height: var(--control-height);
+}
+
+.schedule-inspector:focus-visible,
+.si-close:focus-visible,
+.si-override-remove:focus-visible,
+.si-field select:focus-visible,
+.si-field input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}

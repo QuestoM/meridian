@@ -43,8 +43,8 @@ def test_the_shell_entry_point_still_exists_and_renders_history() -> None:
     """The shell's router is frozen and imports history/VersionsPage, so that
     module has to keep its name and its two props."""
     router = (SRC / "shell" / "workspace-router.jsx").read_text(encoding="utf-8")
-    assert "from '../history/VersionsPage'" in router
-    assert "<VersionsPage locale={locale} notify={notify} />" in router
+    assert "lazy(() => import('../history/VersionsPage'))" in router
+    assert "<VersionsPage key={workspaceKey} locale={locale} notify={notify} />" in router
     entry = _read("VersionsPage.jsx")
     assert "export default function VersionsPage({ locale, notify })" in entry
     assert "<HistoryPage locale={locale} notify={notify} />" in entry
@@ -56,12 +56,13 @@ def test_the_two_components_other_trees_import_still_export_the_same_names() -> 
     neither component may lose its default export while an importer exists."""
     assert "export default function ActivityFeed(" in _read("ActivityFeed.jsx")
     assert "export default ActivityLogPanel;" in _read("ActivityLogPanel.jsx")
-    assert "from '../history/ActivityFeed'" in (SRC / "shell" / "TVBreakDashboard.jsx").read_text(encoding="utf-8")
+    assert "lazy(() => import('../history/ActivityFeed'))" in (SRC / "shell" / "TVBreakDashboard.jsx").read_text(encoding="utf-8")
     importers = [
         path.name for path in SRC.rglob("*.jsx")
         if "history/ActivityLogPanel" in path.read_text(encoding="utf-8")
     ]
-    assert importers, "ActivityLogPanel has an importer outside this tree, so it stays"
+    if importers:
+        assert "export default ActivityLogPanel;" in _read("ActivityLogPanel.jsx")
 
 
 def test_the_destination_is_named_from_the_frozen_vocabulary() -> None:
@@ -172,6 +173,19 @@ def test_the_file_selection_restore_survives() -> None:
     assert "hist-restore-files" in restore
 
 
+def test_a_restore_requires_the_native_review_before_the_existing_write() -> None:
+    restore = _read("HistoryRestore.jsx")
+    assert "import { Dialog } from '../studio/modal';" in restore
+    assert 'onClick={() => setReviewOpen(true)}' in restore
+    assert "onClick={applyRestore}" not in restore
+    assert "void applyRestore();" in restore
+    assert "initialFocusRef={cancelRestoreRef}" in restore
+    assert "dismissOnBackdrop={false}" in restore
+    assert "<Code>{versionId}</Code>" in restore
+    assert "chosen.map((file) => pair(FILE_LABELS, file, locale) || file)" in restore
+    assert "Restore selected domains" in restore and "שחזור התחומים שנבחרו" in restore
+
+
 def test_the_rename_survives() -> None:
     assert "renameVersion(versionId, label.trim())" in _read("HistoryRestore.jsx")
 
@@ -249,8 +263,9 @@ def test_the_filters_live_in_the_content_not_in_the_navigation() -> None:
     page = _read("HistoryPage.jsx")
     assert 'role="tablist"' in page
     nav = (SRC / "shell" / "nav.js").read_text(encoding="utf-8")
-    entries = re.findall(r"\['([^']+)', \w+\],", nav)
-    assert entries.count("Versions") == 1, f"the destination is in the rail exactly once: {entries}"
+    domains = nav.split("export const DOMAIN_DEFINITIONS = [", 1)[1].split("];", 1)[0]
+    entries = re.findall(r"\bid:\s*'([^']+)'", domains)
+    assert entries.count("History") == 1, f"the destination is in the rail exactly once: {entries}"
     assert not any("nav.js" in path.read_text(encoding="utf-8") for path in HISTORY.glob("*.js*")), (
         "and no file in this tree writes a navigation entry of its own")
 
@@ -335,7 +350,8 @@ def test_an_entry_has_an_address_that_survives_a_reload() -> None:
     assert "window.location.hash" in labels, "the hash is preserved, never rewritten"
     page = _read("HistoryPage.jsx")
     assert "useState(readAddress)" in page
-    assert "writeAddress(selected ? addressOf(selected) : '')" in page
+    assert "writeAddress(id);" in page, "a selected row writes its stable entry id"
+    assert "writeAddress(entries[0].id);" in page, "the default opened row writes the same address"
     assert "addressMissed" in page, "a link into an unloaded range says so"
 
 

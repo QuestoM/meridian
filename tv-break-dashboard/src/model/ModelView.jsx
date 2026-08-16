@@ -18,7 +18,6 @@ import {
   formatRetentionDelta,
   pageText,
 } from '../shell/format';
-import './console-mount.js';
 import { fallbackSettings } from '../shell/fallbacks';
 import { impactSegmentLabel, impactSourceLabel } from '../shell/labels';
 import { normalizeRows } from '../shell/plan-model';

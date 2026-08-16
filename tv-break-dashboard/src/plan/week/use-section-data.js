@@ -1,38 +1,48 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-// Data a section needs, taken from the entrance when it was handed one and
-// fetched once when it was not.
-//
-// The frozen shell router hands each of the four entrances a different prop set:
-// Inventory receives the supply payload but not the plan, Forecasts receives
-// neither, and only Schedule receives the calendar overlay. So a section asks
-// for what it needs and this hook answers from the prop when there is one.
-//
-// The fetch is deliberately lazy, and that is a latency decision rather than a
-// convenience. The plan payload measured 516,470 bytes; a planner who opened
-// this destination to compare two scenarios should never wait for it, and with
-// this hook they do not, because the board section is the only thing that asks.
+function isUsable(value) {
+  return Boolean(value) && value._unavailable !== true;
+}
 
+// Lazy section data remains route-local, but a shell fallback is evidence that
+// the source was unavailable, not an empty business result. Entering the section
+// makes one fresh attempt; an error keeps no stale/fallback data and exposes the
+// same retry to its canonical error state.
 export function useSectionData(provided, load, wanted) {
-  const [fetched, setFetched] = useState(null);
-  const [state, setState] = useState(provided ? 'ready' : 'idle');
-  const started = useRef(false);
+  const providedReady = isUsable(provided);
+  const [snapshot, setSnapshot] = useState({ data: null, state: providedReady ? 'ready' : 'idle', error: null });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (provided || !wanted || started.current) return;
-    started.current = true;
-    setState('loading');
-    load().then((result) => {
-      if (result.ok) {
-        setFetched(result.data);
-        setState('ready');
+    if (providedReady) return undefined;
+    if (!wanted) return undefined;
+    let active = true;
+    setSnapshot({ data: null, state: 'loading', error: null });
+    Promise.resolve(load()).then((result) => {
+      if (!active) return;
+      if (result?.ok && isUsable(result.data)) {
+        setSnapshot({ data: result.data, state: 'ready', error: null });
       } else {
-        setState('error');
+        setSnapshot({
+          data: null,
+          state: 'error',
+          error: result?.error || 'the source returned no usable data',
+        });
       }
+    }).catch((error) => {
+      if (active) setSnapshot({ data: null, state: 'error', error: error?.message || 'the source could not be read' });
     });
-  }, [provided, wanted, load]);
+    return () => { active = false; };
+  }, [providedReady, wanted, load, attempt]);
 
-  return { data: provided || fetched, state: provided ? 'ready' : state };
+  const retry = useCallback(() => setAttempt((current) => current + 1), []);
+  const fetchedState = snapshot.state === 'ready' && !isUsable(snapshot.data) ? 'idle' : snapshot.state;
+  return {
+    data: providedReady ? provided : snapshot.data,
+    state: providedReady ? 'ready' : fetchedState,
+    error: providedReady ? null : snapshot.error,
+    retry,
+  };
 }
 
 export default useSectionData;

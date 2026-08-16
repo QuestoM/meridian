@@ -1,0 +1,200 @@
+/* Four-step, full-height onboarding workflow. */
+.clients-onboard-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+}
+
+.clients-onboard-layer .clients-onboard {
+  position: relative;
+  inset: auto;
+  inline-size: min(780px, calc(100vw - var(--space-8)));
+  block-size: calc(100dvh - var(--space-8));
+  max-block-size: none;
+  flex: none;
+  padding: var(--surface-inset-major);
+  border-color: var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  overflow-y: auto;
+}
+
+.clients-onboard-layer .clients-record-head {
+  inset-block-start: calc(-1 * var(--surface-inset-major));
+  margin: calc(-1 * var(--surface-inset-major)) calc(-1 * var(--surface-inset-major)) 0;
+  padding: var(--surface-inset-major);
+  background: var(--surface);
+}
+
+.clients-workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: var(--space-2) 0 var(--space-5);
+  padding: 0;
+  list-style: none;
+  border-block-end: 1px solid var(--line);
+}
+
+.clients-workflow-step {
+  inline-size: 100%;
+  min-block-size: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-subtle);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-medium);
+}
+
+.clients-workflow-step > span {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  font-variant-numeric: tabular-nums;
+}
+
+.clients-workflow-steps .active .clients-workflow-step {
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.clients-workflow-steps .active .clients-workflow-step > span,
+.clients-workflow-steps .complete .clients-workflow-step > span {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--canvas);
+}
+
+.clients-workflow-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.clients-workflow-panel[hidden] {
+  display: none;
+}
+
+.clients-workflow-panel > h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+}
+
+.clients-form fieldset {
+  padding: var(--space-4) 0;
+  border: 0;
+  border-block-start: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.clients-form legend {
+  padding-inline: 0 var(--space-2);
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-semibold);
+}
+
+.clients-field {
+  gap: var(--space-1);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+}
+
+.clients-field input,
+.clients-field select {
+  min-block-size: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+}
+
+.clients-radio-row label,
+.clients-checkbox {
+  min-block-size: var(--control-height);
+  align-items: center;
+}
+
+.clients-radio-row input,
+.clients-checkbox input {
+  inline-size: 18px;
+  block-size: 18px;
+  accent-color: var(--accent);
+}
+
+.clients-weekdays button {
+  min-block-size: var(--control-height);
+  min-inline-size: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+}
+
+.clients-weekdays button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--canvas);
+}
+
+.clients-flight-row {
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) var(--icon-action-size);
+  padding-block: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.clients-form-actions {
+  position: sticky;
+  inset-block-end: calc(-1 * var(--surface-inset-major));
+  z-index: var(--z-raised);
+  margin: var(--space-4) calc(-1 * var(--surface-inset-major)) calc(-1 * var(--surface-inset-major));
+  padding: var(--space-4) var(--surface-inset-major);
+  border-block-start: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.clients-workflow-review dl {
+  margin: 0;
+  border-block: 1px solid var(--line);
+}
+
+.clients-workflow-review dl > div {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.6fr) 1fr;
+  align-items: center;
+  min-block-size: var(--data-row-height);
+  padding-inline: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.clients-workflow-review dl > div:last-child {
+  border-block-end: 0;
+}
+
+.clients-workflow-review dt {
+  color: var(--ink-muted);
+}
+
+.clients-workflow-review dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}

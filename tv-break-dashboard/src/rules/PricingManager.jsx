@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Info, RefreshCcw, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
+import { InputControl } from '../studio/dom-controls';
+import ConsequenceDialog, { focusAfterDialogClose } from '../safety/ConsequenceDialog';
 import { LAYER_TO_YAML, categoryList, keyLabel, layerDescription, layerEntries, layerLabel } from './pricing-layers-lib';
 import PricingEventsLayer from './PricingEventsLayer';
 import PricingPreferredPositions from './PricingPreferredPositions';
@@ -18,9 +20,9 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(true);
-  // Inline confirm step for the destructive reset: the first click only arms
-  // it, the explicit confirm click performs it.
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const pricingHeaderRef = React.useRef(null);
   // An edit is a draft until it is saved. It used to land on blur, which meant
   // the revenue owner's own question, what does this do to the money, could only
   // be answered after the answer had already changed. The draft is priced
@@ -137,9 +139,14 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
     if (ok) setPending(null);
   }
 
-  function resetCard() {
-    setConfirmReset(false);
-    applyOverride({}, true);
+  async function resetCard() {
+    setResetting(true);
+    const reset = await applyOverride({}, true);
+    setResetting(false);
+    if (reset) {
+      setConfirmReset(false);
+      focusAfterDialogClose(pricingHeaderRef);
+    }
   }
 
   const currency = state?.currency || 'ILS';
@@ -152,18 +159,18 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
 
   if (loading) {
     return (
-      <section className="page-workspace">
-        <div className="page-header"><h1>{pageText(locale, 'Pricing', 'תמחור')}</h1></div>
-        <p>{pageText(locale, 'Loading the rate card...', 'טוען את כרטיס התעריפים...')}</p>
+      <section className={embedded ? 'rules-section' : 'page-workspace'} aria-busy="true">
+        <div className="page-header">{embedded ? <h2>{pageText(locale, 'Pricing', 'תמחור')}</h2> : <h1>{pageText(locale, 'Pricing', 'תמחור')}</h1>}</div>
+        <p role="status">{pageText(locale, 'Loading the rate card...', 'טוען את כרטיס התעריפים...')}</p>
       </section>
     );
   }
 
   if (!online || !state) {
     return (
-      <section className="page-workspace">
-        <div className="page-header"><h1>{pageText(locale, 'Pricing', 'תמחור')}</h1></div>
-        <div className="pricing-banner">
+      <section className={embedded ? 'rules-section' : 'page-workspace'}>
+        <div className="page-header">{embedded ? <h2>{pageText(locale, 'Pricing', 'תמחור')}</h2> : <h1>{pageText(locale, 'Pricing', 'תמחור')}</h1>}</div>
+        <div className="pricing-banner" role="alert">
           <Info size={16} aria-hidden="true" />
           <p>{pageText(locale,
             'The pricing service is unreachable. No rate card is shown rather than a fabricated one.',
@@ -184,33 +191,22 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
   return (
     <section className={embedded ? 'rules-section' : 'page-workspace'}>
       <div className="page-header">
-        <div>
+        <div ref={pricingHeaderRef} tabIndex={-1}>
           {!embedded && <h1>{pageText(locale, 'Pricing', 'תמחור')}</h1>}
           <p>{pageText(locale,
             'The rate card: base price per rating point and the named premium layers that stack on top. Edit any value and see what it does to the worth of a second before you save. Every number traces to base times named layers.',
             'כרטיס התעריפים: מחיר בסיס לנקודת רייטינג והשכבות הנקובות שמצטברות מעליו. ערכו כל ערך וראו מה זה עושה לשווי של שנייה לפני השמירה. כל מספר נגזר מבסיס כפול שכבות נקובות.')}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="pricing-header-actions">
           <Button className="secondary-button compact" type="button" variant="outlined" onClick={load}>
             <RefreshCcw size={14} />
             {copy?.refresh || pageText(locale, 'Refresh', 'רענון')}
           </Button>
-          {state.has_overrides && !confirmReset && (
-            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmReset(true)}>
+          {state.has_overrides && (
+            <Button className="secondary-button compact" type="button" variant="outlined" disabled={resetting} onClick={() => setConfirmReset(true)}>
               <RotateCcw size={14} />
               {pageText(locale, 'Reset to rate card', 'איפוס לתעריף')}
             </Button>
-          )}
-          {state.has_overrides && confirmReset && (
-            <span role="alertdialog" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12 }}>{pageText(locale, 'Reset deletes every operator edit on the rate card.', 'האיפוס ימחק את כל עריכות המפעיל בכרטיס התעריפים.')}</span>
-              <Button className="secondary-button compact" type="button" variant="outlined" onClick={resetCard}>
-                {pageText(locale, 'Confirm reset', 'אישור איפוס')}
-              </Button>
-              <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmReset(false)}>
-                {pageText(locale, 'Cancel', 'ביטול')}
-              </Button>
-            </span>
           )}
         </div>
       </div>
@@ -228,11 +224,11 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
 
       <div className="pricing-grid">
         <div>
-          <div className="pricing-base-card">
+          <div className="card pricing-base-card">
             <div className="pricing-base-row">
               <span className="pricing-layer-title">{pageText(locale, 'Base CPP', 'מחיר בסיס')}</span>
               <span className="pricing-base-value">
-                <input
+                <InputControl
                   type="number" min="0" step="1"
                   defaultValue={shownBase}
                   key={`base-${shownBase}`}
@@ -256,17 +252,17 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                 ? pageText(locale, 'Live', 'פעיל')
                 : (isEmpty ? pageText(locale, 'Empty', 'ריק') : pageText(locale, 'Wired off', 'כבוי'));
               return (
-                <div className="pricing-layer-card" key={layer.name}>
+                <div className="card pricing-layer-card" key={layer.name}>
                   <div className="pricing-layer-head">
                     <div>
                       <span className="pricing-layer-title">{layerLabel(layer.name, locale)}</span>
                       <p className="pricing-layer-desc">{layerDescription(layer, locale)}</p>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="pricing-layer-heading">
                       <span className={`pricing-chip ${chip}`}>{chipText}</span>
                       {layer.activatable && (
                         <label className="pricing-toggle">
-                          <input
+                          <InputControl
                             type="checkbox"
                             checked={draftValueAt(pending, ['pricing_activation', layer.name]) ?? !!layer.enabled}
                             onChange={(event) => toggleLayer(layer.name, event.target.checked)}
@@ -310,7 +306,7 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
                         return (
                           <div className={`pricing-mult${edited ? ' edited' : ''}${unset ? ' unset' : ''}`} key={key}>
                             <Name className="pricing-mult-label" title={label}>{label}</Name>
-                            <input
+                            <InputControl
                               type="number" min="0" step="0.01"
                               defaultValue={shown}
                               placeholder={pageText(locale, 'not set', 'לא הוגדר')}
@@ -346,6 +342,22 @@ function PricingManager({ copy, locale, notify, onGlobalRefresh, embedded }) {
         saving={saving}
         onSave={commitPending}
         onDiscard={() => setPending(null)}
+      />
+
+      <ConsequenceDialog
+        open={confirmReset}
+        locale={locale}
+        title={pageText(locale, 'Reset every saved rate-card override?', 'לאפס את כל דריסות כרטיס התעריפים שנשמרו?')}
+        description={pageText(locale, 'This is a full reset, not a reset of the field or layer currently in view.', 'זהו איפוס מלא, לא איפוס של השדה או השכבה שמוצגים כרגע.')}
+        object={<span className="consequence-review__object">{pageText(locale, 'All saved operator overrides on this rate card', 'כל דריסות המפעיל השמורות בכרטיס התעריפים')}</span>}
+        scope={pageText(locale, 'Saved base CPP, premium values and pricing-activation flags are cleared together. The shipped defaults and any unsaved draft on this screen are not deleted.', 'מחיר הבסיס השמור, ערכי המקדמים ומתגי הפעלת התמחור יימחקו יחד. ברירות המחדל שסופקו וכל טיוטה שטרם נשמרה במסך הזה אינן נמחקות.')}
+        consequence={pageText(locale, 'Effective prices revert to the shipped rate card. The next optimizer run, forecast, price test and spot export use those defaults; this reset does not rerun the saved plan.', 'המחירים הפעילים יחזרו לכרטיס התעריפים שסופק. ריצת האופטימייזר, התחזית, בדיקת המחיר וייצוא הספוטים הבאים ישתמשו בברירות המחדל; האיפוס אינו מריץ מחדש את התוכנית השמורה.')}
+        recovery={pageText(locale, 'A pre-reset settings snapshot is kept on the Restore changes page.', 'תמונת מצב של ההגדרות מלפני האיפוס נשמרת בעמוד שחזור שינויים.')}
+        confirmLabel={pageText(locale, 'Reset all overrides', 'איפוס כל הדריסות')}
+        workingLabel={pageText(locale, 'Resetting rate card', 'מאפס את כרטיס התעריפים')}
+        busy={resetting}
+        onCancel={() => setConfirmReset(false)}
+        onConfirm={resetCard}
       />
     </section>
   );

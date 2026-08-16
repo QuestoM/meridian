@@ -118,15 +118,15 @@ def test_the_board_states_whether_anything_has_ever_been_adopted(tmp_path):
     assert all(row.get("adopted") is False for row in board["candidates"]), \
         "something is adopted on this tree, so the sentence under test is the wrong one"
     result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, locale="en")
-    assert "Nothing has ever been adopted here" in result["body"]
-    assert "a decision, not a replacement" in result["body"]
+    assert "No candidate adoption is recorded" in result["body"]
+    assert "a recorded verdict does not replace it" in result["body"]
 
 
 def test_the_board_says_how_many_artifacts_it_is_comparing(tmp_path):
     board = read_board()
     result = drive_board(tmp_path, {"/api/model/candidates": served_payload(board)}, locale="en")
     assert f"{len(board['candidates'])}" in result["body"]
-    assert "artifacts compared, beside the shipped one" in result["body"]
+    assert "candidate artifacts compared with the released artifact" in result["body"]
 
 
 @pytest.mark.parametrize("locale", ["he", "en"])

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Figure } from '../../shell/bidi';
 import { Save } from 'lucide-react';
 import {
@@ -45,7 +45,7 @@ function ScheduleEditorRow({
     : '';
 
   return (
-    <li className={pinned ? 'is-pinned' : 'is-unsaved'}>
+    <li className={`card ${pinned ? 'is-pinned' : 'is-unsaved'}`}>
       <div className="editor-row-detail">
         <strong className="editor-row-title">{item.program_title}</strong>
         <div className="editor-row-meta">

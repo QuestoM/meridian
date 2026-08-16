@@ -1,6 +1,7 @@
 import React from 'react';
 import { pageText } from '../shell/format';
 import { dayLabel, nothingToSaveSentence, widerScopeSentence } from './rules-lib';
+import { Pressable } from '../studio/dom-controls';
 
 // What the composer says when the rule compiles to nothing, which is the state
 // a night picker makes reachable and the state the save button cannot leave.
@@ -26,9 +27,9 @@ export default function WiderScopeNote({ locale, night, wider, onWiden }) {
       {breaching > 0 && (
         <>
           <span className="rules-inline-note">{widerScopeSentence(locale, breaching, matched)}</span>
-          <button type="button" className="rules-widen-action" onClick={() => onWiden?.()}>
+          <Pressable type="button" className="rules-widen-action" onClick={() => onWiden?.()}>
             {pageText(locale, 'Write it for every airing instead', 'כתיבה לכל השידורים במקום')}
-          </button>
+          </Pressable>
         </>
       )}
     </div>

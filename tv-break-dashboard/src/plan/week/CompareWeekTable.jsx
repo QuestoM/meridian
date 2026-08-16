@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pressable } from '../../studio/dom-controls';
 import { finiteNumber, formatCurrency, pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
 import { isWeekend, weekdayLabel } from './plan-week-model';
@@ -30,7 +31,7 @@ function biggestLine(best, locale) {
 function DayOpener({ date, weekday, locale, onOpenDay, children }) {
   if (!onOpenDay || !date) return <>{children}</>;
   return (
-    <button
+    <Pressable
       type="button"
       className="plan-compare-day-open"
       onClick={() => onOpenDay(date)}
@@ -39,7 +40,7 @@ function DayOpener({ date, weekday, locale, onOpenDay, children }) {
       data-weekday={weekday || ''}
     >
       {children}
-    </button>
+    </Pressable>
   );
 }
 

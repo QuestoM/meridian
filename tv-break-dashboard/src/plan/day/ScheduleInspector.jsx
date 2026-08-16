@@ -1,13 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, IconButton } from '../../studio/actions';
 import { Download, RefreshCcw, SlidersHorizontal, X } from 'lucide-react';
+import { InputControl, SelectControl } from '../../studio/dom-controls';
+import { Dialog } from '../../studio/modal';
 import { pageText } from '../../shell/surface-helpers';
 import { programTypeLabel } from '../../shell/surface-helpers';
 import { KINDS, kindLabel, runDayPlanJob, isNum } from './override-console-lib';
-import { Figure, Code } from '../../shell/bidi';
+import { Figure, Code, Name } from '../../shell/bidi';
 import { weekdayName } from './day-board-model';
 import { LIVE_PLAN, SAVED_PLAN, withBasis } from './plan-basis';
+import DayRunReviewDialog from './DayRunReviewDialog';
+import DayRunSafetyNotice from './DayRunSafetyNotice';
+import { useScopedDayRun } from './use-scoped-day-run';
 import './schedule-inspector.css';
+import './schedule-inspector-studio.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -70,14 +76,21 @@ function Row({ label, value }) {
 
 export default function ScheduleInspector({ segmentId, channel, day, onClose, locale, notify, onGlobalRefresh }) {
   const he = locale === 'he';
+  const absent = pageText(locale, 'Not recorded', 'לא תועד');
   const [detail, setDetail] = useState(null);
   const [state, setState] = useState('loading'); // loading | ready | error
   const [kind, setKind] = useState('pin');
   const [countValue, setCountValue] = useState('');
   const [preview, setPreview] = useState(null);
   const [previewState, setPreviewState] = useState('idle'); // idle | loading | ready | unavailable
-  const [dayJobState, setDayJobState] = useState('idle');
   const [dirty, setDirty] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState(null);
+  const inspectorRef = useRef(null);
+  const cancelRemovalRef = useRef(null);
+
+  useEffect(() => {
+    inspectorRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const loadDetail = useCallback(async () => {
     if (!segmentId) return;
@@ -91,6 +104,24 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       setState('error');
     }
   }, [segmentId]);
+
+  const runChannel = channel || detail?.identity?.channel;
+  const runDay = day || detail?.identity?.date;
+  const dayRun = useScopedDayRun({
+    scope: runChannel && runDay ? [{ channel: runChannel, day: runDay }] : null,
+    runner: runDayPlanJob,
+    locale,
+    notify,
+    success: {
+      en: 'The day ran. The plan reflects your decision.',
+      he: 'היום הורץ. התוכנית משקפת את ההחלטה.',
+    },
+    onDone: async () => {
+      setDirty(false);
+      await loadDetail();
+      onGlobalRefresh?.();
+    },
+  });
 
   useEffect(() => { loadDetail(); }, [loadDetail]);
 
@@ -176,37 +207,12 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
       const response = await fetch(`${API_BASE}/api/overrides/${encodeURIComponent(overrideId)}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`${response.status}`);
       setDirty(true);
+      setPendingRemoval(null);
       notify('Decision removed. Run this day to apply.', 'ההחלטה הוסרה. הריצו את היום כדי להחיל.');
       await loadDetail();
       onGlobalRefresh?.();
     } catch (error) {
       notify(`Remove failed (${error.message}).`, `ההסרה נכשלה (${error.message}).`);
-    }
-  }
-
-  async function handleDayRun() {
-    const ch = channel || detail?.identity?.channel;
-    const d = day || detail?.identity?.date;
-    if (!ch || !d) return;
-    setDayJobState('running');
-    try {
-      const result = await runDayPlanJob(API_BASE, [{ channel: ch, day: d }]);
-      setDayJobState('idle');
-      if (result.status === 'done') {
-        setDirty(false);
-        notify('The day ran. The plan reflects your decision.', 'היום הורץ. התוכנית משקפת את ההחלטה.');
-        await loadDetail();
-        onGlobalRefresh?.();
-      } else if (result.status === 'missing') {
-        notify('Running one day needs the updated backend. Run the whole plan instead.',
-          'חישוב יום דורש שרת מעודכן. השתמשו בחישוב המלא במקום.');
-      } else {
-        const reason = result.error || (result.status === 'timeout' ? 'timed out' : 'unknown error');
-        notify(`The day run failed: ${reason}.`, `הרצת היום נכשלה: ${reason}.`);
-      }
-    } catch (error) {
-      setDayJobState('idle');
-      notify(`The day run failed (${error.message}).`, `הרצת היום נכשלה (${error.message}).`);
     }
   }
 
@@ -234,21 +240,35 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
   const eco = detail?.economics || {};
   const ret = detail?.retention || {};
   const overrides = Array.isArray(detail?.overrides) ? detail.overrides : [];
+  const pendingOverride = overrides.find((entry) => entry.override_id === pendingRemoval) || null;
 
   return (
-    <aside className="schedule-inspector" role="dialog" aria-label={pageText(locale, 'Programme inspector', 'מפקח תוכנית')}>
+    <aside
+      ref={inspectorRef}
+      className="schedule-inspector"
+      aria-labelledby="schedule-inspector-title"
+      aria-busy={state === 'loading'}
+      tabIndex={-1}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        if (pendingRemoval) setPendingRemoval(null);
+        else if (dayRun.review) dayRun.cancelReview();
+        else onClose();
+      }}
+    >
       <div className="si-head">
         <div>
           <span className="si-kicker">{pageText(locale, 'Programme inspector', 'מפקח תוכנית')}</span>
-          <h3>{programTypeLabel(id.program_type, locale) || pageText(locale, 'Programme', 'תוכנית')}</h3>
+          <h3 id="schedule-inspector-title">{programTypeLabel(id.program_type, locale) || pageText(locale, 'Programme', 'תוכנית')}</h3>
         </div>
-        <button type="button" className="si-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+        <IconButton type="button" className="si-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
           <X size={18} />
-        </button>
+        </IconButton>
       </div>
 
-      {state === 'loading' && <p className="si-note">{pageText(locale, 'Loading the full detail...', 'טוען את הפרטים המלאים...')}</p>}
-      {state === 'error' && <p className="si-note">{pageText(locale, 'This programme detail is unavailable right now.', 'פרטי התוכנית אינם זמינים כרגע.')}</p>}
+      {state === 'loading' && <p className="si-note" role="status">{pageText(locale, 'Loading the full detail...', 'טוען את הפרטים המלאים...')}</p>}
+      {state === 'error' && <p className="si-note" role="alert">{pageText(locale, 'This programme detail is unavailable right now.', 'פרטי התוכנית אינם זמינים כרגע.')}</p>}
 
       {state === 'ready' && detail && (
         <div className="si-body">
@@ -295,9 +315,14 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
                 <div className="si-override" key={o.override_id}>
                   <span className="si-override-kind">{kindLabel(o.kind, locale)}{o.value ? ` (${o.value})` : ''}</span>
                   <span className="si-override-src">{o.source === 'recommendation' ? pageText(locale, 'from recommendation', 'מהמלצה') : pageText(locale, 'manual', 'ידני')}</span>
-                  <button type="button" className="si-override-remove" onClick={() => handleRemove(o.override_id)}>
+                  <Button
+                    type="button"
+                    className="si-override-remove"
+                    aria-label={pageText(locale, `Remove ${kindLabel(o.kind, locale)} decision`, `הסרת החלטת ${kindLabel(o.kind, locale)}`)}
+                    onClick={() => setPendingRemoval(o.override_id)}
+                  >
                     {pageText(locale, 'Remove', 'הסרה')}
-                  </button>
+                  </Button>
                 </div>
               ))
             )}
@@ -308,16 +333,16 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
             <p className="si-sub">{pageText(locale, 'The planning engine honours these on the next run. Read the projected change before saving.', 'מנוע התכנון מכבד את ההחלטות האלה בהרצה הבאה. קראו את השינוי הצפוי לפני השמירה.')}</p>
             <label className="si-field">
               <span>{pageText(locale, 'Decision', 'החלטה')}</span>
-              <select value={kind} onChange={(e) => setKind(e.target.value)}>
+              <SelectControl value={kind} onChange={(e) => setKind(e.target.value)}>
                 {KINDS.map((entry) => (
                   <option key={entry.key} value={entry.key}>{kindLabel(entry.key, locale)}</option>
                 ))}
-              </select>
+              </SelectControl>
             </label>
             {kind === 'force' && (
               <label className="si-field">
                 <span>{pageText(locale, 'Break count', 'מספר ברייקים')}</span>
-                <input type="number" min="0" step="1" dir="ltr" value={countValue} onChange={(e) => setCountValue(e.target.value)} />
+                <InputControl type="number" min="0" step="1" dir="ltr" value={countValue} onChange={(e) => setCountValue(e.target.value)} />
               </label>
             )}
 
@@ -353,15 +378,16 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
           </section>
 
           <section className="si-section si-apply">
-            <Button className="compact" type="button" variant="outlined" disabled={dayJobState === 'running'} onClick={handleDayRun}>
-              <RefreshCcw size={14} className={dayJobState === 'running' ? 'spin' : undefined} />
-              {dayJobState === 'running' ? pageText(locale, 'Running this day', 'מריץ את היום') : pageText(locale, 'Run this day', 'הרצת היום הזה')}
+            <Button className="compact" type="button" variant="outlined" disabled={dayRun.jobState === 'running' || dayRun.safety.status === 'checking'} onClick={dayRun.requestReview}>
+              <RefreshCcw size={14} className={dayRun.jobState === 'running' ? 'spin' : undefined} />
+              {dayRun.jobState === 'running' ? pageText(locale, 'Running this day', 'מריץ את היום') : pageText(locale, 'Review this day run', 'בדיקת הרצת היום')}
             </Button>
             <Button className="compact" type="button" variant="text" onClick={handleDownload}>
               <Download size={14} />
               {pageText(locale, 'Download schedule', 'הורדת הלוח')}
             </Button>
             {dirty && <span className="si-stale">{pageText(locale, 'The saved plan is out of date, run it to apply.', 'התוכנית השמורה אינה מעודכנת, הריצו אותה להחלה.')}</span>}
+            <DayRunSafetyNotice safety={dayRun.safety} locale={locale} />
           </section>
 
           <p className="si-footnote">
@@ -373,6 +399,30 @@ export default function ScheduleInspector({ segmentId, channel, day, onClose, lo
           </p>
         </div>
       )}
+      <Dialog
+        open={Boolean(pendingOverride)}
+        onClose={() => setPendingRemoval(null)}
+        title={pageText(locale, 'Confirm decision removal', 'אישור הסרת החלטה')}
+        description={pageText(locale, 'Review the stored decision and its consequence before deleting it.', 'בדקו את ההחלטה השמורה ואת ההשפעה לפני המחיקה.')}
+        closeLabel={pageText(locale, 'Close removal review', 'סגירת בדיקת ההסרה')}
+        initialFocusRef={cancelRemovalRef}
+        dismissOnBackdrop={false}
+        footer={<><Button ref={cancelRemovalRef} type="button" variant="outlined" onClick={() => setPendingRemoval(null)}>{pageText(locale, 'Cancel', 'ביטול')}</Button><Button type="button" className="is-danger" variant="contained" onClick={() => handleRemove(pendingRemoval)}>{pageText(locale, 'Remove decision', 'הסרת ההחלטה')}</Button></>}
+      >
+        <dl className="si-removal-ledger">
+          <div><dt>{pageText(locale, 'Stored record', 'רשומה שמורה')}</dt><dd><Name>{id.program || segmentId}</Name></dd></div>
+          <div><dt>{pageText(locale, 'Decision', 'החלטה')}</dt><dd>{pendingOverride ? kindLabel(pendingOverride.kind, locale) : absent}</dd></div>
+          <div><dt>{pageText(locale, 'Scope', 'היקף')}</dt><dd><Code>{segmentId}</Code></dd></div>
+          <div><dt>{pageText(locale, 'Consequence', 'השפעה')}</dt><dd>{pageText(locale, 'The decision record is deleted immediately. The next day run will no longer enforce it; the saved plan does not change until that run is confirmed.', 'רשומת ההחלטה נמחקת מיד. הרצת היום הבאה לא תאכוף אותה; התוכנית השמורה אינה משתנה עד לאישור ההרצה.')}</dd></div>
+        </dl>
+      </Dialog>
+      <DayRunReviewDialog
+        review={dayRun.review}
+        locale={locale}
+        busy={dayRun.safety.status === 'checking' || dayRun.jobState === 'running'}
+        onCancel={dayRun.cancelReview}
+        onConfirm={dayRun.confirmReview}
+      />
     </aside>
   );
 }

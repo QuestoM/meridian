@@ -405,6 +405,7 @@ def optimize_day_plan(
     run_id: Optional[str] = None,
     created_at: Optional[str] = None,
     today: Optional[date] = None,
+    require_usable_inventory: bool = False,
 ) -> dict[str, Any]:
     """Run the full real pipeline and return a serialisable plan.
 
@@ -417,7 +418,15 @@ def optimize_day_plan(
     used, so every adjustable number is visible to the caller. When ``log_run``
     is set, the run is appended to ``output/run_log.jsonl`` for audit, stamped
     with ``run_id`` and ``created_at`` (generated here when not supplied).
+    ``require_usable_inventory`` is an application-boundary safety switch: when
+    true, a present inventory file that yields no channel-day-hour slots aborts
+    before optimization and before the run log is written. It defaults false so
+    pure diagnostics and explicit in-memory experiments retain the documented
+    neutral-signal behavior when inventory cannot be used.
     """
+    inventory_pool = (
+        load_inventory(require_usable=True) if require_usable_inventory else None
+    )
     pricing = pricing_from_settings(settings, pricing)
     assumptions = _apply_first_break_multiplier(assumptions or OptimizerAssumptions())
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
@@ -458,6 +467,7 @@ def optimize_day_plan(
         guardrails=guardrails,
         revenue_weight=weight,
         risk_lambda=risk,
+        inventory_pool=inventory_pool,
         pacing_today=today,
         pacing_knobs=_pacing_knobs_from_settings(settings),
         constraints=_default_constraints(),
@@ -511,6 +521,7 @@ def run_scenario(
     today: Optional[date] = None,
     settings: Optional[Mapping[str, Any]] = None,
     objective_mode: str = "blend",
+    require_usable_inventory: bool = False,
 ) -> dict[str, Any]:
     """Run a real optimization for the dashboard scenario slider.
 
@@ -524,7 +535,16 @@ def run_scenario(
     which is much faster on large multi-day scopes: the exploratory revenue
     frontier uses it so a whole-channel sweep stays interactive (greedy is the
     same real optimizer, just without the per-group local-search polish).
+
+    ``require_usable_inventory`` is reserved for authoritative application
+    previews. When true, a present all-invalid inventory source raises before
+    any figures are computed. The default remains false for pure diagnostics,
+    scripts and tests, where an absent or unusable optional signal has
+    historically been an explicit identity no-op.
     """
+    inventory_pool = (
+        load_inventory(require_usable=True) if require_usable_inventory else None
+    )
     weight = clamp(float(revenue_weight) / 100.0, 0.0, 1.0)
     if programmes is None:
         programmes = load_programmes(programmes_path)
@@ -559,6 +579,7 @@ def run_scenario(
         guardrails=guardrails,
         revenue_weight=weight,
         risk_lambda=risk_lambda,
+        inventory_pool=inventory_pool,
         pacing_today=today,
         pacing_knobs=_pacing_knobs_from_settings(settings),
         constraints=_default_constraints(),

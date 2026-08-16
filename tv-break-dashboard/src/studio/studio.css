@@ -1,0 +1,248 @@
+/* Studio Ledger canonical component layer.
+   Import after the legacy shell sheets so foundations win during migration. */
+
+:where(.kairos-shell) {
+  min-block-size: 100dvh;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans-latin);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-align: start;
+  text-rendering: optimizeLegibility;
+}
+
+:where(.kairos-shell[dir='rtl'], [dir='rtl'] .kairos-shell, .kairos-shell.rtl) {
+  font-family: var(--font-sans-hebrew);
+}
+
+:where(.kairos-shell),
+:where(.kairos-shell *, .kairos-shell *::before, .kairos-shell *::after) {
+  box-sizing: border-box;
+}
+
+.studio-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.kairos-shell :where(button, input, select, textarea) {
+  font: inherit;
+}
+
+.kairos-shell :where(button, a, input, select, textarea, [tabindex]):focus-visible,
+.studio-modal :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* MUI exposes focus on the component root. Suppress the nested native input's
+   browser ring so an outlined field changes to one quiet 1px boundary, never
+   an added thick frame or a double ring. */
+.kairos-shell :where(.MuiInputBase-root, .MuiButtonBase-root) :where(input, textarea, select, [tabindex]):focus-visible,
+.studio-modal :where(.MuiInputBase-root, .MuiButtonBase-root) :where(input, textarea, select, [tabindex]):focus-visible {
+  outline: none;
+}
+
+.kairos-shell .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.studio-modal .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--focus-ring);
+  border-width: 1px;
+}
+
+/* Number inputs stay native number controls: keyboard arrows, min/max and step
+   semantics remain intact while the hover-only browser steppers stay out of the
+   dashboard's authored control geometry. */
+.kairos-shell input[type='number'],
+.studio-modal input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.kairos-shell input[type='number']::-webkit-outer-spin-button,
+.kairos-shell input[type='number']::-webkit-inner-spin-button,
+.studio-modal input[type='number']::-webkit-outer-spin-button,
+.studio-modal input[type='number']::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.kairos-shell button {
+  min-block-size: var(--control-height);
+}
+
+.kairos-shell :where(.icon-button, [class*='icon-button']) {
+  min-inline-size: var(--icon-action-size);
+}
+
+.kairos-shell :where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea
+) {
+  min-block-size: var(--control-height);
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.kairos-shell :where(.studio-input-control, .studio-select-control, .studio-textarea-control) {
+  border: 1px solid var(--line-strong);
+  padding-inline: var(--space-3);
+}
+
+.kairos-shell :where(input, textarea)::placeholder {
+  color: var(--ink-subtle);
+  opacity: 1;
+}
+
+.kairos-shell :where(code, kbd, samp, [data-identifier]) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.studio-state__spinner {
+  animation: studio-spin 900ms linear infinite;
+}
+
+.studio-status {
+  --studio-status-color: var(--ink-muted);
+  --studio-status-bg: var(--surface-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-block-size: 28px;
+  max-inline-size: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--studio-status-color);
+  border-radius: var(--radius-pill);
+  background: var(--studio-status-bg);
+  color: var(--studio-status-color);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-data-line);
+  white-space: nowrap;
+}
+
+.studio-status__mark {
+  inline-size: 7px;
+  block-size: 7px;
+  flex: 0 0 auto;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+.studio-status__mark[data-icon='true'] {
+  inline-size: 16px;
+  block-size: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.studio-status__mark[data-icon='true'] > svg {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.studio-status.status-badge.cell {
+  inline-size: auto;
+  block-size: auto;
+  min-block-size: 28px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.studio-status--positive {
+  --studio-status-color: var(--positive);
+  --studio-status-bg: var(--positive-soft);
+}
+
+.studio-status--warning {
+  --studio-status-color: var(--warning);
+  --studio-status-bg: var(--warning-soft);
+}
+
+.studio-status--danger {
+  --studio-status-color: var(--danger);
+  --studio-status-bg: var(--danger-soft);
+}
+
+.studio-status--info {
+  --studio-status-color: var(--info);
+  --studio-status-bg: var(--info-soft);
+}
+
+.studio-status--neutral {
+  --studio-status-color: var(--ink-muted);
+  --studio-status-bg: var(--surface-muted);
+}
+
+.studio-metric {
+  min-inline-size: 0;
+  color: var(--ink);
+}
+
+.studio-metric .metric-copy > span,
+.studio-metric .metric-sub {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.studio-metric .metric-copy > strong {
+  color: var(--ink);
+  font-size: var(--type-metric-size);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.025em;
+  line-height: var(--type-metric-line);
+}
+
+.studio-context-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  padding-block: var(--space-6);
+  text-align: start;
+}
+
+.studio-context-header > div:first-child {
+  min-inline-size: 0;
+  max-inline-size: var(--measure-readable);
+}
+
+.studio-context-header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-page-size);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.015em;
+  line-height: var(--type-page-line);
+  text-wrap: balance;
+}
+
+.studio-context-header p {
+  max-inline-size: var(--measure-readable);
+  margin: var(--space-2) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.studio-context-header__action {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+}

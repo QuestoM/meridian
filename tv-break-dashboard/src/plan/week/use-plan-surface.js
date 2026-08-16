@@ -1,26 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { pageText } from '../../shell/format';
 import * as api from './plan-week-api';
 import { objectiveFromLevers } from './plan-week-model';
 import { streamCompare } from './plan-week-compare-stream';
-import { compareKey, compareRequestBody, useComparePrepare } from './use-compare-prepare';
+import { comparePreparationKey, compareRequestBody, useComparePrepare, verifiedCompareFallback } from './use-compare-prepare';
 import { usePlanFreshness } from './use-plan-freshness';
 import { announceRunResult } from './plan-run-result';
+const OBJECTIVE_FIELDS = ['revenue_weight', 'min_retention_floor', 'risk_lambda', 'objective_mode'];
+const REQUIRED_SETTINGS = [...OBJECTIVE_FIELDS, 'max_breaks_per_hour'];
+const NUMERIC_SETTINGS = ['revenue_weight', 'min_retention_floor', 'risk_lambda', 'max_breaks_per_hour'];
 
-// Every piece of state Plan, the week owns, and every call it makes.
-//
-// The destination fetches its own settings, plan versions, progress, yield, plan
-// state and comparisons rather than taking any of them from the shell, because
-// the frozen shell router hands each of the four entrances a different prop set
-// and a destination that behaved differently depending on the door somebody came
-// through would not be one destination. After every write it refreshes its own
-// reads and asks the shell to refresh too, when the entrance gave it a way to.
-//
-// Nothing here invents a value. A failed call sets an error string that the
-// panel renders as an honest state, and every figure a panel prints came back
-// from the server on this session.
-
-const OBJECTIVE_FIELDS = ['revenue_weight', 'min_retention_floor', 'max_breaks_per_hour', 'risk_lambda', 'objective_mode'];
+function settingsComplete(value) {
+  return value && REQUIRED_SETTINGS.every((field) => value[field] !== null && value[field] !== undefined && value[field] !== '')
+    && NUMERIC_SETTINGS.every((field) => Number.isFinite(Number(value[field])));
+}
 
 function objectiveOf(settings) {
   const out = {};
@@ -32,13 +24,12 @@ function sameObjective(a, b) {
   return OBJECTIVE_FIELDS.every((field) => String(a?.[field]) === String(b?.[field]));
 }
 
-export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare = false }) {
+export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare = false, optimizationAllowed = false, inventoryReadiness = null, initialFreshness = null, initialFreshnessPending = false }) {
   const [saved, setSaved] = useState(null);
   const [draft, setDraft] = useState({});
   const [saveState, setSaveState] = useState('idle');
-  // Which comparison leg the draft was taken from, when it was taken from one.
-  // Provenance, never a figure: it lets the banner name where the values came
-  // from and is cleared the moment anything else touches the draft.
+  const [settingsState, setSettingsState] = useState('loading');
+  const [settingsError, setSettingsError] = useState(null);
   const [adopted, setAdopted] = useState(null);
 
   const [runState, setRunState] = useState('idle');
@@ -52,9 +43,6 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
   const [compareState, setCompareState] = useState('idle');
   const [comparePayload, setComparePayload] = useState(null);
   const [compareError, setCompareError] = useState(null);
-  // The comparison arrives one broadcast day at a time, so the window it is
-  // running over and the days already decided are their own state: the panel
-  // shows a real partial week rather than a spinner over an unknown wait.
   const [compareWindow, setCompareWindow] = useState(null);
   const [compareDays, setCompareDays] = useState([]);
   // Which lever pair the last finished comparison ran, so the preparation never
@@ -76,36 +64,43 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
   const [progress, setProgress] = useState(null);
   const [yieldPerSecond, setYieldPerSecond] = useState(null);
 
-  // The plan's own state, read here rather than taken from the entrance, and
-  // read again after every act below that can move it.
   const {
     verdict: freshness, state: freshnessState, error: freshnessError, reload: reloadFreshness,
-  } = usePlanFreshness();
+  } = usePlanFreshness(initialFreshness, initialFreshnessPending);
 
   const legsSeeded = useRef(false);
 
   const loadSettings = useCallback(async () => {
+    setSettingsState('loading');
+    setSettingsError(null);
     const result = await api.readSettings();
-    if (!result.ok || !result.data) return;
+    const complete = result.ok && settingsComplete(result.data);
+    if (!complete) {
+      setSaved(null);
+      setDraft({});
+      setLegA(null);
+      setLegB(null);
+      legsSeeded.current = false;
+      setSettingsState('error');
+      setSettingsError(result.error || 'the server returned incomplete saved settings');
+      return false;
+    }
     setSaved(result.data);
-    setDraft((current) => (Object.keys(current).length ? current : objectiveOf(result.data)));
+    setDraft(objectiveOf(result.data));
     if (!legsSeeded.current) {
       legsSeeded.current = true;
-      // Both legs open on the saved decision, so a comparison starts from what
-      // the plan actually is and the planner changes one thing.
       const base = {
         revenue_weight: result.data.revenue_weight,
         retention_floor: result.data.min_retention_floor,
         max_breaks_per_hour: result.data.max_breaks_per_hour,
         risk_lambda: result.data.risk_lambda,
-        objective_mode: result.data.objective_mode || 'blend',
+        objective_mode: result.data.objective_mode,
       };
       setLegA({ ...base });
-      // The floor is the lever measurement says moves the plan, so leg B opens
-      // one step above it rather than on a revenue weight that would return the
-      // identical plan.
-      setLegB({ ...base, retention_floor: Math.min(0.99, Number(base.retention_floor || 0.72) + 0.08) });
+      setLegB({ ...base, retention_floor: Math.min(0.99, Number(base.retention_floor) + 0.08) });
     }
+    setSettingsState('ready');
+    return true;
   }, []);
 
   const loadVersions = useCallback(async () => {
@@ -117,9 +112,6 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     setCanPublishReason(result.data.can_edit_reason || null);
   }, []);
 
-  // The goal strip and the worth of a second are read on entry, because both
-  // are answers the planner reads before touching anything. A failed read
-  // leaves them null, which the panels render as an honest absence.
   const loadProgress = useCallback(async () => {
     const result = await api.readPlanProgress();
     setProgress(result.ok ? result.data : null);
@@ -147,13 +139,16 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
   }, [runState, compareState]);
 
   const changeDraft = useCallback((field, value) => {
+    if (!OBJECTIVE_FIELDS.includes(field)) return;
     setDraft((current) => ({ ...current, [field]: value }));
     setSaveState('idle');
     setAdopted(null);
   }, []);
 
   const applyTemplate = useCallback((values) => {
-    setDraft((current) => ({ ...current, ...values }));
+    const patch = {};
+    OBJECTIVE_FIELDS.forEach((field) => { if (field in values) patch[field] = values[field]; });
+    setDraft((current) => ({ ...current, ...patch }));
     setSaveState('idle');
     setAdopted(null);
   }, []);
@@ -196,7 +191,7 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
   }, [saved]);
 
   const saveObjective = useCallback(async () => {
-    if (!saved) return;
+    if (!saved || settingsState !== 'ready') return;
     setSaveState('saving');
     // The settings endpoint takes the whole model and defaults anything the
     // body omits, so a partial write silently clears fields this surface does
@@ -236,9 +231,14 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     // The saved objective is now an input the plan was not built from.
     reloadFreshness();
     window.setTimeout(() => setSaveState('idle'), 2000);
-  }, [saved, draft, notify, onGlobalRefresh, loadSettings, reloadFreshness]);
+  }, [saved, settingsState, draft, notify, onGlobalRefresh, loadSettings, reloadFreshness]);
 
   const runPlan = useCallback(async () => {
+    if (settingsState !== 'ready' || !saved || !optimizationAllowed) {
+      setRunState('error');
+      setRunError('saved settings and optimizer inventory must be verified before a run');
+      return false;
+    }
     setRunState('running');
     setRunError(null);
     setRunProgress(null);
@@ -248,7 +248,7 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
       setRunState('error');
       setRunError(result.error);
       notify?.('The run failed and the saved plan is unchanged.', 'ההרצה נכשלה והתוכנית השמורה לא השתנתה.');
-      return;
+      return false;
     }
     setRunResult(result.data);
     const owned = result.data?.owned;
@@ -261,9 +261,11 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     reloadFreshness();
     onGlobalRefresh?.();
     window.setTimeout(() => setRunState('idle'), 2400);
-  }, [notify, onGlobalRefresh, loadVersions, loadProgress, loadYield, reloadFreshness]);
+    return true;
+  }, [settingsState, saved, optimizationAllowed, notify, onGlobalRefresh, loadVersions, loadProgress, loadYield, reloadFreshness]);
 
   const changeLeg = useCallback((leg, field, value) => {
+    if (field === 'max_breaks_per_hour') return;
     const setter = leg === 'a' ? setLegA : setLegB;
     setter((current) => ({ ...(current || {}), [field]: value }));
   }, []);
@@ -280,8 +282,11 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     setComparedKey(key || null);
   }, []);
 
-  const compare = useCallback(async () => {
-    if (!legA || !legB) return;
+  const guardedLegA = legA && saved ? { ...legA, max_breaks_per_hour: saved.max_breaks_per_hour } : null;
+  const guardedLegB = legB && saved ? { ...legB, max_breaks_per_hour: saved.max_breaks_per_hour } : null;
+
+  const compare = useCallback(async (checkedInventory) => {
+    if (!guardedLegA || !guardedLegB || settingsState !== 'ready' || !optimizationAllowed || checkedInventory?.status !== 'ready') return false;
     setCompareState('running');
     setCompareError(null);
     setCompareDays([]);
@@ -289,8 +294,8 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     setComparedKey(null);
     // The same body the preparation sends, built by the same function, so a
     // prepared week is the week this asks for rather than a near miss.
-    const body = compareRequestBody(legA, legB);
-    const key = compareKey(legA, legB);
+    const body = compareRequestBody(guardedLegA, guardedLegB);
+    const key = comparePreparationKey(guardedLegA, guardedLegB, checkedInventory);
     const controller = new AbortController();
     compareAbort.current = controller;
     try {
@@ -309,7 +314,7 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
       }
       // The stream is the fast path, not the only path. A transport that cannot
       // carry it falls back to the plain route, which returns the same week.
-      const result = await api.compareScenarios(body);
+      const result = await verifiedCompareFallback(inventoryReadiness, checkedInventory, () => api.compareScenarios(body));
       if (!result.ok) {
         setCompareState('error');
         setCompareError(result.error || error.message);
@@ -319,7 +324,8 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     } finally {
       compareAbort.current = null;
     }
-  }, [legA, legB, settle]);
+    return true;
+  }, [guardedLegA, guardedLegB, settingsState, optimizationAllowed, settle]);
 
   const cancelCompare = useCallback(() => {
     compareAbort.current?.abort();
@@ -329,11 +335,12 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
   // three is open, only once the levers have settled, and it is abandoned the
   // moment they change again.
   const prepare = useComparePrepare({
-    legA,
-    legB,
-    enabled: prepareCompare,
+    legA: guardedLegA,
+    legB: guardedLegB,
+    enabled: prepareCompare && settingsState === 'ready' && optimizationAllowed,
     busy: compareState === 'running',
     settledKey: comparedKey,
+    inventory: inventoryReadiness,
   });
 
   const publish = useCallback(async (confirmCollapse = false) => {
@@ -357,19 +364,13 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     window.setTimeout(() => setPublishState('idle'), 2000);
   }, [versionName, versionNote, notify, loadVersions]);
 
-  const loadDiff = useCallback(async (versionId) => {
+  const loadDiff = useCallback(async (versionId, against) => {
     setSelectedVersion(versionId);
-    const result = await api.readPlanVersionDiff(versionId);
+    const result = await api.readPlanVersionDiff(versionId, against);
     setDiff(result.data || { available: false, reason: result.error });
   }, []);
 
   const restore = useCallback(async (version) => {
-    const question = pageText(
-      locale,
-      `Roll the live plan back to "${version.name}". The plan on disk now is frozen first, so this is reversible. Continue.`,
-      `החזרת התוכנית החיה ל"${version.name}". התוכנית שעל הדיסק כרגע תוקפא קודם, כך שאפשר לחזור אחורה. להמשיך.`,
-    );
-    if (!window.confirm(question)) return;
     const result = await api.restorePlanVersion(version.version_id);
     if (!result.ok) {
       setPublishError(result.error);
@@ -384,11 +385,15 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     loadYield();
     reloadFreshness();
     onGlobalRefresh?.();
-  }, [locale, notify, loadVersions, loadProgress, loadYield, reloadFreshness, onGlobalRefresh]);
+  }, [notify, loadVersions, loadProgress, loadYield, reloadFreshness, onGlobalRefresh]);
 
   return {
     saved,
     draft,
+    settingsState,
+    settingsError,
+    settingsReady: settingsState === 'ready' && Boolean(saved),
+    retrySettings: loadSettings,
     dirty: Boolean(saved) && !sameObjective(draft, saved),
     saveState,
     adopted,
@@ -404,8 +409,8 @@ export function usePlanSurface({ locale, notify, onGlobalRefresh, prepareCompare
     runError,
     elapsed,
     runPlan,
-    legA: legA || {},
-    legB: legB || {},
+    legA: guardedLegA || {},
+    legB: guardedLegB || {},
     compareState,
     comparePayload,
     compareError,

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
-import { AlertTriangle, CheckCircle2, FileWarning, Rows3, Upload } from 'lucide-react';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
+import { AlertTriangle, ArrowRight, CheckCircle2, FileWarning, Rows3, Upload } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
 import { Code, Name } from '../shell/bidi';
 import {
@@ -16,6 +17,7 @@ import { fieldLabel } from './sources-fields';
 import { acceptedVerdict, findingMessage, stateTone, visibleFindings } from './sources-findings';
 import SourceChecks from './SourceChecks';
 import { formatStamp } from '../shell/dates';
+import { InputControl } from '../studio/dom-controls';
 
 function formatSize(bytes, locale) {
   const number = Number(bytes) || 0;
@@ -140,9 +142,10 @@ function fieldValue(key, input, locale, onOpenRows) {
   if (key === 'rows') {
     if (!input.exists) return <span className="source-none">-</span>;
     return (
-      <Button className="link-figure" type="button" onClick={() => onOpenRows(input)} title={text('showRows', locale)}>
-        <Rows3 size={12} />
-        <Numeric>{formatNumber(input.rows, locale)}</Numeric>
+      <Button className="source-row-count" type="button" onClick={() => onOpenRows(input)} title={text('showRows', locale)}>
+        <Rows3 size={16} />
+        <span><Numeric>{formatNumber(input.rows, locale)}</Numeric> {text('rows', locale)}</span>
+        <small>{text('showRows', locale)}</small>
       </Button>
     );
   }
@@ -177,7 +180,37 @@ function fieldValue(key, input, locale, onOpenRows) {
 // One input, and everything true about it: what state it is in, what the
 // engine reads for it, what an upload would actually do, and the file's own
 // facts. Nothing here is a badge without a consequence beside it.
-export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOpenRows, onOpenFile, onChanged, notify }) {
+function SourceRow({ input, locale, selected, onSelect }) {
+  const name = locale === 'he' ? input.label_he || input.label_en : input.label_en;
+  const state = String(input.state || 'missing');
+  const tone = stateTone(input);
+  return (
+    <Button
+      type="button"
+      aria-pressed={Boolean(selected)}
+      className={`source-ledger-row tone-${tone}${selected ? ' is-selected' : ''}`}
+      onClick={onSelect}
+    >
+      <span className={`source-signal ${tone}`} aria-hidden="true" />
+      <span className="source-ledger-identity">
+        <strong>{name}</strong>
+        <Code>{input.filename}</Code>
+      </span>
+      <span className="source-ledger-route">
+        <Code>{input.path || input.filename}</Code>
+        <ArrowRight size={14} aria-hidden="true" />
+        {input.engine_reads ? <Code>{input.engine_reads}</Code> : <span>{text('engineReadsNone', locale)}</span>}
+      </span>
+      <span className="source-ledger-volume">
+        <Numeric>{input.exists ? formatNumber(input.rows, locale) : '-'}</Numeric>
+        <small>{text('rows', locale)}</small>
+      </span>
+      <span className={`source-state ${tone}`}>{label(STATE_LABELS, state, locale)}</span>
+    </Button>
+  );
+}
+
+function SourceCardInspector({ input, locale, canEdit, canEditReason, fields, onOpenRows, onOpenFile, onChanged, notify }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState('');
   const [candidate, setCandidate] = useState(null);
@@ -248,14 +281,15 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
   const warned = Boolean(verdict && verdict.tone === 'warn');
 
   return (
-    <article className={`source-card tone-${tone}`} data-kind={input.kind} data-state={state}>
-      <header className="source-card-head">
-        <div className="source-card-title">
+    <article className={`card card-dense source-card tone-${tone}`} data-kind={input.kind} data-state={state}>
+      <header className="card-body source-card-head">
+        <span className="source-card-title">
           <strong>{name}</strong>
           <Code className="source-card-file">{input.filename}</Code>
-        </div>
+        </span>
         <span className={`source-state ${tone}`}>{label(STATE_LABELS, state, locale)}</span>
       </header>
+      <div className="card-body source-card-detail">
 
       <dl className="source-facts">
         {(fields || []).map((key) => (
@@ -353,7 +387,13 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
         </div>
       ) : null}
 
-      <input ref={fileRef} type="file" accept=".csv" hidden onChange={handleChosen} />
+      <InputControl
+        ref={fileRef}
+        type="file"
+        accept=".csv"
+        hidden
+        onChange={handleChosen}
+      />
 
       <div className="source-actions">
         {accepted ? (
@@ -381,8 +421,16 @@ export function SourceCard({ input, locale, canEdit, canEditReason, fields, onOp
           </Tooltip>
         )}
       </div>
+      </div>
     </article>
   );
+}
+
+export function SourceCard({ variant = 'inspector', selected = false, onSelect, ...props }) {
+  if (variant === 'row') {
+    return <SourceRow input={props.input} locale={props.locale} selected={selected} onSelect={onSelect} />;
+  }
+  return <SourceCardInspector {...props} />;
 }
 
 export default SourceCard;

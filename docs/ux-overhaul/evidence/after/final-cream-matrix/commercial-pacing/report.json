@@ -1,0 +1,3070 @@
+{
+  "slug": "commercial-pacing",
+  "address": "/?clients=pacing#Commercial",
+  "captures": [
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "finalUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "קצב אספקה"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 1993,
+          "scrollPosition": {
+            "x": 0,
+            "y": 366,
+            "maxX": 0,
+            "maxY": 1273
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "div.page-header",
+                "rect": {
+                  "x": 16,
+                  "y": -285,
+                  "width": 1152,
+                  "height": 95
+                }
+              },
+              {
+                "selector": "div.page-header.pacing-header",
+                "rect": {
+                  "x": 56,
+                  "y": -89,
+                  "width": 1088,
+                  "height": 96.56
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 0,
+              "y": -366,
+              "width": 1184,
+              "height": 1993.06
+            },
+            "padding": {
+              "top": 0,
+              "right": 16,
+              "bottom": 40,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.clients-workspace",
+            "rect": {
+              "x": 16,
+              "y": -309,
+              "width": 1152,
+              "height": 1896.06
+            },
+            "padding": {
+              "top": 24,
+              "right": 0,
+              "bottom": 24,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1184,
+            "top": 57,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": -366,
+            "blockEnd": -867.06,
+            "inlineStart": 16,
+            "inlineEnd": 16
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "div.page-header",
+              "rect": {
+                "x": 16,
+                "y": -285,
+                "width": 1152,
+                "height": 95
+              },
+              "insets": {
+                "blockStart": -342,
+                "blockEnd": 910,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"תצוגות\\ סביבת\\ העבודה\\ המסחרית\"]",
+              "rect": {
+                "x": 16,
+                "y": -174,
+                "width": 1152,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": -231,
+                "blockEnd": 849,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.clients-body",
+              "rect": {
+                "x": 16,
+                "y": -113,
+                "width": 1152,
+                "height": 1676.06
+              },
+              "insets": {
+                "blockStart": -170,
+                "blockEnd": -843.06,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 129,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "a.skip-link",
+            "text": "דילוג לאזור העבודה הראשי",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 21
+              }
+            ]
+          },
+          "latin": {
+            "selector": "strong.brand-wordmark",
+            "text": "KAIROS",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 6
+              }
+            ]
+          },
+          "figure": {
+            "selector": "p",
+            "text": "⁨13⁩ מתוך ⁨52⁩ קמפיינים עדיין דורשים החלטה, ל־⁨0⁩ מתוך ⁨13⁩ שבסיכון כבר יש אחת, ",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 22
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 66
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 204
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 2.4,
+          "domContentLoadedMs": 107.7,
+          "loadMs": 110.8,
+          "durationMs": 110.8,
+          "firstContentfulPaintMs": 132
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.101952,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.118033,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.417525,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.417736,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.417892,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418093,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418183,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418261,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.41834,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418826,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418896,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.418955,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.419016,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.41906,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13116.419104,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 12,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 2220,
+        "settle": {
+          "elapsedMs": 1217,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 2.4,
+          "domContentLoadedMs": 107.7,
+          "loadMs": 110.8,
+          "durationMs": 110.8,
+          "firstContentfulPaintMs": 132
+        }
+      },
+      "screenshots": {
+        "full": "commercial-pacing/he/1280x720/full.png",
+        "top": {
+          "path": "commercial-pacing/he/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "commercial-pacing/he/1280x720/middle.png",
+          "scrollY": 637
+        },
+        "bottom": {
+          "path": "commercial-pacing/he/1280x720/bottom.png",
+          "scrollY": 1273
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "finalUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "קצב אספקה"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 1993,
+          "scrollPosition": {
+            "x": 0,
+            "y": 186,
+            "maxX": 0,
+            "maxY": 1093
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "div.page-header",
+                "rect": {
+                  "x": 24,
+                  "y": -105,
+                  "width": 1584,
+                  "height": 95
+                }
+              },
+              {
+                "selector": "div.page-header.pacing-header",
+                "rect": {
+                  "x": 64,
+                  "y": 91,
+                  "width": 1520,
+                  "height": 96.56
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 0,
+              "y": -186,
+              "width": 1632,
+              "height": 1993.06
+            },
+            "padding": {
+              "top": 0,
+              "right": 24,
+              "bottom": 40,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.clients-workspace",
+            "rect": {
+              "x": 24,
+              "y": -129,
+              "width": 1584,
+              "height": 1896.06
+            },
+            "padding": {
+              "top": 24,
+              "right": 0,
+              "bottom": 24,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1632,
+            "top": 57,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": -186,
+            "blockEnd": -867.06,
+            "inlineStart": 24,
+            "inlineEnd": 24
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "div.page-header",
+              "rect": {
+                "x": 24,
+                "y": -105,
+                "width": 1584,
+                "height": 95
+              },
+              "insets": {
+                "blockStart": -162,
+                "blockEnd": 910,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"תצוגות\\ סביבת\\ העבודה\\ המסחרית\"]",
+              "rect": {
+                "x": 24,
+                "y": 6,
+                "width": 1584,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": -51,
+                "blockEnd": 849,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.clients-body",
+              "rect": {
+                "x": 24,
+                "y": 67,
+                "width": 1584,
+                "height": 1676.06
+              },
+              "insets": {
+                "blockStart": 10,
+                "blockEnd": -843.06,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 130,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "a.skip-link",
+            "text": "דילוג לאזור העבודה הראשי",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 21
+              }
+            ]
+          },
+          "latin": {
+            "selector": "strong.brand-wordmark",
+            "text": "KAIROS",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 6
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span[aria-label=\"מועד\\ עדכון\\ הנתונים\\ האחרון\\ מה־API\"]",
+            "text": "עודכן ⁨23:34⁩",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 5
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 5
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 2,
+          "domContentLoadedMs": 105.1,
+          "loadMs": 126.8,
+          "durationMs": 126.8,
+          "firstContentfulPaintMs": 128
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13118.880443,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13118.89655,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.197894,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198067,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198221,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198393,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198478,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198557,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.198643,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.199134,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.199208,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.19927,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.199326,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.199375,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13119.199419,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 12,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 2084,
+        "settle": {
+          "elapsedMs": 1205,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 2,
+          "domContentLoadedMs": 105.1,
+          "loadMs": 126.8,
+          "durationMs": 126.8,
+          "firstContentfulPaintMs": 128
+        }
+      },
+      "screenshots": {
+        "full": "commercial-pacing/he/1728x900/full.png",
+        "top": {
+          "path": "commercial-pacing/he/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "commercial-pacing/he/1728x900/middle.png",
+          "scrollY": 547
+        },
+        "bottom": {
+          "path": "commercial-pacing/he/1728x900/bottom.png",
+          "scrollY": 1093
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "finalUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Delivery pace"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 2015,
+          "scrollPosition": {
+            "x": 0,
+            "y": 388,
+            "maxX": 0,
+            "maxY": 1295
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "div.page-header",
+                "rect": {
+                  "x": 112,
+                  "y": -307,
+                  "width": 1152,
+                  "height": 117
+                }
+              },
+              {
+                "selector": "div.page-header.pacing-header",
+                "rect": {
+                  "x": 136,
+                  "y": -89,
+                  "width": 1088,
+                  "height": 96.56
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 96,
+              "y": -388,
+              "width": 1184,
+              "height": 2015.06
+            },
+            "padding": {
+              "top": 0,
+              "right": 16,
+              "bottom": 40,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.clients-workspace",
+            "rect": {
+              "x": 112,
+              "y": -331,
+              "width": 1152,
+              "height": 1918.06
+            },
+            "padding": {
+              "top": 24,
+              "right": 0,
+              "bottom": 24,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 96,
+            "right": 1280,
+            "top": 57,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": -388,
+            "blockEnd": -867.06,
+            "inlineStart": 16,
+            "inlineEnd": 16
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "div.page-header",
+              "rect": {
+                "x": 112,
+                "y": -307,
+                "width": 1152,
+                "height": 117
+              },
+              "insets": {
+                "blockStart": -364,
+                "blockEnd": 910,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"Commercial\\ workspace\\ views\"]",
+              "rect": {
+                "x": 112,
+                "y": -174,
+                "width": 1152,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": -231,
+                "blockEnd": 849,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.clients-body",
+              "rect": {
+                "x": 112,
+                "y": -113,
+                "width": 1152,
+                "height": 1676.06
+              },
+              "insets": {
+                "blockStart": -170,
+                "blockEnd": -843.06,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 129,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "p.pacing-basis-line",
+            "text": "Counted through ⁨27/04/2025, 22:59⁩. This board covers ⁨רשת 13⁩ and no other cha",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 82
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              }
+            ]
+          },
+          "latin": {
+            "selector": "a.skip-link",
+            "text": "Skip to main workspace",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 22
+              }
+            ]
+          },
+          "figure": {
+            "selector": "p",
+            "text": "13 of 52 campaigns still need a decision, 0 of the 13 at risk already carry one,",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 306
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 110,
+          "loadMs": 113.3,
+          "durationMs": 113.3,
+          "firstContentfulPaintMs": 132
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.529296,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.544441,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.844526,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.844693,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.844836,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845001,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845082,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845155,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845231,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845686,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845761,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845821,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845866,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845915,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13121.845959,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 12,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 2075,
+        "settle": {
+          "elapsedMs": 1211,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 110,
+          "loadMs": 113.3,
+          "durationMs": 113.3,
+          "firstContentfulPaintMs": 132
+        }
+      },
+      "screenshots": {
+        "full": "commercial-pacing/en/1280x720/full.png",
+        "top": {
+          "path": "commercial-pacing/en/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "commercial-pacing/en/1280x720/middle.png",
+          "scrollY": 648
+        },
+        "bottom": {
+          "path": "commercial-pacing/en/1280x720/bottom.png",
+          "scrollY": 1295
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "finalUrl": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?clients=pacing#Commercial",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Delivery pace"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 2015,
+          "scrollPosition": {
+            "x": 0,
+            "y": 208,
+            "maxX": 0,
+            "maxY": 1115
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "div.page-header",
+                "rect": {
+                  "x": 120,
+                  "y": -127,
+                  "width": 1584,
+                  "height": 117
+                }
+              },
+              {
+                "selector": "div.page-header.pacing-header",
+                "rect": {
+                  "x": 144,
+                  "y": 91,
+                  "width": 1520,
+                  "height": 96.56
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 96,
+              "y": -208,
+              "width": 1632,
+              "height": 2015.06
+            },
+            "padding": {
+              "top": 0,
+              "right": 24,
+              "bottom": 40,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.clients-workspace",
+            "rect": {
+              "x": 120,
+              "y": -151,
+              "width": 1584,
+              "height": 1918.06
+            },
+            "padding": {
+              "top": 24,
+              "right": 0,
+              "bottom": 24,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 96,
+            "right": 1728,
+            "top": 57,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": -208,
+            "blockEnd": -867.06,
+            "inlineStart": 24,
+            "inlineEnd": 24
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "div.page-header",
+              "rect": {
+                "x": 120,
+                "y": -127,
+                "width": 1584,
+                "height": 117
+              },
+              "insets": {
+                "blockStart": -184,
+                "blockEnd": 910,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"Commercial\\ workspace\\ views\"]",
+              "rect": {
+                "x": 120,
+                "y": 6,
+                "width": 1584,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": -51,
+                "blockEnd": 849,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.clients-body",
+              "rect": {
+                "x": 120,
+                "y": 67,
+                "width": 1584,
+                "height": 1676.06
+              },
+              "insets": {
+                "blockStart": 10,
+                "blockEnd": -843.06,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 130,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "p.pacing-basis-line",
+            "text": "Counted through ⁨27/04/2025, 22:59⁩. This board covers ⁨רשת 13⁩ and no other cha",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 82
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              }
+            ]
+          },
+          "latin": {
+            "selector": "a.skip-link",
+            "text": "Skip to main workspace",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 22
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span[aria-label=\"Time\\ the\\ data\\ was\\ last\\ updated\\ from\\ the\\ API\"]",
+            "text": "Updated ⁨23:34⁩",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 15
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 2.2,
+          "domContentLoadedMs": 105.7,
+          "loadMs": 108.7,
+          "durationMs": 108.7,
+          "firstContentfulPaintMs": 132
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers",
+          "http://127.0.0.1:3000/api/pacing",
+          "http://127.0.0.1:3000/api/make-goods",
+          "http://127.0.0.1:3000/api/clients/money",
+          "http://127.0.0.1:3000/api/clients",
+          "http://127.0.0.1:3000/api/clients/campaigns",
+          "http://127.0.0.1:3000/api/advertisers"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.155448,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.171607,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.472651,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.472858,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.473036,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.473234,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.473322,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.473406,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.473489,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/pacing",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.474024,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/make-goods",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.474109,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.474178,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/money",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.47423,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/clients/campaigns",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.474288,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/advertisers",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 13124.474333,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }",
+            "@media (prefers-reduced-motion: reduce) { .clients-workspace *, .amz-drawer-paper * { scroll-behavior: auto; transition-duration: 0.01ms; animation-duration: 0.01ms; animation-iteration-count: 1; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 12,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 2100,
+        "settle": {
+          "elapsedMs": 1211,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 2.2,
+          "domContentLoadedMs": 105.7,
+          "loadMs": 108.7,
+          "durationMs": 108.7,
+          "firstContentfulPaintMs": 132
+        }
+      },
+      "screenshots": {
+        "full": "commercial-pacing/en/1728x900/full.png",
+        "top": {
+          "path": "commercial-pacing/en/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "commercial-pacing/en/1728x900/middle.png",
+          "scrollY": 558
+        },
+        "bottom": {
+          "path": "commercial-pacing/en/1728x900/bottom.png",
+          "scrollY": 1115
+        }
+      }
+    }
+  ]
+}

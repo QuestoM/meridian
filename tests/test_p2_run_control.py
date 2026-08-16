@@ -65,9 +65,14 @@ def test_one_function_stands_behind_every_door_that_runs_the_plan():
     """The state row, the palette row and the R key call the same thing, so no
     control can carry a run's words while doing something else."""
     page = _text("PlanWeek.jsx")
-    run_now = _body(page, "const runNow = useCallback(() => {")
-    assert "go('run');" in run_now
-    assert "surface.runPlan();" in run_now
+    actions = _text("use-plan-optimization-actions.js")
+    run_now = _body(actions, "const runNow = useCallback(async () => {")
+    assert "go('run');" in run_now and "await verify();" in run_now
+    assert "kind: 'run'" in run_now and "inventorySlots: checked.slots" in run_now
+
+    reviewed = _body(page, "const confirmReviewedAction = useCallback(async () => {")
+    assert "if (action.kind === 'run') await optimization.confirmRun(action);" in reviewed
+    assert "onConfirm={confirmReviewedAction}" in page
 
     assert "onRun={runNow}" in page, "the state row's control"
     assert "      runNow,\n" in page, "the command list"
@@ -78,6 +83,7 @@ def test_one_function_stands_behind_every_door_that_runs_the_plan():
     assert "run: runNow," in run_row
     # Nothing rebuilds the act a second time inside the list.
     assert "surface.runPlan()" not in commands
+    assert "surface.runPlan()" in actions
 
 
 def test_the_state_row_control_does_not_borrow_the_run_panels_words():
@@ -121,7 +127,11 @@ def test_the_destination_reads_the_plan_state_itself():
 
     page = _text("PlanWeek.jsx")
     assert "freshness={surface.freshness}" in page
-    assert "overview" not in page, "the shell's copy is not read here any more"
+    assert "initialFreshness:" in page and "overview?.schedule_freshness" in page
+    assert "initialFreshnessPending: loading" in page
+    assert "reloadFreshness()" in surface, (
+        "the shell verdict is only a duplicate-free first-load seed; Plan must reread after its own writes"
+    )
 
 
 def test_no_entrance_forwards_a_state_the_destination_now_owns():

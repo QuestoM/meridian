@@ -234,12 +234,14 @@ def test_the_retired_words_are_gone_from_every_label_and_name_this_piece_owns():
     tell a duty from an escalation. The HTTP path ``/api/jobs/recompute`` is
     frozen by the specification, which renames labels and never paths. And
     ``onRecompute`` and ``recomputeState`` are prop names declared in
-    ``src/shell/**``, which froze at wave-zero close, so renaming them is the
-    shell's change and not this piece's. Measured before this sweep: 52 hits in
-    these two trees. After it: 9, all of them one of those two classes.
+    ``src/shell/**``, while ``recomputeDisabled`` and
+    ``recomputeDisabledReason`` are the internal safety boundary that keeps the
+    embedded editor from opening a write review before its prerequisites are
+    verified. None is operator-facing copy. Measured before this sweep: 52 hits
+    in these two trees. Every surviving hit must be one of these contracts.
     """
     retired = re.compile(r"recompute|rebuild|חישוב מחדש|בנייה מחדש|חשבו מחדש|חושב מחדש", re.IGNORECASE)
-    allowed = re.compile(r"/api/jobs/recompute|onRecompute|recomputeState")
+    allowed = re.compile(r"/api/jobs/recompute|onRecompute|recomputeState|recomputeDisabled(?:Reason)?")
     offenders = []
     for path in sorted(list((SRC / "plan" / "day").glob("*.js*")) + list((SRC / "plan" / "break").glob("*.js*"))):
         for index, line in enumerate(path.read_text(encoding="utf-8").splitlines()):

@@ -13,6 +13,7 @@
   font-size: var(--text-xs);
   color: var(--ink);
   cursor: pointer;
+  min-block-size: 44px;
 }
 
 .break-board .break-filter.is-on {
@@ -37,6 +38,18 @@
   font-size: var(--text-sm);
 }
 
+.break-table caption {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .break-table th {
   text-align: start;
   font-weight: var(--weight-medium);
@@ -51,6 +64,7 @@
   border-block-end: 1px solid var(--line);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  height: 48px;
 }
 
 .break-table tbody tr {
@@ -60,11 +74,8 @@
 .break-table tbody tr:hover,
 .break-table tbody tr:focus-visible {
   background: var(--surface-muted);
-  outline: none;
-}
-
-.break-table tbody tr:focus-visible td:first-child {
-  box-shadow: inset 3px 0 0 var(--focus-ring);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .break-table tfoot td {
@@ -149,6 +160,28 @@
   font-size: var(--text-2xs);
   color: var(--subtle);
   margin-block: var(--space-1) 0;
+}
+
+.break-show-more {
+  align-self: center;
+  min-block-size: 44px;
+  min-inline-size: 240px;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.break-show-more:hover {
+  border-color: var(--accent-strong, var(--primary));
+}
+
+.break-show-more:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .break-board-error {

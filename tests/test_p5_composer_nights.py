@@ -57,7 +57,11 @@ PROGRAMME = "משחקי השף עונה 7 ש.ח"
 WHOLE_LIST = "{list.map((night) => ("
 CAPPED_LIST = "{list.slice(0, 12).map((night) => ("
 
-CHIP = re.compile(r'<button(?P<attrs>[^>]*class="rules-airing-chip[^"]*"[^>]*)>(?P<body>.*?)</button>', re.S)
+CHIP = re.compile(
+    r'<button(?P<attrs>[^>]*class="[^"]*\brules-airing-chip\b[^"]*"[^>]*)>'
+    r'(?P<body>.*?)</button>',
+    re.S,
+)
 ATTR = re.compile(r'(?P<name>[a-z-]+)="(?P<value>[^"]*)"')
 TEXT = re.compile(r"<[^>]+>")
 

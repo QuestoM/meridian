@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Check, Loader2, Search } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
+import { InputControl, SelectControl } from '../studio/dom-controls';
 import AiringNights from './AiringNights';
 import ProgrammeMatches from './ProgrammeMatches';
 import RestrictionEffect from './RestrictionEffect';
@@ -164,32 +165,37 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
   }, [deadEnd, draft, title]);
 
   return (
-    <section className="rules-card rules-composer">
+    <section className="card rules-card rules-composer">
       <h2>{pageText(locale, 'Write a restriction', 'כתיבת הגבלה')}</h2>
       <p className="rules-card-lead">
         {pageText(
           locale,
-          'Say it the way you would say it out loud. The cost is on screen before you save.',
-          'נסחו את זה כמו שהייתם אומרים בקול. העלות מוצגת לפני השמירה.',
+          'Define the rule. Its plan impact and cost are shown before it is saved.',
+          'הגדירו את ההגבלה. השפעתה על התוכנית ועלותה יוצגו לפני השמירה.',
         )}
       </p>
 
       <p className="rules-sentence">
         <Slot label={pageText(locale, 'What the restriction does', 'מה ההגבלה עושה')}>
-          <select value={kind} onChange={(event) => {
+          <SelectControl
+            aria-label={pageText(locale, 'What the restriction does', 'מה ההגבלה עושה')}
+            value={kind}
+            onChange={(event) => {
             const next = event.target.value;
             setKind(next);
             setParams({ ...kindMeta(next).defaults });
-          }}>
+            }}
+          >
             {KINDS.map((entry) => (
               <option key={entry.id} value={entry.id}>{he ? entry.he : entry.en}</option>
             ))}
-          </select>
+          </SelectControl>
         </Slot>
         {meta.param === 'protected_minutes' && (
           <Slot label={pageText(locale, 'Minutes protected', 'דקות מוגנות')}>
-            <input
+            <InputControl
               type="number" min="1" max="120"
+              aria-label={pageText(locale, 'Minutes protected', 'דקות מוגנות')}
               value={params.protected_minutes ?? 8}
               onChange={(event) => setParams({ protected_minutes: Number(event.target.value) })}
             />
@@ -198,8 +204,9 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         )}
         {meta.param === 'count' && (
           <Slot label={pageText(locale, 'Number of breaks', 'מספר ברייקים')}>
-            <input
+            <InputControl
               type="number" min="0" max="20"
+              aria-label={pageText(locale, 'Number of breaks', 'מספר ברייקים')}
               value={params.count ?? 1}
               onChange={(event) => setParams({ count: Number(event.target.value) })}
             />
@@ -208,8 +215,9 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         )}
         {meta.param === 'offset_seconds' && (
           <Slot label={pageText(locale, 'Minute into the programme', 'דקה בתוך התוכנית')}>
-            <input
+            <InputControl
               type="number" min="0" max="240"
+              aria-label={pageText(locale, 'Minute into the programme', 'דקה בתוך התוכנית')}
               value={minutes(params.offset_seconds ?? 1320)}
               onChange={(event) => setParams({ offset_seconds: Number(event.target.value) * 60 })}
             />
@@ -220,8 +228,9 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
         <Slot label={pageText(locale, 'Programme', 'תוכנית')}>
           <span className="rules-typeahead">
             <Search size={13} aria-hidden="true" />
-            <input
+            <InputControl
               type="text"
+              aria-label={pageText(locale, 'Programme', 'תוכנית')}
               value={query}
               placeholder={pageText(locale, 'Start typing a programme', 'התחילו להקליד שם תוכנית')}
               onChange={(event) => { setQuery(event.target.value); setTitle(''); setAirings(null); }}
@@ -252,19 +261,27 @@ export default function RestrictionComposer({ locale, onSaved, notify }) {
       <div className="rules-attribution">
         <label>
           <span>{pageText(locale, 'Who is asking', 'מי מבקש')}</span>
-          <input type="text" value={author} onChange={(event) => setAuthor(event.target.value)} />
+          <InputControl type="text" value={author} onChange={(event) => setAuthor(event.target.value)} />
         </label>
         <label>
           <span>{pageText(locale, 'Why', 'סיבה')}</span>
-          <input type="text" value={reason} onChange={(event) => setReason(event.target.value)} />
+          <InputControl type="text" value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
         <label>
           <span>{pageText(locale, 'Starts applying on', 'מתחיל לחול בתאריך')}</span>
-          <DateField value={startsOn} onChange={setStartsOn} />
+          <DateField
+            ariaLabel={pageText(locale, 'Starts applying on', 'מתחיל לחול בתאריך')}
+            value={startsOn}
+            onChange={setStartsOn}
+          />
         </label>
         <label>
           <span>{pageText(locale, 'Stops applying on', 'מפסיק לחול בתאריך')}</span>
-          <DateField value={expiresOn} onChange={setExpiresOn} />
+          <DateField
+            ariaLabel={pageText(locale, 'Stops applying on', 'מפסיק לחול בתאריך')}
+            value={expiresOn}
+            onChange={setExpiresOn}
+          />
         </label>
       </div>
 

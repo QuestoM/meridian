@@ -80,20 +80,29 @@ export {{ default as ClientRuleCard }} from '{section}';
 """
 
 RENDER = """
-import { createRequire, registerHooks } from 'node:module';
+import { createRequire, isBuiltin, registerHooks } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 
 const [entry, outDir, casesFile, outFile, helpersSource] = process.argv.slice(2);
 const require_ = createRequire('APP_PACKAGE');
-const MAP = {};
-for (const bare of ['react', 'react/jsx-runtime', 'react-dom/server', 'lucide-react', 'rolldown']) {
-  MAP[bare] = pathToFileURL(require_.resolve(bare)).href;
+const MAP = new Map();
+function fromApp(specifier) {
+  if (!MAP.has(specifier)) {
+    try {
+      const found = require_.resolve(specifier);
+      MAP.set(specifier, found.startsWith('/') ? pathToFileURL(found).href : '');
+    } catch {
+      MAP.set(specifier, '');
+    }
+  }
+  return MAP.get(specifier);
 }
 registerHooks({
   resolve(specifier, context, nextResolve) {
-    if (MAP[specifier]) {
-      return { url: MAP[specifier], shortCircuit: true };
+    if (!isBuiltin(specifier) && !/^[./]|^node:|^file:/.test(specifier)) {
+      const found = fromApp(specifier);
+      if (found) return { url: found, shortCircuit: true };
     }
     return nextResolve(specifier, context);
   },
@@ -102,7 +111,7 @@ registerHooks({
 const { build } = await import('rolldown');
 await build({
   input: entry,
-  external: ['react', 'react-dom', 'react/jsx-runtime', 'lucide-react'],
+  external: (id) => !/^[./]/.test(id),
   output: { dir: outDir, format: 'esm', entryFileNames: 'surface.mjs' },
   resolve: { extensions: ['.js', '.jsx'] },
   logLevel: 'silent',
@@ -124,7 +133,12 @@ await build({
 });
 
 const React = (await import('react')).default;
-const { renderToStaticMarkup } = await import('react-dom/server');
+const { renderToStaticMarkup: markup } = await import('react-dom/server');
+const { CacheProvider } = await import('@emotion/react');
+const cacheModule = await import('@emotion/cache');
+const createCache = cacheModule.default.default || cacheModule.default;
+const cache = createCache({ key: 'kairos-test' });
+const renderToStaticMarkup = (element) => markup(React.createElement(CacheProvider, { value: cache }, element));
 const surface = await import(pathToFileURL(`${outDir}/surface.mjs`).href);
 const cases = JSON.parse(fs.readFileSync(casesFile, 'utf8'));
 

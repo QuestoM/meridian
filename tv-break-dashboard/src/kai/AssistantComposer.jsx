@@ -1,11 +1,12 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Bot, Send, Sparkles } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { MentionPicker } from './MentionPicker';
 import { useMentions } from './mention-state';
 import { AttachedRefs, MentionOverlay } from './MentionRefs';
 import { liveRefs } from './mention-refs';
+import { Pressable, TextAreaControl } from '../studio/dom-controls';
 
 // The way in: the empty state that offers a first question, and the composer
 // that sends one. Split out of AssistantPanel so both files stay under the
@@ -34,14 +35,14 @@ export function AssistantEmptyThread({ locale, showSuggestions, onPick }) {
   return (
     <div className="asst-thread-empty">
       <Bot size={18} />
-      <p>{pageText(locale, 'No questions asked yet. Kai answers from the saved data only, and the conversation is saved and will appear here next time.', 'עוד לא נשאלו שאלות. קאי עונה מהנתונים השמורים בלבד, והשיחה נשמרת ותופיע כאן בפעם הבאה.')}</p>
+      <p>{pageText(locale, 'No questions asked yet. Mabat answers from saved data only, and the conversation is saved for your return.', 'עוד לא נשאלו שאלות. מבט עונה רק מן הנתונים השמורים, והשיחה נשמרת לחזרה הבאה.')}</p>
       {showSuggestions ? (
         <div className="asst-suggestions">
           <span className="asst-suggestions-label"><Sparkles size={12} />{pageText(locale, 'You can start with one of these', 'אפשר להתחיל מאחת מאלה')}</span>
           {SUGGESTIONS.map((pair) => (
-            <button type="button" className="asst-suggestion" key={pair[1]} onClick={() => onPick(pageText(locale, pair[0], pair[1]))}>
+            <Pressable type="button" className="asst-suggestion" key={pair[1]} onClick={() => onPick(pageText(locale, pair[0], pair[1]))}>
               {pageText(locale, pair[0], pair[1])}
-            </button>
+            </Pressable>
           ))}
         </div>
       ) : null}
@@ -101,7 +102,7 @@ export function AssistantComposer({ locale, composerRef, question, onQuestionCha
               listener on the same native event, deliberately: onChange below stays
               the line the keep-warm test pins character for character, and the
               question-being-written signal it carries is not touched by any of this. */}
-          <textarea
+          <TextAreaControl
             ref={composerRef}
             value={question}
             onFocus={() => activity()}
@@ -118,9 +119,9 @@ export function AssistantComposer({ locale, composerRef, question, onQuestionCha
             rows={1}
             maxLength={2000}
             dir={question ? 'auto' : (locale === 'he' ? 'rtl' : 'ltr')}
-            placeholder={unavailable ? pageText(locale, 'Kai is not available right now', 'קאי אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
+            placeholder={unavailable ? pageText(locale, 'Mabat is not available right now', 'מבט אינו זמין כרגע') : pageText(locale, 'Ask about the plan or request a change, in Hebrew or English', 'שאלו על התוכנית או בקשו שינוי, בעברית או באנגלית')}
             disabled={unavailable}
-            aria-label={pageText(locale, 'Question for Kai', 'שאלה לקאי')}
+            aria-label={pageText(locale, 'Question for Mabat', 'שאלה למבט')}
             aria-expanded={mention.open}
             aria-controls={mention.open ? 'kai-mention-picker' : undefined}
           />
@@ -158,7 +159,7 @@ export function AssistantComposer({ locale, composerRef, question, onQuestionCha
       <AttachedRefs locale={locale} refs={attached} />
       {/* @ is offered, never required: every question that worked before still
           works typed out in full, which is the whole design of this trigger. */}
-      <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line, @ points at a broadcast day, a programme, an advertiser, an agency or a calendar event, the arrow key on the reading edge goes inside one, Cmd+J opens Kai from any screen.', 'מקש Enter שולח, Shift+Enter יורד שורה, @ מצביע על יום שידור, תוכנית, מפרסם, סוכנות או אירוע לוח שנה, מקש החץ בקצה הקריאה נכנס פנימה, Cmd+J פותח את קאי מכל מסך.')}</p>
+      <p className="asst-hint">{pageText(locale, 'Enter sends, Shift+Enter adds a line, @ points at a broadcast day, a programme, an advertiser, an agency or a calendar event, the arrow key on the reading edge goes inside one, Cmd+J opens Mabat from any screen.', 'מקש Enter שולח, Shift+Enter יורד שורה, @ מצביע על יום שידור, תוכנית, מפרסם, סוכנות או אירוע לוח שנה, מקש החץ בקצה הקריאה נכנס פנימה, Cmd+J פותח את מבט מכל מסך.')}</p>
     </>
   );
 }

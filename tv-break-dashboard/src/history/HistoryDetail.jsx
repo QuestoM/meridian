@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
 import { Figure, Code, Name } from '../shell/bidi';
 import HistoryRestore from './HistoryRestore';
+import { Pressable } from '../studio/dom-controls';
 import { fetchRun } from './history-api';
 import { APPLIED, actLabel, doorLabel, outcomeNote, outcomeOf, outcomeWord } from './history-refused';
 import {
@@ -250,9 +251,9 @@ function RestoreDetail({ entry, locale, onOpenVersion }) {
       <div className="hist-detail-line">
         <span className="hist-detail-key">{pageText(locale, 'From the point', 'מהנקודה')}</span>
         {facts.version_id ? (
-          <button type="button" className="hist-link" onClick={() => onOpenVersion(facts.version_id)}>
+          <Pressable type="button" className="hist-link" onClick={() => onOpenVersion(facts.version_id)}>
             <code><Code>{facts.version_id}</Code></code>
-          </button>
+          </Pressable>
         ) : (
           <span>{pageText(locale, 'Not recorded', 'לא נרשם')}</span>
         )}
@@ -260,9 +261,9 @@ function RestoreDetail({ entry, locale, onOpenVersion }) {
       {facts.safety_version_id ? (
         <div className="hist-detail-line">
           <span className="hist-detail-key">{pageText(locale, 'Undo it with', 'לביטול')}</span>
-          <button type="button" className="hist-link" onClick={() => onOpenVersion(facts.safety_version_id)}>
+          <Pressable type="button" className="hist-link" onClick={() => onOpenVersion(facts.safety_version_id)}>
             <code><Code>{facts.safety_version_id}</Code></code>
-          </button>
+          </Pressable>
         </div>
       ) : null}
       <p className="hist-note">{pageText(locale, 'The state before this restore was saved as its own point, so the restore is itself reversible.', 'המצב שלפני השחזור נשמר כנקודה נפרדת, ולכן גם השחזור עצמו הפיך.')}</p>
@@ -290,13 +291,13 @@ export default function HistoryDetail(props) {
   const { entry, locale, position, total, onStep, onClose } = props;
   if (!entry) {
     return (
-      <aside className="hist-detail empty">
+      <aside className="card hist-detail empty">
         <p className="hist-empty">{pageText(locale, 'Choose a row to see what it was, who did it and how to put it back.', 'בחרו שורה כדי לראות מה קרה, מי עשה זאת ואיך להחזיר.')}</p>
       </aside>
     );
   }
   return (
-    <aside className="hist-detail" aria-label={pageText(locale, 'Entry detail', 'פרטי הרשומה')}>
+    <aside className="card hist-detail" aria-label={pageText(locale, 'Entry detail', 'פרטי הרשומה')}>
       <header className="hist-detail-head">
         <div>
           <span className="hist-detail-kind">{pair(KIND_LABELS, entry.kind, locale)}</span>
@@ -305,9 +306,9 @@ export default function HistoryDetail(props) {
         </div>
         <div className="hist-detail-walk">
           <span className="hist-counter"><Figure>{`${position} / ${total}`}</Figure></span>
-          <button type="button" className="hist-icon-btn" onClick={() => onStep(-1)} aria-label={pageText(locale, 'Previous entry', 'הרשומה הקודמת')}><ChevronUp size={14} /></button>
-          <button type="button" className="hist-icon-btn" onClick={() => onStep(1)} aria-label={pageText(locale, 'Next entry', 'הרשומה הבאה')}><ChevronDown size={14} /></button>
-          <button type="button" className="hist-icon-btn" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}><X size={14} /></button>
+          <Pressable type="button" className="hist-icon-btn" onClick={() => onStep(-1)} aria-label={pageText(locale, 'Previous entry', 'הרשומה הקודמת')}><ChevronUp size={14} /></Pressable>
+          <Pressable type="button" className="hist-icon-btn" onClick={() => onStep(1)} aria-label={pageText(locale, 'Next entry', 'הרשומה הבאה')}><ChevronDown size={14} /></Pressable>
+          <Pressable type="button" className="hist-icon-btn" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}><X size={14} /></Pressable>
         </div>
       </header>
       {actorHint(entry.actor, locale) ? (

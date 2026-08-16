@@ -89,7 +89,7 @@ function EffectBasis({ basis, locale }) {
   if (!channel || !day) {
     return (
       <p className="asst-effect-basis unknown">
-        {pageText(locale, 'The simulation runs one representative channel-day, not the weekly total. The channel and the date were not recorded on this item. Ask Kai for the proposal again to get them.', 'הסימולציה רצה על יום-ערוץ מייצג אחד, לא על הסך השבועי. הערוץ והתאריך לא נשמרו בפריט הזה. אפשר לבקש מקאי את ההצעה מחדש כדי לקבל אותם.')}
+        {pageText(locale, 'The simulation runs one representative channel-day, not the weekly total. The channel and date were not recorded on this item. Ask Mabat for the proposal again to get them.', 'הסימולציה רצה על יום-ערוץ מייצג אחד, לא על הסך השבועי. הערוץ והתאריך לא נשמרו בפריט הזה. אפשר לבקש ממבט את ההצעה מחדש כדי לקבל אותם.')}
       </p>
     );
   }

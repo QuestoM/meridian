@@ -1,7 +1,7 @@
-// Kai's keyboard entry, available from every surface.
+// Mabat's keyboard entry, available from every surface.
 //
 // The reference agent opens on the record with Cmd J and acts where the work
-// already is, so Kai does the same. The dock's open state belongs to the shell,
+// already is, so Mabat does the same. The dock's open state belongs to the shell,
 // which is frozen, and the shell publishes exactly one way in: an #Assistant
 // hash opens the dock over whatever page is showing. This module drives that
 // published seam and puts the address bar back exactly as it was, so the

@@ -1,9 +1,13 @@
 import React, { useMemo, useState } from 'react';
+import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
-import { Building2, ChevronDown, ChevronUp, Plus, Search, UserPlus } from 'lucide-react';
+import { Building2, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { basisLine, exactMoney, filterAgencies, filterClients, localized } from './clients-money-helpers';
 import { isolate } from '../shell/bidi';
+import { InputControl } from '../studio/dom-controls';
+
+const AGENCY_WINDOW = 18;
 
 // The tree's own read carries no demo tally (it is a join of agencies, clients
 // and the priced ledger, none of which know about the campaign seed), but every
@@ -108,9 +112,9 @@ function ClientRow({ client, locale, onOpen }) {
   return (
     <tr>
       <td>
-        <button type="button" className="clients-link" onClick={() => onOpen(client.advertiser)}>
+        <Button type="button" className="clients-link" onClick={() => onOpen(client.advertiser)}>
           {client.shown_name || client.advertiser}
-        </button>
+        </Button>
         {client.resolved ? null : (
           <span className="clients-flag">{pageText(locale, 'not seen on air yet', 'טרם נצפה בשידור')}</span>
         )}
@@ -133,10 +137,10 @@ function ClientRow({ client, locale, onOpen }) {
       <td>
         {localized(client, 'money_reason', locale) ? <small className="clients-reason">{localized(client, 'money_reason', locale)}</small> : null}
         {client.campaign_count === 0 ? (
-          <button type="button" className="clients-inline-action" onClick={() => onOpen(client.advertiser)}>
+          <Button type="button" className="clients-inline-action" onClick={() => onOpen(client.advertiser)}>
             <Plus size={12} aria-hidden="true" />
             {pageText(locale, 'Book a campaign', 'הזמינו קמפיין')}
-          </button>
+          </Button>
         ) : null}
       </td>
     </tr>
@@ -152,8 +156,8 @@ function FlatGroup({ title, note, clients, locale, onOpen }) {
     return null;
   }
   return (
-    <article className="clients-agency clients-unlinked">
-      <div className="clients-agency-head static">
+    <article className="card card-dense clients-agency clients-unlinked">
+      <div className="card-body clients-agency-head static">
         <span className="clients-agency-name">
           <strong>{title}</strong>
           <small>{note}</small>
@@ -163,7 +167,7 @@ function FlatGroup({ title, note, clients, locale, onOpen }) {
           <small>{clientsWord(clients.length, locale)}</small>
         </span>
       </div>
-      <div className="clients-agency-body">
+      <div className="card-body clients-agency-body">
         <table className="clients-table">
           <tbody>
             {clients.map((client) => (
@@ -176,9 +180,10 @@ function FlatGroup({ title, note, clients, locale, onOpen }) {
   );
 }
 
-export default function ClientTree({ tree, locale, canEdit = true, onOpenClient, onOnboard }) {
+export default function ClientTree({ tree, locale, onOpenClient }) {
   const [query, setQuery] = useState('');
   const [openAgency, setOpenAgency] = useState('');
+  const [visibleCount, setVisibleCount] = useState(AGENCY_WINDOW);
   const he = locale === 'he';
 
   const agencies = useMemo(
@@ -193,6 +198,7 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
     () => filterClients((tree && tree.clients_booked_without_spots) || [], query),
     [tree, query],
   );
+  const shownAgencies = agencies.slice(0, visibleCount);
   // Every hook this component owns is called above the loading return below,
   // including this one, and each reads the tree defensively because the first
   // render happens before the read resolves. A hook placed after that return
@@ -240,11 +246,11 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
       `${isolate(agencyCount)} ${agencyWord}, ${isolate(clientCount)} ${clientsWord(clientCount, locale)}, ${isolate(campaignCount)} ${campaignWord}`,
     );
   return (
-    <section className="clients-tree">
+    <section className="clients-tree" id="commercial-client-tree">
       <div className="clients-toolbar">
         <label className="clients-search">
           <Search size={14} aria-hidden="true" />
-          <input
+          <InputControl
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -253,23 +259,17 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
           />
         </label>
         <span className="clients-counts">{countsLine}</span>
-        {canEdit ? (
-          <button type="button" className="clients-primary" onClick={onOnboard}>
-            <UserPlus size={14} aria-hidden="true" />
-            {pageText(locale, 'Onboard a client', 'קליטת לקוח')}
-          </button>
-        ) : null}
       </div>
 
       <p className="clients-basis">{basisLine(tree.basis, locale)}</p>
 
-      {agencies.map((agency) => {
+      {shownAgencies.map((agency) => {
         const expanded = openAgency === agency.agency_id;
         return (
-          <article key={agency.agency_id} className={`clients-agency ${expanded ? 'open' : ''}`}>
-            <button
+          <article key={agency.agency_id} className={`card card-dense clients-agency${expanded ? ' open' : ''}`}>
+            <Button
               type="button"
-              className="clients-agency-head"
+              className="card-body clients-agency-head"
               onClick={() => setOpenAgency(expanded ? '' : agency.agency_id)}
               aria-expanded={expanded}
             >
@@ -290,9 +290,9 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
                 <small>{pageText(locale, 'net', 'נטו')}</small>
               </span>
               {expanded ? <ChevronUp size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}
-            </button>
+            </Button>
             {expanded ? (
-              <div className="clients-agency-body">
+              <div className="card-body clients-agency-body">
                 <Terms agency={agency} locale={locale} />
                 {localized(agency, 'money_reason', locale) ? (
                   <p className="clients-reason">{localized(agency, 'money_reason', locale)}</p>
@@ -324,6 +324,17 @@ export default function ClientTree({ tree, locale, canEdit = true, onOpenClient,
           </article>
         );
       })}
+
+      {shownAgencies.length < agencies.length ? (
+        <div className="clients-window-more" role="status">
+          <span>{pageText(locale, `Showing ${shownAgencies.length} of ${agencies.length} agencies`, `מוצגות ${isolate(shownAgencies.length)} מתוך ${isolate(agencies.length)} סוכנויות`)}</span>
+          <a href="#commercial-client-tree" role="button" className="clients-secondary"
+             onClick={(event) => { event.preventDefault(); setVisibleCount((count) => count + AGENCY_WINDOW); }}
+             onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setVisibleCount((count) => count + AGENCY_WINDOW); } }}>
+            {pageText(locale, 'Show the next agencies', 'הציגו את הסוכנויות הבאות')}
+          </a>
+        </div>
+      ) : null}
 
       <FlatGroup
         title={pageText(locale, 'Clients with no agency', 'לקוחות ללא סוכנות')}

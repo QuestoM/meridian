@@ -370,7 +370,8 @@ def test_the_panel_says_which_window_it_is_showing_and_names_the_missing_one():
     assert "scope.day_reason" in panel, "the reason the week was unavailable travels to the reader"
     assert "Run the plan on step 2" in panel, "the path forward is named"
     # And the window travels with the money rather than sitting in a tooltip.
-    assert "windowText" in panel and "plan-money-window" in panel
+    assert "windowText" in panel and "plan-comparison-scope" in panel
+    assert "<span>{windowText}</span>" in panel
     assert "runCostLine" in panel, "the run's real cost is printed, not hidden"
 
 

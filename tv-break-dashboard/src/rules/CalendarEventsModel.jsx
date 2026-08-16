@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Info } from 'lucide-react';
 import { API_BASE, pageText, finiteNumber, formatNumber } from '../shell/surface-helpers';
 import { AudienceModelBlock } from '../model/CalendarAudienceModel';
@@ -63,22 +64,48 @@ function formatShortDate(value) {
 // Fetches the stored events once per refresh for the display-only plan-surface
 // badges. Any failure (older backend without /api/events, offline) resolves to
 // an empty list so the surfaces simply carry no badge, never a fabricated one.
-export function usePlanEvents(refreshKey) {
+let cachedEvents = null;
+let cachedEventsRefreshKey = null;
+let pendingEvents = null;
+let pendingEventsRefreshKey = null;
+
+async function readPlanEvents(refreshKey) {
+  if (cachedEvents !== null && cachedEventsRefreshKey === refreshKey) return cachedEvents;
+  if (pendingEvents && pendingEventsRefreshKey === refreshKey) return pendingEvents;
+  pendingEventsRefreshKey = refreshKey;
+  pendingEvents = (async () => {
+    const response = await fetch(`${API_BASE}/api/events`);
+    if (!response.ok) throw new Error(String(response.status));
+    const data = await response.json();
+    const events = Array.isArray(data.events) ? data.events : [];
+    cachedEvents = events;
+    cachedEventsRefreshKey = refreshKey;
+    return events;
+  })().finally(() => {
+    pendingEvents = null;
+    pendingEventsRefreshKey = null;
+  });
+  return pendingEvents;
+}
+
+export function usePlanEvents(refreshKey, enabled = true) {
   const [events, setEvents] = useState([]);
   useEffect(() => {
+    if (!enabled) {
+      setEvents([]);
+      return undefined;
+    }
     let active = true;
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/events`);
-        if (!response.ok) throw new Error(String(response.status));
-        const data = await response.json();
-        if (active) setEvents(Array.isArray(data.events) ? data.events : []);
+        const data = await readPlanEvents(refreshKey);
+        if (active) setEvents(data);
       } catch {
         if (active) setEvents([]);
       }
     })();
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [enabled, refreshKey]);
   return events;
 }
 
@@ -340,8 +367,16 @@ export function ModelContextPanel({ context, locale }) {
 
 // Panel (c): per event, its overlap with the coefficient training window and
 // with the saved plan dates. Both overlaps are computed server-side.
+const OVERLAP_WINDOW = 12;
+
 export function OverlapPanel({ events, locale }) {
   const rows = Array.isArray(events) ? events : [];
+  const [visibleCount, setVisibleCount] = useState(OVERLAP_WINDOW);
+  useEffect(() => {
+    setVisibleCount(OVERLAP_WINDOW);
+  }, [rows.length]);
+  const visibleRows = rows.slice(0, visibleCount);
+  const remaining = Math.max(0, rows.length - visibleRows.length);
   return (
     <section className="page-panel cal-panel">
       <div className="panel-head">
@@ -353,8 +388,8 @@ export function OverlapPanel({ events, locale }) {
       {rows.length === 0 ? (
         <p className="cal-empty">{pageText(locale, 'No events are stored yet, so there is nothing to intersect.', 'אין עדיין אירועים שמורים, ולכן אין מה להצליב.')}</p>
       ) : (
-        <div className="cal-overlap-list">
-          {rows.map((event) => {
+        <div className="cal-overlap-list" id="calendar-overlap-records">
+          {visibleRows.map((event) => {
             const windowDays = finiteNumber(event.window_overlap_days);
             const planDates = Array.isArray(event.plan_overlap_dates) ? event.plan_overlap_dates : [];
             return (
@@ -383,6 +418,30 @@ export function OverlapPanel({ events, locale }) {
               </div>
             );
           })}
+        </div>
+      )}
+      {remaining > 0 && (
+        <div className="cal-overlap-disclosure">
+          <span role="status">
+            {pageText(
+              locale,
+              `Showing ${formatNumber(visibleRows.length, locale)} of ${formatNumber(rows.length, locale)} events`,
+              `מוצגים ${formatNumber(visibleRows.length, locale)} מתוך ${formatNumber(rows.length, locale)} אירועים`,
+            )}
+          </span>
+          <Button
+            type="button"
+            variant="outlined"
+            aria-controls="calendar-overlap-records"
+            aria-expanded={visibleRows.length > OVERLAP_WINDOW}
+            onClick={() => setVisibleCount((count) => Math.min(rows.length, count + OVERLAP_WINDOW))}
+          >
+            {pageText(
+              locale,
+              `Show next ${formatNumber(Math.min(OVERLAP_WINDOW, remaining), locale)}`,
+              `הצגת ${formatNumber(Math.min(OVERLAP_WINDOW, remaining), locale)} הבאים`,
+            )}
+          </Button>
         </div>
       )}
       </div>

@@ -2,6 +2,7 @@
 // API must drive the honest empty states, never invented numbers.
 
 export const fallbackSettings = {
+  _unavailable: true,
   profile_name: 'Israel commercial TV',
   locale: 'he',
   direction: 'rtl',
@@ -37,6 +38,7 @@ export const fallbackCompliance = {
 };
 
 export const fallbackOverview = {
+  _unavailable: true,
   brand: 'Kairos',
   workspace: 'KAI Network',
   data_freshness: new Date().toISOString(),
@@ -60,6 +62,7 @@ export const fallbackOverview = {
 // honest empty states in the consuming components, matching fallbackOverview
 // (nulled metrics) and fallbackInventory (empty rows).
 export const fallbackSchedule = {
+  _unavailable: true,
   rows: [],
   break_operations: {
     programs: [],
@@ -70,6 +73,7 @@ export const fallbackSchedule = {
 };
 
 export const fallbackInventory = {
+  _unavailable: true,
   summary: { spots: 0, revenue: 0, seconds: 0 },
   scope_channel: null,
   by_daypart: [],
@@ -95,6 +99,7 @@ export const fallbackImpact = {
 };
 
 export const fallbackParameters = {
+  _unavailable: true,
   settings: fallbackSettings,
   guardrails: {},
   assumptions: {},

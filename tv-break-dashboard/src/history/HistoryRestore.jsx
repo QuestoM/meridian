@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '../studio/actions';
 import { Check, Lock, Pencil, RotateCcw, X } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { Figure } from '../shell/bidi';
+import { Code, Figure } from '../shell/bidi';
+import { InputControl, Pressable } from '../studio/dom-controls';
+import { Dialog } from '../studio/modal';
 import HistoryDiff from './HistoryDiff';
 import { fetchVersionDiff, renameVersion, restoreVersion } from './history-api';
 import { FILE_LABELS, RESTORE_BLOCKS, SOURCE_LABELS, pair, stampLabel } from './history-labels';
@@ -34,6 +36,8 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(facts.label || '');
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const cancelRestoreRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -41,6 +45,7 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
     setSelected(new Set(files));
     setLabel(facts.label || '');
     setEditing(false);
+    setReviewOpen(false);
     fetchVersionDiff(versionId).then((result) => {
       if (!active) return;
       if (result.ok) setDiff({ state: 'ready', data: result.data.diff || {}, files: result.data.file_permissions || {}, error: '' });
@@ -71,6 +76,15 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
     if (onChanged) onChanged();
   }, [versionId, chosen, notify, onChanged]);
 
+  const closeRestoreReview = useCallback(() => {
+    if (!busy) setReviewOpen(false);
+  }, [busy]);
+
+  const confirmRestore = useCallback(() => {
+    setReviewOpen(false);
+    void applyRestore();
+  }, [applyRestore]);
+
   const saveLabel = useCallback(async () => {
     setBusy(true);
     const result = await renameVersion(versionId, label.trim());
@@ -100,21 +114,21 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
         <span className="hist-detail-key">{pageText(locale, 'Name', 'שם')}</span>
         {editing ? (
           <span className="hist-rename">
-            <input
+            <InputControl
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               maxLength={120}
               aria-label={pageText(locale, 'Restore point name', 'שם נקודת השחזור')}
               disabled={busy}
             />
-            <button type="button" className="hist-icon-btn" onClick={saveLabel} disabled={busy} aria-label={pageText(locale, 'Save name', 'שמירת שם')}><Check size={13} /></button>
-            <button type="button" className="hist-icon-btn" onClick={() => { setEditing(false); setLabel(facts.label || ''); }} disabled={busy} aria-label={pageText(locale, 'Cancel', 'ביטול')}><X size={13} /></button>
+            <Pressable type="button" className="hist-icon-btn" onClick={saveLabel} disabled={busy} aria-label={pageText(locale, 'Save name', 'שמירת שם')}><Check size={13} /></Pressable>
+            <Pressable type="button" className="hist-icon-btn" onClick={() => { setEditing(false); setLabel(facts.label || ''); }} disabled={busy} aria-label={pageText(locale, 'Cancel', 'ביטול')}><X size={13} /></Pressable>
           </span>
         ) : (
           <span className="hist-rename">
             <span>{facts.label || pageText(locale, 'Unnamed', 'ללא שם')}</span>
             {canEdit ? (
-              <button type="button" className="hist-icon-btn" onClick={() => setEditing(true)} aria-label={pageText(locale, 'Rename restore point', 'שינוי שם נקודת השחזור')}><Pencil size={12} /></button>
+              <Pressable type="button" className="hist-icon-btn" onClick={() => setEditing(true)} aria-label={pageText(locale, 'Rename restore point', 'שינוי שם נקודת השחזור')}><Pencil size={12} /></Pressable>
             ) : null}
           </span>
         )}
@@ -139,7 +153,7 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
           <div className="hist-restore-files">
             {files.map((file) => (
               <label key={file} className={permitted(file) ? 'hist-file-opt' : 'hist-file-opt blocked'}>
-                <input
+                <InputControl
                   type="checkbox"
                   checked={selected.has(file) && permitted(file)}
                   disabled={busy || !permitted(file)}
@@ -161,11 +175,47 @@ export default function HistoryRestore({ entry, locale, canEdit, canEditReason, 
             <p className="hist-note">{pageText(locale, `${withheld.length} of these files are not this account's to put back, so they stay exactly as they are and the rest still come back.`, `${withheld.length} מהקבצים האלה אינם של החשבון הזה להחזרה, ולכן הם יישארו בדיוק כפי שהם והשאר יוחזרו.`)}</p>
           ) : null}
           <p className="hist-note">{pageText(locale, 'The current state is saved as a restore point first, so this restore can itself be undone.', 'המצב הנוכחי נשמר קודם כנקודת שחזור, כך שאפשר לבטל גם את השחזור הזה.')}</p>
-          <Button variant="contained" size="small" startIcon={<RotateCcw size={13} />} disabled={busy || !chosen.length} onClick={applyRestore}>
+          <Button variant="contained" size="small" startIcon={<RotateCcw size={13} />} disabled={busy || !chosen.length} onClick={() => setReviewOpen(true)}>
             {busy ? pageText(locale, 'Putting back', 'מחזיר') : pageText(locale, 'Put back', 'החזרה')}
           </Button>
         </div>
       ) : null}
+
+      <Dialog
+        open={reviewOpen}
+        onClose={closeRestoreReview}
+        title={pageText(locale, 'Review the restore', 'בדיקת השחזור')}
+        description={pageText(locale, 'Confirm the exact restore point, selected domains and consequence before anything is put back.', 'אשרו את נקודת השחזור המדויקת, התחומים שנבחרו והתוצאה לפני שמשהו מוחזר.')}
+        closeLabel={pageText(locale, 'Cancel and close the restore review', 'ביטול וסגירת בדיקת השחזור')}
+        initialFocusRef={cancelRestoreRef}
+        dismissOnBackdrop={false}
+        footer={(
+          <>
+            <Button ref={cancelRestoreRef} type="button" variant="outlined" disabled={busy} onClick={closeRestoreReview}>
+              {pageText(locale, 'Cancel', 'ביטול')}
+            </Button>
+            <Button type="button" variant="contained" color="error" disabled={busy || !chosen.length} onClick={confirmRestore}>
+              <RotateCcw size={13} aria-hidden="true" />
+              {pageText(locale, 'Restore selected domains', 'שחזור התחומים שנבחרו')}
+            </Button>
+          </>
+        )}
+      >
+        <div className="hist-kv">
+          <div className="hist-detail-line">
+            <span className="hist-detail-key">{pageText(locale, 'Restore point', 'נקודת שחזור')}</span>
+            <span>{facts.label || pageText(locale, 'Unnamed', 'ללא שם')} {' '}<Code>{versionId}</Code></span>
+          </div>
+          <div className="hist-detail-line">
+            <span className="hist-detail-key">{pageText(locale, 'Selected domains', 'תחומים שנבחרו')}</span>
+            <span>{chosen.map((file) => pair(FILE_LABELS, file, locale) || file).join(', ')}</span>
+          </div>
+          <div className="hist-detail-line">
+            <span className="hist-detail-key">{pageText(locale, 'Consequence', 'תוצאה')}</span>
+            <span>{pageText(locale, 'Each selected domain is replaced with the copy saved at this point. The current state is saved as a new restore point first, so this restore can itself be undone.', 'כל תחום שנבחר מוחלף בעותק שנשמר בנקודה הזו. המצב הנוכחי נשמר קודם כנקודת שחזור חדשה, כך שאפשר לבטל גם את השחזור הזה.')}</span>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

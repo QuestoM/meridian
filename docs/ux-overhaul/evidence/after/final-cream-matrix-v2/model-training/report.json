@@ -1,0 +1,1796 @@
+{
+  "slug": "model-training",
+  "address": "/?modelSection=training#Model",
+  "captures": [
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=training#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "ממשל מודל"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 3551,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 2831
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1084,
+              "height": 3345.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1084,
+              "height": 3345.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1084,
+            "top": 205,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -2830.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 16,
+                "y": 225,
+                "width": 1052,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 473,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 16,
+                "y": 259,
+                "width": 1052,
+                "height": 368.78
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": 92.22,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 16,
+                "y": 643.78,
+                "width": 1052,
+                "height": 2859.08
+              },
+              "insets": {
+                "blockStart": 438.78,
+                "blockEnd": -2782.86,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 193,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "h1",
+            "text": "ממשל מודל",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 1
+              }
+            ]
+          },
+          "latin": {
+            "selector": "span.bidi-code",
+            "text": "35cc2e21",
+            "computedFamily": "\"IBM Plex Mono\", \"Courier New\", monospace",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Mono",
+                "postScriptName": "IBMPlexMono-Regular",
+                "isCustomFont": true,
+                "glyphCount": 8
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 96.9,
+          "loadMs": 99.7,
+          "durationMs": 99.7,
+          "firstContentfulPaintMs": 124
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.463011,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.468959,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.490175,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.490321,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.490422,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.494918,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.495048,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20311.495113,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1740,
+        "settle": {
+          "elapsedMs": 865,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 96.9,
+          "loadMs": 99.7,
+          "durationMs": 99.7,
+          "firstContentfulPaintMs": 124
+        }
+      },
+      "screenshots": {
+        "full": "model-training/he/1280x720/full.png",
+        "top": {
+          "path": "model-training/he/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-training/he/1280x720/middle.png",
+          "scrollY": 1416
+        },
+        "bottom": {
+          "path": "model-training/he/1280x720/bottom.png",
+          "scrollY": 2831
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=training#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "ממשל מודל"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 3209,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 2309
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1728,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1508,
+              "height": 3003.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1508,
+              "height": 3003.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1508,
+            "top": 205,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -2308.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 24,
+                "y": 225,
+                "width": 1460,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 653,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 24,
+                "y": 259,
+                "width": 1460,
+                "height": 312.78
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": 328.22,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 24,
+                "y": 587.78,
+                "width": 1460,
+                "height": 2573.08
+              },
+              "insets": {
+                "blockStart": 382.78,
+                "blockEnd": -2260.86,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 193,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "h1",
+            "text": "ממשל מודל",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 1
+              }
+            ]
+          },
+          "latin": {
+            "selector": "span.bidi-code",
+            "text": "35cc2e21",
+            "computedFamily": "\"IBM Plex Mono\", \"Courier New\", monospace",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Mono",
+                "postScriptName": "IBMPlexMono-Regular",
+                "isCustomFont": true,
+                "glyphCount": 8
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 2.1,
+          "domContentLoadedMs": 103.2,
+          "loadMs": 106.2,
+          "durationMs": 106.2,
+          "firstContentfulPaintMs": 128
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.78051,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.786721,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.806587,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.806757,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.806861,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.811462,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.811577,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20313.811638,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1725,
+        "settle": {
+          "elapsedMs": 852,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 2.1,
+          "domContentLoadedMs": 103.2,
+          "loadMs": 106.2,
+          "durationMs": 106.2,
+          "firstContentfulPaintMs": 128
+        }
+      },
+      "screenshots": {
+        "full": "model-training/he/1728x900/full.png",
+        "top": {
+          "path": "model-training/he/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-training/he/1728x900/middle.png",
+          "scrollY": 1155
+        },
+        "bottom": {
+          "path": "model-training/he/1728x900/bottom.png",
+          "scrollY": 2309
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=training#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Model governance"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 3551,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 2831
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 196,
+              "y": 205,
+              "width": 1084,
+              "height": 3345.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 196,
+              "y": 205,
+              "width": 1084,
+              "height": 3345.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "mainViewport": {
+            "left": 196,
+            "right": 1280,
+            "top": 205,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -2830.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 212,
+                "y": 225,
+                "width": 1052,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 473,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 212,
+                "y": 259,
+                "width": 1052,
+                "height": 368.78
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": 92.22,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 212,
+                "y": 643.78,
+                "width": 1052,
+                "height": 2859.08
+              },
+              "insets": {
+                "blockStart": 438.78,
+                "blockEnd": -2782.86,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 193,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": null,
+          "latin": {
+            "selector": "h1",
+            "text": "Model governance",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 16
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 100.3,
+          "loadMs": 103,
+          "durationMs": 103,
+          "firstContentfulPaintMs": 124
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.058008,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.064406,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.082866,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.083025,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.083129,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.087235,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.087367,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20316.087432,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1723,
+        "settle": {
+          "elapsedMs": 859,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 100.3,
+          "loadMs": 103,
+          "durationMs": 103,
+          "firstContentfulPaintMs": 124
+        }
+      },
+      "screenshots": {
+        "full": "model-training/en/1280x720/full.png",
+        "top": {
+          "path": "model-training/en/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-training/en/1280x720/middle.png",
+          "scrollY": 1416
+        },
+        "bottom": {
+          "path": "model-training/en/1280x720/bottom.png",
+          "scrollY": 2831
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=training#Model",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=training#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Model governance"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 3265,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 2365
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1728,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 220,
+              "y": 205,
+              "width": 1508,
+              "height": 3059.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-training",
+            "rect": {
+              "x": 220,
+              "y": 205,
+              "width": 1508,
+              "height": 3059.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 220,
+            "right": 1728,
+            "top": 205,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -2364.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 244,
+                "y": 225,
+                "width": 1460,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 653,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 244,
+                "y": 259,
+                "width": 1460,
+                "height": 368.78
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": 272.22,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 244,
+                "y": 643.78,
+                "width": 1460,
+                "height": 2573.08
+              },
+              "insets": {
+                "blockStart": 438.78,
+                "blockEnd": -2316.86,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 193,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": null,
+          "latin": {
+            "selector": "h1",
+            "text": "Model governance",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 16
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.7,
+          "domContentLoadedMs": 100.8,
+          "loadMs": 103.6,
+          "durationMs": 103.6,
+          "firstContentfulPaintMs": 124
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/training",
+          "http://127.0.0.1:3000/api/model/coverage"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.339501,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.345392,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.36432,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.364469,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.364568,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.368628,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/training",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.36875,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20318.368813,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1730,
+        "settle": {
+          "elapsedMs": 853,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.7,
+          "domContentLoadedMs": 100.8,
+          "loadMs": 103.6,
+          "durationMs": 103.6,
+          "firstContentfulPaintMs": 124
+        }
+      },
+      "screenshots": {
+        "full": "model-training/en/1728x900/full.png",
+        "top": {
+          "path": "model-training/en/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-training/en/1728x900/middle.png",
+          "scrollY": 1183
+        },
+        "bottom": {
+          "path": "model-training/en/1728x900/bottom.png",
+          "scrollY": 2365
+        }
+      }
+    }
+  ]
+}

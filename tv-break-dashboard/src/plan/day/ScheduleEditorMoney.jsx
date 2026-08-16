@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Calculator, CheckCircle2 } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { Figure } from '../../shell/bidi';
 import { formatDay, formatDayList } from '../../shell/dates';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
@@ -79,7 +80,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
           </span>
         )}
         <div className="day-readout-actions">
-          <button
+          <Pressable
             type="button"
             className="day-action"
             onClick={money.check}
@@ -89,7 +90,7 @@ function ScheduleEditorMoney({ money, locale, editCount }) {
             {money.checking
               ? label('Measuring', 'מודד')
               : label('Check what saving would do', 'בדיקה מה תעשה השמירה')}
-          </button>
+          </Pressable>
         </div>
       </div>
 

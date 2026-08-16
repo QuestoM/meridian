@@ -159,17 +159,21 @@ export function useConversations(notify) {
   const adopt = useCallback((id) => { setActiveId(id); }, []);
 
   const create = useCallback(async () => {
-    if (busy) return;
+    if (busy) return null;
     setBusy(true);
     try {
       const body = await apiRequest('/api/assistant/conversations', jsonOptions('POST', {}));
+      let createdId = null;
       if (body && body.id != null) {
-        setActiveId(String(body.id));
+        createdId = String(body.id);
+        setActiveId(createdId);
         setLoadNonce((nonce) => nonce + 1);
       }
       await refreshList();
+      return createdId;
     } catch (error) {
       if (notify) notify(`Creating a conversation failed (${isolate(error.message)}).`, `יצירת שיחה נכשלה (${isolate(error.message)}).`);
+      return null;
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@ import { Code } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { Absent, Earliest, Figure, Panel, Stat } from './console-bits';
 import { pick, t } from './console-words';
+import { Pressable } from '../../studio/dom-controls';
 
 // How much contrast the data carries, and the register of what is blocked on
 // data nobody has. The register is the part that does not exist anywhere in the
@@ -180,11 +181,11 @@ function Supply({ row, locale, onOpenEvents }) {
       <span className="mc-blocked-label">{t('coverage.supply', locale)}</span>
       {' '}
       {openable ? (
-        <button type="button" className="mc-link mc-blocked-open" onClick={onOpenEvents}>
+        <Pressable type="button" className="mc-link mc-blocked-open" onClick={onOpenEvents}>
           {t('coverage.supply_store_open', locale)}
           {' '}
           <code><Code>{row.source}</Code></code>
-        </button>
+        </Pressable>
       ) : (
         <code><Code>{row.source}</Code></code>
       )}

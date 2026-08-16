@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pageText } from '../../shell/format';
-import { Figure, Name } from '../../shell/bidi';
-import { ScheduleTrackSurface, ProgrammeBand, useScheduleZoom } from './schedule-track-view';
-import { timeWindow, spanStyle } from './schedule-track';
+import { formatClock, todayIso } from '../../shell/dates';
+import { useScheduleZoom } from './schedule-track-view';
+import { minuteClock, timeWindow } from './schedule-track';
 import { createDragHandlers } from './day-board-drag';
-import DayBoardChip from './DayBoardChip';
+import DayBreakNavigator from './DayBreakNavigator';
+import DayBoardTimeline from './DayBoardTimeline';
 import DayBoardReadout, { HourStrip } from './DayBoardReadout';
 import DayBoardSettlement, { failureText } from './DayBoardSettlement';
 import DayBoardToolbar from './DayBoardToolbar';
+import DayBoardWriteDialog from './DayBoardWriteDialog';
+import useDayBoardWriteReview from './use-day-board-write-review';
 import { inverseOf, settlementOf } from './day-board-settlement';
 import {
   DEFAULT_SNAP,
@@ -29,24 +32,15 @@ import { fitTheDay, fitTheProgramme } from './day-board-zoom';
 import { predictionFor, useSaveForecast } from './day-board-forecast';
 import * as writes from './day-board-writes';
 import { fetchDay, scoreDay } from './day-board-actions';
-import { LIVE_PLAN, breakCountText, planBasisLabel } from './plan-basis';
+import { useDayBoardVariantDraft } from './day-board-variant-draft';
 import './day-board.css';
 import './day-readout.css';
-
-// One broadcast day, as the physical thing a scheduler works on.
-//
-// The board holds the programmes as bands on a true time axis and every break as
-// an object that can be selected, dragged, resized, marked gold, saved and
-// undone. Nothing here opens a dialog: every act is either a direct
-// manipulation or a keystroke, and every act is reversible from the same
-// surface it happened on, and nothing on it is a dead end: a band opens its
-// programme's own record and an hour bar selects the break the plan puts in it.
-//
-// The money answer is live because the engine has a scoring seam that costs
-// microseconds rather than a re-optimization that costs a second. Measured
-// end to end on this surface, a drop is answered in tens of milliseconds against
-// a five hundred millisecond bar.
-function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onOpenProgramme, onDayLoaded }) {
+function broadcastSecondsOfDay(timestamp) {
+  const match = String(formatClock(timestamp)).match(/(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 3600 + Number(match[2]) * 60;
+}
+function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onOpenProgramme, onDayLoaded, onWorkState, draftCommand }) {
   const he = locale === 'he';
   const [board, setBoard] = useState(null);
   const [loadState, setLoadState] = useState('idle');
@@ -63,25 +57,25 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   const [lastGold, setLastGold] = useState(null);
   const [snapGrid, setSnapGrid] = useState(DEFAULT_SNAP);
   const [snapMark, setSnapMark] = useState(null);
+  const [clockPulse, setClockPulse] = useState(() => Date.now());
   const trackRef = useRef(null);
   const localZoom = useScheduleZoom(6);
   const { pxPerMin, floor, setZoom, zoomBy, fitTo } = zoom || localZoom;
-
-  // The day-loaded callback is held in a ref rather than in the loader's
-  // dependency list. A parent that passes an inline arrow hands this component a
-  // new function identity on every render, and a loader that depended on it
-  // would be rebuilt each time, re-run its effect, set state and render again.
-  // Measured before this ref existed: the board refetched the day every 110 ms
-  // for as long as the page was open. A callback prop is never a load dependency.
+  // A callback prop is not a data-load dependency; keep its current identity in
+  // a ref so an inline parent callback cannot create a fetch/render loop.
   const onDayLoadedRef = useRef(onDayLoaded);
   onDayLoadedRef.current = onDayLoaded;
-
+  // Refuse a late request before it can replace the newly addressed day, its
+  // totals, or the caller's plan-of-record comparison.
+  const wantedDayRef = useRef(day);
+  wantedDayRef.current = day;
   const load = useCallback(async (targetDay) => {
     if (!targetDay) return;
     setLoadState('loading');
     setLoadError('');
     try {
       const payload = await fetchDay(targetDay);
+      if (wantedDayRef.current !== targetDay) return null;
       setBoard(payload);
       // The old score described the arrangement that was on screen a moment ago.
       // Measured: after an undo it kept 1,037,270 on screen for about 50 ms while
@@ -96,13 +90,13 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
       // race the render that sets it.
       return payload;
     } catch (error) {
+      if (wantedDayRef.current !== targetDay) return null;
       setBoard(null);
       setLoadError(error.message);
       setLoadState('error');
       return null;
     }
   }, []);
-
   const programmes = useMemo(() => programmeIndex(board?.programmes), [board]);
   const breaks = board?.breaks || [];
   const { history, push: pushHistory, reset: resetHistory, forget: forgetAction, forgetRecord, undo, redo, lastSave } =
@@ -110,7 +104,9 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   // What saving would really cost, measured on request and dropped the moment any
   // edit changes it. See day-board-forecast.js for why the cheap score is not it.
   const { forecast, checking, check: checkSaveEffect } = useSaveForecast({ board, edits, notify });
-
+  useDayBoardVariantDraft({
+    board, breaks, programmes, command: draftCommand, setEdits, setSelected, setScore, setSettlement, resetHistory, notify,
+  });
   useEffect(() => {
     setEdits({});
     resetHistory();
@@ -120,6 +116,12 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     load(day);
   }, [day, load, resetHistory]);
 
+  useEffect(() => {
+    if (!board?.day || board.day !== todayIso()) return undefined;
+    const interval = window.setInterval(() => setClockPulse(Date.now()), 15000);
+    return () => window.clearInterval(interval);
+  }, [board?.day]);
+
   const axis = useMemo(() => {
     const values = [];
     (board?.programmes || []).forEach((programme) => {
@@ -128,9 +130,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     return timeWindow(values);
   }, [board]);
 
-  // Score whatever is on screen now. The endpoint answers in under a
-  // millisecond of engine time, so this runs on every settled edit rather than
-  // behind a button.
+  // Score the settled edit in place; the scoring seam is intentionally cheap.
   useEffect(() => {
     if (!board) return undefined;
     let alive = true;
@@ -143,10 +143,6 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   }, [board, edits]);
 
   const liveOf = useCallback((item) => liveBreak(item, edits), [edits]);
-
-  function positionStyle(startSec, endSec) {
-    return spanStyle(axis, pxPerMin, startSec / 60, endSec / 60);
-  }
 
   function commit(item, next, actionName) {
     const before = liveOf(item);
@@ -204,7 +200,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
       onOpenBreak(item.break_id);
     } else if (event.key === 'g' || event.key === 'G') {
       event.preventDefault();
-      toggleGold(item);
+      writeReview.requestGold(item);
     } else if (event.key === 'Escape') {
       event.preventDefault();
       setSelected(null);
@@ -257,6 +253,8 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
     });
   }
 
+  const writeReview = useDayBoardWriteReview({ board, edits, liveOf, notify, onGold: toggleGold, onSave: saveAll });
+
   // The inverse of a save, offered on the break itself rather than on the
   // session. The prediction it settles against is the inverse of what the save
   // turned out to cost, and after a reload there is no measured save behind it,
@@ -288,6 +286,22 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   const activeHour = selectedItem
     ? Math.floor(startSecondsOf(selectedItem, programmes.get(selectedItem.segment_id), liveOf(selectedItem)) / 3600)
     : null;
+  const liveDay = Boolean(board?.day) && board.day === todayIso();
+  const transmissionCursorSeconds = liveDay
+    ? broadcastSecondsOfDay(clockPulse)
+    : selectedItem
+      ? startSecondsOf(selectedItem, programmes.get(selectedItem.segment_id), liveOf(selectedItem))
+      : null;
+  const transmissionCursorClock = transmissionCursorSeconds === null ? null : minuteClock(transmissionCursorSeconds / 60);
+
+  const selectBreak = useCallback((breakId) => {
+    setSelected(breakId || null);
+    if (!breakId) return;
+    window.setTimeout(() => {
+      const node = trackRef.current?.querySelector(`[data-break-id="${CSS.escape(String(breakId))}"]`);
+      node?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }, 0);
+  }, []);
 
   if (loadState === 'error') {
     return (
@@ -317,7 +331,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
   }
 
   return (
-    <div className="day-board">
+    <div className="card day-board">
       <DayBoardToolbar
         board={board}
         locale={locale}
@@ -352,78 +366,56 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
           const offsetSeconds = snapTo(clockSeconds - programme.start_seconds, 1, bounds.min, bounds.max);
           commit(selectedItem, { ...live, offsetSeconds }, 'move');
         }}
-        onGold={() => selectedItem && toggleGold(selectedItem)}
+        onGold={() => selectedItem && writeReview.requestGold(selectedItem)}
         onOpen={() => selectedItem && onOpenBreak(selectedItem.break_id)}
       />
 
-      <ScheduleTrackSurface axis={axis} pxPerMin={pxPerMin} onZoom={setZoom} locale={locale} floor={floor}>
-        {({ width, minWidth, ticks }) => (
-          <div className="day-track-row" style={{ minWidth }}>
-            <div className="day-track-lane">
-              <strong><Name>{board.operator_channel}</Name></strong><Figure>{board.day}</Figure>
-              <span className="timeline-lane-count"><span>{breakCountText(breaks.length, locale)}</span><small className="timeline-lane-basis">{planBasisLabel(LIVE_PLAN, locale)}</small></span>
-            </div>
-            <div className="day-track" style={{ width }} ref={trackRef}>
-              {ticks.filter((tick) => tick.major).map((tick) => (
-                <i className="day-track-tick" key={tick.minute} style={{ left: `${tick.left}px` }} />
-              ))}
-              {(board.programmes || []).map((programme) => (
-                <ProgrammeBand
-                  key={programme.segment_id}
-                  title={programme.title}
-                  classLabel={programme.genre}
-                  windowText={`${Math.round(programme.duration_seconds / 60)}m`}
-                  style={positionStyle(programme.start_seconds, programme.end_seconds)}
-                  clickable={Boolean(onOpenProgramme)}
-                  onOpen={() => onOpenProgramme(programme)}
-                />
-              ))}
-              {snapMark !== null && (
-                <i className="day-snap-line" style={{ left: spanStyle(axis, pxPerMin, snapMark / 60, snapMark / 60).left }} />
-              )}
-              {breaks.map((item) => {
-                const programme = programmes.get(item.segment_id);
-                const live = liveOf(item);
-                const startSeconds = startSecondsOf(item, programme, live);
-                // The width the chip is really drawn at, so it can decide which
-                // of its own numbers it is able to print in full.
-                const geometry = positionStyle(startSeconds, startSeconds + live.durationSeconds);
-                return (
-                  <DayBoardChip
-                    key={item.break_id}
-                    item={item}
-                    live={live}
-                    startSeconds={startSeconds}
-                    selected={selected === item.break_id}
-                    edited={live.edited}
-                    saved={Boolean(item.saved_placement)}
-                    locale={locale}
-                    style={geometry}
-                    widthPx={parseFloat(geometry.width)}
-                    onSelect={setSelected}
-                    onMovePointerDown={handleMovePointerDown}
-                    onResizePointerDown={handleResizePointerDown}
-                    onKeyDown={handleKeyDown}
-                    onOpen={onOpenBreak}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </ScheduleTrackSurface>
+      <DayBoardTimeline
+        board={board}
+        breaks={breaks}
+        programmes={programmes}
+        liveOf={liveOf}
+        selected={selected}
+        locale={locale}
+        axis={axis}
+        pxPerMin={pxPerMin}
+        floor={floor}
+        onZoom={setZoom}
+        trackRef={trackRef}
+        snapMark={snapMark}
+        liveDay={liveDay}
+        transmissionCursorSeconds={transmissionCursorSeconds}
+        transmissionCursorClock={transmissionCursorClock}
+        onOpenProgramme={onOpenProgramme}
+        onOpenBreak={onOpenBreak}
+        onMovePointerDown={handleMovePointerDown}
+        onResizePointerDown={handleResizePointerDown}
+      />
+
+      <DayBreakNavigator
+        breaks={breaks}
+        programmes={programmes}
+        liveOf={liveOf}
+        selected={selected}
+        onSelect={selectBreak}
+        onOpen={onOpenBreak}
+        onKeyDown={handleKeyDown}
+        locale={locale}
+      />
 
       <HourStrip
         hours={view ? view.hours : board.hours}
         locale={locale}
         activeHour={activeHour}
-        onOpenHour={(hour) => setSelected((current) => firstBreakInHour(breaks, programmes, liveOf, hour) || current)}
+        onOpenHour={(hour) => selectBreak(firstBreakInHour(breaks, programmes, liveOf, hour) || selected)}
       />
 
       <DayBoardReadout
         score={view}
         locale={locale}
         editCount={editCount}
+        draftEdits={edits}
+        onStateChange={onWorkState}
         canUndo={history.past.length > 0}
         saving={saving}
         unbound={board.unbound_placements}
@@ -433,7 +425,7 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
         onCheck={checkSaveEffect}
         onUndo={() => (editCount === 0 && lastSave ? undoLastSave() : undo())}
         onDiscard={() => { setEdits({}); resetHistory(); }}
-        onSave={saveAll}
+        onSave={writeReview.requestSave}
       />
 
       <DayBoardSettlement
@@ -442,6 +434,13 @@ function DayBoard({ day, locale, notify, onGlobalRefresh, zoom, onOpenBreak, onO
         canUndo={(goldSettled ? Boolean(lastGold) : Boolean(lastSave)) && !saving}
         onUndo={goldSettled ? undoLastGold : undoLastSave}
         onDismiss={() => setSettlement(null)}
+      />
+      <DayBoardWriteDialog
+        review={writeReview.review}
+        locale={locale}
+        busy={saving}
+        onCancel={writeReview.cancel}
+        onConfirm={writeReview.confirm}
       />
     </div>
   );

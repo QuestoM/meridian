@@ -1,9 +1,12 @@
 import React from 'react';
-import { List, ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Menu, MenuItem, Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown, Info, KeyRound, LogOut, Users } from 'lucide-react';
 import { pageText } from './format';
-import { navItems } from './nav';
+import { DOMAIN_DEFINITIONS } from './nav';
+import { MabatIcon, KairosMark } from './kairos-icons';
 import { roleLabel } from './Login';
+import { Pressable } from './dom-controls';
 
 function operatorInitials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -16,10 +19,11 @@ function operatorInitials(name) {
 export function renderSideRail({
   copy,
   locale,
-  activeView,
+  activeDomain,
   setActiveView,
   assistantOpen,
   auth,
+  canAccessModel,
   userMenuAnchor,
   setUserMenuAnchor,
   setPasswordDialogOpen,
@@ -27,47 +31,46 @@ export function renderSideRail({
   handleLogout,
 }) {
   return (
-      <aside className="side-rail" aria-label="Kairos navigation">
+      <aside className="side-rail" aria-label={pageText(locale, 'Kairos primary navigation', 'הניווט הראשי של Kairos')}>
         <div className="brand-lockup">
-          <div className="brand-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div>
-            <strong>Kairos</strong>
-            <small>{copy.workspace}</small>
-          </div>
+          <KairosMark size={34} />
+          <strong className="brand-wordmark">KAIROS</strong>
+          <small className="brand-workspace">{copy.workspace}</small>
         </div>
 
-        <List component="nav" className="primary-nav" disablePadding>
-          {navItems.map(([label, Icon]) => {
-            // The Assistant entry reflects the dock: lit while the dock is
-            // open on any page, and clicking it opens or focuses the dock.
-            const isActive = label === 'Assistant' ? assistantOpen : label === activeView;
+        <nav className="primary-nav" aria-label={pageText(locale, 'Work domains', 'תחומי עבודה')}>
+          {DOMAIN_DEFINITIONS.map(({ id, icon: Icon, en, he }) => {
+            const isActive = id === activeDomain;
             return (
-            <ListItemButton
-              key={label}
-              component="button"
+            <Button
+              key={id}
+              variant="text"
               className={isActive ? 'nav-item active' : 'nav-item'}
-              type="button"
-              selected={isActive}
-              disableRipple
-              aria-current={label === activeView ? 'page' : undefined}
-              onClick={() => setActiveView(label)}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => setActiveView(id)}
             >
-              <ListItemIcon className="nav-icon">
-                <Icon size={16} strokeWidth={1.8} />
-              </ListItemIcon>
-              <ListItemText className="nav-text" disableTypography primary={<span>{copy.nav[label]}</span>} />
-            </ListItemButton>
+              <span className="nav-icon" aria-hidden="true"><Icon size={19} /></span>
+              <span className="nav-text">{locale === 'he' ? he : en}</span>
+            </Button>
             );
           })}
-        </List>
+        </nav>
+
+        <div className="rail-tools">
+          <Button
+            variant="text"
+            className={assistantOpen ? 'nav-item assistant-entry active' : 'nav-item assistant-entry'}
+            aria-pressed={assistantOpen}
+            onClick={() => setActiveView('Assistant')}
+          >
+            <span className="nav-icon" aria-hidden="true"><MabatIcon size={20} /></span>
+            <span className="nav-text">{pageText(locale, 'Mabat assistant', 'מבט, העוזר')}</span>
+          </Button>
+        </div>
 
         {auth.status === 'ready' && auth.user ? (
           <>
-            <button
+            <Pressable
               type="button"
               className="operator-card"
               onClick={(event) => setUserMenuAnchor(event.currentTarget)}
@@ -79,7 +82,7 @@ export function renderSideRail({
                 <small>{roleLabel(auth.user.role, locale)}</small>
               </div>
               <ChevronDown size={14} />
-            </button>
+            </Pressable>
             <Menu anchorEl={userMenuAnchor} open={Boolean(userMenuAnchor)} onClose={() => setUserMenuAnchor(null)}>
               <MenuItem
                 onClick={() => {
@@ -87,7 +90,7 @@ export function renderSideRail({
                   setPasswordDialogOpen(true);
                 }}
               >
-                <KeyRound size={14} style={{ marginInlineEnd: 8 }} />
+                <KeyRound size={16} className="menu-item-icon" />
                 {pageText(locale, 'Change password', 'החלפת סיסמה')}
               </MenuItem>
               {auth.user.role === 'admin' && (
@@ -97,12 +100,23 @@ export function renderSideRail({
                     setAccountsDialogOpen(true);
                   }}
                 >
-                  <Users size={14} style={{ marginInlineEnd: 8 }} />
+                  <Users size={16} className="menu-item-icon" />
                   {pageText(locale, 'Manage accounts', 'ניהול חשבונות')}
                 </MenuItem>
               )}
+              {canAccessModel && (
+                <MenuItem
+                  onClick={() => {
+                    setUserMenuAnchor(null);
+                    setActiveView('Model');
+                  }}
+                >
+                  <MabatIcon size={16} className="menu-item-icon" />
+                  {pageText(locale, 'Company model', 'מודל החברה')}
+                </MenuItem>
+              )}
               <MenuItem onClick={handleLogout}>
-                <LogOut size={14} style={{ marginInlineEnd: 8 }} />
+                <LogOut size={16} className="menu-item-icon" />
                 {pageText(locale, 'Sign out', 'יציאה מהמערכת')}
               </MenuItem>
             </Menu>

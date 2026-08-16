@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 from functools import lru_cache
 
+from kairos.optimize import inventory as inventory_input
 from kairos_api.core import (
     DATA_DIR,
     OUTPUT_DIR,
@@ -70,6 +71,7 @@ def frontier_data_signature() -> tuple[tuple[str, int], ...]:
         DATA_DIR / "reference" / "Spots.xlsx",
         DATA_DIR / "Programmes.csv",
         DATA_DIR / "Spots.csv",
+        inventory_input.DEFAULT_INVENTORY_PATH,
     ]
     sig: list[tuple[str, int]] = []
     for path in candidates:

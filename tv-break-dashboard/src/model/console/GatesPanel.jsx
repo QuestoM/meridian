@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Prose } from '../../shell/bidi';
 import { Absent, Basis, Earliest, Panel, RecordDrill, STATE_ORDER, Verdict } from './console-bits';
 import { pick, t } from './console-words';
+import { Pressable } from '../../studio/dom-controls';
 
 // The gate table. One row per gate, its state, its basis on the same row, and
 // the artifact's own sentence underneath. The counts at the top are the filter,
@@ -22,7 +23,7 @@ import { pick, t } from './console-words';
 function StateLegend({ states, counts, active, onPick, locale }) {
   return (
     <div className="mc-legend" role="group" aria-label={t('gates.filter', locale)}>
-      <button
+      <Pressable
         type="button"
         className={`mc-legend-item ${active === 'all' ? 'on' : ''}`}
         onClick={() => onPick('all')}
@@ -30,12 +31,12 @@ function StateLegend({ states, counts, active, onPick, locale }) {
       >
         <span className="mc-legend-count">{Object.values(counts).reduce((a, b) => a + b, 0)}</span>
         <span className="mc-legend-label">{t('gates.all', locale)}</span>
-      </button>
+      </Pressable>
       {STATE_ORDER.map((id) => {
         const state = states.find((entry) => entry.id === id);
         if (!state) return null;
         return (
-          <button
+          <Pressable
             type="button"
             key={id}
             className={`mc-legend-item mc-${id} ${active === id ? 'on' : ''}`}
@@ -46,7 +47,7 @@ function StateLegend({ states, counts, active, onPick, locale }) {
             <span className="mc-legend-count">{counts[id] ?? 0}</span>
             <span className="mc-legend-label">{locale === 'en' ? state.en : state.he}</span>
             <span className="mc-legend-meaning">{locale === 'en' ? state.meaning_en : state.meaning_he}</span>
-          </button>
+          </Pressable>
         );
       })}
     </div>
@@ -118,9 +119,9 @@ function NoGates({ state, locale, onClear }) {
         title={state ? t('gates.none_in_state', locale) : t('gates.none_recorded', locale)}
         reason={state ? `${label}: ${meaning}` : t('provenance.no_artifacts', locale)}
         action={state ? (
-          <button type="button" className="mc-link" onClick={onClear}>
+          <Pressable type="button" className="mc-link" onClick={onClear}>
             {t('gates.show_all', locale)}
-          </button>
+          </Pressable>
         ) : null}
       />
     </div>

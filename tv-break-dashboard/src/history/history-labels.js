@@ -89,7 +89,7 @@ export const ACTION_LABELS = {
   gold_change: ['Gold break saved', 'ברייק זהב נשמר'],
   break_change: ['Break saved', 'ברייק נשמר'],
   guardrail_change: ['Regulatory limit saved', 'מגבלת רגולציה נשמרה'],
-  model_activation_change: ['Audience model switch thrown', 'מתג מודל הקהל הופעל'],
+  model_activation_change: ['Audience model activation saved', 'מצב ההפעלה של מודל הקהל נשמר'],
   channel_change: ['Operator channel saved', 'ערוץ המפעיל נשמר'],
   client_change: ['Client record saved', 'רשומת לקוח נשמרה'],
   client_onboarding: ['Client onboarded', 'לקוח נקלט'],
@@ -99,26 +99,26 @@ export const ACTION_LABELS = {
   restore_point_saved: ['Restore point saved', 'נקודת שחזור נשמרה'],
   restore_point_renamed: ['Restore point renamed', 'שם נקודת שחזור שונה'],
   restore: ['Restore applied', 'שחזור בוצע'],
-  assistant_action: ['Kai proposal decided', 'הצעה של קאי הוכרעה'],
-  assistant_undo: ['Kai change undone', 'שינוי של קאי בוטל'],
-  assistant_upload: ['File given to Kai', 'קובץ נמסר לקאי'],
-  conversation_change: ['Kai conversation changed', 'שיחה עם קאי שונתה'],
+  assistant_action: ['Human decision on a Mabat proposal recorded', 'החלטה אנושית על הצעה של מבט נרשמה'],
+  assistant_undo: ['Mabat change undone', 'שינוי של מבט בוטל'],
+  assistant_upload: ['File given to Mabat', 'קובץ נמסר למבט'],
+  conversation_change: ['Mabat conversation changed', 'שיחה עם מבט שונתה'],
   job_change: ['Job changed', 'תפקיד שונה'],
   password_change: ['Password changed', 'סיסמה שונתה'],
   account_change: ['Account changed', 'חשבון שונה'],
   decision: ['Decision recorded', 'החלטה נרשמה'],
   model_training: ['Model trained', 'המודל אומן'],
   model_version: ['Model version recorded', 'גרסת מודל נרשמה'],
-  model_decision: ['Ship decision recorded', 'הכרעת שילוח נרשמה'],
-  candidate_measure: ['Candidate measured', 'מועמד נמדד'],
+  model_decision: ['Model release decision recorded', 'החלטת הפצת מודל נרשמה'],
+  candidate_measure: ['Candidate model measured', 'מודל מועמד נמדד'],
   preview: ['Plan preview', 'תצוגה מקדימה של התוכנית'],
   placement_preview: ['Placement scored', 'מיקום נבדק'],
   price_preview: ['Price change previewed', 'שינוי מחיר בתצוגה מקדימה'],
   price_test: ['Price tested', 'בדיקת מחיר'],
   restriction_preview: ['Restriction previewed', 'הגבלה בתצוגה מקדימה'],
   source_check: ['Source file checked', 'קובץ מקור נבדק'],
-  assistant_context: ['Kai read the page', 'קאי קרא את המסך'],
-  assistant_ask: ['Question to Kai', 'שאלה לקאי'],
+  assistant_context: ['Mabat read the page', 'מבט קרא את המסך'],
+  assistant_ask: ['Question to Mabat', 'שאלה למבט'],
   other: ['Change', 'שינוי'],
 };
 
@@ -167,7 +167,7 @@ export const ACTION_DOORS = {
 
 export const SOURCE_LABELS = {
   manual_edit: ['Saved on a surface', 'נשמר במסך'],
-  assistant_apply: ['Applied through Kai', 'אושר דרך קאי'],
+  assistant_apply: ['Applied through Mabat', 'אושר דרך מבט'],
   manual_snapshot: ['Saved by hand', 'נשמר ידנית'],
   pre_restore: ['Saved before a restore', 'נשמר לפני שחזור'],
 };
@@ -328,7 +328,7 @@ export function forceUnit(key) {
 }
 
 export const VIA_LABELS = {
-  assistant: ['Kai', 'קאי'],
+  assistant: ['Mabat', 'מבט'],
   engine: ['Engine', 'מנוע'],
   dashboard: ['', ''],
 };
@@ -361,7 +361,7 @@ export const stampLabel = (iso) => formatStamp(iso);
 export { isoDay, todayIso };
 
 // An entry has an address, so it can be linked to, reloaded onto and handed
-// over. Kai hands back a restore point and its "see it in the history" control
+// over. Mabat hands back a restore point and its "see it in the history" control
 // has to land on that point rather than on the top of a list of six thousand
 // rows, and a person who finds the row that explains a number has to be able to
 // send it to somebody.

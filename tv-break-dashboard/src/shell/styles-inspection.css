@@ -1,0 +1,192 @@
+/* Analytics, frontier and ledger primitives.
+   Loaded in source order from index.jsx; keep feature overrides in their owning sheets. */
+/* The inline inset of .panel-head comes from card.css, which is where the one
+   inset of a card lives. Only the vertical padding is stated here. */
+.card-head,
+.panel-head {
+  height: 50px;
+  padding-block: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.card-head h2,
+.panel-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  text-transform: none;
+}
+
+.card-head span,
+.panel-head span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, max-content) minmax(120px, max-content);
+  align-items: center;
+  min-height: 32px;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-row > span:first-of-type {
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-align: start;
+}
+
+.ledger-row strong {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ledger-row .at-risk {
+  color: var(--amber);
+}
+
+.analytics-panel {
+  min-height: 270px;
+  overflow: hidden;
+}
+
+.frontier-panel {
+  min-height: 338px;
+  padding-bottom: var(--space-3);
+}
+
+.frontier-chart-frame,
+.frontier-skeleton {
+  width: calc(100% - 20px);
+  height: 224px;
+  margin: 8px 10px 0;
+}
+
+.frontier-chart-frame {
+  position: relative;
+}
+
+.frontier-skeleton {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    var(--surface-muted);
+  background-size: 100% 52px, 25% 100%, auto;
+}
+
+.frontier-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.frontier-svg line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.frontier-svg path {
+  fill: none;
+  stroke: var(--teal);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.frontier-svg circle {
+  fill: var(--surface);
+  stroke: var(--teal);
+  stroke-width: 2;
+}
+
+.frontier-svg .selected-point {
+  fill: var(--teal);
+  stroke: var(--surface);
+  stroke-width: 2.5;
+}
+
+.frontier-svg .active-point {
+  fill: var(--teal);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.frontier-svg .frontier-hover-guides line {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.22;
+}
+
+.frontier-svg text {
+  fill: var(--ink);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.frontier-svg .axis-label {
+  fill: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-soft);
+}
+
+.frontier-svg .axis-label-end {
+  text-anchor: end;
+}
+
+.ledger-list {
+  padding: var(--space-4) var(--card-inset);
+}
+
+.ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.ledger-row small {
+  min-width: 120px;
+  color: var(--muted);
+}
+
+.ledger-measure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  white-space: nowrap;
+  text-align: start;
+}
+
+.ledger-values {
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-unit,
+.ledger-violations {
+  color: var(--muted);
+}
+
+.ledger-violations::before {
+  content: "-";
+  margin-inline: 2px;
+  color: var(--muted);
+}
+
+.ledger-note {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}

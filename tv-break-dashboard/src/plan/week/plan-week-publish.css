@@ -47,6 +47,7 @@
   cursor: pointer;
   text-align: start;
   padding: var(--space-1) 0;
+  min-block-size: 44px;
 }
 
 .plan-version-name {
@@ -107,8 +108,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 22px;
-  block-size: 22px;
+  inline-size: 44px;
+  block-size: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius-xs);
   background: var(--surface);

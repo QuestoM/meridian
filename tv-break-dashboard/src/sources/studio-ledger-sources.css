@@ -1,0 +1,244 @@
+/* Master Control / Sources
+   A lineage console: compact input ledger, persistent evidence inspector and
+   bounded row previews. All values come from the shared design tokens. */
+
+.sources-page {
+  inline-size: 100%;
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  gap: var(--space-3);
+  padding-block: var(--space-3) var(--space-10);
+  color: var(--ink);
+}
+
+.sources-page > .page-header {
+  inline-size: 100%;
+  min-block-size: 60px;
+  max-inline-size: none;
+  margin-inline: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--line-strong);
+}
+
+.sources-page > .page-header > div:first-child {
+  min-inline-size: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.sources-page > .page-header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-sans-hebrew);
+  flex: none;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -.02em;
+}
+
+.sources-page > .page-header p {
+  min-inline-size: 0;
+  max-inline-size: none;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.sources-page .surface-toolbar {
+  min-block-size: var(--control-height);
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  background: transparent;
+}
+
+.sources-page .toolbar-left {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.sources-page .segmented.MuiButton-root,
+.source-filter.MuiButton-root {
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  text-transform: none;
+}
+
+.sources-page .segmented.MuiButton-root:hover,
+.source-filter.MuiButton-root:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.sources-page .segmented.active.MuiButton-root,
+.source-filter.active.MuiButton-root {
+  border: 0;
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.sources-page [role='tabpanel']:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.sources-view {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Model lineage: real measured-on files, model version and its plan consumer. */
+.model-strip {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--surface-inset-dense);
+  border-color: var(--line-strong);
+}
+
+.model-strip.ok,
+.model-strip.warn {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.model-strip-head {
+  min-block-size: var(--control-height);
+}
+
+.model-strip-name {
+  color: var(--ink);
+  font: 500 var(--type-ui-size)/var(--type-ui-line) var(--font-mono);
+}
+
+.model-strip-note,
+.model-strip-sources {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.model-source {
+  border-color: var(--line);
+  border-radius: var(--radius-control);
+  background: var(--canvas);
+  color: var(--ink-muted);
+}
+
+.model-source.warn {
+  border-color: var(--warning-line);
+  background: var(--warning-wash);
+  color: var(--warning);
+}
+
+.model-lineage {
+  min-block-size: 110px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.35fr) 54px minmax(150px, .65fr) 54px minmax(130px, .55fr);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-block-start: 1px solid var(--line);
+}
+
+.lineage-source-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.lineage-node {
+  min-block-size: var(--control-height);
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+.lineage-node.source {
+  min-inline-size: 0;
+  color: var(--ink-muted);
+  font: var(--type-micro-size)/var(--type-micro-line) var(--font-mono);
+  overflow: hidden;
+}
+
+.lineage-node.source.changed {
+  border-color: var(--warning-line);
+  background: var(--warning-wash);
+  color: var(--warning);
+}
+
+.lineage-node.model {
+  min-block-size: 72px;
+  border-color: var(--info-line);
+  background: var(--info-wash);
+}
+
+.lineage-node.output {
+  min-block-size: 72px;
+  border-color: var(--accent);
+}
+
+.lineage-node small {
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+}
+
+.lineage-node strong {
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+}
+
+.lineage-connector {
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+}
+
+.lineage-connector i {
+  flex: 1;
+  block-size: 1px;
+  background: var(--line-strong);
+}
+
+.model-lineage:dir(rtl) .lineage-connector svg {
+  transform: rotate(180deg);
+}
+
+/* Status filtering. */
+.source-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-block-size: 56px;
+  border-block-end: 1px solid var(--line);
+}
+
+.source-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.source-filter.MuiButton-root {
+  gap: var(--space-2);
+  border: 0;
+}

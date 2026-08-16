@@ -346,6 +346,7 @@ def register(executors: dict[str, Any], sources: dict[str, str]) -> None:
     from kairos_api.assistant_audience_model import register as register_audience
     from kairos_api.assistant_event_pipeline import register as register_pipeline
     from kairos_api.assistant_read_tools_accounts import register as register_accounts
+    from kairos_api.assistant_read_tools_advertiser import register as register_advertiser
     from kairos_api.assistant_read_tools_break import register as register_break
     from kairos_api.assistant_read_tools_pacing import register as register_pacing
     from kairos_api.assistant_read_tools_pod import register as register_pod
@@ -353,6 +354,7 @@ def register(executors: dict[str, Any], sources: dict[str, str]) -> None:
 
     register_pipeline(executors, sources)
     register_audience(executors, sources)
+    register_advertiser(executors, sources)
     register_pod(executors, sources)
     register_break(executors, sources)
     register_pacing(executors, sources)

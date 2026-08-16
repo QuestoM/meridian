@@ -20,7 +20,7 @@ function PricingPreferredPositions({ state, locale }) {
     unset: pageText(locale, 'not configured', 'לא הוגדר'),
   };
   return (
-    <div className="pricing-layer-card">
+    <div className="card pricing-layer-card">
       <div className="pricing-layer-head">
         <div>
           <span className="pricing-layer-title">{pageText(locale, 'Preferred positions', 'מיקומים מועדפים')}</span>

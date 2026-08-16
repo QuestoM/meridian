@@ -255,7 +255,8 @@ def resolve_for_ask(username: str, requested: str | None) -> str | None:
 
 
 def append_exchange(username: str, conversation_id: str | None, question: str,
-                    answer: str, batch_id: str | None) -> None:
+                    answer: str, batch_id: str | None,
+                    metadata: dict[str, Any] | None = None) -> None:
     """Append one successful ask to a conversation, pruned to the newest
     MAX_ENTRIES, updating the index (entry_count, updated_at, and the title on
     the first entry when it is still the default). May raise; the caller
@@ -266,8 +267,12 @@ def append_exchange(username: str, conversation_id: str | None, question: str,
             raise RuntimeError("no conversation could be resolved or minted")
         path = _conversation_path(username, conversation_id)
         entries = assistant_memory._load_entries(path)
-        entries.append({"question": question, "answer": answer, "at": _now_iso(),
-                        "batch_id": batch_id, "conversation_id": conversation_id})
+        entry = {"question": question, "answer": answer, "at": _now_iso(),
+                 "batch_id": batch_id, "conversation_id": conversation_id}
+        if isinstance(metadata, dict):
+            entry.update({key: metadata.get(key) for key in assistant_memory._ENTRY_KEYS
+                          if key not in entry and key in metadata})
+        entries.append(entry)
         entries = entries[-assistant_memory.MAX_ENTRIES:]
         _write_json(path, {"user": username, "conversation_id": conversation_id,
                            "entries": entries})

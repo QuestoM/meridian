@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { pageText } from '../shell/format';
 import { jobPickerRows, saveJob } from '../session.js';
 
@@ -88,7 +88,7 @@ export function JobPicker({ session, locale, copy, onChosen, setActiveView, noti
           const note = DOOR_NOTES[row.door];
           const where = view ? (copy && copy.nav ? copy.nav[view] || view : view) : pageText(locale, note ? note[0] : '', note ? note[1] : '');
           return (
-            <Button className="today-job-row" type="button" key={row.id} disabled={Boolean(busy)} onClick={() => choose(row)}>
+            <Button className="card today-job-row" type="button" key={row.id} disabled={Boolean(busy)} onClick={() => choose(row)}>
               <strong>{row.label}</strong>
               <span>{row.doorLabel}</span>
               <span className="today-job-where">{where}</span>

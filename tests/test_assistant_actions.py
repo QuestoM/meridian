@@ -412,8 +412,9 @@ def test_viewer_403_on_apply_reject_restore_operator_allowed(auth_env, tmp_setti
 def test_full_server_walls_viewer_and_admits_operator(auth_env, tmp_settings) -> None:
     from kairos_api.server import app as server_app
 
+    new_weight = 70 if core._load_settings().revenue_weight != 70 else 75
     batch = make_batch(
-        ("propose_settings_change", {"changes": {"max_breaks_per_hour": 5}, "reason": "r"}),
+        ("propose_settings_change", {"changes": {"revenue_weight": new_weight}, "reason": "r"}),
         user="admin",
     )
     payload = {"item_ids": [batch["items"][0]["id"]]}
@@ -427,6 +428,7 @@ def test_full_server_walls_viewer_and_admits_operator(auth_env, tmp_settings) ->
     response = operator.post(f"/api/assistant/proposals/{batch['batch_id']}/apply", json=payload)
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "applied"
+    assert core._load_settings().revenue_weight == new_weight
 
 
 # --- restore-point pruning -----------------------------------------------------------

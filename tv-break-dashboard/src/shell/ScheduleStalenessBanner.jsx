@@ -1,4 +1,5 @@
 import { formatStamp } from './dates';
+import { Button } from '../studio/actions';
 
 // ScheduleStalenessBanner: an honest "saved schedule is out of date" strip.
 //
@@ -21,7 +22,7 @@ import { formatStamp } from './dates';
 // overrides, coefficients, data, the impact model, inventory data, advertiser
 // rules, campaign flights, program classifications. Unknown labels still render.
 
-function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeState }) {
+function ScheduleStalenessBanner({ freshness, locale, onReviewRun }) {
   if (!freshness || typeof freshness !== 'object') return null;
 
   const status = String(freshness.status || '').toLowerCase();
@@ -77,19 +78,16 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
   if (locale === 'he') {
     const subject = changedPhrase ? `חל שינוי ב${changedPhrase}` : 'חל שינוי בקלט הלוח';
     detail = computedLabel
-      ? `${subject} מאז שהלוח חושב ב${computedLabel}. הריצו חישוב מחדש כדי לרענן את הלוח, הדוחות ותוכנית הברייקים.`
-      : `${subject} מאז שהלוח חושב. הריצו חישוב מחדש כדי לרענן את הלוח, הדוחות ותוכנית הברייקים.`;
+      ? `${subject} מאז שהלוח חושב ב${computedLabel}. עברו למסך ההרצה כדי לבדוק את הקלט, ההיקף וההשפעה לפני בנייה מחדש.`
+      : `${subject} מאז שהלוח חושב. עברו למסך ההרצה כדי לבדוק את הקלט, ההיקף וההשפעה לפני בנייה מחדש.`;
   } else {
     const subject = changedPhrase || 'schedule inputs';
     detail = computedLabel
-      ? `${subject} changed since this schedule was computed on ${computedLabel}. Recompute to refresh the schedule, reports, and break plan.`
-      : `${subject} changed since this schedule was computed. Recompute to refresh the schedule, reports, and break plan.`;
+      ? `${subject} changed since this schedule was computed on ${computedLabel}. Open Run to review the inputs, scope, and impact before rebuilding.`
+      : `${subject} changed since this schedule was computed. Open Run to review the inputs, scope, and impact before rebuilding.`;
   }
 
-  const recomputing = recomputeState === 'running';
-  const buttonLabel = recomputing
-    ? t('Recomputing', 'מחשב מחדש')
-    : t('Recompute now', 'הריצו חישוב מחדש');
+  const buttonLabel = t('Review weekly run', 'בדיקת ההרצה השבועית');
 
   return (
     <section
@@ -101,14 +99,14 @@ function ScheduleStalenessBanner({ freshness, locale, onRecompute, recomputeStat
         <span className="schedule-staleness-heading">{heading}</span>
         <span className="schedule-staleness-detail">{detail}</span>
       </div>
-      <button
+      <Button
         type="button"
+        variant="outlined"
         className="schedule-staleness-button"
-        disabled={recomputing}
-        onClick={() => onRecompute && onRecompute()}
+        onClick={() => onReviewRun && onReviewRun()}
       >
         {buttonLabel}
-      </button>
+      </Button>
     </section>
   );
 }

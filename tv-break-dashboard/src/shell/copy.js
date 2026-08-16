@@ -3,6 +3,14 @@
 export const copyByLocale = {
   en: {
     nav: {
+      Today: 'Today',
+      Plan: 'Plan',
+      Broadcast: 'Broadcast',
+      Commercial: 'Commercial',
+      Sources: 'Sources',
+      Governance: 'Governance',
+      History: 'History',
+      Model: 'Company model',
       Overview: 'Overview',
       Optimizer: 'Optimizer',
       Schedule: 'Schedule',
@@ -17,7 +25,7 @@ export const copyByLocale = {
       Agencies: 'Agencies',
       Pricing: 'Pricing',
       Overrides: 'Overrides',
-      Assistant: 'Kai, AI assistant',
+      Assistant: 'Mabat, operations assistant',
       Versions: 'Restore changes',
       Settings: 'Settings',
     },
@@ -107,6 +115,14 @@ export const copyByLocale = {
   },
   he: {
     nav: {
+      Today: 'היום',
+      Plan: 'תכנון',
+      Broadcast: 'שידור',
+      Commercial: 'מסחרי',
+      Sources: 'מקורות',
+      Governance: 'ממשל וכללים',
+      History: 'היסטוריה',
+      Model: 'מודל החברה',
       Overview: 'סקירה',
       Optimizer: 'אופטימייזר',
       Schedule: 'לוח שידורים',
@@ -121,7 +137,7 @@ export const copyByLocale = {
       Agencies: 'סוכנויות',
       Pricing: 'תמחור',
       Overrides: 'עקיפות',
-      Assistant: 'קאי, עוזר AI',
+      Assistant: 'מבט, עוזר תפעולי',
       Versions: 'שחזור שינויים',
       Settings: 'הגדרות',
     },

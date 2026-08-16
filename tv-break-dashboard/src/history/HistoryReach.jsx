@@ -1,7 +1,8 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { CalendarDays, ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { InputControl } from '../studio/dom-controls';
 import {
   CLEAR_FILTERS,
   DAYS_CLEAR,
@@ -44,7 +45,7 @@ export function ReachDays({ locale, from, until, onDays }) {
           owned scope) budgets this file at exactly two literal dir attributes. */}
       <label className="hist-select" title={pageText(locale, FROM_HINT[0], FROM_HINT[1])}>
         <span>{pageText(locale, FROM_CONTROL[0], FROM_CONTROL[1])}</span>
-        <input
+        <InputControl
           type="date"
           value={from}
           max={until || undefined}
@@ -55,7 +56,7 @@ export function ReachDays({ locale, from, until, onDays }) {
       </label>
       <label className="hist-select" title={pageText(locale, UNTIL_HINT[0], UNTIL_HINT[1])}>
         <span>{pageText(locale, UNTIL_CONTROL[0], UNTIL_CONTROL[1])}</span>
-        <input
+        <InputControl
           type="date"
           value={until}
           min={from || undefined}

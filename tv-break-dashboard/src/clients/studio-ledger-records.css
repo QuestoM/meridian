@@ -1,0 +1,347 @@
+/* Advertiser and agency lists become editorial ledger rows. */
+.amz-summary {
+  display: flex;
+  gap: 0;
+  margin-block-end: var(--space-5);
+  border-block: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.amz-summary-card {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-inline-end: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.amz-summary-card:last-child {
+  border-inline-end: 0;
+}
+
+.amz-summary-value {
+  color: var(--ink);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+}
+
+.amz-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border-block-start: 1px solid var(--line-strong);
+}
+
+.amz-card {
+  min-block-size: 96px;
+  display: grid;
+  grid-template-columns: minmax(210px, 1.2fr) minmax(120px, 0.6fr) minmax(180px, 0.9fr) minmax(360px, 2fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.amz-card:hover,
+.amz-card:focus-within {
+  border-color: var(--line);
+  background: var(--surface-raised);
+  box-shadow: none;
+}
+
+.amz-card-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: var(--control-height);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.amz-card-open:focus-visible,
+.amz-stat-label:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.amz-card.has-conflict {
+  background: var(--danger-soft);
+}
+
+.amz-card-head,
+.amz-card-rulecount,
+.amz-effect-chips,
+.amz-card-stats {
+  min-inline-size: 0;
+}
+
+.amz-card-rulecount {
+  margin: 0;
+}
+
+.amz-rulecount-value {
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+}
+
+.amz-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+}
+
+.amz-stat-label {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+  cursor: help;
+}
+
+.amz-stat-figure {
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.agz-card {
+  grid-template-columns: minmax(250px, 1.4fr) minmax(170px, 0.8fr) minmax(220px, 1fr) minmax(200px, 1fr);
+  inline-size: 100%;
+  text-align: start;
+}
+
+.agz-synthetic-chip {
+  min-block-size: var(--control-height);
+}
+
+.amz-filter-chips,
+.adv-chip-row {
+  gap: var(--space-1);
+}
+
+.adv-chip,
+.pacing-chip {
+  min-inline-size: var(--control-height);
+  min-block-size: var(--control-height);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+}
+
+.adv-chip.active,
+.pacing-chip.active {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.agz-boundary-note,
+.agz-totals-strip,
+.amz-status-banner {
+  border: 0;
+  border-block: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-raised);
+}
+
+/* Portal-mounted record sheets. MUI owns the trap, Escape and restoration. */
+.amz-drawer-paper {
+  inline-size: min(720px, 54vw);
+  max-inline-size: none;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-2);
+}
+
+.amz-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--surface-inset-major);
+}
+
+.amz-drawer-head {
+  position: sticky;
+  inset-block-start: calc(-1 * var(--surface-inset-major));
+  z-index: var(--z-raised);
+  margin: calc(-1 * var(--surface-inset-major)) calc(-1 * var(--surface-inset-major)) 0;
+  padding: var(--surface-inset-major);
+  border-block-end: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.amz-drawer-eyebrow {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.amz-drawer-title h2 {
+  color: var(--ink);
+  font-size: var(--type-page-size);
+  line-height: var(--type-page-line);
+}
+
+.amz-drawer-statgrid {
+  border-block: 1px solid var(--line);
+  background: var(--surface-raised);
+}
+
+.amz-drawer-section {
+  padding: 0 0 var(--space-5);
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.amz-drawer-section h3 {
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+}
+
+.amz-drawer-foot {
+  position: sticky;
+  inset-block-end: calc(-1 * var(--surface-inset-major));
+  z-index: var(--z-raised);
+  margin: 0 calc(-1 * var(--surface-inset-major)) calc(-1 * var(--surface-inset-major));
+  padding: var(--space-4) var(--surface-inset-major);
+  border-block-start: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.amz-drawer-field .MuiInputBase-root,
+.agz-field-grid .MuiInputBase-root {
+  min-block-size: var(--control-height);
+  border-radius: var(--radius-control);
+}
+
+/* Pacing and decision history use the same ledger row grammar. */
+.pacing-header {
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.pacing-header h2,
+.page-workspace .page-header h2 {
+  color: var(--ink);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+}
+
+.pacing-view-tabs {
+  gap: var(--space-1);
+  border-block-end: 1px solid var(--line);
+}
+
+.pacing-view-tabs button {
+  min-block-size: var(--control-height);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+}
+
+.pacing-views .pacing-view-tabs button.active {
+  border: 0;
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.pacing-strip {
+  gap: var(--space-1);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.pacing-list,
+.makegood-ledger {
+  gap: 0;
+  border-block-start: 1px solid var(--line-strong);
+}
+
+.pacing-list > [role='listitem'],
+.card.makegood-row {
+  border-block-end: 1px solid var(--line);
+}
+
+.pacing-row,
+.card.makegood-row {
+  padding: var(--space-4);
+  border: 0;
+  border-block-end: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pacing-row:hover,
+.card.makegood-row:hover {
+  background: var(--surface-raised);
+}
+
+.pacing-row.behind,
+.pacing-row.at_risk,
+.pacing-row.on_pace {
+  border-color: var(--line);
+}
+
+.pacing-focused .pacing-row,
+.makegood-focused {
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.pacing-days-toggle,
+.pacing-name-open,
+.pacing-figure-open,
+.makegood-campaign {
+  min-block-size: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+}
+
+.pacing-refusal,
+.pacing-notice,
+.pacing-failed,
+.pacing-empty,
+.pacing-loading {
+  border-radius: var(--radius-surface);
+}
+
+.makegood-close-form {
+  border-color: var(--warning);
+  border-radius: var(--radius-surface);
+  background: var(--warning-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clients-workspace *,
+  .amz-drawer-paper * {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}

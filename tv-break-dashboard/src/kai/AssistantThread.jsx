@@ -7,6 +7,8 @@ import { claimSegments } from './kai-claimed-action';
 import { ResolvedRefs } from './MentionRefs';
 import './kai-claimed-action.css';
 import { formatClock } from '../shell/dates';
+import { Pressable } from '../studio/dom-controls';
+import AdvertiserAiringsResult from './AdvertiserAiringsResult';
 
 // Companion pieces for the assistant chat column: the single-exchange renderer
 // and the paragraph-level text renderer. Both have honest empty and error
@@ -51,7 +53,7 @@ function RetractedText({ text, locale }) {
   return (
     <blockquote className="asst-retracted">
       <span className="asst-retracted-label">
-        {pageText(locale, 'What Kai wrote, with the unbacked part struck out', 'מה שקאי כתב, כשהחלק שאינו נתמך מסומן במחיקה')}
+        {pageText(locale, 'What Mabat wrote, with the unbacked part struck out', 'מה שמבט כתב, כשהחלק שאינו נתמך מסומן במחיקה')}
       </span>
       {inApprovedWords(text).split('\n').map((line, index) => (
         line.trim() ? (
@@ -92,16 +94,17 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
           operator reading a confident paragraph with the correction under it and
           having to trust the smaller of two contradictory statements. What the
           model wrote is kept below, quoted and struck, so nothing is hidden. */}
-      {entry.answer && !entry.unrecordedClaim ? <ModelText className="asst-a" text={entry.answer} /> : null}
+      {entry.answer && !entry.unrecordedClaim ? <ModelText className="card asst-a" text={entry.answer} /> : null}
       {entry.unrecordedClaim ? (
         <p className="asst-unrecorded">
           <span>{pageText(locale, 'No proposal was recorded for this answer, so there is nothing here to approve.', 'לא נרשמה הצעה לתשובה הזו, ולכן אין כאן מה לאשר.')}</span>
           {onAskAgain ? (
-            <button type="button" onClick={onAskAgain}>{pageText(locale, 'Ask again', 'שאלו שוב')}</button>
+            <Pressable type="button" onClick={onAskAgain}>{pageText(locale, 'Ask again', 'שאלו שוב')}</Pressable>
           ) : <span>{pageText(locale, 'Ask again to have the change recorded.', 'אפשר לשאול שוב כדי שהשינוי יירשם.')}</span>}
         </p>
       ) : null}
       {entry.answer && entry.unrecordedClaim ? <RetractedText text={entry.answer} locale={locale} /> : null}
+      <AdvertiserAiringsResult toolTrace={toolTrace} locale={locale} />
       {entry.answerWithheld ? (
         <p className="asst-truncated">{pageText(locale, 'This question came back as a tool call rather than as an answer, so there is nothing to read here. Ask it again.', 'השאלה הזו חזרה כקריאה לכלי ולא כתשובה, ולכן אין כאן מה לקרוא. אפשר לשאול אותה שוב.')}</p>
       ) : null}
@@ -112,7 +115,7 @@ export function AssistantExchange({ entry, locale, proposalCard, onAskAgain }) {
       {entry.stoppedAtCeiling ? (
         <p className="asst-truncated">{pageText(locale, 'The search stopped at its limit of model turns and reports what it had reached by then.', 'החיפוש נעצר במגבלת תורות המודל ומדווח על מה שהגיע אליו עד אז.')}</p>
       ) : null}
-      {entry.error ? <RichText className="asst-a error" text={entry.error} /> : null}
+      {entry.error ? <RichText className="card asst-a error" text={entry.error} /> : null}
       {proposalCard}
       {entry.disclosure || sources.length || toolTrace.length ? (
         <details className="asst-disclosure">

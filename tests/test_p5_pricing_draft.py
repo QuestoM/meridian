@@ -129,7 +129,7 @@ def test_the_activation_switch_holds_the_click_until_it_is_discarded(draft):
 # The binding. A correct helper the box does not consult is the defect itself.
 
 # Not `[^>]*`: an onBlur handler carries an arrow, and an arrow carries a `>`.
-INPUT = re.compile(r"<input\b.*?/>", re.DOTALL)
+INPUT = re.compile(r"<(?:input|InputControl)\b.*?/>", re.DOTALL)
 
 
 def _inputs(source: str) -> list[str]:

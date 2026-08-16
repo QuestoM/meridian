@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { ChevronDown, ChevronUp, History, Lock, RotateCcw } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { Numeric, formatCurrency, formatNumber, pageText } from '../../shell/format';
 import { formatStamp } from '../../shell/dates';
 import { Figure, Name } from '../../shell/bidi';
@@ -22,7 +24,7 @@ function VersionRow({ version, locale, selected, canEdit, onSelect, onDiff, onRe
   const owned = version.summary?.owned || {};
   return (
     <div className={`plan-version-row${selected ? ' is-selected' : ''}`}>
-      <button type="button" className="plan-version-main" onClick={() => onSelect(version.version_id)}>
+      <Pressable type="button" className="plan-version-main" onClick={() => onSelect(version.version_id)}>
         <Name className="plan-version-name">{version.name}</Name>
         <span className="plan-version-meta">
           <Numeric>{formatStamp(version.created_at) || version.created_at}</Numeric>
@@ -34,7 +36,7 @@ function VersionRow({ version, locale, selected, canEdit, onSelect, onDiff, onRe
           <small>{pageText(locale, 'breaks', 'ברייקים')}</small>
           <Numeric>{formatCurrency(owned.revenue, locale)}</Numeric>
         </span>
-      </button>
+      </Pressable>
       <div className="plan-version-actions">
         <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => onDiff(version.version_id)}>
           <History size={13} />
@@ -92,7 +94,7 @@ export function PublishPanel({
   useEffect(() => setCollapseConfirmed(false), [collapseKey]);
 
   return (
-    <section className="plan-section" aria-labelledby="plan-publish-title">
+    <section className="card plan-section" aria-labelledby="plan-publish-title">
       <div className="plan-section-head">
         <div>
           <h2 id="plan-publish-title">{pageText(locale, 'Freeze this plan', 'הקפאת התוכנית')}</h2>
@@ -155,7 +157,7 @@ export function PublishPanel({
               value={name}
               onChange={(event) => onNameChange(event.target.value)}
               disabled={!canEdit}
-              inputProps={{ maxLength: 120, dir: 'auto' }}
+              slotProps={{ htmlInput: { maxLength: 120, dir: 'auto' } }}
             />
             <TextField
               size="small"
@@ -163,7 +165,7 @@ export function PublishPanel({
               value={note}
               onChange={(event) => onNoteChange(event.target.value)}
               disabled={!canEdit}
-              inputProps={{ maxLength: 400, dir: 'auto' }}
+              slotProps={{ htmlInput: { maxLength: 400, dir: 'auto' } }}
             />
             <Button
               className="run-button"
@@ -201,22 +203,22 @@ export function PublishPanel({
           {selectedIndex >= 0 ? (
             <span className="plan-version-walk">
               <Figure className="numeric">{selectedIndex + 1} / {versions.length}</Figure>
-              <button
+              <Pressable
                 type="button"
                 aria-label={pageText(locale, 'The version before this one', 'הגרסה שלפני זו')}
                 disabled={selectedIndex <= 0}
                 onClick={() => walkTo(selectedIndex - 1)}
               >
                 <ChevronUp size={14} />
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 type="button"
                 aria-label={pageText(locale, 'The version after this one', 'הגרסה שאחרי זו')}
                 disabled={selectedIndex >= versions.length - 1}
                 onClick={() => walkTo(selectedIndex + 1)}
               >
                 <ChevronDown size={14} />
-              </button>
+              </Pressable>
             </span>
           ) : (
             <span>{formatNumber(versions.length, locale)}</span>

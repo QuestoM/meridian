@@ -60,23 +60,57 @@ def create_account(admin: TestClient, username: str, password: str, role: str) -
 
 
 # ---------------------------------------------------------------------------
-# Uninitialized store: auth is off and the API stays open
+# Uninitialized store: setup is required and the API stays closed
 # ---------------------------------------------------------------------------
 
-def test_uninitialized_store_reports_auth_disabled_and_api_open(auth_env):
+def test_uninitialized_store_reports_setup_required_and_api_closed(auth_env):
     client = TestClient(app)
+    session = client.get("/api/auth/session")
+    assert session.status_code == 503
+    assert "setup is required" in session.json()["detail"].lower()
     me = client.get("/api/auth/me")
-    assert me.status_code == 200
-    assert me.json() == {"auth_disabled": True}
-    # The guard lets everything through: a real read endpoint works and an
-    # unknown mutating path reaches the router (404), it is not walled (401).
-    assert client.get("/api/settings").status_code == 200
-    # 404 without a built dashboard dist, 405 when the static mount catches the
-    # unmatched path; either way the guard did not wall it with 401/403.
-    assert client.post("/api/definitely-not-a-route").status_code in (404, 405)
-    # Login itself reports, honestly, that it is not set up.
+    assert me.status_code == 503
+    assert client.get("/api/settings").status_code == 503
+    assert client.post("/api/definitely-not-a-route").status_code == 503
+    # Login stays public only so it can explain the setup requirement.
     response = client.post("/api/auth/login", json={"username": "admin", "password": "whatever123"})
     assert response.status_code == 503
+
+
+def test_failed_password_seed_cannot_leave_the_api_running_open(auth_env, monkeypatch):
+    from kairos_api import auth
+
+    monkeypatch.setenv("KAIROS_ADMIN_PASSWORD", "configured-but-invalid")
+    monkeypatch.setattr(auth_store, "seed_initial_admin", lambda: (_ for _ in ()).throw(ValueError("bad seed")))
+
+    with pytest.raises(RuntimeError, match="Could not seed"):
+        auth._announce_auth_state()
+
+
+def test_generated_password_delivery_failure_keeps_setup_required(auth_env, monkeypatch):
+    """A missing one-time password must never activate an unreachable admin."""
+    marker = auth_env / "initial_admin_password.txt"
+    real_replace = auth_store.os.replace
+
+    def fail_delivery(source: str | Path, destination: str | Path) -> None:
+        if Path(destination) == marker:
+            raise OSError("injected one-time password delivery failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(auth_store.os, "replace", fail_delivery)
+
+    with pytest.raises(OSError, match="injected one-time password delivery failure"):
+        auth_store.seed_initial_admin()
+
+    assert not auth_store.store_initialized()
+    assert auth_store.load_users() == []
+    assert not auth_store.users_path().exists()
+    assert not marker.exists()
+    assert not marker.with_name(marker.name + ".tmp").exists()
+
+    client = TestClient(app)
+    assert client.get("/api/auth/session").status_code == 503
+    assert client.get("/api/settings").status_code == 503
 
 
 def test_seed_script_seeds_admin_and_writes_one_time_password(auth_env):
@@ -126,6 +160,23 @@ def test_env_password_seed_does_not_force_change(auth_env, monkeypatch):
 # ---------------------------------------------------------------------------
 # Login, rate limit, sessions
 # ---------------------------------------------------------------------------
+
+def test_public_session_probe_distinguishes_signed_out_and_signed_in(auth_env):
+    seed_admin()
+    anonymous = TestClient(app)
+    signed_out = anonymous.get("/api/auth/session")
+    assert signed_out.status_code == 200
+    assert signed_out.json() == {"authenticated": False, "auth_disabled": False}
+
+    signed_in = signed_in_client("admin", ADMIN_PASSWORD)
+    active = signed_in.get("/api/auth/session")
+    assert active.status_code == 200
+    body = active.json()
+    assert body["authenticated"] is True
+    assert body["auth_disabled"] is False
+    assert body["username"] == "admin"
+    assert body["role"] == "admin"
+    assert "password_scrypt" not in body
 
 def test_wrong_password_401_then_rate_limited_429(auth_env):
     seed_admin()

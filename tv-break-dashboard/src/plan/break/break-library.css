@@ -1,0 +1,38 @@
+.break-local-nav {
+  display: flex;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.break-local-nav button {
+  min-block-size: 44px;
+  padding-inline: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.break-local-nav button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.break-local-nav button[aria-selected="true"] {
+  border-color: var(--chrome, var(--primary));
+  background: var(--chrome, var(--primary));
+  color: var(--surface);
+}
+
+.break-local-nav button:focus-visible,
+.page-workspace > [role="tabpanel"]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}

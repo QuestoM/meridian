@@ -1,0 +1,16 @@
+/* Hebrew glyphs only. Latin letters and figures intentionally fall through to
+   IBM Plex Sans so mixed broadcast data keeps one stable set of numerals. */
+@font-face {
+  font-family: 'Noto Sans Hebrew Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./noto-sans-hebrew-hebrew-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0307-0308,
+    U+0590-05FF,
+    U+200C-2010,
+    U+20AA,
+    U+25CC,
+    U+FB1D-FB4F;
+}

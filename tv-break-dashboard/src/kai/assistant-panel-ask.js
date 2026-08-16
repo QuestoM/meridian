@@ -47,7 +47,7 @@ export function useAsk({ locale, conv, pageState, mergeBatches, refreshRail, app
   const finishAsk = useCallback((trimmed, body, measured, sent) => {
     if (body.available === false) {
       // The panel owns the status cluster, so it is told rather than reached
-      // into: the console must say Kai is unavailable the moment an ask says so.
+      // into: the console must say Mabat is unavailable the moment an ask says so.
       if (onUnavailable) onUnavailable(body.reason || body.error);
       appendEntry({ question: trimmed, error: String(body.reason || body.error || '') });
       return body;
@@ -123,7 +123,7 @@ export function useAsk({ locale, conv, pageState, mergeBatches, refreshRail, app
     // sends nothing and the ask behaves exactly as before.
     const pageContext = buildPageContext(pageState);
     const mentions = sent.length ? sent : null;
-    // Stage frames the finished exchange keeps: the scope Kai grounded on, and
+    // Stage frames the finished exchange keeps: the scope Mabat grounded on, and
     // whether the run stopped at one of its own limits, the time limit or the
     // turn budget. None is in the ask body, whose key set is the frozen
     // contract, so each is captured as it streams.

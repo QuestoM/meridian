@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gauge } from 'lucide-react';
 import DateField from '../shell/DateField';
-import { StatusBadge } from '../shell/primitives';
+import { StatusBadge } from '../studio';
 import { leverReasons, leverState } from '../shell/lever-state';
 import { NumberControl, ToggleControl } from './SettingsControls';
 
@@ -15,7 +15,7 @@ export function renderPacingPanel({ he, draft, updateField, updateNumber, hasCam
   const { state } = leverState('pacing', hasCampaignFlights === null ? null : !!hasCampaignFlights);
   const reasons = leverReasons('pacing', hasCampaignFlights === null ? null : !!hasCampaignFlights, locale);
   return (
-        <section className="settings-panel wide">
+        <section className="card settings-panel wide">
           <div className="settings-panel-head">
             <div>
               <h2>{he ? 'קצב קמפיינים' : 'Campaign pacing'}</h2>

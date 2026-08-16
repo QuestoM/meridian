@@ -29,7 +29,7 @@
 
 .asst-exchange { display: flex; flex-direction: column; gap: var(--space-2); }
 .asst-q { margin: 0; align-self: flex-start; max-width: 82%; font-size: var(--text-sm); font-weight: var(--weight-soft); color: var(--surface); background: var(--primary); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); overflow-wrap: anywhere; }
-.asst-a { max-width: 94%; font-size: var(--text-sm); line-height: 1.55; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); padding: var(--space-3); overflow-wrap: anywhere; }
+.asst-a { max-width: 94%; font-size: var(--text-sm); line-height: 1.55; color: var(--ink); padding: var(--space-3); overflow-wrap: anywhere; }
 .asst-a.error { border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--muted); background: var(--amber-soft); }
 /* Each line is its own paragraph so its direction follows its own first character
    (Hebrew lines read right-to-left even next to an English one). Blank source lines
@@ -65,7 +65,7 @@
 .asst-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes asst-pulse { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
 
-/* Run trace: what Kai is doing right now, with the clock and the stop control */
+/* Run trace: what Mabat is doing right now, with the clock and the stop control */
 .asst-run { margin: var(--space-2) 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-muted); }
 .asst-run-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
 .asst-run-toggle { flex: 1; display: flex; align-items: center; gap: var(--space-2); background: none; border: 0; padding: 0; cursor: pointer; color: var(--muted); font-size: var(--text-xs); text-align: start; }
@@ -92,7 +92,7 @@
 .asst-run-long { margin: 0; padding: 0 var(--space-3) var(--space-2); font-size: var(--text-2xs); color: var(--amber); }
 
 /* The licence-limit disclosure on a proposal that would move a regulatory number */
-.asst-permission { margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line); border: 1px solid var(--teal); border-radius: var(--radius-xs); padding: var(--space-2); background: var(--surface); font-size: var(--text-2xs); color: var(--muted); }
+.asst-permission { margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: 2px; border-color: var(--teal); padding: var(--space-2); font-size: var(--text-2xs); color: var(--muted); }
 .asst-permission.blocked { border-color: var(--amber); background: var(--amber-soft); }
 .asst-permission p { margin: 0; display: flex; align-items: baseline; gap: var(--space-1); }
 .asst-permission-fields { display: flex; flex-wrap: wrap; gap: var(--space-1); }
@@ -108,7 +108,7 @@
 .asst-undo-open { display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius-xs); background: var(--surface); color: var(--muted); font-size: var(--text-2xs); padding: 2px var(--space-2); cursor: pointer; }
 .asst-undo-open:hover { color: var(--ink); }
 .asst-undo-open code { color: var(--subtle); }
-.asst-undo { margin-top: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.asst-undo { margin-top: var(--space-2); }
 .asst-undo-head { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); font-size: var(--text-2xs); font-weight: var(--weight-semibold); color: var(--subtle); }
 .asst-undo-head code { font-weight: var(--weight-regular); }
 .asst-undo-close { margin-inline-start: auto; border: 0; background: none; color: var(--muted); font-size: var(--text-2xs); cursor: pointer; }
@@ -161,6 +161,7 @@
 .asst-spin { animation: asst-rotate 1s linear infinite; }
 @keyframes asst-rotate { to { transform: rotate(360deg); } }
 .asst-rail-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3); max-height: 64vh; overflow-y: auto; }
+.asst-rail-body > * { flex: 0 0 auto; }
 
 /* Honest loading, error and empty states share one notice box */
 .asst-loading { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-muted); padding: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
@@ -168,7 +169,7 @@
 .asst-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-muted); padding: var(--space-4); color: var(--muted); font-size: var(--text-sm); text-align: center; line-height: 1.5; }
 
 /* Proposal card */
-.asst-proposal { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); overflow: hidden; max-width: 94%; }
+.asst-proposal { overflow: hidden; max-width: 94%; }
 .asst-rail-body .asst-proposal { max-width: 100%; }
 .asst-proposal-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); background: var(--surface-muted); font-size: var(--text-xs); color: var(--muted); font-weight: var(--weight-medium); }
 .asst-proposal-head code { color: var(--subtle); font-size: var(--text-2xs); }
@@ -235,7 +236,6 @@
 
 /* Restore tab */
 .asst-restore-list { display: flex; flex-direction: column; gap: var(--space-3); }
-.asst-restore-row { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-3); }
 .asst-restore-main { display: flex; flex-direction: column; gap: var(--space-1); }
 .asst-restore-main time { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink); font-variant-numeric: tabular-nums; }
 .asst-restore-meta { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
@@ -252,14 +252,11 @@
 .asst-ver-snap-form input { flex: 1; min-width: 140px; font: inherit; font-size: var(--text-xs); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); }
 
 .asst-ver-list { display: flex; flex-direction: column; gap: var(--space-3); }
-.asst-ver-row { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-3); transition: border-color 0.15s ease, background 0.15s ease; }
-.asst-ver-row.open { border-color: var(--line-strong); }
 .asst-ver-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
 /* The whole info area toggles the diff, so the entire restore point is one click
    target, not just a small link. The caret shows the open/closed state. */
 .asst-ver-main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1 1 auto; cursor: pointer; border-radius: var(--radius-sm); }
 .asst-ver-main:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.asst-ver-row:hover .asst-ver-main .asst-ver-caret { color: var(--muted); }
 .asst-ver-caret { display: inline-flex; align-items: center; color: var(--subtle); }
 .asst-ver-line { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-xs); }
 .asst-ver-line time { color: var(--ink); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
@@ -324,7 +321,7 @@
 .asst-upload-chip-open .bidi-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .asst-upload-chip-x { display: inline-flex; align-items: center; border: 0; background: transparent; color: inherit; border-radius: var(--radius-pill); padding: 2px; cursor: pointer; }
 .asst-upload-chip-x:hover { background: var(--surface-muted); }
-.asst-upload-pop { position: absolute; z-index: 20; inset-inline-start: var(--space-4); top: calc(100% - 2px); width: min(320px, 88vw); display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow); padding: var(--space-3); }
+.asst-upload-pop { position: absolute; z-index: 20; inset-inline-start: var(--space-4); top: calc(100% - 2px); width: min(320px, 88vw); display: flex; flex-direction: column; gap: var(--space-2); box-shadow: var(--shadow); padding: var(--space-3); }
 .asst-upload-pop-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--ink); }
 .asst-upload-pop-head button { border: 0; background: transparent; color: var(--muted); display: inline-flex; padding: 2px; cursor: pointer; }
 .asst-upload-item { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); border-bottom: 1px dashed var(--line); padding-bottom: var(--space-2); }
@@ -381,7 +378,7 @@
 .asst-rail-body .asst-confirm { margin: 0; }
 .asst-chg-intro { margin: 0; font-size: var(--text-xs); color: var(--muted); line-height: 1.5; }
 .asst-chg-restore-bar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.asst-chg-batch { display: flex; flex-direction: column; gap: var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); padding: var(--space-3); }
+.asst-chg-batch { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); }
 .asst-chg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
 .asst-chg-q { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ink); overflow-wrap: anywhere; }
 .asst-chg-head code { color: var(--subtle); font-size: var(--text-2xs); flex: none; }
@@ -406,8 +403,9 @@
 
 /* Docked side column: a flex sibling of the workspace at the shell's
    inline-end (the nav rail owns inline-start), so it takes real layout space
-   and the content beside it shrinks. Sticky full-height, fades in quietly. */
-.asst-dock { position: sticky; top: 0; flex: 0 0 auto; max-width: 60vw; height: 100vh; display: flex; flex-direction: column; background: var(--surface); border-inline-start: 1px solid var(--line); animation: asst-dock-in 0.18s ease; }
+   and the content beside it shrinks. It begins below the persistent shell
+   header, keeping its own title and controls fully visible. */
+.asst-dock { position: sticky; top: var(--shell-header-height); flex: 0 0 auto; max-width: 60vw; height: calc(100dvh - var(--shell-header-height)); display: flex; flex-direction: column; background: var(--surface); border-inline-start: 1px solid var(--line); animation: asst-dock-in 0.18s ease; }
 @keyframes asst-dock-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .asst-dock { animation: none; } }
 

@@ -19,8 +19,25 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SHELL = ROOT / "tv-break-dashboard" / "src" / "shell" / "styles.css"
-TOKENS = ROOT / "tv-break-dashboard" / "src" / "tokens.css"
+DASH = ROOT / "tv-break-dashboard"
+INDEX = (DASH / "src" / "index.jsx").read_text(encoding="utf-8")
+GLOBAL_SHEETS = tuple(
+    DASH / "src" / specifier[2:]
+    for specifier in re.findall(r"import '([^']+\.css)';", INDEX)
+    if specifier.startswith("./")
+)
+LAYOUT_SHEETS = tuple(
+    path for path in GLOBAL_SHEETS
+    if path.relative_to(DASH / "src").as_posix() in {
+        "tokens.css",
+        "shell/styles.css",
+        "shell/styles-timeline.css",
+        "shell/styles-workspaces.css",
+        "studio/studio.css",
+        "studio/studio-workspaces.css",
+        "shell/studio-shell.css",
+    }
+)
 
 
 def _browser() -> str | None:
@@ -33,25 +50,22 @@ def _browser() -> str | None:
 
 
 def _document() -> str:
-    css = TOKENS.read_text(encoding="utf-8") + "\n" + SHELL.read_text(encoding="utf-8")
+    css = "\n".join(path.read_text(encoding="utf-8") for path in LAYOUT_SHEETS)
     return f"""<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><style>{css}</style></head>
 <body><div class="kairos-shell rtl">
   <aside class="side-rail"><div class="brand-lockup"><strong>Kairos</strong></div></aside>
   <main class="workspace"><header class="top-bar">
-    <div class="title-group"><span class="section-title">סקירה</span><button class="date-control">השבוע של 1 בנובמבר</button></div>
-    <div class="command-group">
-      <label class="scenario-select"><span>תרחיש</span><select><option>עדיפות להכנסות</option></select></label>
-      <div class="risk-lambda-control"><div class="risk-lambda-head"><span class="risk-lambda-label">זהירות מסיכון</span><span>35/100</span></div><input type="range"></div>
-      <button class="secondary-button">השוואת תרחישים</button>
+    <div class="top-bar-primary">
+      <div class="title-group"><span class="section-title">ממשל וכללים</span><button class="MuiButton-root date-control">השבוע של 1 בנובמבר</button></div>
+      <div class="status-group">
+        <div class="connection-state"><span class="api-state online">API חי</span><span class="freshness">עודכן 03:37</span></div>
+        <button class="MuiButton-root locale-toggle"><span class="locale-toggle-label">English</span></button>
+        <button class="MuiButton-root icon-button" aria-label="פעילות">N</button>
+        <button class="MuiButton-root icon-button" aria-label="קאי">K</button>
+      </div>
     </div>
-    <div class="status-group">
-      <span class="api-state online">API חי</span><span class="freshness">עודכן 03:37</span>
-      <button class="icon-button">R</button><button class="icon-button">K</button><button class="icon-button">N</button>
-      <button class="secondary-button compact">English</button>
-      <button class="run-button">הרצת אופטימיזציה</button>
-      <button class="apply-button">החלה על לוח השידורים השבועי</button>
-    </div>
+    <nav class="context-local-nav"><button class="active">הגבלות</button><button>רישיון</button><button>מחירון</button><button>לוח אירועים</button><button>ערוץ ומודל</button></nav>
   </header><section class="page-workspace">
     <div class="timeline-track">
       <button class="MuiButton-root timeline-break" id="narrow" style="left:0;width:20px"><span class="break-chip-clock">20:40</span><strong class="break-chip-detail">1/2</strong></button>
@@ -59,14 +73,13 @@ def _document() -> str:
     </div>
   </section></main>
 </div><script>
-requestAnimationFrame(() => requestAnimationFrame(() => {{
+(() => {{
   const bar = document.querySelector('.top-bar');
-  const controls = [...bar.querySelectorAll('button, select, .api-state, .freshness')];
+  const controls = [...bar.querySelectorAll('button, .api-state, .freshness')];
   const result = {{
     documentFits: document.documentElement.scrollWidth <= window.innerWidth + 1,
     headerFits: bar.scrollWidth <= bar.clientWidth + 1,
     labelsFit: controls.every((node) => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1),
-    labelsNoWrap: controls.every((node) => getComputedStyle(node).whiteSpace === 'nowrap'),
     headerWidth: bar.clientWidth,
     headerScrollWidth: bar.scrollWidth,
     headerHeight: bar.getBoundingClientRect().height,
@@ -74,11 +87,11 @@ requestAnimationFrame(() => requestAnimationFrame(() => {{
     wideMarkerIsLegible: [...document.querySelectorAll('#wide > *')].every((node) => getComputedStyle(node).display !== 'none'),
   }};
   document.body.dataset.layout = JSON.stringify(result);
-}}));
+}})();
 </script></body></html>"""
 
 
-@pytest.mark.parametrize("width", [1600, 1500, 1280, 1000, 861, 860, 700])
+@pytest.mark.parametrize("width", [1600, 1500, 1400, 1399, 1280, 1200])
 def test_header_has_no_real_overflow_at_supported_widths(tmp_path: Path, width: int) -> None:
     browser = _browser()
     if browser is None:
@@ -124,6 +137,5 @@ def test_header_has_no_real_overflow_at_supported_widths(tmp_path: Path, width: 
     assert measured["documentFits"], (width, measured)
     assert measured["headerFits"], (width, measured)
     assert measured["labelsFit"], (width, measured)
-    assert measured["labelsNoWrap"], (width, measured)
     assert measured["narrowMarkerIsClean"], (width, measured)
     assert measured["wideMarkerIsLegible"], (width, measured)

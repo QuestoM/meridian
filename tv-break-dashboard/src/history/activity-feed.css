@@ -3,9 +3,8 @@
 
 .activity-feed {
   position: fixed;
-  top: 0;
+  inset-block: var(--shell-header-height) 0;
   inset-inline-end: 0;
-  height: 100vh;
   width: min(380px, 92vw);
   background: var(--surface);
   border-inline-start: 1px solid var(--line);

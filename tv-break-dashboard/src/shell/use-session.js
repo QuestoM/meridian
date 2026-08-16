@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { API_BASE } from './api';
-import { fetchMe } from './Login';
+import { fetchMe, setSessionProbeIssue } from './Login';
+import { shouldExpireSession } from './auth-integrity';
 
 // The session probe and the credentialed-fetch guard, in the order the shell
 // mounted them, so effect order is unchanged by the split.
@@ -9,14 +10,15 @@ export function useSessionEffects(setAuth) {
     let active = true;
     fetchMe().then((result) => {
       if (!active) return;
-      if (result.ok && result.data && result.data.auth_disabled) {
+      setSessionProbeIssue(result.status === 0 ? 'offline' : result.status === 503 ? 'setup' : '');
+      if (result.ok && result.data && result.data.auth_disabled === true) {
         setAuth({ status: 'open', user: null });
-      } else if (result.ok && result.data && result.data.username) {
+      } else if (result.ok && result.data && result.data.authenticated === true && result.data.username) {
         setAuth({ status: 'ready', user: result.data });
-      } else if (result.status === 0) {
-        // Server unreachable: render the app and let its offline states tell
-        // the truth about connectivity; there is no session to pretend about.
-        setAuth({ status: 'open', user: null });
+      } else if (result.status === 0 || result.status === 503) {
+        // Authority could not be verified. Stay outside the workspace and let
+        // the dedicated retry screen explain the failure without disclosing it.
+        setAuth({ status: 'login', user: null });
       } else {
         setAuth({ status: 'login', user: null });
       }
@@ -48,14 +50,7 @@ export function useSessionEffects(setAuth) {
         throw err;
       }
       try {
-        const url = typeof input === 'string'
-          ? input
-          : (input && typeof input.url === 'string' ? input.url : String(input || ''));
-        if (
-          response.status === 401 &&
-          url.includes('/api/') &&
-          !url.includes('/api/auth/')
-        ) {
+        if (shouldExpireSession(input, response.status)) {
           setAuth((current) => (current.status === 'login' ? current : { status: 'login', user: null }));
         }
       } catch {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { CheckCircle2, MinusCircle, Rows3 } from 'lucide-react';
 import { Numeric, formatNumber, pageText } from '../shell/format';
 import { normalizeRows } from '../shell/plan-model';

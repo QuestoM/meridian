@@ -4,6 +4,7 @@ import { pageText } from '../shell/surface-helpers';
 import { DAY_NAMES, DAY_ORDER, layerLabel, sourceLabel } from './pricing-layers-lib';
 import { Code, Figure } from '../shell/bidi';
 import { detailWords } from './rules-lib';
+import { InputControl, SelectControl } from '../studio/dom-controls';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -85,7 +86,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
   }, [state, runTester]);
 
   return (
-    <div className="pricing-tester">
+    <div className="card pricing-tester">
       <h3>{pageText(locale, 'Price any slot', 'תמחור משבצת')}</h3>
       <p className="pricing-base-note">{pageText(locale,
         'Pick a slot and read the full per-layer breakdown. Wired-off layers show struck-through, never multiplied into the live total.',
@@ -93,7 +94,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
       <div className="pricing-tester-form">
         <label>
           {pageText(locale, 'Program class', 'מחלקת תוכנית')}
-          <input
+          <InputControl
             list="pricing-class-options"
             value={slot.pricing_class}
             onChange={(e) => setSlot({ ...slot, pricing_class: e.target.value })}
@@ -104,11 +105,11 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         </label>
         <label>
           {pageText(locale, 'Weekday', 'יום')}
-          <select value={slot.weekday_iso} onChange={(e) => setSlot({ ...slot, weekday_iso: e.target.value })}>
+          <SelectControl value={slot.weekday_iso} onChange={(e) => setSlot({ ...slot, weekday_iso: e.target.value })}>
             {WEEKDAY_OPTIONS.map((d) => (
               <option key={d} value={d}>{pageText(locale, DAY_NAMES[d][0], DAY_NAMES[d][1])}</option>
             ))}
-          </select>
+          </SelectControl>
         </label>
         <DateField
           label={pageText(locale, 'Date (optional)', 'תאריך (לא חובה)')}
@@ -118,7 +119,7 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         />
         <label>
           {pageText(locale, 'Show', 'תוכנית')}
-          <input
+          <InputControl
             list={showOptions.length ? 'pricing-show-options' : undefined}
             value={slot.show}
             onChange={(e) => setSlot({ ...slot, show: e.target.value })}
@@ -131,18 +132,18 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         </label>
         <label>
           {pageText(locale, 'Position', 'מיקום')}
-          <input type="number" min="1" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
+          <InputControl type="number" min="1" value={slot.position} onChange={(e) => setSlot({ ...slot, position: e.target.value })} />
           <span className="pricing-base-note">{pageText(locale,
             'Positions are 1 to 5 and L for last. A spot equal to the break size is the L position, so set the break size to test L.',
             'המיקומים הם 1 עד 5 ו-L לאחרון. ספוט ששווה לגודל הברייק הוא מיקום L, לכן הגדירו גודל ברייק כדי לבדוק את L.')}</span>
         </label>
         <label>
           {pageText(locale, 'Break size', 'גודל ברייק')}
-          <input type="number" min="1" value={slot.break_size} onChange={(e) => setSlot({ ...slot, break_size: e.target.value })} />
+          <InputControl type="number" min="1" value={slot.break_size} onChange={(e) => setSlot({ ...slot, break_size: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Ad type', 'סוג פרסומת')}
-          <input
+          <InputControl
             list={adTypeOptions.length ? 'pricing-ad-type-options' : undefined}
             value={slot.ad_type}
             onChange={(e) => setSlot({ ...slot, ad_type: e.target.value })}
@@ -155,15 +156,15 @@ function PricingSlotTester({ state, locale, notify, currency }) {
         </label>
         <label>
           {pageText(locale, 'Advertiser base', 'בסיס מפרסם')}
-          <input type="number" min="0" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
+          <InputControl type="number" min="0" value={slot.advertiser_base} onChange={(e) => setSlot({ ...slot, advertiser_base: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Advertiser (optional)', 'מפרסם (לא חובה)')}
-          <input value={slot.advertiser} placeholder="ADV_01" onChange={(e) => setSlot({ ...slot, advertiser: e.target.value })} />
+          <InputControl value={slot.advertiser} placeholder="ADV_01" onChange={(e) => setSlot({ ...slot, advertiser: e.target.value })} />
         </label>
         <label>
           {pageText(locale, 'Campaign (optional)', 'קמפיין (לא חובה)')}
-          <input value={slot.campaign} onChange={(e) => setSlot({ ...slot, campaign: e.target.value })} />
+          <InputControl value={slot.campaign} onChange={(e) => setSlot({ ...slot, campaign: e.target.value })} />
         </label>
       </div>
 

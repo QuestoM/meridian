@@ -22,45 +22,47 @@ def _block(css: str, selector: str) -> str:
 
 def test_folded_rules_pages_are_not_duplicate_rail_destinations() -> None:
     nav = _text("shell/nav.js")
-    rail = nav.split("export const navItems = [", 1)[1].split("];", 1)[0]
-    removed = nav.split("export const removedRoutes = [", 1)[1].split("];", 1)[0]
+    rail = nav.split("export const DOMAIN_DEFINITIONS = [", 1)[1].split("];", 1)[0]
+    removed = nav.split("export const LEGACY_TARGETS = {", 1)[1].split("\n};", 1)[0]
     assert "'Calendar'" not in rail and "'Pricing'" not in rail
-    assert {"Calendar", "Pricing"} <= set(re.findall(r"'([^']+)'", removed))
-    router = _text("shell/workspace-router.jsx")
+    assert "Calendar: { view: 'Governance', params: { rules: 'calendar' } }" in removed
+    assert "Pricing: { view: 'Governance', params: { rules: 'rate_card' } }" in removed
     for legacy in ("Calendar", "Pricing"):
-        assert f"'{legacy}'" in router
-        assert "replaceState" in router
+        assert f"{legacy}:" in removed
+    shell = _text("shell/TVBreakDashboard.jsx")
+    assert "window.history.replaceState" in shell
 
 
 def test_workspace_gutter_is_logical_and_pages_do_not_double_it() -> None:
-    css = _text("shell/styles.css")
-    workspace = _block(css, ".workspace {")
-    top_bar = _block(css, ".top-bar {")
-    direct_page = _block(css, ".workspace > .page-workspace")
-    assert "padding-inline:" in workspace
-    assert "margin-inline:" in top_bar and "padding-inline:" in top_bar
+    shell = _text("shell/studio-shell.css")
+    workspaces = _text("shell/styles-workspaces.css")
+    workspace = _block(shell, ".workspace {")
+    top_bar = _block(shell, ".top-bar {")
+    top_bar_primary = _block(shell, ".top-bar-primary {")
+    direct_page = _block(workspaces, ".workspace > .page-workspace")
+    assert "padding-inline:" in workspace or "padding: 0 var(--space-6)" in workspace
+    assert "margin-inline:" in top_bar and "padding-inline:" in top_bar_primary
     assert "padding-inline: 0" in direct_page
     for block in (workspace, top_bar, direct_page):
         assert "padding-left:" not in block and "padding-right:" not in block
 
 
 def test_header_labels_never_wrap_and_duplicate_controls_yield_first() -> None:
-    css = _text("shell/styles.css")
-    controls = _block(css, ".date-control,")
-    status = _block(css, ".freshness,")
+    foundations = _text("shell/styles.css")
+    shell = _text("shell/studio-shell.css")
+    controls = _block(foundations, ".date-control,")
+    status = _block(foundations, ".freshness,")
     assert "white-space: nowrap;" in controls
     assert "white-space: nowrap;" in status
-    assert "@media (max-width: 1500px)" in css
-    assert ".status-group > .freshness" in css
-    assert ".command-group > .secondary-button" in css
-    responsive = css.split("@media (max-width: 1500px)", 1)[1]
-    assert "grid-template-columns: minmax(0, 1fr);" in responsive
-    assert ".command-group," in responsive and "flex-wrap: wrap;" in responsive
-    assert "grid-template-rows: auto auto minmax(0, 1fr) auto;" in responsive
+    assert "@media (max-width: 1399px) and (min-width: 1200px)" in shell
+    responsive = shell.split("@media (max-width: 1399px) and (min-width: 1200px)", 1)[1]
+    assert ".top-bar .freshness" in responsive and "display: none;" in responsive
+    assert ".top-bar .locale-toggle .locale-toggle-label" in responsive
+    assert "clip-path: inset(50%);" in responsive
 
 
 def test_timeline_breaks_keep_duration_width_and_hide_partial_text() -> None:
-    css = _text("shell/styles.css")
+    css = _text("shell/styles-timeline.css")
     chip = _block(css, ".timeline-break.MuiButton-root")
     assert "min-width: 0;" in chip
     assert "container-type: inline-size;" in chip

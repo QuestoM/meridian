@@ -77,16 +77,29 @@ async function readJson(path, init) {
   return body;
 }
 
+const inFlightReads = new Map();
+
+function readOnce(path) {
+  // Deduplicate concurrent identical reads only. This covers React's
+  // development remount without retaining stale governance state after a
+  // save, removal or explicit refresh.
+  if (!inFlightReads.has(path)) {
+    const request = readJson(path).finally(() => inFlightReads.delete(path));
+    inFlightReads.set(path, request);
+  }
+  return inFlightReads.get(path);
+}
+
 export function fetchTitles(query) {
-  return readJson(`/api/constraints/restrictions/titles?q=${encodeURIComponent(query || '')}`);
+  return readOnce(`/api/constraints/restrictions/titles?q=${encodeURIComponent(query || '')}`);
 }
 
 export function fetchAirings(title) {
-  return readJson(`/api/constraints/restrictions/airings?title=${encodeURIComponent(title || '')}`);
+  return readOnce(`/api/constraints/restrictions/airings?title=${encodeURIComponent(title || '')}`);
 }
 
 export function fetchRestrictions() {
-  return readJson('/api/constraints/restrictions');
+  return readOnce('/api/constraints/restrictions');
 }
 
 const jsonPost = (body) => ({
@@ -108,11 +121,11 @@ export function deleteRestriction(restrictionId) {
 }
 
 export function fetchGuardrails() {
-  return readJson('/api/rules/guardrails');
+  return readOnce('/api/rules/guardrails');
 }
 
 export function fetchCompliance() {
-  return readJson('/api/compliance');
+  return readOnce('/api/compliance');
 }
 
 // What the Today ledger card draws, given its own fetch and the prop its
@@ -132,7 +145,7 @@ export function complianceViewState(own, ownFailed, fallback) {
 
 export function fetchAttestation(since) {
   const suffix = since ? `?since=${encodeURIComponent(since)}` : '';
-  return readJson(`/api/rules/attestation${suffix}`);
+  return readOnce(`/api/rules/attestation${suffix}`);
 }
 
 export function recordGuardrailChange(values, effectiveDate, reason) {
@@ -434,4 +447,3 @@ export function dropOverride(base, path) {
   }
   return Object.keys(out).length > 0 ? out : null;
 }
-

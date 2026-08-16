@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Square } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 
-// What Kai is doing right now, and what it did.
+// What Mabat is doing right now, and what it did.
 //
 // The reference agent prints a run trace headed by the elapsed time and lists
-// what it touched, so a long run reads as work rather than as a hang. Kai's
+// what it touched, so a long run reads as work rather than as a hang. Mabat's
 // server streams the same facts: a stage frame the moment the request is
 // accepted, one per model turn, and one step per tool with the source it read.
 // Nothing here is invented. An unknown tool prints its own name rather than a
@@ -48,6 +49,7 @@ const STEP_LABELS = {
   get_event_pipeline: ['Reading the event pipeline', 'קורא את מסלול האירועים'],
   get_agencies: ['Reading the agencies', 'קורא את הסוכנויות'],
   get_top_advertisers: ['Reading the advertiser ledger', 'קורא את ספר המפרסמים'],
+  get_advertiser_airings: ['Reading advertiser airing history', 'קורא את היסטוריית שידורי המפרסם'],
   get_break_pods: ['Reading the day\'s break contents', 'קורא את תוכן הברייקים של היום'],
   get_pod: ['Reading one break\'s contents', 'קורא את תוכן הברייק'],
   get_day_breaks: ['Reading the day\'s breaks', 'קורא את הברייקים של היום'],
@@ -105,6 +107,7 @@ const SOURCE_HE = {
   'advertiser rules store': 'מאגר כללי המפרסמים',
   'advertiser rules and scoped conditions stores': 'מאגרי כללי המפרסמים והתנאים הממוקדים',
   'daily per-spot ledger (newest daily file)': 'הספר היומי לפי ספוט, הקובץ היומי העדכני',
+  'all authoritative raw daily traffic files on disk (data/daily_input/Wally_*.csv)': 'כל קובצי הטראפיק היומיים הסמכותיים הזמינים בדיסק',
   'restriction preview on the owned channel: the saved weekly plan, and an optimizer run on the days it touches': 'תצוגה מקדימה של הגבלה בערוץ שלכם: התוכנית השבועית השמורה, והרצת אופטימייזר על הימים שההגבלה נוגעת בהם',
   'the account list and the broadcast licence limits': 'רשימת החשבונות ומגבלות רישיון השידור',
   'audience model artifact (models/audience_model.json) plus the activation flag': 'קובץ מודל הקהל ומצב ההפעלה שלו',
@@ -117,6 +120,9 @@ const SOURCE_HE = {
   'the pacing board: the campaign store and the delivery ledger, owned channel': 'לוח הקצב: מאגר הקמפיינים וספר האספקה, בערוץ שלכם',
   'the pacing board and the delivery ledger, the broadcast days behind one campaign': 'לוח הקצב וספר האספקה, ימי השידור שמאחורי קמפיין אחד',
   'the make-good decision ledger': 'ספר ההחלטות של פיצויי השידור',
+  'campaign store, delivery ledger and creative-assets ledger, owned channel': 'מאגר הקמפיינים, ספר האספקה וספר חומרי הקריאייטיב, בערוץ שלכם',
+  'company model-candidate artifacts and adoption decision ledger': 'קובצי המודלים המועמדים של החברה וספר החלטות ההטמעה',
+  'named plan-version freezes, operator-channel summaries only': 'גרסאות תוכנית שמורות בשם, סיכומי ערוץ המפעיל בלבד',
   'unknown tool': 'כלי לא מוכר',
 };
 
@@ -152,7 +158,7 @@ const PLAN_STATUS = {
   unknown: ['Plan freshness is unknown', 'עדכניות התוכנית אינה ידועה'],
 };
 
-// What Kai is grounded on for this question, printed the moment the context is
+// What Mabat is grounded on for this question, printed the moment the context is
 // composed, which is a fifth of a second in. Every value is copied from that
 // context by the server, so this is the scope of the answer being written and
 // never an estimate of it. A fact the context does not carry prints nothing.
@@ -224,17 +230,17 @@ export default function AssistantRunTrace({ locale, live, elapsed, onStop }) {
   return (
     <div className="asst-run" role="status" aria-live="polite">
       <div className="asst-run-head">
-        <button type="button" className="asst-run-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        <Pressable type="button" className="asst-run-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           <span className="asst-run-dots" aria-hidden="true"><span /><span /><span /></span>
           <span>{headline}</span>
           <time className="asst-run-clock"><Figure>{seconds(elapsed)}</Figure></time>
-        </button>
+        </Pressable>
         {onStop ? (
-          <button type="button" className="asst-run-stop" onClick={onStop}>
+          <Pressable type="button" className="asst-run-stop" onClick={onStop}>
             <Square size={11} />
             {pageText(locale, 'Stop', 'עצירה')}
-          </button>
+          </Pressable>
         ) : null}
       </div>
       {live.facts ? <GroundedOn facts={live.facts} locale={locale} /> : null}

@@ -1,0 +1,314 @@
+/* Frontier, yield and make-good insight instruments.
+   Loaded in source order from index.jsx; keep feature overrides in their owning sheets. */
+
+/* Frontier scope selector + breadcrumb */
+.frontier-scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 10px 0;
+}
+
+.frontier-scope-control {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.frontier-scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.frontier-scope-chip.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-hairline);
+}
+
+.frontier-scope-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.frontier-scope-breadcrumb strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+/* Prose directly inside the frontier card. It sat at 10px while the card's own
+   title sat at 16px, so the sentence started 6px inside the heading above it. */
+.frontier-scope-hint {
+  margin: var(--space-2) var(--card-inset) 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.frontier-clickable {
+  cursor: pointer;
+}
+
+.frontier-axis-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 10px 0;
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.frontier-point-readout {
+  margin: 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.frontier-point-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--line);
+}
+
+.frontier-point-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--teal);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.frontier-point-hint {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+/* Yield per second */
+.yield-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding: var(--space-4) var(--card-inset) 0;
+}
+
+.yield-total-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.yield-total-card span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.yield-total-card strong {
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.yield-total-card.muted strong {
+  color: var(--subtle);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.yield-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding: var(--card-inset);
+}
+
+.yield-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.yield-subhead h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+}
+
+.yield-subhead span {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.yield-bar-list {
+  display: grid;
+  gap: 9px;
+}
+
+.yield-bar-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.2fr) minmax(90px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.yield-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-bar-row i {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--teal) calc(var(--bar) * 100%), var(--line) 0);
+}
+
+.yield-bar-row strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.yield-bar-row small {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.yield-foot-note {
+  margin: 0 16px 14px;
+  color: var(--subtle);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* Make-good alerts */
+.makegood-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px var(--space-6);
+  text-align: center;
+  color: var(--muted);
+}
+
+.makegood-empty strong {
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.makegood-empty p {
+  margin: 0;
+  max-width: 460px;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.makegood-empty.ok strong {
+  color: var(--teal);
+}
+
+.makegood-reason {
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}
+
+.makegood-list {
+  display: grid;
+  gap: 10px;
+  padding: var(--space-4) var(--card-inset);
+}
+
+.makegood-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-muted);
+}
+
+.makegood-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+
+.makegood-row-head strong {
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.makegood-shortfall {
+  margin-inline-start: auto;
+  color: var(--red);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.makegood-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.makegood-bar {
+  display: grid;
+  grid-template-columns: 76px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.makegood-bar i {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--blue) calc(var(--bar) * 100%), var(--line) 0);
+}
+
+.makegood-bar small {
+  color: var(--ink);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+/* The programme band opens the click-to-inspect drawer. */
+.timeline-program-clickable { cursor: pointer; }
+.timeline-program-clickable:hover { background: var(--surface-muted); outline: 1px solid var(--line); }
+.timeline-program-clickable:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }

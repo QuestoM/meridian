@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Figure } from '../shell/bidi';
-import { CalendarRange, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Button } from '../studio/actions';
+import { Code, Figure } from '../shell/bidi';
+import { CalendarRange, MousePointerClick, PanelRightClose, Plus } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { refusalText, vocabularyLabel, vocabularyRemedy, windowLabel } from './clients-money-helpers';
 import { endCampaign, loadOnboardingOptions } from './clients-api';
@@ -10,6 +11,8 @@ import { DeliveryBasis, DeliveryCell } from './DeliveryState';
 import DemoBadge from './DemoBadge';
 import './clients-campaigns.css';
 import { isolate } from '../shell/bidi';
+
+const CAMPAIGN_WINDOW = 12;
 
 // Every campaign booked in this product, with its flights, what each flight
 // committed to, and what the delivery ledger has counted against it. Google Ads
@@ -45,12 +48,13 @@ export default function CampaignBoard({
   onOpenAgency,
   onReload,
 }) {
-  const [openId, setOpenId] = useState('');
-  const [focusId, setFocusId] = useState('');
+  const [openId, setOpenId] = useState(() => openCampaignId || '');
+  const [focusId, setFocusId] = useState(() => openCampaignId || '');
   const [pendingEnd, setPendingEnd] = useState('');
   const [booking, setBooking] = useState(false);
   const [options, setOptions] = useState(null);
   const [optionsError, setOptionsError] = useState('');
+  const [visibleCount, setVisibleCount] = useState(CAMPAIGN_WINDOW);
   const he = locale === 'he';
   const canEdit = !gate || gate.canEdit;
 
@@ -68,8 +72,8 @@ export default function CampaignBoard({
         if (alive) {
           setOptionsError(pageText(
             locale,
-            'The choices these forms offer could not be loaded, so editing is unavailable rather than guessed.',
-            'האפשרויות שהטפסים מציעים לא נטענו, ולכן העריכה אינה זמינה ולא מנוחשת.',
+            'The form choices could not be loaded from the server, so editing is blocked.',
+            'אפשרויות הטופס לא נטענו מהשרת, ולכן העריכה חסומה.',
           ));
         }
       });
@@ -99,6 +103,7 @@ export default function CampaignBoard({
   // screen, so an id the board does not carry leaves the whole list on show.
   const focus = campaigns.some((campaign) => campaign.campaign_id === focusId) ? focusId : '';
   const visible = focus ? campaigns.filter((campaign) => campaign.campaign_id === focus) : campaigns;
+  const shown = focus ? visible : visible.slice(0, visibleCount);
   const statuses = board.status_vocabulary || [];
   // The three air states and their words, as the payload names them, so the
   // delivered column reads in the ledger's own vocabulary rather than in one
@@ -109,10 +114,11 @@ export default function CampaignBoard({
   const countLine = demoCount > 0
     ? pageText(
       locale,
-      `${campaigns.length} campaigns on this board: ${bookedCount} booked, ${demoCount} demo seed data`,
-      `${isolate(campaigns.length)} קמפיינים על הלוח: ${isolate(bookedCount)} הוזמנו, ${isolate(demoCount)} נתוני זרע הדגמה`,
+      `${campaigns.length} campaigns in the ledger: ${bookedCount} booked, ${demoCount} demo seed data`,
+      `${isolate(campaigns.length)} קמפיינים בספר: ${isolate(bookedCount)} הוזמנו, ${isolate(demoCount)} נתוני זרע הדגמה`,
     )
     : pageText(locale, `${campaigns.length} campaigns booked`, `${isolate(campaigns.length)} קמפיינים הוזמנו`);
+  const selected = campaigns.find((campaign) => campaign.campaign_id === openId) || null;
 
   async function end(campaignId) {
     try {
@@ -137,14 +143,14 @@ export default function CampaignBoard({
     const name = agencies[campaign.agency_id];
     if (name && onOpenAgency) {
       return (
-        <button
+        <Button
           type="button"
           className="clients-link clients-cell-name clients-cell-open"
           onClick={() => onOpenAgency(campaign.agency_id)}
         >
           <strong>{name}</strong>
           <small className="clients-campaign-id">{campaign.agency_id}</small>
-        </button>
+        </Button>
       );
     }
     return (
@@ -163,13 +169,13 @@ export default function CampaignBoard({
         <span className="clients-counts">{countLine}</span>
         {canEdit ? (
           <>
-            <button type="button" className="clients-primary" onClick={onOnboard}>
+            <Button type="button" className="clients-primary" onClick={onOnboard}>
               <Plus size={14} aria-hidden="true" />
               {pageText(locale, 'Book a campaign', 'הזמינו קמפיין')}
-            </button>
-            <button type="button" className="clients-secondary" onClick={() => setBooking(true)}>
+            </Button>
+            <Button type="button" className="clients-secondary" onClick={() => setBooking(true)}>
               {pageText(locale, 'Book for a client on file', 'הזמינו ללקוח שכבר רשום')}
-            </button>
+            </Button>
           </>
         ) : (
           <p className="clients-refusal">{gate.reason}</p>
@@ -180,12 +186,12 @@ export default function CampaignBoard({
         <p className="clients-basis-note">
           {pageText(
             locale,
-            `Showing the one campaign that was asked for, of ${campaigns.length} on this board.`,
-            `מוצג הקמפיין שהתבקש בלבד, מתוך ${isolate(campaigns.length)} שעל הלוח.`,
+            `Showing the requested campaign, of ${campaigns.length} in the ledger.`,
+            `מוצג הקמפיין שהתבקש, מתוך ${isolate(campaigns.length)} שבספר.`,
           )}
-          <button type="button" className="clients-inline-action" onClick={() => setFocusId('')}>
+          <Button type="button" className="clients-inline-action" onClick={() => setFocusId('')}>
             {pageText(locale, 'Show every campaign', 'הציגו את כל הקמפיינים')}
-          </button>
+          </Button>
         </p>
       ) : null}
 
@@ -223,117 +229,145 @@ export default function CampaignBoard({
           <p>
             {pageText(
               locale,
-              'A campaign is the commercial object a signed insertion order becomes. Onboard a client to create the first one.',
-              'קמפיין הוא האובייקט המסחרי שאליו הופכת הזמנה חתומה. קלטו לקוח כדי ליצור את הראשון.',
+              'A campaign is created from a signed insertion order. Onboard a client to book the first campaign.',
+              'קמפיין נוצר מתוך הזמנת רכש חתומה. קלטו לקוח כדי להזמין את הקמפיין הראשון.',
             )}
           </p>
           {canEdit ? (
-            <button type="button" className="clients-primary" onClick={onOnboard}>
+            <Button type="button" className="clients-primary" onClick={onOnboard}>
               {pageText(locale, 'Onboard a client', 'קליטת לקוח')}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : (
-        <table className="clients-table">
-          <thead>
-            <tr>
-              <th scope="col">{pageText(locale, 'Campaign', 'קמפיין')}</th>
-              <th scope="col">{pageText(locale, 'Client', 'לקוח')}</th>
-              <th scope="col">{pageText(locale, 'Agency', 'סוכנות')}</th>
-              <th scope="col">{pageText(locale, 'Window', 'חלון')}</th>
-              <th scope="col" className="numeric-col">{pageText(locale, 'Flights', 'טיסות')}</th>
-              <th scope="col">{pageText(locale, 'Delivered', 'סופק')}</th>
-              <th scope="col">{pageText(locale, 'State', 'מצב')}</th>
-              <th scope="col">{pageText(locale, 'What to do', 'מה לעשות')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((campaign) => {
-              const open = openId === campaign.campaign_id;
-              const toggle = () => setOpenId(open ? '' : campaign.campaign_id);
-              return (
-                <React.Fragment key={campaign.campaign_id}>
-                  <tr>
-                    <td>
-                      <button type="button" className="clients-link" onClick={toggle} aria-expanded={open}>
-                        {campaign.name}
-                        {open ? <ChevronUp size={13} aria-hidden="true" /> : <ChevronDown size={13} aria-hidden="true" />}
-                      </button>
-                      <DemoBadge demo={campaign.demo} locale={locale} />
-                      <small className="clients-campaign-id">{campaign.campaign_id}</small>
-                    </td>
-                    <td>
-                      <button type="button" className="clients-link" onClick={() => onOpenClient(campaign.advertiser)}>
-                        {campaign.advertiser}
-                      </button>
-                    </td>
-                    <td>{agencyCell(campaign)}</td>
-                    <td className="numeric"><Figure>{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</Figure></td>
-                    <td className="numeric">
-                      <button type="button" className="clients-link" onClick={toggle} aria-expanded={open}>
-                        <Figure>{campaign.flights.length}</Figure>
-                      </button>
-                    </td>
-                    <td>
-                      <DeliveryCell
-                        delivery={campaign.delivery}
-                        vocabulary={airStates}
-                        locale={locale}
-                      />
-                    </td>
-                    <td>
-                      <span className={`clients-state ${campaign.status}`}>
-                        {vocabularyLabel(statuses, campaign.status, locale)}
-                      </span>
-                    </td>
-                    <td>
-                      <small className="clients-remedy">{vocabularyRemedy(statuses, campaign.status, locale)}</small>
-                      {canEdit && pendingEnd !== campaign.campaign_id ? (
-                        <span className="clients-row-actions">
-                          <button type="button" className="clients-inline-action" onClick={toggle}>
-                            {pageText(locale, 'Amend it', 'תקנו')}
-                          </button>
-                          {campaign.status === 'active' ? (
-                            <button type="button" className="clients-inline-action" onClick={() => setPendingEnd(campaign.campaign_id)}>
-                              {pageText(locale, 'End it', 'סיימו')}
-                            </button>
-                          ) : null}
+        <div className="campaign-control-room">
+          <div className="campaign-ledger">
+            <table
+              id="campaign-ledger-rows"
+              className="clients-table"
+              aria-label={pageText(locale, 'Booked campaigns and delivery state', 'קמפיינים שהוזמנו ומצב האספקה')}
+              aria-rowcount={visible.length}
+            >
+              <thead>
+                <tr>
+                  <th scope="col">{pageText(locale, 'Campaign and client', 'קמפיין ולקוח')}</th>
+                  <th scope="col">{pageText(locale, 'Window', 'חלון')}</th>
+                  <th scope="col">{pageText(locale, 'Commitment', 'התחייבות')}</th>
+                  <th scope="col">{pageText(locale, 'State', 'מצב')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((campaign) => {
+                  const open = openId === campaign.campaign_id;
+                  return (
+                    <tr key={campaign.campaign_id} className={open ? 'is-selected' : undefined}>
+                      <td>
+                        <div className="campaign-ledger-identity">
+                          <Button
+                            type="button"
+                            className="campaign-ledger-open"
+                            onClick={() => setOpenId(campaign.campaign_id)}
+                            aria-pressed={open}
+                          >
+                            <strong>{campaign.name}</strong>
+                            <Code>{campaign.campaign_id}</Code>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="text"
+                            className="clients-link campaign-ledger-client"
+                            onClick={() => onOpenClient(campaign.advertiser)}
+                          >
+                            {campaign.advertiser}
+                          </Button>
+                          <DemoBadge demo={campaign.demo} locale={locale} />
+                        </div>
+                      </td>
+                      <td className="numeric"><Figure>{windowLabel(campaign.starts_on, campaign.ends_on, locale)}</Figure></td>
+                      <td>
+                        <DeliveryCell delivery={campaign.delivery} vocabulary={airStates} locale={locale} />
+                      </td>
+                      <td>
+                        <span className={`clients-state ${campaign.status}`}>
+                          {vocabularyLabel(statuses, campaign.status, locale)}
                         </span>
-                      ) : null}
-                      {pendingEnd === campaign.campaign_id ? (
-                        <span className="clients-confirm">
-                          <small>{pageText(locale, 'It is marked ended, never deleted.', 'הוא מסומן כהסתיים, לעולם אינו נמחק.')}</small>
-                          <button type="button" className="clients-inline-action" onClick={() => end(campaign.campaign_id)}>
-                            {pageText(locale, 'Confirm', 'אישור')}
-                          </button>
-                          <button type="button" className="clients-inline-action" onClick={() => setPendingEnd('')}>
-                            {pageText(locale, 'Keep it', 'השאירו')}
-                          </button>
-                        </span>
-                      ) : null}
-                    </td>
-                  </tr>
-                  {open ? (
-                    <tr className="clients-subrow">
-                      <td colSpan={8}>
-                        <CampaignDetail
-                          campaign={campaign}
-                          board={board}
-                          options={options}
-                          optionsError={optionsError}
-                          locale={locale}
-                          canEdit={canEdit}
-                          notify={notify}
-                          onChanged={onReload}
-                        />
                       </td>
                     </tr>
-                  ) : null}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                  );
+                })}
+              </tbody>
+            </table>
+            {shown.length < visible.length ? (
+              <div className="clients-window-more" role="status">
+                <span>{pageText(locale, `Showing ${shown.length} of ${visible.length} campaigns`, `מוצגים ${isolate(shown.length)} מתוך ${isolate(visible.length)} קמפיינים`)}</span>
+                <a href="#campaign-ledger-rows" role="button" className="clients-secondary"
+                   onClick={(event) => { event.preventDefault(); setVisibleCount((count) => count + CAMPAIGN_WINDOW); }}
+                   onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setVisibleCount((count) => count + CAMPAIGN_WINDOW); } }}>
+                  {pageText(locale, 'Show the next campaigns', 'הציגו את הקמפיינים הבאים')}
+                </a>
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="card card-dense campaign-inspector" aria-live="polite">
+            {selected ? (
+              <>
+                <header className="campaign-inspector-head">
+                  <div>
+                    <small className="campaign-inspector-code"><Code>{selected.campaign_id}</Code></small>
+                    <h3>{selected.name}</h3>
+                    <Button type="button" className="clients-link" onClick={() => onOpenClient(selected.advertiser)}>
+                      {selected.advertiser}
+                    </Button>
+                  </div>
+                  <Button type="button" className="clients-icon-button" onClick={() => setOpenId('')} aria-label={pageText(locale, 'Close campaign inspector', 'סגירת פרטי הקמפיין')}>
+                    <PanelRightClose size={18} aria-hidden="true" />
+                  </Button>
+                </header>
+
+                <dl className="campaign-inspector-facts">
+                  <div><dt>{pageText(locale, 'Agency', 'סוכנות')}</dt><dd>{agencyCell(selected)}</dd></div>
+                  <div><dt>{pageText(locale, 'Window', 'חלון')}</dt><dd className="numeric"><Figure>{windowLabel(selected.starts_on, selected.ends_on, locale)}</Figure></dd></div>
+                  <div><dt>{pageText(locale, 'Flights', 'טיסות')}</dt><dd className="numeric"><Figure>{selected.flights.length}</Figure></dd></div>
+                  <div><dt>{pageText(locale, 'State', 'מצב')}</dt><dd><span className={`clients-state ${selected.status}`}>{vocabularyLabel(statuses, selected.status, locale)}</span></dd></div>
+                </dl>
+
+                <p className="campaign-inspector-remedy">{vocabularyRemedy(statuses, selected.status, locale)}</p>
+                {canEdit && selected.status === 'active' && pendingEnd !== selected.campaign_id ? (
+                  <Button type="button" className="clients-secondary" onClick={() => setPendingEnd(selected.campaign_id)}>
+                    {pageText(locale, 'End campaign', 'סיום הקמפיין')}
+                  </Button>
+                ) : null}
+                {pendingEnd === selected.campaign_id ? (
+                  <div className="clients-confirm">
+                    <small>{pageText(locale, 'The campaign is marked ended and remains in the ledger.', 'הקמפיין יסומן כהסתיים ויישאר בספר.')}</small>
+                    <div className="clients-row-actions">
+                      <Button type="button" className="clients-primary" onClick={() => end(selected.campaign_id)}>{pageText(locale, 'Confirm end', 'אישור סיום')}</Button>
+                      <Button type="button" className="clients-secondary" onClick={() => setPendingEnd('')}>{pageText(locale, 'Keep active', 'השאירו פעיל')}</Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <CampaignDetail
+                  campaign={selected}
+                  board={board}
+                  options={options}
+                  optionsError={optionsError}
+                  locale={locale}
+                  canEdit={canEdit}
+                  notify={notify}
+                  onChanged={onReload}
+                />
+              </>
+            ) : (
+              <div className="campaign-inspector-empty">
+                <MousePointerClick size={28} aria-hidden="true" />
+                <strong>{pageText(locale, 'Select a campaign', 'בחרו קמפיין')}</strong>
+                <p>{pageText(locale, 'Commitments, delivery state and flights open here while the campaign ledger remains available.', 'כאן יוצגו ההתחייבויות, מצב האספקה וטיסות השידור. ספר הקמפיינים יישאר פתוח.')}</p>
+              </div>
+            )}
+          </aside>
+        </div>
       )}
     </section>
   );

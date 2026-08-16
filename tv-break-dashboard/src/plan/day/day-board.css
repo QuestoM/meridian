@@ -10,9 +10,6 @@
 }
 
 .day-picker {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -61,7 +58,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 34px;
+  min-width: 44px;
+  min-height: 48px;
   padding: var(--space-1) 2px;
   background: transparent;
   border: 1px solid transparent;
@@ -87,13 +85,13 @@
 }
 
 .day-pill.is-on {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #ffffff;
+  background: var(--chrome, var(--primary));
+  border-color: var(--chrome, var(--primary));
+  color: var(--surface);
 }
 
 .day-pill.is-on b {
-  color: #ffffff;
+  color: var(--surface);
 }
 
 .day-pill:focus-visible,
@@ -104,9 +102,6 @@
 }
 
 .day-board {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
@@ -182,10 +177,10 @@
   gap: var(--space-1);
 }
 
-/* Square, and the same 25 px height as the snap buttons beside it, so the row
-   reads as one set of controls rather than as two sizes of button. */
 .day-chip-button.is-icon {
-  padding: 5px;
+  inline-size: 44px;
+  padding: 0;
+  justify-content: center;
 }
 
 .day-chip-button {
@@ -199,6 +194,8 @@
   font-size: var(--text-xs);
   color: var(--ink);
   cursor: pointer;
+  min-inline-size: 44px;
+  min-block-size: 44px;
 }
 
 .day-chip-button.is-on {
@@ -305,6 +302,7 @@
 
 .day-field input {
   width: 62px;
+  min-height: 44px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-xs);
   padding: 2px var(--space-1);
@@ -314,7 +312,7 @@
 /* The start clock is eight characters, so it needs more room than the length
    field beside it. Both are typed targets, neither is a readout. */
 .day-field input.day-field-time {
-  width: 84px;
+  width: 112px;
 }
 
 .day-track-row {

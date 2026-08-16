@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Pencil, Plus, Search } from 'lucide-react';
 import {
   WEEKDAY_OPTIONS,
@@ -11,6 +11,7 @@ import {
   serializeTokens,
   toggleToken,
 } from './advertisers-helpers';
+import { InputControl } from '../studio/dom-controls';
 
 // The personal-pricing surface: the shared pricing vocabulary (scope labels, the
 // keyboard-operable scope multi-select used by the conditions builder) and the
@@ -107,7 +108,7 @@ export function ScopeMultiSelect({ label, options, value, onChange, locale, filt
       {filterable && (
         <div className="adv-chip-filter">
           <Search size={12} className="adv-chip-filter-icon" />
-          <input
+          <InputControl
             className="adv-chip-filter-input"
             type="text"
             value={query}
@@ -122,7 +123,7 @@ export function ScopeMultiSelect({ label, options, value, onChange, locale, filt
           const isAny = token.toUpperCase() === 'ANY';
           const active = isAny ? anyActive : tokens.includes(token);
           return (
-            <button
+            <Button
               key={token}
               type="button"
               className={`adv-chip${active ? ' active' : ''}${isAny ? ' any' : ''}`}
@@ -130,7 +131,7 @@ export function ScopeMultiSelect({ label, options, value, onChange, locale, filt
               onClick={() => onChange(serializeTokens(toggleToken(tokens, token)))}
             >
               <span>{isAny ? pageText(locale, 'Any', 'הכול') : tokenLabel(token, optionMap, locale)}</span>
-            </button>
+            </Button>
           );
         })}
         {visibleOptions.length === 1 && filterable && query.trim() && (
@@ -159,14 +160,14 @@ export function WeekdayScope({ value, onChange, locale }) {
     <div className="adv-chip-field adv-cond-scope">
       <span className="adv-field-label">{label}</span>
       <div className="adv-chip-row" role="group" aria-label={label}>
-        <button type="button" className={`adv-chip any${anyActive ? ' active' : ''}`} aria-pressed={anyActive} onClick={() => onChange('ANY')}>
+        <Button type="button" className={`adv-chip any${anyActive ? ' active' : ''}`} aria-pressed={anyActive} onClick={() => onChange('ANY')}>
           <span>{pageText(locale, 'Any', 'הכול')}</span>
-        </button>
+        </Button>
         {WEEKDAY_OPTIONS.map((day) => {
           const active = !anyActive && tokens.includes(day.value);
           const full = WEEKDAY_FULL[day.value] || [day.en, day.he];
           return (
-            <button
+            <Button
               key={day.value}
               type="button"
               className={`adv-chip${active ? ' active' : ''}`}
@@ -175,7 +176,7 @@ export function WeekdayScope({ value, onChange, locale }) {
               onClick={() => onChange(serializeTokens(toggleToken(tokens, day.value)))}
             >
               <span>{pageText(locale, day.en, day.he)}</span>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -370,10 +371,10 @@ function AdvertiserPricingSummary({ advertiserId, conditions, scopeOptions, loca
         <ul className="apz-rules">
           {moneyRules.map((rule) => (
             <li key={rule.rule_id}>
-              <button type="button" className="apz-rule" onClick={() => onEditRule(rule.rule_id)} aria-label={pageText(locale, `Edit pricing rule ${rule.rule_id}`, `עריכת כלל תמחור ${rule.rule_id}`)}>
+              <Button type="button" className="apz-rule" onClick={() => onEditRule(rule.rule_id)} aria-label={pageText(locale, `Edit pricing rule ${rule.rule_id}`, `עריכת כלל תמחור ${rule.rule_id}`)}>
                 <span className="apz-rule-sentence">{ruleSentence(rule, maps, locale)}</span>
                 <Pencil size={13} className="apz-rule-icon" />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

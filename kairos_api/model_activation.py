@@ -110,9 +110,10 @@ def set_active(active: bool, request: Optional[Request] = None) -> dict[str, Any
     date exactly as it is today.
     """
     require_activation_editor(request)
-    from kairos_api.core import _load_settings, _save_settings
+    from kairos_api.core import _mutate_settings
 
-    settings = _load_settings()
-    setattr(settings, SETTINGS_FIELD, bool(active))
-    _save_settings(settings)
+    def apply(settings: Any) -> None:
+        setattr(settings, SETTINGS_FIELD, bool(active))
+
+    _mutate_settings(apply)
     return payload(request)

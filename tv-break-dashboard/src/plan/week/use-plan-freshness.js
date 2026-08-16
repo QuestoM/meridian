@@ -3,13 +3,13 @@ import { readPlanFreshness } from './plan-week-api';
 
 // Is the saved plan still in step with the inputs it was built from.
 //
-// The destination reads this for itself, beside its settings, its plan versions,
-// its progress and its yield, rather than taking it from the shell. Measured
-// before it did: a run finished from the Optimizer entrance and the header still
-// read out of date for as long as the page stayed open, because only one of the
-// four entrances is handed a refresh handler and the shell's copy of the verdict
-// had been taken before the run. A planner reading that would start a two-minute
-// job again for nothing.
+// The shell's overview verdict seeds the first load, avoiding a duplicate read.
+// After a write, or when no trustworthy seed exists, Plan owns the revalidation
+// beside its settings, versions, progress and yield. Before that split, a run
+// could finish while the header kept the shell's pre-run verdict for the rest of
+// the visit. A planner reading that would start a two-minute job again for
+// nothing.
+// Shell ownership stops at that first honest seed.
 //
 // Three states, and each is the honest name of what is known. Ready carries the
 // server's own fresh, stale or unknown verdict. Unavailable means the read
@@ -17,9 +17,14 @@ import { readPlanFreshness } from './plan-week-api';
 // never drawn as unknown, because "no run stamp was found" is a claim about the
 // plan and during a read in flight it would be a false one.
 
-export function usePlanFreshness() {
-  const [verdict, setVerdict] = useState(null);
-  const [state, setState] = useState('loading');
+function isFreshnessVerdict(value) {
+  return Boolean(value && typeof value === 'object' && typeof value.status === 'string');
+}
+
+export function usePlanFreshness(initialVerdict = null, initialPending = false) {
+  const initialReady = isFreshnessVerdict(initialVerdict);
+  const [verdict, setVerdict] = useState(initialReady ? initialVerdict : null);
+  const [state, setState] = useState(initialReady ? 'ready' : 'loading');
   const [error, setError] = useState(null);
 
   const reload = useCallback(async () => {
@@ -35,7 +40,15 @@ export function usePlanFreshness() {
     setState('ready');
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    if (isFreshnessVerdict(initialVerdict)) {
+      setVerdict(initialVerdict);
+      setError(null);
+      setState('ready');
+      return;
+    }
+    if (!initialPending) reload();
+  }, [initialVerdict, initialPending, reload]);
 
   return { verdict, state, error, reload };
 }

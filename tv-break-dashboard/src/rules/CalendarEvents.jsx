@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Info, RefreshCcw } from 'lucide-react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 import { readEventsLayer } from './pricing-layers-lib';
 import { detailWords } from './rules-lib';
 import { ModelContextPanel, OverlapPanel, eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
@@ -37,7 +38,7 @@ function eventBody(event, patch = {}) {
   };
 }
 
-function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRateCard }) {
+function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRateCard, embedded = false }) {
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('loading');
   const [busy, setBusy] = useState(false);
@@ -47,6 +48,7 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
   const [highlightId, setHighlightId] = useState(null);
   // Grid (primary) or list; the choice persists across sessions.
   const [view, setView] = useState(readStoredCalendarView);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   // A one-shot jump target for the month grid, set by the upcoming strip.
   const [gridFocus, setGridFocus] = useState(null);
 
@@ -216,18 +218,18 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
 
   if (status === 'loading') {
     return (
-      <section className="page-workspace">
-        <div className="page-header"><h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1></div>
-        <p>{pageText(locale, 'Loading the events calendar...', 'טוען את לוח האירועים...')}</p>
+      <section className={embedded ? 'rules-section' : 'page-workspace'} aria-busy="true">
+        <div className="page-header">{embedded ? <h2>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h2> : <h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1>}</div>
+        <p role="status">{pageText(locale, 'Loading the events calendar...', 'טוען את לוח האירועים...')}</p>
       </section>
     );
   }
 
   if (status !== 'ok') {
     return (
-      <section className="page-workspace">
-        <div className="page-header"><h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1></div>
-        <div className="cal-banner">
+      <section className={embedded ? 'rules-section' : 'page-workspace'}>
+        <div className="page-header">{embedded ? <h2>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h2> : <h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1>}</div>
+        <div className="cal-banner" role="alert">
           <Info size={16} aria-hidden="true" />
           <p>{status === 'missing'
             ? pageText(locale, 'This server version does not carry the events service yet, so no calendar is shown rather than an invented one.', 'גרסת השרת הזו עדיין אינה כוללת את שירות האירועים, ולכן לא מוצג לוח במקום להמציא נתון.')
@@ -246,10 +248,10 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
   }
 
   return (
-    <section className="page-workspace">
+    <section className={embedded ? 'rules-section' : 'page-workspace'}>
       <div className="page-header">
         <div>
-          <h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1>
+          {embedded ? <h2>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h2> : <h1>{pageText(locale, 'Events calendar', 'לוח אירועים')}</h1>}
           <p>{pageText(locale, 'Manage holidays, wars and special events next to an honest picture of what the model actually measures today. Events do not change retention numbers until an effect is measured on richer history.', 'ניהול חגים, מלחמות ואירועים מיוחדים לצד תמונה כנה של מה שהמודל באמת מודד היום. אירועים אינם משנים מספרי שימור עד שנמדדת השפעה על היסטוריה עשירה יותר.')}</p>
           {!canEdit && <p className="cal-readonly-note">{pageText(locale, 'Event editing is available to the company team only.', 'עריכת אירועים זמינה לצוות החברה בלבד.')}</p>}
         </div>
@@ -260,10 +262,10 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
       </div>
 
       {upcoming.length > 0 && (
-        <div className="cal-upcoming" role="list" aria-label={pageText(locale, 'Upcoming events', 'אירועים קרובים')}>
+        <div className="card cal-upcoming" role="list" aria-label={pageText(locale, 'Upcoming events', 'אירועים קרובים')}>
           <span className="cal-upcoming-label">{pageText(locale, 'Coming up:', 'הקרובים:')}</span>
           {upcoming.map((event) => (
-            <button type="button" role="listitem" className="cal-upcoming-item" key={event.event_id || event.name} onClick={() => jumpToEvent(event)}>
+            <Pressable type="button" role="listitem" className="cal-upcoming-item" key={event.event_id || event.name} onClick={() => jumpToEvent(event)}>
               <span className={eventTypeChipClass(event.type)}>{eventTypeLabel(event.type, locale)}</span>
               <Name>{event.name}</Name>
               <span className="cal-upcoming-dates">
@@ -271,18 +273,18 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
                   ? pageText(locale, 'ongoing', 'מתמשך')
                   : <span className="bidi-figure figure-nowrap">{formatEventDate(event.start_date)}</span>}
               </span>
-            </button>
+            </Pressable>
           ))}
         </div>
       )}
 
       <div className="cal-view-bar" role="group" aria-label={pageText(locale, 'Calendar view', 'תצוגת הלוח')}>
-        <button type="button" className={view === 'grid' ? 'segmented active' : 'segmented'} aria-pressed={view === 'grid'} onClick={() => switchView('grid')}>
+        <Pressable type="button" className={view === 'grid' ? 'segmented active' : 'segmented'} aria-pressed={view === 'grid'} onClick={() => switchView('grid')}>
           {pageText(locale, 'Calendar', 'לוח')}
-        </button>
-        <button type="button" className={view === 'list' ? 'segmented active' : 'segmented'} aria-pressed={view === 'list'} onClick={() => switchView('list')}>
+        </Pressable>
+        <Pressable type="button" className={view === 'list' ? 'segmented active' : 'segmented'} aria-pressed={view === 'list'} onClick={() => switchView('list')}>
           {pageText(locale, 'List', 'רשימה')}
-        </button>
+        </Pressable>
       </div>
 
       {view === 'grid' ? (
@@ -328,8 +330,35 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
 
       <CalendarPricingBanner locale={locale} eventsPricing={eventsPricing} onOpenRateCard={onOpenRateCard} />
 
-      <ModelContextPanel context={data?.model_context} locale={locale} />
-      <OverlapPanel events={events} locale={locale} />
+      <section className="cal-evidence-disclosure">
+        <div>
+          <h2>{pageText(locale, 'Model evidence and event overlaps', 'ראיות המודל וחפיפות אירועים')}</h2>
+          <p>
+            {pageText(
+              locale,
+              'A separate evidence task: what the model measured, and which stored events intersect its training window or the saved plan.',
+              'משימת ראיות נפרדת: מה המודל מדד, ואילו אירועים שמורים חופפים לחלון האימון או לתוכנית השמורה.',
+            )}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outlined"
+          aria-expanded={evidenceOpen}
+          aria-controls="calendar-model-evidence"
+          onClick={() => setEvidenceOpen((open) => !open)}
+        >
+          {evidenceOpen
+            ? pageText(locale, 'Hide model evidence', 'הסתרת ראיות המודל')
+            : pageText(locale, `Review evidence for ${events.length} events`, `סקירת ראיות עבור ${events.length} אירועים`)}
+        </Button>
+      </section>
+      {evidenceOpen && (
+        <div id="calendar-model-evidence" className="cal-evidence-panels">
+          <ModelContextPanel context={data?.model_context} locale={locale} />
+          <OverlapPanel events={events} locale={locale} />
+        </div>
+      )}
     </section>
   );
 }

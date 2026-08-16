@@ -78,6 +78,7 @@ def _priced_side(
         objective_mode=objective_mode,
         today=today,
         settings=settings_map,
+        require_usable_inventory=True,
     )
     segments = list(_plan_segment_index(((channel, str(day)),), settings_map).values())
     return _scenario_plan_money(payload, segments, risk_lambda)
@@ -121,9 +122,14 @@ def simulate_settings_change(changes: dict[str, Any]) -> dict[str, Any]:
             _model_dump,
         )
         from kairos_api.dashboard_api import _frontier_data_signature, _owned_scope
+        from kairos.optimize.inventory import load_inventory
 
         if not _ENGINE_AVAILABLE:
             return _unavailable("the optimization engine is unavailable")
+        # Preflight before the memoized side lookup: a cached what-if from a
+        # formerly valid source must never be returned after inventory becomes
+        # present-but-unusable. Missing inventory remains a neutral signal.
+        load_inventory(require_usable=True)
         if not isinstance(changes, dict) or not changes:
             return _unavailable("changes must be a non-empty object of settings fields")
         forbidden = sorted(set(changes) - ALLOWED_SETTINGS_FIELDS)

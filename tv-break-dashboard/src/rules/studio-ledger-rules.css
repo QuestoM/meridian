@@ -1,0 +1,206 @@
+/* Studio Ledger — Governance is one authored-record workspace with a quiet
+   horizontal index and one mounted section. */
+.rules-workspace {
+  gap: var(--space-4);
+  padding-block: var(--space-4) var(--space-10);
+}
+
+.rules-hero {
+  display: flex;
+  align-items: center;
+  min-block-size: 52px;
+}
+
+.rules-hero h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: var(--weight-semibold);
+}
+
+.rules-hero p {
+  margin: 2px 0 0;
+  max-inline-size: none;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.rules-tabs {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding-block-end: 0;
+  scrollbar-width: thin;
+}
+
+.rules-tab {
+  flex: 0 0 auto;
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+}
+
+.rules-tab.active {
+  border-color: var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.rules-active-panel {
+  min-inline-size: 0;
+}
+
+.rules-active-panel:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.rules-workspace .rules-slot {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.rules-workspace .rules-slot:focus-within {
+  border-color: var(--focus-ring);
+}
+
+.rules-workspace .rules-slot :is(select, input),
+.rules-workspace .rules-typeahead,
+.rules-workspace .rules-slot-unit {
+  color: var(--ink);
+}
+
+.rules-card,
+.pricing-layer-card,
+.cal-banner,
+.licence-panel {
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  box-shadow: var(--shadow-0);
+}
+
+.rules-workspace :is(button, .MuiButton-root, .MuiIconButton-root) {
+  min-block-size: var(--control-height);
+}
+
+.rules-workspace :is(.rules-icon-button, .cb-delete-btn, .hist-icon-btn, .MuiIconButton-root) {
+  min-inline-size: var(--icon-action-size);
+}
+
+.rules-workspace :is(input:not([type='checkbox']):not([type='radio']), select, textarea, .MuiInputBase-root) {
+  min-block-size: var(--control-height);
+  box-sizing: border-box;
+}
+
+.rules-workspace .MuiSlider-root,
+.rules-workspace .MuiSelect-select {
+  box-sizing: border-box;
+  min-block-size: var(--control-height);
+}
+
+.rules-workspace .MuiSlider-root {
+  padding-block: var(--space-5);
+}
+
+.rules-workspace input[type='number'] {
+  min-inline-size: var(--icon-action-size);
+}
+
+.rules-workspace a,
+.rules-workspace .pricing-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
+}
+
+.rules-workspace .pricing-toggle {
+  min-inline-size: var(--icon-action-size);
+  justify-content: center;
+}
+
+.rules-workspace :is(th, td) {
+  padding-block: var(--space-3);
+}
+
+.pricing-header-actions,
+.pricing-layer-heading,
+.pricing-events-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pricing-events-list {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+}
+
+.pricing-base-note.compact {
+  margin: 0;
+}
+
+.pricing-events-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pricing-events-caret {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.pricing-events-caret.open {
+  transform: rotate(180deg);
+}
+
+.cb-effect-label {
+  margin-block-start: var(--space-5);
+}
+
+.cal-overlap-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-start: var(--space-4);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.cal-evidence-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) 0;
+  border-block: 1px solid var(--line);
+}
+
+.cal-evidence-disclosure h2,
+.cal-evidence-disclosure p {
+  margin: 0;
+}
+
+.cal-evidence-disclosure p {
+  margin-block-start: var(--space-1);
+  max-inline-size: var(--measure-readable);
+  color: var(--ink-muted);
+}
+
+.cal-evidence-panels {
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-events-caret {
+    transition: none;
+  }
+}

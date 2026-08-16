@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
 import './calendar-audience.css';
-import './console-mount.js';
 import { formatStamp } from '../shell/dates';
 
 // The audience-model block on the calendar, which is a run surface.

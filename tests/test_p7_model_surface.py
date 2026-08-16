@@ -328,7 +328,7 @@ def test_the_sentence_naming_rules_is_the_control_that_goes_there() -> None:
     get there from the sentence telling him.
     """
     source = (CONSOLE_DIR / "ModelConsole.jsx").read_text(encoding="utf-8")
-    control = re.search(r"onClick=\{onOpenRules\}>(.{0,200}?)</button>", source, re.S)
+    control = re.search(r"onClick=\{onOpenRules\}>(.{0,200}?)</(?:button|Button|Pressable)>", source, re.S)
     assert control is not None, "the console renders no control that opens Rules"
     assert ACTIVATION_NOTE_KEY in control.group(1), (
         f"the control that opens Rules does not carry {ACTIVATION_NOTE_KEY}, so some other string is the one that moves and the sentence is still a dead end"
@@ -377,7 +377,7 @@ def test_the_frozen_shell_still_resolves_that_address_to_a_page(tmp_path) -> Non
     views = resolve_shell_views(tmp_path, [f"#{RULES_HASH}", UNKNOWN_HASH, ""])
     assert "failed" not in views, views.get("failed")
     resolved = views["resolved"]
-    assert resolved[f"#{RULES_HASH}"] == RULES_HASH, (
+    assert resolved[f"#{RULES_HASH}"] == "Governance", (
         f"the shell resolves the console's address for Rules to {resolved[f'#{RULES_HASH}']}"
     )
     assert resolved[UNKNOWN_HASH] != UNKNOWN_HASH.lstrip("#"), (
@@ -391,8 +391,8 @@ def test_the_frozen_shell_still_resolves_that_address_to_a_page(tmp_path) -> Non
     assert re.search(r"addEventListener\(\s*'hashchange'", shell), (
         "the shell no longer listens for the hash change the control makes"
     )
-    assert re.search(r"=\s*viewFromLocation\(\)", shell), (
-        "the shell no longer re-reads the address into a view"
+    assert "routeFromLocation({" in shell and "setActiveViewState(route.view);" in shell, (
+        "the shell no longer re-reads and normalises the address into a canonical view"
     )
 
 

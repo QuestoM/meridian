@@ -49,13 +49,11 @@
   font-size: var(--text-xs);
 }
 
-/* Design rule 3, the same divider the pod list uses. */
 .pod-when > span + span {
   border-inline-start: 1px solid var(--line);
   padding-inline-start: var(--space-2);
 }
 
-/* A frozen pod does not offer a grab cursor it will not honour. */
 .pod-spot-frozen {
   cursor: default;
 }
@@ -237,6 +235,9 @@
   font-size: var(--text-xs);
   color: var(--ink);
   cursor: grab;
+  min-block-size: 48px;
+  content-visibility: auto;
+  contain-intrinsic-size: 48px;
 }
 
 /* These three name .pod-spot as well on purpose: the border is the card's now,
@@ -438,6 +439,7 @@
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-xs);
   cursor: pointer;
+  min-block-size: 44px;
 }
 
 .pod-act:disabled {

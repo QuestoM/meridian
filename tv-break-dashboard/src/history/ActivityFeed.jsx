@@ -3,6 +3,7 @@ import { BellOff, RotateCcw, Trash2, X } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { formatClock } from '../shell/dates';
 import { Figure } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 import './activity-feed.css';
 
 // A persistent activity feed for the operator's own actions and alerts. Every
@@ -37,22 +38,22 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
           <span className="af-kicker">{pageText(locale, 'Activity', 'פעילות')}</span>
           <h3>{pageText(locale, 'Notifications', 'התראות')}</h3>
         </div>
-        <button type="button" className="af-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+        <Pressable type="button" className="af-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
           <X size={18} />
-        </button>
+        </Pressable>
       </div>
 
       <div className="af-actions">
-        <button type="button" className="af-action" onClick={onClearAll} disabled={active.length === 0}>
+        <Pressable type="button" className="af-action" onClick={onClearAll} disabled={active.length === 0}>
           <BellOff size={13} />
           {pageText(locale, 'Dismiss all', 'סימון הכל כנצפה')}
-        </button>
-        <button type="button" className="af-action" onClick={() => setShowDismissed((v) => !v)} disabled={dismissed.length === 0}>
+        </Pressable>
+        <Pressable type="button" className="af-action" onClick={() => setShowDismissed((v) => !v)} disabled={dismissed.length === 0}>
           <RotateCcw size={13} />
           {showDismissed
             ? pageText(locale, 'Hide dismissed', 'הסתרת שנצפו')
             : `${pageText(locale, 'Show dismissed', 'הצגת שנצפו')} (${dismissed.length})`}
-        </button>
+        </Pressable>
       </div>
 
       <div className="af-body">
@@ -66,9 +67,9 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
               <span className="af-item-time"><Figure>{timeLabel(n.ts)}</Figure></span>
               <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
             </div>
-            <button type="button" className="af-item-btn" onClick={() => onDismiss(n.id)} aria-label={pageText(locale, 'Dismiss', 'סימון כנצפה')}>
+            <Pressable type="button" className="af-item-btn" onClick={() => onDismiss(n.id)} aria-label={pageText(locale, 'Dismiss', 'סימון כנצפה')}>
               <X size={14} />
-            </button>
+            </Pressable>
           </div>
         ))}
 
@@ -76,9 +77,9 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
           <>
             <div className="af-divider">
               <span>{pageText(locale, 'Dismissed', 'נצפו')}</span>
-              <button type="button" className="af-restore-all" onClick={onRestoreAll}>
+              <Pressable type="button" className="af-restore-all" onClick={onRestoreAll}>
                 {pageText(locale, 'Restore all', 'שחזור הכל')}
-              </button>
+              </Pressable>
             </div>
             {dismissed.map((n) => (
               <div className="af-item dismissed" key={n.id}>
@@ -86,9 +87,9 @@ export default function ActivityFeed({ notifications, locale, onDismiss, onResto
                   <span className="af-item-time"><Figure>{timeLabel(n.ts)}</Figure></span>
                   <span className="af-item-text">{pageText(locale, n.en, n.he)}</span>
                 </div>
-                <button type="button" className="af-item-btn restore" onClick={() => onRestore(n.id)} aria-label={pageText(locale, 'Restore', 'שחזור')}>
+                <Pressable type="button" className="af-item-btn restore" onClick={() => onRestore(n.id)} aria-label={pageText(locale, 'Restore', 'שחזור')}>
                   <RotateCcw size={14} />
-                </button>
+                </Pressable>
               </div>
             ))}
           </>

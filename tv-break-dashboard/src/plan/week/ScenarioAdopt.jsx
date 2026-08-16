@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Target } from 'lucide-react';
 import { pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
@@ -8,8 +8,8 @@ import { ADOPT_FIELDS, leverLabel, leverValueText, objectiveFromLevers } from '.
 // The act step 3 exists for: turn the leg that won into the plan's objective.
 //
 // The comparison used to end in a sentence. A planner who read that B is worth
-// 1.25M more had to carry five lever values across two steps by eye, set five
-// sliders, and take on trust that what they set is what was compared. The five
+// 1.25M more had to carry four objective values across two steps by eye, set four
+// controls, and take on trust that what they set is what was compared. The four
 // values are printed here on the card that earned them and one control writes
 // all five into the objective at once.
 //
@@ -26,8 +26,8 @@ export function ScenarioAdopt({ leg, summary, locale, onAdopt }) {
       <p className="plan-note plan-note-amber plan-scenario-adopt-note">
         {pageText(
           locale,
-          'This run did not report the full lever set it used, so it cannot be made the objective.',
-          'ההרצה הזאת לא דיווחה את מלוא הידיות שבהן השתמשה, ולכן לא ניתן להפוך אותה למטרה.',
+          'This run did not report the full objective lever set, so it cannot be made the objective.',
+          'ההרצה הזאת לא דיווחה את מלוא ידיות המטרה, ולכן לא ניתן להפוך אותה למטרה.',
         )}
       </p>
     );

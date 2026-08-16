@@ -1,8 +1,8 @@
 """The model's cached prefix, written while the person is still typing.
 
-Every ask sends the same stable prefix before the question: 39 tool schemas
-(19,186 characters) and three system blocks (29,076 characters), which the API's
-own usage record prices at 16,455 cached input tokens. The cache_control
+Every ask sends the same stable prefix before the question: the complete tool
+schema set and the stable system blocks. The API's own usage record measures
+that prefix as a substantial cached-input cost. The cache_control
 breakpoint that makes it one cacheable unit already sits on the last system
 block (kairos_api.assistant_prompt), so the second ask of a session pays a cache
 READ for it. The first one pays the WRITE, and it pays it while a person is

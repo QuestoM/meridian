@@ -2,6 +2,7 @@ import { ContinuityNote, CreativePairNote, PodErrors, PositionPreferenceNote } f
 import MediaVerdict, { MediaLockNotice } from './media/MediaVerdict';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GripVertical, Lock, Unlock } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { pageText } from '../../shell/format';
 import { Code, Figure, Name } from '../../shell/bidi';
 import { formatDay, formatStamp } from '../../shell/dates';
@@ -397,40 +398,40 @@ function PodBoard({ pod, locale, onSaveOrder, onRevertOrder, onLock, onUnlock, b
       <MediaLockNotice media={pod.media} locale={locale} />
       {!readOnly && (
         <div className="pod-acts">
-          <button
+          <Pressable
             type="button"
             className="pod-act pod-act-save"
             disabled={!changed || busy || lock.locked}
             onClick={() => onSaveOrder(keys)}
           >
             {pageText(locale, 'Save this order', 'שמירת הסדר הזה')}
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             className="pod-act"
             disabled={!changed || busy}
             onClick={() => setKeys(orderKeys(pod))}
           >
             {pageText(locale, 'Discard the change', 'ביטול השינוי')}
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             className="pod-act"
             disabled={!hasSavedOrder || busy || lock.locked}
             onClick={() => onRevertOrder()}
           >
             {pageText(locale, 'Back to the traffic file order', 'חזרה לסדר קובץ הטראפיק')}
-          </button>
+          </Pressable>
           {lock.locked ? (
-            <button type="button" className="pod-act pod-act-unlock" disabled={busy || !onUnlock} onClick={() => onUnlock()}>
+            <Pressable type="button" className="pod-act pod-act-unlock" disabled={busy || !onUnlock} onClick={() => onUnlock()}>
               <Unlock size={13} aria-hidden="true" />
               {pageText(locale, 'Unlock', 'ביטול נעילה')}
-            </button>
+            </Pressable>
           ) : (
-            <button type="button" className="pod-act pod-act-lock" disabled={busy || changed || mediaBlocked || !onLock} onClick={() => onLock()}>
+            <Pressable type="button" className="pod-act pod-act-lock" disabled={busy || changed || mediaBlocked || !onLock} onClick={() => onLock()}>
               <Lock size={13} aria-hidden="true" />
               {pageText(locale, 'Lock this pod', 'נעילת התוכן')}
-            </button>
+            </Pressable>
           )}
         </div>
       )}

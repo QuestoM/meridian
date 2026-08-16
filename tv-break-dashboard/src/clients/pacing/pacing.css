@@ -306,6 +306,9 @@
 }
 
 .pacing-basis-details summary {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--control-height);
   cursor: pointer;
   color: var(--blue);
 }

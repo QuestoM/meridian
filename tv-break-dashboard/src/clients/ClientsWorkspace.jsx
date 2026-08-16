@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { WALLS, fetchSession, payloadCanEdit } from '../session';
+import { pageText } from '../shell/format';
+import { MousePointerClick } from 'lucide-react';
 import { AdvertiserRecordsPanel } from './AdvertiserRecordsPanel';
 import { AgencyRecordsPanel } from './AgencyRecordsPanel';
 import CampaignBoard from './CampaignBoard';
@@ -41,6 +43,10 @@ import './clients-tree.css';
 import './clients-record.css';
 import './clients-rule-card.css';
 import './clients-delivery.css';
+import './studio-ledger-commercial.css';
+import './studio-ledger-commercial-boards.css';
+import './studio-ledger-workflow.css';
+import './studio-ledger-records.css';
 import { isolate } from '../shell/bidi';
 
 // Clients: one destination for the commercial spine, agency to advertiser to
@@ -141,7 +147,7 @@ export default function ClientsWorkspace({
       setFailed(brokenNames);
     });
     return () => { alive = false; };
-  }, [locale, refreshKey, reloadKey]);
+  }, [refreshKey, reloadKey]);
 
   useEffect(() => {
     writeParams({ [VIEW_PARAM]: active, [RECORD_PARAM]: openClient });
@@ -289,39 +295,41 @@ export default function ClientsWorkspace({
   }
 
   return (
-    <section className="page-workspace clients-workspace">
-      <ClientsHeader locale={locale} gate={gate} onOnboard={() => setOnboarding({})} />
+    <section className="page-workspace clients-workspace" data-commercial-view={active} aria-busy={failed === null}>
+      <ClientsHeader locale={locale} gate={gate} active={active} onOnboard={() => setOnboarding({})} />
       <ClientsViewStrip locale={locale} active={active} onSelect={setActive} />
       <ClientsLoadFailure locale={locale} failed={failed} onRetry={reload} />
 
       <div className="clients-body">
         <div className="clients-main">
           {active === 'clients' ? (
-            <ClientTree
-              tree={tree}
-              locale={locale}
-              canEdit={gate.canEdit}
-              onOpenClient={setOpenClient}
-              onOnboard={() => setOnboarding({})}
-            />
+            <div id="commercial-panel-clients" role="tabpanel" aria-labelledby="commercial-tab-clients" tabIndex={0}>
+              <ClientTree
+                tree={tree}
+                locale={locale}
+                onOpenClient={setOpenClient}
+              />
+            </div>
           ) : null}
           {active === 'money' ? (
-            <MoneyBoard
-              money={money}
-              locale={locale}
-              drill={drill}
-              onDrill={setDrill}
-              onOpenClient={setOpenClient}
-              openers={{
-                agencyIds,
-                campaignIds,
-                onOpenAgency: openAgencyRecord,
-                onOpenCampaignRecord: openCampaignRecord,
-              }}
-            />
+            <div id="commercial-panel-money" role="tabpanel" aria-labelledby="commercial-tab-money" tabIndex={0}>
+              <MoneyBoard
+                money={money}
+                locale={locale}
+                drill={drill}
+                onDrill={setDrill}
+                onOpenClient={setOpenClient}
+                openers={{
+                  agencyIds,
+                  campaignIds,
+                  onOpenAgency: openAgencyRecord,
+                  onOpenCampaignRecord: openCampaignRecord,
+                }}
+              />
+            </div>
           ) : null}
           {active === 'campaigns' ? (
-            <>
+            <div id="commercial-panel-campaigns" role="tabpanel" aria-labelledby="commercial-tab-campaigns" tabIndex={0}>
               <CampaignBoard
                 board={board}
                 locale={locale}
@@ -336,40 +344,46 @@ export default function ClientsWorkspace({
                 onReload={reload}
               />
               <CampaignRollupPanel campaigns={campaigns} locale={locale} refreshKey={refreshKey} />
-            </>
+            </div>
           ) : null}
           {/* The delivery pace of what the campaigns view booked. It sits beside
               campaigns rather than under a destination of its own because it
               answers a question about the same object: what was promised, and
               what has aired against it. */}
           {active === 'pacing' ? (
-            <PacingWorkspace
-              locale={locale}
-              notify={notify}
-              refreshKey={refreshKey}
-              onOpenCampaign={openCampaignRecord}
-            />
+            <div id="commercial-panel-pacing" role="tabpanel" aria-labelledby="commercial-tab-pacing" tabIndex={0}>
+              <PacingWorkspace
+                locale={locale}
+                notify={notify}
+                refreshKey={refreshKey}
+                onOpenCampaign={openCampaignRecord}
+              />
+            </div>
           ) : null}
           {active === 'advertisers' ? (
-            <AdvertiserRecordsPanel
-              copy={copy}
-              locale={locale}
-              notify={notify}
-              openAdvertiserId={openRuleId}
-              onOpened={() => setOpenRuleId('')}
-              onGlobalRefresh={onGlobalRefresh}
-            />
+            <div id="commercial-panel-advertisers" role="tabpanel" aria-labelledby="commercial-tab-advertisers" tabIndex={0}>
+              <AdvertiserRecordsPanel
+                copy={copy}
+                locale={locale}
+                notify={notify}
+                openAdvertiserId={openRuleId}
+                onOpened={() => setOpenRuleId('')}
+                onGlobalRefresh={onGlobalRefresh}
+              />
+            </div>
           ) : null}
           {active === 'agencies' ? (
-            <AgencyRecordsPanel
-              copy={copy}
-              locale={locale}
-              notify={notify}
-              setActiveView={setActiveView}
-              openAgencyId={openAgencyId}
-              onOpened={() => setOpenAgencyId('')}
-              onGlobalRefresh={onGlobalRefresh}
-            />
+            <div id="commercial-panel-agencies" role="tabpanel" aria-labelledby="commercial-tab-agencies" tabIndex={0}>
+              <AgencyRecordsPanel
+                copy={copy}
+                locale={locale}
+                notify={notify}
+                setActiveView={setActiveView}
+                openAgencyId={openAgencyId}
+                onOpened={() => setOpenAgencyId('')}
+                onGlobalRefresh={onGlobalRefresh}
+              />
+            </div>
           ) : null}
         </div>
 
@@ -398,6 +412,16 @@ export default function ClientsWorkspace({
             onOpenAgency={openAgencyRecord}
             onOpenCampaignMoney={openCampaignMoney}
           />
+        ) : active === 'clients' ? (
+          <aside className="card card-dense clients-context-empty" aria-label={pageText(locale, 'Client inspector', 'פרטי לקוח')}>
+            <MousePointerClick size={28} aria-hidden="true" />
+            <strong>{pageText(locale, 'Choose a client', 'בחרו לקוח')}</strong>
+            <p>{pageText(
+              locale,
+              'Choose a client to open its money, campaigns, pricing and delivery sources here. The agency ledger remains available.',
+              'בחרו לקוח כדי לפתוח כאן את נתוני הכסף, הקמפיינים, התמחור ומקורות האספקה. ספר הסוכנויות יישאר פתוח.',
+            )}</p>
+          </aside>
         ) : null}
 
         {onboarding ? (

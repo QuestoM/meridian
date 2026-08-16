@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Activity, RefreshCcw } from 'lucide-react';
 import { formatStamp } from '../shell/dates';
 import { API_BASE } from '../shell/api';
@@ -75,7 +76,7 @@ export function ActivityLogPanel({ locale }) {
   const showUserColumn = log.scope === 'all';
   const filterLabel = he ? 'סינון לפי מפעיל' : 'Filter by operator';
   return (
-    <section className="settings-panel wide">
+    <section className="card settings-panel wide">
       <div className="settings-panel-head">
         <div>
           <h2>{he ? 'יומן פעילות' : 'Activity log'}</h2>

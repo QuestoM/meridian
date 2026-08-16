@@ -59,8 +59,11 @@ POP_DIRECTIONAL_ISOLATE = "⁩"
 # written, which is the point of listing them rather than globbing.
 CHANNEL_SITES = {
     "TodayMoney.jsx": ["scope.channel"],
-    "OverviewPage.jsx": ["channel"],
     "MoneyWaterfall.jsx": ["scopeChannel"],
+}
+
+CHANNEL_NAME_SITES = {
+    "TransmissionRibbon.jsx": ["programs[0]?.channel || today?.channel"],
 }
 
 
@@ -134,6 +137,15 @@ def test_every_channel_the_destination_prints_is_isolated_first(name):
         bare = re.findall(rf"\$\{{\s*{re.escape(expression)}\s*}}", source)
         assert not bare, f"{name} interpolates {expression} without isolating it"
         assert f"isolate({expression})" in source, f"{name} does not isolate {expression}"
+
+
+@pytest.mark.parametrize("name", sorted(CHANNEL_NAME_SITES))
+def test_every_channel_printed_as_a_name_uses_the_shared_bidi_primitive(name):
+    source = _source(name)
+    for expression in CHANNEL_NAME_SITES[name]:
+        assert f"<Name>{{{expression}}}</Name>" in source, (
+            f"{name} prints {expression} without the shared first-strong Name primitive"
+        )
 
 
 def test_the_helper_is_the_only_source_of_the_marks_in_this_destination():

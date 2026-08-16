@@ -25,13 +25,11 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 WEEK = ROOT / "tv-break-dashboard" / "src" / "plan" / "week"
 
-# The five levers a comparison leg runs under, and the five fields the saved
-# objective keeps them in. One is named differently on the two sides; nothing
-# else is translated and nothing may be dropped.
+# The four objective levers a comparison leg runs under. The licence cap still
+# reaches both engine legs, but is deliberately not adopted or generically saved.
 LEVER_PAIRS = (
     ("revenue_weight", "revenue_weight"),
     ("retention_floor", "min_retention_floor"),
-    ("max_breaks_per_hour", "max_breaks_per_hour"),
     ("risk_lambda", "risk_lambda"),
     ("objective_mode", "objective_mode"),
 )
@@ -172,12 +170,13 @@ def test_the_route_keeps_its_shape_for_a_caller_that_sends_no_date(client):
 # ------------------------------------------------------------- the adoption
 
 
-def test_the_five_levers_a_leg_ran_under_map_onto_the_five_objective_fields():
+def test_the_objective_levers_map_without_adopting_the_licence_guardrail():
     model = _text("plan-week-model.js")
     block = model.split("export const ADOPT_FIELDS")[1].split("];")[0]
     for source, target in LEVER_PAIRS:
         assert f"['{source}', '{target}']" in block, (source, target)
     assert len(re.findall(r"\['", block)) == len(LEVER_PAIRS)
+    assert "max_breaks_per_hour" not in block
 
 
 def test_a_partial_lever_set_is_refused_rather_than_half_adopted():
@@ -192,17 +191,17 @@ def test_each_scenario_card_offers_to_become_the_objective_in_both_languages():
     adopt = _text("ScenarioAdopt.jsx")
     assert "Use scenario ${letter} as the objective" in adopt
     assert "קביעת תרחיש ${letter} כמטרה" in adopt
-    # The card prints the five values the control would write, so the act names
+    # The card prints the four objective values the control would write, so the act names
     # its own consequence before it happens.
     assert "ADOPT_FIELDS.map(([from, to])" in adopt
     assert "leverValueText(to, summary.levers[from], locale)" in adopt
     # A run that did not report its levers offers no control and says why.
     assert "objectiveFromLevers(summary?.levers)" in adopt
-    assert "This run did not report the full lever set it used" in adopt
+    assert "This run did not report the full objective lever set" in adopt
 
     panel = _text("ComparePanel.jsx")
-    assert '<ScenarioAdopt leg={leg} summary={summary} locale={locale} onAdopt={onAdopt} />' in panel
-    assert 'leg="a"' in panel and 'leg="b"' in panel
+    assert '<ScenarioAdopt leg="a" summary={a} locale={locale} onAdopt={onAdopt} />' in panel
+    assert '<ScenarioAdopt leg="b" summary={b} locale={locale} onAdopt={onAdopt} />' in panel
 
 
 def test_the_values_written_are_the_ones_the_run_reported_not_the_form_s():
@@ -266,12 +265,26 @@ def test_the_banner_prints_every_old_value_beside_its_new_one():
     assert "next: leverValueText(field, draft[field], locale)" in panel
     assert "Saved now" in panel and "שמור כרגע" in panel
     assert "After this change" in panel and "אחרי השינוי" in panel
-    # All five, not the two the old banner printed.
+    # All four objective fields, never the licence cap.
     fields = panel.split("const OBJECTIVE_FIELDS = [")[1].split("]")[0]
     for _, target in LEVER_PAIRS:
         assert f"'{target}'" in fields, target
+    assert "max_breaks_per_hour" not in fields
     # Where the values came from, when they came from the comparison.
     assert "These values are scenario ${adoptedLetter} of the comparison, exactly as it ran." in panel
+
+
+def test_the_licence_cap_is_read_only_and_identical_in_both_scenario_legs():
+    form = _text("ScenarioLegForm.jsx")
+    cap = form.split("label={leverLabel('max_breaks_per_hour'", 1)[1].split("</Row>", 1)[0]
+    assert "Licence guardrail · identical in both scenarios" in cap
+    assert "aria-readonly=\"true\"" in cap
+    assert "onChange" not in cap and "<Slider" not in cap
+
+    surface = _text("use-plan-surface.js")
+    assert "guardedLegA = legA && saved ? { ...legA, max_breaks_per_hour: saved.max_breaks_per_hour }" in surface
+    assert "guardedLegB = legB && saved ? { ...legB, max_breaks_per_hour: saved.max_breaks_per_hour }" in surface
+    assert "if (field === 'max_breaks_per_hour') return;" in surface
 
 
 def test_the_adoption_can_be_put_back():
@@ -312,28 +325,32 @@ def test_opening_a_day_sets_the_day_zoom_and_the_date_together():
     assert "setBoardView('day');" in opener
     assert "go('board');" in opener
     assert "onOpenDay={openBoardDay}" in week
-    # And the way back out.
-    assert "const clearBoardDay = useCallback" in week
-    assert "onClearFocus={clearBoardDay}" in week
+    # The canonical day workbench owns subsequent day selection and keeps the
+    # addressed day coupled to the full editor rather than a second mini-board.
+    panel = _text("BoardPanel.jsx")
+    assert "<PlanBoardWorkbench" in panel
+    assert "focusDate={focusDate}" in panel
+    assert "onFocusDateChange={onFocusDateChange}" in panel
+    workbench = _text("PlanBoardWorkbench.jsx")
+    assert "onFocusDateChange?.(nextDay);" in workbench
+    assert "<DayPicker" in workbench and "onChange={selectDay}" in workbench
 
 
 def test_the_board_draws_the_day_it_was_asked_for_and_never_a_nearby_one():
     board = _text("BoardPanel.jsx")
-    assert "const daySchedule = focusDate ? dayPayload : schedule;" in board
-    assert "const dayDrawable = Boolean(daySchedule) && dayBoard?.available !== false" in board
-    assert "schedule={daySchedule}" in board
-    # The day is named, with the two counts read off the payload that drew it.
-    assert "function DayHeader(" in board
-    assert "board?.programmes" in board and "board?.breaks" in board
-    assert "boardReason(board, locale)" in board
-    assert "Back to the week" in board and "חזרה לשבוע" in board
+    assert "<PlanBoardWorkbench" in board
+    assert "focusDate={focusDate}" in board
 
-    hook = _text("use-board-day.js")
-    assert "readSchedule(key)" in hook
-    assert "if (wanted.current !== key) return;" in hook, "a stale answer never lands"
+    workbench = _text("PlanBoardWorkbench.jsx")
+    assert "const preferredDay = focusDate" in workbench
+    assert "day={day}" in workbench
 
-    api = _text("plan-week-api.js")
-    assert "/api/schedule?date=${encodeURIComponent(wanted)}" in api
+    day_board = (ROOT / "tv-break-dashboard" / "src" / "plan" / "day" / "DayBoard.jsx").read_text()
+    assert "const payload = await fetchDay(targetDay);" in day_board
+    assert "if (wantedDayRef.current !== targetDay) return null;" in day_board
+
+    actions = (ROOT / "tv-break-dashboard" / "src" / "plan" / "day" / "day-board-actions.js").read_text()
+    assert "/api/plan/day?day=${encodeURIComponent(day)}" in actions
 
 
 def test_the_reason_a_day_cannot_be_drawn_reaches_the_operator_in_both_languages():

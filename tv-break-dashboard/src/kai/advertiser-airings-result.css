@@ -1,0 +1,94 @@
+.asst-airings-card {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 94%;
+  padding: var(--space-3);
+}
+
+.asst-airings-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.asst-airings-kicker {
+  color: var(--subtle);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.asst-airings-card h3 {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+}
+
+.asst-airings-state {
+  flex: 0 1 auto;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+}
+
+.asst-airings-state.complete {
+  border-color: var(--teal);
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+}
+
+.asst-airings-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--line);
+}
+
+.asst-airings-metrics > div {
+  min-width: 0;
+  padding: var(--space-2);
+  border-inline-end: 1px solid var(--line);
+}
+
+.asst-airings-metrics > div:last-child { border-inline-end: 0; }
+.asst-airings-metrics dt { color: var(--subtle); font-size: var(--text-2xs); }
+.asst-airings-metrics dd { margin: 2px 0 0; color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+
+.asst-airings-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.asst-airings-coverage strong { color: var(--amber); font-weight: var(--weight-medium); }
+
+.asst-airings-identities {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.asst-airings-identities > div {
+  display: grid;
+  grid-template-columns: minmax(74px, .28fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.asst-airings-identities dt { color: var(--subtle); font-size: var(--text-2xs); }
+.asst-airings-identities dd { min-width: 0; margin: 0; color: var(--ink); font-size: var(--text-xs); overflow-wrap: anywhere; }
+
+.asst-airings-table-wrap { min-width: 0; overflow-x: auto; }
+.asst-airings-table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.asst-airings-table th { color: var(--subtle); font-size: var(--text-2xs); font-weight: var(--weight-semibold); text-align: start; }
+.asst-airings-table th,
+.asst-airings-table td { padding: var(--space-2); border-block-end: 1px solid var(--line); vertical-align: top; }
+.asst-airings-table td { color: var(--muted); }
+.asst-airings-table th:first-child,
+.asst-airings-table td:first-child { white-space: nowrap; }
+.asst-airings-table-wrap > p { margin: var(--space-2) 0 0; color: var(--subtle); font-size: var(--text-2xs); }

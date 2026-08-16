@@ -130,18 +130,21 @@ def measurement_inputs(path: Path) -> dict[str, str]:
     digested rather than the three fields the totals read directly, because the
     engine receives the whole document and any field in it can reach the plan.
     """
+    from kairos.optimize.inventory import DEFAULT_INVENTORY_PATH
+
     return {
         "candidate": _sha256(path) if path.is_file() else "absent",
         "shipped": _sha256(SHIPPED_PATH) if SHIPPED_PATH.is_file() else "absent",
         "settings": _sha256(SETTINGS_PATH) if SETTINGS_PATH.is_file() else "absent",
+        "inventory": _sha256(DEFAULT_INVENTORY_PATH) if DEFAULT_INVENTORY_PATH.is_file() else "absent",
         "engine": engine_version(),
     }
 
 
-def measurement_fingerprint(path: Path) -> str:
+def measurement_fingerprint(path: Path, inputs: Optional[dict[str, str]] = None) -> str:
     """The same inputs as one digest, for an equality check in one comparison."""
     digest = hashlib.sha256()
-    for key, value in sorted(measurement_inputs(path).items()):
+    for key, value in sorted((inputs or measurement_inputs(path)).items()):
         digest.update(f"{key}={value};".encode("utf-8"))
     return digest.hexdigest()
 
@@ -151,6 +154,7 @@ INPUT_LABELS = {
     "candidate": {"en": "the candidate artifact", "he": "קובץ המועמד"},
     "shipped": {"en": "the shipped model", "he": "המודל המשודר"},
     "settings": {"en": "the saved settings", "he": "ההגדרות השמורות"},
+    "inventory": {"en": "the inventory source", "he": "מקור המלאי"},
     "engine": {"en": "the engine version", "he": "גרסת המנוע"},
 }
 
@@ -285,7 +289,9 @@ def _totals(frame: Any, operator_channel: str) -> dict[str, Any]:
     }
 
 
-def build_plan_totals(coefficients_path: Optional[Path] = None) -> dict[str, Any]:
+def build_plan_totals(
+    coefficients_path: Optional[Path] = None, *, require_usable_inventory: bool = False,
+) -> dict[str, Any]:
     """Run the weekly plan once and total it, optionally on a candidate artifact.
 
     This is the same path the recompute takes: the saved settings, the saved
@@ -294,8 +300,11 @@ def build_plan_totals(coefficients_path: Optional[Path] = None) -> dict[str, Any
     """
     from kairos.export.schedule import DEFAULT_IMPACT_MODEL_PATH, build_weekly_schedule
     from kairos.model.impact import load_impact_model
+    from kairos.optimize.inventory import load_inventory
     from kairos.optimize.pricing import OptimizerAssumptions
 
+    if require_usable_inventory:
+        load_inventory(require_usable=True)
     settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
     impact_model = None
     if coefficients_path is not None:
@@ -311,6 +320,7 @@ def build_plan_totals(coefficients_path: Optional[Path] = None) -> dict[str, Any
         operator_channel=settings["operator_channel"],
         today=date.today(),
         impact_model=impact_model,
+        require_usable_inventory=require_usable_inventory,
     )
     return _totals(frame, str(settings.get("operator_channel") or ""))
 
@@ -340,14 +350,26 @@ def measure_money_movement(identifier: str, baseline: Optional[dict[str, Any]] =
     path = candidate_path(identifier)
     if path is None:
         raise FileNotFoundError(f"no candidate artifact called {identifier!r}")
+    from kairos.optimize.inventory import load_inventory
+
+    # Synchronous fail-closed seam used both by the route and direct callers.
+    # It runs before either expensive weekly plan, so no candidate measurement
+    # record can be assembled from an inert inventory steer.
+    load_inventory(require_usable=True)
+    inputs = measurement_inputs(path)
     settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
     started = time.monotonic()
-    base = baseline if baseline is not None else build_plan_totals(None)
-    got = build_plan_totals(path)
+    base = (
+        baseline if baseline is not None
+        else build_plan_totals(None, require_usable_inventory=True)
+    )
+    got = build_plan_totals(path, require_usable_inventory=True)
+    if measurement_inputs(path) != inputs:
+        raise RuntimeError("candidate measurement inputs changed while the plans were running")
     return {
         "candidate_id": identifier,
-        "fingerprint": measurement_fingerprint(path),
-        "inputs": measurement_inputs(path),
+        "fingerprint": measurement_fingerprint(path, inputs),
+        "inputs": inputs,
         "measured_at": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round(time.monotonic() - started, 1),
         "engine_version": engine_version(),

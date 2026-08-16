@@ -39,9 +39,6 @@
 }
 
 .clients-agency {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
   overflow: hidden;
 }
 
@@ -50,7 +47,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
   background: transparent;
   border: 0;
   cursor: pointer;
@@ -98,7 +94,6 @@
 }
 
 .clients-agency-body {
-  padding: 0 var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -131,4 +126,3 @@
   background: var(--surface-muted);
   color: var(--muted);
 }
-

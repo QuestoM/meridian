@@ -53,6 +53,7 @@ WORDS = BOARD_DIR / "board-words.js"
 ALLOWED_IMPORTS = {
     "react", "react-dom/client",
     "../../shell/format", "../../shell/bidi", "../../shell/dates",
+    "../../studio/dom-controls",
     "../console/console-api",
     "../../tokens.css", "../../shell/styles.css", "../../shell/card.css",
 }

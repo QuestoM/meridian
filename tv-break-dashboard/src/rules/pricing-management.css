@@ -16,9 +16,6 @@
 .pricing-base-card,
 .pricing-layer-card,
 .pricing-tester {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
   color: var(--ink);
   padding: var(--space-5);
 }
@@ -131,14 +128,24 @@
   flex: 0 0 auto;
   width: 64px;
   text-align: end;
-  background: var(--surface);
+  background: transparent;
   color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 3px 6px;
+  border: 0;
+  border-radius: 0;
+  padding: 3px var(--space-1);
 }
 
-.pricing-mult.edited input {
+.pricing-mult:focus-within {
+  border-color: var(--focus-ring);
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--focus-ring);
+}
+
+.pricing-mult input:focus-visible {
+  outline: none;
+}
+
+.pricing-mult.edited {
   border-color: var(--teal);
 }
 
@@ -173,7 +180,7 @@
   margin: 12px 0;
 }
 
-.pricing-tester-form label {
+.pricing-tester-form > label {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -181,8 +188,8 @@
   color: var(--muted);
 }
 
-.pricing-tester-form input,
-.pricing-tester-form select {
+.pricing-tester-form > label > input,
+.pricing-tester-form > label > select {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);

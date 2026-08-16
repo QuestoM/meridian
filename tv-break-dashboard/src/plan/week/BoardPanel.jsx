@@ -1,17 +1,16 @@
 import React from 'react';
-import { Button } from '@mui/material';
-import { ArrowUpRight, CalendarDays, X } from 'lucide-react';
-import { formatNumber, pageText } from '../../shell/format';
-import { Figure } from '../../shell/bidi';
+import { Button } from '../../studio/actions';
+import { ArrowUpRight, BarChart3, X } from 'lucide-react';
+import { Numeric, formatCurrency, formatMinutes, formatNumber, formatPercent, pageText } from '../../shell/format';
+import { programTypeLabel } from '../../shell/labels';
+import { flattenScheduleRows } from '../../shell/plan-model';
 import { useScheduleZoom } from '../day/schedule-track-view';
-import ScheduleEditor from '../day/ScheduleEditor';
-import { SAVED_PLAN, withBasis } from '../day/plan-basis';
 import GridAxisControl from './GridAxisControl';
 import PlanningCanvas from './PlanningCanvas';
 import TimelineView from './TimelineView';
 import DaypartView from './DaypartView';
-import { boardReason, exportScopeNote, scopeLine, weekdayLabel } from './plan-week-model';
-import { formatDay } from '../../shell/dates';
+import PlanBoardWorkbench from './PlanBoardWorkbench';
+import { exportScopeNote, scopeLine } from './plan-week-model';
 
 // The week the plan produced, and the zoom control that steps into a day.
 //
@@ -29,73 +28,42 @@ import { formatDay } from '../../shell/dates';
 // is not downloadable from here. The board names that file and points at the
 // destination that owns it rather than serving three rivals' plans in one click.
 
-const VIEWS = ['grid', 'strip', 'timeline', 'day'];
-
-// Which broadcast day the day zoom is standing on, said out loud.
-//
-// The zoom has always drawn one day, the first the programme source carries,
-// and never named it. Now the comparison can send a planner here with a day in
-// mind, so the day is named, its two counts come from the payload that drew it,
-// and a day the source does not carry prints the reason rather than the next
-// day along.
-function DayHeader({ board, focusDate, state, error, locale, onClear, weekday }) {
-  if (state === 'loading') {
-    return (
-      <p className="plan-note plan-note-quiet" role="status">
-        {pageText(locale, `Opening broadcast day ${formatDay(focusDate)}`, `פותח את יום השידור ${formatDay(focusDate)}`)}
-      </p>
-    );
-  }
-  if (state === 'error') {
-    return (
-      <p className="plan-note plan-note-red" role="alert">
-        {pageText(locale, `That broadcast day could not be opened: ${error}`, `לא ניתן היה לפתוח את יום השידור הזה: ${error}`)}
-      </p>
-    );
-  }
-  const reason = board && board.available === false ? boardReason(board, locale) : null;
-  const date = board?.date || focusDate || null;
-  return (
-    <div className={`plan-board-day${reason ? ' is-empty' : ''}`}>
-      <div className="plan-board-day-name">
-        <CalendarDays size={15} aria-hidden="true" />
-        <strong className="numeric"><Figure>{date || '-'}</Figure></strong>
-        {weekday ? <span>{weekdayLabel(weekday, locale)}</span> : null}
-      </div>
-      {reason ? (
-        <p className="plan-board-day-reason" role="status">{reason}</p>
-      ) : (
-        <p className="plan-board-day-counts">
-          {pageText(
-            locale,
-            withBasis(
-              `${formatNumber(board?.programmes, locale)} programmes and ${formatNumber(board?.breaks, locale)} breaks on your channel`,
-              SAVED_PLAN,
-              'en',
-            ),
-            withBasis(
-              `${formatNumber(board?.programmes, locale)} תוכניות ו-${formatNumber(board?.breaks, locale)} ברייקים בערוץ שלכם`,
-              SAVED_PLAN,
-              'he',
-            ),
-          )}
-        </p>
-      )}
-      {focusDate && onClear ? (
-        <Button className="secondary-button compact" type="button" variant="outlined" onClick={onClear}>
-          <X size={14} />
-          {pageText(locale, 'Back to the week', 'חזרה לשבוע')}
-        </Button>
-      ) : null}
-    </div>
-  );
-}
+const VIEWS = ['day', 'grid', 'strip', 'timeline'];
 
 function viewLabel(view, locale) {
-  if (view === 'grid') return pageText(locale, 'Grid', 'רשת');
-  if (view === 'strip') return pageText(locale, 'Broadcast strips', 'רצועות שידור');
-  if (view === 'timeline') return pageText(locale, 'Timeline', 'ציר זמן');
-  return pageText(locale, 'One day, editable', 'יום אחד, לעריכה');
+  if (view === 'grid') return pageText(locale, 'Week grid', 'רשת שבועית');
+  if (view === 'strip') return pageText(locale, 'Daypart analysis', 'ניתוח רצועות');
+  if (view === 'timeline') return pageText(locale, 'Source timeline', 'ציר זמן מקור');
+  return pageText(locale, 'Day workbench', 'שולחן עבודה יומי');
+}
+
+function PlannerContext({ program, locale, onClear }) {
+  if (!program) {
+    return (
+      <aside className="planner-context is-empty">
+        <span className="plan-inspector-eyebrow">{pageText(locale, 'Programme inspector', 'בודק תוכנית')}</span>
+        <h3>{pageText(locale, 'No programme selected', 'לא נבחרה תוכנית')}</h3>
+        <p>{pageText(locale, 'Select any programme band to read the full title and its measured plan facts without leaving the week.', 'בחרו רצועת תוכנית כדי לקרוא את הכותרת המלאה ואת עובדות התוכנית שנמדדו, בלי לעזוב את השבוע.')}</p>
+      </aside>
+    );
+  }
+  return (
+    <aside className="planner-context" aria-live="polite">
+      <div className="planner-context-head">
+        <span className="plan-inspector-eyebrow">{pageText(locale, 'Focused programme', 'תוכנית במיקוד')}</span>
+        <Button type="button" variant="text" aria-label={pageText(locale, 'Clear programme focus', 'ניקוי מיקוד התוכנית')} onClick={onClear}><X size={16} /></Button>
+      </div>
+      <h3><bdi>{program.title}</bdi></h3>
+      <p><bdi>{program.channel}</bdi> · {programTypeLabel(program.program_type, locale)}</p>
+      <dl>
+        <div><dt>{pageText(locale, 'Transmission', 'שידור')}</dt><dd><Numeric>{program.date || program.day} · {program.time}</Numeric></dd></div>
+        <div><dt>{pageText(locale, 'Duration', 'משך')}</dt><dd><Numeric>{formatMinutes(Number(program.duration_minutes || 0) * 60, locale)}</Numeric></dd></div>
+        <div><dt>{pageText(locale, 'Planned breaks', 'ברייקים מתוכננים')}</dt><dd><Numeric>{formatNumber(program.break_markers, locale)}</Numeric></dd></div>
+        <div><dt>{pageText(locale, 'Expected revenue', 'הכנסה צפויה')}</dt><dd><Numeric>{formatCurrency(program.revenue, locale)}</Numeric></dd></div>
+        <div><dt>{pageText(locale, 'Expected retention', 'שימור צפוי')}</dt><dd><Numeric>{formatPercent(program.retention, locale)}</Numeric></dd></div>
+      </dl>
+    </aside>
+  );
 }
 
 export function BoardPanel({
@@ -108,6 +76,8 @@ export function BoardPanel({
   onGlobalRefresh,
   onRun,
   runState,
+  runDisabled,
+  runDisabledReason,
   selectedProgramKey,
   onSelectProgram,
   view,
@@ -115,13 +85,28 @@ export function BoardPanel({
   gridAxis,
   onGridAxisChange,
   focusDate,
-  dayPayload,
-  dayState,
-  dayError,
-  onClearFocus,
+  onFocusDateChange,
+  versions,
+  live,
+  freshness,
+  canEdit,
+  canEditReason,
+  versionName,
+  versionNote,
+  publishState,
+  publishError,
+  selectedVersion,
+  diff,
+  onVersionName,
+  onVersionNote,
+  onPublish,
+  onVersionDiff,
+  onRestore,
+  onOpenHistory,
 }) {
   const zoom = useScheduleZoom();
   const rows = Array.isArray(schedule?.break_schedule) ? schedule.break_schedule : [];
+  const selectedProgram = flattenScheduleRows(schedule?.rows || []).find((program) => program.key === selectedProgramKey) || null;
   const total = Number(schedule?.break_schedule_total_rows);
   const scope = scopeLine(schedule?.scope?.plan, locale);
   const fileNote = exportScopeNote(schedule?.scope?.plan, locale);
@@ -132,23 +117,13 @@ export function BoardPanel({
   // operator channel cleared from settings, that is exactly what rendered. So
   // the board declines to draw and names the input that is missing.
   const unscoped = schedule?.scope?.plan?.scoped === false;
-  // The day zoom reads the day payload when a day was asked for and the week
-  // payload's own embedded board when one was not. It never mixes the two: a
-  // focused day that has not arrived yet draws nothing rather than the day the
-  // week payload happens to carry.
-  const daySchedule = focusDate ? dayPayload : schedule;
-  const dayBoard = daySchedule?.board || null;
-  const dayWeekday = daySchedule?.break_operations?.programs?.[0]?.day || null;
-  const dayDrawable = Boolean(daySchedule) && dayBoard?.available !== false
-    && (!focusDate || dayState === 'ready');
-
   return (
-    <section className="plan-section" aria-labelledby="plan-board-title">
+    <section className="card plan-section" aria-labelledby="plan-board-title">
       <div className="plan-section-head">
         <div>
-          <h2 id="plan-board-title">{pageText(locale, 'The week the plan produced', 'השבוע שהתוכנית ייצרה')}</h2>
+          <h2 id="plan-board-title">{pageText(locale, 'Plan board', 'לוח התכנון')}</h2>
           <p>
-            {scope || pageText(locale, 'Every programme on your channel, and the breaks the plan placed in it.', 'כל תוכנית בערוץ שלכם, והברייקים שהתוכנית שיבצה בה.')}
+            {scope || pageText(locale, 'Operate one day against the weekly plan of record, with analytical views kept as references.', 'עבודה על יום אחד מול תוכנית הייחוס השבועית, כשהתצוגות האנליטיות נשארות לעיון.')}
           </p>
           {fileNote && <p className="plan-basis-note">{fileNote}</p>}
         </div>
@@ -196,8 +171,14 @@ export function BoardPanel({
                 </Button>
               ))}
             </div>
+            {view !== 'day' && (
+              <span className="plan-analysis-label">
+                <BarChart3 size={14} aria-hidden="true" />
+                {pageText(locale, 'Read-only analysis', 'ניתוח לקריאה בלבד')}
+              </span>
+            )}
             {view === 'grid' && <GridAxisControl value={gridAxis} onChange={onGridAxisChange} locale={locale} />}
-            {Number.isFinite(total) && total > rows.length && (
+            {view !== 'day' && Number.isFinite(total) && total > rows.length && (
               <span className="plan-board-count">
                 {pageText(
                   locale,
@@ -208,60 +189,74 @@ export function BoardPanel({
             )}
           </div>
 
-          {view === 'grid' && (
-            <PlanningCanvas
-              rows={schedule?.rows || []}
-              copy={copy}
-              locale={locale}
-              axis={gridAxis}
-              dayEvents={dayEvents}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-          {view === 'strip' && (
-            <DaypartView
-              rows={schedule?.rows || []}
-              locale={locale}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
-          )}
-          {view === 'timeline' && (
-            <TimelineView
-              timeline={schedule?.break_operations}
-              rows={schedule?.rows || []}
-              locale={locale}
-              notify={notify}
-              zoom={zoom}
-              onGlobalRefresh={onGlobalRefresh}
-              selectedProgramKey={selectedProgramKey}
-              onSelectProgram={onSelectProgram}
-            />
+          {view !== 'day' && (
+            <div className="plan-board-stage">
+              <div className="plan-board-instrument">
+                {view === 'grid' && (
+                  <PlanningCanvas
+                    rows={schedule?.rows || []}
+                    copy={copy}
+                    locale={locale}
+                    axis={gridAxis}
+                    dayEvents={dayEvents}
+                    selectedProgramKey={selectedProgramKey}
+                    onSelectProgram={onSelectProgram}
+                  />
+                )}
+                {view === 'strip' && (
+                  <DaypartView
+                    rows={schedule?.rows || []}
+                    locale={locale}
+                    selectedProgramKey={selectedProgramKey}
+                    onSelectProgram={onSelectProgram}
+                  />
+                )}
+                {view === 'timeline' && (
+                  <TimelineView
+                    timeline={schedule?.break_operations}
+                    rows={schedule?.rows || []}
+                    locale={locale}
+                    notify={notify}
+                    zoom={zoom}
+                    onGlobalRefresh={onGlobalRefresh}
+                    selectedProgramKey={selectedProgramKey}
+                    onSelectProgram={onSelectProgram}
+                  />
+                )}
+              </div>
+              <PlannerContext program={selectedProgram} locale={locale} onClear={() => onSelectProgram?.(null)} />
+            </div>
           )}
           {view === 'day' && (
-            <>
-              <DayHeader
-                board={dayBoard}
-                focusDate={focusDate || null}
-                state={focusDate ? dayState : 'ready'}
-                error={dayError}
-                locale={locale}
-                onClear={onClearFocus}
-                weekday={dayWeekday}
-              />
-              {dayDrawable && (
-                <ScheduleEditor
-                  schedule={daySchedule}
-                  locale={locale}
-                  notify={notify}
-                  onRecompute={onRun}
-                  recomputeState={runState}
-                  onGlobalRefresh={onGlobalRefresh}
-                  zoom={zoom}
-                />
-              )}
-            </>
+            <PlanBoardWorkbench
+              schedule={schedule}
+              locale={locale}
+              notify={notify}
+              onGlobalRefresh={onGlobalRefresh}
+              focusDate={focusDate}
+              onFocusDateChange={onFocusDateChange}
+              versions={versions}
+              live={live}
+              freshness={freshness}
+              canEdit={canEdit}
+              canEditReason={canEditReason}
+              versionName={versionName}
+              versionNote={versionNote}
+              publishState={publishState}
+              publishError={publishError}
+              selectedVersion={selectedVersion}
+              diff={diff}
+              runState={runState}
+              runDisabled={runDisabled}
+              runDisabledReason={runDisabledReason}
+              onVersionName={onVersionName}
+              onVersionNote={onVersionNote}
+              onPublish={onPublish}
+              onVersionDiff={onVersionDiff}
+              onRestore={onRestore}
+              onRun={onRun}
+              onOpenHistory={onOpenHistory}
+            />
           )}
           {planEvents && planEvents.length > 0 && view === 'grid' && (
             <p className="plan-basis-note">

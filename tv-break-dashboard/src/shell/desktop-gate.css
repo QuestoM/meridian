@@ -1,0 +1,72 @@
+.desktop-gate {
+  display: grid;
+  min-block-size: 100dvh;
+  inline-size: 100%;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--canvas);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.desktop-gate-card {
+  inline-size: min(100%, 560px);
+  padding: clamp(var(--space-6), 6vw, var(--space-10));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+  text-align: start;
+}
+
+.desktop-gate-mark {
+  inline-size: 48px;
+  block-size: 48px;
+  margin-block-end: var(--space-6);
+  color: var(--accent-strong);
+}
+
+.desktop-gate-eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--accent-strong);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.desktop-gate h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: var(--weight-semibold);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.desktop-gate p:not(.desktop-gate-eyebrow) {
+  max-inline-size: 52ch;
+  margin: var(--space-4) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.desktop-gate .desktop-gate-requirement {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.desktop-gate button {
+  margin-block-start: var(--space-6);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--accent-strong);
+  border-radius: var(--radius-control);
+  background: var(--accent-strong);
+  color: var(--surface);
+  font-weight: var(--weight-medium);
+}
+
+.desktop-gate button:hover {
+  border-color: var(--chrome);
+  background: var(--chrome);
+}

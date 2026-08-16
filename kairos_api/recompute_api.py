@@ -29,6 +29,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["recompute"])
 
 
+def _require_usable_inventory() -> None:
+    """Refuse a present source that cannot steer a single placement slot."""
+    from kairos.optimize.inventory import load_inventory
+
+    load_inventory(require_usable=True)
+
+
 def _run_recompute(
     only_days: list[tuple[str, str]] | None = None,
     progress_cb: Any = None,
@@ -39,6 +46,11 @@ def _run_recompute(
     cannot drift. Raises ValueError on an empty result so callers surface it
     honestly in their own error channel.
     """
+    # A present inventory file that yields no slot is malformed input, not the
+    # same state as an optional file that was never supplied. Refuse before the
+    # weekly builder decides or writes a row; previews may still describe the
+    # identity run, but the live plan never moves under a silently inert steer.
+    _require_usable_inventory()
     saved = _load_settings()
     settings_map = _model_dump(saved)
     frame = build_weekly_schedule(
@@ -50,6 +62,7 @@ def _run_recompute(
         only_days=only_days,
         progress_cb=progress_cb,
         objective_mode=getattr(saved, "objective_mode", "blend"),
+        require_usable_inventory=True,
     )
     if frame.empty:
         raise ValueError("No segments produced (is data/reference/Programmes.xlsx present?)")
@@ -173,6 +186,15 @@ def start_recompute_job(request: RecomputeJobRequest | None = None) -> dict[str,
     if existing is not None:
         return {"job_id": existing, "already_running": True}
 
+    # Reject synchronously, before creating a job the UI would briefly present
+    # as running. The worker repeats this check immediately before the build so
+    # a source replaced between acceptance and execution still cannot move the
+    # saved plan under an inert inventory signal.
+    try:
+        _require_usable_inventory()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     only_days: list[tuple[str, str]] | None = None
     if request is not None and request.scope:
         pairs: list[tuple[str, str]] = []
@@ -206,5 +228,3 @@ def job_status(job_id: str) -> dict[str, Any]:
     if record is None:
         raise HTTPException(status_code=404, detail="Unknown job id")
     return record
-
-

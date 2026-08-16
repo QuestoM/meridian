@@ -25,6 +25,7 @@ sequence fails, so a pass here can never be vacuous.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -208,3 +209,29 @@ def test_the_workspace_resets_its_view_when_the_entry_changes_under_it():
     assert "if (opened.current === view) {" in source, "the mount run must be skipped or a supplied address is lost"
     assert "setActive(requestedView(view));" in source
     assert "}, [view]);" in source
+
+
+def test_commercial_data_load_does_not_repeat_when_only_locale_changes():
+    """The four locale-neutral reads rerun only for an explicit refresh/reload."""
+    source = WORKSPACE.read_text(encoding="utf-8")
+    effects = re.findall(
+        r"  useEffect\(\(\) => \{\n(?P<body>.*?)\n  \}, \[(?P<deps>[^\]]*)\]\);",
+        source,
+        flags=re.DOTALL,
+    )
+    data_effects = [(body, deps) for body, deps in effects if "Promise.allSettled" in body]
+    assert len(data_effects) == 1, "the Commercial resource loader must remain one identifiable effect"
+
+    body, dependency_source = data_effects[0]
+    load_group = re.search(r"Promise\.allSettled\(\[(?P<calls>[^\]]+)\]\)", body)
+    assert load_group, "the Commercial resources must still load as one settled group"
+    assert re.findall(r"\b(load\w+)\(\)", load_group.group("calls")) == [
+        "loadClients",
+        "loadMoney",
+        "loadCampaigns",
+        "loadAdvertiserRules",
+    ]
+
+    dependencies = [dependency.strip() for dependency in dependency_source.split(",") if dependency.strip()]
+    assert dependencies == ["refreshKey", "reloadKey"]
+    assert "locale" not in dependencies, "a language-only render must not repeat locale-neutral API reads"

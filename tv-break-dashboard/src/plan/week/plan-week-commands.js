@@ -10,7 +10,10 @@ import { SECTIONS, sectionLabel } from './plan-week-model';
 // Labels are functions of the locale rather than strings, so the list can be
 // built once and read in either language.
 
-export function planCommands({ go, words, surface, boardView, setBoardView, adoptLeg, runNow, openPalette }) {
+export function planCommands({
+  go, words, surface, boardView, setBoardView, adoptLeg, runNow, compareNow,
+  optimizationAllowed, optimizationBlockedReason, requestPublish, openPalette,
+}) {
   const navigation = SECTIONS.map((section) => ({
     id: `go-${section.id}`,
     group: (locale) => (locale === 'he' ? 'מעבר' : 'Go to'),
@@ -57,8 +60,10 @@ export function planCommands({ go, words, surface, boardView, setBoardView, adop
       label: () => words.run,
       keywords: ['run', 'plan', 'הרצה'],
       shortcut: ['r'],
-      disabled: surface.runState === 'running',
-      disabledReason: (locale) => (locale === 'he' ? 'הרצה כבר פועלת' : 'a run is already going'),
+      disabled: surface.runState === 'running' || !optimizationAllowed,
+      disabledReason: (locale) => (surface.runState === 'running'
+        ? (locale === 'he' ? 'הרצה כבר פועלת' : 'a run is already going')
+        : optimizationBlockedReason),
       // The same function the state row's control calls, so the palette row and
       // the button on the header cannot drift into doing different things.
       run: runNow,
@@ -69,9 +74,11 @@ export function planCommands({ go, words, surface, boardView, setBoardView, adop
       label: (locale) => (locale === 'he' ? 'השוואת שני תרחישים' : 'Compare two scenarios'),
       keywords: ['compare', 'scenario', 'net', 'השוואה'],
       shortcut: ['c'],
-      disabled: surface.compareState === 'running',
-      disabledReason: (locale) => (locale === 'he' ? 'השוואה כבר פועלת' : 'a comparison is already going'),
-      run: () => { go('compare'); surface.compare(); },
+      disabled: surface.compareState === 'running' || !optimizationAllowed,
+      disabledReason: (locale) => (surface.compareState === 'running'
+        ? (locale === 'he' ? 'השוואה כבר פועלת' : 'a comparison is already going')
+        : optimizationBlockedReason),
+      run: compareNow,
     },
     {
       // The comparison is fourteen real optimizations and takes about eleven
@@ -114,7 +121,9 @@ export function planCommands({ go, words, surface, boardView, setBoardView, adop
       disabledReason: (locale) => (surface.canPublish
         ? (locale === 'he' ? 'תנו שם לגרסה קודם' : 'name the version first')
         : (surface.canPublishReason || (locale === 'he' ? 'אין הרשאה' : 'not permitted'))),
-      run: () => { go('publish'); surface.publish(); },
+      // Publishing is a write. The palette and P shortcut therefore enter the
+      // same scope-and-consequence review as the visible publish control.
+      run: () => { go('publish'); requestPublish(false); },
     },
   ];
 

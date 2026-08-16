@@ -3,6 +3,8 @@ import { CacheProvider } from '@emotion/react';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import Login, { ChangePasswordDialog } from './Login';
 import { DirectionRoot } from './bidi';
+import { KairosMark } from './kairos-icons';
+import { workspaceSessionReady } from './auth-integrity';
 
 // The three pre-workspace screens. Returns null once a session is settled, so
 // the shell renders the workspace exactly as the single file did.
@@ -14,12 +16,8 @@ export function renderAuthScreen({ auth, setAuth, muiCache, theme, handleLoggedI
           <CssBaseline />
           <DirectionRoot locale="he" className="login-screen" lang="he">
             <div className="login-loading">
-              <div className="login-brand-mark" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span>רק רגע...</span>
+              <KairosMark size={40} title="Kairos" />
+              <span>בודק את הרשאות הגישה…</span>
             </div>
           </DirectionRoot>
         </ThemeProvider>
@@ -27,7 +25,10 @@ export function renderAuthScreen({ auth, setAuth, muiCache, theme, handleLoggedI
     );
   }
 
-  if (auth.status === 'login') {
+  // Every state except the two explicitly authorised shapes stays outside the
+  // data tree. This includes malformed and future in-memory states: adding a
+  // status can never accidentally turn into workspace access.
+  if (!workspaceSessionReady(auth)) {
     return (
       <CacheProvider value={muiCache}>
         <ThemeProvider theme={theme}>

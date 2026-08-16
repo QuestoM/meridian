@@ -51,7 +51,8 @@ def test_the_preparation_and_the_comparison_send_the_same_body(prepare_source, s
     """
     assert "export function compareRequestBody(" in prepare_source
     assert "compareRequestBody(legs.current.legA, legs.current.legB)" in prepare_source
-    assert "compareRequestBody(legA, legB)" in surface_source
+    assert "compareRequestBody(guardedLegA, guardedLegB)" in surface_source
+    assert "max_breaks_per_hour: saved.max_breaks_per_hour" in surface_source
     # And the old inline body is gone, so there is nothing left to drift.
     assert "weight_a: Math.round(" not in surface_source
 

@@ -187,19 +187,23 @@ def _engine_values() -> dict[str, Any]:
 
 def _write_through_if_due(request: Optional[Request]) -> bool:
     """Materialise the limits in force into settings, so the engine agrees."""
-    from kairos_api.core import _save_settings
+    from kairos_api import core, version_store
 
-    in_force = guardrail_store.values_on()
-    if _engine_values() == in_force:
-        return False
-    from kairos_api import version_store
-
-    version_store.snapshot_manual_edit(request, "settings")
-    settings = _load_settings()
-    for key, value in in_force.items():
-        setattr(settings, key, value)
-    _save_settings(settings)
-    return True
+    with core._SETTINGS_LOCK:
+        # Read the registry inside the same transaction that writes the engine
+        # settings. Otherwise two due changes can interleave so an older caller
+        # captures stale limits, resumes last, and makes registry and engine
+        # disagree even though both individual files were written atomically.
+        in_force = guardrail_store.values_on()
+        settings = _load_settings()
+        current = {key: getattr(settings, key, None) for key in guardrail_store.GUARDRAIL_KEYS}
+        if current == in_force:
+            return False
+        version_store.snapshot_manual_edit(request, "settings")
+        for key, value in in_force.items():
+            setattr(settings, key, value)
+        core._save_settings(settings)
+        return True
 
 
 @router.post("/api/rules/guardrails/apply", tags=["dashboard"])
@@ -325,15 +329,16 @@ def set_operator_channel(payload: OperatorChannelRequest, request: Request = Non
     that seam, and until it is called there this route's refusal is a door in a
     wall with a second door beside it.
     """
-    from kairos_api.core import _save_settings
+    from kairos_api.core import _mutate_settings
 
     CHANNEL_WALL.require(request)
     wanted = str(payload.operator_channel or "").strip()
     _require_channel_in_schedule(wanted)
     from kairos_api import version_store
 
-    version_store.snapshot_manual_edit(request, "settings")
-    settings = _load_settings()
-    settings.operator_channel = wanted
-    _save_settings(settings)
+    def apply(settings: Any) -> None:
+        version_store.snapshot_manual_edit(request, "settings")
+        settings.operator_channel = wanted
+
+    _mutate_settings(apply)
     return read_operator_channel(request)

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Check, Tv } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import {
   API_BASE,
   finiteNumber,
@@ -257,7 +259,7 @@ export default function FrontierScopeChart({
             {scopeOptions.map((option) => {
               const active = option.value === scope;
               return (
-                <button
+                <Pressable
                   key={option.value}
                   type="button"
                   className={`frontier-scope-chip${active ? ' active' : ''}`}
@@ -269,7 +271,7 @@ export default function FrontierScopeChart({
                 >
                   <Tv size={13} />
                   {he ? option.labelHe : option.labelEn}
-                </button>
+                </Pressable>
               );
             })}
           </div>

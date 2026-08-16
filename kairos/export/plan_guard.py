@@ -74,9 +74,13 @@ def authorize_shipped_plan_write(target: Any, shipped: Any) -> None:
     freshness sidecar and its committed fingerprint exactly as they were. Any
     path other than the shipped artifact passes straight through.
     """
-    if not is_shipped_plan(target, shipped):
-        return
-    if _truthy(os.environ.get(READONLY_ENV)):
+    require_shipped_plan_writable(target, shipped)
+    record_shipped_plan_write(target, shipped)
+
+
+def require_shipped_plan_writable(target: Any, shipped: Any) -> None:
+    """Apply the read-only wall without creating the provenance sidecar."""
+    if is_shipped_plan(target, shipped) and _truthy(os.environ.get(READONLY_ENV)):
         raise PlanArtifactProtected(
             f"{READONLY_ENV} is set, so the shipped plan {shipped} is read-only on this tree "
             f"and nothing was written. Asked for by {_caller()}. A recompute is a real product "
@@ -84,7 +88,12 @@ def authorize_shipped_plan_write(target: Any, shipped: Any) -> None:
             "tree where agents drive the product refuses all of them. Unset the variable where "
             "replacing the plan of record is the point."
         )
-    _record_write(target)
+
+
+def record_shipped_plan_write(target: Any, shipped: Any) -> None:
+    """Record a shipped-plan write only after every refusal gate has passed."""
+    if is_shipped_plan(target, shipped):
+        _record_write(target)
 
 
 def _record_write(target: Any) -> None:

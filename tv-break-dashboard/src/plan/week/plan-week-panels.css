@@ -77,6 +77,7 @@
   font-size: var(--text-sm);
   color: var(--muted);
   cursor: pointer;
+  min-block-size: 44px;
 }
 
 .plan-leg-chip.is-active {
@@ -95,24 +96,6 @@
 
 .plan-scenario-arrow {
   color: var(--subtle);
-}
-
-.plan-scenario-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-
-.plan-scenario-card.accent-a {
-  border: 1px solid var(--blue);
-}
-
-.plan-scenario-card.accent-b {
-  border: 1px solid var(--teal);
 }
 
 .plan-scenario-head {
@@ -377,6 +360,7 @@
 
 .plan-board-day button {
   margin-inline-start: auto;
+  min-block-size: 44px;
 }
 
 .plan-board-toolbar {
@@ -407,7 +391,7 @@
 }
 
 .plan-foot-sections {
-  color: var(--line-strong);
+  color: var(--ink-subtle);
 }
 
 @media (max-width: 900px) {

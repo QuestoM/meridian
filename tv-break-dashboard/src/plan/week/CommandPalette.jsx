@@ -1,4 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Button } from '../../studio/actions';
+import { X } from 'lucide-react';
+import { InputControl, Pressable } from '../../studio/dom-controls';
 import { pageText } from '../../shell/format';
 import { Code } from '../../shell/bidi';
 
@@ -40,6 +43,11 @@ export function CommandPalette({ open, commands, locale, onClose }) {
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const id = useId();
+  const listId = `${id}-list`;
+  const titleId = `${id}-title`;
 
   const visible = useMemo(
     () => commands.filter((command) => matches(command, query, locale)),
@@ -48,10 +56,17 @@ export function CommandPalette({ open, commands, locale, onClose }) {
 
   useEffect(() => {
     if (!open) return;
+    previousFocusRef.current = document.activeElement;
     setQuery('');
     setCursor(0);
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
     const id = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(id);
+      if (dialog?.open) dialog.close();
+      previousFocusRef.current?.focus?.();
+    };
   }, [open]);
 
   useEffect(() => {
@@ -104,16 +119,62 @@ export function CommandPalette({ open, commands, locale, onClose }) {
     }
   }
 
+  function trapDialogFocus(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(dialogRef.current?.querySelectorAll('input, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') || []);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function closeFromBackdrop(event) {
+    if (event.target !== dialogRef.current) return;
+    const bounds = dialogRef.current.getBoundingClientRect();
+    const outside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+    if (outside) onClose();
+  }
+
   return (
-    <div className="plan-palette-scrim" role="presentation" onMouseDown={onClose}>
-      <div
-        className="plan-palette"
-        role="dialog"
-        aria-modal="true"
-        aria-label={pageText(locale, 'Command palette', 'לוח פקודות')}
-        onMouseDown={(event) => event.stopPropagation()}
+      <dialog
+        ref={dialogRef}
+        className="card plan-palette"
+        aria-labelledby={titleId}
+        onCancel={(event) => {
+          event.preventDefault();
+          onClose();
+        }}
+        onKeyDown={trapDialogFocus}
+        onClick={closeFromBackdrop}
       >
-        <input
+        <header className="plan-palette-head">
+          <h2 id={titleId}>{pageText(locale, 'Command palette', 'לוח פקודות')}</h2>
+          <Button
+            type="button"
+            variant="text"
+            disableRipple
+            className="plan-palette-close"
+            aria-label={pageText(locale, 'Close command palette', 'סגירת לוח הפקודות')}
+            onClick={onClose}
+          >
+            <X size={20} aria-hidden="true" />
+          </Button>
+        </header>
+        <InputControl
           ref={inputRef}
           className="plan-palette-input"
           type="text"
@@ -122,8 +183,13 @@ export function CommandPalette({ open, commands, locale, onClose }) {
           onKeyDown={onKeyDown}
           placeholder={pageText(locale, 'Search commands', 'חיפוש פקודות')}
           aria-label={pageText(locale, 'Search commands', 'חיפוש פקודות')}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded="true"
+          aria-controls={listId}
+          aria-activedescendant={visible[cursor] ? `${id}-option-${cursor}` : undefined}
         />
-        <div className="plan-palette-list" ref={listRef} role="listbox">
+        <div className="plan-palette-list" ref={listRef} id={listId} role="listbox" aria-label={pageText(locale, 'Available commands', 'פקודות זמינות')}>
           {visible.length === 0 && (
             <p className="plan-palette-empty">
               {pageText(locale, 'No command matches that.', 'אין פקודה שתואמת לזה.')}
@@ -133,10 +199,12 @@ export function CommandPalette({ open, commands, locale, onClose }) {
             <div className="plan-palette-group" key={group.name}>
               <p className="plan-palette-group-name">{group.name}</p>
               {group.items.map(({ command, index }) => (
-                <button
+                <Pressable
                   key={command.id}
+                  id={`${id}-option-${index}`}
                   type="button"
                   role="option"
+                  tabIndex={-1}
                   aria-selected={index === cursor}
                   aria-disabled={Boolean(command.disabled)}
                   data-cursor={index === cursor ? 'true' : 'false'}
@@ -151,7 +219,7 @@ export function CommandPalette({ open, commands, locale, onClose }) {
                     )}
                   </span>
                   <kbd className="plan-palette-keys"><Code>{shortcutText(command.shortcut, locale)}</Code></kbd>
-                </button>
+                </Pressable>
               ))}
             </div>
           ))}
@@ -159,8 +227,7 @@ export function CommandPalette({ open, commands, locale, onClose }) {
         <p className="plan-palette-foot">
           {pageText(locale, 'Arrows move, Enter runs, Esc closes', 'חצים לניווט, Enter להפעלה, Esc לסגירה')}
         </p>
-      </div>
-    </div>
+      </dialog>
   );
 }
 

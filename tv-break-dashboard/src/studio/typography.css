@@ -1,0 +1,50 @@
+/* Broadcast-console typography calibration. The Hebrew face is script-specific;
+   IBM Plex remains the Latin, numeric and identifier voice. */
+.kairos-shell {
+  font-kerning: normal;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hebrew does not inherit the display tracking used to tighten Latin headings
+   or label tracking used for Latin capitals. Mono and explicit LTR islands keep
+   their own spacing. */
+.kairos-shell[dir='rtl'][lang='he'] :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  label,
+  legend,
+  th,
+  [role='tab'],
+  [role='status']
+) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* MUI emits its theme family on each control instead of inheriting from the
+   locale root. Rejoin those controls to the same Hebrew voice; the font's
+   Hebrew-only unicode range still leaves figures and Latin to IBM Plex. */
+.kairos-shell[dir='rtl'][lang='he'] :where(
+  .MuiButton-root,
+  .MuiInputBase-root,
+  .MuiInputBase-input,
+  .MuiFormLabel-root,
+  .MuiFormControlLabel-label,
+  .MuiMenuItem-root,
+  .MuiTableCell-root,
+  .MuiTypography-root,
+  .MuiTooltip-tooltip
+) {
+  font-family: var(--font-sans-hebrew);
+}
+
+.kairos-shell :where(.numeric, [data-numeric], input[type='number'], input[type='date'], input[type='time']) {
+  font-variant-numeric: tabular-nums lining-nums;
+}

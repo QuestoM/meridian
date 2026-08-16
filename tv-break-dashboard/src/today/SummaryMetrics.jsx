@@ -11,7 +11,7 @@ import {
 } from '../shell/format';
 import { formatSpan } from '../shell/dates';
 import { riskLabel } from '../shell/labels';
-import { Metric } from '../shell/primitives';
+import { Metric } from '../studio';
 import { PlanEventBadges } from '../rules/CalendarEventsModel';
 import ChannelRefusal from './ChannelRefusal';
 import { overviewScope, unattributed } from './today-scope';

@@ -1,0 +1,4234 @@
+{
+  "slug": "today",
+  "address": "/#Today",
+  "captures": [
+    {
+      "requestedUrl": "http://127.0.0.1:3000/#Today",
+      "finalUrl": "http://127.0.0.1:3000/#Today",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/#Today",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "מצב השידור · רשת 13"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 1459,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 739
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1184,
+              "height": 1459
+            },
+            "padding": {
+              "top": 0,
+              "right": 16,
+              "bottom": 40,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.today-workspace",
+            "rect": {
+              "x": 16,
+              "y": 57,
+              "width": 1152,
+              "height": 1362
+            },
+            "padding": {
+              "top": 16,
+              "right": 0,
+              "bottom": 40,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1184,
+            "top": 57,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -699,
+            "inlineStart": 16,
+            "inlineEnd": 16
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.control-room-hero",
+              "rect": {
+                "x": 16,
+                "y": 73,
+                "width": 1152,
+                "height": 267
+              },
+              "insets": {
+                "blockStart": 16,
+                "blockEnd": 380,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.today-control-grid",
+              "rect": {
+                "x": 16,
+                "y": 352,
+                "width": 1152,
+                "height": 370
+              },
+              "insets": {
+                "blockStart": 295,
+                "blockEnd": -2,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "details.card.today-revenue-disclosure",
+              "rect": {
+                "x": 16,
+                "y": 734,
+                "width": 1152,
+                "height": 76
+              },
+              "insets": {
+                "blockStart": 677,
+                "blockEnd": -90,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"ניתוח\\ היום\"]",
+              "rect": {
+                "x": 16,
+                "y": 822,
+                "width": 1152,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": 765,
+                "blockEnd": -147,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "#today-panel-economics",
+              "rect": {
+                "x": 16,
+                "y": 879,
+                "width": 1152,
+                "height": 500
+              },
+              "insets": {
+                "blockStart": 822,
+                "blockEnd": -659,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 136,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": [
+            {
+              "selector": "span",
+              "text": "02:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "03:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "04:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "05:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "06:00",
+              "reason": "background image or gradient"
+            }
+          ]
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "a.skip-link",
+            "text": "דילוג לאזור העבודה הראשי",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 21
+              }
+            ]
+          },
+          "latin": {
+            "selector": "strong.brand-wordmark",
+            "text": "KAIROS",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 6
+              }
+            ]
+          },
+          "figure": {
+            "selector": "button.MuiButtonBase-root.MuiButton-root",
+            "text": "⁨01/11/2024⁩",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 5.5,
+          "domContentLoadedMs": 141.1,
+          "loadMs": 157.7,
+          "durationMs": 157.7,
+          "firstContentfulPaintMs": 172
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/schedule",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/files",
+          "http://127.0.0.1:3000/api/events",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.849799,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.867406,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/schedule",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.867544,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/files",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.867597,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/events",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.867704,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.911815,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.912057,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.912199,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.912452,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20016.912528,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "span.transmission-cursor",
+              "transitionProperty": "inset-inline-start",
+              "transitionDurationMs": 260,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 26,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1755,
+        "settle": {
+          "elapsedMs": 862,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 5.5,
+          "domContentLoadedMs": 141.1,
+          "loadMs": 157.7,
+          "durationMs": 157.7,
+          "firstContentfulPaintMs": 172
+        }
+      },
+      "screenshots": {
+        "full": "today/he/1280x720/full.png",
+        "top": {
+          "path": "today/he/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "today/he/1280x720/middle.png",
+          "scrollY": 370
+        },
+        "bottom": {
+          "path": "today/he/1280x720/bottom.png",
+          "scrollY": 739
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/#Today",
+      "finalUrl": "http://127.0.0.1:3000/#Today",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/#Today",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "מצב השידור · רשת 13"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 1516,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 616
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "width": 1632,
+              "height": 1516
+            },
+            "padding": {
+              "top": 0,
+              "right": 24,
+              "bottom": 40,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.today-workspace",
+            "rect": {
+              "x": 24,
+              "y": 57,
+              "width": 1584,
+              "height": 1419
+            },
+            "padding": {
+              "top": 16,
+              "right": 0,
+              "bottom": 40,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1632,
+            "top": 57,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -576,
+            "inlineStart": 24,
+            "inlineEnd": 24
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.control-room-hero",
+              "rect": {
+                "x": 24,
+                "y": 73,
+                "width": 1584,
+                "height": 269
+              },
+              "insets": {
+                "blockStart": 16,
+                "blockEnd": 558,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.today-control-grid",
+              "rect": {
+                "x": 24,
+                "y": 354,
+                "width": 1584,
+                "height": 370
+              },
+              "insets": {
+                "blockStart": 297,
+                "blockEnd": 176,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "details.card.today-revenue-disclosure",
+              "rect": {
+                "x": 24,
+                "y": 736,
+                "width": 1584,
+                "height": 76
+              },
+              "insets": {
+                "blockStart": 679,
+                "blockEnd": 88,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"ניתוח\\ היום\"]",
+              "rect": {
+                "x": 24,
+                "y": 824,
+                "width": 1584,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": 767,
+                "blockEnd": 31,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "#today-panel-economics",
+              "rect": {
+                "x": 24,
+                "y": 881,
+                "width": 1584,
+                "height": 555
+              },
+              "insets": {
+                "blockStart": 824,
+                "blockEnd": -536,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 137,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": [
+            {
+              "selector": "span",
+              "text": "02:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "03:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "04:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "05:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "06:00",
+              "reason": "background image or gradient"
+            }
+          ]
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "a.skip-link",
+            "text": "דילוג לאזור העבודה הראשי",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans Hebrew",
+                "postScriptName": "IBMPlexSansHebrew-Regular",
+                "isCustomFont": true,
+                "glyphCount": 3
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 21
+              }
+            ]
+          },
+          "latin": {
+            "selector": "strong.brand-wordmark",
+            "text": "KAIROS",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 6
+              }
+            ]
+          },
+          "figure": {
+            "selector": "button.MuiButtonBase-root.MuiButton-root",
+            "text": "⁨01/11/2024⁩",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 103.4,
+          "loadMs": 106.4,
+          "durationMs": 106.4,
+          "firstContentfulPaintMs": 128
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/schedule",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/files",
+          "http://127.0.0.1:3000/api/events",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.127758,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.142805,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/schedule",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.142944,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/files",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.142994,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/events",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.143105,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.181002,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.181215,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.181346,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.181596,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20019.18168,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "span.transmission-cursor",
+              "transitionProperty": "inset-inline-start",
+              "transitionDurationMs": 260,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 26,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1754,
+        "settle": {
+          "elapsedMs": 879,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 103.4,
+          "loadMs": 106.4,
+          "durationMs": 106.4,
+          "firstContentfulPaintMs": 128
+        }
+      },
+      "screenshots": {
+        "full": "today/he/1728x900/full.png",
+        "top": {
+          "path": "today/he/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "today/he/1728x900/middle.png",
+          "scrollY": 308
+        },
+        "bottom": {
+          "path": "today/he/1728x900/bottom.png",
+          "scrollY": 616
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/#Today",
+      "finalUrl": "http://127.0.0.1:3000/#Today",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/#Today",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Broadcast status · רשת 13"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 1459,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 739
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1184,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 96,
+              "y": 0,
+              "width": 1184,
+              "height": 1459
+            },
+            "padding": {
+              "top": 0,
+              "right": 16,
+              "bottom": 40,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.today-workspace",
+            "rect": {
+              "x": 112,
+              "y": 57,
+              "width": 1152,
+              "height": 1362
+            },
+            "padding": {
+              "top": 16,
+              "right": 0,
+              "bottom": 40,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 96,
+            "right": 1280,
+            "top": 57,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -699,
+            "inlineStart": 16,
+            "inlineEnd": 16
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.control-room-hero",
+              "rect": {
+                "x": 112,
+                "y": 73,
+                "width": 1152,
+                "height": 267
+              },
+              "insets": {
+                "blockStart": 16,
+                "blockEnd": 380,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.today-control-grid",
+              "rect": {
+                "x": 112,
+                "y": 352,
+                "width": 1152,
+                "height": 370
+              },
+              "insets": {
+                "blockStart": 295,
+                "blockEnd": -2,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "details.card.today-revenue-disclosure",
+              "rect": {
+                "x": 112,
+                "y": 734,
+                "width": 1152,
+                "height": 76
+              },
+              "insets": {
+                "blockStart": 677,
+                "blockEnd": -90,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"Today\\ analysis\"]",
+              "rect": {
+                "x": 112,
+                "y": 822,
+                "width": 1152,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": 765,
+                "blockEnd": -147,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "#today-panel-economics",
+              "rect": {
+                "x": 112,
+                "y": 879,
+                "width": 1152,
+                "height": 500
+              },
+              "insets": {
+                "blockStart": 822,
+                "blockEnd": -659,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 136,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": [
+            {
+              "selector": "span",
+              "text": "02:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "03:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "04:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "05:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "06:00",
+              "reason": "background image or gradient"
+            }
+          ]
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "#control-room-title",
+            "text": "Broadcast status · רשת 13",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "28px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 22
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 3
+              }
+            ]
+          },
+          "latin": {
+            "selector": "a.skip-link",
+            "text": "Skip to main workspace",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 22
+              }
+            ]
+          },
+          "figure": {
+            "selector": "button.MuiButtonBase-root.MuiButton-root",
+            "text": "⁨01/11/2024⁩",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 12
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 101.7,
+          "loadMs": 104.6,
+          "durationMs": 104.6,
+          "firstContentfulPaintMs": 128
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/schedule",
+          "http://127.0.0.1:3000/api/files",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/events",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.432424,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.447668,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/schedule",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.447786,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/files",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.447832,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/events",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.447932,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.500711,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.50091,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.501042,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.501398,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20021.501486,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "span.transmission-cursor",
+              "transitionProperty": "inset-inline-start",
+              "transitionDurationMs": 260,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 26,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1732,
+        "settle": {
+          "elapsedMs": 866,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 101.7,
+          "loadMs": 104.6,
+          "durationMs": 104.6,
+          "firstContentfulPaintMs": 128
+        }
+      },
+      "screenshots": {
+        "full": "today/en/1280x720/full.png",
+        "top": {
+          "path": "today/en/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "today/en/1280x720/middle.png",
+          "scrollY": 370
+        },
+        "bottom": {
+          "path": "today/en/1280x720/bottom.png",
+          "scrollY": 739
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/#Today",
+      "finalUrl": "http://127.0.0.1:3000/#Today",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/#Today",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Broadcast status · רשת 13"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 1516,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 616
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [
+              {
+                "selector": "header.top-bar",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 57
+                }
+              }
+            ],
+            "topBarPrimary": [
+              {
+                "selector": "div.top-bar-primary",
+                "rect": {
+                  "x": 96,
+                  "y": 0,
+                  "width": 1632,
+                  "height": 56
+                }
+              }
+            ],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": []
+          },
+          "main": {
+            "selector": "#kairos-main",
+            "rect": {
+              "x": 96,
+              "y": 0,
+              "width": 1632,
+              "height": 1516
+            },
+            "padding": {
+              "top": 0,
+              "right": 24,
+              "bottom": 40,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "section.page-workspace.today-workspace",
+            "rect": {
+              "x": 120,
+              "y": 57,
+              "width": 1584,
+              "height": 1419
+            },
+            "padding": {
+              "top": 16,
+              "right": 0,
+              "bottom": 40,
+              "left": 0
+            }
+          },
+          "mainViewport": {
+            "left": 96,
+            "right": 1728,
+            "top": 57,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -576,
+            "inlineStart": 24,
+            "inlineEnd": 24
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "section.control-room-hero",
+              "rect": {
+                "x": 120,
+                "y": 73,
+                "width": 1584,
+                "height": 269
+              },
+              "insets": {
+                "blockStart": 16,
+                "blockEnd": 558,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.today-control-grid",
+              "rect": {
+                "x": 120,
+                "y": 354,
+                "width": 1584,
+                "height": 370
+              },
+              "insets": {
+                "blockStart": 297,
+                "blockEnd": 176,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "details.card.today-revenue-disclosure",
+              "rect": {
+                "x": 120,
+                "y": 736,
+                "width": 1584,
+                "height": 76
+              },
+              "insets": {
+                "blockStart": 679,
+                "blockEnd": 88,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "nav[aria-label=\"Today\\ analysis\"]",
+              "rect": {
+                "x": 120,
+                "y": 824,
+                "width": 1584,
+                "height": 45
+              },
+              "insets": {
+                "blockStart": 767,
+                "blockEnd": 31,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "#today-panel-economics",
+              "rect": {
+                "x": 120,
+                "y": 881,
+                "width": 1584,
+                "height": 555
+              },
+              "insets": {
+                "blockStart": 824,
+                "blockEnd": -536,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 137,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": [
+            {
+              "selector": "span",
+              "text": "02:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "03:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "04:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "05:00",
+              "reason": "background image or gradient"
+            },
+            {
+              "selector": "span",
+              "text": "06:00",
+              "reason": "background image or gradient"
+            }
+          ]
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "#control-room-title",
+            "text": "Broadcast status · רשת 13",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 22
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 3
+              }
+            ]
+          },
+          "latin": {
+            "selector": "a.skip-link",
+            "text": "Skip to main workspace",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "14px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 22
+              }
+            ]
+          },
+          "figure": {
+            "selector": "button.MuiButtonBase-root.MuiButton-root",
+            "text": "⁨01/11/2024⁩",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 12
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 97.9,
+          "loadMs": 100.7,
+          "durationMs": 100.7,
+          "firstContentfulPaintMs": 120
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/schedule",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/files",
+          "http://127.0.0.1:3000/api/events",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today",
+          "http://127.0.0.1:3000/api/auth/me",
+          "http://127.0.0.1:3000/api/yield-per-second",
+          "http://127.0.0.1:3000/api/today"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.711721,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.726237,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/schedule",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.726362,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/files",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.726412,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/events",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.726517,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.77702,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.777227,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/auth/me",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.777355,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/yield-per-second",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.777703,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/today",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20023.77779,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.studio-pressable.transmission-program",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "span.transmission-cursor",
+              "transitionProperty": "inset-inline-start",
+              "transitionDurationMs": 260,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": [
+            {
+              "selector": "a.skip-link",
+              "transitionProperty": "transform",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0,
+              "animationIterationCount": "1"
+            }
+          ]
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 6,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .rules-spin { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { .transmission-program, .transmission-cursor { transition: none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background, color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiIconButton-root",
+              "transitionProperty": "background-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "button.MuiButtonBase-root.MuiButton-root",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-economics",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-guardrails",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            },
+            {
+              "selector": "#today-tab-yield",
+              "transitionProperty": "background-color, border-color",
+              "transitionDurationMs": 110,
+              "animationName": "none",
+              "animationDurationMs": 0.01,
+              "animationIterationCount": "1"
+            }
+          ],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 26,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1731,
+        "settle": {
+          "elapsedMs": 863,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 97.9,
+          "loadMs": 100.7,
+          "durationMs": 100.7,
+          "firstContentfulPaintMs": 120
+        }
+      },
+      "screenshots": {
+        "full": "today/en/1728x900/full.png",
+        "top": {
+          "path": "today/en/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "today/en/1728x900/middle.png",
+          "scrollY": 308
+        },
+        "bottom": {
+          "path": "today/en/1728x900/bottom.png",
+          "scrollY": 616
+        }
+      }
+    }
+  ]
+}

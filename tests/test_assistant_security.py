@@ -133,6 +133,16 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
     pods = break_api_pod.pods_for_day(covered[0]) if covered else []
     if pods:
         args["get_pod"] = {"pod_id": pods[0]["pod_id"]}
+    # The advertiser-airings tool needs a real observed name so the boundary
+    # scan exercises its complete multi-day/raw-row payload rather than the
+    # missing-name error shape.
+    from kairos_api.assistant_read_tools_advertiser import _corpus
+
+    traffic = _corpus()["frame"]
+    observed = [str(value).strip() for value in traffic.get("advertiser", [])
+                if str(value).strip()]
+    if observed:
+        args["get_advertiser_airings"] = {"name": observed[0]}
     # The break tool needs a real break id, for the same reason: the day plan it
     # opens carries the programme titles, and a scan run against an error stub
     # would never touch them.

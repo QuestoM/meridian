@@ -101,12 +101,19 @@ export function DeliveryCell({ delivery, window = null, vocabulary = [], locale 
 }
 
 // The as-of instant as the ledger recorded it, with the sentence the ledger
-// recorded beside it. That sentence crosses the wire in one language only,
-// because nothing translated it, so it is marked as the source's own wording
-// rather than presented as this product's Hebrew.
+// recorded beside it. Prefer a server-supplied Hebrew basis. The seeded basis
+// predates that field, so its one known sentence is translated here; any future
+// untranslated server wording remains explicitly marked as English.
 function AsOf({ asOf, locale }) {
   const instant = String((asOf && asOf.instant) || '').trim();
   const basis = String((asOf && asOf.basis) || '').trim();
+  const suppliedHebrew = String((asOf && asOf.basis_he) || '').trim();
+  const visibleBasis = locale === 'he'
+    ? suppliedHebrew || ({
+      'The start of the last programme booked on the newest sourced broadcast day, so the demo shows what has aired and what is still to come on that day.': 'נקודת הספירה היא תחילת התוכנית האחרונה ששובצה ביום השידור העדכני ביותר שיש עבורו מקור. לכן ההדגמה מפרידה באותו יום בין מה ששודר לבין מה שעדיין מתוכנן.',
+    }[basis] || basis)
+    : basis;
+  const basisLanguage = locale === 'he' && visibleBasis !== basis ? 'he' : 'en';
   if (!instant) {
     return null;
   }
@@ -115,10 +122,10 @@ function AsOf({ asOf, locale }) {
       <span>{pageText(locale, 'Counted as of', 'נספר נכון ל־')}</span>
       {pageText(locale, ' ', '')}
       <Figure className="numeric">{formatStamp(instant) || instant}</Figure>
-      {basis ? (
+      {visibleBasis ? (
         <>
           {'. '}
-          <span lang="en">{basis}</span>
+          <span lang={basisLanguage}>{visibleBasis}</span>
         </>
       ) : '.'}
     </p>
@@ -223,7 +230,7 @@ export function DeliveryBasis({ delivery, locale }) {
 // measure against is a state and not a zero.
 function Goal({ label, reading, reason, basis, locale }) {
   return (
-    <div className={reading.hasPercent ? 'clients-progress' : 'clients-progress empty'}>
+    <div className={reading.hasPercent ? 'card card-dense card-body clients-progress' : 'card card-dense card-body clients-progress empty'}>
       <dt>{label}</dt>
       <dd>
         {reading.hasPercent ? (

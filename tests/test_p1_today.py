@@ -246,8 +246,12 @@ def test_the_health_answer_is_computed_from_real_fields(client, today):
 
 def test_a_stale_plan_splits_into_the_two_things_it_actually_means(client, today):
     """One banner today fuses a change you made with a model somebody trained."""
+    # Earlier tests in this module can move freshness inputs. Read both sides of
+    # this invariant now rather than comparing a module-scoped Today snapshot
+    # with a later overview verdict.
+    current_today = client.get("/api/today").json()
     freshness = client.get("/api/overview").json()["schedule_freshness"]
-    ids = {check["id"] for check in today["health"]["checks"]}
+    ids = {check["id"] for check in current_today["health"]["checks"]}
     if freshness["status"] != "stale":
         pytest.skip("the saved plan is not stale on this tree, so there is nothing to split")
     model_changed = any(

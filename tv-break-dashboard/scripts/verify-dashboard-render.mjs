@@ -1,5 +1,5 @@
-// The system smoke: the pages exist, the shell is MUI, and native controls only
-// ever go down.
+// The system smoke: the pages exist, the shell is MUI, and screens instantiate
+// controls through one canonical boundary.
 //
 // This check has been DEAD SINCE WAVE ZERO and two separate critics reported it
 // without anyone owning the failure. It read `src/TVBreakDashboard.jsx`, the
@@ -12,15 +12,14 @@
 // While it was dead the tree drifted to 254 of them across 71 files, and nobody
 // saw a single one, because the run failed on line 3 every time.
 //
-// So the fix is not a path. Three things change:
+// So the fix was not a path. Three things changed:
 //
 //   * It searches the whole source tree instead of one file, because the thing
 //     it was written to guard no longer lives in one file.
-//   * The native-control ban becomes a RATCHET rather than an absolute. 254 is
-//     a real count and pretending it is zero would just get the check switched
-//     off again. Going up fails. Going down below the budget also fails, so the
-//     number in this file has to follow the tree down and cannot hide a
-//     regression behind slack.
+//   * The native-control debt first became a ratchet and was then paid down in
+//     Phase 3. Screens now contain zero raw controls. The only four tags live in
+//     shell/dom-controls.jsx, where Pressable/InputControl/SelectControl/
+//     TextAreaControl preserve native semantics behind the shared contract.
 //   * `function DataHubPage` is dropped from the required list. It is genuinely
 //     gone: the Data Hub and the Data Center were merged into one tabbed Data
 //     page. Every other required fragment was re-checked against the tree and
@@ -95,16 +94,8 @@ const requiredDependencies = [
   'stylis',
 ];
 
-// The ratchet. Measured on 2026-08-08 with the guard revived after being dead
-// since wave zero. It may only go down. Lower it in the same commit that removes
-// controls; a count below it fails just as loudly as a count above it, because
-// slack is how a budget stops being a guard.
-//
-// The first number written here was 254, from a hand grep that searched only
-// .jsx and used a narrower character class. The guard itself, searching .js as
-// well, answered 384. The guard was right and the grep was wrong, which is the
-// argument for the guard: a number nobody re-derives is a number nobody checks.
-const NATIVE_CONTROL_BUDGET = 350;
+const CONTROL_BOUNDARY = 'src/shell/dom-controls.jsx';
+const EXPECTED_BOUNDARY_TAGS = 4;
 const NATIVE_CONTROL = /<(button|select|input|textarea)[\s>/]/g;
 
 const nativeByFile = sourceFiles
@@ -112,6 +103,9 @@ const nativeByFile = sourceFiles
   .filter(([, count]) => count > 0)
   .sort((a, b) => b[1] - a[1]);
 const nativeTotal = nativeByFile.reduce((sum, [, count]) => sum + count, 0);
+const boundaryTotal = (read(CONTROL_BOUNDARY).match(NATIVE_CONTROL) || []).length;
+const screenNativeByFile = nativeByFile.filter(([file]) => file !== CONTROL_BOUNDARY);
+const screenNativeTotal = screenNativeByFile.reduce((sum, [, count]) => sum + count, 0);
 
 const missing = [
   ...requiredSourceFragments.filter(([, fragment]) => !source.includes(fragment)),
@@ -131,24 +125,23 @@ if (missing.length > 0) {
   }
 }
 
-if (nativeTotal > NATIVE_CONTROL_BUDGET) {
+if (screenNativeTotal !== 0) {
   failed = true;
-  const over = nativeTotal - NATIVE_CONTROL_BUDGET;
-  console.error(
-    `\nNative controls went UP: ${nativeTotal} against a budget of ${NATIVE_CONTROL_BUDGET}, ${over} over.`,
-  );
-  console.error('Use the MUI control instead, which the shell themes for right-to-left.');
-  for (const [file, count] of nativeByFile.slice(0, 12)) console.error(`  ${count} x ${file}`);
-} else if (nativeTotal < NATIVE_CONTROL_BUDGET) {
+  console.error(`\nScreens contain ${screenNativeTotal} raw native controls; expected zero.`);
+  console.error('Use Button/Pressable/InputControl/SelectControl/TextAreaControl from the canonical Studio boundary.');
+  for (const [file, count] of screenNativeByFile.slice(0, 12)) console.error(`  ${count} x ${file}`);
+}
+
+if (boundaryTotal !== EXPECTED_BOUNDARY_TAGS || nativeTotal !== EXPECTED_BOUNDARY_TAGS) {
   failed = true;
   console.error(
-    `\nNative controls are down to ${nativeTotal} but the budget still says ${NATIVE_CONTROL_BUDGET}.`,
+    `\nCanonical control boundary has ${boundaryTotal} raw tags and the tree has ${nativeTotal}; expected exactly ${EXPECTED_BOUNDARY_TAGS}.`,
   );
-  console.error('Lower NATIVE_CONTROL_BUDGET in this file so the slack cannot hide a regression.');
+  console.error('Keep one native tag for each canonical bridge and no raw tags anywhere else.');
 }
 
 if (failed) process.exit(1);
 
 console.log(
-  `Kairos dashboard system smoke passed. Native controls at ${nativeTotal}, and the budget only goes down.`,
+  `Kairos dashboard system smoke passed. Screens use zero raw controls; ${nativeTotal} canonical DOM bridges live in ${CONTROL_BOUNDARY}.`,
 );

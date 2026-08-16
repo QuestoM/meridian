@@ -398,7 +398,7 @@ def test_the_frozen_shell_still_knows_the_address_that_control_lands_on(tmp_path
     views = resolve_shell_views(tmp_path, [f"#{EVENTS_HASH}", unknown, ""])
     assert "failed" not in views, views.get("failed")
     resolved = views["resolved"]
-    assert resolved[f"#{EVENTS_HASH}"] == EVENTS_HASH, (
+    assert resolved[f"#{EVENTS_HASH}"] == "Governance", (
         f"the shell resolves the register's address for the event store to {resolved[f'#{EVENTS_HASH}']}"
     )
     assert resolved[unknown] == resolved[""], (

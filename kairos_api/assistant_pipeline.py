@@ -48,6 +48,7 @@ from kairos_api import (
     assistant_model_call,
     assistant_protocol_text as protocol_text,
     assistant_sections,
+    assistant_tool_routing,
     assistant_tools,
 )
 
@@ -137,7 +138,8 @@ def run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
                   job: str | None = None,
                   deadline: float | None = None,
                   on_stage: Callable[[str, dict[str, Any]], None] | None = None,
-                  outcome: dict[str, Any] | None = None) -> tuple[str, bool]:
+                  outcome: dict[str, Any] | None = None,
+                  preferred_tool: str | None = None) -> tuple[str, bool]:
     """One Anthropic conversation, with the tool loop when the action plane is on.
 
     READ tools execute immediately and their results go back to the model;
@@ -182,6 +184,12 @@ def run_tool_loop(client: Any, user_content: str, trace: list[dict[str, Any]],
         }
         if actions_on:
             kwargs["tools"] = assistant_tools.anthropic_tools(include_propose=can_propose)
+            # A named-advertiser airing question has one complete read. Force
+            # that first read so the model cannot fall back to a top-20 ranking
+            # or rebuild history pod by pod. Later turns return to normal tool
+            # choice after the complete result is already in the conversation.
+            if iteration == 0 and preferred_tool in assistant_tools.READ_TOOL_NAMES:
+                kwargs["tool_choice"] = {"type": "tool", "name": preferred_tool}
         if searching:
             kwargs["thinking"] = {"type": "adaptive"}
             kwargs["output_config"] = {"effort": LOOP_EFFORT}
@@ -375,6 +383,7 @@ def ask_body(question: str, http_request: Any,
             deadline=deadline,
             on_stage=on_stage,
             outcome=outcome,
+            preferred_tool=assistant_tool_routing.preferred_read_tool(question),
         )
     except Exception as exc:  # noqa: BLE001 - every SDK failure surfaces honestly
         error = describe_error(exc)

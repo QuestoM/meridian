@@ -343,10 +343,13 @@ def test_the_surface_asks_for_the_window_and_prints_what_the_page_does_not_hold(
     # A cursor is a position inside one result set, so every control that changes
     # what the list matches starts the reach again at the newest end.
     assert page.count("setBefore('')") >= 5
-    assert "onClick={() => { setBefore(''); setKind(name); }}" in page
+    navigation = _read("use-history-page-navigation.js")
+    assert "const chooseKind = useCallback((next) => {" in navigation
+    assert "setBefore('');" in navigation and "setKind(next);" in navigation
+    assert "onClick={() => chooseKind(name)}" in page
     assert "onChange={(event) => { setBefore(''); setActor(event.target.value); }}" in page
     assert "const windowTotal = body && body.window_total !== undefined ? body.window_total : total;" in page
-    assert "{windowTotal}" in page, "the Everything tab counts inside the window too"
+    assert "body ? windowTotal" in page, "the Everything tab counts inside the window too"
 
     reach = _read("HistoryReach.jsx")
     assert reach.count('type="date"') == 2, "from and up to, both inclusive"

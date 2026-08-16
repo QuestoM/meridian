@@ -1,0 +1,360 @@
+.plan-workbench-rail-stack {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.plan-workbench-rail-stack .plan-version-rail {
+  position: static;
+  max-block-size: none;
+}
+
+.local-variants {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.local-variants-head {
+  display: flex;
+  min-inline-size: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line-strong);
+}
+
+.local-variants h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display-hebrew);
+  font-size: var(--type-section-size);
+  font-weight: var(--weight-medium);
+  line-height: 1.15;
+  letter-spacing: -.015em;
+}
+
+[dir="ltr"] .local-variants h3 { font-family: var(--font-display-latin); }
+
+.local-only-badge,
+.local-variant-state {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.local-only-badge {
+  min-block-size: 28px;
+  padding-inline: var(--space-2);
+  font-size: var(--type-micro-size);
+}
+
+.local-baseline {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-muted);
+}
+
+.local-baseline.is-ready { border-color: var(--positive-line); background: var(--positive-wash); }
+.local-baseline.is-ready > svg { color: var(--positive); }
+.local-baseline.is-unverified { border-color: var(--warning-line); background: var(--warning-wash); }
+.local-baseline.is-unverified > svg { color: var(--warning); }
+
+.local-baseline div {
+  display: grid;
+  min-inline-size: 0;
+  gap: 3px;
+}
+
+.local-baseline strong { color: var(--ink); font-size: var(--type-data-size); line-height: 1.35; }
+.local-baseline span { color: var(--ink-muted); font: var(--type-micro-size)/1.4 var(--font-mono); }
+.local-baseline small { grid-column: 2; color: var(--ink-subtle); font-size: var(--type-micro-size); }
+
+.local-write-choice {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--line-strong);
+}
+
+.local-write-choice > section {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface);
+}
+
+.local-write-choice > section:last-child {
+  background: var(--surface-muted);
+}
+
+.local-choice-number {
+  display: grid;
+  inline-size: 24px;
+  block-size: 24px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink);
+  font: 600 var(--type-data-size) var(--font-mono);
+}
+
+.local-write-choice strong { color: var(--ink); font-size: var(--type-data-size); line-height: 1.35; }
+
+.local-write-choice p {
+  margin: 3px 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  line-height: 1.5;
+}
+
+.local-write-choice > section > .MuiButton-root {
+  grid-column: 2;
+  justify-self: stretch;
+  min-block-size: var(--control-height);
+  margin-block-start: var(--space-1);
+}
+
+.local-draft-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3) calc(var(--space-3) + var(--space-8));
+  background: var(--surface);
+}
+
+[dir="rtl"] .local-draft-form {
+  padding: 0 calc(var(--space-3) + var(--space-8)) var(--space-3) var(--space-3);
+}
+
+.local-draft-form .MuiButton-root { min-block-size: var(--control-height); }
+
+.local-variant-working {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-block: 1px solid var(--line);
+}
+
+.local-variant-working > span {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local-variant-working .MuiButton-root { flex: none; min-block-size: var(--control-height); }
+
+.local-variant-message {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--warning-line);
+  background: var(--warning-wash);
+  color: var(--warning);
+  font-size: var(--type-micro-size);
+  line-height: 1.45;
+}
+
+.local-pair-compare {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--accent);
+  background: var(--surface-muted);
+}
+
+.local-pair-compare.is-waiting {
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  line-height: 1.4;
+}
+
+.local-pair-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink);
+  font-size: var(--type-micro-size);
+  line-height: 1.4;
+}
+
+.local-pair-metrics,
+.local-variant-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.local-variant-metric {
+  display: grid;
+  align-content: center;
+  min-inline-size: 0;
+  min-block-size: 54px;
+  gap: 3px;
+  padding: var(--space-2);
+  background: var(--surface);
+}
+
+.local-variant-metric span {
+  overflow: hidden;
+  color: var(--ink-subtle);
+  font-size: var(--type-micro-size);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local-variant-metric strong {
+  overflow: hidden;
+  color: var(--ink);
+  font: 600 var(--type-data-size)/1.25 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local-variant-metric.is-gain strong { color: var(--positive); }
+.local-variant-metric.is-loss strong { color: var(--danger); }
+
+.local-variant-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block-start: var(--space-1);
+}
+
+.local-variant-list-head strong { color: var(--ink); font-size: var(--type-data-size); }
+.local-variant-list-head span { color: var(--ink-subtle); font: var(--type-data-size) var(--font-mono); }
+
+.local-variant-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.local-variant-row {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.local-variant-row.is-active { box-shadow: inset 3px 0 0 var(--accent); }
+[dir="rtl"] .local-variant-row.is-active { box-shadow: inset -3px 0 0 var(--accent); }
+.local-variant-row.is-stale { background: var(--surface-muted); }
+
+.local-variant-row-head {
+  display: flex;
+  min-inline-size: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.local-variant-row-head > div {
+  display: grid;
+  min-inline-size: 0;
+  gap: 2px;
+}
+
+.local-variant-row-head strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.local-variant-row-head > div > span { color: var(--ink-subtle); font: var(--type-micro-size)/1.3 var(--font-mono); }
+
+.local-variant-state {
+  min-block-size: 22px;
+  padding-inline: 6px;
+  font-size: var(--type-micro-size);
+}
+
+.local-variant-state.is-stale { border-color: var(--warning-line); color: var(--warning); }
+
+.local-variant-compliance {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+}
+
+.local-variant-compliance.is-ok { color: var(--positive); }
+.local-variant-compliance.is-bad { color: var(--danger); }
+
+.local-variant-stale-note {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--type-micro-size);
+  line-height: 1.35;
+}
+
+.local-variant-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.local-variant-actions .MuiButton-root {
+  min-inline-size: 0;
+  min-block-size: var(--control-height);
+  padding-inline: 6px;
+  font-size: var(--type-micro-size);
+}
+
+.local-variant-actions .local-variant-delete {
+  grid-column: 1 / -1;
+  justify-self: end;
+  color: var(--danger);
+}
+
+.local-variant-empty {
+  margin: 0;
+  padding: var(--space-4) var(--space-2);
+  border-block: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  line-height: 1.5;
+  text-align: center;
+}

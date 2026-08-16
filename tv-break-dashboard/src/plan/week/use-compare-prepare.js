@@ -45,13 +45,55 @@ export function compareKey(legA, legB) {
   return [legA, legB].map((leg) => LEVERS.map((field) => String(leg?.[field] ?? '')).join('|')).join('||');
 }
 
-export function useComparePrepare({ legA, legB, enabled, busy, settledKey }) {
+export function inventorySnapshot(value) {
+  if (!value || value.status !== 'ready') return null;
+  return {
+    mode: value.mode,
+    slots: Number(value.slots),
+    path: String(value.path),
+    signature: String(value.signature),
+  };
+}
+
+export function samePreparedInventory(expected, checked) {
+  const current = inventorySnapshot(checked);
+  return Boolean(expected && current)
+    && expected.mode === current.mode
+    && expected.slots === current.slots
+    && expected.path === current.path
+    && expected.signature === current.signature;
+}
+
+export function comparePreparationKey(legA, legB, inventory) {
+  const legs = compareKey(legA, legB);
+  const source = inventorySnapshot(inventory);
+  if (!legs || !source) return null;
+  return `${legs}::${source.mode}|${source.slots}|${source.path}|${source.signature}`;
+}
+
+export async function verifiedCompareFallback(inventory, expected, run) {
+  if (typeof inventory?.verify !== 'function') {
+    return { ok: false, error: 'optimizer inventory readiness could not be verified', data: null };
+  }
+  let checked;
+  try {
+    checked = await inventory.verify();
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error || 'optimizer inventory verification failed'), data: null };
+  }
+  if (!samePreparedInventory(inventorySnapshot(expected), checked)) {
+    return { ok: false, error: 'optimizer inventory changed before the fallback comparison', data: null };
+  }
+  return run();
+}
+
+export function useComparePrepare({ legA, legB, enabled, busy, settledKey, inventory }) {
   const [phase, setPhase] = useState('idle');
   const abort = useRef(null);
   const ready = useRef(new Set());
   const legs = useRef({ legA, legB });
   legs.current = { legA, legB };
-  const key = compareKey(legA, legB);
+  const key = comparePreparationKey(legA, legB, inventory);
 
   // A comparison the planner ran is a comparison already computed, so it counts
   // as prepared and no second run is started for it.
@@ -64,34 +106,48 @@ export function useComparePrepare({ legA, legB, enabled, busy, settledKey }) {
       setPhase('idle');
       return undefined;
     }
+    if (typeof inventory?.verify !== 'function') {
+      setPhase('idle');
+      return undefined;
+    }
     if (ready.current.has(key)) {
       setPhase('ready');
       return undefined;
     }
     setPhase('idle');
     let live = true;
+    const expectedInventory = inventorySnapshot(inventory);
     const timer = window.setTimeout(() => {
-      const controller = new AbortController();
-      abort.current = controller;
       setPhase('preparing');
-      streamCompare(compareRequestBody(legs.current.legA, legs.current.legB), { signal: controller.signal })
-        .then((payload) => {
-          if (!live) return;
-          if (payload && payload.available !== false) {
-            ready.current.add(key);
-            setPhase('ready');
-          } else {
-            setPhase('idle');
-          }
-        })
-        .catch(() => {
-          // A preparation that fails costs the planner nothing and says nothing.
-          // The comparison itself reports any real failure when it is asked for.
+      // Read the source immediately before spending fourteen optimizer runs.
+      // A readiness value from mount is orientation, not authority: if the
+      // file changed, this cycle stops and the new signature starts its own.
+      Promise.resolve().then(() => inventory.verify({ announce: false })).then((checked) => {
+        if (!live || !samePreparedInventory(expectedInventory, checked)) {
           if (live) setPhase('idle');
-        })
-        .finally(() => {
-          abort.current = null;
-        });
+          return null;
+        }
+        const controller = new AbortController();
+        abort.current = controller;
+        return streamCompare(
+          compareRequestBody(legs.current.legA, legs.current.legB),
+          { signal: controller.signal },
+        );
+      }).then((payload) => {
+        if (!live || !payload) return;
+        if (payload.available !== false) {
+          ready.current.add(key);
+          setPhase('ready');
+        } else {
+          setPhase('idle');
+        }
+      }).catch(() => {
+        // A preparation that fails costs the planner nothing and says nothing.
+        // The comparison itself reports any real failure when it is asked for.
+        if (live) setPhase('idle');
+      }).finally(() => {
+        abort.current = null;
+      });
     }, SETTLE_MS);
 
     return () => {
@@ -100,7 +156,7 @@ export function useComparePrepare({ legA, legB, enabled, busy, settledKey }) {
       abort.current?.abort();
       abort.current = null;
     };
-  }, [key, enabled, busy]);
+  }, [key, enabled, busy, inventory?.verify]);
 
   return { phase, key };
 }

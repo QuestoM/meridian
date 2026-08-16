@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pageText } from '../../shell/format';
+import { queueWorkspaceContinuity } from '../../shell/workspace-continuity';
 import { planEventWeekdayMap } from '../../rules/CalendarEventsModel';
 // One destination, one stylesheet per component family, because the 450-line
 // law applies to a stylesheet exactly as it applies to a module. No sheet
@@ -11,10 +12,11 @@ import './plan-week-palette.css';
 import './plan-week-publish.css';
 import './plan-week-basis.css';
 import './plan-week-compare.css';
-import { SECTIONS, planWords, sectionForEntrance, sectionLabel } from './plan-week-model';
+import { SECTION_IDS, SECTIONS, planWords, sectionForEntrance, sectionLabel } from './plan-week-model';
 import { usePlanSurface } from './use-plan-surface';
 import { useSectionData } from './use-section-data';
-import { useBoardDay } from './use-board-day';
+import { usePlanInventoryReadiness } from './use-plan-inventory-readiness';
+import { usePlanOptimizationActions } from './use-plan-optimization-actions';
 import { readInventory, readSchedule } from './plan-week-api';
 import { usePlanKeyboard } from './use-plan-keyboard';
 import { planCommands } from './plan-week-commands';
@@ -27,6 +29,14 @@ import ComparePanel from './ComparePanel';
 import PublishPanel from './PublishPanel';
 import SupplyPanel from './SupplyPanel';
 import BoardPanel from './BoardPanel';
+import RecommendationDecisionPanel from './RecommendationDecisionPanel';
+import PlanConsequenceDialog from './PlanConsequenceDialog';
+import PlanActionSafety from './PlanActionSafety';
+import { PlanSectionDataGate, PlanSettingsGate } from './PlanStateGate';
+import './plan-week-recommendations.css';
+import './plan-week-instruments.css';
+import './plan-week-board-v2.css';
+import './plan-board-workbench.css';
 
 // Plan, the week.
 //
@@ -46,6 +56,8 @@ import BoardPanel from './BoardPanel';
 
 export function PlanWeek({
   entrance = 'Optimizer',
+  overview,
+  loading = false,
   schedule: providedSchedule,
   inventory: providedInventory,
   copy,
@@ -53,39 +65,95 @@ export function PlanWeek({
   notify: providedNotify,
   planEvents,
   onGlobalRefresh,
+  recommendations,
+  approvedRecommendations,
+  rejectedRecommendations,
+  onApproveRecommendation,
+  onRejectRecommendation,
+  onApplySimilarRecommendations,
+  onOpenRecommendationInOverrides,
+  onOpenSources,
 }) {
-  const [section, setSection] = useState(() => sectionForEntrance(entrance));
+  const sectionFromAddress = useCallback(() => {
+    if (typeof window === 'undefined') return sectionForEntrance(entrance);
+    const addressed = new URLSearchParams(window.location.search).get('plan');
+    return SECTION_IDS.includes(addressed) ? addressed : sectionForEntrance(entrance);
+  }, [entrance]);
+  const [section, setSection] = useState(sectionFromAddress);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [boardView, setBoardView] = useState('grid');
+  const [boardView, setBoardView] = useState('day');
   const [boardDate, setBoardDate] = useState(null);
   const [gridAxis, setGridAxis] = useState('day');
   const [selectedProgramKey, setSelectedProgramKey] = useState(null);
-  const sectionRefs = useRef({});
+  const [review, setReview] = useState(null);
+  const recommendationFromAddress = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('recommendation') || '';
+  }, []);
+  const [selectedRecommendationId, setSelectedRecommendationId] = useState(recommendationFromAddress);
+  const sectionRef = useRef(null);
   const words = useMemo(() => planWords(locale), [locale]);
   // Two of the four entrances are handed no notifier, so the destination
   // supplies one rather than letting a child call undefined.
   const notify = useMemo(() => providedNotify || (() => {}), [providedNotify]);
-  // The comparison prepares itself only while step three is the open step, so
-  // the machine is never spent on a week nobody is looking at.
+  const inventoryReadiness = usePlanInventoryReadiness();
   const surface = usePlanSurface({
     locale,
     notify: providedNotify,
     onGlobalRefresh,
     prepareCompare: section === 'compare',
+    optimizationAllowed: inventoryReadiness.status === 'ready',
+    inventoryReadiness,
+    initialFreshness: overview?._unavailable === true ? null : overview?.schedule_freshness,
+    initialFreshnessPending: loading,
   });
-  const { data: schedule } = useSectionData(providedSchedule, readSchedule, section === 'board');
-  const { data: inventory } = useSectionData(providedInventory, readInventory, section === 'supply');
+  const scheduleSection = useSectionData(providedSchedule, readSchedule, section === 'board');
+  const inventorySection = useSectionData(providedInventory, readInventory, section === 'supply');
+  const schedule = scheduleSection.data;
+  const inventory = inventorySection.data;
   const dayEvents = useMemo(() => planEventWeekdayMap(planEvents), [planEvents]);
 
   useEffect(() => {
-    setSection(sectionForEntrance(entrance));
-  }, [entrance]);
+    setSection(sectionFromAddress());
+  }, [sectionFromAddress]);
 
-  const go = useCallback((id) => {
+  useEffect(() => {
+    function restoreAddressedSection() {
+      setSection(sectionFromAddress());
+      setSelectedRecommendationId(recommendationFromAddress());
+    }
+    window.addEventListener('popstate', restoreAddressedSection);
+    return () => window.removeEventListener('popstate', restoreAddressedSection);
+  }, [sectionFromAddress, recommendationFromAddress]);
+
+  const selectRecommendation = useCallback((id) => {
+    setSelectedRecommendationId(String(id || ''));
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set('recommendation', String(id));
+    else url.searchParams.delete('recommendation');
+    url.searchParams.set('plan', 'objective');
+    window.history.pushState(
+      { ...(window.history.state || {}), plan: 'objective', recommendation: id || null },
+      '',
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+    setSection('objective');
+  }, []);
+
+  const go = useCallback((id, options = {}) => {
+    if (!SECTION_IDS.includes(id)) return;
     setSection(id);
-    window.setTimeout(() => {
-      sectionRefs.current[id]?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }, 0);
+    if (typeof window !== 'undefined' && options.history !== false) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('plan', id);
+      window.history.pushState({ ...(window.history.state || {}), plan: id }, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+    queueWorkspaceContinuity(() => {
+      sectionRef.current?.focus({ preventScroll: true });
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      sectionRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+    });
   }, []);
 
   // The two acts step 3 owes the planner, each with one implementation behind
@@ -96,13 +164,28 @@ export function PlanWeek({
     if (surface.adoptLeg(leg)) go('objective');
   }, [surface, go]);
 
-  // Step two's act, with one implementation behind its three doors: the state
-  // row's control, the palette's run row and the R key all call this, so no
-  // control can carry a run's words while doing something else.
-  const runNow = useCallback(() => {
-    go('run');
-    surface.runPlan();
-  }, [go, surface]);
+  const optimization = usePlanOptimizationActions({
+    surface, inventory: inventoryReadiness, locale, notify, go, setReview,
+  });
+  const { runNow, compareNow } = optimization;
+
+  const requestPublish = useCallback((confirmCollapse) => {
+    setReview({ kind: 'publish', confirmCollapse: Boolean(confirmCollapse) });
+  }, []);
+
+  const requestRestore = useCallback((version) => {
+    if (!version) return;
+    setReview({ kind: 'restore', version });
+  }, []);
+
+  const confirmReviewedAction = useCallback(async () => {
+    const action = review;
+    if (!action) return;
+    setReview(null);
+    if (action.kind === 'run') await optimization.confirmRun(action);
+    else if (action.kind === 'publish') await surface.publish(action.confirmCollapse);
+    else if (action.kind === 'restore') await surface.restore(action.version);
+  }, [review, surface, optimization]);
 
   const openBoardDay = useCallback((date) => {
     if (!date) return;
@@ -110,13 +193,6 @@ export function PlanWeek({
     setBoardView('day');
     go('board');
   }, [go]);
-
-  const clearBoardDay = useCallback(() => {
-    setBoardDate(null);
-    setBoardView('grid');
-  }, []);
-
-  const day = useBoardDay(boardDate);
 
   const commands = useMemo(
     () => planCommands({
@@ -127,9 +203,13 @@ export function PlanWeek({
       setBoardView,
       adoptLeg,
       runNow,
+      compareNow,
+      optimizationAllowed: optimization.optimizationAllowed,
+      optimizationBlockedReason: optimization.blockedReason,
+      requestPublish,
       openPalette: () => setPaletteOpen(true),
     }),
-    [go, words, surface, boardView, adoptLeg, runNow],
+    [go, words, surface, boardView, adoptLeg, runNow, compareNow, optimization, requestPublish],
   );
 
   usePlanKeyboard({ commands, enabled: !paletteOpen });
@@ -150,6 +230,8 @@ export function PlanWeek({
         runState={surface.runState}
         elapsed={surface.elapsed}
         onRun={runNow}
+        runDisabled={!optimization.optimizationAllowed}
+        runDisabledReason={optimization.blockedReason}
         versionCount={surface.versions.length}
         liveFrozenAs={surface.live?.frozen_as || null}
         scopeText={scopeText}
@@ -157,24 +239,63 @@ export function PlanWeek({
       />
 
       <GoalStrip progress={surface.progress} locale={locale} words={words} onGo={go} />
+      <PlanActionSafety
+        settingsState={surface.settingsState}
+        settingsError={surface.settingsError}
+        inventory={inventoryReadiness}
+        locale={locale}
+        onRetrySettings={surface.retrySettings}
+        onRetryInventory={inventoryReadiness.retry}
+        onOpenSources={onOpenSources}
+      />
 
       <div className="plan-sections">
-        <div ref={(node) => { sectionRefs.current.objective = node; }} hidden={section !== 'objective'}>
-          <ObjectivePanel
-            draft={surface.draft}
-            saved={surface.saved}
-            dirty={surface.dirty}
-            saveState={surface.saveState}
-            adopted={surface.adopted}
-            locale={locale}
-            onChange={surface.changeDraft}
-            onApplyTemplate={surface.applyTemplate}
-            onSave={surface.saveObjective}
-            onRevert={surface.revertDraft}
-          />
-        </div>
+        <div
+          ref={sectionRef}
+          id={`plan-section-${section}`}
+          className="plan-active-section"
+          role="region"
+          aria-labelledby={`plan-step-${section}`}
+          tabIndex={-1}
+        >
+        {section === 'objective' && (
+          <>
+            <PlanSettingsGate
+              state={surface.settingsState}
+              error={surface.settingsError}
+              locale={locale}
+              onRetry={surface.retrySettings}
+            >
+              <ObjectivePanel
+                draft={surface.draft}
+                saved={surface.saved}
+                dirty={surface.dirty}
+                saveState={surface.saveState}
+                adopted={surface.adopted}
+                locale={locale}
+                onChange={surface.changeDraft}
+                onApplyTemplate={surface.applyTemplate}
+                onSave={surface.saveObjective}
+                onRevert={surface.revertDraft}
+              />
+            </PlanSettingsGate>
+            <RecommendationDecisionPanel
+              recommendations={recommendations}
+              selectedId={selectedRecommendationId}
+              approved={approvedRecommendations}
+              rejected={rejectedRecommendations}
+              locale={locale}
+              notify={notify}
+              onSelect={selectRecommendation}
+              onApprove={onApproveRecommendation}
+              onReject={onRejectRecommendation}
+              onApplySimilar={onApplySimilarRecommendations}
+              onOpenInOverrides={onOpenRecommendationInOverrides}
+            />
+          </>
+        )}
 
-        <div ref={(node) => { sectionRefs.current.run = node; }} hidden={section !== 'run'}>
+        {section === 'run' && (
           <RunPanel
             locale={locale}
             words={words}
@@ -186,31 +307,37 @@ export function PlanWeek({
             runError={surface.runError}
             elapsed={surface.elapsed}
             planScope={scopeText}
-            onRun={surface.runPlan}
+            onRun={runNow}
+            actionDisabled={!optimization.optimizationAllowed}
+            actionDisabledReason={optimization.blockedReason}
           />
-        </div>
+        )}
 
-        <div ref={(node) => { sectionRefs.current.compare = node; }} hidden={section !== 'compare'}>
-          <ComparePanel
-            locale={locale}
-            words={words}
-            legA={surface.legA}
-            legB={surface.legB}
-            state={surface.compareState}
-            payload={surface.comparePayload}
-            error={surface.compareError}
-            runWindow={surface.compareWindow}
-            liveDays={surface.compareDays}
-            prepared={surface.comparePrepared}
-            onLegChange={surface.changeLeg}
-            onCompare={surface.compare}
-            onCancel={surface.cancelCompare}
-            onAdopt={adoptLeg}
-            onOpenDay={openBoardDay}
-          />
-        </div>
+        {section === 'compare' && (
+          <PlanSettingsGate state={surface.settingsState} error={surface.settingsError} locale={locale} onRetry={surface.retrySettings}>
+            <ComparePanel
+              locale={locale}
+              words={words}
+              legA={surface.legA}
+              legB={surface.legB}
+              state={surface.compareState}
+              payload={surface.comparePayload}
+              error={surface.compareError}
+              runWindow={surface.compareWindow}
+              liveDays={surface.compareDays}
+              prepared={surface.comparePrepared}
+              actionDisabled={!optimization.optimizationAllowed}
+              actionDisabledReason={optimization.blockedReason}
+              onLegChange={surface.changeLeg}
+              onCompare={compareNow}
+              onCancel={surface.cancelCompare}
+              onAdopt={adoptLeg}
+              onOpenDay={openBoardDay}
+            />
+          </PlanSettingsGate>
+        )}
 
-        <div ref={(node) => { sectionRefs.current.publish = node; }} hidden={section !== 'publish'}>
+        {section === 'publish' && (
           <PublishPanel
             locale={locale}
             words={words}
@@ -226,46 +353,67 @@ export function PlanWeek({
             diff={surface.diff}
             onNameChange={surface.setVersionName}
             onNoteChange={surface.setVersionNote}
-            onPublish={surface.publish}
+            onPublish={requestPublish}
             onSelect={surface.setSelectedVersion}
             onDiff={surface.loadDiff}
-            onRestore={surface.restore}
+            onRestore={requestRestore}
           />
-        </div>
+        )}
 
-        <div ref={(node) => { sectionRefs.current.supply = node; }} hidden={section !== 'supply'}>
-          <SupplyPanel
-            inventory={inventory}
-            locale={locale}
-            words={words}
-            yieldPerSecond={surface.yieldPerSecond}
-            planScope={surface.progress?.scope}
-          />
-        </div>
+        {section === 'supply' && (
+          <PlanSectionDataGate resource="inventory" state={inventorySection.state} error={inventorySection.error} locale={locale} onRetry={inventorySection.retry}>
+            <SupplyPanel
+              inventory={inventory}
+              locale={locale}
+              words={words}
+              yieldPerSecond={surface.yieldPerSecond}
+              planScope={surface.progress?.scope}
+            />
+          </PlanSectionDataGate>
+        )}
 
-        <div ref={(node) => { sectionRefs.current.board = node; }} hidden={section !== 'board'}>
-          <BoardPanel
-            schedule={schedule}
-            copy={copy}
-            locale={locale}
-            notify={notify}
-            planEvents={planEvents}
-            dayEvents={dayEvents}
-            onGlobalRefresh={onGlobalRefresh}
-            onRun={surface.runPlan}
-            runState={surface.runState}
-            selectedProgramKey={selectedProgramKey}
-            onSelectProgram={(program) => setSelectedProgramKey(program?.key || null)}
-            view={boardView}
-            onViewChange={setBoardView}
-            gridAxis={gridAxis}
-            onGridAxisChange={setGridAxis}
-            focusDate={boardDate}
-            dayPayload={day.payload}
-            dayState={day.state}
-            dayError={day.error}
-            onClearFocus={clearBoardDay}
-          />
+        {section === 'board' && (
+          <PlanSectionDataGate resource="schedule" state={scheduleSection.state} error={scheduleSection.error} locale={locale} onRetry={scheduleSection.retry}>
+            <BoardPanel
+              schedule={schedule}
+              copy={copy}
+              locale={locale}
+              notify={notify}
+              planEvents={planEvents}
+              dayEvents={dayEvents}
+              onGlobalRefresh={onGlobalRefresh}
+              onRun={runNow}
+              runState={surface.runState}
+              runDisabled={!optimization.optimizationAllowed}
+              runDisabledReason={optimization.blockedReason}
+              selectedProgramKey={selectedProgramKey}
+              onSelectProgram={(program) => setSelectedProgramKey(program?.key || null)}
+              view={boardView}
+              onViewChange={setBoardView}
+              gridAxis={gridAxis}
+              onGridAxisChange={setGridAxis}
+              focusDate={boardDate}
+              onFocusDateChange={setBoardDate}
+              versions={surface.versions}
+              live={surface.live}
+              freshness={surface.freshness}
+              canEdit={surface.canPublish}
+              canEditReason={surface.canPublishReason}
+              versionName={surface.versionName}
+              versionNote={surface.versionNote}
+              publishState={surface.publishState}
+              publishError={surface.publishError}
+              selectedVersion={surface.selectedVersion}
+              diff={surface.diff}
+              onVersionName={surface.setVersionName}
+              onVersionNote={surface.setVersionNote}
+              onPublish={requestPublish}
+              onVersionDiff={surface.loadDiff}
+              onRestore={requestRestore}
+              onOpenHistory={() => go('publish')}
+            />
+          </PlanSectionDataGate>
+        )}
         </div>
       </div>
 
@@ -281,6 +429,17 @@ export function PlanWeek({
         commands={commands}
         locale={locale}
         onClose={() => setPaletteOpen(false)}
+      />
+
+      <PlanConsequenceDialog
+        review={review}
+        locale={locale}
+        scopeText={scopeText}
+        dirty={surface.dirty}
+        versionName={surface.versionName}
+        runAllowed={optimization.optimizationAllowed}
+        onCancel={() => setReview(null)}
+        onConfirm={confirmReviewedAction}
       />
     </section>
   );

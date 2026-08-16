@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Button } from '../../studio/actions';
 import { Clock3, TableProperties } from 'lucide-react';
 import { Numeric, formatCurrency, formatMinutes, formatNumber, pageText } from '../../shell/format';
-import { DataTable } from '../../shell/primitives';
 import { daypartLabel as engineDaypartLabel } from '../../shell/surface-helpers';
 import YieldBlock from './YieldBlock';
 
@@ -23,9 +23,24 @@ export function SupplyPanel({ inventory, locale, words, yieldPerSecond, planScop
     ...hours.map((row) => Number((revenueAvailable ? row.revenue : row.seconds) || 0)),
     1,
   );
+  const [selection, setSelection] = useState({ kind: 'daypart', key: dayparts[0]?.daypart || '' });
+
+  useEffect(() => {
+    if (selection.kind === 'daypart' && dayparts.some((row) => row.daypart === selection.key)) return;
+    if (selection.kind === 'hour' && hours.some((row) => String(row.hour_of_day) === String(selection.key))) return;
+    if (dayparts.length) setSelection({ kind: 'daypart', key: dayparts[0].daypart });
+    else if (hours.length) setSelection({ kind: 'hour', key: String(hours[0].hour_of_day) });
+  }, [dayparts, hours, selection]);
+
+  const selectedRow = selection.kind === 'hour'
+    ? hours.find((row) => String(row.hour_of_day) === String(selection.key))
+    : dayparts.find((row) => row.daypart === selection.key);
+  const selectedLabel = selection.kind === 'hour'
+    ? `${String(selectedRow?.hour_of_day ?? 0).padStart(2, '0')}:00`
+    : engineDaypartLabel(selectedRow?.daypart, locale);
 
   return (
-    <section className="plan-section" aria-labelledby="plan-supply-title">
+    <section className="card plan-section" aria-labelledby="plan-supply-title">
       <div className="plan-section-head">
         <div>
           <h2 id="plan-supply-title">{pageText(locale, 'What there is to sell', 'מה יש למכור')}</h2>
@@ -41,7 +56,7 @@ export function SupplyPanel({ inventory, locale, words, yieldPerSecond, planScop
 
       <YieldBlock data={yieldPerSecond} locale={locale} words={words} planScope={planScope} />
 
-      <div className="plan-figure-row">
+      <div className="plan-result-ledger plan-supply-summary">
         <div className="plan-figure">
           <span><TableProperties size={13} /> {pageText(locale, 'Spots in supply', 'ספוטים בהיצע')}</span>
           <strong><Numeric>{formatNumber(inventory?.summary?.spots, locale)}</Numeric></strong>
@@ -66,44 +81,58 @@ export function SupplyPanel({ inventory, locale, words, yieldPerSecond, planScop
         </p>
       )}
 
-      <div className="plan-supply-grid">
-        <div className="plan-supply-table">
+      <div className="plan-supply-instrument">
+        <div className="plan-supply-strips">
           <div className="plan-section-subhead">
-            <h3>{pageText(locale, 'Supply by broadcast strip', 'היצע לפי רצועת שידור')}</h3>
+            <h3>{pageText(locale, 'Broadcast strips', 'רצועות שידור')}</h3>
             <span>{formatNumber(dayparts.length, locale)}</span>
           </div>
-          <DataTable
-            locale={locale}
-            fit
-            emptyLabel={pageText(locale, 'No supply rows were found for your channel.', 'לא נמצאו שורות היצע לערוץ שלכם.')}
-            rows={dayparts}
-            columns={[
-              { key: 'daypart', label: pageText(locale, 'Broadcast strip', 'רצועת שידור'), render: (row) => engineDaypartLabel(row.daypart, locale) },
-              { key: 'spots', label: pageText(locale, 'Spots', 'ספוטים'), render: (row) => formatNumber(row.spots, locale) },
-              { key: 'seconds', label: pageText(locale, 'Minutes', 'דקות'), render: (row) => formatMinutes(row.seconds, locale) },
-              { key: 'revenue', label: words.expectedRevenue, render: (row) => formatCurrency(row.revenue, locale) },
-            ]}
-          />
+          <div className="plan-supply-strip-list">
+            {dayparts.map((row) => {
+              const active = selection.kind === 'daypart' && selection.key === row.daypart;
+              return (
+                <Button type="button" variant="text" key={row.daypart} className={active ? 'is-active' : undefined} aria-pressed={active} onClick={() => setSelection({ kind: 'daypart', key: row.daypart })}>
+                  <span>{engineDaypartLabel(row.daypart, locale)}</span>
+                  <strong><Numeric>{formatNumber(row.spots, locale)}</Numeric></strong>
+                  <small>{formatMinutes(row.seconds, locale)}</small>
+                </Button>
+              );
+            })}
+            {dayparts.length === 0 ? <p>{pageText(locale, 'No supply rows were found for your channel.', 'לא נמצאו שורות היצע לערוץ שלכם.')}</p> : null}
+          </div>
         </div>
-        <div className="plan-supply-hours">
+        <div className="plan-supply-spectrum">
           <div className="plan-section-subhead">
-            <h3>{pageText(locale, 'Hourly pressure', 'לחץ שעתי')}</h3>
-            <span>
-              {revenueAvailable
-                ? pageText(locale, 'Booked value', 'ערך מוזמן')
-                : pageText(locale, 'Booked minutes', 'דקות מוזמנות')}
-            </span>
+            <h3>{pageText(locale, 'Booked load by hour', 'עומס מוזמן לפי שעה')}</h3>
+            <span>{revenueAvailable ? pageText(locale, 'Booked value', 'ערך מוזמן') : pageText(locale, 'Booked minutes', 'דקות מוזמנות')}</span>
           </div>
-          <div className="bar-list chart-ltr" dir="ltr">
-            {hours.slice(0, 24).map((row) => (
-              <div className="bar-row" key={row.hour_of_day}>
-                <span>{String(row.hour_of_day).padStart(2, '0')}:00</span>
-                <i style={{ '--bar': Number((revenueAvailable ? row.revenue : row.seconds) || 0) / maxHourValue }} />
-                <strong>{revenueAvailable ? formatCurrency(row.revenue, locale) : formatMinutes(row.seconds, locale)}</strong>
-              </div>
-            ))}
+          <div className="plan-hour-spectrum chart-ltr" dir="ltr">
+            {hours.slice(0, 24).map((row) => {
+              const active = selection.kind === 'hour' && String(selection.key) === String(row.hour_of_day);
+              const ratio = Number((revenueAvailable ? row.revenue : row.seconds) || 0) / maxHourValue;
+              const hourLabel = `${String(row.hour_of_day).padStart(2, '0')}:00`;
+              const valueLabel = revenueAvailable ? formatCurrency(row.revenue, locale) : formatMinutes(row.seconds, locale);
+              return (
+                <Button type="button" variant="text" key={row.hour_of_day} className={active ? 'is-active' : undefined} aria-pressed={active} aria-label={`${hourLabel}, ${valueLabel}`} title={`${hourLabel} · ${valueLabel}`} onClick={() => setSelection({ kind: 'hour', key: String(row.hour_of_day) })}>
+                  <span>{String(row.hour_of_day).padStart(2, '0')}</span>
+                  <i style={{ '--pressure': ratio }} aria-hidden="true" />
+                </Button>
+              );
+            })}
           </div>
         </div>
+        <aside className="plan-supply-inspector" aria-live="polite">
+          <span className="plan-inspector-eyebrow">{selection.kind === 'hour' ? pageText(locale, 'Selected hour', 'שעה נבחרת') : pageText(locale, 'Selected strip', 'רצועה נבחרת')}</span>
+          <h3><bdi>{selectedLabel || '\u2014'}</bdi></h3>
+          {selectedRow ? (
+            <dl>
+              <div><dt>{pageText(locale, 'Spots', 'ספוטים')}</dt><dd><Numeric>{formatNumber(selectedRow.spots, locale)}</Numeric></dd></div>
+              <div><dt>{pageText(locale, 'Booked time', 'זמן מוזמן')}</dt><dd><Numeric>{formatMinutes(selectedRow.seconds, locale)}</Numeric></dd></div>
+              <div><dt>{words.expectedRevenue}</dt><dd><Numeric>{revenueAvailable ? formatCurrency(selectedRow.revenue, locale) : '\u2014'}</Numeric></dd></div>
+            </dl>
+          ) : <p>{pageText(locale, 'Select a strip or hour to inspect it.', 'בחרו רצועה או שעה כדי לבדוק אותה.')}</p>}
+          {!revenueAvailable ? <small>{pageText(locale, 'The source does not expose revenue, so money remains blank.', 'המקור אינו חושף הכנסה, ולכן הכסף נשאר ריק.')}</small> : null}
+        </aside>
       </div>
     </section>
   );

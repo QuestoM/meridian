@@ -409,10 +409,11 @@ def test_the_frozen_shell_still_makes_the_transition_the_bridge_watches() -> Non
     markup = (FRONTEND / "index.html").read_text(encoding="utf-8")
     assert 'id="root"' in markup
 
-    shell = (FRONTEND / "src" / "shell" / "TVBreakDashboard.jsx").read_text(encoding="utf-8")
-    assert "if (authScreen) {" in shell and "return authScreen;" in shell, (
-        "the shell no longer returns the auth screen instead of the workspace"
+    boundary = (FRONTEND / "src" / "shell" / "App.jsx").read_text(encoding="utf-8")
+    assert "if (authScreen) return authScreen;" in boundary, (
+        "the session boundary no longer returns the auth screen instead of the workspace"
     )
+    shell = (FRONTEND / "src" / "shell" / "TVBreakDashboard.jsx").read_text(encoding="utf-8")
     assert "className={`kairos-shell" in shell, "the workspace root is no longer .kairos-shell"
 
     bridge = BRIDGE.read_text(encoding="utf-8")

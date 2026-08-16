@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Plus } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
 import { formatDay, formatDayRange, formatSpan } from '../shell/dates';
 import { useAssistantEntity } from '../shell/assistant-page-context';
+import { Pressable } from '../studio/dom-controls';
 import { eventTypeChipClass, eventTypeLabel, formatEventDate } from './CalendarEventsModel';
 import { EventEditor } from './CalendarEventsList';
 import { WEEKDAY_HEADERS, activeEventsOnDay, addMonths, isoDay, localIsoDate, monthMatrix, monthTitle, packWeekLanes } from './calendar-events-lib';
@@ -138,7 +140,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                 if (day === today) classes.push('today');
                 if (day === selectedDay) classes.push('selected');
                 return (
-                  <button
+                  <Pressable
                     type="button"
                     key={day}
                     className={classes.join(' ')}
@@ -148,23 +150,23 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                     onClick={() => pickDay(day)}
                   >
                     <span className="cal-mg-daynum bidi-figure figure-nowrap">{Number(day.slice(8, 10))}</span>
-                  </button>
+                  </Pressable>
                 );
               })}
               {lanes.map((lane, laneIndex) => lane.map((segment) => (
                 <Tooltip title={barTooltip(segment.event, locale)} arrow key={`${segment.event.event_id || segment.event.name}-${laneIndex}`}>
-                  <button
+                  <Pressable
                     type="button"
                     className={barClass(segment)}
                     style={{ gridColumn: `${segment.startCol} / span ${segment.endCol - segment.startCol + 1}`, gridRow: laneIndex + 2 }}
                     onClick={() => openEvent(segment.event, week[segment.startCol - 1])}
                   >
                     <Name className="cal-mg-bar-label">{segment.event.name}</Name>
-                  </button>
+                  </Pressable>
                 </Tooltip>
               )))}
               {Object.entries(overflow).map(([col, count]) => (
-                <button
+                <Pressable
                   type="button"
                   key={col}
                   className="cal-mg-more"
@@ -172,7 +174,7 @@ function CalendarMonthGrid({ events, locale, busy, canEdit, onSave, focus }) {
                   onClick={() => { setSelectedDay(week[Number(col) - 1]); setEditor(null); }}
                 >
                   {pageText(locale, `+${count} more`, `ועוד ${count}`)}
-                </button>
+                </Pressable>
               ))}
             </div>
           );

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { postJson, requestJson } from './assistant-stream';
 import { unrecordedProposalClaim } from './kai-claimed-action';
 import { isolate } from '../shell/bidi';
-import { writeAddress } from '../history/history-labels.js';
 import { pointAddress } from '../history/history-address.js';
+import { requestNavigation } from '../shell/nav.js';
 
 // State hooks for the assistant console, split out of AssistantPanel.jsx so
 // the panel stays a readable render component. useAssistantBatches owns the
@@ -95,65 +95,10 @@ export function normalizeBatch(raw) {
   };
 }
 
-// Opens the History page addressed at one row rather than at its own newest
-// row: the version id, when there is one, is written as ?entry=version:<id> on
-// the entry that shows the page, so the page reads it on mount. Without a
-// version id (a restore point older than the timeline column, or a caller with
-// none to give) the address is cleared instead of left alone, so the page opens
-// on its own newest rows rather than on whichever row an earlier click, or a
-// shared link, had addressed. Two of the four chips that reach this can hand
-// over nothing: a restore point recorded before the version id was stored
-// carries none, and it was measured doing exactly that.
-//
-// Everything below follows from one measured constraint. The shell routes on
-// hashchange and on nothing else, and a browser fires hashchange on a Back
-// press only when the two entries differ in their fragment ALONE: measured in
-// Chrome, a traversal that also changes the query fires popstate and no
-// hashchange at all. So of these three, any two can hold and never all three.
-//
-//   push a browser-history entry for the destination,
-//   leave the page being left carrying its own address and not this one,
-//   have one Back press put the operator's screen back where the url says.
-//
-// Writing the address before the push buys the third by breaking the second:
-// the ?entry is stamped onto the page being left, one Back press lands there
-// under a url naming a History row that page cannot open, and a link copied
-// from there opens the wrong screen for a colleague. That was measured on the
-// running product. Pushing the whole destination url in one navigation buys the
-// second by breaking the third: the query then differs across the Back press,
-// no hashchange fires, the shell never routes, and the address bar names one
-// page while the screen shows another, which is the same defect one gesture
-// over.
-//
-// So the push is what goes. That is what the rest of the product already does:
-// the shell's own setActiveView replaces the current entry rather than pushing
-// one, so no page switch anywhere in this product costs a Back press. The
-// address is replaced onto the entry the operator is standing on, and the
-// destination is landed on with location.replace, which performs the same
-// navigation as a hash assignment, and fires the same hashchange, without
-// adding an entry. Nothing is stamped, because no other entry is touched, and
-// the Back stack is exactly what it was before the click.
-//
-// One case needs more than the landing. A hash assignment to the value it
-// already holds fires no hashchange, and this control's own first use leaves
-// the operator here, so the second and every later click would leave the hash
-// unmoved while HistoryPage, which reads the address only in its mount-time
-// initialisers, keeps showing whichever row it already had selected: the url
-// names one entry and the screen shows another. A replaceState plus a synthetic
-// hashchange does not remount either, because the view does not change. So when
-// the operator is already here, the hash is bounced off a value the router does
-// not recognise first, one tick apart, so the shell's own listener processes the
-// transition away before the transition back.
+// Route through the shell so the address, selected restore point, Back stack,
+// focus handoff and view transition all move as one navigation.
 export function showRestoreVersion(versionId) {
-  writeAddress(pointAddress(versionId));
-  const base = window.location.pathname + window.location.search;
-  const land = () => { window.location.replace(`${base}#Versions`); };
-  if (decodeURIComponent(window.location.hash.replace(/^#/, '')) === 'Versions') {
-    window.location.replace(`${base}#`);
-    window.setTimeout(land, 0);
-    return;
-  }
-  land();
+  return requestNavigation('History', { entry: pointAddress(versionId) });
 }
 
 export function useAssistantBatches(notify) {
@@ -280,9 +225,10 @@ export function useAssistantThread(conv) {
   const adoptedRef = useRef(null);
 
   // Load the saved conversation so returning to the assistant shows the past
-  // exchanges instead of an empty chat. Each stored entry (question, answer,
-  // time, batch id) becomes a thread row; keeping the stored batch_id is what
-  // lets a proposal card reattach to its exchange after a reload. With no
+  // exchanges instead of an empty chat. New entries also restore the sources,
+  // bounded tool evidence and elapsed time saved with the answer; old records
+  // simply carry none of those optional fields. Keeping the stored batch_id lets
+  // a proposal card reattach to its exchange after a reload. With no
   // active id the server returns the newest conversation and its id is
   // adopted quietly; picking a conversation in the rail reloads here.
   useEffect(() => {
@@ -315,9 +261,11 @@ export function useAssistantThread(conv) {
             // proposal is pending would otherwise print alone on every reload.
             unrecordedClaim: unrecordedProposalClaim({ answer: shown }, batchId),
             error: null,
-            disclosure: '',
-            sources: [],
-            toolTrace: [],
+            disclosure: entry && typeof entry.context_disclosure === 'string' ? entry.context_disclosure : '',
+            sources: asArray(entry && entry.sources),
+            toolTrace: asArray(entry && entry.tool_trace),
+            coverage: entry && entry.coverage && typeof entry.coverage === 'object' ? entry.coverage : null,
+            elapsedSeconds: entry && entry.elapsed_seconds != null && Number.isFinite(Number(entry.elapsed_seconds)) ? Number(entry.elapsed_seconds) : null,
             truncated: false,
             batchId,
           };

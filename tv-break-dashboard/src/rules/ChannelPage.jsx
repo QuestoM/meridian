@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Lock, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { Name } from '../shell/bidi';
+import ConsequenceDialog, { focusAfterDialogClose } from '../safety/ConsequenceDialog';
 import { payloadCanEdit, WALLS } from '../session.js';
 import { formatDay } from '../shell/dates';
+import { Pressable } from '../studio/dom-controls';
 import {
   detailWords,
   fetchActivation,
@@ -34,6 +36,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState('');
+  const channelHeadingRef = React.useRef(null);
 
   const load = useCallback(() => {
     fetchOperatorChannel().then(setChannel).catch((problem) => setError(detailWords(problem, locale)));
@@ -44,7 +47,6 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
 
   async function declareChannel(next) {
     setPending(true);
-    setConfirming('');
     try {
       const body = await setOperatorChannel(next);
       setChannel(body);
@@ -53,10 +55,21 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
         'הערוץ שלכם נקבע. כל נתון מכאן והלאה מחושב עבורו.',
       );
       onGlobalRefresh?.();
+      return true;
     } catch (problem) {
       notify?.(`Setting the channel failed (${detailWords(problem, 'en')}).`, `קביעת הערוץ נכשלה (${detailWords(problem, 'he')}).`);
+      return false;
     } finally {
       setPending(false);
+    }
+  }
+
+  async function confirmChannelDeclaration() {
+    if (!confirming) return;
+    const changed = await declareChannel(confirming);
+    if (changed) {
+      setConfirming('');
+      focusAfterDialogClose(channelHeadingRef);
     }
   }
 
@@ -83,10 +96,10 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
 
   return (
     <div className="rules-section">
-      <section className="rules-card">
+      <section className="card rules-card">
         <div className="rules-card-head">
           <div>
-            <h2>{pageText(locale, 'Your channel', 'הערוץ שלכם')}</h2>
+            <h2 ref={channelHeadingRef} tabIndex={-1}>{pageText(locale, 'Your channel', 'הערוץ שלכם')}</h2>
             <p className="rules-card-lead">
               {pageText(
                 locale,
@@ -104,7 +117,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
           {options.map((option) => {
             const owned = channel?.operator_channel === option;
             return (
-              <button
+              <Pressable
                 key={option}
                 type="button"
                 className={`rules-channel-option${owned ? ' owned' : ''}`}
@@ -113,28 +126,32 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
               >
                 <Name>{option}</Name>
                 {owned && <small>{pageText(locale, 'Yours', 'שלכם')}</small>}
-              </button>
+              </Pressable>
             );
           })}
         </div>
 
-        {confirming && (
-          <div className="rules-confirm-block" role="alertdialog">
-            <p>
-              {pageText(
-                locale,
-                `Declare ${confirming} as the channel this operator owns? Every scoped figure in the product changes to it.`,
-                `להצהיר ש-${confirming} הוא הערוץ שבבעלות המפעיל? כל נתון מכאן והלאה יחושב עבורו.`,
-              )}
-            </p>
-            <Button className="run-button" type="button" variant="contained" onClick={() => declareChannel(confirming)}>
-              {pageText(locale, 'Declare it', 'הצהרה')}
-            </Button>
-            <Button className="secondary-button" type="button" variant="outlined" onClick={() => setConfirming('')}>
-              {pageText(locale, 'Cancel', 'ביטול')}
-            </Button>
-          </div>
-        )}
+        <ConsequenceDialog
+          open={Boolean(confirming)}
+          locale={locale}
+          title={pageText(locale, 'Change the owned-channel boundary?', 'לשנות את גבול הערוץ שבבעלותכם?')}
+          description={pageText(locale, 'This declaration changes the data boundary used throughout the product.', 'ההצהרה הזו משנה את גבול הנתונים שבו המוצר כולו משתמש.')}
+          object={confirming ? (
+            <span className="consequence-review__object">
+              {pageText(locale, 'Owned channel: ', 'ערוץ בבעלות: ')}
+              {channel?.operator_channel ? <Name>{channel.operator_channel}</Name> : pageText(locale, 'not declared', 'לא הוצהר')}
+              {' → '}<Name>{confirming}</Name>
+            </span>
+          ) : ''}
+          scope={pageText(locale, 'Every operator-scoped restriction, inventory figure, forecast, pricing readout and model view across this product. No source rows are deleted.', 'כל הגבלה, נתון מלאי, תחזית, תצוגת תמחור ותצוגת מודל שמסוננים לערוץ המפעיל במוצר. שורות מקור אינן נמחקות.')}
+          consequence={pageText(locale, 'The current channel stops being treated as owned and the selected channel becomes the owned boundary immediately. The saved plan becomes out of date and needs a new run.', 'הערוץ הנוכחי יפסיק להיחשב בבעלות והערוץ שנבחר יהפוך מיד לגבול שבבעלותכם. התוכנית השמורה תהפוך ללא עדכנית ותדרוש הרצה חדשה.')}
+          recovery={pageText(locale, 'A pre-change settings snapshot is kept on the Restore changes page.', 'תמונת מצב של ההגדרות מלפני השינוי נשמרת בעמוד שחזור שינויים.')}
+          confirmLabel={pageText(locale, 'Change owned channel', 'שינוי הערוץ שבבעלות')}
+          workingLabel={pageText(locale, 'Changing owned channel', 'משנה את הערוץ שבבעלות')}
+          busy={pending}
+          onCancel={() => setConfirming('')}
+          onConfirm={confirmChannelDeclaration}
+        />
 
         {!channelGate.canEdit && (
           <p className="rules-locked">
@@ -158,7 +175,7 @@ export default function ChannelPage({ locale, session, notify, onGlobalRefresh }
       </section>
 
       {activation && (
-        <section className="rules-card">
+        <section className="card rules-card">
           <div className="rules-card-head">
             <div>
               <h2>{pageText(locale, 'The audience model', 'מודל הקהל')}</h2>

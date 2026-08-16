@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
+import { FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
+import { Button } from '../studio/actions';
 import { AlertTriangle, BookOpen, Save, SlidersHorizontal, X } from 'lucide-react';
 import DateField from '../shell/DateField';
 import { finiteNumber, pageText, stableSettingsKey } from '../shell/format';
 import { NumberControl, ToggleControl } from './SettingsControls';
 import { renderObjectivePanel } from './settings-objective';
 import { renderPacingPanel } from './settings-pacing';
-import ActivityLogPanel from '../history/ActivityLogPanel';
 
 // The planning levers, carried across from the settings page unchanged so that
 // nothing an operator could set yesterday is unreachable today. Three things
@@ -45,14 +45,7 @@ export default function PlanningLevers({
     { key: 'conservative', label: he ? 'זהיר באי-ודאות' : 'Conservative', desc: he ? 'מדווח לפי עלות השימור הסבירה הגרועה ביותר' : 'Reports at the worst plausible retention cost', values: { revenue_weight: 60, risk_lambda: 1, min_retention_floor: 0.74 } },
   ];
   const revenueWeight = Number.isFinite(finiteNumber(draft.revenue_weight)) ? finiteNumber(draft.revenue_weight) : 60;
-  const recomputeText =
-    recomputeState === 'running'
-      ? (he ? 'מריץ...' : 'Running...')
-      : recomputeState === 'done'
-        ? (he ? 'הלוח עודכן' : 'Plan updated')
-        : recomputeState === 'error'
-          ? (he ? 'ההרצה נכשלה' : 'The run failed')
-          : (he ? 'הרצת הלוח השבועי' : 'Run the weekly plan');
+  const recomputeText = he ? 'בדיקת ההרצה השבועית' : 'Review weekly run';
 
   const protectedTypes = (draft.protected_program_types || []).join(', ');
 
@@ -103,7 +96,7 @@ export default function PlanningLevers({
           onRecompute,
         })}
 
-        <section className="settings-panel wide">
+        <section className="card settings-panel wide">
           <div className="settings-panel-head">
             <div>
               <h2>{copy.profile}</h2>
@@ -144,7 +137,7 @@ export default function PlanningLevers({
           </div>
         </section>
 
-        <section className="settings-panel">
+        <section className="card settings-panel">
           <div className="settings-panel-head">
             <div>
               <h2>{pageText(locale, 'Commercial planning controls', 'בקרות תכנון מסחריות')}</h2>
@@ -170,7 +163,7 @@ export default function PlanningLevers({
           </div>
         </section>
 
-        <section className="settings-panel">
+        <section className="card settings-panel">
           <div className="settings-panel-head">
             <div>
               <h2>{pageText(locale, 'Protected content', 'תוכן מוגן')}</h2>
@@ -195,7 +188,7 @@ export default function PlanningLevers({
           </div>
         </section>
 
-        <section className="settings-panel wide">
+        <section className="card settings-panel wide">
           <div className="settings-panel-head">
             <div>
               <h2>{pageText(locale, 'Commercial policy', 'מדיניות מסחרית')}</h2>
@@ -212,10 +205,9 @@ export default function PlanningLevers({
 
         {renderPacingPanel({ he, draft, updateField, updateNumber, hasCampaignFlights })}
 
-        <ActivityLogPanel locale={locale} />
       </div>
 
-      <div className={`settings-savebar tone-${stickyStatus.tone}`}>
+      <div className={`card settings-savebar tone-${stickyStatus.tone}`}>
         <span className="settings-savebar-status" aria-live="polite">
           <span className="settings-savebar-dot" aria-hidden="true" />
           {stickyStatus.text}

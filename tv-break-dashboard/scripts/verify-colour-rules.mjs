@@ -12,7 +12,7 @@
 // malformed flag, matched nothing, and printed 0. A measurement whose failure
 // mode is a comfortable answer is not a measurement.
 //
-// The real count is 67, across eight stylesheets, most of them in the model
+// The original count was 67, across eight stylesheets, most of them in the model
 // console. So this is a RATCHET at the measured value rather than a clean-tree
 // zero: it can only go down, and dropping BELOW the budget fails too, so the
 // number here has to follow the tree down and cannot hide a regression in slack.
@@ -34,9 +34,10 @@ const TOKEN_SOURCE = 'src/tokens.css';
 // breach of it.
 const LITERAL_COLOUR = /(#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|color-mix)\s*\()/g;
 
-// Measured 2026-08-09, by this guard rather than by the grep that got it wrong.
-// Same shape as the accent and native-control budgets beside it.
-const BUDGET = 67;
+// Re-measured after the Studio Ledger token migration on 2026-08-15. Literal
+// colours now live only in this token source, so there is no compatibility
+// allowance to grow back.
+const BUDGET = 0;
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {

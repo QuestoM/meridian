@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
+import { Button } from '../studio/actions';
 import { finiteNumber, formatCurrency, pageText } from '../shell/format';
 import { windowLabel } from './TodayMoney';
 
@@ -49,7 +50,7 @@ export function TargetForm({ today, locale, onSave, onCancel, saveState }) {
           onChange={(event) => setAmount(event.target.value)}
           size="small"
           type="number"
-          inputProps={{ min: 0, step: 1000, dir: 'ltr' }}
+          slotProps={{ htmlInput: { min: 0, step: 1000, dir: 'ltr' } }}
           autoFocus
           error={amount !== '' && !amountValid}
           helperText={amountValid ? formatCurrency(amountValue, locale) : pageText(locale, 'A positive number of shekels', 'מספר חיובי של שקלים')}
@@ -60,7 +61,7 @@ export function TargetForm({ today, locale, onSave, onCancel, saveState }) {
           onChange={(event) => setBand(event.target.value)}
           size="small"
           type="number"
-          inputProps={{ min: 0, max: 100, step: 0.5, dir: 'ltr' }}
+          slotProps={{ htmlInput: { min: 0, max: 100, step: 0.5, dir: 'ltr' } }}
           error={band !== '' && !bandValid}
           helperText={pageText(locale, 'Below the target by more than this reads as behind', 'מתחת ליעד ביותר מזה נקרא פיגור')}
         />

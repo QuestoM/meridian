@@ -25,10 +25,7 @@
 }
 
 .oc-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
   padding: var(--card-inset);
-  background: var(--surface);
 }
 
 .oc-card h3 { margin: 0 0 4px; font-size: var(--text-md); }
@@ -101,7 +98,7 @@
 .oc-chip.active { background: var(--teal-soft); color: var(--teal-ink); }
 .oc-chip.staleflag { background: var(--amber-soft); color: var(--amber-ink); }
 .oc-chip.dismissed { background: var(--surface-muted); color: var(--muted); }
-.oc-chip.rec { background: rgba(49, 93, 140, 0.12); color: var(--blue); }
+.oc-chip.rec { background: var(--info-soft, var(--blue-soft)); color: var(--info, var(--blue)); }
 
 .oc-empty {
   display: flex;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, MenuItem, Select, TextField, Tooltip } from '@mui/material';
+import { MenuItem, Select, TextField, Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { pageText } from './format';
 import {
   MIN_PASSWORD_LENGTH,
@@ -12,6 +13,8 @@ import {
   setAccountAffiliation,
 } from './Login';
 import { Code, DirectionRoot } from './bidi';
+import { InputControl } from './dom-controls';
+import { Dialog } from '../studio/modal';
 
 // Admin-only account management over /api/auth/users*: list, create, delete
 // and reset passwords. Every failure surfaces honestly; nothing is optimistic.
@@ -147,18 +150,19 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
   }
 
   return (
-    <DirectionRoot locale={locale} className="auth-overlay" role="dialog" aria-modal="true">
-      <div className="auth-dialog auth-dialog-wide">
-        <Button type="button" variant="text" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
-          ×
-        </Button>
-        <h2>{t('Manage accounts', 'ניהול חשבונות')}</h2>
-        <p className="auth-hint">
-          {t(
-            'Each teammate signs in with a personal account; the role decides what the account can change.',
-            'לכל אחד ואחת בצוות חשבון אישי; התפקיד קובע אילו פעולות פתוחות בחשבון.',
-          )}
-        </p>
+    <DirectionRoot locale={locale}>
+      <Dialog
+        open
+        size="wide"
+        className="auth-user-dialog"
+        title={t('Manage accounts', 'ניהול חשבונות')}
+        description={t(
+          'Each teammate signs in with a personal account; the role decides what the account can change.',
+          'לכל אחד ואחת בצוות חשבון אישי; התפקיד קובע אילו פעולות פתוחות בחשבון.',
+        )}
+        closeLabel={t('Close', 'סגירה')}
+        onClose={onClose}
+      >
         {loadState === 'loading' && <p className="auth-empty">{t('Loading accounts...', 'רק רגע...')}</p>}
         {loadState === 'error' && (
           <div>
@@ -259,13 +263,9 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                       <tr className="auth-reset-row">
                         <td colSpan={5}>
                           <div className="auth-inline-form">
-                            {/* Native on purpose: a password field needs the browser's
-                                own credential-manager hooks (autofill, generated-password
-                                offers), and scripts/verify-direction-rules.mjs (frozen,
-                                outside this file's owned scope) budgets this file at
-                                exactly three literal dir attributes across the three
-                                password/username fields below. */}
-                            <input
+                            {/* InputControl preserves the browser's password-manager
+                                hooks while keeping the native boundary in one primitive. */}
+                            <InputControl
                               type="password"
                               dir="ltr"
                               autoComplete="new-password"
@@ -307,11 +307,10 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
           <form onSubmit={submitCreate}>
             <h3>{t('New account', 'חשבון חדש')}</h3>
             <div className="auth-create-grid">
-              {/* Native on purpose, same reason as the reset field above: the dir
-                  attribute budget in scripts/verify-direction-rules.mjs. */}
+              {/* The canonical low-level control preserves the explicit LTR value. */}
               <label className="auth-field">
                 <span>{t('Username', 'שם משתמש')}</span>
-                <input
+                <InputControl
                   dir="ltr"
                   autoComplete="off"
                   value={form.username}
@@ -342,10 +341,10 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
                   <MenuItem value="channel">{affiliationLabel('channel', locale)}</MenuItem>
                 </Select>
               </div>
-              {/* Native on purpose, same reason as the reset field above. */}
+              {/* Password-manager semantics stay native through InputControl. */}
               <label className="auth-field">
                 <span>{t('Temporary password', 'סיסמה זמנית')}</span>
-                <input
+                <InputControl
                   type="password"
                   dir="ltr"
                   autoComplete="new-password"
@@ -383,7 +382,7 @@ export function UserAdminDialog({ locale, selfUsername, notify, onClose }) {
             </div>
           </form>
         )}
-      </div>
+      </Dialog>
     </DirectionRoot>
   );
 }

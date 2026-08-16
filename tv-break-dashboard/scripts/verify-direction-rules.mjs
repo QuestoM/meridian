@@ -121,20 +121,12 @@ const EXCEPTIONS = [
   // .toast centres itself with left: 50% and translateX(-50%). This pair is
   // direction-neutral by construction: inset-inline-start would flip in Hebrew
   // and the translate would then push the toast off centre. Physical is correct.
-  { file: 'src/shell/styles.css', rule: 'css-physical-offset', count: 1 },
-  // Three direction statements survive in styles.css.
-  //
-  // .chart-ltr is the charting contract: an axis runs low to high left to right
-  // in both locales, so a chart frame is a direction root of its own.
-  //
-  // NOT RESOLVED, and left alone rather than guessed at:
-  // .brand-lockup inside the narrow-screen media query forces the logo lockup
-  // left-to-right. Whether the mark belongs on the left in a Hebrew shell is a
-  // branding decision, not a mechanics one, and it needs the owner.
-  // .schedule-printable inside @media print restates rtl for the print region.
-  // It reads as redundant, since the selector is already under .kairos-shell.rtl
-  // which inherits, but print rendering was not verified here so it stands.
-  { file: 'src/shell/styles.css', rule: 'css-direction', count: 3 },
+  { file: 'src/shell/styles-settings.css', rule: 'css-physical-offset', count: 1 },
+  // .chart-ltr is the one direction statement left in the reachable shared
+  // styles: a chart axis runs low to high left to right in both locales. The
+  // narrow-screen brand override and redundant print-region direction were
+  // removed with their unreachable variants during the desktop-only split.
+  { file: 'src/shell/styles.css', rule: 'css-direction', count: 1 },
 
   // .day-hours is a bar chart: each bar is an hour of the broadcast day laid out
   // left-to-right from midnight regardless of locale. The direction is content
@@ -215,7 +207,6 @@ const EXCEPTIONS = [
   // bar extending rightward. Flipping the container would reverse the bar axis
   // so a larger bar extended leftward, which is the wrong reading direction for
   // a magnitude scale.
-  { file: 'src/today/YieldView.jsx', rule: 'jsx-dir', count: 1 },
   // <textarea> in the composer. The operator types bilingual questions; dir on a
   // textarea controls per-character cursor insertion order, which is content
   // semantics, not alignment. The bidi primitive renders a <span> and cannot be

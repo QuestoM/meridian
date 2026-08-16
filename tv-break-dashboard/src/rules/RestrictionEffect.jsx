@@ -64,7 +64,7 @@ function Figure({ locale, label, before, after, delta, scope, basis, startingPoi
   const from = money(before, locale);
   const to = money(after, locale);
   return (
-    <div className="rules-figure">
+    <div className="card rules-figure">
       <span className="rules-figure-label">{label}</span>
       <strong className={`rules-figure-delta${negative ? ' negative' : ' positive'}`}>
         <BidiFigure>{isolate(money(delta, locale))}</BidiFigure>
@@ -196,7 +196,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
             )}
           />
         ) : (
-          <div className="rules-figure rules-figure-empty">
+          <div className="card rules-figure rules-figure-empty">
             <span className="rules-figure-label">{pageText(locale, 'The breaks this removes were carrying', 'הברייקים שיוסרו נשאו')}</span>
             <span className="rules-figure-reason">{reasonOf(scored)}</span>
           </div>
@@ -222,7 +222,7 @@ export default function RestrictionEffect({ locale, preview, previewing, error, 
             )}
           />
         ) : (
-          <div className="rules-figure rules-figure-empty">
+          <div className="card rules-figure rules-figure-empty">
             <span className="rules-figure-label">{pageText(locale, 'The plan after it is run with this rule', 'התוכנית אחרי הרצה עם הכלל הזה')}</span>
             <span className="rules-figure-reason">{reasonOf(exact)}</span>
           </div>

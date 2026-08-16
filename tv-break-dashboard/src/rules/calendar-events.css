@@ -1,15 +1,4 @@
-/* Calendar events tab. Reuses the shared page-workspace / page-panel shell from
-   styles.css; everything here is specific to the operator events list (search,
-   filter chips, compact expandable rows, pagination), the bundled holidays
-   accordions, the model-context disclosure and the overlap view, plus the
-   display-only event badges on the plan surfaces. The month grid, the upcoming
-   strip, the view toggle and the shared .cal-panel-body inset live in
-   calendar-month-grid.css. Spacing sits on the --space-* scale; the only
-   off-scale values are the 16px page rhythm shared with page-workspace and the
-   22px detail indent that aligns text under a 14px caret plus its 8px gap.
-   Shared patterns (muted small text, wrapping flex rows, reset buttons) are
-   grouped selectors on purpose: keep them merged rather than re-duplicating
-   per class. */
+/* Events list, inline editor, holiday accordions and model evidence. */
 
 .cal-grid {
   display: grid;
@@ -78,7 +67,6 @@
 .cal-event-actions,
 .cal-editor-actions,
 .cal-show-more,
-.cal-confirm,
 .cal-weekday-table,
 .cal-overlap-head,
 .cal-overlap-dates,
@@ -126,7 +114,7 @@
 .cal-event-row.inactive .cal-event-name,
 .cal-event-row.inactive .cal-event-facts,
 .cal-event-row.inactive .cal-event-dates {
-  color: #8a94a3;
+  color: var(--ink-subtle);
 }
 
 /* Reset-button treatment shared by the row head and the year accordion toggle.
@@ -196,7 +184,7 @@
 }
 
 .cal-row-highlight {
-  background: #eef7f5;
+  background: var(--positive-wash);
   border-radius: var(--radius-sm);
 }
 
@@ -204,11 +192,6 @@
   gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--line);
-}
-
-.cal-confirm {
-  font-size: var(--text-sm);
-  color: var(--ink);
 }
 
 .cal-open-ended.war {
@@ -234,28 +217,28 @@
 }
 
 .cal-type-chip.holiday {
-  border-color: #bfd9d4;
-  background: #eef7f5;
+  border-color: var(--positive-line);
+  background: var(--positive-wash);
   color: var(--teal);
 }
 
 .cal-type-chip.war,
 .cal-chip.warn {
-  border-color: #e5c9a6;
-  background: #fbf3e7;
+  border-color: var(--warning-line);
+  background: var(--warning-wash);
   color: var(--amber);
 }
 
 .cal-type-chip.special {
-  border-color: #c6d4ea;
-  background: #eef3fb;
-  color: #2a4d80;
+  border-color: var(--info-line);
+  background: var(--info-wash);
+  color: var(--info-strong);
 }
 
 .cal-type-chip.sport {
-  border-color: #d3cbe8;
-  background: #f2effb;
-  color: #5b4a9e;
+  border-color: var(--sport-line);
+  background: var(--sport-soft);
+  color: var(--sport);
 }
 
 .cal-chip.off {
@@ -279,17 +262,33 @@
 .cal-editor-field {
   display: grid;
   gap: var(--space-1);
+  min-inline-size: 0;
 }
 
-.cal-editor-field select,
-.cal-editor-field input {
-  min-height: 34px;
+.cal-editor-field > label,
+.cal-editor-field > .cal-label-hint {
+  display: flex;
+  align-items: flex-end;
+  min-block-size: 36px;
+  color: var(--ink-muted);
+}
+
+.cal-editor-field :is(select, input, .MuiInputBase-root) {
+  inline-size: 100%;
+  min-block-size: var(--control-height);
+}
+
+.cal-editor-field > :is(select, input) {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
   font-size: var(--text-sm);
   color: var(--ink);
   padding: 0 var(--space-2);
+}
+
+.cal-editor-field .MuiFormHelperText-root {
+  margin-inline: 0;
 }
 
 .cal-label-hint,

@@ -4,6 +4,7 @@ import { Numeric } from '../../shell/format';
 import { recordDecision } from './console-api';
 import { Absent, Money, Panel, RecordDrill } from './console-bits';
 import { pick, t } from './console-words';
+import { InputControl, Pressable, TextAreaControl } from '../../studio/dom-controls';
 
 // The decision surface. A verdict is a record with four required parts: the
 // version it is about, whether it ships, why, and, when it ships, the release
@@ -52,7 +53,7 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
       </div>
       <div className="mc-decision-choice">
         <label>
-          <input
+          <InputControl
             type="radio"
             name="mc-decision"
             checked={decision === 'shipped'}
@@ -61,7 +62,7 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
           {t('versions.ship', locale)}
         </label>
         <label>
-          <input
+          <InputControl
             type="radio"
             name="mc-decision"
             checked={decision === 'not_shipped'}
@@ -72,14 +73,14 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
       </div>
       <label className="mc-field">
         <span>{t('versions.reason', locale)}</span>
-        <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={2} required />
+        <TextAreaControl value={reason} onChange={(event) => setReason(event.target.value)} rows={2} required />
       </label>
       {decision === 'shipped' ? (
         <>
           <label className="mc-field">
             <span>{t('versions.note', locale)}</span>
             <small>{t('versions.note_rule', locale)}</small>
-            <textarea value={noteHe} onChange={(event) => setNoteHe(event.target.value)} rows={2} required />
+            <TextAreaControl value={noteHe} onChange={(event) => setNoteHe(event.target.value)} rows={2} required />
           </label>
           <label className="mc-field">
             <Name>English</Name>
@@ -90,18 +91,18 @@ export function DecisionForm({ subject, candidateId, locale, onDone, onCancel })
               there is no element to wrap around a field's own value. The note in
               this field is English by definition, so the insertion order is too.
             */}
-            <textarea value={noteEn} onChange={(event) => setNoteEn(event.target.value)} rows={2} dir="ltr" />
+            <TextAreaControl value={noteEn} onChange={(event) => setNoteEn(event.target.value)} rows={2} dir="ltr" />
           </label>
         </>
       ) : null}
       {error ? <p className="mc-error">{error}</p> : null}
       <div className="mc-decision-actions">
-        <button type="submit" className="mc-button mc-primary" disabled={busy}>
+        <Pressable type="submit" className="mc-button mc-primary" disabled={busy}>
           {t('versions.record', locale)}
-        </button>
-        <button type="button" className="mc-button" onClick={onCancel}>
+        </Pressable>
+        <Pressable type="button" className="mc-button" onClick={onCancel}>
           {t('versions.cancel', locale)}
-        </button>
+        </Pressable>
       </div>
     </form>
   );
@@ -159,9 +160,9 @@ export default function VersionsPanel({ payload, locale, onRefresh, openForm, on
         title={t('versions.title', locale)}
         sub={<Code>{payload.store_dir}</Code>}
         right={(
-          <button type="button" className="mc-button mc-primary" onClick={() => setFormOpen(true)}>
+          <Pressable type="button" className="mc-button mc-primary" onClick={() => setFormOpen(true)}>
             {t('candidates.decide', locale)}
-          </button>
+          </Pressable>
         )}
       >
         {formOpen ? (

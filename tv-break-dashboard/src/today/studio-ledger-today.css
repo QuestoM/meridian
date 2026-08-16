@@ -1,0 +1,428 @@
+/* Today as a broadcast master-control instrument. */
+
+.today-workspace {
+  gap: var(--space-3);
+  padding-block: var(--space-4) var(--space-10);
+}
+
+.today-control-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.today-answer,
+.today-answer.page-panel {
+  padding: 0;
+}
+
+.today-answer-head,
+.today-answer .panel-head {
+  block-size: 42px;
+  min-block-size: 42px;
+  padding-block: 0;
+}
+
+.today-answer-head {
+  padding-inline: var(--card-inset);
+}
+
+.today-answer-head h2,
+.today-answer .panel-head h2 {
+  color: var(--ink);
+  font-family: var(--font-display-latin);
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-emphasis-line);
+}
+
+html[dir='rtl'] .today-answer-head h2,
+html[dir='rtl'] .today-answer .panel-head h2 {
+  font-family: var(--font-display-hebrew);
+}
+
+.today-answer .panel-head > span,
+.today-basis,
+.today-note,
+.today-scope {
+  color: var(--ink-muted);
+}
+
+.today-answer-decisions .today-basis {
+  padding-inline: 0;
+  padding-block-end: var(--space-1);
+}
+
+.today-answer-decisions .today-basis,
+.today-answer-decisions .today-decision-scope {
+  line-height: var(--type-data-line);
+}
+
+.today-answer-decisions .today-decision-scope {
+  overflow: visible;
+  color: var(--ink-subtle);
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  text-wrap: pretty;
+  white-space: normal;
+}
+
+.today-answer-health .today-health-list {
+  padding-inline: var(--card-inset);
+}
+
+.today-decision-list .decision-row,
+.today-decision-list .decision-row.MuiButton-root,
+.today-health-row,
+.today-health-row.MuiButton-root {
+  min-block-size: var(--control-height);
+  border-color: var(--line);
+}
+
+.today-decision-list {
+  padding: 0 var(--card-inset);
+}
+
+.today-decision-list .decision-row,
+.today-decision-list .decision-row.MuiButton-root {
+  min-block-size: 48px;
+  padding-block: var(--space-1);
+}
+
+.today-decision-list .decision-row > div:first-of-type strong,
+.today-decision-list .decision-row.MuiButton-root > div:first-of-type strong {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  text-wrap: pretty;
+  white-space: normal;
+}
+
+.today-decision-list .decision-row:hover,
+.today-health-row:hover,
+.today-health-row.MuiButton-root:hover {
+  background: var(--surface-raised);
+}
+
+.today-health-opens {
+  color: var(--accent);
+}
+
+.today-verdict.on_plan {
+  background: var(--positive-wash);
+  color: var(--positive);
+}
+
+.today-verdict.at_risk,
+.today-verdict.unavailable {
+  background: var(--warning-wash);
+  color: var(--warning);
+}
+
+.today-verdict.behind {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.today-answer-money {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(360px, 1.3fr);
+  gap: var(--space-6);
+  padding: var(--card-inset);
+}
+
+.today-revenue-disclosure {
+  overflow: hidden;
+}
+
+.today-revenue-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: 58px;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.today-revenue-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.today-revenue-disclosure > summary:hover {
+  background: var(--surface-raised);
+}
+
+.today-revenue-disclosure > summary > span:first-child {
+  display: grid;
+}
+
+.today-revenue-disclosure > summary strong {
+  font-size: var(--type-ui-size);
+}
+
+.today-revenue-disclosure > summary small {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+}
+
+.today-revenue-disclosure > summary > .bidi-figure {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.today-revenue-disclosure[open] > summary {
+  border-block-end: 1px solid var(--line);
+}
+
+.today-revenue-disclosure .today-answer-money {
+  border: 0;
+  border-radius: 0;
+}
+
+.today-answer-money .today-answer-head {
+  grid-column: 1 / -1;
+}
+
+.today-figure {
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+
+.today-figure:hover {
+  color: var(--accent);
+}
+
+.today-detail-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: var(--control-height);
+  border-block-end: 1px solid var(--line);
+}
+
+.today-detail-tab,
+.today-detail-tab.MuiButton-root {
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.today-detail-tab:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.today-detail-tab.active {
+  background: var(--surface-raised);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.today-detail-panel {
+  display: grid;
+  gap: var(--space-5);
+  min-inline-size: 0;
+  max-block-size: calc(100dvh - 220px);
+  min-block-size: 420px;
+  overflow: auto;
+}
+
+.today-workspace :is(.today-primary, .today-secondary, .today-icon-button, .today-link-button, .today-job-row, .today-figure),
+.today-workspace :is(.MuiButton-root, .MuiIconButton-root) {
+  min-block-size: var(--control-height);
+}
+
+.today-workspace .today-primary.MuiButton-root {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.today-workspace .today-secondary.MuiButton-root {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.today-workspace .today-icon-button,
+.today-workspace .MuiIconButton-root {
+  min-inline-size: var(--icon-action-size);
+}
+
+.today-day-row,
+.today-day-row.MuiButton-root {
+  min-block-size: var(--data-row-height);
+}
+
+.today-workspace :is(input:not([type='checkbox']):not([type='radio']), select, textarea, .MuiInputBase-root) {
+  min-block-size: var(--control-height);
+}
+
+.today-clear-review {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.today-clear-review dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.today-clear-review dl > div {
+  padding: var(--space-3);
+}
+
+.today-clear-review dt {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+}
+
+.today-clear-review dd {
+  margin: var(--space-1) 0 0;
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.today-clear-review p {
+  margin: 0;
+  color: var(--ink-muted);
+  line-height: var(--type-body-line);
+}
+
+.yield-view .yield-table {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.yield-view .yield-column-head,
+.yield-view .yield-bar-row {
+  display: grid;
+  grid-template-columns: minmax(104px, 1.15fr) minmax(154px, 1fr) minmax(116px, 0.8fr);
+  align-items: center;
+  gap: var(--space-3);
+  text-align: start;
+}
+
+.yield-view .yield-column-head {
+  min-block-size: 48px;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line);
+  color: var(--ink-muted);
+}
+
+.yield-view .yield-column-head > span {
+  display: grid;
+  min-inline-size: 0;
+  gap: 2px;
+}
+
+.yield-view .yield-column-head strong {
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.yield-view .yield-column-head small {
+  color: var(--ink-subtle);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+  overflow-wrap: anywhere;
+}
+
+.yield-view .yield-bar-list {
+  gap: 0;
+}
+
+.yield-view .yield-bar-row {
+  min-block-size: 52px;
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.yield-view .yield-bar-row:last-child {
+  border-block-end: 0;
+}
+
+.yield-view .yield-bar-label {
+  overflow: visible;
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.yield-view .yield-rate-cell {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--space-1);
+}
+
+.yield-view .yield-rate-cell > .numeric,
+.yield-view .yield-revenue-cell > .numeric {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+}
+
+.yield-view .yield-revenue-cell {
+  min-inline-size: 0;
+  text-align: end;
+}
+
+.yield-view .yield-relative-meter {
+  position: relative;
+  display: block;
+  block-size: 7px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.yield-view .yield-relative-meter > i {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  display: block;
+  inline-size: calc(var(--bar) * 100%);
+  block-size: 100%;
+  height: auto;
+  border-radius: inherit;
+  background: var(--teal);
+}
+
+@media (max-width: 1399px) and (min-width: 1200px) {
+  .control-room-summary {
+    grid-template-columns: minmax(340px, 1fr) minmax(250px, 0.7fr) minmax(176px, auto);
+    gap: var(--space-4);
+  }
+
+  .control-room-copy h1 {
+    font-size: 28px;
+    line-height: 34px;
+  }
+
+  .today-control-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  }
+
+  .transmission-readout {
+    grid-template-columns: minmax(160px, 1fr) minmax(280px, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transmission-program,
+  .transmission-cursor {
+    transition: none;
+  }
+}

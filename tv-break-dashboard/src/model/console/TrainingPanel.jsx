@@ -4,6 +4,7 @@ import { Numeric } from '../../shell/format';
 import { readSection, startTraining } from './console-api';
 import { Absent, Panel, RecordDrill } from './console-bits';
 import { canEditReason, pick, t } from './console-words';
+import { Pressable, SelectControl } from '../../studio/dom-controls';
 
 // Training, started from the console and only ever into the console's own
 // store. The safety sentence is on the screen and not only in the code: a run
@@ -59,14 +60,14 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
           <strong>{locale === 'en' ? trainer.label_en : trainer.label_he}</strong>
           <small><Code>{trainer.script}</Code></small>
         </div>
-        <button
+        <Pressable
           type="button"
           className="mc-button mc-primary"
           onClick={() => onStart(trainer.artifact, flags)}
           disabled={busy || locked}
         >
           {busy ? t('training.running', locale) : t('training.start', locale)}
-        </button>
+        </Pressable>
       </div>
       <p className="mc-note">
         {t('training.writes', locale)} <code><Code>{trainer.writes}</Code></code>
@@ -83,7 +84,7 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
           {trainer.flags.map((flag) => (
             <label className="mc-flag" key={flag.flag}>
               <code><Code>{flag.flag}</Code></code>
-              <select
+              <SelectControl
                 value={flags[flag.flag] || ''}
                 onChange={(event) => setFlags((current) => {
                   const next = { ...current };
@@ -95,7 +96,7 @@ function Trainer({ trainer, locale, running, locked, onStart }) {
                 {CHOICES.map((choice) => (
                   <option value={choice.value} key={choice.key}>{t(choice.key, locale)}</option>
                 ))}
-              </select>
+              </SelectControl>
             </label>
           ))}
         </div>
@@ -219,9 +220,9 @@ export default function TrainingPanel({ payload, locale, onRefresh }) {
         {lost ? (
           <p className="mc-note mc-run-watch">
             {t('training.watch_lost', locale)}{' '}
-            <button type="button" className="mc-link" onClick={onRefresh}>
+            <Pressable type="button" className="mc-link" onClick={onRefresh}>
               {t('training.watch_again', locale)}
-            </button>
+            </Pressable>
           </p>
         ) : watching ? (
           <p className="mc-note mc-run-watch">{t('training.watching', locale)}</p>

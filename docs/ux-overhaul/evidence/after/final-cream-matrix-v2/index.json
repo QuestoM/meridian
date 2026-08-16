@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-16T00:01:43.827Z",
+  "completedAt": "2026-08-16T00:01:55.802Z",
+  "baseUrl": "http://127.0.0.1:3000/",
+  "policy": {
+    "navigationOnly": true,
+    "backendWrites": false,
+    "locales": [
+      {
+        "locale": "he",
+        "direction": "rtl"
+      },
+      {
+        "locale": "en",
+        "direction": "ltr"
+      }
+    ],
+    "viewports": [
+      {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      }
+    ],
+    "localeResponseRewriteEndpoints": [
+      "/api/overview",
+      "/api/settings"
+    ]
+  },
+  "routes": [
+    {
+      "slug": "today",
+      "report": "today/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-objective",
+      "report": "plan-objective/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-run",
+      "report": "plan-run/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-compare",
+      "report": "plan-compare/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-publish",
+      "report": "plan-publish/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-supply",
+      "report": "plan-supply/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "plan-board",
+      "report": "plan-board/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "broadcast-day",
+      "report": "broadcast-day/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "broadcast-pods",
+      "report": "broadcast-pods/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "broadcast-library",
+      "report": "broadcast-library/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "broadcast-decisions",
+      "report": "broadcast-decisions/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-clients",
+      "report": "commercial-clients/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-money",
+      "report": "commercial-money/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-campaigns",
+      "report": "commercial-campaigns/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-pacing",
+      "report": "commercial-pacing/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-advertisers",
+      "report": "commercial-advertisers/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "commercial-agencies",
+      "report": "commercial-agencies/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "sources-inputs",
+      "report": "sources-inputs/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "sources-files",
+      "report": "sources-files/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "sources-reports",
+      "report": "sources-reports/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-restrictions",
+      "report": "governance-restrictions/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-licence",
+      "report": "governance-licence/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-rate-card",
+      "report": "governance-rate-card/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-calendar",
+      "report": "governance-calendar/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-channel",
+      "report": "governance-channel/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "governance-levers",
+      "report": "governance-levers/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "history",
+      "report": "history/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-gates",
+      "report": "model-gates/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-coverage",
+      "report": "model-coverage/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-drift",
+      "report": "model-drift/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-candidates",
+      "report": "model-candidates/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-training",
+      "report": "model-training/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-versions",
+      "report": "model-versions/report.json",
+      "failureCount": 0
+    },
+    {
+      "slug": "model-provenance",
+      "report": "model-provenance/report.json",
+      "failureCount": 0
+    }
+  ],
+  "gate": {
+    "slug": "desktop-gate",
+    "report": "desktop-gate/report.json",
+    "failureCount": 0
+  },
+  "aggregate": {
+    "json": "aggregate.json",
+    "markdown": "aggregate.md",
+    "verdict": "PASS",
+    "defectCount": 0
+  }
+}

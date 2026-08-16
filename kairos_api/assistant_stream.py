@@ -43,7 +43,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from kairos_api import assistant_actions, assistant_memory
+from kairos_api import assistant_actions, assistant_memory, assistant_saved_entry
 
 # No prefix: kairos_api.assistant includes this router under /api/assistant.
 router = APIRouter(tags=["assistant"])
@@ -131,7 +131,8 @@ def assistant_ask_stream(request: StreamAskRequest, http_request: Request) -> St
             assistant._audit_ask(user, question, body, batch_id)
             if body.get("answer"):
                 assistant_memory.append_entry(user, question, str(body["answer"]), batch_id,
-                                              conversation_id=body.get("conversation_id"))
+                                              conversation_id=body.get("conversation_id"),
+                                              metadata=assistant_saved_entry.from_ask(body, elapsed()))
             events.put(("final", body))
         except Exception as exc:  # noqa: BLE001 - the terminal frame is honest, never absent
             events.put(("error", {"error": assistant._describe_error(exc),

@@ -337,8 +337,8 @@ def test_the_booked_client_is_a_row_on_screen_under_its_own_group(rendered):
     assert BOOKED_CLIENT in html
     assert html.index(GROUP_TITLE) < html.index(BOOKED_CLIENT), "the name belongs inside that group"
     row = html[html.index(GROUP_TITLE):]
-    opener = f'<button type="button" class="clients-link">{BOOKED_CLIENT}</button>'
-    assert opener in row, "the name is a control that opens the record, not text"
+    opener = rf'<button\b[^>]*class="[^"]*\bclients-link\b[^"]*"[^>]*>{re.escape(BOOKED_CLIENT)}</button>'
+    assert re.search(opener, row), "the name is a control that opens the record, not text"
 
 
 def test_the_header_counts_every_client_the_component_renders(payload, rendered):

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { Card, CardBody } from '../shell/primitives';
+import { Card, CardBody } from '../studio';
 import { Figure } from '../shell/bidi';
 import { complianceDisclaimer, complianceUnitLabel } from '../shell/labels';
 import { complianceScopeSentence, complianceViewState, fetchCompliance } from './rules-lib';

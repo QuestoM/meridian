@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '../studio/actions';
 import { pageText } from '../shell/format';
 import { changedFields, localized, refusalText } from './clients-money-helpers';
 import { createCampaign, updateCampaign } from './clients-api';
@@ -6,6 +7,7 @@ import { createCampaign, updateCampaign } from './clients-api';
 // so the coverage line below is always the term wording and never the
 // ANY-widening the onboarding flow can raise.
 import { weekdayCoverage } from './weekday-scope-helpers';
+import { InputControl, SelectControl } from '../studio/dom-controls';
 
 // The campaign's own two editable halves: the window it runs in and the terms
 // that were agreed for it. One form serves booking a second campaign for a
@@ -22,7 +24,7 @@ function Field({ label, value, onChange, type = 'text', ltr = false, list, requi
   return (
     <label className="clients-field">
       <span>{label}</span>
-      <input
+      <InputControl
         type={type}
         value={value}
         list={list}
@@ -140,7 +142,7 @@ export default function CampaignTerms({
   }
 
   return (
-    <form className="clients-form clients-inline-form" onSubmit={submit}>
+    <form className="card card-dense card-body clients-form clients-inline-form" onSubmit={submit}>
       <fieldset>
         <legend>
           {creating
@@ -181,14 +183,14 @@ export default function CampaignTerms({
           />
           <label className="clients-field">
             <span>{pageText(locale, 'Agency', 'סוכנות')}</span>
-            <select value={draft.agency_id} onChange={(event) => set('agency_id', event.target.value)}>
+            <SelectControl value={draft.agency_id} onChange={(event) => set('agency_id', event.target.value)}>
               <option value="">{pageText(locale, 'No agency', 'ללא סוכנות')}</option>
               {agencies.map((entry) => (
                 <option key={entry.agency_id} value={entry.agency_id}>
                   {`${entry.name} (${entry.agency_id})`}
                 </option>
               ))}
-            </select>
+            </SelectControl>
           </label>
           <Field
             label={pageText(locale, 'Starts on', 'מתחיל ב')}
@@ -228,14 +230,14 @@ export default function CampaignTerms({
         </div>
         <div className="clients-weekdays">
           {weekdays.map((day) => (
-            <button
+            <Button
               key={day.key}
               type="button"
               className={String(draft.surcharge_weekdays || '').split(',').includes(day.key) ? 'active' : ''}
               onClick={() => set('surcharge_weekdays', toggleWeekday(draft.surcharge_weekdays, day.key))}
             >
               {locale === 'he' ? day.he : day.en}
-            </button>
+            </Button>
           ))}
         </div>
         <p className="clients-basis-note" role="status">
@@ -251,16 +253,16 @@ export default function CampaignTerms({
 
       {state.error ? <p className="clients-error" role="alert">{state.error}</p> : null}
       <div className="clients-form-actions">
-        <button type="submit" className="clients-primary" disabled={state.status === 'saving'}>
+        <Button type="submit" className="clients-primary" disabled={state.status === 'saving'}>
           {state.status === 'saving'
             ? pageText(locale, 'Saving', 'שומר')
             : creating
               ? pageText(locale, 'Book the campaign', 'הזמינו את הקמפיין')
               : pageText(locale, 'Save the window and terms', 'שמרו את החלון והתנאים')}
-        </button>
-        <button type="button" className="clients-secondary" onClick={onCancel}>
+        </Button>
+        <Button type="button" className="clients-secondary" onClick={onCancel}>
           {pageText(locale, 'Cancel', 'ביטול')}
-        </button>
+        </Button>
       </div>
     </form>
   );

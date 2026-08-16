@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../studio/actions';
 import { Figure, Code } from '../shell/bidi';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -81,9 +82,9 @@ function SpotRows({ spots, locale, onOpenBreak }) {
         {spots.map((spot) => (
           <tr key={spot.spot_key}>
             <td>
-              <button type="button" className="clients-chip" onClick={() => onOpenBreak(spot.break_id)}>
+              <Button type="button" className="clients-chip" onClick={() => onOpenBreak(spot.break_id)}>
                 <Code className="numeric">{spot.break_id}</Code>
-              </button>
+              </Button>
             </td>
             <td>{spot.programme}</td>
             <td>{spot.ad}</td>
@@ -118,9 +119,9 @@ function DroppedRows({ dropped, locale, onOpenBreak, openableBreaks }) {
         {dropped.map((row) => (
           <li key={row.spot_key}>
             {openableBreaks.includes(String(row.break_id)) ? (
-              <button type="button" className="clients-chip" onClick={() => onOpenBreak(row.break_id)}>
+              <Button type="button" className="clients-chip" onClick={() => onOpenBreak(row.break_id)}>
                 <Code className="numeric">{row.break_id}</Code>
-              </button>
+              </Button>
             ) : <Code className="numeric">{row.break_id}</Code>}
             <strong>{row.ad || row.campaign}</strong>
             {row.rule_id ? (
@@ -171,9 +172,9 @@ export default function MoneyDetail({
         <div>
           <h3>
             {head ? (
-              <button type="button" className="clients-link" onClick={head.open}>
+              <Button type="button" className="clients-link" onClick={head.open}>
                 {title}
-              </button>
+              </Button>
             ) : title}
           </h3>
           <p className="clients-detail-sub">
@@ -190,19 +191,19 @@ export default function MoneyDetail({
         <div className="clients-detail-actions">
           {position ? (
             <span className="clients-position">
-              <button type="button" onClick={() => onStep(-1)} aria-label={pageText(locale, 'Previous', 'הקודם')}>
+              <Button type="button" onClick={() => onStep(-1)} aria-label={pageText(locale, 'Previous', 'הקודם')}>
                 <ChevronRight size={14} aria-hidden="true" />
-              </button>
+              </Button>
               <Figure className="numeric">{`${position.position} / ${position.total}`}</Figure>
-              <button type="button" onClick={() => onStep(1)} aria-label={pageText(locale, 'Next', 'הבא')}>
+              <Button type="button" onClick={() => onStep(1)} aria-label={pageText(locale, 'Next', 'הבא')}>
                 <ChevronLeft size={14} aria-hidden="true" />
-              </button>
+              </Button>
             </span>
           ) : null}
           {head ? (
-            <button type="button" className="clients-secondary" onClick={head.open}>
+            <Button type="button" className="clients-secondary" onClick={head.open}>
               {pageText(locale, head.en, head.he)}
-            </button>
+            </Button>
           ) : null}
         </div>
       </header>
@@ -225,13 +226,13 @@ export default function MoneyDetail({
                 <tr key={campaign.campaign}>
                   <td>
                     {openable.includes(String(campaign.campaign)) ? (
-                      <button
+                      <Button
                         type="button"
                         className="clients-link"
                         onClick={() => onOpenCampaign(String(campaign.campaign))}
                       >
                         {campaign.campaign}
-                      </button>
+                      </Button>
                     ) : campaign.campaign}
                   </td>
                   <td className="numeric"><Figure>{exactMoney(campaign.gross, locale)}</Figure></td>
@@ -239,9 +240,9 @@ export default function MoneyDetail({
                   <td className="numeric"><Figure>{campaign.spots}</Figure></td>
                   <td className="clients-break-chips">
                     {(campaign.breaks || []).map((breakId) => (
-                      <button key={breakId} type="button" className="clients-chip" onClick={() => onOpenBreak(breakId)}>
+                      <Button key={breakId} type="button" className="clients-chip" onClick={() => onOpenBreak(breakId)}>
                         <Code className="numeric">{breakId}</Code>
-                      </button>
+                      </Button>
                     ))}
                   </td>
                 </tr>

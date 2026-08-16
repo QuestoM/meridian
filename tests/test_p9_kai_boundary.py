@@ -48,7 +48,7 @@ def channel_account(tmp_path, monkeypatch):
 
 
 # --- the propose-only contract, the Bar 3 floor for this piece ---------------
-def test_the_tool_surface_is_still_43_read_9_propose_and_0_write() -> None:
+def test_the_tool_surface_is_still_44_read_9_propose_and_0_write() -> None:
     # 38 when the read half of the coverage gap closed: the pod the traffic
     # operator assembles (2 tools), the break the scheduler places (2), and
     # pacing against goal with the remedy the campaign manager is told to name
@@ -63,7 +63,9 @@ def test_the_tool_surface_is_still_43_read_9_propose_and_0_write() -> None:
     # There is deliberately no tool for an account change: creating one,
     # resetting a password and moving an affiliation are credential acts, and a
     # review-first assistant that could stage them would be staging a way in.
-    assert len(assistant_tools.READ_TOOL_NAMES) == 43
+    # One complete advertiser-airings read replaces an incomplete top-20 plus
+    # pod-by-pod reconstruction; it reads raw traffic rows and writes nothing.
+    assert len(assistant_tools.READ_TOOL_NAMES) == 44
     assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 9
     every_name = assistant_tools.READ_TOOL_NAMES | assistant_tools.PROPOSE_TOOL_NAMES
     assert len(assistant_tools.anthropic_tools()) == len(every_name)

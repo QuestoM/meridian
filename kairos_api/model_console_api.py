@@ -41,6 +41,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from kairos.optimize.inventory import InventoryInputError, load_inventory
 from kairos_api import model_console_artifacts as artifacts
 from kairos_api import model_console_candidates as candidates
 from kairos_api import model_console_api_payloads as payloads
@@ -216,6 +217,13 @@ def measure_candidate(candidate_id: str) -> dict[str, Any]:
     path = candidates.candidate_path(candidate_id)
     if path is None:
         raise HTTPException(status_code=404, detail=f"no candidate artifact called {candidate_id}")
+    try:
+        # Refuse synchronously, before the in-flight register or background
+        # thread exists. The operator gets an actionable response and no failed
+        # job can later look like a measurement that merely disappeared.
+        load_inventory(require_usable=True)
+    except InventoryInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     with _RUNNING_LOCK:
         if candidate_id in _RUNNING:
             return {"state": "measuring", **_RUNNING[candidate_id]}

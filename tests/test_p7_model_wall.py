@@ -18,14 +18,11 @@ Four properties, each asserted on real resolved sessions through a live client:
    cannot record a decision, which is section 4.5's sentence exactly.
 3. **Nothing leaks in the refusal.** A refused body carries zero hits of section
    4.2's training lexicon, so the refusal itself cannot be the leak.
-4. **The wall closes content, not doors the shell depends on.** ``GET
-   /api/impact`` is the one walled route the frozen shell fetches on every page
-   load for every account, so it answers 200 with the tri-state and no training
-   content instead of 403. Refusing it made the shell's ``partial`` flag true and
-   put "Some data failed to load" on every page for every channel account, for
-   the whole session. Measured before the fix: of the eleven endpoints
-   ``src/shell/use-kairos-data.js`` fetches, exactly one was non-200 and it was
-   this one.
+4. **The wall closes content without polluting unrelated routes.** ``GET
+   /api/impact`` still answers a channel account with the unavailable tri-state,
+   but the route-scoped shell no longer fetches company-model impact data on
+   operator pages. Partial state is derived only from resources selected for the
+   active destination.
 
 The route list is enumerated from the application's own route table rather than
 typed here, so a route added to this surface later without the wall fails this
@@ -47,8 +44,8 @@ from kairos_api.affiliation_wall import COMPANY_SURFACE_DETAIL, READ_ONLY_ROLE_D
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SHELL_DATA_HOOK = REPO_ROOT / "tv-break-dashboard" / "src" / "shell" / "use-kairos-data.js"
 
-# The one walled route the shell fetches unconditionally. It answers, it does
-# not refuse; everything else on the surface refuses.
+# The compatibility answering route. It answers rather than leaking or refusing,
+# but it is no longer part of unrelated shell route profiles.
 ANSWERING_PATH = "/api/impact"
 
 ADMIN_PASSWORD = "rootpass-1234"
@@ -262,22 +259,14 @@ def test_the_operator_surfaces_no_longer_serve_the_gate_verdicts(auth_env) -> No
 
 
 # --------------------------------------------------------------------------- #
-# The answering route: the wall closes content, not a door the shell depends on
+# The answering route: unavailable content is explicit and not loaded globally
 # --------------------------------------------------------------------------- #
-def test_the_shell_still_fetches_the_answering_route_unconditionally() -> None:
-    """The premise of the next two tests, read from the frozen shell itself.
-
-    If the shell ever stops fetching this path, the reason those tests exist
-    goes with it, and a test whose premise has quietly evaporated is worse than
-    no test. So the premise is asserted rather than assumed.
-    """
+def test_the_shell_does_not_fetch_company_impact_on_unrelated_routes() -> None:
+    """Route profiles own partial state; company impact is not global chrome."""
     source = SHELL_DATA_HOOK.read_text(encoding="utf-8")
-    assert f"fetchJson('{ANSWERING_PATH}'" in source, (
-        f"{SHELL_DATA_HOOK} no longer fetches {ANSWERING_PATH}; this file's premise moved"
-    )
-    assert "partial: overviewResult.online && !results.every((result) => result.online)" in source, (
-        "the shell no longer derives partial from every result being online; re-measure this file"
-    )
+    assert f"fetchJson('{ANSWERING_PATH}'" not in source
+    assert "kairosDataResources(activeView" in source
+    assert "currentRecords.some((record) => !record.online)" in source
 
 
 def test_a_channel_account_gets_an_answer_from_the_answering_route(auth_env) -> None:

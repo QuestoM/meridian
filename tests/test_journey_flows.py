@@ -197,6 +197,14 @@ def test_recompute_day_applies_override_and_preserves_rest(tmp_path, saved_setti
 
     tmp_csv = tmp_path / "weekly.csv"
     shutil.copy(CSV_PATH, tmp_csv)
+    # Incremental recompute is deliberately guarded by the committed plan's
+    # fingerprint. A temporary CSV without its matching sidecar is an unknown
+    # artifact and correctly forces a full rebuild, which is not the journey
+    # this test claims to exercise.
+    shutil.copy(
+        Path(f"{CSV_PATH}.fingerprint.json"),
+        Path(f"{tmp_csv}.fingerprint.json"),
+    )
     frame = build_weekly_schedule(
         settings=saved_settings,
         revenue_weight=saved_settings["revenue_weight"] / 100.0,

@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@mui/material';
-import { Trash2 } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
 import { requestJson } from './assistant-stream';
@@ -10,17 +8,21 @@ import { showRestoreVersion, useAssistantBatches, useAssistantThread } from './a
 import { useAssistantPage } from '../shell/assistant-page-context';
 import { useAsk } from './assistant-panel-ask';
 import AssistantConversationsSidebar from './AssistantConversationsSidebar';
+import AssistantConversationsRail from './AssistantConversationsRail';
+import AssistantConversationToolbar from './AssistantConversationToolbar';
 import AssistantProposalCard from './AssistantProposalCard';
 import AssistantRunTrace, { useElapsed } from './AssistantRunTrace';
 import AssistantUpload from './AssistantUpload';
+import { Pressable } from '../studio/dom-controls';
 import { AssistantExchange, ModelText, RichText } from './AssistantThread';
 import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
 import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
 import { isolate } from '../shell/bidi';
 import './assistant-console.css';
+import './studio-ledger-kai.css';
 import { formatDay } from '../shell/dates';
 
-// The assistant console, named Kai: a chat column grounded in the saved data
+// The assistant console, named Mabat: a chat column grounded in the saved data
 // plus a rail for pending proposals and the conversation history. Answers come
 // only from the server; asks stream live and fall back quietly to the plain ask
 // endpoint when the stream is unavailable. Proposed actions apply only after an
@@ -33,8 +35,8 @@ import { formatDay } from '../shell/dates';
 // measured this panel sitting on "preparing an answer" for 499 s with no reply,
 // no error and nothing to press.
 //
-// The grounding context is warmed the moment the panel mounts, which is the
-// moment the person starts typing, so the ask does not pay for it afterwards.
+// The grounding context warms only when the composer receives focus or input.
+// Opening the dock for reading stays a provider-free operation.
 
 
 function startedLabel(iso) {
@@ -46,6 +48,10 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   const [statusState, setStatusState] = useState('loading');
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [dockView, setDockView] = useState('conversation');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const dockTabsRef = useRef([]);
+  const historyRef = useRef(null);
   const conv = useConversations(notify);
   const {
     batchMap, mergeBatches, refreshRail, refreshing, proposalsState, proposalsError,
@@ -80,18 +86,13 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       .catch(() => {
         if (!active) return;
         setStatusState('error');
-      });
+    });
     refreshRail();
-    // The grounding context and the model's cached prefix, both built while the
-    // person is still typing: 11.13 s cold against 0.034 s warm for the context,
-    // and half a second of first token for the prefix, measured as a pair in
-    // kai-keep-warm.js. The composer asks again as a question is written,
-    // because a dock that was opened and left open goes cold.
-    const controller = new AbortController();
-    keepPrefixWarm(controller.signal);
+    // Provider-backed prefix warming is intentionally tied to composer
+    // activity below. Merely mounting or testing the dock performs status and
+    // saved-state reads only; it never starts a model/provider request.
     return () => {
       active = false;
-      controller.abort();
     };
   }, [refreshRail]);
 
@@ -147,6 +148,58 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
     if (composerRef.current) composerRef.current.focus();
   }
 
+  function showConversation() {
+    setDockView('conversation');
+    setHistoryOpen(false);
+  }
+
+  async function startConversation() {
+    setConfirmClear(false);
+    const createdId = await conv.create();
+    if (!createdId) return;
+    setQuestion('');
+    setRefs([]);
+    setHistoryOpen(false);
+    window.requestAnimationFrame(() => composerRef.current?.focus({ preventScroll: true }));
+  }
+
+  function toggleHistory() {
+    setConfirmClear(false);
+    setHistoryOpen((open) => {
+      if (!open) conv.refreshList();
+      return !open;
+    });
+  }
+
+  function returnFromHistory(id) {
+    if (id !== conv.activeId) {
+      setQuestion('');
+      setRefs([]);
+    }
+    setHistoryOpen(false);
+    window.requestAnimationFrame(() => threadRef.current?.focus({ preventScroll: true }));
+  }
+
+  useEffect(() => {
+    if (!historyOpen) return undefined;
+    const frame = window.requestAnimationFrame(() => historyRef.current?.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [historyOpen]);
+
+  function onDockTabKeyDown(event, index) {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = 1;
+    else if (event.key === 'ArrowRight') next = (index + (locale === 'he' ? -1 : 1) + 2) % 2;
+    else if (event.key === 'ArrowLeft') next = (index + (locale === 'he' ? 1 : -1) + 2) % 2;
+    else return;
+    event.preventDefault();
+    const view = next === 0 ? 'conversation' : 'actions';
+    if (view === 'conversation') showConversation();
+    else setDockView(view);
+    dockTabsRef.current[next]?.focus();
+  }
+
   // Auto-grow: the composer rests at one row (matching the send button) and
   // grows with the content up to a cap, so the default state never towers over
   // the button and a long question still stays fully visible.
@@ -158,9 +211,12 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   }, [question]);
 
   const unavailable = statusState === 'ready' && status && status.available === false;
-  const reasonLabel = status && status.reason === 'API key not configured'
-    ? pageText(locale, 'The API key is not configured on the server.', 'מפתח ה-API אינו מוגדר בשרת.')
-    : String((status && status.reason) || '');
+  // Provider diagnostics can contain implementation names and environment
+  // variables. Operators get the service state and recovery owner, never raw
+  // infrastructure prose from the status endpoint.
+  const reasonLabel = unavailable
+    ? pageText(locale, 'The assistant service is not connected in this environment.', 'שירות העוזר אינו מחובר בסביבה הזו.')
+    : '';
   const statusText = statusState === 'loading' ? pageText(locale, 'Checking availability', 'בודק זמינות')
     : statusState === 'error' ? pageText(locale, 'No connection to the Kairos server', 'אין חיבור לשרת Kairos')
     : unavailable ? pageText(locale, 'Not available', 'לא זמין')
@@ -206,11 +262,11 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
   }
 
   // The action plane's own honest state, from the endpoint that owns it. It
-  // says whether Kai may propose a change at all, and when it may not, why.
+  // says whether Mabat may propose a change at all, and when it may not, why.
   const actionPlane = status && status.action_plane && typeof status.action_plane === 'object' ? status.action_plane : null;
 
   const statusCluster = (
-    <div className="asst-status" role="status">
+    <div className="asst-status" role="status" aria-live="polite" aria-atomic="true">
       <span className={`asst-dot ${dotClass}`} aria-hidden="true" />
       <span>{statusText}</span>
       {status && status.model ? <Code>{status.model}</Code> : null}
@@ -236,42 +292,82 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
       ) : (
         <div className="page-header">
           <div>
-            <h1>{pageText(locale, 'Kai, the AI assistant', 'קאי, עוזר ה-AI')}</h1>
-            <p>{pageText(locale, 'Kai answers from the saved data only, and any action it proposes applies only after your approval, with an automatic restore point first.', 'קאי עונה מהנתונים השמורים בלבד, וכל פעולה שהוא מציע מוחלת רק לאחר אישור שלכם, עם נקודת שחזור אוטומטית לפני כן.')}</p>
+            <h1>{pageText(locale, 'Mabat, operations assistant', 'מבט, עוזר תפעולי')}</h1>
+            <p>{pageText(locale, 'Mabat answers from saved data only. Proposed actions apply only after your approval, with an automatic restore point first.', 'מבט עונה רק מן הנתונים השמורים. פעולה מוצעת תוחל רק לאחר אישור שלכם, ולאחר יצירת נקודת שחזור.')}</p>
           </div>
           {statusCluster}
         </div>
       )}
 
+      {dock ? (
+        <div className="asst-dock-view-tabs" role="tablist" aria-label={pageText(locale, 'Assistant work areas', 'אזורי העבודה של העוזר')}>
+          <Pressable
+            ref={(node) => { dockTabsRef.current[0] = node; }}
+            type="button"
+            role="tab"
+            id="assistant-dock-tab-conversation"
+            aria-controls="assistant-dock-panel-conversation"
+            aria-selected={dockView === 'conversation'}
+            tabIndex={dockView === 'conversation' ? 0 : -1}
+            className={dockView === 'conversation' ? 'active' : ''}
+            onClick={showConversation}
+            onKeyDown={(event) => onDockTabKeyDown(event, 0)}
+          >
+            {pageText(locale, 'Conversation', 'שיחה')}
+          </Pressable>
+          <Pressable
+            ref={(node) => { dockTabsRef.current[1] = node; }}
+            type="button"
+            role="tab"
+            id="assistant-dock-tab-actions"
+            aria-controls="assistant-dock-panel-actions"
+            aria-selected={dockView === 'actions'}
+            tabIndex={dockView === 'actions' ? 0 : -1}
+            className={dockView === 'actions' ? 'active' : ''}
+            onClick={() => setDockView('actions')}
+            onKeyDown={(event) => onDockTabKeyDown(event, 1)}
+          >
+            {pageText(locale, 'Actions', 'פעולות')}
+          </Pressable>
+        </div>
+      ) : null}
+
       <div className="asst-layout">
-        <section className="page-panel asst-chat">
+        <section
+          className="page-panel asst-chat"
+          hidden={dock && dockView !== 'conversation'}
+          id={dock ? 'assistant-dock-panel-conversation' : undefined}
+          role={dock ? 'tabpanel' : undefined}
+          aria-labelledby={dock ? 'assistant-dock-tab-conversation' : undefined}
+        >
           <div className="panel-head">
             <div>
               <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
               <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
               {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actingUser}</Name></b></span> : null}
             </div>
-            {thread.length > 0 && !threadLoading ? (
-              confirmClear ? (
-                <span className="asst-clear-confirm">
-                  <span>{pageText(locale, 'Delete the whole conversation?', 'למחוק את כל השיחה?')}</span>
-                  <Button variant="contained" size="small" color="error" disabled={clearing} onClick={clearConversation}>
-                    {clearing ? pageText(locale, 'Deleting', 'מוחק') : pageText(locale, 'Delete', 'מחק')}
-                  </Button>
-                  <Button variant="text" size="small" disabled={clearing} onClick={() => setConfirmClear(false)}>
-                    {pageText(locale, 'Cancel', 'ביטול')}
-                  </Button>
-                </span>
-              ) : (
-                <button type="button" className="asst-clear-btn" onClick={() => setConfirmClear(true)}>
-                  <Trash2 size={13} />
-                  {pageText(locale, 'Clear', 'מחיקה')}
-                </button>
-              )
-            ) : null}
+            <AssistantConversationToolbar
+              locale={locale} supported={conv.supported} listState={conv.listState} busy={conv.busy} asking={asking}
+              historyOpen={historyOpen} canClear={thread.length > 0 && !threadLoading && !historyOpen}
+              confirmClear={confirmClear} clearing={clearing} onNew={startConversation}
+              onToggleHistory={toggleHistory} onRequestClear={() => setConfirmClear(true)}
+              onClear={clearConversation} onCancelClear={() => setConfirmClear(false)}
+            />
           </div>
 
-          <div className="asst-thread" ref={threadRef}>
+          <div
+            className="asst-conversation-history"
+            id="assistant-conversation-history"
+            ref={historyRef}
+            tabIndex={-1}
+            role="region"
+            aria-label={pageText(locale, 'Conversation history', 'היסטוריית שיחות')}
+            hidden={!historyOpen}
+          >
+            <AssistantConversationsRail locale={locale} conv={conv} disabled={asking} onSelect={returnFromHistory} />
+          </div>
+          {!historyOpen ? <>
+          <div className="asst-thread" ref={threadRef} tabIndex={-1} aria-live="polite" aria-relevant="additions text" aria-busy={threadLoading || asking || undefined}>
             {threadLoading && thread.length === 0 ? (
               <div className="asst-loading">{pageText(locale, 'Loading your conversation', 'טוען את השיחה שלכם')}</div>
             ) : null}
@@ -287,16 +383,16 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
               <article className="asst-exchange">
                 <RichText className="asst-q" text={live.question} />
                 <AssistantRunTrace locale={locale} live={live} elapsed={elapsed} onStop={stopAsk} />
-                {live.text ? <ModelText className="asst-a" text={live.text} /> : null}
+                {live.text ? <ModelText className="card asst-a" text={live.text} /> : null}
               </article>
             ) : null}
           </div>
 
           {unavailable ? (
             <div className="asst-unavailable" role="status">
-              <strong>{pageText(locale, 'Kai is not available.', 'קאי אינו זמין.')}</strong>
+              <strong>{pageText(locale, 'Mabat is not available.', 'מבט אינו זמין.')}</strong>
               {reasonLabel ? <span>{reasonLabel}</span> : null}
-              <span>{pageText(locale, 'To enable it, set the ANTHROPIC_API_KEY or KAIROS_ASSISTANT_API_KEY environment variable and restart the server.', 'להפעלה, הגדירו את משתנה הסביבה ANTHROPIC_API_KEY או KAIROS_ASSISTANT_API_KEY והפעילו מחדש את השרת.')}</span>
+              <span>{pageText(locale, 'Ask a system administrator to connect the service, then try again.', 'בקשו ממנהל המערכת לחבר את השירות, ואז נסו שוב.')}</span>
             </div>
           ) : null}
 
@@ -321,6 +417,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             onStop={stopAsk}
             onActivity={keepPrefixWarm}
           />
+          </> : null}
         </section>
 
         <AssistantConversationsSidebar
@@ -336,6 +433,8 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
           refreshing={refreshing}
           onRefresh={refreshRail}
           onShowRestore={showRestoreVersion}
+          hidden={dock && dockView !== 'actions'}
+          dockPanel={dock}
         />
       </div>
     </section>

@@ -63,6 +63,10 @@ STEER_HALF = 8.0
 SECONDS_PER_SPOT = 30.0
 
 
+class InventoryInputError(ValueError):
+    """A present inventory source that cannot produce a single usable slot."""
+
+
 @dataclass(frozen=True)
 class SlotDemand:
     """Observed booked/available demand for one channel-day-hour slot.
@@ -127,7 +131,9 @@ def _parse_hour(row: Mapping[str, str]) -> Optional[int]:
     return None
 
 
-def load_inventory(path: Optional[str | Path] = None) -> dict[tuple[str, str, int], SlotDemand]:
+def load_inventory(
+    path: Optional[str | Path] = None, *, require_usable: bool = False,
+) -> dict[tuple[str, str, int], SlotDemand]:
     """Read booked spot inventory into per (channel, day, hour) demand counts.
 
     Each CSV row is one booked spot; we count spots per slot. ``available`` is
@@ -174,6 +180,12 @@ def load_inventory(path: Optional[str | Path] = None) -> dict[tuple[str, str, in
                 booked=booked, available=available,
             )
     _report_discards(target, read, discarded, kept=len(slots))
+    if require_usable and read > 0 and not slots:
+        raise InventoryInputError(
+            f"Inventory input {target.name} contains {read} rows but produced no usable "
+            "channel-day-hour slots. The saved plan was not changed. Upload an inventory "
+            "file with hour_of_day or Start_dt before running the plan."
+        )
     return slots
 
 
@@ -188,11 +200,10 @@ def _report_discards(
     class this reporting exists to break, so a TOTAL discard is a warning rather
     than a debug line.
 
-    The reason is named per field because the shipped example fails on exactly
-    one of them: measured 2026-08-09, all 994 rows of ``Spots - inventory.csv``
-    parse a date but carry an empty ``hour_of_day``, so every row is dropped on
-    the hour. Channel counts are reported as a NUMBER and never as names: this
-    file carries other broadcasters' rows and no rival name may travel outward.
+    The reason is named per field so an invalid upload can be repaired without
+    guessing which coordinate was absent. Channel counts are reported as a
+    NUMBER and never as names: source files can carry other broadcasters' rows
+    and no rival name may travel outward.
     """
     dropped = sum(discarded.values())
     if not dropped:
@@ -207,8 +218,8 @@ def _report_discards(
     logger.warning(
         "Inventory: discarded ALL %d rows in %s (%s), so the pool is EMPTY and the "
         "inventory placement steer is inert: every weight stays 1.0, exactly as if "
-        "no file were present. Fixing the parse would ACTIVATE the steer and move "
-        "real money, so it is owner-gated, not a silent repair.",
+        "no file were present. Authoritative run boundaries refuse this state "
+        "rather than silently planning without the booked-demand signal.",
         read, target.name, reasons,
     )
 

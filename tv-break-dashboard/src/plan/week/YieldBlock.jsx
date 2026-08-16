@@ -1,9 +1,9 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Coins } from 'lucide-react';
 import { finiteNumber, formatCurrency, formatNumber, pageText } from '../../shell/format';
 import { Code, Figure, Name } from '../../shell/bidi';
-import { DataTable } from '../../shell/primitives';
+import { DataTable } from '../../studio';
 import { daypartLabel as engineDaypartLabel } from '../../shell/surface-helpers';
 import {
   bandWords,

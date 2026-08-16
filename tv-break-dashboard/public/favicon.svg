@@ -1,6 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="#0d1b2a"/>
-  <rect x="18" y="18" width="12" height="5" rx="2.5" fill="#ffffff"/>
-  <rect x="18" y="29.5" width="24" height="5" rx="2.5" fill="#ffffff"/>
-  <rect x="18" y="41" width="32" height="5" rx="2.5" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    path { fill: #1d1e1a; }
+    @media (prefers-color-scheme: dark) { path { fill: #fbf8f0; } }
+  </style>
+  <path d="M4 3h11v8.5l3.5 3.5-3.5 3.5V29H4V3Z"/>
+  <path d="M17 3h11v26H17V18.5l3.5-3.5-3.5-3.5V3Z"/>
 </svg>

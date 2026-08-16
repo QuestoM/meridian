@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 
 // The bundled-holidays panel of the Calendar page: the read-only reference list
 // grouped into per-year accordions, collapsed by default so 50+ holiday rows
@@ -13,7 +15,7 @@ function HolidayYearGroup({ year, rows, locale, busy, canEdit, open, onToggle, o
   return (
     <div className="cal-holiday-year">
       <div className="cal-holiday-year-head">
-        <button
+        <Pressable
           type="button"
           className="cal-holiday-year-toggle"
           aria-expanded={open}
@@ -22,7 +24,7 @@ function HolidayYearGroup({ year, rows, locale, busy, canEdit, open, onToggle, o
           <ChevronDown size={14} className={`cal-row-caret${open ? ' open' : ''}`} aria-hidden="true" />
           <span className="bidi-figure figure-nowrap">{year}</span>
           <span className="cal-count-note">{pageText(locale, `${rows.length} rows`, `${rows.length} שורות`)}</span>
-        </button>
+        </Pressable>
         {canEdit && (
           <Tooltip title={pageText(locale, 'Creates one event per holiday of this year, with intensity 1 until you judge it, so you can attach intensity or deactivate single rows. Holidays already in the list are skipped.', 'יוצר אירוע לכל חג בשנה הזו, עם עוצמה 1 עד שתקבעו אותה, כך שתוכלו לצרף עוצמה או להשבית שורות בודדות. חגים שכבר ברשימה מדולגים.')} arrow>
             <span>

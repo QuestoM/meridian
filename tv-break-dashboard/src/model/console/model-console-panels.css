@@ -326,7 +326,7 @@
 .mc-button:hover:not(:disabled) { background: var(--surface-muted); }
 .mc-button:disabled { opacity: 0.55; cursor: default; }
 .mc-button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
-.mc-button.mc-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.mc-button.mc-primary { background: var(--primary); border-color: var(--primary); color: var(--surface); }
 .mc-button.mc-primary:hover:not(:disabled) { background: var(--primary-hover); }
 
 .mc-trainer { border-block-end: 1px solid var(--line); padding: var(--space-3) var(--space-4); }
@@ -393,7 +393,7 @@
 .mc-artifact-head code { font-size: var(--text-2xs); color: var(--subtle); }
 .mc-artifact h4 { margin: var(--space-2) 0 2px; font-size: var(--text-2xs); color: var(--subtle); font-weight: var(--weight-medium); }
 .mc-fingerprint-list li { display: flex; justify-content: flex-start; gap: var(--space-2); font-size: var(--text-xs); padding-block: 1px; }
-.mc-fingerprint { color: var(--subtle); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mc-fingerprint { color: var(--subtle); font-family: var(--font-mono); }
 .mc-stat-wrap { row-gap: var(--space-3); }
 .mc-flag-list li, .mc-command-list li { padding: var(--space-2) var(--space-4); border-block-end: 1px solid var(--line); font-size: var(--text-xs); }
 .mc-flag-list li { display: flex; align-items: center; gap: var(--space-3); }

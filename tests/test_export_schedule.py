@@ -87,6 +87,7 @@ def test_shipped_write_refuses_settings_that_changed_during_recompute(
     tmp_path, monkeypatch
 ) -> None:
     from kairos_api import server
+    from kairos.optimize import inventory as inventory_module
 
     saved = server._load_settings()
     settings = server._model_dump(saved)
@@ -104,6 +105,7 @@ def test_shipped_write_refuses_settings_that_changed_during_recompute(
     frame.attrs["shipped_input_refusal_reasons"] = ()
     target = tmp_path / "shipped.csv"
     monkeypatch.delenv("KAIROS_PLAN_READONLY", raising=False)
+    monkeypatch.setattr(inventory_module, "load_inventory", lambda **_kwargs: {})
     monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", target)
     monkeypatch.setattr(server, "_load_settings", lambda: changed)
 
@@ -114,6 +116,7 @@ def test_shipped_write_refuses_settings_that_changed_during_recompute(
 
 def test_shipped_write_refuses_unstamped_explicit_programmes(tmp_path, monkeypatch) -> None:
     from kairos_api import server
+    from kairos.optimize import inventory as inventory_module
 
     saved = server._load_settings()
     frame = build_weekly_schedule(
@@ -124,6 +127,7 @@ def test_shipped_write_refuses_unstamped_explicit_programmes(tmp_path, monkeypat
     )
     target = tmp_path / "shipped.csv"
     monkeypatch.delenv("KAIROS_PLAN_READONLY", raising=False)
+    monkeypatch.setattr(inventory_module, "load_inventory", lambda **_kwargs: {})
     monkeypatch.setattr(schedule_module, "DEFAULT_OUTPUT_PATH", target)
 
     with pytest.raises(ValueError, match="explicit inputs"):

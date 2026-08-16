@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Code, Figure, Name, Prose } from '../../shell/bidi';
 import { formatDay } from '../../shell/dates';
@@ -38,6 +39,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
   const [programmeOpen, setProgrammeOpen] = useState(false);
   const [hourOpen, setHourOpen] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
+  const inspectorRef = useRef(null);
   const set = Array.isArray(siblings) ? siblings : [];
   const index = set.indexOf(breakId);
   const walkable = index >= 0 && set.length > 1 && typeof onNavigate === 'function';
@@ -61,6 +63,10 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
       .catch((fetchError) => { if (alive) setError(fetchError.message); });
     return () => { alive = false; };
   }, [breakId]);
+
+  useEffect(() => {
+    if (!programmeOpen) inspectorRef.current?.focus({ preventScroll: true });
+  }, [breakId, programmeOpen]);
 
   useEffect(() => {
     function step(direction) {
@@ -94,40 +100,48 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
 
   return (
     <>
-    <aside className="break-inspector" role="dialog" aria-label={label('Break detail', 'פרטי הברייק')}>
+    <aside
+      ref={inspectorRef}
+      className="break-inspector"
+      aria-labelledby="break-inspector-title"
+      aria-busy={!detail && !error}
+      aria-hidden={programmeOpen || undefined}
+      inert={programmeOpen ? '' : undefined}
+      tabIndex={-1}
+    >
       <header className="break-inspector-head">
         <div>
-          <h2>{label('Break', 'ברייק')}</h2>
+          <h2 id="break-inspector-title">{label('Break', 'ברייק')}</h2>
           <code><Code>{breakId}</Code></code>
         </div>
         {walkable && (
           <div className="break-inspector-walk">
             <Figure>{index + 1} / {set.length}</Figure>
-            <button
+            <Pressable
               type="button"
               onClick={() => onNavigate(set[index - 1])}
               disabled={index === 0}
               aria-label={label('Previous break in this list', 'הברייק הקודם ברשימה')}
             >
               <ChevronUp size={14} />
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               type="button"
               onClick={() => onNavigate(set[index + 1])}
               disabled={index === set.length - 1}
               aria-label={label('Next break in this list', 'הברייק הבא ברשימה')}
             >
               <ChevronDown size={14} />
-            </button>
+            </Pressable>
           </div>
         )}
-        <button type="button" onClick={onClose} aria-label={label('Close', 'סגירה')}>
+        <Pressable type="button" onClick={onClose} aria-label={label('Close', 'סגירה')}>
           <X size={16} />
-        </button>
+        </Pressable>
       </header>
 
-      {error && <Prose as="p" className="break-inspector-error">{error}</Prose>}
-      {!detail && !error && <p>{label('Opening', 'פותח')}</p>}
+      {error && <Prose as="p" className="break-inspector-error" role="alert">{error}</Prose>}
+      {!detail && !error && <p role="status">{label('Opening', 'פותח')}</p>}
 
       {detail && (
         <div className="break-inspector-body">
@@ -136,14 +150,14 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
             <dl>
               <dt>{pageText(locale, 'Programme', 'תוכנית')}</dt>
               <dd>
-                <button
+                <Pressable
                   type="button"
                   className="break-open"
                   onClick={() => setProgrammeOpen(true)}
                   aria-label={`${detail.programme.title}, ${label('open the programme record', 'פתיחת רשומת התוכנית')}`}
                 >
                   <Name>{detail.programme.title}</Name>
-                </button>
+                </Pressable>
               </dd>
               <dt>{pageText(locale, 'Programme window', 'חלון התוכנית')}</dt>
               <dd><Figure>{detail.programme.start_clock} - {detail.programme.end_clock}</Figure></dd>
@@ -159,7 +173,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                 <>
                   <dt>{label('Restriction holding it', 'המגבלה שנושאת אותה')}</dt>
                   <dd>
-                    <button
+                    <Pressable
                       type="button"
                       className="break-open"
                       aria-expanded={pinOpen}
@@ -168,7 +182,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                       {detail.placement.saved_placement.constraint_id
                         ? <Code>{detail.placement.saved_placement.constraint_id}</Code>
                         : label('none on record', 'לא רשומה')}
-                    </button>
+                    </Pressable>
                   </dd>
                 </>
               )}
@@ -260,7 +274,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
               </p>
             )}
             {hourBreaks.length > 0 && (
-              <button
+              <Pressable
                 type="button"
                 className="break-open break-open-row"
                 aria-expanded={hourOpen}
@@ -268,13 +282,13 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
               >
                 <span>{label('The breaks in this hour', 'הברייקים בשעה הזו')} ({hourBreaks.length})</span>
                 {hourOpen ? <ChevronUp size={12} aria-hidden="true" /> : <ChevronDown size={12} aria-hidden="true" />}
-              </button>
+              </Pressable>
             )}
             {hourOpen && (
               <ul className="break-hour-list">
                 {hourBreaks.map((row) => (
                   <li key={row.break_id}>
-                    <button
+                    <Pressable
                       type="button"
                       className="break-open"
                       disabled={row.break_id === breakId || typeof onNavigate !== 'function'}
@@ -283,7 +297,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                       <Figure>{row.start_clock}</Figure>
                       <span><Name>{row.programme}</Name></span>
                       <Figure>{formatNumber(row.duration_seconds, locale)}s</Figure>
-                    </button>
+                    </Pressable>
                   </li>
                 ))}
               </ul>
@@ -323,7 +337,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                     {detail.contents.covered_days.map((covering, index) => (
                       <React.Fragment key={covering}>
                         {index > 0 && ', '}
-                        <button
+                        <Pressable
                           type="button"
                           className="break-open"
                           onClick={() => {
@@ -343,7 +357,7 @@ function BreakInspector({ breakId, locale, onClose, siblings, onNavigate, notify
                           aria-label={`${formatDay(covering)}, ${label('open this day\'s breaks', 'פתיחת הברייקים של היום הזה')}`}
                         >
                           <Figure>{formatDay(covering)}</Figure>
-                        </button>
+                        </Pressable>
                       </React.Fragment>
                     ))}
                   </p>

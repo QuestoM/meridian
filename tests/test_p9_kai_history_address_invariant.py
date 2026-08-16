@@ -140,6 +140,13 @@ POINT_ADDRESS = _function(ADDRESS, "pointAddress")
 SHOW_RESTORE_VERSION = _function(PANEL_STATE, "showRestoreVersion")
 OPEN_DOCK = _function(SHORTCUTS, "openDock")
 
+
+def test_restore_navigation_delegates_to_the_canonical_shell_route() -> None:
+    assert "requestNavigation('History', { entry: pointAddress(versionId) })" in SHOW_RESTORE_VERSION
+    assert "window.location" not in SHOW_RESTORE_VERSION
+    assert "writeAddress" not in SHOW_RESTORE_VERSION
+    assert "setTimeout" not in SHOW_RESTORE_VERSION
+
 # The three shapes that shipped before this one, kept as literals rather than
 # re-derived from git history so this file reads as one self-contained
 # measurement. Each reproduces a defect a critic measured on the running
@@ -196,9 +203,12 @@ def _walk(show_restore_version_source: str) -> str:
 {WRITE_ADDRESS}
 {POINT_ADDRESS}
 {show_restore_version_source}
+function requestNavigation(view, params = {{}}) {{
+  return window.__requestNavigation(view, params);
+}}
 
 window.__probe = (async () => {{
-  const KNOWN = new Set(['Overview', 'Versions']);
+  const KNOWN = new Set(['Overview', 'History', 'Versions']);
   const settle = () => new Promise((resolve) => setTimeout(resolve, 90));
   const path = window.location.pathname;
   const viewFromLocation = () => {{
@@ -207,14 +217,26 @@ window.__probe = (async () => {{
   }};
   let view = viewFromLocation();
   const mounted = [];
-  window.addEventListener('hashchange', () => {{
+  const syncView = () => {{
     const next = viewFromLocation();
     if (next === view) return;
     view = next;
-    if (view === 'Versions') {{
+    if (view === 'History' || view === 'Versions') {{
       mounted.push(new URLSearchParams(window.location.search).get(ADDRESS_PARAM) || '');
     }}
-  }});
+  }};
+  window.addEventListener('hashchange', syncView);
+  window.addEventListener('popstate', syncView);
+  window.__requestNavigation = (nextView, params = {{}}) => {{
+    const url = new URL(window.location.href);
+    if (params.entry) url.searchParams.set(ADDRESS_PARAM, params.entry);
+    else url.searchParams.delete(ADDRESS_PARAM);
+    url.hash = nextView;
+    window.history.pushState({{ kairos: true, view: nextView }}, '', `${{url.pathname}}${{url.search}}${{url.hash}}`);
+    view = nextView;
+    if (view === 'History') mounted.push(new URLSearchParams(url.search).get(ADDRESS_PARAM) || '');
+    return true;
+  }};
 
   const marks = {{}};
   const mark = (name) => {{
@@ -342,7 +364,7 @@ def test_the_address_names_the_screen_on_every_path_in(shipped) -> None:
                                       "", "version:ccc333ccc333")))
     for name, wanted in wanted_by_path.items():
         step = shipped[name]
-        assert step["view"] == "Versions", f"{name} must land on the destination"
+        assert step["view"] == "History", f"{name} must land on the destination"
         assert _entry(step["search"]) == wanted, f"{name} must address exactly what it named"
         assert step["lastMounted"] == wanted, (
             f"{name}: the destination must mount at the address in the url, not at whichever "
@@ -355,24 +377,16 @@ def test_the_address_names_the_screen_on_every_path_in(shipped) -> None:
         "address change, nothing on screen")
 
 
-def test_no_click_grows_the_back_stack_or_writes_on_another_entry(shipped) -> None:
-    """The whole point of the shape. Every path in replaces the entry the
-    operator is standing on, exactly as the shell's own setActiveView does, so
-    there is no second entry for an address to be written onto and no Back press
-    that has to route a screen back. Six clicks, no entry created by any of
-    them."""
-    flat = shipped["start"]["len"]
-    for name in PATHS:
-        assert shipped[name]["len"] == flat, (
-            f"{name} must add nothing to the Back stack: a pushed entry either carries the "
-            f"address of the page being left, or is a Back press the shell cannot route "
-            f"because the query changed across it and no hashchange fires")
-
+def test_canonical_navigation_preserves_a_clean_back_destination(shipped) -> None:
+    """The shell owns navigation history. The first click creates its normal
+    destination entry, and Back returns to the page that was actually left with
+    no History-row address stamped onto it."""
+    assert shipped["firstUse"]["len"] == shipped["start"]["len"] + 1
     back = shipped.get("back")
-    assert back is None, (
-        "no path in may create an entry to go back to at all, so the harness never pressed "
-        "Back: if a later round pushes one again, this is where it has to prove the entry "
-        "behind it is clean")
+    assert back is not None
+    assert back["view"] == "Overview"
+    assert _entry(back["search"]) == ""
+    assert _kept(back["search"]) == "1"
 
 
 def test_the_control_that_shipped_writes_its_address_on_the_page_it_left(tmp_path) -> None:

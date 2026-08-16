@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
 import { postJson, requestJson } from './assistant-stream';
 import FieldName from './kai-field-name';
 import { isolate } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 
 // Undo, as an object you can open and read before you use it.
 //
@@ -172,11 +173,11 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
 
   if (state === 'idle') {
     return (
-      <button type="button" className="asst-undo-open" onClick={() => setState('open')}>
+      <Pressable type="button" className="asst-undo-open" onClick={() => setState('open')}>
         <RotateCcw size={12} />
         {pageText(locale, 'Undo this change', 'ביטול השינוי')}
         <Code>{String(restoreId).slice(0, 8)}</Code>
-      </button>
+      </Pressable>
     );
   }
 
@@ -194,13 +195,13 @@ export default function AssistantUndo({ locale, restoreId, notify, onDone }) {
   const restorable = Boolean(preview && preview.restorable);
 
   return (
-    <div className="asst-undo">
+    <div className="card asst-undo">
       <div className="asst-undo-head">
         <span>{pageText(locale, 'What undoing would change', 'מה הביטול ישנה')}</span>
         <Code>{String(restoreId).slice(0, 8)}</Code>
-        <button type="button" className="asst-undo-close" onClick={() => setState('idle')}>
+        <Pressable type="button" className="asst-undo-close" onClick={() => setState('idle')}>
           {pageText(locale, 'Close', 'סגירה')}
-        </button>
+        </Pressable>
       </div>
       {state === 'loading' ? <div className="asst-loading">{pageText(locale, 'Reading the restore point', 'קורא את נקודת השחזור')}</div> : null}
       {state === 'restoring' ? <div className="asst-loading">{pageText(locale, 'Putting the previous state back', 'מחזיר את המצב הקודם')}</div> : null}

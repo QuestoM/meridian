@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Camera, RefreshCcw, Search } from 'lucide-react';
 import { formatNumber, pageText } from '../shell/format';
 import { Figure } from '../shell/bidi';
+import { InputControl, Pressable, SelectControl } from '../studio/dom-controls';
 import { ANONYMOUS_SESSION, WALLS, fetchSession, payloadCanEdit } from '../session.js';
 import HistoryDetail from './HistoryDetail';
 import { ReachDays, ReachEmpty, ReachEmptyPage, ReachMissed, ReachPager, ReachStart } from './HistoryReach';
@@ -15,6 +16,7 @@ import { foldPreviews, foldSize, matchesSearch } from './history-fold';
 import { refusedTabLine } from './history-refused';
 import { runsCountLine, runsCounted, runsSourceState } from './history-runs';
 import { pageCoveredLine } from './history-scope';
+import { useHistoryKindNavigation } from './use-history-page-navigation';
 import {
   DEFAULT_LIMIT,
   WIDE_LIMIT,
@@ -28,63 +30,50 @@ import {
   KIND_HINTS,
   KIND_LABELS,
   actorLabel,
-  addressOf,
   historyPlace,
   pair,
   readAddress,
   writeAddress,
 } from './history-labels';
 import './history.css';
+import './studio-ledger-history.css';
 
-// History: what changed, who changed it, and how to put it back.
-//
 // One timeline over the four records the product already keeps and never showed
-// together, with the filters in the content rather than in the navigation, the
-// keyboard taught on the surface that answers to it, and the opened entry
-// carrying its position in the set so the whole list can be walked from inside
-// a record.
-//
+// together, with content-level filters and an addressable opened entry.
 // Nothing here computes a figure. Every number on this surface was recorded by
-// the engine, the version store or the request recorder, and a record that
-// could not be read says so by name instead of rendering as zero.
+// the engine, version store or request recorder; unreadable records say so.
 
 export default function HistoryPage({ locale, notify }) {
   const [session, setSession] = useState(ANONYMOUS_SESSION);
   const [state, setState] = useState('loading');
   const [body, setBody] = useState(null);
   const [error, setError] = useState('');
-  // An address for a restore point opens on the restore points, for the reason history-address gives: measured
-  // cold on this instance, a shared link to the real point version:1337540bd866 landed on "older than the 500
-  // entries loaded" because the unfiltered page had moved on, and the same link opens the point when the list
-  // is the points.
-  const [kind, setKind] = useState(() => addressQuery(readAddress()).kind);
+  // A restore-point address opens on the points list; the unfiltered live page
+  // can move beyond its 500-entry reach before a shared link is opened.
   const [actor, setActor] = useState('');
   const [needle, setNeedle] = useState('');
-  // How far back this page reaches. Two inclusive broadcast days move the window by date, and the cursor steps
-  // it by exactly one page, which is the only step that still advances when a day holds more than a page.
+  // Inclusive broadcast days move by date; the cursor advances one page when a
+  // day itself holds more than a page.
   const [fromDay, setFromDay] = useState('');
   const [untilDay, setUntilDay] = useState('');
   const [before, setBefore] = useState('');
-  // An address in the url asks for one specific entry, so the first read is the
-  // wide one: a link that lands on "not in the loaded range" when one more page
-  // would have found it is a link that failed.
+  // Addressed entries get the wide first read so reachable links resolve.
   const [limit, setLimit] = useState(() => (readAddress() ? WIDE_LIMIT : DEFAULT_LIMIT));
   const [selectedId, setSelectedId] = useState(readAddress);
   const [saving, setSaving] = useState(false);
   const [pointLabel, setPointLabel] = useState('');
   const [pointOpen, setPointOpen] = useState(false);
-  // The filters the loaded body was actually read under. Following a link out of
-  // an entry changes the filters and the matching body arrives one request
-  // later, so without this the "not here" note would fire against the previous
-  // body and accuse a link that is about to resolve.
+  // Remember the filters behind the loaded body so a pending link is not judged
+  // against the previous response.
   const [loaded, setLoaded] = useState(null);
   const searchRef = useRef(null);
   const listRef = useRef(null);
   const reading = useRef(0);
-  // The address the reader arrived on, captured once: selecting a row rewrites
-  // the url, so after the first selection the url no longer says where the
-  // reader was sent.
+  // Capture the arrival address before row selection rewrites the URL.
   const requested = useRef(readAddress());
+  const detailDismissed = useRef(false);
+  const { chooseKind, kind, kindTabsRef, onKindTabKeyDown, setKind } =
+    useHistoryKindNavigation({ locale, requested, setBefore, setSelectedId });
 
   useEffect(() => {
     let active = true;
@@ -94,10 +83,7 @@ export default function HistoryPage({ locale, notify }) {
     return () => { active = false; };
   }, []);
 
-  // Reads can land out of order, and a segmented date field fires one read per
-  // segment: measured live, typing a four-digit year fired four, the year 0202
-  // answered last, and the page settled on an empty list under a date the reader
-  // had already finished typing. Only the newest read may set the body.
+  // Segmented dates can fire overlapping reads; only the newest may commit.
   const load = useCallback(async () => {
     const ticket = (reading.current += 1);
     setState('loading');
@@ -116,9 +102,7 @@ export default function HistoryPage({ locale, notify }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // A cursor is a position inside one result set, so any change to what the list
-  // matches starts the reach again at the newest end rather than resuming in the
-  // middle of a set that no longer exists.
+  // Changing the result set resets its cursor to the newest end.
   const setDays = useCallback((from, until) => {
     setBefore('');
     setFromDay(from);
@@ -134,34 +118,29 @@ export default function HistoryPage({ locale, notify }) {
   const selectedIndex = entries.findIndex((entry) => entry.id === selectedId);
   const selected = selectedIndex >= 0 ? entries[selectedIndex] : null;
 
-  // Every filter dropped in one act, without touching the days, which are their
-  // own control with their own way back.
+  // Drop every content filter without touching the separately controlled days.
   const clearFilters = useCallback(() => { setBefore(''); setKind(''); setActor(''); setNeedle(''); }, []);
 
   // A row the reader picks answers whatever was asked before it, so the pending
   // address is dropped with the same act and the default below reopens.
   const choose = useCallback((id) => {
     requested.current = '';
+    detailDismissed.current = !id;
     setSelectedId(id);
+    writeAddress(id);
   }, []);
 
   // The newest entry opens by itself, so the destination answers "what changed
-  // and by whom" with no click at all and the keyboard has somewhere to start.
-  // An address in the url wins over that default, and it survives a reload.
-  //
-  // One exception, and it is what the note below the toolbar is for: while a
-  // specific entry has been asked for and is not on screen, opening the newest
-  // row instead would answer a question nobody asked, and it would do it
-  // silently. The request stands, the note names the reason, and the reader is
-  // one keystroke or one click from the list either way.
+  // and by whom" without overriding an address or an explicit close.
   useEffect(() => {
     if (selected || !entries.length || requested.current) return;
+    if (detailDismissed.current) return;
     setSelectedId(entries[0].id);
+    writeAddress(entries[0].id);
   }, [entries, selected]);
 
   useEffect(() => {
     if (selected && requested.current === selected.id) requested.current = '';
-    writeAddress(selected ? addressOf(selected) : '');
   }, [selected]);
 
   const step = useCallback((direction) => {
@@ -183,6 +162,7 @@ export default function HistoryPage({ locale, notify }) {
   const openVersion = useCallback((versionId) => {
     const address = pointAddress(versionId);
     if (!address) return;
+    detailDismissed.current = false;
     const query = addressQuery(address);
     requested.current = address;
     setKind(query.kind);
@@ -191,6 +171,7 @@ export default function HistoryPage({ locale, notify }) {
     setLimit(query.limit);
     setDays('', '');
     setSelectedId(address);
+    writeAddress(address);
   }, [setDays]);
 
   useEffect(() => {
@@ -240,8 +221,7 @@ export default function HistoryPage({ locale, notify }) {
   const windowed = Boolean(fromDay || untilDay);
   const shown = entries.length;
   const covered = entries.reduce((sum, entry) => sum + foldSize(entry), 0);
-  // A link that points at an entry outside the loaded range says so and offers the two things that would find
-  // it, rather than quietly opening the newest row and letting the reader believe it is the one they were sent.
+  // Addressed entries outside this response keep their request visible.
   const wanted = requested.current;
   const settled = Boolean(loaded) && loaded.limit === limit && loaded.kind === kind
     && loaded.actor === actor && loaded.untilDay === untilDay && loaded.before === before;
@@ -258,69 +238,88 @@ export default function HistoryPage({ locale, notify }) {
   const sources = (body && body.sources) || {};
   const runScope = (body && body.run_scope) || {};
   const runsState = runsSourceState(sources);
-  // A withheld or unreadable run log makes the run count unknown, and the two
-  // places on this page that would otherwise print it as zero read this: the run
-  // tab, and the empty list under it. Zero is a claim that nothing ran, and it
-  // is not a claim this product is entitled to make. A record that has not
-  // arrived yet is not a record that failed, so nothing is claimed at all until
-  // a body is in hand.
+  // A withheld or unreadable run log is unknown, never zero.
   const counted = !body || runsCounted(runsState);
   const runsHint = counted ? '' : pageText(locale, ...runsCountLine(runsState));
   const runsBlocked = kind === 'run' && !counted;
-  // Why an empty list under a day window is empty, decided from the payload's own
-  // counts so the page can never call days empty that its own tabs are counting.
+  // Empty-window reasons come from the response's own counts.
   const emptied = emptyWindow(body, { kind, actor, needle: needle.trim() });
 
   return (
     <section className="page-workspace hist-workspace">
       <div className="page-header hist-header">
-        <h1>{historyPlace(locale)}</h1>
-        <p>{pageText(locale, 'What changed, who changed it, and how to put it back.', 'מה השתנה, מי שינה, ואיך להחזיר.')}</p>
-        <div className="hist-keys" aria-label={pageText(locale, 'Keyboard', 'מקלדת')}>
-          {KEY_HINTS.map(([key, en, he]) => (
-            <span className="hist-key" key={key}>
-              <kbd><Figure>{key}</Figure></kbd>
-              {pageText(locale, en, he)}
-            </span>
-          ))}
+        <div className="hist-heading-copy">
+          <h1>{historyPlace(locale)}</h1>
+          <p>{pageText(locale, 'Recorded changes, model runs, restore points and access events.', 'שינויים, הרצות מודל, נקודות שחזור ואירועי גישה שנרשמו במערכת.')}</p>
+        </div>
+        <div className="hist-header-meta">
+          <dl className="card card-dense card-body hist-head-figures">
+            <div><dt>{pageText(locale, 'Recorded entries', 'רשומות מתועדות')}</dt><dd><Figure>{body ? formatNumber(total, locale) : pageText(locale, 'Pending', 'בהמתנה')}</Figure></dd></div>
+            <div><dt>{pageText(locale, 'Current window', 'בחלון הנוכחי')}</dt><dd><Figure>{body ? formatNumber(windowTotal, locale) : pageText(locale, 'Pending', 'בהמתנה')}</Figure></dd></div>
+            <div><dt>{pageText(locale, 'Operators', 'מפעילים')}</dt><dd><Figure>{body ? formatNumber((body.actors || []).length, locale) : pageText(locale, 'Pending', 'בהמתנה')}</Figure></dd></div>
+          </dl>
+          <div className="hist-keys" aria-label={pageText(locale, 'Keyboard', 'מקלדת')}>
+            {KEY_HINTS.map(([key, en, he]) => (
+              <span className="hist-key" key={key}>
+                <kbd><Figure>{key}</Figure></kbd>
+                {pageText(locale, en, he)}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       <HistorySince locale={locale} landing={body && body.attestation} onShow={(since) => { clearFilters(); setDays(since, ''); }} />
 
-      <div className="hist-toolbar">
+      <div className="card card-dense card-body hist-toolbar">
         <div className="hist-kinds" role="tablist" aria-label={pageText(locale, 'Filter', 'סינון')}>
-          <button type="button" role="tab" aria-selected={kind === ''} className={`hist-tab${kind === '' ? ' on' : ''}`} onClick={() => { setBefore(''); setKind(''); }}>
+          <Pressable
+            ref={(node) => { kindTabsRef.current[0] = node; }}
+            type="button"
+            role="tab"
+            id="history-tab-all"
+            aria-selected={kind === ''}
+            aria-controls="history-results-panel"
+            tabIndex={kind === '' ? 0 : -1}
+            className={`hist-tab${kind === '' ? ' on' : ''}`}
+            onClick={() => chooseKind('')}
+            onKeyDown={(event) => onKindTabKeyDown(event, 0)}
+          >
             {pageText(locale, 'Everything', 'הכול')}
-            <span className="hist-tab-count"><Figure>{windowTotal}</Figure></span>
-          </button>
-          {Object.keys(KIND_LABELS).map((name) => (
-            <button
+            <span className="hist-tab-count"><Figure>{body ? windowTotal : pageText(locale, 'Pending', 'בהמתנה')}</Figure></span>
+          </Pressable>
+          {Object.keys(KIND_LABELS).map((name, index) => (
+            <Pressable
+              ref={(node) => { kindTabsRef.current[index + 1] = node; }}
               type="button"
               role="tab"
               key={name}
+              id={`history-tab-${name}`}
               aria-selected={kind === name}
+              aria-controls="history-results-panel"
+              tabIndex={kind === name ? 0 : -1}
               title={name === 'run' && runsHint ? runsHint : pair(KIND_HINTS, name, locale)}
               className={`hist-tab${kind === name ? ' on' : ''}`}
-              onClick={() => { setBefore(''); setKind(name); }}
+              onClick={() => chooseKind(name)}
+              onKeyDown={(event) => onKindTabKeyDown(event, index + 1)}
             >
               <span className={`hist-dot k-${name}`} aria-hidden="true" />
               {pair(KIND_LABELS, name, locale)}
               {name === 'run' && runsHint ? (
                 <span className="hist-tab-count unknown" aria-label={runsHint}>?</span>
               ) : (
-                <span className="hist-tab-count"><Figure>{counts[name] || 0}</Figure></span>
+                <span className="hist-tab-count"><Figure>{body ? (counts[name] || 0) : pageText(locale, 'Pending', 'בהמתנה')}</Figure></span>
               )}
               {name === 'change' && refused ? (
                 <span className="hist-tab-refused" title={pageText(locale, ...refusedTabLine(refused))}><Figure>{refused}</Figure></span>
               ) : null}
-            </button>
+            </Pressable>
           ))}
         </div>
         <div className="hist-controls">
           <label className="hist-search">
             <Search size={14} aria-hidden="true" />
-            <input
+            <InputControl
               ref={searchRef}
               value={needle}
               onChange={(event) => setNeedle(event.target.value)}
@@ -330,10 +329,10 @@ export default function HistoryPage({ locale, notify }) {
           </label>
           <label className="hist-select">
             <span>{pageText(locale, 'Operator', 'מפעיל')}</span>
-            <select value={actor} onChange={(event) => { setBefore(''); setActor(event.target.value); }}>
+            <SelectControl value={actor} onChange={(event) => { setBefore(''); setActor(event.target.value); }}>
               <option value="">{pageText(locale, 'Everyone', 'כולם')}</option>
               {((body && body.actors) || []).map((name) => <option key={name} value={name}>{actorLabel(name, locale)}</option>)}
-            </select>
+            </SelectControl>
           </label>
           <ReachDays locale={locale} from={fromDay} until={untilDay} onDays={setDays} />
           <Button type="button" variant="outlined" size="small" onClick={load} disabled={state === 'loading'} startIcon={<RefreshCcw size={14} />}>
@@ -344,7 +343,7 @@ export default function HistoryPage({ locale, notify }) {
           <div className="hist-point">
             {pointOpen ? (
               <div className="hist-point-form">
-                <input
+                <InputControl
                   value={pointLabel}
                   onChange={(event) => setPointLabel(event.target.value)}
                   maxLength={120}
@@ -360,10 +359,10 @@ export default function HistoryPage({ locale, notify }) {
                 </Button>
               </div>
             ) : (
-              <button type="button" className="hist-link" onClick={() => setPointOpen(true)}>
+              <Pressable type="button" className="hist-link" onClick={() => setPointOpen(true)}>
                 <Camera size={13} aria-hidden="true" />
                 {pageText(locale, 'Save a restore point now', 'שמירת נקודת שחזור עכשיו')}
-              </button>
+              </Pressable>
             )}
           </div>
         ) : (
@@ -371,10 +370,11 @@ export default function HistoryPage({ locale, notify }) {
         )}
       </div>
 
-      {state === 'loading' ? <p className="hist-empty">{pageText(locale, 'Reading the record', 'קורא את הרישום')}</p> : null}
-      {state === 'error' ? (
-        <p className="hist-empty warn">{pageText(locale, `History could not be read. ${error}`, `לא ניתן לקרוא את ההיסטוריה. ${error}`)}</p>
-      ) : null}
+      <div id="history-results-panel" role="tabpanel" aria-labelledby={`history-tab-${kind || 'all'}`} tabIndex={0}>
+        {state === 'loading' ? <p className="hist-empty" role="status">{pageText(locale, 'Reading the record', 'קורא את הרישום')}</p> : null}
+        {state === 'error' ? (
+          <p className="hist-empty warn" role="alert">{pageText(locale, `History could not be read. ${error}`, `לא ניתן לקרוא את ההיסטוריה. ${error}`)}</p>
+        ) : null}
 
       {addressMissed ? (
         <ReachMissed locale={locale} missed={missed} points={counts.restore_point || 0} limit={limit} wide={WIDE_LIMIT} day={missedDay}
@@ -436,12 +436,13 @@ export default function HistoryPage({ locale, notify }) {
           <HistoryRunsSource locale={locale} state={runsState} records={(sources.runs || {}).records} channel={runScope.scope_channel} />
           {body && body.scope === 'self' ? <span>{pageText(locale, ...pageCoveredLine(body))}</span> : null}
           {limit < WIDE_LIMIT && total > limit ? (
-            <button type="button" className="hist-link" onClick={() => setLimit(WIDE_LIMIT)}>
+            <Pressable type="button" className="hist-link" onClick={() => setLimit(WIDE_LIMIT)}>
               {pageText(locale, `Load ${WIDE_LIMIT}`, `טעינת ${WIDE_LIMIT}`)}
-            </button>
+            </Pressable>
           ) : null}
         </footer>
       ) : null}
+      </div>
     </section>
   );
 }

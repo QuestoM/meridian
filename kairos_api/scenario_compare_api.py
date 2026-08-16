@@ -48,8 +48,9 @@ from functools import lru_cache
 from typing import Any, Optional
 
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
+from kairos.optimize.inventory import InventoryInputError, load_inventory
 # ``_delta`` and ``_scenario_summary`` are re-exported by the frozen wave-zero
 # layer ``insights_api``, which binds them by name from this module, so they stay
 # bound here even where this module no longer calls them itself.
@@ -99,6 +100,13 @@ def _resolved(request: ScenarioCompareRequest) -> dict[str, Any]:
     server = _server()
     if not server._ENGINE_AVAILABLE:
         return {"available": False, "reason": "Optimization engine unavailable."}
+    try:
+        # Both the plain route and the streaming route resolve here before any
+        # leg is scheduled. This also prevents a cached weekly leg from leaking
+        # figures after the inventory source becomes present-but-unusable.
+        load_inventory(require_usable=True)
+    except InventoryInputError as exc:
+        return {"available": False, "reason": str(exc)}
     saved = server._load_settings()
     floor = request.retention_floor if request.retention_floor is not None else saved.min_retention_floor
     max_bph = request.max_breaks_per_hour if request.max_breaks_per_hour is not None else saved.max_breaks_per_hour
@@ -190,6 +198,7 @@ def _build_scenario_compare(request: ScenarioCompareRequest) -> dict[str, Any]:
             settings=settings_map,
             channel=channel,
             day=day,
+            require_usable_inventory=True,
         )
 
     started = time.perf_counter()
@@ -376,6 +385,7 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
                 settings=_model_dump(settings),
                 channel=channel,
                 day=day,
+                require_usable_inventory=True,
             )
         except Exception:
             logger.exception("forecast scenario '%s' failed at revenue_weight=%s", name, weight)
@@ -400,6 +410,10 @@ def _build_forecast_scenarios(settings: KairosSettings) -> list[dict[str, Any]]:
 @lru_cache(maxsize=16)
 def _forecasts_cached(signature: tuple[tuple[str, int, int], ...]) -> dict[str, Any]:
     del signature
+    # The startup warmer calls this cached body directly. Refuse there too, so a
+    # warm-up cannot manufacture a saved by-day body plus an empty scenario list
+    # while the authoritative source is present but unusable.
+    load_inventory(require_usable=True)
     return _build_forecasts(_load_break_schedule(), _load_settings())
 
 
@@ -414,13 +428,18 @@ def forecasts() -> dict[str, Any]:
     # EPG, so the settings file and the Programmes source belong in the cache
     # key; without them a settings edit or an EPG re-ingest kept serving the
     # stale cached forecast.
-    return _forecasts_cached(_signature([
-        OUTPUT_DIR / "weekly_break_schedule.csv",
-        ROOT / "optimization_results.csv",
-        SETTINGS_PATH,
-        DATA_DIR / "reference" / "Programmes.xlsx",
-        DATA_DIR / "Programmes.csv",
-    ]))
+    try:
+        load_inventory(require_usable=True)
+        return _forecasts_cached(_signature([
+            OUTPUT_DIR / "weekly_break_schedule.csv",
+            ROOT / "optimization_results.csv",
+            SETTINGS_PATH,
+            DATA_DIR / "reference" / "Programmes.xlsx",
+            DATA_DIR / "Programmes.csv",
+            DATA_DIR / "Spots - inventory.csv",
+        ]))
+    except InventoryInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # The streamed comparison rides this module's registration rather than appending

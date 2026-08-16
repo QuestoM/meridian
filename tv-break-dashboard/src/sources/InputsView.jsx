@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import React, { useMemo, useRef, useState } from 'react';
+import { Button } from '../studio/actions';
+import { ArrowRight } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
 import { Code } from '../shell/bidi';
 import {
@@ -21,15 +22,16 @@ import RowsDrawer from './RowsDrawer';
 function ModelPanel({ model, locale }) {
   if (!model || !model.available) {
     return (
-      <section className="model-strip unknown">
+      <section className="card card-dense card-body model-strip unknown">
         <p>{text('modelUnavailable', locale)}</p>
       </section>
     );
   }
   const status = String(model.status || 'unknown');
   const tone = status === 'fresh' ? 'ok' : status === 'stale' ? 'warn' : 'muted';
+  const changed = new Set(model.changed_sources || []);
   return (
-    <section className={`model-strip ${tone}`}>
+    <section className={`card card-dense card-body model-strip ${tone}`}>
       <div className="model-strip-head">
         <span className="model-strip-name">
           {text('modelVersion', locale)} <Numeric>{model.version}</Numeric>
@@ -51,6 +53,25 @@ function ModelPanel({ model, locale }) {
           ))}
         </p>
       ) : null}
+      <div className="model-lineage" aria-label={locale === 'he' ? 'שרשרת מקור: קבצים, מודל ותוכנית' : 'Source chain: files, model and plan'}>
+        <div className="lineage-source-stack">
+          {(model.measured_on || []).map((source) => (
+            <span key={source} className={changed.has(source) ? 'lineage-node source changed' : 'lineage-node source'}>
+              <Code>{source}</Code>
+            </span>
+          ))}
+        </div>
+        <span className="lineage-connector" aria-hidden="true"><i /><ArrowRight size={14} /></span>
+        <span className={`lineage-node model ${tone}`}>
+          <small>{text('modelVersion', locale)}</small>
+          <strong><Numeric>{model.version}</Numeric></strong>
+        </span>
+        <span className="lineage-connector" aria-hidden="true"><i /><ArrowRight size={14} /></span>
+        <span className="lineage-node output">
+          <small>{locale === 'he' ? 'מזין' : 'Feeds'}</small>
+          <strong>{locale === 'he' ? 'תוכנית' : 'Plan'}</strong>
+        </span>
+      </div>
     </section>
   );
 }
@@ -62,6 +83,8 @@ function ModelPanel({ model, locale }) {
 export function InputsView({ status, locale, canEdit, canEditReason, filter, onFilter, onOpenFile, onReload, notify }) {
   const [rowsIndex, setRowsIndex] = useState(-1);
   const [fields, setFields] = useState(readFields);
+  const [selectedKind, setSelectedKind] = useState('');
+  const filterRefs = useRef([]);
 
   const inputs = Array.isArray(status.inputs) ? status.inputs : [];
   const summary = status.summary || {};
@@ -75,10 +98,30 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
   }, [inputs, summary]);
 
   const shown = filter === 'all' ? inputs : inputs.filter((input) => input.state === filter);
+  const visibleFilters = FILTER_ORDER.filter((key) => key === 'all' || counts[key] > 0);
+  const selected = shown.find((input) => input.kind === selectedKind) || shown[0] || null;
+  const selectedIndex = selected ? shown.findIndex((input) => input.kind === selected.kind) : -1;
 
   function chooseFields(next) {
     setFields(next);
     writeFields(next);
+  }
+
+  function chooseFilter(next) {
+    setRowsIndex(-1);
+    onFilter(next);
+  }
+
+  function onFilterKeyDown(event, index) {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = visibleFilters.length - 1;
+    else if (event.key === 'ArrowRight') next = (index + (locale === 'he' ? -1 : 1) + visibleFilters.length) % visibleFilters.length;
+    else if (event.key === 'ArrowLeft') next = (index + (locale === 'he' ? 1 : -1) + visibleFilters.length) % visibleFilters.length;
+    else return;
+    event.preventDefault();
+    chooseFilter(visibleFilters[next]);
+    filterRefs.current[next]?.focus();
   }
 
   return (
@@ -87,14 +130,19 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
 
       <div className="source-filter-bar">
         <div className="source-filters" role="tablist" aria-label={text('destination', locale)}>
-          {FILTER_ORDER.filter((key) => key === 'all' || counts[key] > 0).map((key) => (
+          {visibleFilters.map((key, index) => (
             <Button
+              ref={(node) => { filterRefs.current[index] = node; }}
               key={key}
+              id={`source-filter-${key}`}
               type="button"
               role="tab"
               aria-selected={filter === key}
+              aria-controls="source-inputs-panel"
+              tabIndex={filter === key ? 0 : -1}
               className={filter === key ? 'source-filter active' : 'source-filter'}
-              onClick={() => onFilter(key)}
+              onClick={() => chooseFilter(key)}
+              onKeyDown={(event) => onFilterKeyDown(event, index)}
             >
               {label(FILTER_LABELS, key, locale)}
               <Numeric>{formatNumber(counts[key], locale)}</Numeric>
@@ -104,28 +152,45 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
         <FieldsMenu fields={fields} onChange={chooseFields} locale={locale} />
       </div>
 
-      {canEdit ? null : <p className="sources-note">{canEditReason || text('readOnly', locale)}</p>}
+      <div id="source-inputs-panel" role="tabpanel" aria-labelledby={`source-filter-${filter}`} tabIndex={0}>
+        {canEdit ? null : <p className="sources-note">{canEditReason || text('readOnly', locale)}</p>}
 
-      {shown.length === 0 ? (
-        <p className="sources-note">{text('none', locale)}</p>
-      ) : (
-        <div className="source-grid">
-          {shown.map((input, index) => (
-            <SourceCard
-              key={input.kind}
-              input={input}
-              locale={locale}
-              canEdit={canEdit}
-              canEditReason={canEditReason}
-              fields={fields}
-              onOpenRows={() => setRowsIndex(index)}
-              onOpenFile={onOpenFile}
-              onChanged={onReload}
-              notify={notify}
-            />
-          ))}
-        </div>
-      )}
+        {shown.length === 0 ? (
+          <p className="sources-note">{text('none', locale)}</p>
+        ) : (
+          <div className="sources-control-room">
+          <div className="source-grid" aria-label={text('destination', locale)}>
+              {shown.map((input) => (
+                <SourceCard
+                  key={input.kind}
+                  variant="row"
+                  selected={selected && selected.kind === input.kind}
+                  input={input}
+                  locale={locale}
+                  onSelect={() => setSelectedKind(input.kind)}
+                />
+              ))}
+            </div>
+            {selected ? (
+              <aside className="card card-dense source-inspector" aria-label={locale === 'he' ? `פרטי ${selected.label_he || selected.label_en}` : `${selected.label_en} details`}>
+                <SourceCard
+                  key={selected.kind}
+                  variant="inspector"
+                  input={selected}
+                  locale={locale}
+                  canEdit={canEdit}
+                  canEditReason={canEditReason}
+                  fields={fields}
+                  onOpenRows={() => setRowsIndex(selectedIndex)}
+                  onOpenFile={onOpenFile}
+                  onChanged={onReload}
+                  notify={notify}
+                />
+              </aside>
+            ) : null}
+          </div>
+        )}
+      </div>
 
       {rowsIndex >= 0 && shown[rowsIndex] ? (
         <RowsDrawer

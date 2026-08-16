@@ -22,6 +22,7 @@ false sentence comes back, so a pass here can never be vacuous.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -376,7 +377,8 @@ def test_the_agency_named_on_a_client_record_opens_the_agency(rendered, payload,
         agency for agency in payload["tree"]["agencies"]
         if client["advertiser"] in {row["advertiser"] for row in agency["clients"]}
     )
-    assert f'<button type="button" class="clients-link">קונה דרך {agency["name"]}</button>' in record
+    label = f'קונה דרך {agency["name"]}'
+    assert re.search(rf'<button\b[^>]*class="[^"]*\bclients-link\b[^"]*"[^>]*>{re.escape(label)}</button>', record)
 
 
 def test_each_campaign_seen_on_air_opens_its_own_money(rendered, payload, probe):
@@ -390,7 +392,7 @@ def test_each_campaign_seen_on_air_opens_its_own_money(rendered, payload, probe)
     assert client["observed_campaigns"], probe
     for name in client["observed_campaigns"]:
         assert str(name) in keys, "a name that opens nothing must not be offered as a control"
-        assert f'<button type="button" class="clients-link">{name}</button>' in record
+        assert re.search(rf'<button\b[^>]*class="[^"]*\bclients-link\b[^"]*"[^>]*>{re.escape(str(name))}</button>', record)
 
 
 def test_the_client_source_is_a_word_and_not_a_column_value(rendered):

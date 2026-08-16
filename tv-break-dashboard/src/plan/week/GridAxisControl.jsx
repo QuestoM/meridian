@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { pageText } from '../../shell/format';
 import { gridAxisLabel } from '../../shell/labels';
 

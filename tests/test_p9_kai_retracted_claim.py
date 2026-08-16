@@ -74,8 +74,8 @@ def test_the_retracted_answer_strikes_the_claim_and_keeps_the_rest() -> None:
     struck, the sentences carrying real figures stay readable."""
     assert "<del className=\"asst-struck\"" in THREAD_VIEW
     assert "claimSegments(line).map" in THREAD_VIEW
-    assert "'What Kai wrote, with the unbacked part struck out'" in THREAD_VIEW
-    assert "'מה שקאי כתב, כשהחלק שאינו נתמך מסומן במחיקה'" in THREAD_VIEW
+    assert "'What Mabat wrote, with the unbacked part struck out'" in THREAD_VIEW
+    assert "'מה שמבט כתב, כשהחלק שאינו נתמך מסומן במחיקה'" in THREAD_VIEW
 
 
 def test_the_segments_cover_the_original_exactly_and_mark_only_the_claim() -> None:

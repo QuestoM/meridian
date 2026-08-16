@@ -191,7 +191,8 @@ def test_the_decision_row_opens_the_decision_on_this_screen():
     assert "import TodayDecisionDetail from './TodayDecisionDetail';" in panel
     assert "<TodayDecisionDetail" in panel
     assert "and opens the decision." not in panel, "the promise the optimizer no longer keeps"
-    assert "opens the plan row behind it here, without leaving this screen" in panel
+    assert "aria-expanded={open}" in panel and "aria-controls={open ? panelId : undefined}" in panel
+    assert "onClick={() => (open ? close() : setOpenId(String(item.id || '')))}" in panel
     detail = _source("TodayDecisionDetail.jsx")
     assert "fetchTodayDay" in detail, "the rows behind a decision are read, not asserted"
     assert "'Open the optimizer'" in detail, "the path the product already had survives the change"

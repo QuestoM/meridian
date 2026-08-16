@@ -13,15 +13,12 @@ the date the limits in force took effect, whether this account may change them
 and, when it may not, the same Hebrew reason the store's own refusal uses. The
 proposal card prints it before the approval.
 
-**It discloses, it does not refuse, and the reason is stated rather than
-assumed.** The four values still live on ``KairosSettings`` and
-``PUT /api/settings`` still carries no guard, so an operator can change them on
-the settings surface today. A refusal here alone would make Kai stricter than
-the control beside it, which is the "two different answers in one product"
-defect this rebuild exists to remove. When the piece that owns Rules moves the
-four fields behind the store's permission, ``may_change`` already reads false
-for that account and the refusal becomes one call to :func:`refusal`, which is
-written and tested here.
+**It discloses and refuses through the same owner.** The four values still live
+on ``KairosSettings`` because the optimizer reads them there, but the generic
+``PUT /api/settings`` rejects a moved regulatory value. A real change goes
+through ``/api/rules/guardrails`` with the store's permission, effective date
+and append-only record; this module carries that same permission into a Kai
+proposal before approval.
 """
 
 from __future__ import annotations

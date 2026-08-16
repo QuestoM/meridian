@@ -5,7 +5,7 @@
 /* The rows behind a count. */
 .rows-drawer {
   position: fixed;
-  inset-block: 0;
+  inset-block: var(--shell-header-height) 0;
   inset-inline-end: 0;
   z-index: var(--z-drawer);
   width: min(760px, 92vw);

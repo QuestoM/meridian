@@ -1,33 +1,98 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Figure, Name } from '../../shell/bidi';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '../../studio/actions';
+import { Code, Figure, Name } from '../../shell/bidi';
 import PacingRow from './PacingRow';
 import { loadDays } from './pacing-api';
-import { VERDICT_ORDER, acceptanceFor, instant, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
+import { VERDICT_ORDER, acceptanceFor, headlineLine, instant, isolate, localized, pick, remedyFor, vocabularyLabel } from './pacing-helpers';
 
-// The board an account manager opens in the morning.
-//
-// It is sorted worst first by the server, so the first row is the one to act on
-// and the answer to "what needs me today" costs zero clicks. The strip above the
-// list states the same counts the list is ordered by, and pressing one filters to
-// it rather than sorting it, so the order never changes under the reader.
-//
-// The table comes first and the definition sits behind a control. Measured on the
-// round that shipped it, 621 characters of basis prose sat between the strip and
-// the first row and put that row at y=540 in an 851 px viewport, which is a
-// definition charging rent on the thing it defines. What stays in front of the
-// reader is the instant the figures were counted at and the channel they cover,
-// because those two change what the numbers mean.
-//
-// Keyboard control is the whole list: j and k step, Enter opens the days behind a
-// row, r raises the make-good a row names when it names one, and a records the
-// decision to take the risk on. Nothing here needs a dialog, because none of it is
-// a destructive act.
+const PACING_WINDOW = 16;
+
+// A real commitment curve, derived only from the ratios already published on
+// the pacing rows. The server orders the board by operational severity, so the
+// x axis keeps that order and the 100% reference stays fixed. Nothing here
+// invents a goal, revenue figure or forecast.
+function CommitmentCurve({ rows, locale, vocabulary }) {
+  const samples = useMemo(() => rows.map((row) => {
+    const line = headlineLine(row);
+    const ratio = line && line.pace && Number.isFinite(Number(line.pace.ratio))
+      ? Number(line.pace.ratio)
+      : null;
+    return {
+      id: row.campaign_id,
+      name: row.name || row.campaign_id,
+      ratio,
+      verdict: row.headline && row.headline.verdict ? row.headline.verdict : 'unknown',
+    };
+  }).filter((sample) => sample.ratio !== null), [rows]);
+
+  if (!samples.length) return null;
+
+  const width = 1000;
+  const height = 164;
+  const top = 16;
+  const bottom = 22;
+  const plot = height - top - bottom;
+  const maxRatio = Math.max(1.2, ...samples.map((sample) => sample.ratio));
+  const y = (ratio) => top + (1 - Math.min(maxRatio, Math.max(0, ratio)) / maxRatio) * plot;
+  const x = (index) => samples.length === 1 ? width / 2 : 10 + (index / (samples.length - 1)) * (width - 20);
+  const points = samples.map((sample, index) => `${x(index)},${y(sample.ratio)}`).join(' ');
+  const ordered = samples.map((sample) => sample.ratio).sort((left, right) => left - right);
+  const middle = Math.floor(ordered.length / 2);
+  const median = ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
+  const decisionCount = samples.filter((sample) => sample.verdict === 'behind' || sample.verdict === 'at_risk').length;
+  const referenceY = y(1);
+
+  return (
+    <section className="card card-dense commitment-curve" aria-labelledby="commitment-curve-title">
+      <header className="commitment-curve-head">
+        <div>
+          <Code className="commercial-module-code">PACE / COMMITMENT</Code>
+          <h3 id="commitment-curve-title">{pick(locale, 'Pace against commitment', 'קצב מול התחייבות')}</h3>
+          <p>{pick(locale, 'Each point is one campaign’s counted pace against its own published reference.', 'כל נקודה היא קצב שנספר לקמפיין אחד מול הייחוס שפורסם עבורו.')}</p>
+        </div>
+        <dl>
+          <div><dt>{pick(locale, 'Known pace', 'קצב ידוע')}</dt><dd><Figure>{samples.length}</Figure></dd></div>
+          <div><dt>{pick(locale, 'Need a decision', 'דורשים החלטה')}</dt><dd><Figure>{decisionCount}</Figure></dd></div>
+          <div><dt>{pick(locale, 'Median pace', 'חציון קצב')}</dt><dd><Figure>{`${Math.floor(median * 1000) / 10}%`}</Figure></dd></div>
+        </dl>
+      </header>
+
+      <div className="commitment-plot">
+        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={pick(locale, 'Campaign pace ratios in the order published by the server, with the 100 percent reference marked', 'יחסי קצב הקמפיינים בסדר שפרסם השרת, עם סימון ייחוס של מאה אחוז')}>
+          <rect className="commitment-band" x="0" y="0" width={width} height={height} />
+          <line className="commitment-reference" x1="0" x2={width} y1={referenceY} y2={referenceY} />
+          <polyline className="commitment-line" points={points} />
+          {samples.map((sample, index) => (
+            <circle key={sample.id} className={`commitment-point ${sample.verdict}`} cx={x(index)} cy={y(sample.ratio)} r="4">
+              <title>{`${sample.name}: ${Math.floor(sample.ratio * 1000) / 10}%`}</title>
+            </circle>
+          ))}
+        </svg>
+        <span className="commitment-reference-label"><Figure>100%</Figure> {pick(locale, 'reference', 'ייחוס')}</span>
+      </div>
+
+      <div className="pacing-burn" role="img" aria-label={pick(locale, 'One segment per known campaign, coloured by its published verdict', 'מקטע אחד לכל קמפיין ידוע, בצבע של מצב הקצב שפורסם')}>
+        {samples.map((sample) => (
+          <i key={sample.id} className={sample.verdict} title={`${sample.name}: ${Math.floor(sample.ratio * 1000) / 10}%`} />
+        ))}
+      </div>
+      <footer className="commitment-legend">
+        {VERDICT_ORDER.map((verdict) => (
+          <span key={verdict} className={verdict}>{vocabularyLabel(vocabulary.pace_verdicts, verdict, locale)}</span>
+        ))}
+      </footer>
+    </section>
+  );
+}
+
+// The server keeps the list worst-first. Filters preserve that order, and the
+// keyboard operates the same progressively disclosed list.
 
 function Strip({ counts, active, vocabulary, locale, onPick }) {
   return (
     <div className="pacing-strip" role="group" aria-label={pick(locale, 'Filter by verdict', 'סינון לפי מצב')}>
       {VERDICT_ORDER.map((verdict) => (
-        <button
+        <Button
           key={verdict}
           type="button"
           className={`pacing-chip ${verdict} ${active === verdict ? 'active' : ''}`}
@@ -36,7 +101,7 @@ function Strip({ counts, active, vocabulary, locale, onPick }) {
         >
           <Figure className="pacing-chip-count">{counts[verdict] || 0}</Figure>
           {vocabularyLabel(vocabulary.pace_verdicts, verdict, locale)}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -158,19 +223,22 @@ export default function PacingBoard({
   const [expanded, setExpanded] = useState('');
   const [focused, setFocused] = useState(0);
   const [drills, setDrills] = useState({});
+  const [visibleCount, setVisibleCount] = useState(PACING_WINDOW);
   const listRef = useRef(null);
   // Whether the last move of the mark came from a keystroke, which is the only
   // move that may take focus. Held on a ref rather than in state because it is
   // read by the effect that answers the move and is not a thing to render.
   const stepped = useRef(false);
 
-  const rows = (payload.rows || []).filter((row) => !filter || row.headline.verdict === filter);
+  const allRows = (payload.rows || []).filter((row) => !filter || row.headline.verdict === filter);
+  const rows = allRows.slice(0, visibleCount);
   const counts = payload.counts || {};
   const vocabulary = payload.vocabulary || {};
   const countedAt = (payload.as_of || {}).instant || '';
 
   useEffect(() => {
     setFocused(0);
+    setVisibleCount(PACING_WINDOW);
   }, [filter]);
 
   // A name somebody clicked in the ledger lands on its own row, not on whichever
@@ -191,6 +259,7 @@ export default function PacingBoard({
       setFilter('');
       return;
     }
+    setVisibleCount(Math.max(PACING_WINDOW, index + 1));
     setFocused(index);
     onFocused();
   }, [focusCampaignId, payload.rows, filter, onFocused]);
@@ -219,31 +288,37 @@ export default function PacingBoard({
     setExpanded((current) => (current === campaignId ? '' : campaignId));
     // A day read is kept once it lands, so opening the same row twice costs one
     // request. A failed one is retried, because a failure is not an answer.
-    if (!drills[campaignId] || drills[campaignId].status === 'failed') openDays(campaignId);
-  }, [drills, openDays]);
+    const row = (payload.rows || []).find((entry) => entry.campaign_id === campaignId);
+    if (row && row.days_available && (!drills[campaignId] || drills[campaignId].status === 'failed')) openDays(campaignId);
+  }, [payload.rows, drills, openDays]);
 
   const onKeyDown = useCallback((event) => {
     if (!rows.length) return;
+    const fromControl = event.target.closest?.('button, a, input, select, textarea, summary');
     if (event.key === 'j' || event.key === 'ArrowDown') {
       event.preventDefault();
       stepped.current = true;
-      setFocused((current) => Math.min(rows.length - 1, current + 1));
+      setFocused((current) => {
+        const next = Math.min(allRows.length - 1, current + 1);
+        if (next >= rows.length) setVisibleCount((count) => Math.min(allRows.length, count + PACING_WINDOW));
+        return next;
+      });
     } else if (event.key === 'k' || event.key === 'ArrowUp') {
       event.preventDefault();
       stepped.current = true;
       setFocused((current) => Math.max(0, current - 1));
-    } else if (event.key === 'Enter') {
+    } else if (event.key === 'Enter' && !fromControl) {
       event.preventDefault();
       const row = rows[focused];
       if (row) toggle(row.campaign_id);
-    } else if (event.key === 'r') {
+    } else if (event.key === 'r' && !fromControl) {
       const row = rows[focused];
       const remedy = row ? remedyFor(row, payload.make_goods) : null;
       if (row && remedy && remedy.kind === 'raise' && canEdit) {
         event.preventDefault();
         onRaise(row);
       }
-    } else if (event.key === 'a') {
+    } else if (event.key === 'a' && !fromControl) {
       const row = rows[focused];
       const acceptance = row
         ? acceptanceFor(row, payload.acceptances, payload.needs_a_decision)
@@ -253,21 +328,9 @@ export default function PacingBoard({
         onAccept(row);
       }
     }
-  }, [rows, focused, payload.make_goods, payload.acceptances, payload.needs_a_decision, canEdit, onRaise, onAccept, toggle]);
+  }, [rows, allRows.length, focused, payload.make_goods, payload.acceptances, payload.needs_a_decision, canEdit, onRaise, onAccept, toggle]);
 
-  // The step lands on the row rather than only colouring it.
-  //
-  // aria-current already said which row the keyboard was on, and a reader
-  // arriving at that row heard it. What nothing said was that the keyboard had
-  // moved, because focus stayed on the list while a ring moved inside it, so a
-  // screen reader announced nothing between row 1 and row 56. This is the roving
-  // tabindex: the focused row is the one element in the list that can take
-  // focus, and a step moves focus onto it. keydown bubbles, so the list keeps
-  // the handler it owns and every key still fires.
-  //
-  // Only a step moves focus. The same effect runs when the place marker returns
-  // a reader to a row and when a filter resets the index, and taking focus on a
-  // mount would steal it from wherever the reader was standing.
+  // Keyboard stepping moves focus to the marked row; filtering and mount do not.
   useEffect(() => {
     const node = listRef.current;
     if (!node) return;
@@ -280,32 +343,21 @@ export default function PacingBoard({
     card.scrollIntoView({ block: 'nearest' });
   }, [focused, rows.length]);
 
-  // The legend names the keys that do something on the rows in front of the
-  // reader, and no others. Measured on the shipped data, 0 of 56 rows reach a
-  // raise, so a fixed legend advertised a key that could not fire on any row on
-  // the board. A shortcut nobody can press is a claim about a capability, and
-  // this piece states capability from what the rows carry rather than from what
-  // the code can do in principle.
-  //
-  // And it names what every one of those keys needs first. Measured: pressing j
-  // with focus on the body did nothing at all, and only after focusing the list
-  // did the marker move from row 0 to row 1. The legend read as a claim that the
-  // keys worked wherever the reader was standing. The list carries the focus ring
-  // this sheet already gives it, the legend now says so, and the list points at
-  // the legend through aria-describedby so a reader who never sees it is told.
+  // Advertise only shortcuts the disclosed rows can currently perform.
   const keys = [pick(locale, 'with this list focused, j and k step', 'כשהרשימה הזו במיקוד, j ו-k מדלגים')];
-  if (rows.some((row) => row.days_available)) {
+  if (allRows.some((row) => row.days_available)) {
     keys.push(pick(locale, 'Enter opens the broadcast days', 'Enter פותח את ימי השידור'));
   }
-  if (canEdit && rows.some((row) => remedyFor(row, payload.make_goods).kind === 'raise')) {
+  if (canEdit && allRows.some((row) => remedyFor(row, payload.make_goods).kind === 'raise')) {
     keys.push(pick(locale, 'r raises the make-good a row names', 'r פותח את פיצוי השידור שהשורה נוקבת בו'));
   }
-  if (canEdit && rows.some((row) => acceptanceFor(row, payload.acceptances, payload.needs_a_decision).kind === 'accept')) {
+  if (canEdit && allRows.some((row) => acceptanceFor(row, payload.acceptances, payload.needs_a_decision).kind === 'accept')) {
     keys.push(pick(locale, 'a takes the risk on', 'a מקבל את הסיכון'));
   }
 
   return (
     <section className="pacing-board" aria-label={pick(locale, 'Campaign pacing', 'קצב הקמפיינים')}>
+      <CommitmentCurve rows={payload.rows || []} locale={locale} vocabulary={vocabulary} />
       <Strip counts={counts} active={filter} vocabulary={vocabulary} locale={locale} onPick={setFilter} />
 
       <div className="pacing-chrome">
@@ -331,6 +383,7 @@ export default function PacingBoard({
 
       <div
         className="pacing-list"
+        id="pacing-campaign-list"
         ref={listRef}
         role="list"
         tabIndex={0}
@@ -349,6 +402,8 @@ export default function PacingBoard({
           <div
             role="listitem"
             key={row.campaign_id}
+            aria-posinset={index + 1}
+            aria-setsize={allRows.length}
             aria-current={index === focused ? 'true' : undefined}
             tabIndex={index === focused ? -1 : undefined}
             className={index === focused ? 'pacing-focused' : ''}
@@ -375,6 +430,16 @@ export default function PacingBoard({
           </div>
         ))}
       </div>
+      {rows.length < allRows.length ? (
+        <div className="clients-window-more" role="status">
+          <span>{pick(locale, `Showing ${rows.length} of ${allRows.length} campaigns`, `מוצגים ${rows.length} מתוך ${allRows.length} קמפיינים`)}</span>
+          <a href="#pacing-campaign-list" role="button" className="clients-secondary"
+             onClick={(event) => { event.preventDefault(); setVisibleCount((count) => count + PACING_WINDOW); }}
+             onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setVisibleCount((count) => count + PACING_WINDOW); } }}>
+            {pick(locale, 'Show the next campaigns', 'הציגו את הקמפיינים הבאים')}
+          </a>
+        </div>
+      ) : null}
     </section>
   );
 }

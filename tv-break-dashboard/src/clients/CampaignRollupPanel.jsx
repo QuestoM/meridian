@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
 import { ArrowLeft } from 'lucide-react';
 import { exactMoney } from './clients-money-helpers';
 import { formatCurrency, formatMinutes, formatNumber, pageText } from '../shell/format';
 import { fallbackCampaigns } from '../shell/fallbacks';
 import { normalizeRows } from '../shell/plan-model';
-import { DataTable } from '../shell/primitives';
+import { DataTable } from '../studio';
 import { loadRollup, loadRollupDetail } from './clients-api';
 import MakeGoodAlerts from './MakeGoodAlerts';
 import { isolate } from '../shell/bidi';
@@ -46,10 +47,10 @@ function CampaignDrill({ open, locale, onBack }) {
 
   return (
     <div className="clients-drill">
-      <button type="button" className="clients-back" onClick={onBack}>
+      <Button type="button" className="clients-back" onClick={onBack}>
         <ArrowLeft size={14} aria-hidden="true" />
         {pageText(locale, 'All campaigns', 'כל הקמפיינים')}
-      </button>
+      </Button>
       <h3>{open.campaign}</h3>
       {!detail && !failed && (
         <p className="clients-reason">{pageText(locale, 'Loading the spots behind this campaign', 'טוען את התשדירים שמאחורי הקמפיין הזה')}</p>
@@ -216,13 +217,13 @@ export default function CampaignRollupPanel({ campaigns, locale, refreshKey }) {
                 key: 'Campaign',
                 label: pageText(locale, 'Campaign', 'קמפיין'),
                 render: (row) => (
-                  <button
+                  <Button
                     type="button"
                     className="clients-link"
                     onClick={() => setOpen({ campaign: row.Campaign, advertiser: row.advertiser_id || '' })}
                   >
                     {row.Campaign}
-                  </button>
+                  </Button>
                 ),
               },
               {

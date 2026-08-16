@@ -16,6 +16,24 @@ export function createDecisionActions({
   setOverridePrefill,
   setActiveView,
 }) {
+  function reportUnrecorded(result, labelEn, labelHe, feminine = false) {
+    const notRecordedHe = feminine ? 'לא נרשמה' : 'לא נרשם';
+    const failedHe = feminine ? 'נכשלה' : 'נכשל';
+    if (result?.offline) {
+      notify(
+        `${labelEn} was not recorded because the decision service is unreachable. Nothing changed.`,
+        `${labelHe} ${notRecordedHe} כי שירות ההחלטות אינו זמין. דבר לא השתנה.`,
+      );
+    } else if (result?.status === 404) {
+      notify(
+        `${labelEn} was not recorded because this server does not support the decision route. Nothing changed.`,
+        `${labelHe} ${notRecordedHe} כי השרת הזה אינו תומך בנתיב ההחלטות. דבר לא השתנה.`,
+      );
+    } else {
+      notify(`${labelEn} failed (${result?.error || 'unknown error'}).`, `${labelHe} ${failedHe} (${result?.error || 'שגיאה לא ידועה'}).`);
+    }
+  }
+
   function markApprovedLocal(id) {
     setApproved((current) => new Set(current).add(id));
     setRejected((current) => {
@@ -51,7 +69,7 @@ export function createDecisionActions({
       openRecommendationInOverrides(rec);
       notify('Set the break count in overrides, where the live segment and preview are available.',
         'קבעו את מספר הברייקים בעקיפות, שם זמינים המשבצת החיה והתצוגה המקדימה.');
-      return;
+      return true;
     }
 
     if (rec && rec.actionable && rec.segment_id && kind) {
@@ -69,34 +87,32 @@ export function createDecisionActions({
       };
       if (kind === 'gold') payload.gold = true;
       const result = await postBreakDecision(payload);
-      if (result.status === 404) {
-        // Older backend without the anchored decision route: keep the honest log-only
-        // behavior so approvals still register on the command surface.
-        markApprovedLocal(id);
-        notify('Approval recorded in the decision log.', 'האישור נרשם ביומן ההחלטות.');
-        return;
-      }
-      if (!result.ok) {
-        notify(`Approval failed (${result.error}).`, `האישור נכשל (${result.error}).`);
-        return;
+      if (!result.ok || result.offline || result.status === 404) {
+        reportUnrecorded(result, 'Approval', 'האישור');
+        return false;
       }
       markApprovedLocal(id);
       setRefreshKey((current) => current + 1);
       notify('Override created from this recommendation. The schedule is now marked stale; recompute when ready.',
         'נוצרה עקיפה מההמלצה הזו. לוח השידורים מסומן כעת כלא מעודכן; הריצו חישוב מחדש כשתרצו.');
-      return;
+      return true;
     }
 
     // Non-actionable recommendation: annotate the decision log only, no override.
-    markApprovedLocal(id);
-    await postBreakDecision({
+    const result = await postBreakDecision({
       action: 'approve',
       recommendation_id: id,
       break_id: selectedProgram?.selected_break?.id,
       program_type: selectedProgram?.program_type || rec?.program_type,
       scenario,
     });
+    if (!result.ok || result.offline || result.status === 404) {
+      reportUnrecorded(result, 'Approval', 'האישור');
+      return false;
+    }
+    markApprovedLocal(id);
     notify('Approval recorded in the decision log.', 'האישור נרשם ביומן ההחלטות.');
+    return true;
   }
 
   function markRejectedLocal(id) {
@@ -129,20 +145,30 @@ export function createDecisionActions({
       payload.anchor_title = anchor.program;
     }
     const result = await postBreakDecision(payload);
-    // Only an actionable rejection can create an anchored record, so only it surfaces a
-    // real server error and stays unmarked on failure. A non-actionable rejection is a
-    // decision-log annotation, and a 400 (no target to anchor) is expected there.
-    if (actionable && !result.ok) {
-      notify(`Rejection failed (${result.error}).`, `הדחייה נכשלה (${result.error}).`);
-      return;
+    if (!result.ok || result.offline || result.status === 404) {
+      reportUnrecorded(result, 'Rejection', 'הדחייה', true);
+      return false;
     }
     markRejectedLocal(id);
     notify('Rejection recorded in the decision log.', 'הדחייה נרשמה ביומן ההחלטות.');
+    return true;
   }
 
-  function applySimilarRecommendations() {
-    const targetType = activeRec?.program_type;
+  async function applySimilarRecommendations(id = activeRec?.id) {
+    const selectedRec = normalizeRows(overview.recommendations).find((rec) => rec.id === id) || activeRec;
+    const targetType = selectedRec?.program_type;
     const matching = normalizeRows(overview.recommendations).filter((rec) => !targetType || rec.program_type === targetType);
+    const result = await postBreakDecision({
+      action: 'apply_similar',
+      recommendation_id: selectedRec?.id,
+      break_id: selectedProgram?.selected_break?.id,
+      program_type: targetType || selectedProgram?.program_type,
+      scenario,
+    });
+    if (!result.ok || result.offline || result.status === 404) {
+      reportUnrecorded(result, 'Similar approvals', 'אישור ההמלצות הדומות');
+      return false;
+    }
     setApproved((current) => {
       const next = new Set(current);
       matching.forEach((rec) => next.add(rec.id));
@@ -153,14 +179,8 @@ export function createDecisionActions({
       matching.forEach((rec) => next.delete(rec.id));
       return next;
     });
-    postBreakDecision({
-      action: 'apply_similar',
-      recommendation_id: activeRec?.id,
-      break_id: selectedProgram?.selected_break?.id,
-      program_type: targetType || selectedProgram?.program_type,
-      scenario,
-    });
     notify('Similar recommendations recorded as approved in the decision log.', 'המלצות דומות נרשמו כמאושרות ביומן ההחלטות.');
+    return true;
   }
 
   return {

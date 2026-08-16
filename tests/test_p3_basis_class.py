@@ -127,9 +127,9 @@ def test_no_lane_header_states_a_bare_break_count():
         assert not bare.search(code_only(text)), f"{name} still prints a lane count with no plan behind it"
 
     assert 'className="timeline-lane-basis"' in read("plan/day/ScheduleEditorScope.jsx")
-    assert 'className="timeline-lane-basis"' in read("plan/day/DayBoard.jsx")
+    assert 'className="timeline-lane-basis"' in read("plan/day/DayBoardTimeline.jsx")
     assert "drawnOfPlannedText(shown, planned, locale)" in read("plan/day/ScheduleEditorScope.jsx")
-    assert "breakCountText(breaks.length, locale)" in read("plan/day/DayBoard.jsx")
+    assert "breakCountText(breaks.length, locale)" in read("plan/day/DayBoardTimeline.jsx")
 
 
 def test_every_day_total_row_names_the_plan_it_previews():

@@ -72,10 +72,10 @@ def test_the_nudge_increments_are_published_where_the_person_reads_them():
     model = read("plan/day/day-board-model.js")
     assert "if (event.altKey) return 1;" in model
     assert "if (event.shiftKey) return grid * 5;" in model
-    toolbar = read("plan/day/DayBoardToolbar.jsx")
+    help_surface = read("plan/day/DayPage.jsx") + read("plan/day/DayBreakNavigator.jsx")
     for fragment in ("Shift", "Alt", "G ", "Enter"):
-        assert fragment in toolbar, f"the help text stopped naming {fragment}"
-    assert "מקשי החיצים" in toolbar, "the keyboard is taught in Hebrew too"
+        assert fragment in help_surface, f"the help text stopped naming {fragment}"
+    assert "מקשי החיצים" in help_surface, "the keyboard is taught in Hebrew too"
 
 
 def test_undo_and_redo_are_one_stack_read_in_two_directions():
@@ -432,5 +432,4 @@ def test_the_dragged_chip_keeps_the_day_where_the_scope_it_used_to_send_took_74_
     )
     client.delete(f"/api/constraints/{quote(str(old), safe='')}")
     break_store.invalidate()
-
 

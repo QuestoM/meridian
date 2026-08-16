@@ -42,10 +42,8 @@ function DayBoardChip({
   locale,
   style,
   widthPx,
-  onSelect,
   onMovePointerDown,
   onResizePointerDown,
-  onKeyDown,
   onOpen,
 }) {
   const label = (en, he) => (locale === 'he' ? he : en);
@@ -61,6 +59,7 @@ function DayBoardChip({
     live.isGold ? 'is-gold' : '',
   ].filter(Boolean).join(' ');
   const states = [];
+  if (selected) states.push(label('selected', 'נבחר'));
   if (live.isGold) states.push(label('gold break', 'ברייק זהב'));
   if (saved) states.push(label('placement saved by the operator', 'נעיצה שמורה של המפעיל'));
   const identity = `${label('Break', 'ברייק')} ${item.ordinal} ${label('of', 'מתוך')} ${item.breaks_in_segment}, ${clock}, ${seconds} ${label('seconds', 'שניות')}, ${item.programme}`;
@@ -70,15 +69,11 @@ function DayBoardChip({
     <div
       className={className}
       style={style}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
+      role="img"
       aria-label={[identity, ...states].join(', ')}
       title={title}
       data-break-id={item.break_id}
       onPointerDown={(event) => onMovePointerDown(event, item)}
-      onKeyDown={(event) => onKeyDown(event, item)}
-      onFocus={() => onSelect(item.break_id)}
       onDoubleClick={(event) => {
         event.preventDefault();
         onOpen(item.break_id);
@@ -96,8 +91,7 @@ function DayBoardChip({
       </span>
       <i
         className="day-chip-resize"
-        role="separator"
-        aria-label={label('Change the length of this break', 'שינוי אורך הברייק')}
+        aria-hidden="true"
         onPointerDown={(event) => onResizePointerDown(event, item)}
       />
     </div>

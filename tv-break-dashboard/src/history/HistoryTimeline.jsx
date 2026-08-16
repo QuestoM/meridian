@@ -31,7 +31,7 @@ export default function HistoryTimeline({ entries, locale, selectedId, onSelect,
   let position = -1;
 
   return (
-    <div className="hist-list" role="listbox" aria-label={pageText(locale, 'History', 'היסטוריה')} ref={listRef}>
+    <div className="card hist-list" role="listbox" aria-label={pageText(locale, 'History', 'היסטוריה')} ref={listRef}>
       {groups.map((group) => {
         const weekend = isWeekend(group.day);
         return (

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -42,10 +43,10 @@ function Property({ label, value, action, onAction, locale }) {
       <dt>{label}</dt>
       <dd>
         {onAction ? (
-          <button type="button" className="clients-inline-action" onClick={onAction}>
+          <Button type="button" className="clients-inline-action" onClick={onAction}>
             <Plus size={12} aria-hidden="true" />
             {action || pageText(locale, 'Set', 'הגדירו')}
-          </button>
+          </Button>
         ) : (
           <span className="clients-reason">{action || pageText(locale, 'Nothing yet', 'אין עדיין')}</span>
         )}
@@ -148,15 +149,15 @@ export default function ClientRecord({
   const agencyLine = pageText(locale, `Buys through ${client.agency_name}`, `קונה דרך ${client.agency_name}`);
 
   return (
-    <aside className="clients-record" role="dialog" aria-label={client.shown_name || client.advertiser}>
+    <aside className="card card-dense card-body clients-record" role="complementary" aria-label={client.shown_name || client.advertiser}>
       <header className="clients-record-head">
         <div>
           <h3>{client.shown_name || client.advertiser}</h3>
           <p className="clients-record-sub">
             {client.agency_name && agencyOpens ? (
-              <button type="button" className="clients-link" onClick={() => onOpenAgency(client.agency_id)}>
+              <Button type="button" className="clients-link" onClick={() => onOpenAgency(client.agency_id)}>
                 {agencyLine}
-              </button>
+              </Button>
             ) : null}
             {client.agency_name && !agencyOpens ? <span>{agencyLine}</span> : null}
             {client.agency_name ? null : (
@@ -168,27 +169,27 @@ export default function ClientRecord({
         <div className="clients-record-actions">
           {found ? (
             <span className="clients-position">
-              <button type="button" onClick={() => onStep(step(rows, client.advertiser, -1))} aria-label={pageText(locale, 'Previous client', 'הלקוח הקודם')}>
+              <Button type="button" onClick={() => onStep(step(rows, client.advertiser, -1))} aria-label={pageText(locale, 'Previous client', 'הלקוח הקודם')}>
                 <ChevronRight size={14} aria-hidden="true" />
-              </button>
+              </Button>
               <Figure className="numeric">{`${found.position} / ${found.total}`}</Figure>
-              <button type="button" onClick={() => onStep(step(rows, client.advertiser, 1))} aria-label={pageText(locale, 'Next client', 'הלקוח הבא')}>
+              <Button type="button" onClick={() => onStep(step(rows, client.advertiser, 1))} aria-label={pageText(locale, 'Next client', 'הלקוח הבא')}>
                 <ChevronLeft size={14} aria-hidden="true" />
-              </button>
+              </Button>
             </span>
           ) : null}
-          <button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+          <Button type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
             <X size={15} aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       </header>
 
       <section className="clients-record-money">
         {opensRows ? (
-          <button type="button" className="clients-money-open" onClick={() => onOpenMoney(client.advertiser)}>
+          <Button type="button" className="clients-money-open" onClick={() => onOpenMoney(client.advertiser)}>
             <Figures client={client} locale={locale} />
             <em>{pageText(locale, 'Open every row behind these figures', 'פתחו כל שורה שמאחורי הסכומים')}</em>
-          </button>
+          </Button>
         ) : (
           <div className="clients-money-open empty">
             <Figures client={client} locale={locale} />
@@ -203,9 +204,9 @@ export default function ClientRecord({
               `The day being read is ${formatDay(basis.day)}, from ${basis.file}. A daily file carrying this client prices their spots and fills these figures.`,
               `היום הנקרא הוא ${isolate(basis.day)}, מתוך ${isolate(basis.file)}. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.`,
             )}
-            <button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
+            <Button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
               {pageText(locale, 'Open Data', 'פתחו את מסך הנתונים')}
-            </button>
+            </Button>
           </p>
         ) : null}
         {client.dropped_by_frequency ? (
@@ -292,9 +293,9 @@ export default function ClientRecord({
             {client.observed_campaigns.map((name) => (
               <li key={name}>
                 {onOpenCampaignMoney && ledgerCampaigns.includes(String(name)) ? (
-                  <button type="button" className="clients-link" onClick={() => onOpenCampaignMoney(String(name))}>
+                  <Button type="button" className="clients-link" onClick={() => onOpenCampaignMoney(String(name))}>
                     {name}
-                  </button>
+                  </Button>
                 ) : name}
               </li>
             ))}

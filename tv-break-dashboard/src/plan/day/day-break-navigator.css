@@ -1,0 +1,101 @@
+.day-break-navigator {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(240px, auto);
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised, var(--surface-muted));
+}
+
+.day-break-select {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.day-break-select .MuiInputBase-root {
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding-inline: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-break-walk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.day-break-walk button,
+.day-break-open-proxy {
+  min-block-size: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.day-break-walk button {
+  inline-size: 44px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.day-break-walk span {
+  min-inline-size: 52px;
+  color: var(--muted);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.day-break-open-proxy {
+  min-inline-size: 240px;
+  padding-inline: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--chrome, var(--primary));
+  border-color: var(--chrome, var(--primary));
+  color: var(--surface);
+  font-weight: var(--weight-medium);
+}
+
+.day-break-walk button:hover:not(:disabled),
+.day-break-select .MuiInputBase-root:hover {
+  border-color: var(--accent-strong, var(--primary));
+}
+
+.day-break-open-proxy:hover:not(:disabled) {
+  background: var(--chrome-hover, var(--primary-hover));
+}
+
+.day-break-walk button:disabled,
+.day-break-open-proxy:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.day-break-select .MuiInputBase-root:focus-within,
+.day-break-walk button:focus-visible,
+.day-break-open-proxy:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.day-break-key-hint {
+  grid-column: 1 / -1;
+  margin: calc(var(--space-1) * -1) 0 0;
+  max-inline-size: 90ch;
+  color: var(--subtle);
+  font-size: var(--text-xs);
+}

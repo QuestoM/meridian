@@ -119,9 +119,6 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
 }
 
 .rules-figure-label {
@@ -253,9 +250,6 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
 }
 
 .rules-restriction.expired {
@@ -286,24 +280,6 @@
   padding: var(--space-1) var(--space-2);
   color: var(--muted);
   cursor: pointer;
-}
-
-.rules-confirm,
-.rules-confirm-block {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--ink);
-}
-
-.rules-confirm-block {
-  margin-block-start: var(--space-3);
-  padding: var(--space-3);
-  border: 1px solid var(--amber);
-  border-radius: var(--radius-md);
-  background: var(--amber-soft);
 }
 
 .rules-empty {

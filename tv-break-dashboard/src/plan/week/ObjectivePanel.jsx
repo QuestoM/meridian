@@ -1,6 +1,8 @@
 import React from 'react';
-import { Button, Slider } from '@mui/material';
+import { Slider } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Check, RotateCcw, Save } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { finiteNumber, formatPercent, pageText } from '../../shell/format';
 import { Figure, Name } from '../../shell/bidi';
 import {
@@ -11,11 +13,10 @@ import {
   templateMatches,
 } from './plan-week-model';
 
-// The five fields the objective is, in the order the panel shows them.
+// The four fields the objective owns, in the order the panel shows them.
 const OBJECTIVE_FIELDS = [
   'revenue_weight',
   'min_retention_floor',
-  'max_breaks_per_hour',
   'risk_lambda',
   'objective_mode',
 ];
@@ -25,7 +26,7 @@ const OBJECTIVE_FIELDS = [
 //
 // The banner used to print two of the five and neither of them as a pair, which
 // is unreadable the moment a change arrives from somewhere other than the
-// slider the planner just touched: adopting a compared scenario moves all five
+  // slider the planner just touched: adopting a compared scenario moves all four
 // at once, and a planner has to be able to see what they are agreeing to.
 export function objectiveChanges(draft, saved, locale) {
   if (!saved) return [];
@@ -69,12 +70,11 @@ export function ObjectivePanel({
   const adoptedLetter = adopted ? String(adopted).toUpperCase() : null;
   const weight = finiteNumber(draft.revenue_weight) ?? 60;
   const floor = finiteNumber(draft.min_retention_floor) ?? 0.72;
-  const perHour = finiteNumber(draft.max_breaks_per_hour) ?? 4;
   const caution = Math.round((finiteNumber(draft.risk_lambda) ?? 0) * 100);
   const focus = String(draft.objective_mode || 'blend');
 
   return (
-    <section className="plan-section" aria-labelledby="plan-objective-title">
+    <section className="card plan-section" aria-labelledby="plan-objective-title">
       <div className="plan-section-head">
         <div>
           <h2 id="plan-objective-title">{pageText(locale, 'What is this plan for', 'לשם מה התוכנית הזאת')}</h2>
@@ -106,7 +106,7 @@ export function ObjectivePanel({
         {OBJECTIVE_TEMPLATES.map((template) => {
           const active = templateMatches(template, draft);
           return (
-            <button
+            <Pressable
               key={template.key}
               type="button"
               className={`plan-template${active ? ' is-active' : ''}`}
@@ -115,7 +115,7 @@ export function ObjectivePanel({
             >
               <strong>{he ? template.he : template.en}</strong>
               <small>{he ? template.descHe : template.descEn}</small>
-            </button>
+            </Pressable>
           );
         })}
       </div>
@@ -163,23 +163,6 @@ export function ObjectivePanel({
           </div>
         </LeverRow>
 
-        <LeverRow field="max_breaks_per_hour" locale={locale}>
-          <div className="plan-lever-slider">
-            <Slider
-              size="small"
-              value={perHour}
-              min={1}
-              max={8}
-              step={1}
-              marks
-              valueLabelDisplay="auto"
-              aria-label={leverLabel('max_breaks_per_hour', locale)}
-              onChange={(_event, value) => onChange('max_breaks_per_hour', Array.isArray(value) ? value[0] : value)}
-            />
-            <strong className="numeric"><Figure>{perHour}</Figure></strong>
-          </div>
-        </LeverRow>
-
         <LeverRow
           field="risk_lambda"
           locale={locale}
@@ -205,7 +188,7 @@ export function ObjectivePanel({
         <span className="plan-lever-name">{leverLabel('objective_mode', locale)}</span>
         <div className="plan-focus-options">
           {OBJECTIVE_FOCUS.map((mode) => (
-            <button
+            <Pressable
               key={mode.key}
               type="button"
               className={`plan-template${focus === mode.key ? ' is-active' : ''}`}
@@ -214,7 +197,7 @@ export function ObjectivePanel({
             >
               <strong>{he ? mode.he : mode.en}</strong>
               <small>{he ? mode.descHe : mode.descEn}</small>
-            </button>
+            </Pressable>
           ))}
         </div>
       </div>

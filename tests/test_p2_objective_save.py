@@ -31,7 +31,6 @@ SETTINGS = ROOT / "data" / "kairos_settings.json"
 OBJECTIVE_LEVERS = (
     "revenue_weight",
     "min_retention_floor",
-    "max_breaks_per_hour",
     "risk_lambda",
     "objective_mode",
 )
@@ -45,12 +44,14 @@ def client():
 
 
 @pytest.fixture()
-def settings_restored(tmp_path):
-    """Every write in this file is undone, byte for byte, before the test ends."""
-    backup = tmp_path / "kairos_settings.json"
-    shutil.copy2(SETTINGS, backup)
-    yield
-    shutil.copy2(backup, SETTINGS)
+def isolated_settings(tmp_path, monkeypatch):
+    """Exercise the real settings path against an exact disposable copy."""
+    from kairos_api import core
+
+    target = tmp_path / "kairos_settings.json"
+    shutil.copy2(SETTINGS, target)
+    monkeypatch.setattr(core, "SETTINGS_PATH", target)
+    return target
 
 
 def test_the_surface_sends_the_whole_saved_model_not_only_the_levers():
@@ -70,13 +71,12 @@ def test_the_surface_refuses_a_save_that_moved_the_channel_scope():
 
 
 def test_the_full_model_round_trip_keeps_every_field_the_objective_does_not_own(
-    client, settings_restored
+    client, isolated_settings
 ):
     before = client.get("/api/settings").json()
     draft = {
         "revenue_weight": 85 if before["revenue_weight"] != 85 else 60,
         "min_retention_floor": 0.70,
-        "max_breaks_per_hour": before["max_breaks_per_hour"],
         "risk_lambda": before["risk_lambda"],
         "objective_mode": before["objective_mode"],
     }
@@ -87,11 +87,12 @@ def test_the_full_model_round_trip_keeps_every_field_the_objective_does_not_own(
     moved = {key for key in set(before) | set(after) if before.get(key) != after.get(key)}
     assert moved <= set(OBJECTIVE_LEVERS), f"the objective save moved {sorted(moved - set(OBJECTIVE_LEVERS))}"
     assert after["operator_channel"] == before["operator_channel"]
+    assert after["max_breaks_per_hour"] == before["max_breaks_per_hour"]
     assert after["pricing_overrides"] == before["pricing_overrides"]
     assert after["locale"] == before["locale"]
 
 
-def test_a_partial_write_can_never_clear_the_declared_channel(client, settings_restored):
+def test_a_partial_write_can_never_clear_the_declared_channel(client, isolated_settings):
     """The defect this pinned is closed, and the invariant is what survives.
 
     Measured on this tree when the pin was written: a body carrying one lever

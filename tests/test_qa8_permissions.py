@@ -307,7 +307,11 @@ def test_events_activation_put_is_company_only_other_pricing_edits_pass(env):
 # Auth off: everything reads company and nothing changes
 # ---------------------------------------------------------------------------
 
-def test_auth_off_keeps_the_events_surface_fully_open(env):
+def test_explicit_auth_off_keeps_the_events_surface_fully_open(env, monkeypatch):
+    # An uninitialized store now fails closed. Only the explicit development
+    # bypass is open, so this contract opts into that mode deliberately.
+    monkeypatch.setenv("KAIROS_AUTH_DISABLED", "1")
+    auth_store.reset_runtime_state()
     client = TestClient(app)
     view = client.get("/api/events")
     assert view.status_code == 200

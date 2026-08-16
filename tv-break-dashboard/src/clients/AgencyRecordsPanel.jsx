@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Code, Name } from '../shell/bidi';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Building2, ChevronLeft, ChevronRight, Info, RefreshCcw, Search } from 'lucide-react';
 import {
   agencyTitle,
@@ -13,10 +13,12 @@ import {
   statusMeta,
 } from './agencies-helpers';
 import { formatCurrency, formatNumber } from '../shell/surface-helpers';
+import { InputControl } from '../studio/dom-controls';
 import AgencyDetailDrawer, { SyntheticChip } from './AgencyDetailDrawer';
 import './agency-management.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
+const AGENCY_WINDOW = 18;
 
 // One agency card in the list grid. Click opens the record drawer.
 function AgencyCard({ row, locale, onOpen }) {
@@ -24,7 +26,7 @@ function AgencyCard({ row, locale, onOpen }) {
   const Caret = locale === 'he' ? ChevronLeft : ChevronRight;
   const contact = [row.contact_name, row.contact_role].filter(Boolean).join(' · ');
   return (
-    <button type="button" className="amz-card agz-card" onClick={() => onOpen(row.agency_id)}>
+    <Button type="button" className="amz-card agz-card" onClick={() => onOpen(row.agency_id)}>
       <div className="amz-card-head">
         <div className="amz-card-id-wrap">
           <Name className="amz-card-id">{agencyTitle(row)}</Name>
@@ -35,11 +37,11 @@ function AgencyCard({ row, locale, onOpen }) {
       <div className="agz-card-chips">
         <span className={`agz-status-chip ${status.tone}`}>{status.label}</span>
         {row.agency_type && <Name className="agz-type-chip">{row.agency_type}</Name>}
-        {isSynthetic(row) && <SyntheticChip locale={locale} />}
+        {isSynthetic(row) && <SyntheticChip locale={locale} focusable={false} />}
       </div>
       {contact && <Name className="agz-card-contact">{contact}</Name>}
       {row.notes && <Name className="amz-card-notes">{row.notes}</Name>}
-    </button>
+    </Button>
   );
 }
 
@@ -95,9 +97,9 @@ function LedgerTotalsStrip({ summary, locale, setActiveView }) {
       <div className="agz-totals-basis">
         <span className="agz-subnote">{basis}</span>
         {typeof setActiveView === 'function' && (
-          <button type="button" className="agz-totals-link" onClick={() => setActiveView('Reports')}>
+          <Button type="button" className="agz-totals-link" onClick={() => setActiveView('Reports')}>
             {pageText(locale, 'Open the ledger on the Reports page', "לצפייה בלדג'ר בעמוד הדוחות")}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -123,6 +125,7 @@ export function AgencyRecordsPanel({
   // undefined = still loading (strip hidden), null = fetch failed (honest empty
   // state), object = normalized summary payload.
   const [summary, setSummary] = useState(undefined);
+  const [visibleCount, setVisibleCount] = useState(AGENCY_WINDOW);
 
   // The scope vocabulary (positions, genres, dayparts, programmes) is shared
   // with the advertiser rules and served by the advertisers options endpoint.
@@ -205,6 +208,11 @@ export function AgencyRecordsPanel({
     [agencies, openId],
   );
   const hasActiveQuery = Boolean(search.trim()) || status !== 'all';
+  const windowed = visible.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(AGENCY_WINDOW);
+  }, [search, status]);
 
   async function handleSaved() {
     await loadAgencies();
@@ -214,10 +222,10 @@ export function AgencyRecordsPanel({
   }
 
   return (
-    <section className="page-workspace">
+    <section className="page-workspace" aria-busy={loading} aria-label={pageText(locale, 'Agency records', 'כרטיסי סוכנות')}>
       <div className="page-header">
         <div>
-          <h1>{pageText(locale, 'Agencies', 'סוכנויות')}</h1>
+          <h2>{pageText(locale, 'Agencies', 'סוכנויות')}</h2>
           <p>
             {pageText(locale, 'A record per media agency: contacts, commercial terms, the advertisers it books, and its pricing rules. Click a card to open the full record.', 'כרטיס לכל סוכנות מדיה: אנשי קשר, תנאים מסחריים, המפרסמים שהיא מנהלת וכללי התמחור שלה. לחיצה על כרטיס פותחת את הרשומה המלאה.')}
           </p>
@@ -243,7 +251,7 @@ export function AgencyRecordsPanel({
       <div className="amz-toolbar">
         <div className="amz-search">
           <Search size={15} />
-          <input
+          <InputControl
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -252,16 +260,16 @@ export function AgencyRecordsPanel({
           />
         </div>
         <div className="amz-filter-chips" role="group" aria-label={pageText(locale, 'Filter by status', 'סינון לפי סטטוס')}>
-          <button
+          <Button
             type="button"
             className={`adv-chip${status === 'all' ? ' active' : ''}`}
             aria-pressed={status === 'all'}
             onClick={() => setStatus('all')}
           >
             {pageText(locale, 'All', 'הכול')}
-          </button>
+          </Button>
           {statuses.map((key) => (
-            <button
+            <Button
               key={key}
               type="button"
               className={`adv-chip${status === key ? ' active' : ''}`}
@@ -269,7 +277,7 @@ export function AgencyRecordsPanel({
               onClick={() => setStatus(key)}
             >
               {statusMeta(key, locale).label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -310,16 +318,27 @@ export function AgencyRecordsPanel({
       )}
 
       {!loading && online && visible.length > 0 && (
-        <div className="amz-grid">
-          {visible.map((row) => (
+        <div className="amz-grid" aria-label={pageText(locale, 'Agencies', 'סוכנויות')}>
+          {windowed.map((row) => (
             <AgencyCard key={row.agency_id} row={row} locale={locale} onOpen={setOpenId} />
           ))}
         </div>
       )}
 
-      {!loading && online && visible.length > 0 && hasActiveQuery && (
-        <div className="amz-result-note">
-          {pageText(locale, `Showing ${visible.length} of ${agencies.length}`, `מוצגות ${visible.length} מתוך ${agencies.length}`)}
+      {!loading && online && visible.length > 0 && (hasActiveQuery || windowed.length < visible.length) && (
+        <div className="amz-result-note clients-window-more" role="status">
+          <span>
+            {pageText(
+              locale,
+              `Showing ${windowed.length} of ${visible.length} matching agencies (${agencies.length} total)`,
+              `מוצגות ${windowed.length} מתוך ${visible.length} סוכנויות תואמות (${agencies.length} בסך הכול)`,
+            )}
+          </span>
+          {windowed.length < visible.length ? (
+            <Button type="button" variant="outlined" className="clients-secondary" onClick={() => setVisibleCount((count) => count + AGENCY_WINDOW)}>
+              {pageText(locale, 'Show the next agencies', 'הציגו את הסוכנויות הבאות')}
+            </Button>
+          ) : null}
         </div>
       )}
 

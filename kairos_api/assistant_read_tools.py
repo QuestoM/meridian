@@ -327,7 +327,16 @@ def _read_get_upload(args: dict[str, Any], user: str | None = None) -> dict[str,
 
 
 def _normalize_name(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", str(text or "").lower()).strip()
+    """The advertiser identity layer's comparison form.
+
+    The former local normalizer kept only ASCII letters and digits, which made
+    every Hebrew advertiser normalize to the empty string.  Name matching must
+    fold exactly as pricing identity does, or the assistant can find a different
+    advertiser from the one whose rules would actually be applied.
+    """
+    from kairos.optimize.advertiser_rules_identity import normalize_name
+
+    return normalize_name(text)
 
 
 def _read_find_advertiser(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
@@ -343,16 +352,21 @@ def _read_find_advertiser(args: dict[str, Any], user: str | None = None) -> dict
     scored: list[tuple[float, dict[str, Any]]] = []
     for _, row in frame.iterrows():
         record = _row_to_record(row)
-        name = _normalize_name(record["advertiser_id"])
-        if not name:
+        tokens = [record.get("advertiser_id"), record.get("name"), record.get("display_name")]
+        tokens.extend(str(record.get("aliases", "") or "").split("|"))
+        names = [name for name in (_normalize_name(token) for token in tokens) if name]
+        if not names:
             continue
-        if target and (target in name or name in target):
-            score = 1.0
-        else:
-            score = SequenceMatcher(None, target, name).ratio()
+        score = max(
+            1.0 if target == name else
+            0.95 if target and (target in name or name in target) else
+            SequenceMatcher(None, target, name).ratio()
+            for name in names
+        )
         scored.append((score, record))
     scored.sort(key=lambda pair: pair[0], reverse=True)
-    candidates = [record for score, record in scored[:5] if score >= 0.3]
+    exact = [record for score, record in scored if score == 1.0]
+    candidates = exact[:5] if exact else [record for score, record in scored[:5] if score >= 0.3]
     return {"query": query, "candidates": candidates, "count": len(candidates)}
 
 

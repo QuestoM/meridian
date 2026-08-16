@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../../studio/actions';
 import { Figure } from '../../shell/bidi';
 import { ILS, bare, isolate, localized, opensDays, pair, percent, pick, vocabularyLabel } from './pacing-helpers';
 
@@ -59,11 +60,11 @@ export default function PacingGoalLine({
           inside the days it would open, and a disclosure control sitting inside
           the thing it discloses is a control that can only close it. */}
       {onOpen && days ? (
-        <button type="button" className="pacing-goal-figures pacing-figure-open"
+        <Button type="button" className="pacing-goal-figures pacing-figure-open"
                 aria-expanded={expanded} aria-label={opensDays(figures, days, locale)}
                 onClick={onOpen}>
           {figures}
-        </button>
+        </Button>
       ) : <span className="pacing-goal-figures">{figures}</span>}
       {/* The ratio and the verdict are two facts and take a rule between them.
           In English they were one span and read as "100% On pace", a capitalised

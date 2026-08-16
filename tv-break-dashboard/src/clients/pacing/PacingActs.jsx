@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '../../studio/actions';
 import { Plus, ShieldCheck, Upload } from 'lucide-react';
 import { amount, isolate, pick } from './pacing-helpers';
 
@@ -30,17 +31,17 @@ export function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood, onOpenCa
   if (remedy.kind === 'raise') {
     const value = amount(remedy.value, remedy.unit, locale);
     return (
-      <button type="button" className="pacing-remedy" disabled={busy} onClick={onRaise}>
+      <Button type="button" className="pacing-remedy" disabled={busy} onClick={onRaise}>
         <Plus size={13} aria-hidden="true" />
         {pick(locale, `Raise a make-good for ${value}`, `פתחו פיצוי שידור על ${value}`)}
-      </button>
+      </Button>
     );
   }
   if (remedy.kind === 'open') {
     return (
-      <button type="button" className="pacing-remedy" onClick={() => onOpenMakeGood(remedy.makeGoodId)}>
+      <Button type="button" className="pacing-remedy" onClick={() => onOpenMakeGood(remedy.makeGoodId)}>
         {pick(locale, `Open make-good ${remedy.makeGoodId}`, `פתחו את פיצוי ${isolate(remedy.makeGoodId)}`)}
-      </button>
+      </Button>
     );
   }
   // The statement carries the act. A remedy that names an upload and then leaves
@@ -60,9 +61,9 @@ export function Remedy({ remedy, locale, busy, onRaise, onOpenMakeGood, onOpenCa
     const code = String((remedy.block || {}).code || '');
     if (onOpenCampaign && OPENS_THE_CAMPAIGN.indexOf(code) >= 0) {
       return (
-        <button type="button" className="pacing-remedy" onClick={onOpenCampaign}>
+        <Button type="button" className="pacing-remedy" onClick={onOpenCampaign}>
           {pick(locale, 'Open the campaign', 'פתחו את הקמפיין')}
-        </button>
+        </Button>
       );
     }
     if (OPENS_THE_UPLOAD.indexOf(code) >= 0) {
@@ -90,15 +91,15 @@ export function Acceptance({ acceptance, locale, busy, onAccept, onOpenLedger })
   if (!acceptance || acceptance.kind === 'none') return null;
   if (acceptance.kind === 'accepted') {
     return (
-      <button type="button" className="pacing-accepted" onClick={() => onOpenLedger(acceptance.makeGoodId)}>
+      <Button type="button" className="pacing-accepted" onClick={() => onOpenLedger(acceptance.makeGoodId)}>
         <ShieldCheck size={13} aria-hidden="true" />
         {pick(locale, 'Risk taken on, open the record', 'הסיכון התקבל, פתחו את הרשומה')}
-      </button>
+      </Button>
     );
   }
   return (
-    <button type="button" className="pacing-accept" disabled={busy} onClick={onAccept}>
+    <Button type="button" className="pacing-accept" disabled={busy} onClick={onAccept}>
       {pick(locale, 'Take the risk on', 'קבלו את הסיכון')}
-    </button>
+    </Button>
   );
 }

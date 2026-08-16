@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Minus, Plus } from 'lucide-react';
+import { InputControl } from '../../studio/dom-controls';
 import { Figure } from '../../shell/bidi';
 import {
   LANE_GUTTER,
@@ -113,7 +114,7 @@ export function ZoomControl({ pxPerMin, onZoom, onStep, locale, min = MIN_PX_PER
       >
         <Minus size={14} />
       </Button>
-      <input
+      <InputControl
         className="track-zoom-slider"
         type="range"
         min={min}

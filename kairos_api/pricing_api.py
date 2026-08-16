@@ -301,20 +301,24 @@ def put_pricing(update: PricingUpdate, request: Request = None) -> dict[str, Any
     activation = update.overrides.get("pricing_activation")
     if isinstance(activation, dict) and "events" in activation:
         require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
-    load, save = _settings_io()
-    settings = load()
-    current = dict(getattr(settings, "pricing_overrides", None) or {})
-    # A reset clears every override, including a live events activation, so it
-    # is walled the same way whenever that activation is currently on.
-    if update.reset and bool((current.get("pricing_activation") or {}).get("events")):
-        require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
-    merged: dict[str, Any] = {} if update.reset else _deep_merge(current, update.overrides)
-    try:
+    from kairos_api.core import _mutate_settings
+    from kairos_api import version_store
+
+    merged: dict[str, Any] = {}
+
+    def apply(settings: Any) -> None:
+        nonlocal merged
+        current = dict(getattr(settings, "pricing_overrides", None) or {})
+        # A reset clears every override, including a live events activation, so
+        # it is walled against the current transactional value, not a stale read.
+        if update.reset and bool((current.get("pricing_activation") or {}).get("events")):
+            require_company_editor(request, detail=EVENT_PRICING_COMPANY_ONLY_DETAIL)
+        merged = {} if update.reset else _deep_merge(current, update.overrides)
         candidate = PricingModel.from_config(merged)  # validate before persisting
         if candidate.enable_qh_settlement and not qh_settlement_enabled(candidate):
             raise ValueError(
-                "qh_settlement requires qh_audience_basis='jewish_households', "
-                "qh_rating_vintage='overnight_plus_1', and a non-empty qh_rating_source"
+                "qh_settlement requires qh_audience_basis='jewish_households', qh_rating_vintage='overnight_plus_1', and a non-empty qh_rating_source"
+                # Operator-facing validation messages remain atomic in source.
             )
         if candidate.enable_qh_settlement:
             from kairos_api.preview_inputs import preview_inputs
@@ -326,16 +330,16 @@ def put_pricing(update: PricingUpdate, request: Request = None) -> dict[str, Any
                     f"QH settlement rating provenance could not be validated: {exc}"
                 ) from exc
             validate_qh_settlement_provenance(candidate, segments)
+        version_store.snapshot_manual_edit(request, "settings")
+        settings.pricing_overrides = merged
+
+    try:
+        saved = _mutate_settings(apply)
     except QHSettlementConfigurationError as exc:
         raise HTTPException(status_code=422, detail=f"Invalid pricing edit: {exc}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"Invalid pricing edit: {exc}") from exc
-    from kairos_api import version_store
-
-    version_store.snapshot_manual_edit(request, "settings")
-    settings.pricing_overrides = merged
-    save(settings)
-    return _state_payload(settings)
+    return _state_payload(saved)
 
 
 def _advertiser_overrides(req: PriceSlotRequest, breakdown: PriceBreakdown) -> Any:

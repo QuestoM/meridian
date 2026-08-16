@@ -438,10 +438,8 @@ def handle_tool_use(block: Any, trace: list[dict[str, Any]], items: list[dict[st
             payload["reason"] = item.get("error")
     else:
         payload, ok = {"error": f"unknown tool {name!r}"}, False
-    step: dict[str, Any] = {"tool": name, "ok": ok}
-    if source:
-        step["source"] = source
-    trace.append(step)
+    from kairos_api.assistant_tool_trace import trace_step
+    trace.append(trace_step(name, ok, source, payload))
     return {
         "type": "tool_result",
         "tool_use_id": str(getattr(block, "id", "")),

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Code, Name } from '../shell/bidi';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Power, RotateCcw, Save, X } from 'lucide-react';
 import {
   isAgencyDirty,
@@ -22,14 +23,22 @@ const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
 // The record-level synthetic marker. Bottom-placed tooltip (never a native
 // title) explains that the details are seed data pending real operator data.
-export function SyntheticChip({ locale }) {
+export function SyntheticChip({ locale, focusable = true }) {
+  const explanation = pageText(locale, 'The details on this record are synthetic seed data, generated to stand the page up until real agency data arrives from the operator. Do not treat them as facts.', 'הפרטים ברשומה זו הם נתוני דמו סינתטיים שנוצרו כדי להקים את העמוד, עד שיתקבלו נתוני סוכנות אמיתיים מהמפעיל. אין להתייחס אליהם כאל עובדות.');
   return (
     <Tooltip
-      title={pageText(locale, 'The details on this record are synthetic seed data, generated to stand the page up until real agency data arrives from the operator. Do not treat them as facts.', 'הפרטים ברשומה זו הם נתוני דמו סינתטיים שנוצרו כדי להקים את העמוד, עד שיתקבלו נתוני סוכנות אמיתיים מהמפעיל. אין להתייחס אליהם כאל עובדות.')}
+      title={explanation}
       arrow
       placement="bottom"
     >
-      <span className="agz-synthetic-chip" tabIndex={0}>{pageText(locale, 'Demo data', 'נתוני דמו')}</span>
+      <span
+        className="agz-synthetic-chip"
+        tabIndex={focusable ? 0 : undefined}
+        role={focusable ? 'note' : undefined}
+        aria-label={focusable ? explanation : undefined}
+      >
+        {pageText(locale, 'Demo data', 'נתוני דמו')}
+      </span>
     </Tooltip>
   );
 }
@@ -218,7 +227,7 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
         <header className="amz-drawer-head">
           <div className="amz-drawer-title">
             <span className="amz-drawer-eyebrow">{pageText(locale, 'Agency record', 'כרטיס סוכנות')}</span>
-            <h2><Name>{draft.display_name || draft.name || draft.agency_id}</Name></h2>
+            <h2 id="agency-drawer-title"><Name>{draft.display_name || draft.name || draft.agency_id}</Name></h2>
             <div className="agz-head-chips">
               <Code className="agz-agency-id">{row.agency_id}</Code>
               <span className={`agz-status-chip ${status.tone}`}>{status.label}</span>
@@ -228,9 +237,9 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
               )}
             </div>
           </div>
-          <button type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close', 'סגירה')}>
+          <Button autoFocus type="button" className="amz-drawer-close" onClick={onClose} aria-label={pageText(locale, 'Close agency record', 'סגירת כרטיס הסוכנות')}>
             <X size={18} />
-          </button>
+          </Button>
         </header>
 
         <section className="amz-drawer-section">
@@ -310,15 +319,21 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
         </footer>
       </div>
 
-      <Dialog open={confirmSuspend} onClose={() => setConfirmSuspend(false)} dir={locale === 'he' ? 'rtl' : 'ltr'}>
-        <DialogTitle>{pageText(locale, 'Suspend this agency', 'השהיית הסוכנות')}</DialogTitle>
+      <Dialog
+        open={confirmSuspend}
+        onClose={() => setConfirmSuspend(false)}
+        dir={locale === 'he' ? 'rtl' : 'ltr'}
+        aria-labelledby="agency-suspend-title"
+        aria-describedby="agency-suspend-description"
+      >
+        <DialogTitle id="agency-suspend-title">{pageText(locale, 'Suspend this agency', 'השהיית הסוכנות')}</DialogTitle>
         <DialogContent>
-          <p className="agz-dialog-text">
+          <p className="agz-dialog-text" id="agency-suspend-description">
             {pageText(locale, `The agency ${row.agency_id} will be marked suspended. Its rules and rebate go inert on the pricing path, its advertiser links and history are kept, nothing is deleted, and it can be reactivated at any time.`, `הסוכנות ${row.agency_id} תסומן כמושהית. הכללים והרבייט שלה מפסיקים לפעול בנתיב התמחור, קישורי המפרסמים וההיסטוריה נשמרים, דבר אינו נמחק, וניתן להפעיל אותה מחדש בכל עת.`)}
           </p>
         </DialogContent>
         <DialogActions>
-          <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(false)}>
+          <Button autoFocus className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(false)}>
             {pageText(locale, 'Cancel', 'ביטול')}
           </Button>
           <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => setStatusTo('suspended')}>
@@ -341,7 +356,13 @@ function AgencyDetailDrawer({ row, open, locale, scopeOptions, notify, onSaved, 
       anchor={anchor}
       open={open && Boolean(row)}
       onClose={onClose}
-      slotProps={{ paper: { className: 'amz-drawer-paper', dir: locale === 'he' ? 'rtl' : 'ltr' } }}
+      slotProps={{ paper: {
+        className: 'amz-drawer-paper',
+        dir: locale === 'he' ? 'rtl' : 'ltr',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': 'agency-drawer-title',
+      } }}
     >
       {row && (
         <AgencyDrawerBody

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Flag, Target } from 'lucide-react';
 import { EMPTY_VALUE, formatCurrency, formatNumber, pageText } from '../../shell/format';
 import { Figure } from '../../shell/bidi';
@@ -110,7 +110,7 @@ export function GoalStrip({ progress, locale, words, onGo }) {
   const others = Array.isArray(progress.other_windows) ? progress.other_windows : [];
 
   return (
-    <div className={`plan-goal is-${state}`} role="status" aria-label={pageText(locale, 'The week against its target', 'השבוע מול היעד שלו')}>
+    <div className={`card plan-goal is-${state}`} role="status" aria-label={pageText(locale, 'The week against its target', 'השבוע מול היעד שלו')}>
       <span className="plan-goal-icon" aria-hidden="true">{set ? <Flag size={16} /> : <Target size={16} />}</span>
 
       <div className="plan-goal-figures">

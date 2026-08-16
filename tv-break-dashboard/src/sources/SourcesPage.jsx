@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '../studio/actions';
 import { RefreshCcw } from 'lucide-react';
-import { PageHeader } from '../shell/primitives';
+import { PageHeader } from '../studio';
 import { WALLS, fetchSession, payloadCanEdit } from '../session';
 import { FILTER_ORDER as FILTERS, VIEWS, VIEW_HASH, VIEW_LABELS, label, text } from './sources-copy';
 import { fetchReports, fetchUploadStatus } from './sources-api';
@@ -13,6 +13,9 @@ import './sources-card.css';
 import './sources-tables.css';
 import './sources-findings.css';
 import './sources-stored.css';
+import './studio-ledger-sources.css';
+import './studio-ledger-sources-ledger.css';
+import './studio-ledger-sources-overlays.css';
 
 // Sources is one destination with three views, and the view is a control in
 // the content rather than a second destination. Two navigation entries lead
@@ -29,8 +32,15 @@ function filterFromLocation() {
   return FILTERS.includes(requested) ? requested : 'all';
 }
 
+function viewFromLocation(fallback = 'inputs') {
+  if (typeof window === 'undefined') return fallback;
+  const requested = new URLSearchParams(window.location.search).get('sourceView');
+  return VIEWS.includes(requested) ? requested : fallback;
+}
+
 export function SourcesPage({ view: initialView, files, overview, reports, locale, notify, onGlobalRefresh }) {
-  const [view, setViewState] = useState(VIEWS.includes(initialView) ? initialView : 'inputs');
+  const fallbackView = VIEWS.includes(initialView) ? initialView : 'inputs';
+  const [view, setViewState] = useState(() => viewFromLocation(fallbackView));
   const [filter, setFilterState] = useState(filterFromLocation);
   const [status, setStatus] = useState({ loading: true, online: true, body: { inputs: [] } });
   const [ownReports, setOwnReports] = useState(null);
@@ -39,6 +49,7 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
   // status payload carries its own can_edit with the reason the server would
   // refuse with.
   const [session, setSession] = useState(null);
+  const tabsRef = useRef([]);
 
   useEffect(() => {
     let active = true;
@@ -49,6 +60,15 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    function syncFromAddress() {
+      setViewState(viewFromLocation(fallbackView));
+      setFilterState(filterFromLocation());
+    }
+    window.addEventListener('popstate', syncFromAddress);
+    return () => window.removeEventListener('popstate', syncFromAddress);
+  }, [fallbackView]);
 
   const loadStatus = useCallback(async () => {
     setStatus((current) => ({ ...current, loading: true }));
@@ -69,11 +89,17 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
   }, [view, reports, ownReports]);
 
   const setView = useCallback((next) => {
+    if (!VIEWS.includes(next)) return;
     setViewState(next);
     if (typeof window === 'undefined') return;
     const hash = VIEW_HASH[next];
-    if (!hash || decodeURIComponent(window.location.hash.replace(/^#/, '')) === hash) return;
-    window.location.hash = encodeURIComponent(hash);
+    const params = new URLSearchParams(window.location.search);
+    params.set('sourceView', next);
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${hash ? `#${encodeURIComponent(hash)}` : window.location.hash}`;
+    const hashChanged = hash && decodeURIComponent(window.location.hash.replace(/^#/, '')) !== hash;
+    window.history.pushState({ workspace: 'sources', section: next }, '', nextUrl);
+    if (hashChanged) window.dispatchEvent(new HashChangeEvent('hashchange'));
   }, []);
 
   const setFilter = useCallback((next) => {
@@ -83,10 +109,20 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
     if (next === 'all') params.delete('source');
     else params.set('source', next);
     const query = params.toString();
-    // replaceState, not a navigation: the hash the shell routes on must not
-    // move, and stepping back through seven filter clicks is nobody's history.
-    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    window.history.pushState({ workspace: 'sources', filter: next }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
   }, []);
+
+  const onTabKeyDown = useCallback((event, index) => {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = VIEWS.length - 1;
+    else if (event.key === 'ArrowRight') next = (index + (locale === 'he' ? -1 : 1) + VIEWS.length) % VIEWS.length;
+    else if (event.key === 'ArrowLeft') next = (index + (locale === 'he' ? 1 : -1) + VIEWS.length) % VIEWS.length;
+    else return;
+    event.preventDefault();
+    setView(VIEWS[next]);
+    tabsRef.current[next]?.focus();
+  }, [locale, setView]);
 
   const openFile = useCallback((path) => {
     setHighlight(String(path || ''));
@@ -109,8 +145,8 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
         locale={locale}
         titleEn="Sources"
         titleHe="מקורות"
-        bodyEn="Every input a run reads, what the engine is actually reading right now, and the reports built from it."
-        bodyHe="כל קלט שהרצה קוראת, מה שהמנוע קורא בפועל כרגע, והדוחות שנבנים ממנו."
+        bodyEn="Inputs the engine reads now and the reports built from them."
+        bodyHe="קלטים שהמנוע קורא כרגע והדוחות שנבנים מהם."
         action={
           <Button className="secondary-button compact" type="button" variant="outlined" onClick={reload}>
             <RefreshCcw size={14} />
@@ -120,16 +156,21 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
       />
 
       <div className="surface-toolbar no-print">
-        <div className="toolbar-left" role="tablist">
-          {VIEWS.map((key) => (
+        <div className="toolbar-left" role="tablist" aria-label={locale === 'he' ? 'מדורי מקורות' : 'Source sections'}>
+          {VIEWS.map((key, index) => (
             <Button
+              ref={(node) => { tabsRef.current[index] = node; }}
               key={key}
+              id={`sources-tab-${key}`}
               className={view === key ? 'segmented active' : 'segmented'}
               type="button"
               variant="outlined"
               role="tab"
               aria-selected={view === key}
+              aria-controls={`sources-panel-${key}`}
+              tabIndex={view === key ? 0 : -1}
               onClick={() => setView(key)}
+              onKeyDown={(event) => onTabKeyDown(event, index)}
             >
               {label(VIEW_LABELS, key, locale)}
             </Button>
@@ -137,42 +178,44 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
         </div>
       </div>
 
-      {view === 'inputs' && status.loading ? <p className="sources-note">{text('loading', locale)}</p> : null}
-      {view === 'inputs' && !status.loading && !status.online ? (
-        <p className="sources-note">{text('offline', locale)}</p>
-      ) : null}
-      {view === 'inputs' && !status.loading && status.online ? (
-        <InputsView
-          status={status.body}
-          locale={locale}
-          canEdit={gate.canEdit}
-          canEditReason={gate.reason}
-          filter={filter}
-          onFilter={setFilter}
-          onOpenFile={openFile}
-          onReload={reload}
-          notify={notify}
-        />
-      ) : null}
+      <div id={`sources-panel-${view}`} role="tabpanel" aria-labelledby={`sources-tab-${view}`} tabIndex={0}>
+        {view === 'inputs' && status.loading ? <p className="sources-note" role="status">{text('loading', locale)}</p> : null}
+        {view === 'inputs' && !status.loading && !status.online ? (
+          <p className="sources-note" role="alert">{text('offline', locale)}</p>
+        ) : null}
+        {view === 'inputs' && !status.loading && status.online ? (
+          <InputsView
+            status={status.body}
+            locale={locale}
+            canEdit={gate.canEdit}
+            canEditReason={gate.reason}
+            filter={filter}
+            onFilter={setFilter}
+            onOpenFile={openFile}
+            onReload={reload}
+            notify={notify}
+          />
+        ) : null}
 
-      {view === 'files' ? (
-        <SourceFilesView
-          files={files}
-          inputs={status.body.inputs}
-          locale={locale}
-          highlight={highlight}
-        />
-      ) : null}
+        {view === 'files' ? (
+          <SourceFilesView
+            files={files}
+            inputs={status.body.inputs}
+            locale={locale}
+            highlight={highlight}
+          />
+        ) : null}
 
-      {view === 'downloads' ? (
-        <DownloadsView
-          reports={reports || ownReports || { reports: [] }}
-          files={files}
-          overview={overview}
-          locale={locale}
-          notify={notify}
-        />
-      ) : null}
+        {view === 'downloads' ? (
+          <DownloadsView
+            reports={reports || ownReports || { reports: [] }}
+            files={files}
+            overview={overview}
+            locale={locale}
+            notify={notify}
+          />
+        ) : null}
+      </div>
     </section>
   );
 }

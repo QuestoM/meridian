@@ -296,7 +296,8 @@ def test_the_surface_renders_a_route_back_for_a_record_with_no_break_to_hang_fro
     """The payload alone is not the fix. The board has to draw the way back."""
     readout = (ROOT / "tv-break-dashboard" / "src" / "plan" / "day" / "DayBoardReadout.jsx").read_text(encoding="utf-8")
     assert "export function StrandedPlacements" in readout
-    assert "onClick={() => onRemove(record)}" in readout, "each row is addressed by its own record"
+    assert "onClick={() => setPendingRemoval(record)}" in readout, "each row opens review for its own record"
+    assert "onRemove(record);" in readout, "only the reviewed record reaches the removal callback"
     assert "Remove the saved placement" in readout and "הסרת הנעיצה השמורה" in readout
     assert "record.reason_he : record.reason" in readout, "the reason is read in the operator's language"
     assert readout.count("{stranded}") == 2, "a record is as real before the first score as after it"

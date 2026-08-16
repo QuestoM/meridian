@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Numeric, formatCurrency, formatPercent, pageText } from '../../shell/format';
 import { dayLabel, daypartLabel } from '../../shell/labels';
 import { daypartForTime, daypartKeys, flattenScheduleRows } from '../../shell/plan-model';

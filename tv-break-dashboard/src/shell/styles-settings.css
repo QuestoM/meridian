@@ -1,0 +1,334 @@
+/* Settings panels, save state, fields and shared loading state.
+   Loaded in source order from index.jsx; keep feature overrides in their owning sheets. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.settings-panel {
+  padding: var(--card-inset);
+}
+
+.settings-panel.wide {
+  grid-column: 1 / -1;
+}
+
+/* The operator-channel picker is the gateway to the frontier, so when it is
+   featured at the top of the settings page it gets a distinct callout: the
+   whole border in teal, at the panel's normal 1px. No soft fill, unlike the
+   smaller state boxes, because the panel holds form controls and a tinted field
+   that size would fight the inputs on it. The kicker pill below is already
+   solid teal, so the colour is stated without tinting anything to be typed in. */
+
+/* Sticky save bar: always-visible action bar pinned to the bottom of the
+   settings view so saving is obvious and reachable while the operator scrolls
+   and edits. The tone classes reflect the real draft-vs-saved + saveState. */
+.settings-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: var(--space-3) var(--card-inset);
+  box-shadow: var(--shadow-sticky);
+}
+
+.settings-savebar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+.settings-savebar-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--subtle);
+}
+
+.settings-savebar.tone-dirty {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.settings-savebar.tone-dirty .settings-savebar-status {
+  color: var(--amber);
+}
+
+.settings-savebar.tone-dirty .settings-savebar-dot {
+  background: var(--amber);
+}
+
+.settings-savebar.tone-saved .settings-savebar-status,
+.settings-savebar.tone-clean .settings-savebar-status {
+  color: var(--teal);
+}
+
+.settings-savebar.tone-saved .settings-savebar-dot,
+.settings-savebar.tone-clean .settings-savebar-dot {
+  background: var(--teal);
+}
+
+.settings-savebar.tone-error .settings-savebar-status {
+  color: var(--red);
+}
+
+.settings-savebar.tone-error .settings-savebar-dot {
+  background: var(--red);
+}
+
+.settings-savebar .run-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.settings-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.settings-panel-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+}
+
+.settings-panel-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.settings-form-grid,
+.settings-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+  row-gap: 22px;
+  align-items: start;
+}
+
+.settings-form-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.optimizer-balance {
+  display: grid;
+  gap: 16px;
+}
+
+.optimizer-balance-help {
+  color: var(--muted);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.optimizer-balance-slider {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 6px var(--space-1);
+}
+
+.optimizer-balance-slider > span {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.optimizer-templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.optimizer-template {
+  display: grid;
+  gap: 4px;
+  text-align: inherit;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.optimizer-template:hover {
+  border-color: var(--teal);
+}
+
+.optimizer-template.is-active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.optimizer-template strong {
+  font-size: var(--text-base);
+}
+
+.optimizer-template small {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.optimizer-recompute {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.optimizer-recompute p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 360px;
+}
+
+.settings-panel label,
+.toggle-control {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* Plain HTML controls inside settings keep this bordered look. MUI fields
+   (TextField, Select) draw their own outlined frame with a floating label via the
+   theme, so their inner input is excluded here: giving it a second border and a
+   solid background would stack a frame inside MUI's outline and shift the box out
+   from under the notched label (the double-frame and label-overlap bug). */
+.settings-panel input:not(.MuiInputBase-input):not(.MuiSelect-nativeInput),
+.settings-panel select:not(.MuiSelect-nativeInput),
+.settings-panel textarea:not(.MuiInputBase-input) {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 9px 10px;
+  font: inherit;
+  font-weight: var(--weight-soft);
+  resize: vertical;
+}
+
+/* MUI fields size to their content by default. The old plain-input rule stretched
+   the inner input to full width; now that MUI inputs are excluded from it, restore
+   the full-width fill on the field WRAPPER instead (never the inner input, so no
+   second border returns). This keeps every settings field the same width whether
+   it is a bare TextField, a Select, or a NumberControl inside its suffix grid. */
+.settings-panel .MuiTextField-root,
+.settings-panel .MuiFormControl-root {
+  width: 100%;
+}
+
+/* Calm the outlined-field borders: MUI's default hover is near-black and its focus
+   ring is a heavy 2px, both jarring on this light panel. Use the design tokens
+   instead, at a steady 1px so focus never nudges the layout. */
+.settings-panel .MuiOutlinedInput-notchedOutline {
+  border-color: var(--line);
+}
+
+.settings-panel .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--line-strong);
+}
+
+.settings-panel .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--teal);
+  border-width: 1px;
+}
+
+/* Number fields carry their unit as an end adornment inside the frame, so hide the
+   native spinner (it only appeared on hover and clashed with the design) and give
+   the unit a muted, settled look. The value stays fully typeable. */
+.settings-panel input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.settings-panel input[type='number']::-webkit-outer-spin-button,
+.settings-panel input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.settings-panel .settings-number .MuiInputAdornment-root {
+  color: var(--muted);
+}
+
+.settings-panel .settings-number .MuiInputAdornment-root .MuiTypography-root {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.toggle-control {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: var(--control-height);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: var(--surface-muted);
+}
+
+.toggle-control input {
+  width: 34px;
+  accent-color: var(--teal);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  box-shadow: var(--shadow);
+  padding: 10px var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.toast.muted {
+  color: var(--muted);
+}
+
+@media (max-width: 1280px) {
+  .metric-copy strong {
+    font-size: var(--text-xl);
+  }
+}
+
+/* Shared loading indicator. */
+
+.upload-spinner {
+  animation: kairos-spin 0.9s linear infinite;
+}
+
+@keyframes kairos-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,10 +1,8 @@
 // Today's own read, and why it does not wait for the rest of the app.
 //
-// The shell loads eleven endpoints with Promise.all, so every page it feeds
-// renders when the slowest one lands. Measured on the running instance:
-// /api/schedule is 2.43 s and 516 KB, and it is the long pole. Today has a
-// five-second bar with zero clicks in it, so it fetches its own answer, which
-// is one round trip, and renders the moment that lands.
+// The shell now loads only Today's route profile, but the purpose-built answer
+// still primes during bundle startup so its three operational answers can render
+// without waiting for the larger schedule payload.
 //
 // The request is started when this module is evaluated rather than in an
 // effect, so it overlaps the bundle's own startup and the session probe that
@@ -109,8 +107,8 @@ export function todayFromOverview(overview) {
   const freshness = body.schedule_freshness && typeof body.schedule_freshness === 'object' ? body.schedule_freshness : {};
   const items = Array.isArray(body.recommendations) ? body.recommendations : [];
   const scoped = Boolean(summary.scope_channel);
-  // The shell hands every page an offline-shaped payload until its own eleven
-  // reads land. Its source counts are null, which is what tells this fallback
+  // The shell hands Today an offline-shaped payload until its route reads land.
+  // Its source counts are null, which is what tells this fallback
   // apart from a real answer that happens to be empty, and while that is what is
   // in hand the surface says it is still reading rather than rendering the
   // shape's zeros as findings.

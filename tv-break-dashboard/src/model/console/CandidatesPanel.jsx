@@ -5,6 +5,7 @@ import CandidateVerdict, { useCandidateDecision } from './CandidateVerdict';
 import { measureCandidate, readSection } from './console-api';
 import { Absent, Figure, Money, Panel, RecordDrill } from './console-bits';
 import { pick, t } from './console-words';
+import { Pressable } from '../../studio/dom-controls';
 
 // What a new training would change, per candidate artifact: which gates decide
 // differently, the figures each of those verdicts was decided on, how far the
@@ -159,9 +160,9 @@ function MoneyBlock({ money, locale, onMeasure, busy }) {
         title={t('candidates.not_measured', locale)}
         reason={money ? pick(money, 'reason', locale) : ''}
         action={(
-          <button type="button" className="mc-button" onClick={onMeasure} disabled={busy}>
+          <Pressable type="button" className="mc-button" onClick={onMeasure} disabled={busy}>
             {t('candidates.measure', locale)}
-          </button>
+          </Pressable>
         )}
       />
     );
@@ -193,9 +194,9 @@ function MoneyBlock({ money, locale, onMeasure, busy }) {
           title={t('candidates.stale', locale)}
           reason={pick(money, 'reason', locale)}
           action={(
-            <button type="button" className="mc-button" onClick={onMeasure} disabled={busy}>
+            <Pressable type="button" className="mc-button" onClick={onMeasure} disabled={busy}>
               {t('candidates.remeasure', locale)}
-            </button>
+            </Pressable>
           )}
         />
         {owned.revenue_delta === undefined ? null : (
@@ -272,9 +273,9 @@ function CandidateCard({ candidate, index, total, locale, onMeasure, onDecide, b
             <Numeric>{`${index + 1} / ${total}`}</Numeric>
           </small>
         </div>
-        <button type="button" className="mc-button" onClick={() => onDecide(candidate)}>
+        <Pressable type="button" className="mc-button" onClick={() => onDecide(candidate)}>
           {decided ? t('candidates.decide_again', locale) : t('candidates.decide', locale)}
-        </button>
+        </Pressable>
       </div>
       <p className="mc-candidate-subject">{pick(candidate, 'subject', locale) || candidate.purpose || ''}</p>
       <div className="mc-candidate-verdict">
@@ -389,16 +390,16 @@ export default function CandidatesPanel({ payload, locale, onRefresh, onDecide, 
       {lost ? (
         <p className="mc-note mc-candidate-watch">
           {t('candidates.watch_lost', locale)}{' '}
-          <button type="button" className="mc-link" onClick={onRefresh}>
+          <Pressable type="button" className="mc-link" onClick={onRefresh}>
             {t('candidates.watch_again', locale)}
-          </button>
+          </Pressable>
         </p>
       ) : watching ? (
         <p className="mc-note mc-candidate-watch">{t('candidates.watching', locale)}</p>
       ) : null}
       {candidates.length === 0 ? (
         <Absent
-          title={locale === 'en' ? 'No candidate artifacts on the shelf.' : 'אין קבצי מועמדים על המדף.'}
+          title={locale === 'en' ? 'No candidate model artifacts are available.' : 'אין קובצי מודל מועמדים זמינים.'}
           reason={pick(shown, 'measurement_cost', locale)}
         />
       ) : (

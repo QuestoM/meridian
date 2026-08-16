@@ -58,7 +58,7 @@ export const SECTIONS = [
   { id: 'compare', step: 3, key: 'c', en: 'Compare', he: 'השוואה' },
   { id: 'publish', step: 4, key: 'p', en: 'Publish', he: 'הפצה' },
   { id: 'supply', step: null, key: 's', en: 'Supply', he: 'היצע' },
-  { id: 'board', step: null, key: 'b', en: 'Week board', he: 'לוח השבוע' },
+  { id: 'board', step: null, key: 'b', en: 'Plan board', he: 'לוח התכנון' },
 ];
 
 export const SECTION_IDS = SECTIONS.map((section) => section.id);
@@ -180,14 +180,12 @@ export function leverValueText(field, value, locale) {
   return String(Math.round(number));
 }
 
-// The five levers a comparison leg ran under, as the five fields the saved
-// objective keeps them in. One field is named differently on the two sides and
-// nothing else is translated, so the values the card's money was computed on are
-// the values the objective receives.
+// The four objective levers a comparison leg ran under. The hourly cap is a
+// licence guardrail: both legs still run under it, but adopting a scenario never
+// moves it through the generic objective save.
 export const ADOPT_FIELDS = [
   ['revenue_weight', 'revenue_weight'],
   ['retention_floor', 'min_retention_floor'],
-  ['max_breaks_per_hour', 'max_breaks_per_hour'],
   ['risk_lambda', 'risk_lambda'],
   ['objective_mode', 'objective_mode'],
 ];
@@ -198,7 +196,7 @@ export function objectiveFromLevers(levers) {
   for (const [from, to] of ADOPT_FIELDS) {
     const value = levers[from];
     // A partial adoption would leave the objective disagreeing with the card
-    // that offered it, so anything short of all five is refused outright.
+    // that offered it, so anything short of all four is refused outright.
     if (value === null || value === undefined || value === '') return null;
     out[to] = value;
   }

@@ -3,7 +3,7 @@
 //
 // The request recorder records every mutating verb, and a large share of them
 // save nothing: dragging a break scores the placement on every drop, the rate
-// card prices a change before it is saved, Kai reads the page on every dock
+// card prices a change before it is saved, Mabat reads the page on every dock
 // open. Measured on the running instance, 57 of the 345 recorded requests in
 // the newest 500 entries were one endpoint scoring placements nobody had saved.
 //

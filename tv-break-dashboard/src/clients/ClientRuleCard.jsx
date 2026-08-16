@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '../studio/actions';
 import { Figure, Code, Name } from '../shell/bidi';
 import { Plus, SquareArrowOutUpRight } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -11,6 +12,7 @@ import {
   spellingRefusal,
   spellingsFor,
 } from './clients-rule-helpers';
+import { InputControl } from '../studio/dom-controls';
 
 // The client's pricing rule, on the client's own record.
 //
@@ -66,7 +68,7 @@ function CreateRule({ client, rows, locale, busy, onCancel, onCreate }) {
         {pageText(locale, 'Premium, times the rate card', 'מקדם, כפול המחירון')}
       </label>
       <div className="clients-rule-premium">
-        <input
+        <InputControl
           id="clients-rule-premium"
           type="number"
           min="0"
@@ -85,14 +87,14 @@ function CreateRule({ client, rows, locale, busy, onCancel, onCreate }) {
         )}
       </p>
       <div className="clients-rule-actions">
-        <button type="submit" className="clients-primary compact" disabled={parsed === null || busy}>
+        <Button type="submit" className="clients-primary compact" disabled={parsed === null || busy}>
           {busy
             ? pageText(locale, 'Creating...', 'יוצר...')
             : pageText(locale, 'Create the rule', 'יצירת הכלל')}
-        </button>
-        <button type="button" className="clients-inline-action" onClick={onCancel}>
+        </Button>
+        <Button type="button" className="clients-inline-action" onClick={onCancel}>
           {pageText(locale, 'Cancel', 'ביטול')}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -119,7 +121,7 @@ function AddSpelling({ client, row, rows, locale, busy, onCancel, onAdd }) {
       <label htmlFor="clients-rule-spelling">
         {pageText(locale, 'Another spelling of this client', 'כתיב נוסף של הלקוח הזה')}
       </label>
-      <input
+      <InputControl
         id="clients-rule-spelling"
         type="text"
         dir="auto"
@@ -135,14 +137,14 @@ function AddSpelling({ client, row, rows, locale, busy, onCancel, onAdd }) {
       </p>
       {text.trim() && refusal ? <p className="clients-reason">{refusal}</p> : null}
       <div className="clients-rule-actions">
-        <button type="submit" className="clients-primary compact" disabled={Boolean(refusal) || busy}>
+        <Button type="submit" className="clients-primary compact" disabled={Boolean(refusal) || busy}>
           {busy
             ? pageText(locale, 'Saving...', 'שומר...')
             : pageText(locale, 'Add the spelling', 'הוספת הכתיב')}
-        </button>
-        <button type="button" className="clients-inline-action" onClick={onCancel}>
+        </Button>
+        <Button type="button" className="clients-inline-action" onClick={onCancel}>
           {pageText(locale, 'Cancel', 'ביטול')}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -219,10 +221,10 @@ export default function ClientRuleCard({
                 'הכלל הזה מתמחר את התשדירים של הלקוח במסלול התמחור היומי. אין בו כללים ממוקדים עדיין.',
               )}
           </p>
-          <button type="button" className="clients-inline-action" onClick={() => onOpenRuleCard(row.advertiser_id)}>
+          <Button type="button" className="clients-inline-action" onClick={() => onOpenRuleCard(row.advertiser_id)}>
             <SquareArrowOutUpRight size={12} aria-hidden="true" />
             {pageText(locale, 'Open the full rule card', 'פתחו את כרטיס הכלל המלא')}
-          </button>
+          </Button>
         </>
       ) : null}
 
@@ -240,10 +242,10 @@ export default function ClientRuleCard({
             )}
           </p>
           {canEdit && open !== 'create' ? (
-            <button type="button" className="clients-inline-action" onClick={() => setOpen('create')}>
+            <Button type="button" className="clients-inline-action" onClick={() => setOpen('create')}>
               <Plus size={12} aria-hidden="true" />
               {pageText(locale, 'Create the pricing rule for this client', 'צרו כלל תמחור ללקוח הזה')}
-            </button>
+            </Button>
           ) : null}
           {!canEdit ? <p className="clients-refusal">{refusal}</p> : null}
           {canEdit && open === 'create' ? (
@@ -275,10 +277,10 @@ export default function ClientRuleCard({
       ) : null}
 
       {state === 'bound' && canEdit && open !== 'spelling' ? (
-        <button type="button" className="clients-inline-action" onClick={() => setOpen('spelling')}>
+        <Button type="button" className="clients-inline-action" onClick={() => setOpen('spelling')}>
           <Plus size={12} aria-hidden="true" />
           {pageText(locale, 'Add a spelling on the rule', 'הוסיפו כתיב על הכלל')}
-        </button>
+        </Button>
       ) : null}
       {state === 'bound' && canEdit && open === 'spelling' ? (
         <AddSpelling

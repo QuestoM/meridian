@@ -359,8 +359,8 @@ def test_api_audience_model_present_artifact(tmp_path, monkeypatch) -> None:
     assert body["base_summary"] == {"pooled_mean_tvr": 4.2}
 
 
-# 7. Settings round-trip through the API -------------------------------------
-def test_settings_round_trip_and_absent_reads_false(tmp_path, monkeypatch) -> None:
+# 7. Canonical activation write and absent-is-off ----------------------------
+def test_activation_uses_its_guarded_route_and_absent_reads_false(tmp_path, monkeypatch) -> None:
     tmp_settings = tmp_path / "kairos_settings.json"
     _write_json(tmp_settings, _model_dump(KairosSettings()))
     monkeypatch.setattr(core, "SETTINGS_PATH", tmp_settings)
@@ -370,17 +370,21 @@ def test_settings_round_trip_and_absent_reads_false(tmp_path, monkeypatch) -> No
 
     body["audience_model_activation"] = True
     response = client.put("/api/settings", json=body)
+    assert response.status_code == 409
+    assert "/api/rules/model-activation" in response.json()["detail"]
+    assert client.get("/api/settings").json()["audience_model_activation"] is False
+
+    response = client.put("/api/rules/model-activation", json={"active": True})
     assert response.status_code == 200, response.text
-    assert response.json()["audience_model_activation"] is True
+    assert response.json()["active"] is True
     assert client.get("/api/settings").json()["audience_model_activation"] is True
     persisted = json.loads(tmp_settings.read_text(encoding="utf-8"))
     assert persisted["audience_model_activation"] is True
 
-    # A PUT body without the key reads False, the frozen absent-reads-false rule.
-    del body["audience_model_activation"]
-    response = client.put("/api/settings", json=body)
-    assert response.status_code == 200, response.text
-    assert response.json()["audience_model_activation"] is False
+    # A stored document without the key reads False, the frozen absent-is-off rule.
+    del persisted["audience_model_activation"]
+    _write_json(tmp_settings, persisted)
+    assert client.get("/api/settings").json()["audience_model_activation"] is False
 
 
 # 8. The forecast basis note --------------------------------------------------

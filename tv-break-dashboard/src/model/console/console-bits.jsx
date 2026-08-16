@@ -2,6 +2,7 @@ import React from 'react';
 import { Code, Name } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import { t } from './console-words';
+import { Pressable } from '../../studio/dom-controls';
 
 // The console's small parts. Two of them carry the whole argument of the
 // surface, so they live here rather than inside one panel:
@@ -111,9 +112,9 @@ export function RecordDrill({ record, locale, open, onToggle, label }) {
   if (record === null || record === undefined) return null;
   return (
     <div className="mc-drill">
-      <button type="button" className="mc-link" onClick={onToggle} aria-expanded={open}>
+      <Pressable type="button" className="mc-link" onClick={onToggle} aria-expanded={open}>
         {open ? t('gates.hide_record', locale) : (label || t('gates.show_record', locale))}
-      </button>
+      </Pressable>
       {open ? (
         <pre className="mc-record"><Code>{JSON.stringify(record, null, 1)}</Code></pre>
       ) : null}

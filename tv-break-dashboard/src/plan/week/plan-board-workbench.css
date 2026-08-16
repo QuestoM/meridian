@@ -1,0 +1,448 @@
+/* The live Plan board is a day-first operator workbench. The weekly analytical
+   axes remain available, but they no longer compete for the default canvas. */
+
+.plan-workbench {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.plan-workbench-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: start;
+  gap: var(--space-5);
+  padding-block: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-workbench-kicker { display: block; margin-block-end: var(--space-1); color: var(--ink-subtle); font: 600 11px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+
+.plan-workbench-intro h3,
+.plan-version-rail h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display-hebrew);
+  font-weight: var(--weight-medium);
+  letter-spacing: -.015em;
+}
+
+[dir="ltr"] .plan-workbench-intro h3,
+[dir="ltr"] .plan-version-rail h3 {
+  font-family: var(--font-display-latin);
+}
+
+.plan-workbench-intro h3 {
+  max-inline-size: 760px;
+  font-size: clamp(22px, 2vw, 30px);
+  line-height: 1.12;
+}
+
+.plan-workbench-intro p {
+  max-inline-size: 86ch;
+  margin: var(--space-2) 0 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.plan-workbench-mode,
+.plan-analysis-label {
+  display: inline-flex;
+  min-block-size: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.plan-workbench-mode {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+}
+
+.plan-workbench .day-picker {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) max-content max-content;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.plan-workbench .day-picker-head {
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.plan-workbench .day-picker-current { color: var(--ink); font: 600 13px/1 var(--font-mono); }
+
+.plan-workbench .day-picker-week {
+  flex-wrap: nowrap;
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.plan-workbench .day-pill {
+  min-inline-size: 48px;
+  min-block-size: 48px;
+  border-radius: var(--radius-sm);
+}
+
+.plan-workbench .day-pill.is-on { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+.plan-workbench .day-pill.is-on b { color: var(--surface); }
+
+.plan-workbench .day-picker-month { min-block-size: 48px; }
+
+.plan-comparison-strip {
+  display: grid;
+  grid-template-columns: minmax(170px, .8fr) repeat(4, minmax(130px, 1fr));
+  min-inline-size: 0;
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.plan-comparison-title,
+.plan-workbench-metric {
+  display: grid;
+  align-content: center;
+  min-inline-size: 0;
+  min-block-size: 92px;
+  padding: var(--space-3);
+  border-inline-end: 1px solid var(--line);
+}
+
+.plan-comparison-title {
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-muted);
+}
+
+.plan-comparison-title span,
+.plan-workbench-metric > span {
+  color: var(--ink-subtle);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.plan-comparison-title strong {
+  display: block;
+  margin-block-start: 3px;
+  color: var(--ink);
+  font: 600 13px/1.3 var(--font-mono);
+}
+
+.plan-workbench-metric:last-child { border-inline-end: 0; }
+
+.plan-workbench-metric strong {
+  margin-block: 3px;
+  overflow: hidden;
+  color: var(--ink);
+  font: 600 clamp(15px, 1.35vw, 20px)/1.2 var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-workbench-metric small {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-workbench-metric.is-gain strong { color: var(--positive); }
+.plan-workbench-metric.is-loss strong { color: var(--danger); }
+
+.plan-workbench-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(286px, 316px);
+  align-items: start;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+.plan-workbench-canvas { min-inline-size: 0; }
+
+.plan-timeline-basis {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 54px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-block-end: 0;
+  background: var(--surface-muted);
+}
+
+.plan-timeline-basis strong { color: var(--ink); font-size: 13px; }
+.plan-timeline-basis span { color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+
+.plan-workbench-canvas > .day-board {
+  border: 1px solid var(--line-strong);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.plan-version-rail {
+  position: sticky;
+  inset-block-start: var(--space-3);
+  display: flex;
+  min-inline-size: 0;
+  max-block-size: calc(100vh - var(--space-6));
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  overflow: auto;
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  scrollbar-gutter: stable;
+}
+
+.plan-version-rail-head {
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line-strong);
+}
+
+.plan-version-rail h3 { font-size: 22px; line-height: 1.15; }
+
+.plan-record {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-color: var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.plan-record-title {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.plan-record-title > strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-record-title > span:last-child {
+  color: var(--ink-subtle);
+  font: 11px/1.4 var(--font-mono);
+}
+
+.plan-record-badge {
+  display: inline-flex;
+  inline-size: fit-content;
+  min-block-size: 26px;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.plan-record-badge.is-frozen {
+  border-color: var(--positive);
+  color: var(--positive);
+}
+
+.plan-record-figures,
+.plan-live-diff-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.plan-record-metric {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.plan-record-metric span { color: var(--ink-subtle); font-size: 10px; }
+.plan-record-metric strong { overflow: hidden; color: var(--ink); font: 600 13px/1.3 var(--font-mono); text-overflow: ellipsis; }
+
+.plan-workflow-ledger {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-workflow-ledger p {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.plan-workflow-ledger b {
+  display: grid;
+  inline-size: 24px;
+  block-size: 24px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink);
+  font: 600 11px var(--font-mono);
+}
+
+.plan-workbench-note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.plan-workbench-note p { margin: 0; }
+
+.plan-workbench-note.is-warning {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.plan-workbench-note.is-error { color: var(--danger); }
+.plan-workbench-note .MuiButton-root { inline-size: 100%; min-block-size: 44px; }
+
+.plan-baseline-setup {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-block: 1px solid var(--line);
+}
+
+.plan-baseline-setup strong { color: var(--ink); font-size: 12px; }
+.plan-baseline-setup p { margin: 2px 0 0; color: var(--ink-muted); font-size: 11px; line-height: 1.45; }
+.plan-baseline-setup .MuiInputBase-root { min-block-size: 44px; background: var(--surface); }
+.plan-baseline-setup > .MuiButton-root { min-block-size: 44px; }
+
+.plan-checkpoints { min-inline-size: 0; }
+
+.plan-checkpoints-head {
+  display: flex;
+  min-block-size: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-checkpoints h4 { margin: 0; color: var(--ink); font-size: 12px; }
+.plan-checkpoints-head > span { color: var(--ink-subtle); font: 11px var(--font-mono); }
+
+.plan-checkpoints ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-checkpoint {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-checkpoint.is-selected { box-shadow: inset 3px 0 0 var(--accent); }
+
+.plan-checkpoint-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-checkpoint-head > div { display: grid; min-inline-size: 0; gap: 2px; }
+.plan-checkpoint-head strong { overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.plan-checkpoint-head > div span { color: var(--ink-subtle); font: 10px/1.3 var(--font-mono); }
+
+.plan-checkpoint-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--ink-muted);
+  font: 10px/1.35 var(--font-mono);
+}
+
+.plan-checkpoint-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.plan-checkpoint-actions .MuiButton-root {
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding-inline: var(--space-1);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.plan-live-diff {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-block: 1px solid var(--line-strong);
+}
+
+.plan-live-diff > span { color: var(--ink-subtle); font-size: 10px; line-height: 1.4; }
+.plan-live-diff > strong { color: var(--ink); font-size: 12px; }
+.plan-live-diff > p { margin: 0; color: var(--ink-muted); font-size: 11px; }
+.plan-live-diff-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.plan-open-history { inline-size: 100%; min-block-size: 44px; }
+
+.plan-week .plan-board-toolbar {
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.plan-week .plan-board-views .MuiButton-root { min-block-size: 44px; }
+.plan-analysis-label { margin-inline-start: auto; }
+
+@media (max-width: 1320px) {
+  .plan-workbench-layout { grid-template-columns: minmax(0, 1fr) 304px; }
+  .plan-comparison-strip { grid-template-columns: minmax(145px, .75fr) repeat(4, minmax(112px, 1fr)); }
+  .plan-comparison-title,
+  .plan-workbench-metric { padding-inline: var(--space-2); }
+  .plan-workbench-metric strong { font-size: 15px; }
+  .plan-checkpoint-actions { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1080px) {
+  .plan-workbench-layout { grid-template-columns: 1fr; }
+  .plan-version-rail { position: static; max-block-size: none; }
+  .plan-comparison-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan-comparison-title { grid-column: 1 / -1; }
+  .plan-workbench .day-picker { grid-template-columns: 1fr; }
+}

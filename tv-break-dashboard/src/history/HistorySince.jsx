@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { pageText } from '../shell/format';
+import { InputControl, Pressable } from '../studio/dom-controls';
 import { RunsRemedyLink } from './HistoryRunsSource';
 import { fetchSince } from './history-api';
 import { todayIso } from './history-labels';
@@ -93,11 +94,11 @@ export default function HistorySince({ locale, landing, onShow }) {
   const covered = !(body && body.record_starts) || String(body.day || '') >= String(body.record_starts);
 
   return (
-    <section className="hist-since" aria-label={pageText(locale, 'What changed since', 'מה השתנה מאז')}>
+    <section className="card hist-since" aria-label={pageText(locale, 'What changed since', 'מה השתנה מאז')}>
       <ShieldCheck size={16} aria-hidden="true" />
       <label className="hist-select">
         <span>{pageText(locale, 'Since', 'מאז')}</span>
-        <input type="date" value={day} onChange={(event) => setDay(event.target.value)} dir="ltr" />
+        <InputControl type="date" value={day} onChange={(event) => setDay(event.target.value)} dir="ltr" />
       </label>
 
       {state === 'loading' ? <span className="hist-since-line">{pageText(locale, 'Reading the record', 'קורא את הרישום')}</span> : null}
@@ -138,9 +139,9 @@ export default function HistorySince({ locale, landing, onShow }) {
               figure in this sentence and a reader can walk from the attestation to
               the record that backs it. */}
           {(changeCount || refusedCount) && onShow ? (
-            <button type="button" className="hist-link" onClick={() => onShow(day)}>
+            <Pressable type="button" className="hist-link" onClick={() => onShow(day)}>
               {pageText(locale, 'Show these in the list', 'הצגה ברשימה')}
-            </button>
+            </Pressable>
           ) : null}
           {counted ? null : (
             <span className="hist-since-line warn">{pageText(locale, ...runsCountLine(runsState))}</span>

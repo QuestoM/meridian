@@ -31,8 +31,8 @@
 
 /* The active (measured on) verdict chip, green like the holiday chip family. */
 .cal-chip.aud-on {
-  border-color: #bfd9d4;
-  background: #eef7f5;
+  border-color: var(--positive);
+  background: var(--positive-soft);
   color: var(--teal);
 }
 

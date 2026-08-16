@@ -3,6 +3,7 @@ import { FormControl, MenuItem, Select, TextField } from '@mui/material';
 import { Plus, PlusSquare, Trash2, X } from 'lucide-react';
 import DateField from '../shell/DateField';
 import { daypartLabel } from '../shell/surface-helpers';
+import { InputControl, Pressable } from '../studio/dom-controls';
 
 // The AND/OR predicate tree, split out of ConstraintBuilder so both files sit
 // under the file-size law. Nothing about the grammar changed: the same frozen
@@ -93,14 +94,14 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
       const max = typeof value === 'object' && value !== null ? (value.max ?? '') : '';
       return (
         <div className="cb-between-pair">
-          <TextField type="number" size="small" value={min} onChange={(e) => onChange({ min: Number(e.target.value), max })} inputProps={{ min: 0, max: 23, dir: 'ltr' }} placeholder="0" />
+          <TextField type="number" size="small" value={min} onChange={(e) => onChange({ min: Number(e.target.value), max })} slotProps={{ htmlInput: { min: 0, max: 23, dir: 'ltr' } }} placeholder="0" />
           <span className="cb-between-sep">{t(locale, 'and', 'עד')}</span>
-          <TextField type="number" size="small" value={max} onChange={(e) => onChange({ min, max: Number(e.target.value) })} inputProps={{ min: 0, max: 23, dir: 'ltr' }} placeholder="23" />
+          <TextField type="number" size="small" value={max} onChange={(e) => onChange({ min, max: Number(e.target.value) })} slotProps={{ htmlInput: { min: 0, max: 23, dir: 'ltr' } }} placeholder="23" />
         </div>
       );
     }
     return (
-      <TextField type="number" size="small" value={value ?? ''} onChange={(e) => onChange(Number(e.target.value))} inputProps={{ min: 0, max: 23, dir: 'ltr' }} placeholder="0" />
+      <TextField type="number" size="small" value={value ?? ''} onChange={(e) => onChange(Number(e.target.value))} slotProps={{ htmlInput: { min: 0, max: 23, dir: 'ltr' } }} placeholder="0" />
     );
   }
 
@@ -165,7 +166,7 @@ function ConditionValueInput({ fieldName, operator, value, onChange, hints, loca
   }
 
   return (
-    <TextField size="small" value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={t(locale, 'value', 'ערך')} inputProps={{ dir: he ? 'rtl' : 'ltr' }} />
+    <TextField size="small" value={value ?? ''} onChange={(e) => onChange(e.target.value)} placeholder={t(locale, 'value', 'ערך')} slotProps={{ htmlInput: { dir: he ? 'rtl' : 'ltr' } }} />
   );
 }
 
@@ -204,12 +205,12 @@ function ChipInput({ value, onChange, placeholder, options, locale, labelFor }) 
         {chips.map((chip) => (
           <span key={chip} className="cb-chip">
             {display(chip)}
-            <button type="button" className="cb-chip-remove" onClick={() => removeChip(chip)} aria-label={t(locale, `Remove ${display(chip)}`, `הסרת ${display(chip)}`)}>
+            <Pressable type="button" className="cb-chip-remove" onClick={() => removeChip(chip)} aria-label={t(locale, `Remove ${display(chip)}`, `הסרת ${display(chip)}`)}>
               <X size={10} />
-            </button>
+            </Pressable>
           </span>
         ))}
-        <input
+        <InputControl
           className="cb-chip-text"
           value={text}
           placeholder={chips.length === 0 ? placeholder : ''}
@@ -221,9 +222,9 @@ function ChipInput({ value, onChange, placeholder, options, locale, labelFor }) 
       {options.length > 0 && (
         <div className="cb-chip-options">
           {options.filter((o) => !chips.includes(o) && (text === '' || o.toLowerCase().includes(text.toLowerCase()) || String(display(o)).toLowerCase().includes(text.toLowerCase()))).slice(0, 8).map((o) => (
-            <button key={o} type="button" className="cb-chip-option" onClick={() => addChip(o)}>
+            <Pressable key={o} type="button" className="cb-chip-option" onClick={() => addChip(o)}>
               {display(o)}
-            </button>
+            </Pressable>
           ))}
         </div>
       )}
@@ -247,7 +248,7 @@ function ConditionRow({ condition, onUpdate, onDelete, hints, locale, level }) {
   }
 
   return (
-    <div className="cb-rule-row" style={{ marginInlineStart: `${level * 24}px` }}>
+    <div className="card cb-rule-row" style={{ marginInlineStart: `${level * 24}px` }}>
       <FormControl size="small" sx={{ minWidth: 130 }}>
         <Select value={condition.field} onChange={(e) => changeField(e.target.value)}>
           {FIELD_DEFS.map((f) => (
@@ -265,9 +266,9 @@ function ConditionRow({ condition, onUpdate, onDelete, hints, locale, level }) {
       <div className="cb-value-cell">
         <ConditionValueInput fieldName={condition.field} operator={condition.operator} value={condition.value} onChange={(v) => onUpdate({ ...condition, value: v })} hints={hints} locale={locale} />
       </div>
-      <button type="button" className="cb-delete-btn" onClick={onDelete} aria-label={t(locale, 'Remove rule', 'הסר כלל')}>
+      <Pressable type="button" className="cb-delete-btn" onClick={onDelete} aria-label={t(locale, 'Remove rule', 'הסר כלל')}>
         <Trash2 size={13} />
-      </button>
+      </Pressable>
     </div>
   );
 }
@@ -300,30 +301,30 @@ function GroupNode({ group, onUpdate, onDelete, hints, locale, level }) {
   }
 
   return (
-    <div className={`cb-group${level > 0 ? ' cb-group-nested' : ''}`}>
+    <div className={`card cb-group${level > 0 ? ' cb-group-nested' : ''}`}>
       <div className="cb-group-head">
         <div className="cb-combinator-toggle" role="group" aria-label={t(locale, 'Match condition', 'תנאי התאמה')}>
-          <button
+          <Pressable
             type="button"
             className={`cb-combinator-btn${group.combinator === 'and' ? ' active' : ''}`}
             aria-pressed={group.combinator === 'and'}
             onClick={() => setCombinator('and')}
           >
             {t(locale, 'AND', 'וגם')}
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             className={`cb-combinator-btn${group.combinator === 'or' ? ' active' : ''}`}
             aria-pressed={group.combinator === 'or'}
             onClick={() => setCombinator('or')}
           >
             {t(locale, 'OR', 'או')}
-          </button>
+          </Pressable>
         </div>
         {level > 0 && onDelete && (
-          <button type="button" className="cb-delete-btn" onClick={onDelete} aria-label={t(locale, 'Remove group', 'הסר קבוצה')}>
+          <Pressable type="button" className="cb-delete-btn" onClick={onDelete} aria-label={t(locale, 'Remove group', 'הסר קבוצה')}>
             <Trash2 size={13} />
-          </button>
+          </Pressable>
         )}
       </div>
       <div className="cb-group-body">
@@ -356,14 +357,14 @@ function GroupNode({ group, onUpdate, onDelete, hints, locale, level }) {
         })}
       </div>
       <div className="cb-group-actions">
-        <button type="button" className="cb-add-btn" onClick={addRule}>
+        <Pressable type="button" className="cb-add-btn" onClick={addRule}>
           <Plus size={12} />
           {t(locale, 'Add rule', 'הוסף כלל')}
-        </button>
-        <button type="button" className="cb-add-btn" onClick={addSubGroup}>
+        </Pressable>
+        <Pressable type="button" className="cb-add-btn" onClick={addSubGroup}>
           <PlusSquare size={12} />
           {t(locale, 'Add group', 'הוסף קבוצה')}
-        </button>
+        </Pressable>
       </div>
     </div>
   );

@@ -232,33 +232,44 @@ def test_the_free_text_paths_this_piece_must_not_touch_still_work() -> None:
 
     assert _question_dates("what happened on 01/11/2024", ["2024-11-01"]) == ["2024-11-01"]
     assert _strip_hebrew_prefixes("בחדשות") == "חדשות"
-    # find_advertiser still answers exactly as it did, which is what "untouched"
-    # means. What it answers is measured below rather than assumed here.
+    # The free-text advertiser path remains available beside the picker. Its
+    # Hebrew identity fold is exercised separately below.
     assert "candidates" in execute_read_tool("find_advertiser", {"name": "Coca"}, None)
 
 
-def test_find_advertiser_cannot_match_a_hebrew_name_and_the_picker_routes_around_it() -> None:
-    """A measured finding, written down so it cannot be quietly assumed away.
-
-    Part four takes for granted that the free-text path resolves a typed name
-    through find_advertiser. For a HEBREW advertiser it does not, and never has:
-    ``_normalize_name`` reduces a string to ``[a-z0-9]``, so every Hebrew
-    advertiser_id normalises to the empty string and is skipped by the loop
-    before it is ever scored. Measured on the store here: 45 advertisers, and
-    the tool returns zero candidates for a name that is sitting in the file.
-
-    That is the strongest argument for this picker existing at all, and it is a
-    bug in a tool this piece does not own. It is pinned rather than fixed: the
-    day somebody repairs find_advertiser, this test fails and gets deleted,
-    which is exactly the notice that should be served.
-    """
+def test_find_advertiser_matches_a_hebrew_name_from_the_picker() -> None:
+    """The free-text path and the picker resolve Hebrew through one identity fold."""
     from kairos_api.assistant_read_tools import execute_read_tool
 
-    hebrew = [row["label"] for row in mentions.build_index()
+    hebrew = [row for row in mentions.build_index()
               if row["type"] == "advertiser" and row["label"][:1] in "אבגדהוזחטיכלמנסעפצקרשת"]
     if not hebrew:
         pytest.skip("no Hebrew advertiser in the store")
-    assert execute_read_tool("find_advertiser", {"name": hebrew[0]}, None)["candidates"] == []
+    payload = execute_read_tool("find_advertiser", {"name": hebrew[0]["label"]}, None)
+    assert payload["count"] == 1
+    assert any(candidate["advertiser_id"] == hebrew[0]["id"]
+               for candidate in payload["candidates"])
+
+
+def test_prompt_routes_named_advertiser_history_to_one_direct_read() -> None:
+    from kairos_api.assistant_prompt import SYSTEM_PROMPT
+
+    rule = SYSTEM_PROMPT[SYSTEM_PROMPT.index("32. Named advertiser airings:"):]
+    assert "call get_advertiser_airings first" in rule
+    assert "Use get_top_advertisers only for rankings across advertisers" in rule
+    assert "never fan out across pods" in rule
+
+
+def test_handbook_states_the_advertiser_airings_coverage_boundary() -> None:
+    from kairos_api.assistant_prompt import HANDBOOK_PATH
+
+    handbook = HANDBOOK_PATH.read_text(encoding="utf-8")
+    section = " ".join(handbook[handbook.index("## Advertiser airings"):].split())
+    assert "every daily traffic file currently available" in section
+    assert "Complete means complete for those readable files and dates only" in section
+    assert "It never means the advertiser's lifetime history" in section
+    assert "rules store identifies the record" in section
+    assert "get_top_advertisers" in section and "newest daily file only" in section
 
 
 def test_the_label_the_picker_inserts_is_the_exact_store_key_a_read_tool_wants() -> None:

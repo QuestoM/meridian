@@ -50,11 +50,11 @@
 .agz-status-chip.blue {
   color: var(--blue);
   background: var(--blue-soft);
-  border-color: #c6d6e8;
+  border-color: var(--info);
 }
 .agz-status-chip.muted {
   color: var(--muted);
-  background: #eef1f4;
+  background: var(--surface-muted);
   border-color: var(--line);
 }
 .agz-type-chip {
@@ -136,7 +136,7 @@
   font-variant-numeric: tabular-nums;
 }
 .agz-total-net .agz-total-value {
-  color: var(--teal-ink);
+  color: var(--accent-strong);
 }
 .agz-totals-basis {
   flex: 1 1 240px;

@@ -57,8 +57,8 @@ def test_the_day_board_releases_the_shared_scroll_floor_so_the_money_stays_on_sc
     1043 px, every one of them below the fold on a day that fits the screen.
     After it: 148 px, 577 px, 635 px and 751 px, all of them on screen.
     """
-    shell = (SRC / "shell" / "styles.css").read_text(encoding="utf-8")
-    assert "min-height: 440px;" in shell, "the shared floor moved, so this override wants re-measuring"
+    timeline = (SRC / "shell" / "styles-timeline.css").read_text(encoding="utf-8")
+    assert "min-height: 440px;" in timeline, "the shared floor moved, so this override wants re-measuring"
     css = (SRC / "plan" / "day" / "day-board.css").read_text(encoding="utf-8")
     block = css.split(".day-board .timeline-scroll {")[1].split("}")[0]
     assert "min-height: 0;" in block
@@ -123,9 +123,13 @@ def test_a_programme_on_the_day_board_opens_its_own_record():
     So a scheduler could reach a programme's record from the timeline that
     morning and not from the board that replaced it.
     """
-    board = read("plan/day/DayBoard.jsx")
-    assert "clickable={Boolean(onOpenProgramme)}" in board
-    assert "onOpen={() => onOpenProgramme(programme)}" in board
+    timeline = read("plan/day/DayBoardTimeline.jsx")
+    assert "clickable={Boolean(onOpenProgramme) && widthPx >= 44}" in timeline
+    assert "onOpen={() => onOpenProgramme(programme)}" in timeline
+    assert 'className="day-short-programmes"' in timeline
+    assert "onClick={() => onOpenProgramme(programme)}" in timeline, (
+        "programmes too narrow to carry a legible band remain directly reachable"
+    )
     band = read("plan/day/schedule-track-view.jsx")
     assert 'role="button"' in band and "tabIndex={0}" in band, "a band marked clickable is a real control"
     page = read("plan/day/DayPage.jsx")
@@ -139,7 +143,8 @@ def test_a_programme_on_the_day_board_opens_its_own_record():
 def test_an_hour_bar_is_a_control_and_not_a_box_with_a_title_on_it():
     """25 inert divs carrying a title attribute reached neither key nor reader."""
     strip = read("plan/day/DayBoardReadout.jsx").split("export function HourStrip")[1]
-    assert "<button" in strip and 'type="button"' in strip
+    assert "<Pressable" in strip and 'type="button"' in strip
+    assert "../../studio/dom-controls" in read("plan/day/DayBoardReadout.jsx")
     assert "aria-label=" in strip, "the load and the limit have to be in the accessible name"
     assert "aria-pressed=" in strip
     assert "onOpenHour" in strip
@@ -400,10 +405,11 @@ def test_the_verdict_and_the_four_acts_are_the_first_thing_in_the_panel():
     assert "padding: var(--space-1) var(--space-2);" in action, "a fatter button wraps the row and drops the money below the fold"
 
 
-def test_the_save_button_counts_one_change_in_hebrew_as_one():
-    """It read שמירת 1 שינויים, which is a plural verb over a singular count."""
+def test_the_replan_review_button_counts_one_change_in_hebrew_as_one():
+    """The server action is a reviewed re-plan, and its singular still reads naturally."""
     readout = read("plan/day/DayBoardReadout.jsx")
-    assert "editCount === 1 ? 'שמירת שינוי אחד'" in readout
+    assert "editCount === 1 ? 'בדיקת שינוי אחד ותכנון מחדש'" in readout
+    assert 'id="day-board-server-replan"' in readout
 
 
 def test_a_zero_gap_is_positive_zero_and_never_prints_as_minus_zero():

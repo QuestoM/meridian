@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Numeric, formatCurrency, formatMinutes, formatNumber, pageText } from '../../shell/format';
 import { programTypeLabel } from '../../shell/labels';
 import { flattenScheduleRows, normalizeRows } from '../../shell/plan-model';

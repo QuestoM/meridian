@@ -98,7 +98,10 @@ def test_every_class_this_surface_names_has_a_rule_in_one_of_its_stylesheets() -
             for token in re.findall(r"(?:pacing|makegood)-[a-z-]+", " ".join(chunk)):
                 used.add(token)
     defined: set[str] = set()
-    for path in sorted(SURFACE.glob("*.css")):
+    style_paths = sorted(SURFACE.glob("*.css")) + [
+        ROOT / "tv-break-dashboard" / "src" / "clients" / "studio-ledger-commercial-boards.css"
+    ]
+    for path in style_paths:
         defined.update(re.findall(r"\.((?:pacing|makegood)-[a-z-]+)",
                                   (ROOT / path).read_text(encoding="utf-8")))
     assert used - defined == set()

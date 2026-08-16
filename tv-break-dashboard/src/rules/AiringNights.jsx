@@ -1,6 +1,7 @@
 import React from 'react';
 import { pageText } from '../shell/format';
 import { Figure } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 import { dayLabel, nightAriaLabel, nightDetail, nightsHeadSentence } from './rules-lib';
 
 // Which night this restriction is about. Every night the programme runs, none
@@ -30,16 +31,16 @@ export default function AiringNights({ locale, airings, nights, day, onPick }) {
         {nightsHeadSentence(airings, list.length, locale)}
       </span>
       <div className="rules-airing-chips" role="group">
-        <button
+        <Pressable
           type="button"
           className={`rules-airing-chip${day ? '' : ' active'}`}
           aria-pressed={!day}
           onClick={() => onPick('')}
         >
           {pageText(locale, 'Every airing', 'כל השידורים')}
-        </button>
+        </Pressable>
         {list.map((night) => (
-          <button
+          <Pressable
             key={night.day}
             type="button"
             className={`rules-airing-chip${day === night.day ? ' active' : ''}`}
@@ -49,7 +50,7 @@ export default function AiringNights({ locale, airings, nights, day, onPick }) {
           >
             <span>{dayLabel(night.day, locale)}</span>
             <small><Figure>{nightDetail(night, locale)}</Figure></small>
-          </button>
+          </Pressable>
         ))}
       </div>
     </div>

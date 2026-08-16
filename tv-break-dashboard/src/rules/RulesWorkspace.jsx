@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarClock, CalendarDays, Coins, ScrollText, SlidersHorizontal, Tv } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { ANONYMOUS_SESSION, doorFor, fetchSession } from '../session.js';
-import { word } from '../vocabulary.js';
 import RestrictionsPage from './RestrictionsPage';
 import LicencePage from './LicencePage';
 import ChannelPage from './ChannelPage';
@@ -11,7 +10,10 @@ import WorthOfASecond from './WorthOfASecond';
 import CalendarEvents from './CalendarEvents';
 import PlanningLevers from './settings-levers';
 import { nextRulesSection } from './rules-lib';
+import { Pressable } from '../studio/dom-controls';
+import { Button } from '../studio/actions';
 import './rules-workspace.css';
+import './studio-ledger-rules.css';
 
 // Rules is one destination holding the things that constrain a plan or a price.
 // A restriction, a regulatory limit, a rate card and the two declarations that
@@ -24,17 +26,65 @@ import './rules-workspace.css';
 // licence and the yield owner opens the rate card with no click at all.
 
 const SECTIONS = [
-  { id: 'restrictions', door: 'rules.restrictions', icon: ScrollText, en: 'Restrictions', he: 'הגבלות' },
-  { id: 'licence', door: 'rules.licence', icon: CalendarClock, en: 'The licence', he: 'הרישיון' },
-  { id: 'rate_card', door: 'rules.rate_card', icon: Coins, en: 'The rate card', he: 'כרטיס התעריפים' },
-  { id: 'calendar', door: null, icon: CalendarDays, en: 'The calendar', he: 'לוח האירועים' },
-  { id: 'channel', door: null, icon: Tv, en: 'Channel and model', he: 'ערוץ ומודל' },
-  { id: 'levers', door: null, icon: SlidersHorizontal, en: 'Planning levers', he: 'מנופי התכנון' },
+  {
+    id: 'restrictions', door: 'rules.restrictions', icon: ScrollText, en: 'Restrictions', he: 'הגבלות',
+    detailEn: 'Author and price the rules applied to future plan runs.',
+    detailHe: 'כתיבה ותמחור של הכללים שיחולו על ריצות התכנון הבאות.',
+  },
+  {
+    id: 'licence', door: 'rules.licence', icon: CalendarClock, en: 'Licence', he: 'רישיון',
+    detailEn: 'Review the regulatory limits that every plan must satisfy.',
+    detailHe: 'בדיקת מגבלות הרישיון שכל תוכנית חייבת לקיים.',
+  },
+  {
+    id: 'rate_card', door: 'rules.rate_card', icon: Coins, en: 'Rate card', he: 'מחירון',
+    detailEn: 'Maintain the commercial assumptions used to value inventory.',
+    detailHe: 'ניהול ההנחות המסחריות שלפיהן מחושב ערך המלאי.',
+  },
+  {
+    id: 'calendar', door: null, icon: CalendarDays, en: 'Events calendar', he: 'לוח אירועים',
+    detailEn: 'Record dated events that change demand, price or availability.',
+    detailHe: 'תיעוד אירועים שמשנים ביקוש, מחיר או זמינות.',
+  },
+  {
+    id: 'channel', door: null, icon: Tv, en: 'Channel & model', he: 'ערוץ ומודל',
+    detailEn: 'Verify the channel and modelling declarations that scope every figure.',
+    detailHe: 'אימות הצהרות הערוץ והמודל שמגדירות את התחולה של כל נתון.',
+  },
+  {
+    id: 'levers', door: null, icon: SlidersHorizontal, en: 'Planning levers', he: 'מנופי תכנון',
+    detailEn: 'Control the saved parameters used by the planning engine.',
+    detailHe: 'שליטה בפרמטרים השמורים שמשמשים את מנוע התכנון.',
+  },
 ];
 
 const SECTION_BY_DOOR = Object.fromEntries(
   SECTIONS.filter((section) => section.door).map((section) => [section.door, section.id]),
 );
+
+function PlanningLeversTransportGate({ locale, loading, onRetry }) {
+  return (
+    <div className="rules-section">
+      <section className="card rules-card" role={loading ? 'status' : 'alert'} aria-live="polite">
+        <h2>{pageText(locale, 'Saved planning levers', 'מנופי התכנון השמורים')}</h2>
+        <p className="rules-inline-error">
+          {loading
+            ? pageText(locale, 'Reading the saved settings…', 'קורא את ההגדרות השמורות…')
+            : pageText(
+              locale,
+              'Saved settings are unavailable. No fallback values are shown or writable.',
+              'ההגדרות השמורות אינן זמינות. ערכי ברירת מחדל אינם מוצגים ואינם ניתנים לכתיבה.',
+            )}
+        </p>
+        {!loading && (
+          <Button type="button" variant="outlined" onClick={onRetry}>
+            {pageText(locale, 'Retry', 'ניסיון חוזר')}
+          </Button>
+        )}
+      </section>
+    </div>
+  );
+}
 
 function sectionFromLocation() {
   if (typeof window === 'undefined') return '';
@@ -43,13 +93,10 @@ function sectionFromLocation() {
 }
 
 export default function RulesWorkspace(props) {
-  const { locale, notify, onGlobalRefresh } = props;
+  const { locale, notify, onGlobalRefresh, showInternalNavigation = true } = props;
   const [session, setSession] = useState(ANONYMOUS_SESSION);
   const [active, setActive] = useState(sectionFromLocation());
-  // The last ?rules value this render has already reconciled against, so a
-  // query this workspace's own open() just wrote is never re-applied a
-  // second time and only a change from elsewhere moves the section on its own.
-  const seenQuery = useRef(sectionFromLocation());
+  const tabsRef = useRef([]);
 
   useEffect(() => {
     let alive = true;
@@ -59,99 +106,122 @@ export default function RulesWorkspace(props) {
     return () => { alive = false; };
   }, []);
 
-  // Read the query on every render, not only the one this component mounted
-  // with. A route elsewhere in the shell can rewrite ?rules without ever
-  // remounting this workspace (the old Pricing bookmark redirect is exactly
-  // this), and the browser's own back and forward buttons do the same, so
-  // following the query only at mount left the section stuck on whatever tab
-  // was open when that redirect landed while the address bar claimed another.
-  const queryNow = sectionFromLocation();
-  if (queryNow !== seenQuery.current) {
-    seenQuery.current = queryNow;
-    const moved = nextRulesSection(active, queryNow);
-    if (moved !== active) setActive(moved);
-  }
+  useEffect(() => {
+    function syncFromAddress() {
+      const requested = sectionFromLocation();
+      setActive((currentActive) => nextRulesSection(currentActive, requested));
+    }
+    window.addEventListener('popstate', syncFromAddress);
+    window.addEventListener('hashchange', syncFromAddress);
+    return () => {
+      window.removeEventListener('popstate', syncFromAddress);
+      window.removeEventListener('hashchange', syncFromAddress);
+    };
+  }, []);
 
   const landing = useMemo(() => SECTION_BY_DOOR[doorFor(session)] || 'restrictions', [session]);
   const current = active || landing;
+  const currentSection = SECTIONS.find((section) => section.id === current) || SECTIONS[0];
 
   function open(id) {
+    if (!SECTIONS.some((section) => section.id === id)) return;
     setActive(id);
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       params.set('rules', id);
       const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      window.history.replaceState(null, '', next);
+      window.history.pushState({ workspace: 'governance', section: id }, '', next);
     }
+  }
+
+  function onTabKeyDown(event, index) {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = SECTIONS.length - 1;
+    else if (event.key === 'ArrowRight') next = (index + (locale === 'he' ? -1 : 1) + SECTIONS.length) % SECTIONS.length;
+    else if (event.key === 'ArrowLeft') next = (index + (locale === 'he' ? 1 : -1) + SECTIONS.length) % SECTIONS.length;
+    else return;
+    event.preventDefault();
+    open(SECTIONS[next].id);
+    tabsRef.current[next]?.focus();
   }
 
   return (
     <section className="rules-workspace">
-      <div className="rules-hero">
+      <header className="rules-hero" aria-labelledby="governance-section-title">
         <div>
-          <span className="rules-kicker">{word('place.rules', locale)}</span>
-          <h1>
-            {pageText(
-              locale,
-              'What constrains a plan and what prices it',
-              'מה מגביל תוכנית ומה מתמחר אותה',
-            )}
-          </h1>
+          <h1 id="governance-section-title">{locale === 'he' ? currentSection.he : currentSection.en}</h1>
           <p>
-            {pageText(
-              locale,
-              'Every rule here is an authored record with a scope, an effect and somebody who asked for it. Each one states what it costs before it is saved.',
-              'כל כלל כאן הוא רשומה כתובה עם תחולה, השפעה ומי שביקש אותה. כל אחת מהן מציגה את העלות לפני השמירה.',
-            )}
+            {locale === 'he' ? currentSection.detailHe : currentSection.detailEn}
           </p>
         </div>
-      </div>
+      </header>
 
-      <nav className="rules-tabs" aria-label={pageText(locale, 'Rules sections', 'מדורי הכללים')}>
-        {SECTIONS.map((section) => {
+      {showInternalNavigation && <nav className="rules-tabs" role="tablist" aria-label={pageText(locale, 'Governance sections', 'מדורי ממשל')}>
+        {SECTIONS.map((section, index) => {
           const Icon = section.icon;
           return (
-            <button
+            <Pressable
+              ref={(node) => { tabsRef.current[index] = node; }}
               key={section.id}
+              id={`rules-tab-${section.id}`}
               type="button"
+              role="tab"
               className={`rules-tab${current === section.id ? ' active' : ''}`}
-              aria-current={current === section.id ? 'page' : undefined}
+              aria-selected={current === section.id}
+              aria-controls={`rules-panel-${section.id}`}
+              tabIndex={current === section.id ? 0 : -1}
               onClick={() => open(section.id)}
+              onKeyDown={(event) => onTabKeyDown(event, index)}
             >
-              <Icon size={14} aria-hidden="true" />
+              <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
               {locale === 'he' ? section.he : section.en}
-            </button>
+            </Pressable>
           );
         })}
-      </nav>
+      </nav>}
 
-      {current === 'restrictions' && (
-        <RestrictionsPage locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} {...props} />
-      )}
-      {current === 'licence' && (
-        <LicencePage locale={locale} session={session} notify={notify} />
-      )}
-      {current === 'rate_card' && (
-        <div className="rules-section">
-          <WorthOfASecond locale={locale} />
-          <PricingManager copy={props.copy} locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} embedded />
-        </div>
-      )}
-      {/* An event dated on the calendar shapes what a break is worth, which is
-          why it is a rule and not a topic. Its own page is still reachable at
-          its old address, so nothing that worked before this section stopped. */}
-      {current === 'calendar' && (
-        <CalendarEvents
-          locale={locale}
-          notify={notify}
-          onGlobalRefresh={onGlobalRefresh}
-          onOpenRateCard={() => open('rate_card')}
-        />
-      )}
-      {current === 'channel' && (
-        <ChannelPage locale={locale} session={session} notify={notify} onGlobalRefresh={onGlobalRefresh} />
-      )}
-      {current === 'levers' && <PlanningLevers {...props} />}
+      <div
+        className="rules-active-panel"
+        id={`rules-panel-${current}`}
+        role="tabpanel"
+        aria-labelledby={showInternalNavigation ? `rules-tab-${current}` : 'governance-section-title'}
+        tabIndex={0}
+      >
+        {current === 'restrictions' && (
+          <RestrictionsPage locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} {...props} />
+        )}
+        {current === 'licence' && (
+          <LicencePage locale={locale} session={session} notify={notify} />
+        )}
+        {current === 'rate_card' && (
+          <div className="rules-section">
+            <WorthOfASecond locale={locale} />
+            <PricingManager copy={props.copy} locale={locale} notify={notify} onGlobalRefresh={onGlobalRefresh} embedded />
+          </div>
+        )}
+        {current === 'calendar' && (
+          <CalendarEvents
+            locale={locale}
+            notify={notify}
+            onGlobalRefresh={onGlobalRefresh}
+            onOpenRateCard={() => open('rate_card')}
+            embedded
+          />
+        )}
+        {current === 'channel' && (
+          <ChannelPage locale={locale} session={session} notify={notify} onGlobalRefresh={onGlobalRefresh} />
+        )}
+        {current === 'levers' && (props.settingsAvailable
+          ? <PlanningLevers {...props} />
+          : (
+            <PlanningLeversTransportGate
+              locale={locale}
+              loading={props.settingsLoading}
+              onRetry={onGlobalRefresh}
+            />
+          ))}
+      </div>
     </section>
   );
 }

@@ -185,11 +185,12 @@ def test_the_composer_reports_a_question_being_written(driven: dict) -> None:
     assert "const activity = onActivity || (() => {});" in text, "a panel without it must not throw"
 
 
-def test_the_panel_warms_on_mount_and_passes_the_same_function_down() -> None:
+def test_the_panel_warms_from_composer_activity_and_never_from_mount() -> None:
     text = PANEL.read_text(encoding="utf-8")
     assert "import { keepPrefixWarm } from './kai-keep-warm';" in text
-    assert "keepPrefixWarm(controller.signal);" in text
     assert "onActivity={keepPrefixWarm}" in text
+    mount_effect = text.split("requestJson('/api/assistant/status')", 1)[1].split("}, [refreshRail]);", 1)[0]
+    assert "keepPrefixWarm(" not in mount_effect, "opening Kai must not start a provider-backed request"
 
 
 def test_every_file_this_round_touched_stays_under_the_cap() -> None:

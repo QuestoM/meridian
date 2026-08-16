@@ -6,7 +6,7 @@ import { word } from '../vocabulary.js';
 // The product's one word for the activity, applied to prose the model wrote.
 //
 // Section 8.3 retires four words in both languages. Every other surface obeys
-// that by importing its labels, because every other surface prints labels. Kai
+// that by importing its labels, because every other surface prints labels. Mabat
 // prints sentences a model composed, so there is no label table to fix: the
 // word arrives at render time or not at all.
 //

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../../studio/actions';
 import { Command, Play, RefreshCcw } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { formatNumber, pageText } from '../../shell/format';
 import { formatStamp } from '../../shell/dates';
 import { Code, Figure } from '../../shell/bidi';
@@ -59,6 +60,8 @@ export function PlanWeekHeader({
   runState,
   elapsed,
   onRun,
+  runDisabled,
+  runDisabledReason,
   versionCount,
   liveFrozenAs,
   scopeText,
@@ -88,7 +91,7 @@ export function PlanWeekHeader({
         </div>
       </div>
 
-      <div className={`plan-header-state is-${reading ? 'reading' : (status || 'unknown')}`} role="status">
+      <div className={`card plan-header-state is-${reading ? 'reading' : (status || 'unknown')}`} role="status">
         <span className="plan-header-state-word">{stateWord(reading, status, locale)}</span>
         <span className="plan-header-state-detail">
           {stateDetail({ reading, error, status, changed, freshness, words, locale })}
@@ -98,7 +101,8 @@ export function PlanWeekHeader({
             className="secondary-button compact"
             type="button"
             variant="outlined"
-            disabled={running}
+            disabled={running || runDisabled}
+            title={runDisabledReason || undefined}
             onClick={onRun}
           >
             {running ? <RefreshCcw size={14} className="upload-spinner" /> : <Play size={14} fill="currentColor" />}
@@ -120,17 +124,19 @@ export function PlanWeekHeader({
         {sections.map((section) => {
           const isActive = section.id === active;
           return (
-            <button
+            <Pressable
               key={section.id}
+              id={`plan-step-${section.id}`}
               type="button"
               className={`plan-step${isActive ? ' is-active' : ''}${section.step ? '' : ' is-reference'}`}
-              aria-current={isActive ? 'step' : undefined}
+              aria-current={isActive ? 'page' : undefined}
+              aria-controls={isActive ? `plan-section-${section.id}` : undefined}
               onClick={() => onGo(section.id)}
             >
               {section.step ? <Figure className="plan-step-number">{section.step}</Figure> : null}
               <span className="plan-step-name">{locale === 'he' ? section.he : section.en}</span>
               <kbd className="plan-step-key"><Code>G {section.key.toUpperCase()}</Code></kbd>
-            </button>
+            </Pressable>
           );
         })}
       </nav>

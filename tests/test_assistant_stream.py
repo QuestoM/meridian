@@ -165,9 +165,14 @@ def test_stream_frames_step_delta_final_in_order(client: TestClient, monkeypatch
     steps = [data for event, data in frames if event == "step"]
     assert without_clock(steps) == [{"tool": "get_settings", "ok": True, "source": "saved settings"}]
     assert all(step["elapsed_seconds"] >= 0 for step in steps)
-    # Without messages.stream support each turn's answer arrives as ONE delta.
+    # The local, evidence-free opening lands immediately, then without
+    # messages.stream support each model turn's answer arrives as one delta.
     deltas = [data["text"] for event, data in frames if event == "delta"]
-    assert deltas == ["checking the settings", "the final grounded answer"]
+    assert deltas == [
+        "בודק את השאלה מול נתוני המערכת. ",
+        "checking the settings",
+        "the final grounded answer",
+    ]
 
     final = frames[-1][1]
     assert final["answer"] == "the final grounded answer"
@@ -201,7 +206,11 @@ def test_stream_with_sdk_stream_support_emits_chunked_deltas(client: TestClient,
     # The fake stream chunks each turn's text, so real deltas mean MORE frames
     # than turns, and their concatenation reproduces the text exactly.
     assert len(deltas) > 2
-    assert "".join(deltas) == "checking the settings" + "the final grounded answer"
+    assert "".join(deltas) == (
+        "Checking the question against the system data. "
+        "checking the settings"
+        "the final grounded answer"
+    )
     final = frames[-1]
     assert final[0] == "final"
     assert final[1]["answer"] == "the final grounded answer"

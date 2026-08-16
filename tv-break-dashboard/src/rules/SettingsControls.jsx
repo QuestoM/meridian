@@ -26,10 +26,10 @@ export function NumberControl({ label, value, onChange, suffix, helperText }) {
 export function ToggleControl({ label, checked, onChange, helperText }) {
   return (
     <div className="toggle-field">
-      <div className="toggle-control">
+      <label className="toggle-control">
         <span>{label}</span>
         <Switch size="small" checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} />
-      </div>
+      </label>
       {helperText ? <p className="settings-field-help">{helperText}</p> : null}
     </div>
   );

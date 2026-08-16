@@ -1,0 +1,2460 @@
+{
+  "slug": "model-candidates",
+  "address": "/?modelSection=candidates#Model",
+  "captures": [
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "ממשל מודל"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 9126,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 8406
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1084,
+              "height": 8921.03
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1084,
+              "height": 8921.03
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1084,
+            "top": 205,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -8406.03,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 16,
+                "y": 225,
+                "width": 1052,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 473,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.cb-board",
+              "rect": {
+                "x": 16,
+                "y": 259,
+                "width": 1052,
+                "height": 2472
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": -2011,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 16,
+                "y": 2731,
+                "width": 1052,
+                "height": 6347.03
+              },
+              "insets": {
+                "blockStart": 2526,
+                "blockEnd": -8358.03,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 799,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "h1",
+            "text": "ממשל מודל",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 1
+              }
+            ]
+          },
+          "latin": {
+            "selector": "span.bidi-code",
+            "text": "35cc2e21",
+            "computedFamily": "\"IBM Plex Mono\", \"Courier New\", monospace",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Mono",
+                "postScriptName": "IBMPlexMono-Regular",
+                "isCustomFont": true,
+                "glyphCount": 8
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 94.9,
+          "loadMs": 97.5,
+          "durationMs": 97.5,
+          "firstContentfulPaintMs": 120
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.435908,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.441878,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.461297,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.461442,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.461542,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.465367,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.46547,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.465531,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.505864,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506027,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506143,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506231,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506318,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506409,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.506663,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.50696,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.507033,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.507107,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.507177,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20301.507242,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1922,
+        "settle": {
+          "elapsedMs": 1375,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.5,
+          "domContentLoadedMs": 94.9,
+          "loadMs": 97.5,
+          "durationMs": 97.5,
+          "firstContentfulPaintMs": 120
+        }
+      },
+      "screenshots": {
+        "full": "model-candidates/he/1280x720/full.png",
+        "top": {
+          "path": "model-candidates/he/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-candidates/he/1280x720/middle.png",
+          "scrollY": 4203
+        },
+        "bottom": {
+          "path": "model-candidates/he/1280x720/bottom.png",
+          "scrollY": 8406
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "title": "Kairos Optimizer",
+      "locale": "he",
+      "direction": "rtl",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "he",
+          "lang": "he",
+          "dir": "rtl",
+          "computedDirection": "rtl"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "ממשל מודל"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 8502,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 7602
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1728,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1508,
+              "height": 8296.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 0,
+              "y": 205,
+              "width": 1508,
+              "height": 8296.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 0,
+            "right": 1508,
+            "top": 205,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -7601.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 24,
+                "y": 225,
+                "width": 1460,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 653,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.cb-board",
+              "rect": {
+                "x": 24,
+                "y": 259,
+                "width": 1460,
+                "height": 2472
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": -1831,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 24,
+                "y": 2731,
+                "width": 1460,
+                "height": 5722.86
+              },
+              "insets": {
+                "blockStart": 2526,
+                "blockEnd": -7553.86,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 799,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "h1",
+            "text": "ממשל מודל",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "rtl",
+            "platformFonts": [
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 1
+              }
+            ]
+          },
+          "latin": {
+            "selector": "span.bidi-code",
+            "text": "35cc2e21",
+            "computedFamily": "\"IBM Plex Mono\", \"Courier New\", monospace",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Mono",
+                "postScriptName": "IBMPlexMono-Regular",
+                "isCustomFont": true,
+                "glyphCount": 8
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", \"IBM Plex Sans\", \"Arial Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 8
+              },
+              {
+                "familyName": "IBM Plex Sans Hebrew SemiBold",
+                "postScriptName": "IBMPlexSansHebrew-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 2
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 97.6,
+          "loadMs": 100.4,
+          "durationMs": 100.4,
+          "firstContentfulPaintMs": 124
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.915998,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.922002,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.940423,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.940565,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.940662,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.944671,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.944808,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.944877,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988031,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988174,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988279,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988364,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988446,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988533,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.988776,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.989075,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.989149,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.989221,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.989293,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20303.989358,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1953,
+        "settle": {
+          "elapsedMs": 864,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 97.6,
+          "loadMs": 100.4,
+          "durationMs": 100.4,
+          "firstContentfulPaintMs": 124
+        }
+      },
+      "screenshots": {
+        "full": "model-candidates/he/1728x900/full.png",
+        "top": {
+          "path": "model-candidates/he/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-candidates/he/1728x900/middle.png",
+          "scrollY": 3801
+        },
+        "bottom": {
+          "path": "model-candidates/he/1728x900/bottom.png",
+          "scrollY": 7602
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1280x720",
+        "width": 1280,
+        "height": 720
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Model governance"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1280,
+          "innerHeight": 720,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1280,
+          "screenHeight": 720,
+          "availWidth": 1280,
+          "availHeight": 720,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1280,
+          "clientHeight": 720,
+          "scrollWidth": 1280,
+          "scrollHeight": 9991,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 9271
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": [
+            {
+              "selector": "table.cb-table",
+              "rect": {
+                "x": 212,
+                "y": 1178,
+                "width": 1098.86,
+                "height": 924
+              }
+            },
+            {
+              "selector": "caption.cb-caption",
+              "rect": {
+                "x": 212,
+                "y": 1178,
+                "width": 1098.86,
+                "height": 30
+              }
+            },
+            {
+              "selector": "thead",
+              "rect": {
+                "x": 212,
+                "y": 1208,
+                "width": 1098.86,
+                "height": 68.5
+              }
+            },
+            {
+              "selector": "tr",
+              "rect": {
+                "x": 212,
+                "y": 1208,
+                "width": 1098.86,
+                "height": 68.5
+              }
+            },
+            {
+              "selector": "th",
+              "rect": {
+                "x": 1111.7,
+                "y": 1208,
+                "width": 199.16,
+                "height": 68.5
+              }
+            },
+            {
+              "selector": "tbody",
+              "rect": {
+                "x": 212,
+                "y": 1276.5,
+                "width": 1098.86,
+                "height": 825
+              }
+            },
+            {
+              "selector": "tr.cb-row.cb-reference",
+              "rect": {
+                "x": 212,
+                "y": 1276.5,
+                "width": 1098.86,
+                "height": 69
+              }
+            },
+            {
+              "selector": "td.cb-reference-note",
+              "rect": {
+                "x": 548.5,
+                "y": 1276.5,
+                "width": 762.36,
+                "height": 69
+              }
+            },
+            {
+              "selector": "tr.cb-row",
+              "rect": {
+                "x": 212,
+                "y": 1345.5,
+                "width": 1098.86,
+                "height": 189
+              }
+            },
+            {
+              "selector": "td",
+              "rect": {
+                "x": 1111.7,
+                "y": 1345.5,
+                "width": 199.16,
+                "height": 189
+              }
+            },
+            {
+              "selector": "tr.cb-row",
+              "rect": {
+                "x": 212,
+                "y": 1534.5,
+                "width": 1098.86,
+                "height": 161
+              }
+            },
+            {
+              "selector": "td",
+              "rect": {
+                "x": 1111.7,
+                "y": 1534.5,
+                "width": 199.16,
+                "height": 161
+              }
+            },
+            {
+              "selector": "tr.cb-row",
+              "rect": {
+                "x": 212,
+                "y": 1695.5,
+                "width": 1098.86,
+                "height": 128
+              }
+            },
+            {
+              "selector": "td",
+              "rect": {
+                "x": 1111.7,
+                "y": 1695.5,
+                "width": 199.16,
+                "height": 128
+              }
+            },
+            {
+              "selector": "span.cb-recorded",
+              "rect": {
+                "x": 1119.7,
+                "y": 1718,
+                "width": 183.16,
+                "height": 93
+              }
+            },
+            {
+              "selector": "small.cb-cancels",
+              "rect": {
+                "x": 1260.08,
+                "y": 1719,
+                "width": 42.78,
+                "height": 92
+              }
+            },
+            {
+              "selector": "span",
+              "rect": {
+                "x": 1260.08,
+                "y": 1745,
+                "width": 42.78,
+                "height": 66
+              }
+            },
+            {
+              "selector": "tr.cb-row",
+              "rect": {
+                "x": 212,
+                "y": 1823.5,
+                "width": 1098.86,
+                "height": 161
+              }
+            },
+            {
+              "selector": "td",
+              "rect": {
+                "x": 1111.7,
+                "y": 1823.5,
+                "width": 199.16,
+                "height": 161
+              }
+            },
+            {
+              "selector": "tr.cb-row",
+              "rect": {
+                "x": 212,
+                "y": 1984.5,
+                "width": 1098.86,
+                "height": 117
+              }
+            },
+            {
+              "selector": "td",
+              "rect": {
+                "x": 1111.7,
+                "y": 1984.5,
+                "width": 199.16,
+                "height": 117
+              }
+            }
+          ]
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1280,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 196,
+              "y": 205,
+              "width": 1084,
+              "height": 9786.03
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 196,
+              "y": 205,
+              "width": 1084,
+              "height": 9786.03
+            },
+            "padding": {
+              "top": 20,
+              "right": 16,
+              "bottom": 32,
+              "left": 16
+            }
+          },
+          "mainViewport": {
+            "left": 196,
+            "right": 1280,
+            "top": 205,
+            "bottom": 720
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -9271.03,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 212,
+                "y": 225,
+                "width": 1052,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 473,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.cb-board",
+              "rect": {
+                "x": 212,
+                "y": 259,
+                "width": 1052,
+                "height": 2461
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": -2000,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 212,
+                "y": 2720,
+                "width": 1052,
+                "height": 7223.03
+              },
+              "insets": {
+                "blockStart": 2515,
+                "blockEnd": -9223.03,
+                "inlineStart": 16,
+                "inlineEnd": 16
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 799,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "p.mc-decision-reason",
+            "text": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדיד",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 16
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 72
+              }
+            ]
+          },
+          "latin": {
+            "selector": "h1",
+            "text": "Model governance",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 16
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 99.2,
+          "loadMs": 102,
+          "durationMs": 102,
+          "firstContentfulPaintMs": 124
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.425665,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.432009,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.452041,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.452187,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.452292,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.45646,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.456585,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.45665,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514019,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514199,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514311,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514402,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514494,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.51458,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.514889,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.515246,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.515314,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.51539,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.515471,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20306.515553,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1954,
+        "settle": {
+          "elapsedMs": 866,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.8,
+          "domContentLoadedMs": 99.2,
+          "loadMs": 102,
+          "durationMs": 102,
+          "firstContentfulPaintMs": 124
+        }
+      },
+      "screenshots": {
+        "full": "model-candidates/en/1280x720/full.png",
+        "top": {
+          "path": "model-candidates/en/1280x720/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-candidates/en/1280x720/middle.png",
+          "scrollY": 4636
+        },
+        "bottom": {
+          "path": "model-candidates/en/1280x720/bottom.png",
+          "scrollY": 9271
+        }
+      }
+    },
+    {
+      "requestedUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "finalUrl": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+      "title": "Kairos Optimizer",
+      "locale": "en",
+      "direction": "ltr",
+      "viewport": {
+        "slug": "1728x900",
+        "width": 1728,
+        "height": 900
+      },
+      "page": {
+        "url": "http://127.0.0.1:3000/?modelSection=candidates#Model",
+        "title": "Kairos Optimizer",
+        "locale": {
+          "requestedStorage": "en",
+          "lang": "en",
+          "dir": "ltr",
+          "computedDirection": "ltr"
+        },
+        "h1": {
+          "count": 1,
+          "visibleCount": 1,
+          "text": [
+            "Model governance"
+          ]
+        },
+        "viewport": {
+          "innerWidth": 1728,
+          "innerHeight": 900,
+          "outerWidth": 1728,
+          "outerHeight": 900,
+          "screenWidth": 1728,
+          "screenHeight": 900,
+          "availWidth": 1728,
+          "availHeight": 900,
+          "devicePixelRatio": 1
+        },
+        "document": {
+          "clientWidth": 1728,
+          "clientHeight": 900,
+          "scrollWidth": 1728,
+          "scrollHeight": 8458,
+          "scrollPosition": {
+            "x": 0,
+            "y": 0,
+            "maxX": 0,
+            "maxY": 7558
+          },
+          "horizontalOverflow": false,
+          "overflowOffenders": []
+        },
+        "layout": {
+          "shellHeights": {
+            "topBar": [],
+            "topBarPrimary": [],
+            "shellLocalNav": [],
+            "workspaceLocalNav": [],
+            "routeHeader": [
+              {
+                "selector": "header.mc-header",
+                "rect": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1728,
+                  "height": 205
+                }
+              }
+            ]
+          },
+          "main": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 220,
+              "y": 205,
+              "width": 1508,
+              "height": 8252.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "routeRoot": {
+            "selector": "#model-panel-candidates",
+            "rect": {
+              "x": 220,
+              "y": 205,
+              "width": 1508,
+              "height": 8252.86
+            },
+            "padding": {
+              "top": 20,
+              "right": 24,
+              "bottom": 32,
+              "left": 24
+            }
+          },
+          "mainViewport": {
+            "left": 220,
+            "right": 1728,
+            "top": 205,
+            "bottom": 900
+          },
+          "routeRootInsets": {
+            "blockStart": 0,
+            "blockEnd": -7557.86,
+            "inlineStart": 0,
+            "inlineEnd": 0
+          },
+          "edgeRule": {
+            "minimumLogicalInsetCssPixels": 12,
+            "blockEdgesMeasuredOnlyAtMatchingDocumentBoundary": true,
+            "fullBleedAllowlist": [
+              {
+                "selector": ".day-board,.timeline-scroll,.transmission-ribbon",
+                "reason": "broadcast timeline instrument"
+              },
+              {
+                "selector": ".plan-board-stage,.planning-canvas-timeline,.timeline-view",
+                "reason": "planning timeline instrument"
+              },
+              {
+                "selector": ".break-board,.pod-spot-table,.pod-rate-table",
+                "reason": "traffic board or pod table"
+              },
+              {
+                "selector": ".MuiDataGrid-root,.data-table-shell,.rows-drawer-table,[role=\"table\"],table",
+                "reason": "tabular data viewport"
+              }
+            ]
+          },
+          "sectionInsets": [
+            {
+              "selector": "p.mc-route",
+              "rect": {
+                "x": 244,
+                "y": 225,
+                "width": 1460,
+                "height": 22
+              },
+              "insets": {
+                "blockStart": 20,
+                "blockEnd": 653,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "div.cb-board",
+              "rect": {
+                "x": 244,
+                "y": 259,
+                "width": 1460,
+                "height": 2428
+              },
+              "insets": {
+                "blockStart": 54,
+                "blockEnd": -1787,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": true,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            },
+            {
+              "selector": "section.card.mc-panel",
+              "rect": {
+                "x": 244,
+                "y": 2687,
+                "width": 1460,
+                "height": 5722.86
+              },
+              "insets": {
+                "blockStart": 2482,
+                "blockEnd": -7509.86,
+                "inlineStart": 24,
+                "inlineEnd": 24
+              },
+              "meaningful": {
+                "blockStart": false,
+                "blockEnd": false,
+                "inlineStart": true,
+                "inlineEnd": true
+              },
+              "touchedEdges": []
+            }
+          ],
+          "edgeFailures": [],
+          "allowedEdgeContacts": []
+        },
+        "interactiveTargets": {
+          "minimumCssPixels": 44,
+          "failures": [],
+          "nativeWrapperExceptions": []
+        },
+        "contrast": {
+          "standard": "WCAG AA text thresholds",
+          "checked": 799,
+          "failures": [],
+          "inactiveExceptions": [],
+          "skipped": []
+        },
+        "fonts": {
+          "hebrew": {
+            "selector": "p.mc-decision-reason",
+            "text": "המדידה על התוכנית מראה תנועה חיובית בערוץ המפעיל, והחלון הרחב מסיר הטיה מכל מדיד",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "12px",
+            "fontWeight": "400",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans",
+                "postScriptName": "IBMPlexSans-Regular",
+                "isCustomFont": true,
+                "glyphCount": 16
+              },
+              {
+                "familyName": "Noto Sans Hebrew Thin",
+                "postScriptName": "NotoSansHebrewThin-Regular_Regular",
+                "isCustomFont": true,
+                "glyphCount": 72
+              }
+            ]
+          },
+          "latin": {
+            "selector": "h1",
+            "text": "Model governance",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "30px",
+            "fontWeight": "600",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 16
+              }
+            ]
+          },
+          "figure": {
+            "selector": "span.bidi-figure",
+            "text": "2026-07-29",
+            "computedFamily": "\"IBM Plex Sans\", \"Noto Sans Hebrew Variable\", \"IBM Plex Sans Hebrew\", Arial, sans-serif",
+            "fontSize": "13px",
+            "fontWeight": "700",
+            "direction": "ltr",
+            "platformFonts": [
+              {
+                "familyName": "IBM Plex Sans SemiBold",
+                "postScriptName": "IBMPlexSans-SemiBold",
+                "isCustomFont": true,
+                "glyphCount": 10
+              }
+            ]
+          }
+        },
+        "timing": {
+          "type": "navigate",
+          "responseEndMs": 1.6,
+          "domContentLoadedMs": 95.7,
+          "loadMs": 98.5,
+          "durationMs": 98.5,
+          "firstContentfulPaintMs": 120
+        },
+        "apiResourceList": [
+          "http://127.0.0.1:3000/api/auth/session",
+          "http://127.0.0.1:3000/api/overview",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/console",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/coverage",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip",
+          "http://127.0.0.1:3000/api/model/candidates",
+          "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+          "http://127.0.0.1:3000/api/model/candidates/competitor",
+          "http://127.0.0.1:3000/api/model/candidates/calibrated",
+          "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+          "http://127.0.0.1:3000/api/model/candidates/spotclip"
+        ]
+      },
+      "network": {
+        "httpErrors": [],
+        "failures": [],
+        "cancellations": [],
+        "apiRequests": [
+          {
+            "url": "http://127.0.0.1:3000/api/auth/session",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.937416,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/overview",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.942995,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.963051,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.963199,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.963305,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/console",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.967527,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.967642,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/coverage",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20308.967706,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.021204,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.021381,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.021485,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.021575,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.02168,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.021766,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.022033,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/afterwindow",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.022357,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/calibrated",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.02243,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/competitor",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.022505,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/placebo_corrected",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.022586,
+            "status": 200,
+            "mimeType": "application/json"
+          },
+          {
+            "url": "http://127.0.0.1:3000/api/model/candidates/spotclip",
+            "method": "GET",
+            "type": "Fetch",
+            "timestamp": 20309.022654,
+            "status": 200,
+            "mimeType": "application/json"
+          }
+        ]
+      },
+      "console": {
+        "errors": [],
+        "warnings": []
+      },
+      "motion": {
+        "normal": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": false,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reduced": {
+          "probeScope": "computed effects and emulated media only; no navigation control was clicked",
+          "prefersReducedMotion": true,
+          "startViewTransitionAvailable": true,
+          "reducedMotionRuleCount": 5,
+          "viewTransitionRuleCount": 9,
+          "continuityRules": [
+            "@media (prefers-reduced-motion: reduce) { .kairos-shell *, .kairos-shell ::before, .kairos-shell ::after, .studio-modal *, .studio-modal ::before, .studio-modal ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }",
+            "@media (prefers-reduced-motion: reduce) { .skip-link, .side-rail .nav-item { transition: none; } }",
+            ".side-rail { view-transition-name: kairos-rail; }",
+            ".top-bar { view-transition-name: kairos-header; }",
+            ".workspace > :where(.page-workspace, .rules-workspace) { view-transition-name: kairos-workspace; }",
+            ".shell-continuity-in { animation: shell-continuity-in var(--motion-standard) var(--ease-standard) both; }",
+            "@keyframes shell-continuity-in { 0% { opacity: 0.9; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0px); } }",
+            "::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(kairos-rail), ::view-transition-group(kairos-header), ::view-transition-old(kairos-rail), ::view-transition-new(kairos-rail), ::view-transition-old(kairos-header), ::view-transition-new(kairos-header) { animation: auto ease 0s 1 normal none running none; }",
+            "::view-transition-old(kairos-rail), ::view-transition-old(kairos-header) { opacity: 0; }",
+            "::view-transition-old(kairos-workspace) { animation: shell-workspace-out var(--motion-fast) var(--ease-exit) both; }",
+            "::view-transition-new(kairos-workspace) { animation: shell-workspace-in var(--motion-standard) var(--ease-standard) both; }",
+            "@media (prefers-reduced-motion: reduce) { .shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; } }",
+            ".shell-continuity-in, ::view-transition-old(kairos-workspace), ::view-transition-new(kairos-workspace) { animation: auto ease 0s 1 normal none running none; }",
+            "@media (prefers-reduced-motion: reduce) { .mc-spinner { animation: auto ease 0s 1 normal none running none; } }",
+            "@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: 0.01ms; animation-iteration-count: 1; scroll-behavior: auto; transition-duration: 0.01ms; } }"
+          ],
+          "configuredEffects": [],
+          "motionSensitiveEffects": []
+        },
+        "reducedConfiguredCount": 0,
+        "reducedMotionSensitiveResidualCount": 0
+      },
+      "load": {
+        "navigationToCaptureMs": 1958,
+        "settle": {
+          "elapsedMs": 861,
+          "timedOut": false,
+          "pendingAtCapture": []
+        },
+        "performance": {
+          "type": "navigate",
+          "responseEndMs": 1.6,
+          "domContentLoadedMs": 95.7,
+          "loadMs": 98.5,
+          "durationMs": 98.5,
+          "firstContentfulPaintMs": 120
+        }
+      },
+      "screenshots": {
+        "full": "model-candidates/en/1728x900/full.png",
+        "top": {
+          "path": "model-candidates/en/1728x900/top.png",
+          "scrollY": 0
+        },
+        "middle": {
+          "path": "model-candidates/en/1728x900/middle.png",
+          "scrollY": 3779
+        },
+        "bottom": {
+          "path": "model-candidates/en/1728x900/bottom.png",
+          "scrollY": 7558
+        }
+      }
+    }
+  ]
+}

@@ -148,7 +148,7 @@ def test_the_basis_line_is_hebrew_and_says_representative_day_not_week() -> None
     # how to get it, instead of printing a channel and a date nobody recorded.
     assert "if (!channel || !day)" in source
     assert "הערוץ והתאריך לא נשמרו בפריט הזה." in source
-    assert "אפשר לבקש מקאי את ההצעה מחדש כדי לקבל אותם." in source
+    assert "אפשר לבקש ממבט את ההצעה מחדש כדי לקבל אותם." in source
 
 
 def test_the_panel_normalizer_keeps_the_basis_with_the_money_it_qualifies() -> None:

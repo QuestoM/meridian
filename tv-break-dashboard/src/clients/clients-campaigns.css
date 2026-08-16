@@ -52,10 +52,6 @@
 }
 
 .clients-inline-form {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  padding: var(--space-3);
   margin: var(--space-2) 0;
 }
 

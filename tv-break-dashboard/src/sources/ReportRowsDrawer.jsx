@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { X } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
 import { Code } from '../shell/bidi';

@@ -37,6 +37,7 @@ USER = "auth-disabled"
 @pytest.fixture(autouse=True)
 def _clean_slate(monkeypatch: pytest.MonkeyPatch, tmp_path):
     monkeypatch.setenv(actions.DATA_DIR_ENV, str(tmp_path / "assistant"))
+    monkeypatch.setenv(version_store.VERSIONS_DIR_ENV, str(tmp_path / "versions"))
     monkeypatch.setenv("KAIROS_ASSISTANT_API_KEY", "test-key")
     monkeypatch.delenv("KAIROS_ASSISTANT_MODEL", raising=False)
     monkeypatch.setattr(assistant, "_compose_context", lambda question: ({}, ["settings"]))

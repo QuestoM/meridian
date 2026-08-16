@@ -19,6 +19,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from kairos.optimize.inventory import InventoryInputError, load_inventory
 from kairos_api.core import (
     DATA_DIR,
     KAIROS_CHANNELS,
@@ -55,6 +56,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["scenario"])
 
 
+def _require_authoritative_inventory() -> None:
+    """Refuse a present all-invalid inventory source before serving a preview.
+
+    A missing source is still the optimizer's documented neutral signal. Only a
+    file with rows that cannot produce a single slot raises.
+    """
+    load_inventory(require_usable=True)
+
+
+def _scenario_data_signature() -> tuple[tuple[str, int, int], ...]:
+    """Files whose valid contents can move a cached scenario result."""
+    return _signature([
+        DATA_DIR / "reference" / "Programmes.xlsx",
+        DATA_DIR / "Programmes.csv",
+        DATA_DIR / "Spots - inventory.csv",
+        ROOT / "config" / "optimization_weights.yaml",
+        MODELS_DIR / "tv_break_posterior.pkl",
+        MODELS_DIR / "tv_break_coefficients.json",
+    ])
+
+
 class ScenarioRequest(BaseModel):
     """Lightweight scenario controls used by the dashboard simulation."""
 
@@ -81,6 +103,7 @@ class OptimizePlanRequest(BaseModel):
 
 
 def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, Any]:
+    _require_authoritative_inventory()
     saved = _load_settings()
     if request is None:
         # The default plan is the operator's SAVED decision, not a static default:
@@ -113,6 +136,7 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
         risk_lambda=request.risk_lambda,
         channel=channel,
         day=day,
+        require_usable_inventory=True,
         **_pacing_call_kwargs(),
     )
     summary = payload.setdefault("summary", {})
@@ -124,6 +148,7 @@ def _build_optimizer_plan(request: ScenarioRequest | None = None) -> dict[str, A
 def _scenario_cached(
     revenue_weight: int, retention_floor: float, max_breaks_per_hour: int, risk_lambda: float = 0.0,
     pacing_today: str = "", settings_json: str = "", channel: str = "", day: str = "",
+    data_signature: tuple[tuple[str, int, int], ...] = (),
 ) -> dict[str, Any]:
     # The full saved settings (guardrails, pricing and pacing) are threaded in as
     # a JSON string, exactly as /api/optimizer-plan threads them, so the scenario
@@ -136,6 +161,7 @@ def _scenario_cached(
     # the preview to the operator's channel-day rather than the source's first
     # channel-day (a competitor), and are part of the cache key so a data change
     # that shifts the representative day invalidates the cached scenario honestly.
+    del data_signature  # cache key only
     today = None
     if pacing_today:
         try:
@@ -152,6 +178,7 @@ def _scenario_cached(
         settings=settings,
         channel=channel or None,
         day=day or None,
+        require_usable_inventory=True,
     )
     summary = result["summary"]
     return {
@@ -185,20 +212,29 @@ def optimizer_plan() -> dict[str, Any]:
     # side is the saved decision re-read, so re-running a full optimization per
     # request bought nothing. Any settings edit, EPG/plan re-ingest, rate-card
     # change or model rebuild changes the signature and recomputes honestly.
-    return _optimizer_plan_cached(_signature([
-        OUTPUT_DIR / "weekly_break_schedule.csv",
-        DATA_DIR / "reference" / "Programmes.xlsx",
-        DATA_DIR / "Programmes.csv",
-        SETTINGS_PATH,
-        ROOT / "config" / "optimization_weights.yaml",
-        MODELS_DIR / "tv_break_posterior.pkl",
-        MODELS_DIR / "tv_break_coefficients.json",
-    ]))
+    try:
+        _require_authoritative_inventory()
+        return _optimizer_plan_cached(_signature([
+            OUTPUT_DIR / "weekly_break_schedule.csv",
+            DATA_DIR / "reference" / "Programmes.xlsx",
+            DATA_DIR / "Programmes.csv",
+            DATA_DIR / "Spots - inventory.csv",
+            SETTINGS_PATH,
+            ROOT / "config" / "optimization_weights.yaml",
+            MODELS_DIR / "tv_break_posterior.pkl",
+            MODELS_DIR / "tv_break_coefficients.json",
+        ]))
+    except InventoryInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/api/optimizer-plan")
 def create_optimizer_plan(request: ScenarioRequest) -> dict[str, Any]:
-    return _build_optimizer_plan(request)
+    try:
+        _require_authoritative_inventory()
+        return _build_optimizer_plan(request)
+    except InventoryInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 def _scenario_unavailable(request: ScenarioRequest, reason: str, detail: str | None = None) -> dict[str, Any]:
@@ -235,6 +271,7 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
     """
     if _ENGINE_AVAILABLE:
         try:
+            _require_authoritative_inventory()
             pacing = _pacing_call_kwargs()
             channel, day = _owned_scope(_load_settings())
             return _scenario_cached(
@@ -244,6 +281,7 @@ def scenario(request: ScenarioRequest) -> dict[str, Any]:
                 settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
                 channel=channel or "",
                 day=day or "",
+                data_signature=_scenario_data_signature(),
             )
         except Exception as exc:  # pragma: no cover - data/environment dependent
             return _scenario_unavailable(
@@ -266,6 +304,7 @@ def _warm_scenario() -> dict[str, Any]:
     """
     if not _ENGINE_AVAILABLE:
         return {"engine": "unavailable"}
+    _require_authoritative_inventory()
     saved = _load_settings()
     pacing = _pacing_call_kwargs()
     channel, day = _owned_scope(saved)
@@ -276,6 +315,7 @@ def _warm_scenario() -> dict[str, Any]:
         settings_json=json.dumps(pacing["settings"], sort_keys=True, ensure_ascii=False),
         channel=channel or "",
         day=day or "",
+        data_signature=_scenario_data_signature(),
     )
 
 
@@ -320,7 +360,10 @@ def optimize_plan(request: OptimizePlanRequest) -> dict[str, Any]:
             daily_input_path=request.daily_input,
             settings=_model_dump(settings),
             today=_reference_today(settings),
+            require_usable_inventory=True,
         )
+    except InventoryInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=f"Reference data not found: {exc}")
     except Exception as exc:  # pragma: no cover - data/environment dependent

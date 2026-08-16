@@ -2,24 +2,55 @@
    the 450-line law. Linear's palette is one component, so its rules are one
    sheet. Uses the frozen tokens only; defines none of its own. */
 
-.plan-palette-scrim {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.18);
-  z-index: var(--z-drawer);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-block-start: 12vh;
-}
-
 .plan-palette {
   inline-size: min(560px, 92vw);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
+  max-inline-size: calc(100vw - 32px);
+  max-block-size: min(680px, calc(100vh - 96px));
+  inset-block-start: 8vh;
+  margin: 0 auto;
+  padding: 0;
   box-shadow: var(--shadow);
   overflow: hidden;
+  color: var(--ink);
+}
+
+.plan-palette::backdrop {
+  background: var(--scrim-light);
+}
+
+.plan-palette-head {
+  min-block-size: 56px;
+  padding-inline: var(--space-4) var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-block-end: 1px solid var(--line);
+}
+
+.plan-palette-head h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.plan-palette-close {
+  inline-size: 44px;
+  min-inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.plan-palette-close:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
 }
 
 .plan-palette-input {
@@ -32,8 +63,9 @@
   background: var(--surface);
 }
 
-.plan-palette-input:focus {
-  outline: none;
+.plan-palette-input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .plan-palette-list {
@@ -62,6 +94,7 @@
   background: none;
   cursor: pointer;
   text-align: start;
+  min-block-size: 48px;
 }
 
 .plan-palette-row.is-cursor {
@@ -71,6 +104,12 @@
 .plan-palette-row.is-disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+.plan-palette-close:focus-visible,
+.plan-palette-row:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
 }
 
 .plan-palette-label {
@@ -96,4 +135,3 @@
 .plan-palette-foot {
   border-block-start: 1px solid var(--line);
 }
-

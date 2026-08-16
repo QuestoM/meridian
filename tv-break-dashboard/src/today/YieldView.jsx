@@ -13,6 +13,7 @@ import {
   programTypeLabel,
 } from '../shell/surface-helpers';
 import { Figure } from '../shell/bidi';
+import { Card } from '../studio';
 import ChannelRefusal from './ChannelRefusal';
 import { scopeState, unattributed } from './today-scope';
 
@@ -26,26 +27,58 @@ import { scopeState, unattributed } from './today-scope';
 
 // labelFor localizes the engine group key for display (daypart keys such as
 // "prime", classifier program types such as "News"); the row key stays raw.
-function YieldBars({ rows, locale, labelKey, labelFor }) {
+function YieldBars({ rows, locale, labelKey, labelFor, labelHeading, currency }) {
   const maxYield = Math.max(...rows.map((row) => Number(row.yield_per_second || 0)), 1e-9);
   if (!rows.length) {
     return <div className="heatmap-empty">{pageText(locale, 'No rows available.', 'אין שורות זמינות.')}</div>;
   }
   return (
-    <div className="yield-bar-list chart-ltr" dir="ltr">
-      {rows.map((row, index) => {
-        const yps = Number(row.yield_per_second || 0);
-        const label = labelFor ? labelFor(row[labelKey]) : row[labelKey];
-        return (
-          <div className="yield-bar-row" key={`${row[labelKey] || index}`}>
-            {/* Native title is a truncation echo of the ellipsised label, not an explanation. */}
-            <span className="yield-bar-label" title={String(label || '')}>{label || pageText(locale, 'Unknown', 'לא ידוע')}</span>
-            <i style={{ '--bar': yps / maxYield }} />
-            <Figure className="numeric">{formatRate(yps, locale)}</Figure>
-            <Figure className="numeric">{formatCurrency(row.revenue, locale)}</Figure>
-          </div>
-        );
-      })}
+    <div className="yield-table" role="table" aria-label={labelHeading}>
+      <div className="yield-column-head" role="row">
+        <span role="columnheader"><strong>{labelHeading}</strong></span>
+        <span role="columnheader" className="yield-column-scale">
+          <strong>{pageText(locale, 'Yield / ad second', 'תשואה / שניית פרסום')}</strong>
+          <small>
+            <Figure>{`${currency}/s`}</Figure>
+            {' · '}
+            {pageText(locale, 'relative scale: highest value in this group = 100%', 'סולם יחסי: הערך הגבוה בקבוצה = 100%')}
+          </small>
+        </span>
+        <span role="columnheader">
+          <strong>{pageText(locale, 'Projected revenue', 'הכנסה חזויה')}</strong>
+          <small><Figure>{currency}</Figure></small>
+        </span>
+      </div>
+      <div className="yield-bar-list" role="rowgroup">
+        {rows.map((row, index) => {
+          const yps = Number(row.yield_per_second || 0);
+          const relativeYield = Math.max(0, Math.min(100, (yps / maxYield) * 100));
+          const label = labelFor ? labelFor(row[labelKey]) : row[labelKey];
+          const visibleLabel = label || pageText(locale, 'Unknown', 'לא ידוע');
+          return (
+            <div className="yield-bar-row" role="row" key={`${row[labelKey] || index}`}>
+              <span className="yield-bar-label" role="rowheader">{visibleLabel}</span>
+              <span className="yield-rate-cell" role="cell">
+                <Figure className="numeric">{formatRate(yps, locale)}</Figure>
+                <span
+                  className="yield-relative-meter"
+                  role="meter"
+                  aria-label={pageText(locale, `Relative yield for ${visibleLabel}`, `תשואה יחסית עבור ${visibleLabel}`)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(relativeYield)}
+                  aria-valuetext={pageText(locale, `${Math.round(relativeYield)} percent of the highest value in this group`, `${Math.round(relativeYield)} אחוז מהערך הגבוה בקבוצה`)}
+                >
+                  <i style={{ '--bar': relativeYield / 100 }} aria-hidden="true" />
+                </span>
+              </span>
+              <span className="yield-revenue-cell" role="cell">
+                <Figure className="numeric">{formatCurrency(row.revenue, locale)}</Figure>
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -149,20 +182,24 @@ export default function YieldView({ locale, refreshKey = 0, onOpenSettings = nul
           </div>
 
           <div className="yield-split">
-            <div className="yield-split-col yield-split-panel">
+            <Card as="div" className="yield-split-col yield-split-panel">
               <div className="yield-subhead">
                 <h3>{pageText(locale, 'By daypart', 'לפי רצועת שידור')}</h3>
                 <span>{byDaypart.length}</span>
               </div>
-              <YieldBars rows={byDaypart} locale={locale} labelKey="group" labelFor={(value) => daypartLabel(value, locale)} />
-            </div>
-            <div className="yield-split-col yield-split-panel">
+              <YieldBars rows={byDaypart} locale={locale} labelKey="group" currency={currency}
+                         labelHeading={pageText(locale, 'Daypart', 'רצועת שידור')}
+                         labelFor={(value) => daypartLabel(value, locale)} />
+            </Card>
+            <Card as="div" className="yield-split-col yield-split-panel">
               <div className="yield-subhead">
                 <h3>{pageText(locale, 'By programme', 'לפי תוכנית')}</h3>
                 <span>{byProgramme.length}</span>
               </div>
-              <YieldBars rows={byProgramme} locale={locale} labelKey="group" labelFor={(value) => programTypeLabel(value, locale)} />
-            </div>
+              <YieldBars rows={byProgramme} locale={locale} labelKey="group" currency={currency}
+                         labelHeading={pageText(locale, 'Programme', 'תוכנית')}
+                         labelFor={(value) => programTypeLabel(value, locale)} />
+            </Card>
           </div>
 
           <p className="yield-foot-note">

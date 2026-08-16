@@ -2,17 +2,19 @@
 
 Lifecycle (one client per deployment, multiple named accounts per client):
 
-- Fresh clone: data/auth/users.json does not exist, so authentication is OFF.
-  Every /api route behaves exactly as before, GET /api/auth/me answers
-  {"auth_disabled": true} and the dashboard renders without a login wall,
-  showing an honest "login not set up" state instead of a fake identity.
+- Fresh clone: data/auth/users.json does not exist, so the API is locked in a
+  setup-required state. Health and the public session probe remain available,
+  but no operational API is readable or writable until an administrator is
+  seeded. Open access exists only behind the explicit KAIROS_AUTH_DISABLED
+  escape hatch.
 - Seeding: the operator runs scripts/init_auth.py (prints a one-time admin
   password, also written once to data/auth/initial_admin_password.txt with
   mode 600), or sets KAIROS_ADMIN_PASSWORD before startup, which seeds the
   admin account on boot. KAIROS_AUTH_DIR relocates the store (tests use it).
 - Seeded: enforcement is ON immediately, even on a running server, because the
   guard checks store existence per request. Every /api route requires a live
-  session except POST /api/auth/login and GET /api/health. Mutating methods
+  session except POST /api/auth/login, GET /api/auth/session and GET
+  /api/health. Mutating methods
   (POST/PUT/PATCH/DELETE) outside /api/auth/ additionally require the operator
   or admin role, so a viewer session is read-only. /api/auth/users* requires
   admin. Non-API routes (the built SPA and its assets) stay open so the app
@@ -45,7 +47,7 @@ logger = logging.getLogger("kairos.auth")
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-PUBLIC_API_PATHS = frozenset({"/api/auth/login", "/api/health"})
+PUBLIC_API_PATHS = frozenset({"/api/auth/login", "/api/auth/session", "/api/health"})
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 WRITE_ROLES = frozenset({"admin", "operator"})
 
@@ -94,8 +96,15 @@ def enforce_request(request: Request) -> JSONResponse | None:
     path = request.url.path
     if not path.startswith("/api/"):
         return None  # static shell and SPA assets stay open
-    if not auth_active():
+    if auth_bypassed():
         return None
+    if not store.store_initialized():
+        if path in {"/api/health", "/api/auth/login", "/api/auth/session"}:
+            return None
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Authentication setup is required before the Kairos API can be used."},
+        )
     if path in PUBLIC_API_PATHS or request.method == "OPTIONS":
         return None
     session = _session_from_request(request)
@@ -126,11 +135,11 @@ def _announce_auth_state() -> None:
                 store.seed_initial_admin()
                 logger.info("Auth store seeded on startup from KAIROS_ADMIN_PASSWORD; login is now required.")
             except (RuntimeError, ValueError) as exc:
-                logger.error("Could not seed the auth store from KAIROS_ADMIN_PASSWORD: %s", exc)
+                raise RuntimeError("Could not seed the auth store from KAIROS_ADMIN_PASSWORD") from exc
         else:
-            logger.info(
-                "Auth store not initialized (%s missing): the API is open. "
-                "Run scripts/init_auth.py to enable login.",
+            logger.warning(
+                "Auth store not initialized (%s missing): operational API requests return 503. "
+                "Run scripts/init_auth.py to create the first administrator.",
                 store.users_path(),
             )
     else:
@@ -261,16 +270,44 @@ def logout(request: Request, response: Response) -> dict[str, Any]:
 
 @router.get("/me")
 def me(request: Request) -> dict[str, Any]:
-    if not auth_active():
-        # Uninitialized store or explicit bypass: tell the dashboard, honestly,
-        # that there is no login wall instead of pretending someone signed in.
+    if auth_bypassed():
         return {"auth_disabled": True}
+    if not store.store_initialized():
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication setup is required. Run scripts/init_auth.py on the server.",
+        )
     session = _require_session(request)
     user = store.get_user(session["username"])
     if user is None:
         store.drop_session(request.cookies.get(store.COOKIE_NAME))
         raise HTTPException(status_code=401, detail="This account no longer exists.")
     return {"auth_disabled": False, **_public_user(user)}
+
+
+@router.get("/session")
+def session_status(request: Request) -> dict[str, Any]:
+    """Probe the login wall without making an expected anonymous visit a 401.
+
+    ``/me`` keeps its strict authenticated contract for API clients. The SPA
+    uses this public, read-only probe before it decides whether to render the
+    login screen, so a healthy signed-out load has no failed network request.
+    """
+    if auth_bypassed():
+        return {"authenticated": False, "auth_disabled": True}
+    if not store.store_initialized():
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication setup is required. Run scripts/init_auth.py on the server.",
+        )
+    session = _session_from_request(request)
+    if session is None:
+        return {"authenticated": False, "auth_disabled": False}
+    user = store.get_user(session["username"])
+    if user is None:
+        store.drop_session(request.cookies.get(store.COOKIE_NAME))
+        return {"authenticated": False, "auth_disabled": False}
+    return {"authenticated": True, "auth_disabled": False, **_public_user(user)}
 
 
 @router.put("/job")

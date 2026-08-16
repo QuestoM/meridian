@@ -225,6 +225,32 @@ def test_an_unscoped_payload_is_refused_rather_than_captioned():
     assert "window.location.hash = 'Settings'" in strip
 
 
+def test_the_board_opens_on_the_real_day_workbench_and_keeps_analysis_secondary():
+    """The editable day is the board's operating path, not a fourth chart.
+
+    The week grid used to be the default and the full day editor was hidden one
+    view-switch away.  The completed workbench migration intentionally reverses
+    that hierarchy: the existing DayBoard is the default, while the grid,
+    daypart and source-timeline views are explicitly read-only analysis.  This
+    assertion follows the component seam instead of pinning presentation copy.
+    """
+    week = _text(WEEK / "PlanWeek.jsx")
+    board = _text(WEEK / "BoardPanel.jsx")
+    workbench = _text(WEEK / "PlanBoardWorkbench.jsx")
+
+    assert "const [boardView, setBoardView] = useState('day');" in week
+    assert "const VIEWS = ['day', 'grid', 'strip', 'timeline'];" in board
+    assert "{view === 'day' && (" in board and "<PlanBoardWorkbench" in board
+    assert "{view !== 'day' && (" in board and "plan-analysis-label" in board
+
+    # The workbench composes the already-safe daily editor and the real version
+    # rail.  It must not create a decorative parallel plan or a synthetic
+    # checkpoint merely to fill the new layout.
+    assert "<DayBoard" in workbench and "day={day}" in workbench
+    assert "<PlanVersionRail" in workbench and "versions={versions}" in workbench
+    assert "morning" not in workbench.lower()
+
+
 def test_the_published_threshold_is_printed_beside_the_state():
     """Google Ads' device: the rule that decided the state is on the strip."""
     strip = _text(WEEK / "GoalStrip.jsx")

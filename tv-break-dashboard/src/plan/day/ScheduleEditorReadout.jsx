@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import DayBoardSettlement from './DayBoardSettlement';
 import ScheduleEditorMoney from './ScheduleEditorMoney';
 import ScheduleEditorRow from './ScheduleEditorRow';
@@ -66,17 +67,16 @@ function ScheduleEditorReadout({
                   scope={scopeFor(item, startSec, durationSec)}
                   onSave={() => onSave(item)}
                 />
-                <li className="schedule-editor-discard-row" style={{ listStyle: 'none', display: 'flex', justifyContent: 'flex-end', margin: '2px 0 10px' }}>
-                  <button
+                <li className="card schedule-editor-discard-row">
+                  <Pressable
                     type="button"
                     onClick={() => onDiscard(item)}
                     disabled={savingPin === item.id}
                     aria-label={editorText(locale, `Discard the unsaved change to ${item.program_title}`, `ביטול השינוי שלא נשמר בתוכנית ${item.program_title}`)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, fontSize: 12, padding: '2px 4px' }}
                   >
                     <X size={12} aria-hidden="true" />
                     {editorText(locale, 'Discard change', 'ביטול השינוי')}
-                  </button>
+                  </Pressable>
                 </li>
               </React.Fragment>
             );

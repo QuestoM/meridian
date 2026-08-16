@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Button } from '../../studio/actions';
 import { Figure } from '../../shell/bidi';
 import { WALLS, fetchSession, payloadCanEdit } from '../../session';
 import MakeGoodLedger from './MakeGoodLedger';
@@ -9,20 +10,11 @@ import { rememberCampaign, takeRememberedCampaign } from './pacing-place';
 import { headlineSentence, seededSentence } from './pacing-summary';
 import './pacing.css';
 import './pacing-row.css';
+import './pacing-row-collapsed.css';
 import './pacing-days.css';
 import './makegood.css';
 
-// Clients, pacing: whether a campaign is behind before it is too late to fix, and
-// the ledger of what is owed when it is.
-//
-// The two views are one destination because they are one job. A shortfall is
-// measured on the board and it is settled in the ledger, and an account manager
-// who had to leave one to reach the other would carry the figure in their head.
-//
-// The read has four states and never three. A read in flight, a read that landed,
-// a read that failed, and a landed read with nothing in it are four different
-// facts, and collapsing the last two is how a screen comes to print a confident
-// zero over a request that never answered.
+// One destination for measuring a shortfall and settling what it creates.
 
 const BOARD = 'board';
 const LEDGER = 'ledger';
@@ -32,7 +24,7 @@ function Failed({ locale, en, he, onRetry }) {
   return (
     <div className="pacing-failed" role="alert">
       <p>{pick(locale, en, he)}</p>
-      <button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</button>
+      <Button type="button" onClick={onRetry}>{pick(locale, 'Try again', 'נסו שוב')}</Button>
     </div>
   );
 }
@@ -43,23 +35,10 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   const [ledger, setLedger] = useState({ status: 'loading', payload: null });
   const [session, setSession] = useState(null);
   const [busyId, setBusyId] = useState('');
-  // The refusal a write came back with, held here and printed on this surface.
-  // notify() is the product's own channel and it is a no-op at the address this
-  // panel is mounted at: measured, workspace-router.jsx renders the Campaigns
-  // destination without a notify prop, so a refused write said nothing at all
-  // for 2.5 s of polling. A refusal the server worded in two languages has to
-  // reach the person who was refused, whatever the shell around it does.
+  // Keep write outcomes local even when the outer notification channel is absent.
   const [refusal, setRefusal] = useState('');
-  // What a write that landed says, on this panel. The same measurement applies
-  // with more force here: a refusal at least leaves the screen unchanged, and a
-  // successful act that says nothing leaves the reader guessing whether they
-  // wrote a record. It is still sent to notify() too, so a destination that
-  // wires its own channel shows it twice until the mount passes notify through.
   const [notice, setNotice] = useState('');
-  // Which record or campaign the server said to open instead. Every refusal that
-  // names one already carries it as detail.opens, and nothing on this surface
-  // read it, so a refusal that said "open it rather than raising a second one"
-  // left the reader to go and find it.
+  // A refusal can name the campaign or decision that should open instead.
   const [refusalOpen, setRefusalOpen] = useState(null);
   const [focusCampaign, setFocusCampaign] = useState('');
   // Which record a control asked for, so the ledger opens on it rather than at
@@ -303,6 +282,20 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   // board rather than a guard having to grep this file for a substring of one.
   const seededLine = seededSentence(board, locale);
 
+  function moveView(event) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const order = [BOARD, LEDGER];
+    const current = order.indexOf(view);
+    let next = current;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = order.length - 1;
+    if (event.key === 'ArrowRight') next = (current + (locale === 'he' ? -1 : 1) + order.length) % order.length;
+    if (event.key === 'ArrowLeft') next = (current + (locale === 'he' ? 1 : -1) + order.length) % order.length;
+    setView(order[next]);
+    event.currentTarget.querySelector(`[data-pacing-view="${order[next]}"]`)?.focus();
+  }
+
   return (
     <section className="page-workspace pacing-workspace">
       {/* The heading is an h2 and the two view controls ride the same row as it.
@@ -331,12 +324,14 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
             not a view, and inside a role=tablist it made a reader count three
             tabs and find two. It sits beside the list, in the same group. */}
         <div className="pacing-views">
-          <nav className="pacing-view-tabs" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')}>
-            <button type="button" role="tab" aria-selected={view === BOARD}
+          <nav className="pacing-view-tabs" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')} onKeyDown={moveView}>
+            <Button type="button" role="tab" id="pacing-tab-board" aria-controls="pacing-panel-board" data-pacing-view={BOARD}
+                    tabIndex={view === BOARD ? 0 : -1} aria-selected={view === BOARD}
                     className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
               {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
-            </button>
-            <button type="button" role="tab" aria-selected={view === LEDGER}
+            </Button>
+            <Button type="button" role="tab" id="pacing-tab-ledger" aria-controls="pacing-panel-ledger" data-pacing-view={LEDGER}
+                    tabIndex={view === LEDGER ? 0 : -1} aria-selected={view === LEDGER}
                     className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
               {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
               {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
@@ -346,11 +341,11 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
                   </Figure>
                 )
                 : null}
-            </button>
+            </Button>
           </nav>
-          <button type="button" className="pacing-refresh" onClick={reload}>
+          <Button type="button" className="pacing-refresh" onClick={reload}>
             {pick(locale, 'Read again', 'קראו שוב')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -359,20 +354,20 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
           <p>{refusal}</p>
           <div className="pacing-refusal-acts">
             {refusalOpen ? (
-              <button type="button" className="pacing-refusal-open" onClick={followRefusal}>
+              <Button type="button" className="pacing-refusal-open" onClick={followRefusal}>
                 {refusalOpen.kind === 'campaign'
                   ? pick(locale, 'Open that campaign', 'פתחו את הקמפיין')
                   : pick(locale, 'Open that record', 'פתחו את הרשומה')}
-              </button>
+              </Button>
             ) : null}
             {/* A refusal caused by a stale read leaves the row on screen still
                 offering the act that has just failed. The reload is offered and
                 never taken: taking it would throw away what the reader typed
                 into an open form, which is the defect a previous round closed. */}
-            <button type="button" onClick={() => { clearRefusal(); reload(); }}>
+            <Button type="button" onClick={() => { clearRefusal(); reload(); }}>
               {pick(locale, 'Read again', 'קראו שוב')}
-            </button>
-            <button type="button" onClick={clearRefusal}>{pick(locale, 'Dismiss', 'סגרו')}</button>
+            </Button>
+            <Button type="button" onClick={clearRefusal}>{pick(locale, 'Dismiss', 'סגרו')}</Button>
           </div>
         </div>
       ) : null}
@@ -385,65 +380,69 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
                 transition and its reason are the ledger's, published on the
                 answer to the write, and its title says what it does. */}
             {undoable ? (
-              <button type="button" className="pacing-undo"
+              <Button type="button" className="pacing-undo"
                       title={pick(locale, undoable.undo.meaning_en, undoable.undo.meaning_he)}
                       onClick={() => onUndo(undoable)}>
                 {pick(locale, undoable.undo.label_en, undoable.undo.label_he)}
-              </button>
+              </Button>
             ) : null}
-            <button type="button" onClick={() => { setNotice(''); setUndoable(null); }}>
+            <Button type="button" onClick={() => { setNotice(''); setUndoable(null); }}>
               {pick(locale, 'Dismiss', 'סגרו')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
-      {view === BOARD && board.status === 'loading' ? (
-        <p className="pacing-loading">{pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב')}</p>
-      ) : null}
-      {view === BOARD && board.status === 'failed' ? (
-        <Failed locale={locale} onRetry={reload}
-          en="The pacing board could not be read. What is missing is a failure, not an empty result."
-          he="לא ניתן היה לקרוא את לוח הקצב. מה שחסר הוא כשל, לא תוצאה ריקה."
-        />
-      ) : null}
-      {view === BOARD && board.status === 'ready' ? (
-        <PacingBoard
-          payload={board.payload}
-          locale={locale}
-          canEdit={canEdit}
-          editRefusal={editRefusal}
-          busyId={busyId}
-          onRaise={onRaise}
-          onAccept={onAccept}
-          onOpenMakeGood={openMakeGood}
-          onOpenCampaign={onOpenCampaign ? openCampaign : null}
-          focusCampaignId={focusCampaign}
-          onFocused={clearFocus}
-        />
+      {view === BOARD ? (
+        <div id="pacing-panel-board" role="tabpanel" aria-labelledby="pacing-tab-board" tabIndex={0} aria-busy={board.status === 'loading'}>
+          {board.status === 'loading' ? <p className="pacing-loading">{pick(locale, 'Reading the pacing board', 'קורא את לוח הקצב')}</p> : null}
+          {board.status === 'failed' ? (
+            <Failed locale={locale} onRetry={reload}
+              en="The pacing board could not be read. What is missing is a failure, not an empty result."
+              he="לא ניתן היה לקרוא את לוח הקצב. מה שחסר הוא כשל, לא תוצאה ריקה."
+            />
+          ) : null}
+          {board.status === 'ready' ? (
+            <PacingBoard
+              payload={board.payload}
+              locale={locale}
+              canEdit={canEdit}
+              editRefusal={editRefusal}
+              busyId={busyId}
+              onRaise={onRaise}
+              onAccept={onAccept}
+              onOpenMakeGood={openMakeGood}
+              onOpenCampaign={onOpenCampaign ? openCampaign : null}
+              focusCampaignId={focusCampaign}
+              onFocused={clearFocus}
+            />
+          ) : null}
+        </div>
       ) : null}
 
-      {view === LEDGER && ledger.status === 'ready' ? (
-        <MakeGoodLedger
-          payload={ledger.payload}
-          locale={locale}
-          canEdit={canEdit}
-          editRefusal={editRefusal}
-          busyId={busyId}
-          onMove={onMove}
-          onOpenCampaign={openCampaign}
-          focusMakeGoodId={focusMakeGood}
-          onFocused={clearMakeGoodFocus}
-        />
-      ) : null}
-      {view === LEDGER && ledger.status === 'failed' ? (
-        <Failed locale={locale} onRetry={reload}
-          en="The decision ledger could not be read. What is missing is a failure, not an empty result."
-          he="לא ניתן היה לקרוא את ספר ההחלטות. מה שחסר הוא כשל, לא תוצאה ריקה."
-        />
-      ) : null}
-      {view === LEDGER && ledger.status === 'loading' ? (
-        <p className="pacing-loading">{pick(locale, 'Reading the decision ledger', 'קורא את ספר ההחלטות')}</p>
+      {view === LEDGER ? (
+        <div id="pacing-panel-ledger" role="tabpanel" aria-labelledby="pacing-tab-ledger" tabIndex={0} aria-busy={ledger.status === 'loading'}>
+          {ledger.status === 'ready' ? (
+            <MakeGoodLedger
+              payload={ledger.payload}
+              locale={locale}
+              canEdit={canEdit}
+              editRefusal={editRefusal}
+              busyId={busyId}
+              onMove={onMove}
+              onOpenCampaign={openCampaign}
+              focusMakeGoodId={focusMakeGood}
+              onFocused={clearMakeGoodFocus}
+            />
+          ) : null}
+          {ledger.status === 'failed' ? (
+            <Failed locale={locale} onRetry={reload}
+              en="The decision ledger could not be read. What is missing is a failure, not an empty result."
+              he="לא ניתן היה לקרוא את ספר ההחלטות. מה שחסר הוא כשל, לא תוצאה ריקה."
+            />
+          ) : null}
+          {ledger.status === 'loading' ? <p className="pacing-loading">{pick(locale, 'Reading the decision ledger', 'קורא את ספר ההחלטות')}</p> : null}
+        </div>
       ) : null}
     </section>
   );

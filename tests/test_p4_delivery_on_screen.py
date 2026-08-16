@@ -541,9 +541,11 @@ def test_the_board_names_the_instant_the_split_was_taken_at(payload, rendered):
     assert "Counted as of" in rendered["boards"]["en"]
     assert "\u05e0\u05e1\u05e4\u05e8 \u05e0\u05db\u05d5\u05df \u05dc" in rendered["boards"]["he"]
     if as_of["basis"]:
-        assert as_of["basis"] in rendered["boards"]["he"], (
-            "the recorded basis is dropped in Hebrew, which is the caveat going missing"
+        assert as_of["basis"] in rendered["boards"]["en"]
+        assert "\u05e0\u05e7\u05d5\u05d3\u05ea \u05d4\u05e1\u05e4\u05d9\u05e8\u05d4" in rendered["boards"]["he"], (
+            "the Hebrew board must carry the same recorded caveat as a Hebrew reading"
         )
+        assert as_of["basis"] not in rendered["boards"]["he"], "raw English provenance leaked into Hebrew"
 
 
 def test_the_flight_row_carries_the_state_the_figure_and_the_named_missing_days(payload, rendered):

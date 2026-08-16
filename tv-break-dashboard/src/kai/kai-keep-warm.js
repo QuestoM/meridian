@@ -5,11 +5,9 @@ import { warmContext } from './assistant-stream';
 //
 // The server writes that prefix on POST /api/assistant/context/warm and holds
 // the record for PREFIX_TTL_SECONDS, which is 240 s and sits inside the API's
-// own five-minute cache (kairos_api/assistant_warm.py). The panel has warmed on
-// mount since round five, and that covers the dock that is opened and used
-// straight away. It does not cover the dock that is opened and left open, which
-// is the ordinary case: Kai is docked beside the work, so it is open while the
-// operator reads a page, and the question comes minutes later.
+// own five-minute cache (kairos_api/assistant_warm.py). The composer warms on
+// focus and input, so opening the dock to read never spends a provider call and
+// a question being written still prepares its prefix before the ask.
 //
 // What the write actually costs, measured on this machine on 2026-08-05 as a
 // controlled pair: the same request sent twice, first against an unwritten

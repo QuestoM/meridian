@@ -40,6 +40,7 @@ from kairos_api import (
     assistant_actions,
     assistant_pipeline,
     assistant_prompt,
+    assistant_saved_entry,
     assistant_sections,
     assistant_warm,
 )
@@ -334,13 +335,16 @@ def assistant_ask(request: AskRequest, http_request: Request) -> dict[str, Any]:
             detail=f"Rate limit exceeded: at most {RATE_LIMIT_ASKS} questions per minute.",
         )
     user = _actor_name(http_request)
+    started = time.monotonic()
     body = _ask_body(question, http_request, conversation_id=request.conversation_id,
                      page_context=request.page_context, mentions=request.mentions)
     batch_id = body["proposals"]["batch_id"] if body.get("proposals") else None
     _audit_ask(user, question, body, batch_id)
     if body.get("answer"):
         assistant_memory.append_entry(user, question, str(body["answer"]), batch_id,
-                                      conversation_id=body.get("conversation_id"))
+                                      conversation_id=body.get("conversation_id"),
+                                      metadata=assistant_saved_entry.from_ask(
+                                          body, time.monotonic() - started))
     return body
 
 

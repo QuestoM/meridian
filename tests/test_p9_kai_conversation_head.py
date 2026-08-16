@@ -37,12 +37,16 @@ ROOT = Path(__file__).resolve().parents[1]
 DASHBOARD = ROOT / "tv-break-dashboard"
 KAI = DASHBOARD / "src" / "kai"
 TOKENS = DASHBOARD / "src" / "tokens.css"
-SHELL_SHEET = DASHBOARD / "src" / "shell" / "styles.css"
-# Loaded globally by src/index.jsx, after styles.css: the card owns the panel
-# head's inline inset since fb0544c8, and styles.css no longer states it. Left
-# out, the head has no horizontal padding at all and wraps at a different
-# point than the shipped product does.
-CARD_SHEET = DASHBOARD / "src" / "shell" / "card.css"
+INDEX = (DASHBOARD / "src" / "index.jsx").read_text(encoding="utf-8")
+# The shared head moved out of the foundation sheet during the CSS ownership
+# split. Load the relative global sheets in exactly index.jsx order so this
+# browser proof follows future ownership moves without reconstructing the old
+# monolith. Package font sheets do not affect the head box contract.
+GLOBAL_SHEETS = tuple(
+    DASHBOARD / "src" / specifier[2:]
+    for specifier in re.findall(r"import '([^']+\.css)';", INDEX)
+    if specifier.startswith("./")
+)
 CONSOLE_SHEET = KAI / "assistant-console.css"
 HEAD_SHEET = KAI / "kai-conversation-head.css"
 PANEL = (KAI / "AssistantPanel.jsx").read_text(encoding="utf-8")
@@ -85,7 +89,7 @@ def _document(locale: str, width: int, with_fix: bool) -> str:
     title, subtitle, acting = strings[0][index], strings[1][index], strings[2][index]
     clear = strings[3][index] if len(strings) > 3 else ""
     shell = "rtl" if locale == "he" else "ltr"
-    sheets = [TOKENS, SHELL_SHEET, CARD_SHEET, CONSOLE_SHEET] + ([HEAD_SHEET] if with_fix else [])
+    sheets = [*GLOBAL_SHEETS, CONSOLE_SHEET] + ([HEAD_SHEET] if with_fix else [])
     links = "\n".join(f'<link rel="stylesheet" href="file://{sheet}">' for sheet in sheets)
     # The acting-user line, byte-for-byte what AssistantPanel.jsx renders: a
     # plain <span class="asst-user"> (no dir="auto") wrapping a <b> (no

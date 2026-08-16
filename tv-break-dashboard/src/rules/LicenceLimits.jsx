@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Lock } from 'lucide-react';
 import { pageText } from '../shell/format';
 import DateField from '../shell/DateField';
+import { InputControl } from '../studio/dom-controls';
 import { detailWords, limitBoundsRefusal, limitLabel } from './rules-lib';
 
 // The four numbers that are the licence. They used to sit beside the revenue
@@ -53,7 +54,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
   }
 
   return (
-    <section className="rules-card">
+    <section className="card rules-card">
       <div className="rules-card-head">
         <div>
           <h2>{pageText(locale, 'The limits themselves', 'המגבלות עצמן')}</h2>
@@ -81,7 +82,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
           return (
             <li key={limit.key} className={changed ? 'changed' : ''}>
               <label htmlFor={`limit-${limit.key}`}>{limitLabel(limit.key, locale)}</label>
-              <input
+              <InputControl
                 id={`limit-${limit.key}`}
                 type="number"
                 step={limit.step}
@@ -108,7 +109,7 @@ export default function LicenceLimits({ locale, values, bounds, effectiveDate, c
           </label>
           <label>
             <span>{pageText(locale, 'Why', 'סיבה')}</span>
-            <input type="text" value={why} onChange={(event) => setWhy(event.target.value)} />
+            <InputControl type="text" value={why} onChange={(event) => setWhy(event.target.value)} />
           </label>
           <p className="rules-limit-note">
             {pageText(

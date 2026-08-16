@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import './login.css';
 import { DirectionRoot } from './bidi';
+import { KairosMark } from './kairos-icons';
+import { Button } from '../studio/actions';
+import { Card } from './primitives';
+import { InputControl } from './dom-controls';
+import { Dialog } from '../studio/modal';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -32,8 +37,20 @@ async function authRequest(path, options = {}) {
   }
 }
 
+let sessionProbe = null;
+let sessionProbeIssue = '';
+
+export function setSessionProbeIssue(value) {
+  sessionProbeIssue = value === 'offline' || value === 'setup' ? value : '';
+}
+
 export function fetchMe() {
-  return authRequest('/api/auth/me');
+  if (!sessionProbe) {
+    sessionProbe = authRequest('/api/auth/session').finally(() => {
+      sessionProbe = null;
+    });
+  }
+  return sessionProbe;
 }
 
 export function requestLogin(username, password) {
@@ -117,7 +134,30 @@ function loginErrorText(result) {
 
 // Full-screen sign-in card. Hebrew-first by design: it renders before the
 // operator settings (and their language choice) are available.
-export default function Login({ onLoggedIn }) {
+function SessionUnavailable({ issue }) {
+  const setupRequired = issue === 'setup';
+  return (
+    <DirectionRoot locale="he" as="main" className="login-screen" lang="he" aria-labelledby="session-unavailable-title">
+      <Card className="auth-session-unavailable" role="alert" aria-describedby="session-unavailable-detail">
+        <KairosMark size={44} title="Kairos" />
+        <p className="login-kicker">{setupRequired ? 'נדרשת הגדרת גישה' : 'הגישה מושהית'}</p>
+        <h1 id="session-unavailable-title">
+          {setupRequired ? 'הכניסה למערכת עדיין לא הוגדרה.' : 'לא ניתן לאמת את הגישה כרגע.'}
+        </h1>
+        <p id="session-unavailable-detail" className="login-sub">
+          {setupRequired
+            ? 'יש להשלים את הגדרת האימות בשרת באמצעות scripts/init_auth.py, ואז לנסות שוב.'
+            : 'השרת אינו זמין, ולכן סביבת העבודה נשארת נעולה. יש לבדוק את החיבור ולנסות שוב.'}
+        </p>
+        <Button className="login-submit" type="button" variant="contained" onClick={() => window.location.reload()}>
+          ניסיון נוסף
+        </Button>
+      </Card>
+    </DirectionRoot>
+  );
+}
+
+function LoginForm({ onLoggedIn }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -139,57 +179,73 @@ export default function Login({ onLoggedIn }) {
 
   return (
     <DirectionRoot locale="he" className="login-screen" lang="he">
-      <form className="login-card" onSubmit={submit}>
-        <div className="login-brand">
-          <div className="login-brand-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
+      <Card as="div" className="login-stage">
+        <section className="login-context" aria-label="על סביבת העבודה">
+          <div className="login-brand">
+            <KairosMark size={44} title="Kairos" />
+            <div>
+              <strong>KAIROS</strong>
+              <small>מערכת תפעול שידור</small>
+            </div>
           </div>
-          <div>
-            <strong>Kairos</strong>
-            <small>ניהול הכנסות מפרסום</small>
+          <div className="login-context-copy">
+            <p className="login-kicker">סביבת עבודה מבוקרת</p>
+            <h2>תכנון, מלאי, מסחרי וממשל במקום אחד.</h2>
+            <p>הגישה אישית ומוגבלת לפי התפקיד. הפעולות מתבצעות מתוך ההקשר התפעולי שבו הן חלות.</p>
           </div>
-        </div>
-        <h1>כניסה למערכת</h1>
-        <p className="login-sub">היכנסו עם החשבון האישי שהוקצה לכם.</p>
-        <label className="login-field">
-          <span>שם מפעיל</span>
-          <input
-            dir="ltr"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </label>
-        <label className="login-field">
-          <span>סיסמה</span>
-          <input
-            type="password"
-            dir="ltr"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        {error && (
-          <p className="login-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="login-submit" type="submit" disabled={busy || username.trim() === '' || password === ''}>
-          {busy ? 'רק רגע...' : 'כניסה'}
-        </button>
-      </form>
+          <p className="login-context-foot">תכנון שידור · מלאי · מסחרי · ממשל</p>
+        </section>
+
+        <form className="login-card" onSubmit={submit} aria-labelledby="login-title">
+          <div className="login-form-head">
+            <span>גישה למערכת</span>
+            <h1 id="login-title">כניסה ל־Kairos</h1>
+            <p className="login-sub">השתמשו בחשבון האישי שהוקצה לכם.</p>
+          </div>
+          <label className="login-field">
+            <span>שם משתמש</span>
+            <InputControl
+              dir="ltr"
+              autoComplete="username"
+              autoFocus
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </label>
+          <label className="login-field">
+            <span>סיסמה</span>
+            <InputControl
+              type="password"
+              dir="ltr"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          {error && (
+            <p className="login-error" role="alert">
+              {error}
+            </p>
+          )}
+          <Button className="login-submit" type="submit" variant="contained" loading={busy} disabled={username.trim() === '' || password === ''}>
+            {busy ? 'מתחבר...' : 'כניסה למערכת'}
+          </Button>
+          <p className="login-account-note">החשבון וההרשאות מנוהלים על ידי מנהל המערכת.</p>
+        </form>
+      </Card>
     </DirectionRoot>
   );
+}
+
+export default function Login(props) {
+  return sessionProbeIssue ? <SessionUnavailable issue={sessionProbeIssue} /> : <LoginForm {...props} />;
 }
 
 // Change-password dialog. In forced mode (must_change_password) there is no
 // way to dismiss it: the temporary password has to be replaced first.
 export function ChangePasswordDialog({ locale = 'he', forced = false, onClose, onDone }) {
   const t = (en, he) => (locale === 'he' ? he : en);
+  const currentRef = useRef(null);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -224,79 +280,77 @@ export function ChangePasswordDialog({ locale = 'he', forced = false, onClose, o
   }
 
   return (
-    <DirectionRoot locale={locale} className="auth-overlay" role="dialog" aria-modal="true">
-      <form className="auth-dialog" onSubmit={submit}>
-        {forced ? null : (
-          <button type="button" className="auth-close" onClick={onClose} aria-label={t('Close', 'סגירה')}>
-            ×
-          </button>
-        )}
-        <h2>{t('Change password', 'החלפת סיסמה')}</h2>
-        {forced && (
-          <p className="auth-note">
-            {t(
+    <DirectionRoot locale={locale}>
+      <Dialog
+        open
+        size="narrow"
+        className={forced ? 'auth-password-dialog auth-dialog-forced' : 'auth-password-dialog'}
+        title={t('Change password', 'החלפת סיסמה')}
+        description={forced
+          ? t(
               'The temporary password must be replaced before continuing to the workspace.',
               'נדרש להחליף את הסיסמה הזמנית לפני המשך העבודה במערכת.',
+            )
+          : t('Choose a new password for this account.', 'בחרו סיסמה חדשה לחשבון הזה.')}
+        closeLabel={t('Close', 'סגירה')}
+        initialFocusRef={currentRef}
+        dismissOnBackdrop={!forced}
+        onClose={forced ? undefined : onClose}
+      >
+        <form
+          className="auth-password-form"
+          onSubmit={submit}
+          onKeyDown={forced ? (event) => {
+            if (event.key === 'Escape') event.preventDefault();
+          } : undefined}
+        >
+          <label className="auth-field">
+            <span>{t('Current password', 'סיסמה נוכחית')}</span>
+            <InputControl
+              ref={currentRef}
+              type="password"
+              dir="ltr"
+              autoComplete="current-password"
+              value={current}
+              onChange={(event) => setCurrent(event.target.value)}
+            />
+          </label>
+          <label className="auth-field">
+            <span>{t('New password', 'סיסמה חדשה')}</span>
+            <InputControl
+              type="password"
+              dir="ltr"
+              autoComplete="new-password"
+              value={next}
+              onChange={(event) => setNext(event.target.value)}
+            />
+          </label>
+          <label className="auth-field">
+            <span>{t('Confirm the new password', 'אימות הסיסמה החדשה')}</span>
+            <InputControl
+              type="password"
+              dir="ltr"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(event) => setConfirm(event.target.value)}
+            />
+          </label>
+          <p className="auth-hint">
+            {t(`At least ${MIN_PASSWORD_LENGTH} characters.`, `לפחות ${MIN_PASSWORD_LENGTH} תווים.`)}
+          </p>
+          {error && <p className="auth-error" role="alert">{error}</p>}
+          <div className="auth-actions">
+            {forced ? null : (
+              <Button type="button" variant="outlined" className="auth-secondary" onClick={onClose} disabled={busy}>
+                {t('Cancel', 'ביטול')}
+              </Button>
             )}
-          </p>
-        )}
-        <label className="auth-field">
-          <span>{t('Current password', 'סיסמה נוכחית')}</span>
-          <input
-            type="password"
-            dir="ltr"
-            autoComplete="current-password"
-            autoFocus
-            value={current}
-            onChange={(event) => setCurrent(event.target.value)}
-          />
-        </label>
-        <label className="auth-field">
-          <span>{t('New password', 'סיסמה חדשה')}</span>
-          <input
-            type="password"
-            dir="ltr"
-            autoComplete="new-password"
-            value={next}
-            onChange={(event) => setNext(event.target.value)}
-          />
-        </label>
-        <label className="auth-field">
-          <span>{t('Confirm the new password', 'אימות הסיסמה החדשה')}</span>
-          <input
-            type="password"
-            dir="ltr"
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value)}
-          />
-        </label>
-        <p className="auth-hint">
-          {t(
-            `At least ${MIN_PASSWORD_LENGTH} characters.`,
-            `לפחות ${MIN_PASSWORD_LENGTH} תווים.`,
-          )}
-        </p>
-        {error && (
-          <p className="auth-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="auth-actions">
-          {forced ? null : (
-            <button type="button" className="auth-secondary" onClick={onClose} disabled={busy}>
-              {t('Cancel', 'ביטול')}
-            </button>
-          )}
-          <button
-            type="submit"
-            className="auth-primary"
-            disabled={busy || current === '' || next === '' || confirm === ''}
-          >
-            {busy ? t('Just a moment...', 'רק רגע...') : t('Update password', 'עדכון הסיסמה')}
-          </button>
-        </div>
-      </form>
+            <Button type="submit" variant="contained" className="auth-primary" loading={busy} disabled={current === '' || next === '' || confirm === ''}>
+              {busy ? t('Just a moment...', 'רק רגע...') : t('Update password', 'עדכון הסיסמה')}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </DirectionRoot>
   );
 }

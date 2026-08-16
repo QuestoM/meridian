@@ -98,6 +98,7 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
 # registered after that frozenset is built is invisible to handle_tool_use, and
 # the model can never call the tool.
 from kairos_api.assistant_read_tools_accounts import ACCOUNTS_READ_TOOL_SCHEMAS  # noqa: E402
+from kairos_api.assistant_read_tools_advertiser import ADVERTISER_ACTIVITY_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_break import BREAK_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_campaign import CAMPAIGN_READ_TOOL_SCHEMAS  # noqa: E402
 from kairos_api.assistant_read_tools_pacing import PACING_READ_TOOL_SCHEMAS  # noqa: E402
@@ -106,6 +107,7 @@ from kairos_api.assistant_read_tools_restriction import RESTRICTION_READ_TOOL_SC
 from kairos_api.assistant_read_tools_versions import VERSION_READ_TOOL_SCHEMAS  # noqa: E402
 
 EXTRA_READ_TOOL_SCHEMAS.extend(POD_READ_TOOL_SCHEMAS)
+EXTRA_READ_TOOL_SCHEMAS.extend(ADVERTISER_ACTIVITY_READ_TOOL_SCHEMAS)
 EXTRA_READ_TOOL_SCHEMAS.extend(BREAK_READ_TOOL_SCHEMAS)
 EXTRA_READ_TOOL_SCHEMAS.extend(CAMPAIGN_READ_TOOL_SCHEMAS)
 EXTRA_READ_TOOL_SCHEMAS.extend(PACING_READ_TOOL_SCHEMAS)

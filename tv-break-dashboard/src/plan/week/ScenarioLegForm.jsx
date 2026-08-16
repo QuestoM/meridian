@@ -1,16 +1,18 @@
 import React from 'react';
 import { Slider } from '@mui/material';
+import { Pressable } from '../../studio/dom-controls';
 import { formatPercent, pageText } from '../../shell/format';
 import { Figure } from '../../shell/bidi';
 import { OBJECTIVE_FOCUS, leverLabel } from './plan-week-model';
 
-// One leg of the comparison: all five levers, on both sides.
+// One leg of the comparison: four objective levers and one shared licence cap.
 //
 // The panel used to offer the revenue weight and nothing else, and that is
 // exactly the lever the engine is least sensitive to at a fixed retention floor,
 // so the comparison could not separate two scenarios. Every lever the runner
 // accepts is here, and the floor is first because it is the one that moves the
-// plan.
+// plan. The hourly cap is displayed from the saved licence and cannot diverge
+// between the two legs here.
 
 function Row({ label, help, children }) {
   return (
@@ -67,20 +69,12 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
         </div>
       </Row>
 
-      <Row label={leverLabel('max_breaks_per_hour', locale)}>
-        <div className="plan-leg-slider">
-          <Slider
-            size="small"
-            value={Number(values.max_breaks_per_hour) || 1}
-            min={1}
-            max={8}
-            step={1}
-            marks
-            valueLabelDisplay="auto"
-            aria-label={`${title} ${leverLabel('max_breaks_per_hour', locale)}`}
-            onChange={(_event, value) => onChange('max_breaks_per_hour', Array.isArray(value) ? value[0] : value)}
-          />
-          <strong className="numeric"><Figure>{Number(values.max_breaks_per_hour) || 1}</Figure></strong>
+      <Row
+        label={leverLabel('max_breaks_per_hour', locale)}
+        help={pageText(locale, 'Licence guardrail · identical in both scenarios', 'מגבלת רישיון · זהה בשני התרחישים')}
+      >
+        <div className="plan-leg-slider" aria-readonly="true">
+          <strong className="numeric"><Figure>{Number(values.max_breaks_per_hour)}</Figure></strong>
         </div>
       </Row>
 
@@ -103,7 +97,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
       <Row label={leverLabel('objective_mode', locale)}>
         <div className="plan-leg-focus">
           {OBJECTIVE_FOCUS.map((mode) => (
-            <button
+            <Pressable
               key={mode.key}
               type="button"
               className={`plan-leg-chip${values.objective_mode === mode.key ? ' is-active' : ''}`}
@@ -111,7 +105,7 @@ export function ScenarioLegForm({ leg, title, values, locale, onChange }) {
               onClick={() => onChange('objective_mode', mode.key)}
             >
               {he ? mode.he : mode.en}
-            </button>
+            </Pressable>
           ))}
         </div>
       </Row>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
@@ -8,6 +8,7 @@ import { KINDS } from './AssistantProposalCard';
 import ProposalSummary from './AssistantProposalSummary';
 import { isolate } from '../shell/bidi';
 import { formatStamp } from '../shell/dates';
+import { Pressable } from '../studio/dom-controls';
 
 // The per-conversation applied-changes view: every proposal batch the active
 // conversation produced, with kind, summary, status, who resolved it and when,
@@ -154,17 +155,17 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
             <p>{pageText(locale, 'A pre-restore snapshot was saved, so this restore is undoable from the restore page.', 'נשמר צילום מצב שלפני השחזור, ולכן אפשר לבטל את השחזור הזה מעמוד השחזור.')}</p>
           ) : null}
           <p>{pageText(locale, 'Run the plan now so it reflects the restored data.', 'הריצו עכשיו את התוכנית כדי שתשקף את הנתונים המשוחזרים.')}</p>
-          <button type="button" className="asst-ver-toggle" onClick={() => onShowRestore(restoreResult.preId)}>
+          <Pressable type="button" className="asst-ver-toggle" onClick={() => onShowRestore(restoreResult.preId)}>
             <ExternalLink size={12} />
             {pageText(locale, 'Restore page', 'עמוד השחזור')}
-          </button>
+          </Pressable>
         </div>
       ) : null}
 
       {batches.map((batch) => {
         const items = Array.isArray(batch.items) ? batch.items.filter((item) => item && typeof item === 'object') : [];
         return (
-          <div className="asst-chg-batch" key={String(batch.batch_id)}>
+          <div className="card asst-chg-batch" key={String(batch.batch_id)}>
             <div className="asst-chg-head">
               <span className="asst-chg-q">{batch.question ? <Name>{String(batch.question)}</Name> : pageText(locale, 'Actions batch', 'אצוות פעולות')}</span>
               <Code>{String(batch.batch_id).slice(0, 8)}</Code>
@@ -194,10 +195,10 @@ export default function AssistantConversationsChanges({ locale, conversationId, 
               // version_ids arrives newest first (the server's own manifest
               // order), so the first entry is the version this batch's most
               // recent apply produced.
-              <button type="button" className="asst-ver-toggle" onClick={() => onShowRestore(batch.version_ids[0])}>
+              <Pressable type="button" className="asst-ver-toggle" onClick={() => onShowRestore(batch.version_ids[0])}>
                 <ExternalLink size={12} />
                 {pageText(locale, 'Version diff on the restore page', 'הצגת הגרסה בעמוד השחזור')}
-              </button>
+              </Pressable>
             ) : null}
           </div>
         );

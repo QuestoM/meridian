@@ -54,6 +54,10 @@ export function readInventory() {
   return call('/api/inventory');
 }
 
+export function readFiles() {
+  return call('/api/files');
+}
+
 export function saveSettings(next) {
   return call('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(next) });
 }

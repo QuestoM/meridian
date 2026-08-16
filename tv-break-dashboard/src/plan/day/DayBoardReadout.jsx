@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Button } from '../../studio/actions';
 import { AlertTriangle, ArrowRight, Calculator, CheckCircle2, PinOff, Undo2 } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
+import { Dialog } from '../../studio/modal';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Figure, Code, Name } from '../../shell/bidi';
 import { clockOf, committedGap, exactCurrency } from './day-board-model';
@@ -31,8 +34,11 @@ import { formatDay } from '../../shell/dates';
 // with a scroll to reach Save, on the one row that is reached after every single
 // edit. Nothing was dropped to fix it: the panel simply leads with the two
 // things an edit is about, and the detail that grows with the day follows them.
-function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, saving, canUndo, unbound, onRemoveUnbound, forecast, checking, onCheck }) {
+function DayBoardReadout({ score, locale, editCount, draftEdits, onUndo, onDiscard, onSave, saving, canUndo, unbound, onRemoveUnbound, forecast, checking, onCheck, onStateChange }) {
   const label = (en, he) => (locale === 'he' ? he : en);
+  useEffect(() => {
+    onStateChange?.({ score, editCount, edits: draftEdits || {}, forecast, saving, checking });
+  }, [score, editCount, draftEdits, forecast, saving, checking, onStateChange]);
   // Rendered in both branches below. A stranded placement is exactly as real
   // before the first score lands as after it, and it is the one thing on this
   // panel that must never depend on anything a reload empties.
@@ -73,24 +79,24 @@ function DayBoardReadout({ score, locale, editCount, onUndo, onDiscard, onSave, 
           </span>
         )}
         <div className="day-readout-actions">
-          <button type="button" className="day-action" onClick={onUndo} disabled={!canUndo}>
+          <Pressable type="button" className="day-action" onClick={onUndo} disabled={!canUndo}>
             <Undo2 size={13} aria-hidden="true" />
             {label('Undo', 'ביטול פעולה')}
-          </button>
-          <button type="button" className="day-action" onClick={onDiscard} disabled={editCount === 0}>
+          </Pressable>
+          <Pressable type="button" className="day-action" onClick={onDiscard} disabled={editCount === 0}>
             {label('Discard all changes', 'ביטול כל השינויים')}
-          </button>
-          <button type="button" className="day-action" onClick={onCheck} disabled={editCount === 0 || checking || saving}>
+          </Pressable>
+          <Pressable type="button" className="day-action" onClick={onCheck} disabled={editCount === 0 || checking || saving}>
             <Calculator size={13} aria-hidden="true" />
             {checking
               ? label('Measuring', 'מודד')
               : label('Check what saving would do', 'בדיקה מה תעשה השמירה')}
-          </button>
-          <button type="button" className="day-action is-primary" onClick={onSave} disabled={editCount === 0 || saving}>
+          </Pressable>
+          <Pressable id="day-board-server-replan" type="button" className="day-action is-primary" onClick={onSave} disabled={editCount === 0 || saving}>
             {saving
               ? label('Saving', 'שומר')
-              : label(`Save ${editCount} change${editCount === 1 ? '' : 's'}`, editCount === 1 ? 'שמירת שינוי אחד' : `שמירת ${editCount} שינויים`)}
-          </button>
+              : label(`Review ${editCount} change${editCount === 1 ? '' : 's'} and re-plan`, editCount === 1 ? 'בדיקת שינוי אחד ותכנון מחדש' : `בדיקת ${editCount} שינויים ותכנון מחדש`)}
+          </Pressable>
         </div>
       </div>
 
@@ -225,7 +231,10 @@ export function CommittedPlanNote({ gap, locale }) {
 // day a person needs it. Above the figures it lands on screen.
 export function StrandedPlacements({ records, locale, busy, onRemove }) {
   const label = (en, he) => (locale === 'he' ? he : en);
+  const absent = label('Not recorded', 'לא תועד');
   const rows = records || [];
+  const [pendingRemoval, setPendingRemoval] = React.useState(null);
+  const cancelRemovalRef = React.useRef(null);
   if (!rows.length) return null;
   return (
     <section className="day-stranded" aria-label={label('Saved placements with no break on the board', 'נעיצות שמורות שאין להן ברייק בלוח')}>
@@ -248,13 +257,30 @@ export function StrandedPlacements({ records, locale, busy, onRemove }) {
               {record.restriction ? (locale === 'he' ? record.restriction.reason_he : record.restriction.reason) : ''}
               <Code>{record.constraint_id}</Code>
             </p>
-            <button type="button" className="day-action is-inverse" onClick={() => onRemove(record)} disabled={busy}>
+            <Pressable type="button" className="day-action is-inverse" onClick={() => setPendingRemoval(record)} disabled={busy}>
               <PinOff size={13} aria-hidden="true" />
               {label('Remove the saved placement', 'הסרת הנעיצה השמורה')}
-            </button>
+            </Pressable>
           </li>
         ))}
       </ul>
+      <Dialog
+        open={Boolean(pendingRemoval)}
+        onClose={() => setPendingRemoval(null)}
+        title={label('Confirm saved placement removal', 'אישור הסרת נעיצה שמורה')}
+        description={label('Review the stored placement and consequence before deleting it.', 'בדקו את הנעיצה השמורה ואת ההשפעה לפני המחיקה.')}
+        closeLabel={label('Close placement removal review', 'סגירת בדיקת הסרת הנעיצה')}
+        initialFocusRef={cancelRemovalRef}
+        dismissOnBackdrop={false}
+        footer={<><Button ref={cancelRemovalRef} type="button" variant="outlined" onClick={() => setPendingRemoval(null)}>{label('Cancel', 'ביטול')}</Button><Button type="button" className="is-danger" variant="contained" disabled={busy} onClick={() => { const record = pendingRemoval; setPendingRemoval(null); onRemove(record); }}>{label('Remove saved placement', 'הסרת הנעיצה השמורה')}</Button></>}
+      >
+        <dl className="day-removal-ledger">
+          <div><dt>{label('Stored record', 'רשומה שמורה')}</dt><dd><Name>{pendingRemoval?.programme || absent}</Name> · <Code>{pendingRemoval?.break_id || absent}</Code></dd></div>
+          <div><dt>{label('Scope', 'היקף')}</dt><dd><Code>{pendingRemoval?.break_id || absent}</Code></dd></div>
+          <div><dt>{label('Restriction', 'מגבלה')}</dt><dd><Code>{pendingRemoval?.constraint_id || absent}</Code></dd></div>
+          <div><dt>{label('Consequence', 'השפעה')}</dt><dd>{label('The saved placement and its restriction are deleted immediately. The engine re-plans this day and may place other breaks differently.', 'הנעיצה השמורה והמגבלה שלה נמחקות מיד. המנוע מתכנן את היום מחדש ועשוי למקם ברייקים אחרים אחרת.')}</dd></div>
+        </dl>
+      </Dialog>
     </section>
   );
 }
@@ -288,7 +314,7 @@ export function SaveForecast({ forecast, locale, editCount }) {
   }
   const scopeText = scopeWithBasis(`${forecast.basis.channel} / ${formatDay(forecast.basis.day)}`, LIVE_PLAN, locale);
   return (
-    <section className="day-forecast" aria-label={label('What saving would do', 'מה תעשה השמירה')}>
+    <section className="card day-forecast" aria-label={label('What saving would do', 'מה תעשה השמירה')}>
       <h4>{label('What saving would do', 'מה תעשה השמירה')}</h4>
       <div className="day-readout-figures">
         <div className={`day-figure ${forecast.delta.revenue > 0.005 ? 'is-gain' : forecast.delta.revenue < -0.005 ? 'is-loss' : 'is-flat'}`}>
@@ -374,7 +400,7 @@ export function HourStrip({ hours, locale, activeHour, onOpenHour }) {
         const load = `${row.ad_seconds}s / ${row.max_ad_seconds}s, ${row.breaks}/${row.max_breaks}`;
         const opens = label('open the first break in this hour', 'פתיחת הברייק הראשון בשעה הזו');
         return (
-          <button
+          <Pressable
             type="button"
             key={row.hour}
             className={`day-hour ${state}${row.hour === activeHour ? ' is-active' : ''}`}
@@ -385,7 +411,7 @@ export function HourStrip({ hours, locale, activeHour, onOpenHour }) {
           >
             <i style={{ height: `${Math.round(share * 100)}%` }} />
             <b>{String(row.hour % 24).padStart(2, '0')}</b>
-          </button>
+          </Pressable>
         );
       })}
     </div>

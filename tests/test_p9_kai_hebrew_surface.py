@@ -424,8 +424,14 @@ def test_the_operators_own_question_is_never_renamed() -> None:
         for line in source.splitlines():
             if 'className="asst-q"' in line:
                 assert "<RichText" in line, f"the {name} renames the operator's own question"
-    assert '<ModelText className="asst-a" text={entry.answer} />' in THREAD_VIEW
-    assert '<ModelText className="asst-a" text={live.text} />' in PANEL_VIEW
+    assert re.search(
+        r'<ModelText\s+className="[^"]*\basst-a\b[^"]*"\s+text=\{entry\.answer\}\s*/>',
+        THREAD_VIEW,
+    )
+    assert re.search(
+        r'<ModelText\s+className="[^"]*\basst-a\b[^"]*"\s+text=\{live\.text\}\s*/>',
+        PANEL_VIEW,
+    )
     assert "{inApprovedWords(item.reason)}" in CARD_VIEW, "the card prints the raw reason"
 
 

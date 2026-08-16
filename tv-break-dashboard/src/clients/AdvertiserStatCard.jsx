@@ -1,6 +1,7 @@
 import React from 'react';
 import { Figure, Code, Name } from '../shell/bidi';
 import { Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronLeft, ChevronRight, Info, Layers, TriangleAlert } from 'lucide-react';
 import { pageText } from './advertisers-helpers';
 import { displayNameOf, isUnnamed, showsRawIdLine } from './advertiser-name-helpers';
@@ -23,14 +24,20 @@ function StatBlock({ label, value, provenance, tone, delta }) {
   const isEmpty = shown === '-';
   return (
     <div className="amz-stat-block">
-      <span className="amz-stat-label">
+      <Tooltip title={provenance} arrow placement="top">
+        <span
+          className="amz-stat-label"
+          tabIndex={0}
+          role="note"
+          aria-label={`${label}. ${provenance}`}
+          onClick={(event) => event.stopPropagation()}
+        >
         {label}
-        <Tooltip title={provenance} arrow placement="top">
-          <span className="amz-stat-info" tabIndex={0} role="img" aria-label={provenance}>
+          <span className="amz-stat-info" aria-hidden="true">
             <Info size={11} />
           </span>
-        </Tooltip>
-      </span>
+        </span>
+      </Tooltip>
       <span className={`amz-stat-figure ${tone || ''}${isEmpty ? ' empty' : ''}`}>
         <Figure>{shown}</Figure>
         {delta && <span className="amz-stat-delta">{delta}</span>}
@@ -83,42 +90,43 @@ function AdvertiserStatCard({ row, locale, onOpen }) {
   const showRawId = showsRawIdLine(row, locale);
 
   const open = () => onOpen(row.advertiser_id);
-  const onKeyDown = (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      open();
-    }
+  const onCardClick = (event) => {
+    if (event.target.closest('button, [tabindex]')) return;
+    open();
   };
 
   return (
     <article
       className={`amz-card${conflicts > 0 ? ' has-conflict' : ''}`}
-      role="button"
-      tabIndex={0}
-      onClick={open}
-      onKeyDown={onKeyDown}
-      aria-label={pageText(
-        locale,
-        `Open ${shownName} (${row.advertiser_id}) management area`,
-        `פתיחת אזור הניהול של ${shownName} (${row.advertiser_id})`,
-      )}
+      onClick={onCardClick}
     >
       <header className="amz-card-head">
-        <div className="amz-card-id-wrap">
-          <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`}>
-            <Name>{shownName}</Name>
-            {unnamed && (
-              <Tooltip title={pageText(locale, 'This pricing row carries no advertiser name, so it prices nobody. A client gets its rule from its own record, under Clients.', 'שורת התמחור הזו אינה נושאת שם מפרסם, ולכן היא אינה מתמחרת אף אחד. לקוח מקבל את הכלל שלו מהכרטיס שלו, במסך הלקוחות.')} arrow placement="top">
-                <span className="amz-unnamed-chip">{pageText(locale, 'prices nobody', 'לא מתמחר אף אחד')}</span>
-              </Tooltip>
-            )}
+        <Button
+          type="button"
+          className="amz-card-open"
+          onClick={open}
+          aria-label={pageText(
+            locale,
+            `Open ${shownName} (${row.advertiser_id}) management area`,
+            `פתיחת אזור הניהול של ${shownName} (${row.advertiser_id})`,
+          )}
+        >
+          <span className="amz-card-id-wrap">
+            <span className={`amz-card-name${unnamed ? ' unnamed' : ''}`}>
+              <Name>{shownName}</Name>
+              {unnamed && (
+                <Tooltip title={pageText(locale, 'This pricing row carries no advertiser name, so it prices nobody. A client gets its rule from its own record, under Clients.', 'שורת התמחור הזו אינה נושאת שם מפרסם, ולכן היא אינה מתמחרת אף אחד. לקוח מקבל את הכלל שלו מהכרטיס שלו, במסך הלקוחות.')} arrow placement="top">
+                  <span className="amz-unnamed-chip">{pageText(locale, 'prices nobody', 'לא מתמחר אף אחד')}</span>
+                </Tooltip>
+              )}
+            </span>
+            {/* The raw id stays visible as a quiet secondary line whenever it differs from the shown name. */}
+            {showRawId && <Code className="amz-card-rawid">{row.advertiser_id}</Code>}
+            {/* Native title is a truncation echo of the ellipsised notes, not an explanation. */}
+            {row.notes ? <span className="amz-card-notes" title={row.notes}>{row.notes}</span> : null}
           </span>
-          {/* The raw id stays visible as a quiet secondary line whenever it differs from the shown name. */}
-          {showRawId && <Code className="amz-card-rawid">{row.advertiser_id}</Code>}
-          {/* Native title is a truncation echo of the ellipsised notes, not an explanation. */}
-          {row.notes ? <span className="amz-card-notes" title={row.notes}>{row.notes}</span> : null}
-        </div>
-        <Caret size={18} className="amz-card-caret" aria-hidden="true" />
+          <Caret size={18} className="amz-card-caret" aria-hidden="true" />
+        </Button>
       </header>
 
       <div className="amz-card-rulecount">

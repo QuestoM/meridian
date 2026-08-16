@@ -1,4 +1,5 @@
 import React from 'react';
+import { Pressable } from '../../studio/dom-controls';
 import { Figure, Name } from '../../shell/bidi';
 import './pod-board-notes.css';
 
@@ -44,10 +45,10 @@ export function PodErrors({ errors, openSpot }) {
     <ul className="pod-errors">
       {errors.map((error) => (
         <li key={error.key} className={`pod-error pod-error-${error.kind}`}>
-          <button type="button" className="pod-error-open" onClick={() => openSpot(error.spotKey)}>
+          <Pressable type="button" className="pod-error-open" onClick={() => openSpot(error.spotKey)}>
             <span className="pod-error-advertiser"><Name>{error.advertiser}</Name></span>
             <span>{error.detail}</span>
-          </button>
+          </Pressable>
         </li>
       ))}
     </ul>

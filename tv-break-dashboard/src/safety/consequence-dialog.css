@@ -1,0 +1,48 @@
+.consequence-dialog .studio-modal__frame {
+  inline-size: min(100%, 560px);
+}
+
+.consequence-review {
+  margin: 0;
+}
+
+.consequence-review__row {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.3fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  border-block-end: 1px solid var(--line);
+}
+
+.consequence-review__row:first-child {
+  padding-block-start: 0;
+}
+
+.consequence-review__row:last-child {
+  padding-block-end: 0;
+  border-block-end: 0;
+}
+
+.consequence-review dt,
+.consequence-review dd {
+  margin: 0;
+}
+
+.consequence-review dt {
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.consequence-review dd {
+  min-inline-size: 0;
+  color: var(--ink);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  overflow-wrap: anywhere;
+}
+
+.consequence-review__object {
+  font-weight: var(--weight-semibold);
+}

@@ -1,8 +1,10 @@
 import React from 'react';
-import { Button, Slider } from '@mui/material';
+import { Slider } from '@mui/material';
+import { Button } from '../studio/actions';
 import { RefreshCcw, SlidersHorizontal } from 'lucide-react';
 import { finiteNumber } from '../shell/format';
 import { NetComparisonCard } from '../today/MoneyWaterfall';
+import { Pressable } from '../studio/dom-controls';
 
 // The optimizer-balance panel of the settings surface, kept as a render
 // function so the element tree is exactly what the single file produced.
@@ -19,7 +21,7 @@ export function renderObjectivePanel({
   onRecompute,
 }) {
   return (
-        <section className="settings-panel wide">
+        <section className="card settings-panel wide">
           <div className="settings-panel-head">
             <div>
               <h2>{he ? 'איזון האופטימיזציה' : 'Optimizer balance'}</h2>
@@ -50,7 +52,7 @@ export function renderObjectivePanel({
               {optimizerTemplates.map((template) => {
                 const active = revenueWeight === template.values.revenue_weight && finiteNumber(draft.risk_lambda) === template.values.risk_lambda;
                 return (
-                  <button
+                  <Pressable
                     key={template.key}
                     type="button"
                     className={`optimizer-template${active ? ' is-active' : ''}`}
@@ -58,7 +60,7 @@ export function renderObjectivePanel({
                   >
                     <strong>{template.label}</strong>
                     <small>{template.desc}</small>
-                  </button>
+                  </Pressable>
                 );
               })}
             </div>
@@ -73,7 +75,7 @@ export function renderObjectivePanel({
                 ].map((mode) => {
                   const active = (draft.objective_mode || 'blend') === mode.key;
                   return (
-                    <button
+                    <Pressable
                       key={mode.key}
                       type="button"
                       className={`optimizer-template${active ? ' is-active' : ''}`}
@@ -81,7 +83,7 @@ export function renderObjectivePanel({
                     >
                       <strong>{mode.label}</strong>
                       <small>{mode.desc}</small>
-                    </button>
+                    </Pressable>
                   );
                 })}
               </div>

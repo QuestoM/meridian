@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Button } from '../../studio/actions';
 import { Star } from 'lucide-react';
 import { formatNumber, formatPercent, pageText } from '../../shell/format';
 import { Figure, Name, Prose } from '../../shell/bidi';
@@ -7,7 +8,7 @@ import BreakInspector from './BreakInspector';
 import { clockOf, exactCurrency } from '../day/day-board-model';
 import { fetchDay, fetchDays } from '../day/day-board-actions';
 import { basisSentence, roundingSentence, shareOfDay, sumRevenue, visibleRows } from './break-board-model';
-import { CardBleed, CardBody } from '../../shell/primitives';
+import { CardBleed, CardBody } from '../../studio';
 import './break-board.css';
 
 // Plan, at break zoom: every break in one broadcast day, as objects.
@@ -48,6 +49,7 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
   const [error, setError] = useState('');
   const [open, setOpen] = useState(null);
   const [goldOnly, setGoldOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
 
   useEffect(() => {
     let alive = true;
@@ -76,9 +78,14 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
   // the figure under the column is that list summed. Never the day, unless the
   // day is what is on screen.
   const rows = useMemo(() => visibleRows(all, goldOnly), [all, goldOnly]);
+  const displayedRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
   const shown = useMemo(() => sumRevenue(rows), [rows]);
   const dayRevenue = board ? Number(board.totals.revenue) : 0;
   const share = shareOfDay(shown, dayRevenue);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [day, goldOnly]);
 
   if (error) {
     return (
@@ -102,7 +109,7 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
       <div className="panel-head">
         <h2>{pageText(locale, 'Breaks in the day', 'ברייקים ביום')}</h2>
         <div className="panel-head-tools">
-          <button
+          <Button
             type="button"
             className={goldOnly ? 'break-filter is-on' : 'break-filter'}
             aria-pressed={goldOnly}
@@ -110,7 +117,7 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
           >
             <Star size={12} aria-hidden="true" />
             {pageText(locale, 'Gold breaks', 'ברייקי זהב')}
-          </button>
+          </Button>
           <Figure>{goldOnly ? `${rows.length} / ${all.length}` : rows.length}</Figure>
         </div>
       </div>
@@ -141,6 +148,7 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
               card title instead of 8px inside it. */}
           <CardBleed>
             <table className="break-table">
+              <caption>{pageText(locale, 'Breaks in the selected broadcast day with expected revenue and delivered state', 'ברייקים ביום השידור הנבחר עם הכנסה צפויה ומצב אספקה')}</caption>
               <thead>
                 <tr>
                   <th scope="col">{pageText(locale, 'Start', 'התחלה')}</th>
@@ -152,7 +160,7 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {displayedRows.map((row) => (
                   <tr key={row.break_id} onClick={() => setOpen(row.break_id)} tabIndex={0}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') setOpen(row.break_id);
@@ -173,13 +181,13 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
               <tfoot>
                 <tr>
                   <td colSpan={4}>
-                    {label('Sum over these breaks', 'סכום על הברייקים האלה')}
+                    {pageText(locale, `Total for all ${rows.length} selected breaks`, `סך הכל לכל ${rows.length} הברייקים שנבחרו`)}
                     <Figure className="break-foot-count">{rows.length} / {all.length}</Figure>
                   </td>
                   <td><Figure>{exactCurrency(shown, locale)}</Figure></td>
                   <td className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></td>
                 </tr>
-                {goldOnly && (
+                {(goldOnly || displayedRows.length < all.length) && (
                   <tr className="break-foot-day">
                     <td colSpan={4}>{label('The whole day, every break', 'כל היום, כל הברייקים')}</td>
                     <td><Figure>{exactCurrency(dayRevenue, locale)}</Figure></td>
@@ -190,6 +198,11 @@ function BreakBoard({ locale, notify, onOpenPodDay }) {
             </table>
           </CardBleed>
           <CardBody>
+            {visibleCount < rows.length && (
+              <Button type="button" className="break-show-more" onClick={() => setVisibleCount((count) => count + 20)}>
+                {pageText(locale, `Show 20 more · ${rows.length - visibleCount} remaining`, `הצגת 20 נוספים · נותרו ${rows.length - visibleCount}`)}
+              </Button>
+            )}
             <p className="break-board-basis">{basisSentence({ goldOnly, shownCount: rows.length, total: all.length, portion: share === null ? null : formatPercent(share, locale), locale })}</p>
             <p className="break-board-rounding">{roundingSentence(locale)}</p>
           </CardBody>
@@ -242,9 +255,9 @@ export function EmptyBoard({ board, goldOnly, locale, onClearFilter }) {
         <span className="break-cell-muted"><Name>{board.basis.channel}</Name>, <Figure>{board.basis.day}</Figure></span>
       </p>
       {goldOnly && (
-        <button type="button" className="break-filter" onClick={onClearFilter}>
+        <Button type="button" className="break-filter" onClick={onClearFilter}>
           {label('Show every break in the day', 'הצגת כל הברייקים ביום')}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -32,8 +32,18 @@ def _doors() -> set[str]:
 
 def _nav_labels() -> set[str]:
     text = NAV.read_text(encoding="utf-8")
-    block = text.split("export const navItems = [", 1)[1].split("];", 1)[0]
-    return set(re.findall(r"\[\s*'([^']+)'", block))
+    block = text.split("export const DOMAIN_DEFINITIONS = [", 1)[1].split("];", 1)[0]
+    return set(re.findall(r"\bid:\s*'([^']+)'", block))
+
+
+def _legacy_labels() -> set[str]:
+    """Old deep links remain routable even though they are not rail domains."""
+    text = NAV.read_text(encoding="utf-8")
+    block = text.split("export const LEGACY_TARGETS = {", 1)[1].split("\n};", 1)[0]
+    labels = set()
+    for quoted, bare in re.findall(r"^\s+(?:'([^']+)'|([A-Za-z][A-Za-z ]*)):\s*\{", block, re.M):
+        labels.add(quoted or bare.strip())
+    return labels
 
 
 def _door_views() -> dict[str, str | None]:
@@ -68,23 +78,17 @@ def _routable_labels() -> set[str]:
     arrive, not whether it names a rail entry, and the router's own list is what
     answers it.
     """
-    text = NAV.read_text(encoding="utf-8")
-    folded = re.search(r"export const removedRoutes = \[([^\]]*)\]", text)
-    return _nav_labels() | set(re.findall(r"'([^']+)'", folded.group(1)) if folded else [])
+    return _nav_labels() | _legacy_labels()
 
 
 def test_every_named_destination_is_a_surface_the_product_actually_has():
     labels = _routable_labels()
-    router = (SRC / "shell" / "workspace-router.jsx").read_text(encoding="utf-8")
     for door, view in _door_views().items():
         if view is None:
             continue
         assert view in labels, f"{door} points at {view!r}, which the product cannot reach"
         if view not in _nav_labels():
-            assert f"'{view}'" in router, (
-                f"{door} points at {view!r}, which is off the rail and which the router does "
-                "not redirect, so the door opens nothing"
-            )
+            assert view in _legacy_labels(), f"{door} points at {view!r}, but no legacy route resolves it"
 
 
 def test_the_two_doors_that_are_not_views_are_answered_rather_than_mis_routed():

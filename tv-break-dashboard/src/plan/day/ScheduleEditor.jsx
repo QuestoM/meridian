@@ -27,45 +27,27 @@ import { pinTarget } from './schedule-editor-pin';
 import { pendingMoves, useEditorMoney } from './schedule-editor-money';
 import { useEditorCoverage } from './schedule-editor-scope';
 import { scopeSentence } from './day-board-actions';
+import { normalizeEditorRows, snapSeconds, timeToSeconds } from './schedule-editor-geometry';
+import ScheduleEditorPinReviewDialog from './ScheduleEditorPinReviewDialog';
 
-// Local helpers kept self-contained so the editor can live in its own module
-// without exporting internals from TVBreakDashboard.jsx. They mirror the time
-// math used by TimelineView (timeToMinutes / minutesToTime).
+// Local helpers mirror the time math used by TimelineView.
 function editorPageText(locale, en, he) {
   return locale === 'he' ? he : en;
-}
-
-function timeToSeconds(time) {
-  const [hour, minute] = String(time || '00:00').split(':').map((part) => Number(part));
-  const safeHour = Number.isFinite(hour) ? Math.max(0, Math.min(47, hour)) : 0;
-  const safeMinute = Number.isFinite(minute) ? Math.max(0, Math.min(59, minute)) : 0;
-  return (safeHour * 60 + safeMinute) * 60;
-}
-
-function normalizeRows(value) {
-  if (Array.isArray(value)) return value;
-  if (value && Array.isArray(value.rows)) return value.rows;
-  return [];
-}
-
-// Snap a second value to the nearest grid multiple, clamped to a [min, max] range.
-function snapSeconds(value, grid, min, max) {
-  const snapped = Math.round(value / grid) * grid;
-  return Math.max(min, Math.min(max, snapped));
 }
 
 // ScheduleEditor forks TimelineView: it keeps the true time-axis layout but each
 // break becomes a draggable / resizable handle. Drag is constrained to the
 // horizontal axis, snapped to a configurable grid, and the new offset from the
 // programme start is computed by inverting the same percent math TimelineView uses.
-function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState, onGlobalRefresh, zoom }) {
-  const breaks = useMemo(() => normalizeRows(schedule?.break_operations?.breaks), [schedule]);
-  const programs = useMemo(() => normalizeRows(schedule?.break_operations?.programs), [schedule]);
+function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState, recomputeDisabled, recomputeDisabledReason, onGlobalRefresh, zoom }) {
+  const breaks = useMemo(() => normalizeEditorRows(schedule?.break_operations?.breaks), [schedule]);
+  const programs = useMemo(() => normalizeEditorRows(schedule?.break_operations?.programs), [schedule]);
   const he = locale === 'he';
 
   const [snapGrid, setSnapGrid] = useState(60);
   const [edits, setEdits] = useState({});
   const [savingPin, setSavingPin] = useState(null);
+  const [pinReview, setPinReview] = useState(null);
   const trackRefs = useRef({});
 
   // Shared zoom (passed from the page so the timeline and editor keep one
@@ -261,7 +243,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       applyEdit(item, startSec, snapSeconds(durationSec - 30, 30, 30, Math.max(30, item.program_end_sec - startSec)));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      savePin(item);
+      requestPinReview(item);
     }
   }
 
@@ -301,7 +283,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
   // See schedule-editor-scope.js for the measurement this exists to close.
   const coverage = useEditorCoverage({ breaksShown: breaks.length, programs, score: money.score, resolve, anchorsLoaded });
 
-  async function savePin(item) {
+  function requestPinReview(item) {
     const { startSec, durationSec } = currentState(item);
     const offsetSeconds = Math.max(0, startSec - item.program_start_sec);
     const target = pinTargetFor(item, startSec, durationSec);
@@ -312,6 +294,11 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
       );
       return;
     }
+    setPinReview({ item, startSec, durationSec, offsetSeconds, target, scope: scopeSentence(target.programme, locale) });
+  }
+
+  async function savePin(review) {
+    const { item, startSec, offsetSeconds, target } = review;
     setSavingPin(item.id);
     try {
       await money.saveAndSettle(item.id, target);
@@ -355,6 +342,8 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         onSnapGrid={setSnapGrid}
         recomputeState={recomputeState}
         onRecompute={onRecompute}
+        recomputeDisabled={recomputeDisabled}
+        recomputeDisabledReason={recomputeDisabledReason}
         pxPerMin={pxPerMin}
         onZoom={setZoom}
         onZoomStep={zoomBy}
@@ -423,7 +412,7 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
         stateOf={currentState}
         pinnedFor={(item) => money.isPinned(item.id)}
         scopeFor={scopeFor}
-        onSave={savePin}
+        onSave={requestPinReview}
         onDiscard={discardEdit}
         money={money}
       />
@@ -439,6 +428,13 @@ function ScheduleEditor({ schedule, locale, notify, onRecompute, recomputeState,
           onGlobalRefresh={onGlobalRefresh}
         />
       )}
+      <ScheduleEditorPinReviewDialog
+        review={pinReview}
+        locale={locale}
+        busy={Boolean(savingPin)}
+        onCancel={() => setPinReview(null)}
+        onConfirm={() => { const review = pinReview; setPinReview(null); if (review) savePin(review); }}
+      />
     </div>
   );
 }

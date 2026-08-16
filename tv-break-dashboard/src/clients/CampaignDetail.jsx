@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '../studio/actions';
 import { Pencil } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { localized } from './clients-money-helpers';
@@ -41,9 +42,9 @@ function Term({ label, value, locale, canEdit, onEdit }) {
       <dd>
         {value ? <span>{value}</span> : null}
         {!value && canEdit ? (
-          <button type="button" className="clients-inline-action" onClick={onEdit}>
+          <Button type="button" className="clients-inline-action" onClick={onEdit}>
             {pageText(locale, 'Set it', 'הגדירו')}
-          </button>
+          </Button>
         ) : null}
         {!value && !canEdit ? (
           <span className="clients-unset">{pageText(locale, 'Not agreed', 'לא סוכם')}</span>
@@ -135,10 +136,10 @@ export default function CampaignDetail({
           />
         </dl>
         {canEdit ? (
-          <button type="button" className="clients-secondary" onClick={() => setEditing(true)}>
+          <Button type="button" className="clients-secondary" onClick={() => setEditing(true)}>
             <Pencil size={13} aria-hidden="true" />
             {pageText(locale, 'Edit the window and terms', 'ערכו את החלון והתנאים')}
-          </button>
+          </Button>
         ) : null}
       </div>
       <p className="clients-basis-note">{localized(board.terms, 'reason', locale)}</p>

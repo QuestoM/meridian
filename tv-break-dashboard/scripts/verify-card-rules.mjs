@@ -63,97 +63,14 @@ const RULES = [
   },
 ];
 
-// QUARANTINED DIRECTORIES.
-//
-// Held by other agents while this sweep ran, so they could not be edited and
-// their contents moved underneath it. A per-file count cannot be pinned against
-// a directory someone else is changing, so the whole prefix is excused until it
-// is released.
-//
-// This is a debt, not a decision. The violations inside are the same bug as
-// everywhere else, and each one is written down in
-// docs/ux-gauntlet/state/sweep-backlog.jsonl with the fix. In particular
-// src/plan/break/break-board.css holds `.break-table`, which is the SECOND of
-// the two tables in the owner's own Break Library screenshot: measured after
-// this sweep its cells still sit 9px from the card edge under a title at 17px.
-// Delete an entry here and sweep the directory the moment its holder lands.
-// EMPTIED 2026-08-09. The agents that held these four directories are gone and
-// the nine violations behind the excuse are converted. Leave it empty: a
-// directory is quarantined only while an agent is actively holding it, and
-// anything longer is a budget with no number.
+// No directory is quarantined. The completed migration is source-wide; a
+// temporary ownership boundary must never become a permanent exception.
 const QUARANTINED = [];
-const _RELEASED = [
-  'src/clients/pacing/',
-  'src/plan/break/',
-  'src/model/console/',
-  // Not frozen, but carrying another agent's uncommitted work at sweep time.
-  'src/model/candidates/',
-];
 
-// Budgets. Each entry is a debt to pay down, with the reason it is still open.
-const EXCEPTIONS = [
-  // --- off-scale-padding: NOTHING. -----------------------------------------
-  //
-  // There is no budget for this rule and there should never be one. Every
-  // padding value that a token already names was swept onto the token: 233 of
-  // them, plus 51 restatements of the card inset. The substitution is
-  // value-identical by construction, --space-3 IS 12px, and that was proved by
-  // expanding every token back to its number and diffing against the commit:
-  // 49 stylesheets came out byte-identical. So a violation of this rule is
-  // always new, always mechanical, and always fixable on the spot.
-  //
-  // The one survivor in the whole tree is src/model/console/model-console.css
-  // line 203, inside a quarantined directory, and it is in the backlog.
-
-  // --- hand-built-card ------------------------------------------------------
-  //
-  // Fifty-four boxes that draw a surface, a hairline and a radius without being
-  // the card primitive. Each is a real card and each is a real debt.
-  //
-  // They are budgeted rather than swept, and the reason is not squeamishness.
-  // Converting one is a JSX change: the container has to become <Card>, and its
-  // children have to be sorted into the ones that take the inset and the one
-  // that deliberately bleeds. That is a judgement about what a surface is FOR,
-  // which is the definition of work that belongs to the piece that owns it
-  // rather than to a sweep. Doing it silently from the stylesheet would move
-  // the layout of pages nobody measured, and this campaign has already paid for
-  // that lesson more than once.
-  //
-  // What the budget buys is the thing that actually holds: no fifty-fifth. The
-  // count may only go down, and every entry is written out in
-  // docs/ux-gauntlet/state/sweep-backlog.jsonl with its file, its line and the
-  // class, so the surface that owns it can close it without re-deriving it.
-  { file: 'src/clients/clients-campaigns.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/clients/clients-delivery.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/clients/clients-record.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/clients/clients-tree.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/clients/clients-workspace.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/history/history-detail.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/history/history.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/kai/assistant-console.css', rule: 'hand-built-card', count: 8 },
-  { file: 'src/plan/day/day-board.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/plan/day/day-readout.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/plan/day/override-console.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/plan/week/plan-week-goal.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/plan/week/plan-week-palette.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/plan/week/plan-week-panels.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/plan/week/plan-week.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/rules/calendar-month-grid.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/rules/pricing-management.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/rules/rules-restrictions.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/rules/rules-workspace.css', rule: 'hand-built-card', count: 1 },
-  // The sign-in screen is rendered before a locale, a shell or a card exists,
-  // which is why it carries its own surface. It is the one entry here with an
-  // argument for staying rather than a plan for leaving.
-  { file: 'src/shell/login.css', rule: 'hand-built-card', count: 2 },
-  // The 6,000-line shell sheet, and the largest single debt. It was 18 before
-  // this sweep; .page-panel and .analytics-panel moved out of it into card.css
-  // and became the primitive, which is where the two came off.
-  { file: 'src/shell/styles.css', rule: 'hand-built-card', count: 16 },
-  { file: 'src/sources/sources-findings.css', rule: 'hand-built-card', count: 1 },
-  { file: 'src/sources/sources.css', rule: 'hand-built-card', count: 2 },
-  { file: 'src/today/today-controls.css', rule: 'hand-built-card', count: 1 },
-];
+// Phase 3 is complete for this invariant: every live surface now adopts the
+// canonical Card component or `.card` contract. Keep this list empty. A future
+// lookalike is a regression, not new debt to budget.
+const EXCEPTIONS = [];
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, TextField, Tooltip } from '@mui/material';
+import { TextField, Tooltip } from '@mui/material';
+import { Button } from '../studio/actions';
 import { ChevronDown, Info, Plus, RotateCcw, Save, Trash2, TriangleAlert } from 'lucide-react';
 import { leverReasons } from '../shell/lever-state';
 import {
@@ -18,6 +19,7 @@ import {
   scopedRulesBadge,
 } from './advertisers-helpers';
 import { ScopeMultiSelect, WeekdayScope, effectLabel, modeLabel, normalizeOptions } from './AdvertiserPricingSummary';
+import { SelectControl } from '../studio/dom-controls';
 
 // Escape a rule id for use inside a querySelector attribute selector.
 function cssEscape(value) {
@@ -86,7 +88,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
       <div className="adv-cond-effect-block">
         <div className="adv-cond-effect">
           <span className="adv-field-label">{pageText(locale, 'Effect', 'השפעה')}</span>
-          <select
+          <SelectControl
             value={draft.effect}
             onChange={(event) => update('effect', event.target.value)}
             aria-label={pageText(locale, 'Rule effect', 'השפעת הכלל')}
@@ -94,7 +96,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
             {CONDITION_EFFECTS.map((effect) => (
               <option key={effect} value={effect}>{effectLabel(effect, locale)}</option>
             ))}
-          </select>
+          </SelectControl>
         </div>
 
         {draft.effect === 'premium' && (
@@ -113,7 +115,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                   <Info size={12} className="adv-field-info" />
                 </Tooltip>
               </span>
-              <select
+              <SelectControl
                 value={draft.mode}
                 onChange={(event) => update('mode', event.target.value)}
                 aria-label={pageText(locale, 'Coefficient mode', 'אופן המקדם')}
@@ -121,7 +123,7 @@ function ConditionFields({ draft, update, locale, scopeOptions }) {
                 {modes.map((mode) => (
                   <option key={mode} value={mode}>{modeLabel(mode, locale)}</option>
                 ))}
-              </select>
+              </SelectControl>
             </div>
             <div className="adv-premium-field">
               <span className="adv-field-label">
@@ -228,7 +230,7 @@ function ConditionRow({ condition, locale, scopeOptions, onSave, onDelete, highl
   }
 
   return (
-    <div className={`adv-cond-row${highlight ? ' focus' : ''}`} data-rule-id={original.rule_id}>
+    <div className={`card adv-cond-row${highlight ? ' focus' : ''}`} data-rule-id={original.rule_id}>
       <ConditionFields draft={draft} update={update} locale={locale} scopeOptions={scopeOptions} />
 
       <div className="adv-cell-actions adv-cond-actions">
@@ -296,7 +298,7 @@ function AddConditionForm({ locale, scopeOptions, onCreate }) {
   }
 
   return (
-    <div className="adv-cond-row adv-cond-add" data-cond-add="true">
+    <div className="card adv-cond-row adv-cond-add" data-cond-add="true">
       <ConditionFields draft={draft} update={update} locale={locale} scopeOptions={scopeOptions} />
 
       <div className="adv-cell-actions adv-cond-actions">
@@ -351,7 +353,7 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
 
   return (
     <div className={`adv-scoped${open ? ' open' : ''}`}>
-      <button
+      <Button
         type="button"
         className="adv-scoped-toggle"
         aria-expanded={open}
@@ -371,7 +373,7 @@ function AdvertiserConditions({ advertiserId, conditions, overlaps, locale, scop
             </span>
           ))
         )}
-      </button>
+      </Button>
 
       {open && (
         <div className="adv-scoped-body" ref={bodyRef}>

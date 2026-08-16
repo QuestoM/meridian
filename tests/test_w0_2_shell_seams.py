@@ -21,7 +21,10 @@ SRC = ROOT / "tv-break-dashboard" / "src"
 
 # The trees section 8.2 of docs/ux-gauntlet/spec.md names for wave zero.
 DESTINATION_TREES = (
+    "assets",
     "shell",
+    "studio",
+    "safety",
     "today",
     "plan/week",
     "plan/day",
@@ -243,15 +246,14 @@ def test_tokens_css_is_loaded_before_the_shell_stylesheet() -> None:
 def _nav_labels() -> list[str]:
     """The rail's entries, parsed as entries rather than searched for as text."""
     nav = _read("shell/nav.js")
-    block = nav[nav.index("export const navItems"):]
+    block = nav[nav.index("export const DOMAIN_DEFINITIONS"):]
     block = block[: block.index("];")]
-    return re.findall(r"\[\s*'([^']+)'", block)
+    return re.findall(r"\{\s*id:\s*'([^']+)'", block)
 
 
 def _removed_routes() -> list[str]:
     nav = _read("shell/nav.js")
-    line = re.search(r"export const removedRoutes = \[([^\]]*)\]", nav)
-    return re.findall(r"'([^']+)'", line.group(1)) if line else []
+    return sorted(_object_keys(nav, "const LEGACY_TARGETS"))
 
 
 def test_the_rail_holds_every_destination_and_nothing_that_was_folded_away() -> None:
@@ -269,55 +271,47 @@ def test_the_rail_holds_every_destination_and_nothing_that_was_folded_away() -> 
     And it counted the string "],\\n", which is a formatting count. Reindent the
     array and the number moves without a destination changing.
 
-    So it parses the entries now. Fifteen is correct: Calendar and Pricing were
-    deliberately folded into other destinations as tabs, and the router still
-    honours their old bookmarks, which is asserted below rather than assumed.
+    The overhaul now has seven task domains. Each owns its contextual tabs, so
+    the rail stays stable while a route changes within a domain. Legacy hashes
+    remain a separate compatibility map, asserted below rather than inferred.
     """
     labels = _nav_labels()
     assert labels == [
-        "Overview",
-        "Optimizer",
-        "Schedule",
-        "Inventory",
-        "Break Library",
-        "Campaigns",
-        "Forecasts",
-        "Reports",
-        "Data",
-        "Advertisers",
-        "Agencies",
-        "Overrides",
-        "Assistant",
-        "Versions",
-        "Settings",
+        "Today",
+        "Plan",
+        "Broadcast",
+        "Commercial",
+        "Sources",
+        "Governance",
+        "History",
     ], "the rail's destinations changed"
 
 
 def test_a_folded_destination_leaves_the_rail_but_not_the_router() -> None:
     """A bookmark to a folded destination still reaches something sensible."""
     removed = _removed_routes()
-    assert removed, "nav.js no longer declares which destinations were folded away"
+    assert removed, "nav.js no longer declares which legacy destinations are normalized"
     labels = set(_nav_labels())
     still_on_rail = [name for name in removed if name in labels]
     assert not still_on_rail, (
         f"{still_on_rail} is listed as folded away and is still on the rail, so the "
         "two lists disagree about what the product has"
     )
-    router = _read("shell/workspace-router.jsx")
-    unrouted = [name for name in removed if f"'{name}'" not in router]
-    assert not unrouted, (
-        f"{unrouted} was removed from the rail and the router does not mention it, so an "
-        "existing bookmark reaches nothing. Removing a destination means redirecting it, "
-        "not dropping it."
+    nav = _read("shell/nav.js")
+    assert "target = LEGACY_TARGETS[raw]" in nav, (
+        "the compatibility map exists but routeFromLocation no longer consumes it, so "
+        "an existing bookmark reaches nothing"
     )
 
 
 def test_assistant_hash_still_opens_the_dock_over_the_current_page() -> None:
     """#Assistant must never become a page: it opens the dock where you are."""
+    nav = _read("shell/nav.js")
     shell = _read("shell/TVBreakDashboard.jsx")
-    assert "viewFromLocation() === 'Assistant'" in shell
-    assert "setAssistantOpen(true)" in shell
-    assert "if (next === 'Assistant')" in shell
+    assert "const assistant = raw === 'Assistant'" in nav
+    assert "assistant," in nav
+    assert "if (route.assistant) setAssistantOpen(true)" in shell
+    assert "if (label === 'Assistant')" in shell
 
 
 def test_the_repointed_page_text_helper_is_the_same_function() -> None:

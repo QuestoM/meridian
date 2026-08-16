@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '../../studio/actions';
 import { Focus, Maximize, Pin, PinOff, Star } from 'lucide-react';
 import { Figure, Code, Name } from '../../shell/bidi';
 import { pageText } from '../../shell/format';
+import { InputControl, Pressable } from '../../studio/dom-controls';
+import { Dialog } from '../../studio/modal';
 import { ZoomControl } from './schedule-track-view';
 import {
   MIN_DURATION_SECONDS,
@@ -59,8 +62,11 @@ function DayBoardToolbar({
   onRemoveSaved,
 }) {
   const label = (en, he) => (locale === 'he' ? he : en);
+  const absent = label('Not recorded', 'לא תועד');
   const [lengthDraft, setLengthDraft] = useState('');
   const [startDraft, setStartDraft] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState(false);
+  const cancelRemovalRef = useRef(null);
   const startClock = clockOf((programme ? programme.start_seconds : 0) + (live ? live.offsetSeconds : 0));
   const savedPin = inversePlacement(selectedItem);
 
@@ -68,6 +74,10 @@ function DayBoardToolbar({
     setLengthDraft(live ? String(Math.round(live.durationSeconds)) : '');
     setStartDraft(startClock);
   }, [live, selectedItem, startClock]);
+
+  useEffect(() => {
+    setPendingRemoval(false);
+  }, [selectedItem?.break_id]);
 
   function commitLength() {
     const parsed = Number(lengthDraft);
@@ -93,7 +103,7 @@ function DayBoardToolbar({
         <div className="day-snap" role="group" aria-label={label('Snap grid', 'רשת הצמדה')}>
           <span>{label('Snap', 'הצמדה')}</span>
           {SNAP_CHOICES.map((choice) => (
-            <button
+            <Pressable
               key={choice}
               type="button"
               className={snapGrid === choice ? 'day-chip-button is-on' : 'day-chip-button'}
@@ -101,12 +111,12 @@ function DayBoardToolbar({
               onClick={() => onSnapGrid(choice)}
             >
               <Figure>{choice}s</Figure>
-            </button>
+            </Pressable>
           ))}
         </div>
         <ZoomControl pxPerMin={pxPerMin} onZoom={onZoom} onStep={onZoomStep} locale={locale} min={zoomFloor} />
         <div className="day-fit" role="group" aria-label={label('Frame the view', 'מסגור התצוגה')}>
-          <button
+          <Pressable
             type="button"
             className="day-chip-button is-icon"
             onClick={onFitDay}
@@ -114,8 +124,8 @@ function DayBoardToolbar({
             title={label('Fit the whole day on screen', 'התאמת כל היום למסך')}
           >
             <Maximize size={13} aria-hidden="true" />
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             type="button"
             className="day-chip-button is-icon"
             onClick={onFitProgramme}
@@ -124,7 +134,7 @@ function DayBoardToolbar({
             title={label('Fit the programme of the selected break on screen', 'התאמת התוכנית של הברייק הנבחר למסך')}
           >
             <Focus size={13} aria-hidden="true" />
-          </button>
+          </Pressable>
         </div>
         <span className="day-toolbar-basis">
           {label('Figures are for', 'הנתונים מתייחסים ל')} {board.operator_channel}, <Figure>{board.day}</Figure>
@@ -141,7 +151,7 @@ function DayBoardToolbar({
           </div>
           <label className="day-field">
             <span>{label('Starts at', 'מתחיל ב')}</span>
-            <input
+            <InputControl
               type="text"
               inputMode="numeric"
               className="day-field-time"
@@ -160,7 +170,7 @@ function DayBoardToolbar({
           </label>
           <label className="day-field">
             <span>{label('Length in seconds', 'אורך בשניות')}</span>
-            <input
+            <InputControl
               type="number"
               min={MIN_DURATION_SECONDS}
               step={1}
@@ -176,13 +186,13 @@ function DayBoardToolbar({
               }}
             />
           </label>
-          <button type="button" className={live.isGold ? 'day-chip-button is-on' : 'day-chip-button'} onClick={onGold}>
+          <Pressable type="button" className={live.isGold ? 'day-chip-button is-on' : 'day-chip-button'} onClick={onGold}>
             <Star size={12} aria-hidden="true" />
             {label('Gold break', 'ברייק זהב')}
-          </button>
-          <button type="button" className="day-chip-button" onClick={onOpen}>
+          </Pressable>
+          <Pressable type="button" className="day-chip-button" onClick={onOpen}>
             {label('Open this break', 'פתיחת הברייק')}
-          </button>
+          </Pressable>
           {programme && (
             <span className="day-selection-scope">{scopeSentence(programme, locale, airingsBound(board.programmes, programme))}</span>
           )}
@@ -193,10 +203,10 @@ function DayBoardToolbar({
                 {label('This break is pinned by a saved placement', 'הברייק הזה נעוץ על ידי נעיצה שמורה')}
               </span>
               <Code className="day-pin-rule" title={savedPin.savedAt}>{savedPin.constraintId || label('no restriction on record', 'אין מגבלה רשומה')}</Code>
-              <button type="button" className="day-chip-button is-inverse" onClick={onRemoveSaved} disabled={busy}>
+              <Pressable type="button" className="day-chip-button is-inverse" onClick={() => setPendingRemoval(true)} disabled={busy}>
                 <PinOff size={12} aria-hidden="true" />
                 {label('Remove the saved placement', 'הסרת הנעיצה השמורה')}
-              </button>
+              </Pressable>
               <span className="day-pin-note">
                 {label(
                   'Removing it deletes the restriction that carries it, and the plan places this break itself again.',
@@ -209,15 +219,28 @@ function DayBoardToolbar({
       ) : (
         <p className="day-selection is-empty">
           {label(
-            'Click a break to select it. Arrow keys move it by one snap unit, Shift by five, Alt by one second. Up and down change its length. G marks it gold, Enter opens it. Its exact clock and length are on the break itself while the pointer is on it.',
-            'לחצו על ברייק כדי לבחור אותו. מקשי החיצים מזיזים אותו ביחידת הצמדה אחת, Shift בחמש, Alt בשנייה אחת. חיצי מעלה ומטה משנים את אורכו. G מסמן זהב, Enter פותח אותו. השעה המדויקת והאורך מופיעים על הברייק עצמו כשהסמן עליו.',
-          )}
-          {label(
-            ' The two buttons beside the zoom fit the whole day on screen, and fit the programme the selected break sits in.',
-            ' שני הכפתורים ליד הזום מתאימים את כל היום למסך, ומתאימים את התוכנית שבה נמצא הברייק הנבחר.',
+            'No break selected. Select a break on the timeline to edit it.',
+            'לא נבחר ברייק. בחרו ברייק בציר הזמן כדי לערוך אותו.',
           )}
         </p>
       )}
+      <Dialog
+        open={Boolean(pendingRemoval && savedPin)}
+        onClose={() => setPendingRemoval(false)}
+        title={label('Confirm saved placement removal', 'אישור הסרת נעיצה שמורה')}
+        description={label('Review the stored placement and consequence before deleting it.', 'בדקו את הנעיצה השמורה ואת ההשפעה לפני המחיקה.')}
+        closeLabel={label('Close placement removal review', 'סגירת בדיקת הסרת הנעיצה')}
+        initialFocusRef={cancelRemovalRef}
+        dismissOnBackdrop={false}
+        footer={<><Button ref={cancelRemovalRef} type="button" variant="outlined" onClick={() => setPendingRemoval(false)}>{label('Cancel', 'ביטול')}</Button><Button type="button" className="is-danger" variant="contained" disabled={busy} onClick={() => { setPendingRemoval(false); onRemoveSaved(); }}>{label('Remove saved placement', 'הסרת הנעיצה השמורה')}</Button></>}
+      >
+        <dl className="day-removal-ledger">
+          <div><dt>{label('Stored record', 'רשומה שמורה')}</dt><dd><Name>{selectedItem?.programme || absent}</Name> · <Code>{selectedItem?.break_id || absent}</Code></dd></div>
+          <div><dt>{label('Scope', 'היקף')}</dt><dd><Code>{[board.operator_channel, board.day, selectedItem?.break_id].filter(Boolean).join(' / ')}</Code></dd></div>
+          <div><dt>{label('Restriction', 'מגבלה')}</dt><dd><Code>{savedPin?.constraintId || absent}</Code></dd></div>
+          <div><dt>{label('Consequence', 'השפעה')}</dt><dd>{label('The saved placement and its restriction are deleted immediately. The engine re-plans this day and may place other breaks differently.', 'הנעיצה השמורה והמגבלה שלה נמחקות מיד. המנוע מתכנן את היום מחדש ועשוי למקם ברייקים אחרים אחרת.')}</dd></div>
+        </dl>
+      </Dialog>
     </div>
   );
 }

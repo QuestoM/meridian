@@ -1,6 +1,7 @@
 import React from 'react';
 import { pageText } from '../shell/format';
 import { Name } from '../shell/bidi';
+import { Pressable } from '../studio/dom-controls';
 import { moreProgrammesSentence } from './rules-lib';
 
 // Which programme this restriction is about. A type-ahead rather than a full
@@ -35,7 +36,7 @@ export default function ProgrammeMatches({ locale, titles, matchCount, onPick })
     <ul className="rules-suggestions">
       {shown.map((row) => (
         <li key={row.title}>
-          <button type="button" onClick={() => onPick(row.title)}>
+          <Pressable type="button" onClick={() => onPick(row.title)}>
             <Name>{row.title}</Name>
             <small>
               {pageText(
@@ -44,7 +45,7 @@ export default function ProgrammeMatches({ locale, titles, matchCount, onPick })
                 `${row.airings} שידורים, ${row.planned_breaks} ברייקים בתוכנית`,
               )}
             </small>
-          </button>
+          </Pressable>
         </li>
       ))}
       {hidden > 0 && (

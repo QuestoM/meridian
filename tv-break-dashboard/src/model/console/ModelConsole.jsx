@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Code, DirectionRoot, Prose, documentDirection } from '../../shell/bidi';
 import { Numeric } from '../../shell/format';
 import CandidateBoard from '../candidates/CandidateBoard.jsx';
@@ -12,8 +12,10 @@ import VersionsPanel from './VersionsPanel';
 import { SECTIONS, SECTION_ROUTE, readConsole, readSection, recordVersion } from './console-api';
 import { Absent } from './console-bits';
 import { canEditReason, pick, t } from './console-words';
+import { Pressable } from '../../studio/dom-controls';
 import './model-console.css';
 import './model-console-panels.css';
+import './studio-ledger-model.css';
 
 // The model console: a different shell for the company side of the line.
 //
@@ -31,6 +33,14 @@ const SECTION_KEYS = {
   1: 'gates', 2: 'coverage', 3: 'drift', 4: 'candidates',
   5: 'training', 6: 'versions', 7: 'provenance',
 };
+
+const MODEL_SECTION_PARAM = 'modelSection';
+
+function sectionFromLocation() {
+  if (typeof window === 'undefined') return 'gates';
+  const requested = new URLSearchParams(window.location.search).get(MODEL_SECTION_PARAM);
+  return SECTIONS.includes(requested) ? requested : 'gates';
+}
 
 function useConsole(refreshKey) {
   const [state, setState] = useState({ status: 'loading', payload: null, detail: '' });
@@ -70,16 +80,18 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
   const activation = payload.activation || {};
   return (
     <header className="mc-header">
-      <div className="mc-header-marker">{t('console.marker', locale)}</div>
       <div className="mc-header-main">
         <div className="mc-header-identity">
-          <h1>{t('console.title', locale)}</h1>
+          <div className="mc-header-title-row">
+            <h1>{t('console.title', locale)}</h1>
+            <span className="mc-header-marker">{t('console.marker', locale)}</span>
+          </div>
           <p>{t('console.subtitle', locale)}</p>
         </div>
         {onBack ? (
-          <button type="button" className="mc-button" onClick={onBack}>
+          <Pressable type="button" className="mc-button" onClick={onBack}>
             {t('console.back', locale)}
-          </button>
+          </Pressable>
         ) : null}
       </div>
       {version.available ? (
@@ -91,9 +103,9 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
             {version.recorded ? (
               <span className="mc-chip mc-active">{t('header.recorded', locale)}</span>
             ) : (
-              <button type="button" className="mc-link" onClick={onRecord} disabled={recording}>
+              <Pressable type="button" className="mc-link" onClick={onRecord} disabled={recording}>
                 {t('header.not_recorded', locale)} - {t('header.record', locale)}
-              </button>
+              </Pressable>
             )}
           </div>
           <div className="mc-header-counts">
@@ -138,9 +150,9 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
               {activationLabel(activation, locale)}
             </span>
             {onOpenRules ? (
-              <button type="button" className="mc-link" onClick={onOpenRules}>
+              <Pressable type="button" className="mc-link" onClick={onOpenRules}>
                 {t('header.control_on_rules', locale)}
-              </button>
+              </Pressable>
             ) : (
               <small>{t('header.control_on_rules', locale)}</small>
             )}
@@ -171,7 +183,7 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
         </div>
       ) : (
         <Absent
-          title={locale === 'en' ? 'No trained model on disk.' : 'אין בדיסק מודל מאומן.'}
+          title={locale === 'en' ? 'No trained model is available.' : 'אין מודל מאומן זמין.'}
           reason={pick(version, 'reason', locale)}
         />
       )}
@@ -180,19 +192,39 @@ function Header({ payload, locale, onRecord, onBack, onOpenRules, recording }) {
 }
 
 function Rail({ section, onPick, locale }) {
+  const tabsRef = useRef([]);
+
+  function onKeyDown(event, index) {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = SECTIONS.length - 1;
+    else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % SECTIONS.length;
+    else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (index - 1 + SECTIONS.length) % SECTIONS.length;
+    else return;
+    event.preventDefault();
+    onPick(SECTIONS[next]);
+    tabsRef.current[next]?.focus();
+  }
+
   return (
-    <nav className="mc-rail" aria-label={t('console.title', locale)}>
+    <nav className="mc-rail" role="tablist" aria-orientation="vertical" aria-label={t('console.title', locale)}>
       {SECTIONS.map((id, index) => (
-        <button
+        <Pressable
+          ref={(node) => { tabsRef.current[index] = node; }}
           type="button"
           key={id}
+          id={`model-tab-${id}`}
+          role="tab"
           className={`mc-rail-item ${section === id ? 'on' : ''}`}
           onClick={() => onPick(id)}
-          aria-current={section === id ? 'page' : undefined}
+          onKeyDown={(event) => onKeyDown(event, index)}
+          aria-selected={section === id}
+          aria-controls={`model-panel-${id}`}
+          tabIndex={section === id ? 0 : -1}
         >
           <span>{t(`section.${id}`, locale)}</span>
           <kbd><Numeric>{index + 1}</Numeric></kbd>
-        </button>
+        </Pressable>
       ))}
     </nav>
   );
@@ -250,14 +282,37 @@ function Body({ section, state, locale, blocked, onRefresh, decideFor, onDecide,
 }
 
 export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpenEvents }) {
-  const [section, setSection] = useState('gates');
+  const [section, setSection] = useState(sectionFromLocation);
   const [refreshKey, setRefreshKey] = useState(0);
   const [recording, setRecording] = useState(false);
   const [decideFor, setDecideFor] = useState('');
   const [blocked, setBlocked] = useState(null);
+  const bodyRef = useRef(null);
   const head = useConsole(refreshKey);
   const body = useSection(section, refreshKey);
   const refresh = useCallback(() => setRefreshKey((key) => key + 1), []);
+
+  const pickSection = useCallback((next, historyMode = 'push') => {
+    if (!SECTIONS.includes(next)) return;
+    setDecideFor('');
+    if (next === section) return;
+    setSection(next);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.set(MODEL_SECTION_PARAM, next);
+    const url = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+    if (historyMode === 'replace') window.history.replaceState({ workspace: 'model', section: next }, '', url);
+    else window.history.pushState({ workspace: 'model', section: next }, '', url);
+  }, [section]);
+
+  useEffect(() => {
+    function syncFromAddress() {
+      setSection(sectionFromLocation());
+      setDecideFor('');
+    }
+    window.addEventListener('popstate', syncFromAddress);
+    return () => window.removeEventListener('popstate', syncFromAddress);
+  }, []);
 
   // The blocked register is read once and shown beside the gates it explains,
   // so a "no contrast" verdict on the gate table already says what would end it
@@ -279,13 +334,13 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       const next = SECTION_KEYS[event.key];
       if (next) {
-        setSection(next);
+        pickSection(next);
         event.preventDefault();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [pickSection]);
 
   // Pressing the verdict control moves the reader itself. Deriving the move
   // from a change in which candidate was picked looked equivalent and was not:
@@ -294,9 +349,9 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
   // back to the shelf by the rail, press that candidate's control again, and
   // the screen stayed where it was.
   const decide = useCallback((candidate) => {
+    pickSection('versions');
     setDecideFor(candidate.id);
-    setSection('versions');
-  }, []);
+  }, [pickSection]);
 
   // A section change starts at the top of that section. Without this, pressing
   // a control low down one section and landing on a shorter one leaves the
@@ -304,7 +359,7 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
   // Measured on the fifth candidate card: the verdict form opened and nothing
   // appeared to happen.
   useEffect(() => {
-    window.scrollTo({ top: 0 });
+    bodyRef.current?.scrollTo?.({ top: 0 });
   }, [section]);
 
   async function record() {
@@ -325,7 +380,7 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
   return (
     <DirectionRoot locale={locale} className={`mc-console ${dir}`} lang={locale}>
       {head.status === 'refused' ? (
-        <Absent title={t('state.refused', locale)} reason={head.detail} />
+        <div className="mc-state-page"><h1>{t('console.title', locale)}</h1><Absent title={t('state.refused', locale)} reason={head.detail} /></div>
       ) : head.status === 'ok' ? (
         <Header
           payload={headPayload}
@@ -336,13 +391,13 @@ export default function ModelConsole({ locale = 'he', onBack, onOpenRules, onOpe
           recording={recording}
         />
       ) : head.status === 'loading' ? (
-        <div className="mc-loading">{t('state.loading', locale)}</div>
+        <div className="mc-state-page" aria-busy="true"><h1>{t('console.title', locale)}</h1><div className="mc-loading" role="status">{t('state.loading', locale)}</div></div>
       ) : (
-        <Absent title={t('state.unreachable', locale)} reason={head.detail} />
+        <div className="mc-state-page"><h1>{t('console.title', locale)}</h1><Absent title={t('state.unreachable', locale)} reason={head.detail} /></div>
       )}
       <div className="mc-layout">
-        <Rail section={section} onPick={setSection} locale={locale} />
-        <main className="mc-body">
+        <Rail section={section} onPick={pickSection} locale={locale} />
+        <main ref={bodyRef} className="mc-body" id={`model-panel-${section}`} role="tabpanel" aria-labelledby={`model-tab-${section}`} tabIndex={0}>
           <p className="mc-route">
             <code><Code>{SECTION_ROUTE[section]}</Code></code>
           </p>

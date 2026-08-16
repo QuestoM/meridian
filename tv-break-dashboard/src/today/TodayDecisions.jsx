@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Button } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
 import { formatDay, formatSpan } from '../shell/dates';
 import { programTypeLabel, recommendationTitle } from '../shell/labels';
@@ -67,7 +67,7 @@ export function TodayDecisions({ today, locale, onOpenInOptimizer, onOpenSetting
     return (
       <section className="page-panel today-answer today-answer-decisions" aria-label={pageText(locale, 'What needs a decision', 'מה דורש החלטה')}>
         <div className="panel-head">
-          <h2>{pageText(locale, 'Priority decisions', 'החלטות בעדיפות גבוהה')}</h2>
+          <h2>{pageText(locale, 'Operator review queue', 'החלטות שממתינות לבדיקה')}</h2>
         </div>
         <p className="today-basis">{pageText(locale, withheld.reason_en, withheld.reason_he)}</p>
         <div className="today-target-actions">
@@ -82,16 +82,14 @@ export function TodayDecisions({ today, locale, onOpenInOptimizer, onOpenSetting
   return (
     <section className="page-panel today-answer today-answer-decisions" aria-label={pageText(locale, 'What needs a decision', 'מה דורש החלטה')}>
       <div className="panel-head">
-        <h2>{pageText(locale, 'Priority decisions', 'החלטות בעדיפות גבוהה')}</h2>
-        <span>{items.length} {pageText(locale, 'actions', 'פעולות')}</span>
+        <h2>{pageText(locale, 'Operator review queue', 'החלטות שממתינות לבדיקה')}</h2>
+        <span><Numeric>{formatNumber(items.length, locale)}</Numeric> {pageText(locale, 'items', 'פריטים')}</span>
       </div>
-      {scope ? <p className="today-basis today-decision-scope">{scope}</p> : null}
-      <p className="today-basis">
-        {pageText(
-          locale,
-          'Ranked by expected revenue on your channel, from the saved plan, highest first. Each row shows that revenue and the share of the audience that stays through a break, and opens the plan row behind it here, without leaving this screen.',
-          'מדורג לפי ההכנסה הצפויה בערוץ שלכם, מתוך התוכנית השמורה, מהגבוה לנמוך. כל שורה מציגה את ההכנסה ואת חלק הקהל שנשאר לאורך הברייק, ופותחת כאן את שורת התוכנית שמאחוריה, בלי לצאת מהמסך.',
-        )}
+      <p className="today-basis today-decision-scope">
+        {[
+          scope,
+          pageText(locale, 'Highest expected revenue first; open a row for the retention evidence and plan decision.', 'מסודר לפי הכנסה צפויה; פתיחת שורה מציגה את נתוני השימור ואת החלטת התכנון.'),
+        ].filter(Boolean).join(' · ')}
       </p>
       <div className="decision-list today-decision-list">
         {items.slice(0, 5).map((item) => {

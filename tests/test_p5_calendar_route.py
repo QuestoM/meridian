@@ -26,6 +26,7 @@ bundler, not a restatement of them.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -71,7 +72,8 @@ def test_the_banner_control_renders_on_every_combination(result):
     banner = result["banner"]
     assert len(banner) == len(LOCALES) * len(PRICING_STATES) * len(CALLBACK_STATES)
     for key, markup in banner.items():
-        assert markup.count('class="cal-banner-link"') == 1, f"{key} renders no control"
+        controls = re.findall(r'<button\b[^>]*class="[^"]*\bcal-banner-link\b[^"]*"', markup)
+        assert len(controls) == 1, f"{key} renders no control"
 
 
 def test_the_banner_never_names_the_page_that_was_renamed(result):

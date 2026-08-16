@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Undo2, X } from 'lucide-react';
+import { Pressable } from '../../studio/dom-controls';
 import { formatNumber, pageText } from '../../shell/format';
 import { Figure } from '../../shell/bidi';
 import { exactCurrency } from './day-board-model';
@@ -30,13 +31,13 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
   const total = after && after.breaks ? after.breaks : 0;
 
   return (
-    <div className={`day-settlement is-${verdict}`}>
+    <div className={`card day-settlement is-${verdict}`}>
       <div className="day-settlement-head">
         <strong>{headingOf(act, label)}</strong>
-        <button type="button" className="day-settlement-close" onClick={onDismiss}>
+        <Pressable type="button" className="day-settlement-close" onClick={onDismiss}>
           <X size={13} aria-hidden="true" />
           {label('Dismiss', 'סגירה')}
-        </button>
+        </Pressable>
       </div>
 
       <div className="day-readout-figures">
@@ -74,12 +75,12 @@ function DayBoardSettlement({ settlement, locale, onUndo, onDismiss, canUndo }) 
 
       <div className="day-readout-actions">
         {act !== 'undo' && (
-          <button type="button" className="day-action" onClick={onUndo} disabled={!canUndo}>
+          <Pressable type="button" className="day-action" onClick={onUndo} disabled={!canUndo}>
             <Undo2 size={13} aria-hidden="true" />
             {act === 'gold'
               ? label('Undo this gold change', 'ביטול שינוי הזהב')
               : label('Undo this save', 'ביטול השמירה הזו')}
-          </button>
+          </Pressable>
         )}
       </div>
     </div>

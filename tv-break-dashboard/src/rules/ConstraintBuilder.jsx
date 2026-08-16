@@ -1,104 +1,11 @@
 import React, { useState } from 'react';
-import { Button, FormControl, MenuItem, Select, TextField } from '@mui/material';
+import { FormControl, MenuItem, Select, TextField } from '@mui/material';
+import { Button } from '../studio/actions';
 import { Save, Send, Trash2 } from 'lucide-react';
-import { GroupNode, defaultGroup, serializeNode } from './constraint-predicate';
-// The effect words are shared with the restriction list above this panel, so the
-// two surfaces cannot say different things about the same stored value.
+import ConsequenceDialog, { focusAfterDialogClose } from '../safety/ConsequenceDialog';
+import { GroupNode, defaultGroup } from './constraint-predicate';
+import { API_BASE, buildBody, failure, normalizeRows, predicateComplete, rowSentence, t } from './constraint-builder-helpers';
 import { EFFECT_LIST, detailWords, effectLabel } from './rules-lib';
-
-// What a stored row SAYS, in the reader's own language.
-//
-// Every row one authored restriction wrote carries that restriction's id, and
-// GET /api/constraints/restrictions renders the same restriction as a sentence
-// in both languages off the rule it was authored from. Before this the sentence
-// was written into `notes` at save time, in English, once: seven of seven rows
-// on the shipped list read `No breaks in the last 8 minutes of <programme>` to a
-// Hebrew reader. `notes` is now what its own field label says it is, a note a
-// person typed, and the sentence is joined back on the id, so each reader gets
-// the one their own language was rendered in and neither is a translation of
-// the other. A row with no restriction behind it, which is a row written before
-// restrictions existed, still reads back its own note.
-function rowSentence(item, sentences, locale) {
-  const said = sentences.get(String((item || {}).restriction_id || '').trim());
-  if (said) return locale === 'he' ? said.he : said.en;
-  return String((item || {}).notes || '');
-}
-
-const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
-
-function t(locale, en, he) {
-  return locale === 'he' ? he : en;
-}
-
-// A refused response as an error carrying both halves of its own reason. The
-// two writes below used to throw the status line and drop the body, so a
-// bilingual refusal the server had just authored never reached the screen.
-async function failure(res) {
-  const body = await res.json().catch(() => null);
-  const raw = body && body.detail;
-  const words = raw && typeof raw === 'object' ? raw : null;
-  const error = new Error(words ? String(words.en || words.he || '') : (raw ? String(raw) : `${res.status} ${res.statusText}`));
-  error.words = words;
-  return error;
-}
-
-function normalizeRows(value) {
-  if (Array.isArray(value)) return value;
-  if (value && Array.isArray(value.constraints)) return value.constraints;
-  if (value && Array.isArray(value.rows)) return value.rows;
-  return [];
-}
-
-// ---- Effect parameter fields -----------------------------------------------
-function mmssToSeconds(value) {
-  const [minutes, seconds] = String(value || '00:00').split(':').map((part) => Number(part));
-  return (Number.isFinite(minutes) ? minutes : 0) * 60 + (Number.isFinite(seconds) ? seconds : 0);
-}
-
-function buildBody(draft, where) {
-  const body = {
-    scope_type: 'always',
-    scope_value: '',
-    channel: '',
-    effect: draft.effect,
-    order_index: draft.order_index === '' ? null : Number(draft.order_index),
-    notes: draft.notes || '',
-  };
-  if (draft.effect === 'FIX_OFFSET') {
-    body.offset_seconds = mmssToSeconds(draft.offset_mmss);
-  } else if (draft.effect === 'OFFSET_WINDOW') {
-    body.offset_min_seconds = mmssToSeconds(draft.offset_min);
-    body.offset_max_seconds = mmssToSeconds(draft.offset_max);
-  } else if (draft.effect === 'PIN_COUNT') {
-    body.count = Number(draft.pin_count);
-  } else if (draft.effect === 'DURATION_RANGE') {
-    body.duration_min_seconds = Number(draft.duration_min);
-    body.duration_max_seconds = Number(draft.duration_max);
-  } else if (draft.effect === 'GOLD') {
-    // no extra params
-  } else if (draft.effect === 'FORBID') {
-    // no extra params
-  }
-  const serializedWhere = serializeNode(where);
-  if (serializedWhere.conditions && serializedWhere.conditions.length > 0) {
-    body.where = serializedWhere;
-  }
-  return body;
-}
-
-function predicateComplete(node) {
-  if (!node || typeof node !== 'object') return false;
-  if (Array.isArray(node.conditions)) {
-    return node.conditions.length > 0 && node.conditions.every(predicateComplete);
-  }
-  const value = node.value;
-  if (Array.isArray(value)) return value.length > 0 && value.every((item) => String(item).trim());
-  if (value && typeof value === 'object') {
-    return value.min !== '' && value.min !== null && value.min !== undefined
-      && value.max !== '' && value.max !== null && value.max !== undefined;
-  }
-  return String(value ?? '').trim().length > 0;
-}
 
 // ---- Main ConstraintBuilder export -----------------------------------------
 // onGlobalRefresh (optional) is called after a successful save or delete so the
@@ -120,6 +27,9 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
   const [preview, setPreview] = useState(null);
   const [previewKey, setPreviewKey] = useState('');
   const [previewError, setPreviewError] = useState('');
+  const [deleteReview, setDeleteReview] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const constraintListHeadingRef = React.useRef(null);
 
   const [draft, setDraft] = useState({
     effect: 'FIX_OFFSET',
@@ -264,14 +174,28 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
       const res = await fetch(`${API_BASE}/api/constraints/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (res.status === 404) {
         setItems((current) => current.filter((item) => !matchesId(item)));
-        return;
+        return true;
       }
       if (!res.ok) throw await failure(res);
       setItems((current) => current.filter((item) => !matchesId(item)));
       notify('Constraint removed.', 'האילוץ הוסר.');
       onGlobalRefresh?.();
+      return true;
     } catch (err) {
       notify(`Removing the constraint failed (${detailWords(err, 'en')}).`, `הסרת האילוץ נכשלה (${detailWords(err, 'he')}).`);
+      return false;
+    }
+  }
+
+  async function confirmDeleteConstraint() {
+    const id = deleteReview && (deleteReview.constraint_id ?? deleteReview.id);
+    if (!id) return;
+    setDeleting(true);
+    const removed = await deleteConstraint(id);
+    setDeleting(false);
+    if (removed) {
+      setDeleteReview(null);
+      focusAfterDialogClose(constraintListHeadingRef);
     }
   }
 
@@ -281,7 +205,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
   const matchedSegments = previewCurrent ? Number(preview?.summary?.matched_segments || 0) : 0;
 
   return (
-    <section className="settings-panel wide constraint-builder">
+    <section className="card settings-panel wide constraint-builder">
       <div className="settings-panel-head">
         <div>
           <h2>{t(locale, 'Constraint builder', 'בונה אילוצים')}</h2>
@@ -317,7 +241,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         />
       </div>
 
-      <div className="cb-section-label" style={{ marginTop: 18 }}>{t(locale, 'Apply effect', 'אפקט להחלה')}</div>
+      <div className="cb-section-label cb-effect-label">{t(locale, 'Apply effect', 'אפקט להחלה')}</div>
       <div className="constraint-builder-form">
         <div className="constraint-field">
           <span className="adv-field-label">{t(locale, 'Effect', 'אפקט')}</span>
@@ -333,7 +257,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         {effect === 'FIX_OFFSET' && (
           <div className="constraint-field">
             <span className="adv-field-label">{t(locale, 'Offset (MM:SS)', 'היסט (דק:שנ)')}</span>
-            <TextField size="small" value={draft.offset_mmss} onChange={(e) => updateDraft('offset_mmss', e.target.value)} inputProps={{ dir: 'ltr', placeholder: '02:30' }} />
+            <TextField size="small" value={draft.offset_mmss} onChange={(e) => updateDraft('offset_mmss', e.target.value)} slotProps={{ htmlInput: { dir: 'ltr', placeholder: '02:30' } }} />
           </div>
         )}
 
@@ -341,11 +265,11 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
           <>
             <div className="constraint-field">
               <span className="adv-field-label">{t(locale, 'Min offset (MM:SS)', 'היסט מינ (דק:שנ)')}</span>
-              <TextField size="small" value={draft.offset_min} onChange={(e) => updateDraft('offset_min', e.target.value)} inputProps={{ dir: 'ltr' }} />
+              <TextField size="small" value={draft.offset_min} onChange={(e) => updateDraft('offset_min', e.target.value)} slotProps={{ htmlInput: { dir: 'ltr' } }} />
             </div>
             <div className="constraint-field">
               <span className="adv-field-label">{t(locale, 'Max offset (MM:SS)', 'היסט מקס (דק:שנ)')}</span>
-              <TextField size="small" value={draft.offset_max} onChange={(e) => updateDraft('offset_max', e.target.value)} inputProps={{ dir: 'ltr' }} />
+              <TextField size="small" value={draft.offset_max} onChange={(e) => updateDraft('offset_max', e.target.value)} slotProps={{ htmlInput: { dir: 'ltr' } }} />
             </div>
           </>
         )}
@@ -353,7 +277,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         {effect === 'PIN_COUNT' && (
           <div className="constraint-field">
             <span className="adv-field-label">{t(locale, 'Break count', 'מספר ברייקים')}</span>
-            <TextField type="number" size="small" value={draft.pin_count} onChange={(e) => updateDraft('pin_count', e.target.value)} inputProps={{ min: 0, dir: 'ltr' }} />
+            <TextField type="number" size="small" value={draft.pin_count} onChange={(e) => updateDraft('pin_count', e.target.value)} slotProps={{ htmlInput: { min: 0, dir: 'ltr' } }} />
           </div>
         )}
 
@@ -361,18 +285,18 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
           <>
             <div className="constraint-field">
               <span className="adv-field-label">{t(locale, 'Min duration (s)', 'אורך מינ (שנ)')}</span>
-              <TextField type="number" size="small" value={draft.duration_min} onChange={(e) => updateDraft('duration_min', e.target.value)} inputProps={{ min: 0, dir: 'ltr' }} />
+              <TextField type="number" size="small" value={draft.duration_min} onChange={(e) => updateDraft('duration_min', e.target.value)} slotProps={{ htmlInput: { min: 0, dir: 'ltr' } }} />
             </div>
             <div className="constraint-field">
               <span className="adv-field-label">{t(locale, 'Max duration (s)', 'אורך מקס (שנ)')}</span>
-              <TextField type="number" size="small" value={draft.duration_max} onChange={(e) => updateDraft('duration_max', e.target.value)} inputProps={{ min: 0, dir: 'ltr' }} />
+              <TextField type="number" size="small" value={draft.duration_max} onChange={(e) => updateDraft('duration_max', e.target.value)} slotProps={{ htmlInput: { min: 0, dir: 'ltr' } }} />
             </div>
           </>
         )}
 
         <div className="constraint-field">
           <span className="adv-field-label">{t(locale, 'Order index (optional)', 'אינדקס סדר (רשות)')}</span>
-          <TextField type="number" size="small" value={draft.order_index} onChange={(e) => updateDraft('order_index', e.target.value)} inputProps={{ min: 0, dir: 'ltr' }} />
+          <TextField type="number" size="small" value={draft.order_index} onChange={(e) => updateDraft('order_index', e.target.value)} slotProps={{ htmlInput: { min: 0, dir: 'ltr' } }} />
         </div>
 
         <div className="constraint-field">
@@ -391,7 +315,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
         </Button>
         <Button type="button" variant="outlined" className="run-button" disabled={recomputeState === 'running'} onClick={() => onRecompute && onRecompute()}>
           <Send size={14} />
-          {t(locale, 'Run the weekly plan', 'הרצת הלוח השבועי')}
+          {t(locale, 'Review weekly run', 'בדיקת ההרצה השבועית')}
         </Button>
       </div>
 
@@ -408,7 +332,7 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
 
       <div className="constraint-list">
         <div className="panel-head">
-          <h3>{t(locale, 'Existing constraints', 'אילוצים קיימים')}</h3>
+          <h3 ref={constraintListHeadingRef} tabIndex={-1}>{t(locale, 'Existing constraints', 'אילוצים קיימים')}</h3>
           <span>{items.length}</span>
         </div>
         {items.length === 0 ? (
@@ -418,13 +342,13 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
             {items.map((item, index) => {
               const itemId = item.constraint_id ?? item.id;
               return (
-                <li key={itemId ?? `constraint-${index}`}>
+                <li className="card" key={itemId ?? `constraint-${index}`}>
                   <span className="constraint-chip">{effectLabel(item.effect, locale)}</span>
                   <span className="constraint-scope">{item.where ? t(locale, 'filter conditions', 'תנאי סינון') : `${item.scope_type}: ${item.scope_value || t(locale, 'any', 'הכול')}`}</span>
                   {rowSentence(item, sentences, locale) && (
                     <span className="constraint-channel">{rowSentence(item, sentences, locale)}</span>
                   )}
-                  <Button type="button" variant="text" className="constraint-delete" onClick={() => deleteConstraint(itemId)} aria-label={t(locale, 'Delete constraint', 'מחיקת אילוץ')}>
+                  <Button type="button" variant="text" className="constraint-delete" onClick={() => setDeleteReview(item)} aria-label={t(locale, 'Review deletion of this constraint', 'סקירת מחיקת האילוץ')}>
                     <Trash2 size={14} />
                   </Button>
                 </li>
@@ -433,6 +357,36 @@ function ConstraintBuilder({ locale, notify, onRecompute, recomputeState, onGlob
           </ul>
         )}
       </div>
+
+      <ConsequenceDialog
+        open={Boolean(deleteReview)}
+        locale={locale}
+        title={t(locale, 'Delete this stored constraint?', 'למחוק את האילוץ השמור?')}
+        description={t(locale, 'Review the exact rule and planning effect before it is removed.', 'בדקו את הכלל המדויק ואת השפעתו על התכנון לפני הסרתו.')}
+        object={deleteReview ? (
+          <span className="consequence-review__object">
+            {effectLabel(deleteReview.effect, locale)}
+            {rowSentence(deleteReview, sentences, locale) ? ` — ${rowSentence(deleteReview, sentences, locale)}` : ''}
+            {' · ID '}<bdi>{String(deleteReview.constraint_id ?? deleteReview.id)}</bdi>
+          </span>
+        ) : ''}
+        scope={deleteReview ? (
+          deleteReview.where
+            ? t(locale, 'This one stored constraint and its filter predicate. Every other constraint remains unchanged.', 'האילוץ השמור הזה ותנאי הסינון שלו בלבד. כל שאר האילוצים נשארים ללא שינוי.')
+            : t(
+              locale,
+              `This one stored constraint in scope ${deleteReview.scope_type || 'always'}: ${deleteReview.scope_value || 'all values'}${deleteReview.channel ? ` on ${deleteReview.channel}` : ''}. Every other constraint remains unchanged.`,
+              `האילוץ השמור הזה בלבד בהיקף ${deleteReview.scope_type || 'תמיד'}: ${deleteReview.scope_value || 'כל הערכים'}${deleteReview.channel ? ` בערוץ ${deleteReview.channel}` : ''}. כל שאר האילוצים נשארים ללא שינוי.`,
+            )
+        ) : ''}
+        consequence={t(locale, 'It stops governing future weekly plan runs. The currently saved plan is not recomputed by this deletion and will need a new run.', 'הוא יפסיק לחול בריצות התכנון השבועיות הבאות. המחיקה אינה מחשבת מחדש את התוכנית השמורה, ויהיה צורך להריץ אותה מחדש.')}
+        recovery={t(locale, 'A pre-change snapshot is kept on the Restore changes page.', 'תמונת מצב מלפני השינוי נשמרת בעמוד שחזור שינויים.')}
+        confirmLabel={t(locale, 'Delete constraint', 'מחיקת האילוץ')}
+        workingLabel={t(locale, 'Deleting constraint', 'מוחק את האילוץ')}
+        busy={deleting}
+        onCancel={() => setDeleteReview(null)}
+        onConfirm={confirmDeleteConstraint}
+      />
     </section>
   );
 }

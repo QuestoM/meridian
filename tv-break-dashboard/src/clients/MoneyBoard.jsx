@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
 import { ArrowLeft, Coins, Layers, Receipt } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -85,7 +86,7 @@ function stepKey(rows, field, key, delta) {
 
 function Tile({ label, value, sub, icon: Icon, tone }) {
   return (
-    <div className={`clients-tile ${tone || ''}`}>
+    <div className={`card card-dense card-body clients-tile ${tone || ''}`}>
       <span className="clients-tile-icon"><Icon size={16} strokeWidth={1.8} /></span>
       <span className="clients-tile-copy">
         <span className="clients-tile-label">{label}</span>
@@ -139,9 +140,9 @@ export default function MoneyBoard({
             'קובץ תשדירים יומי מתמחר יום וממלא את הלוח הזה מהספר האמיתי.',
           )}
         </p>
-        <button type="button" className="clients-primary" onClick={() => goToView('Data')}>
+        <Button type="button" className="clients-primary" onClick={() => goToView('Data')}>
           {pageText(locale, 'Go to Data and upload one', 'עברו למסך הנתונים והעלו קובץ')}
-        </button>
+        </Button>
       </section>
     );
   }
@@ -151,12 +152,12 @@ export default function MoneyBoard({
 
   return (
     <section className="clients-money">
-      <div className="clients-answer">
+      <div className="card card-dense card-body clients-answer">
         <p className="clients-answer-question">
           {pageText(locale, definition.questionEn, definition.questionHe)}
         </p>
         {leader ? (
-          <button
+          <Button
             type="button"
             className="clients-answer-line"
             onClick={() => onDrill({ group, key: String(leader[definition.field]) })}
@@ -166,16 +167,16 @@ export default function MoneyBoard({
             <small>{pageText(locale, 'gross', 'ברוטו')}</small>
             <Figure className="numeric">{exactMoney(leader.net, locale)}</Figure>
             <small>{pageText(locale, 'net after rebates', 'נטו אחרי רבייט')}</small>
-          </button>
+          </Button>
         ) : null}
         <p className="clients-basis">{basisLine(basis, locale)}</p>
         <p className="clients-basis-note">{periodNote(basis, locale)}</p>
         <p className="clients-basis-note">{scopeNote(basis, locale)}</p>
         <p className="clients-basis-path">
           {widerPeriod(basis, locale)}
-          <button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
+          <Button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
             {pageText(locale, 'Open Data', 'פתחו את מסך הנתונים')}
-          </button>
+          </Button>
         </p>
       </div>
 
@@ -203,7 +204,7 @@ export default function MoneyBoard({
 
       <div className="clients-group-tabs" role="tablist">
         {GROUPS.map((entry) => (
-          <button
+          <Button
             key={entry.key}
             type="button"
             role="tab"
@@ -212,7 +213,7 @@ export default function MoneyBoard({
             onClick={() => onDrill({ group: entry.key, key: '' })}
           >
             {pageText(locale, entry.en, entry.he)}
-          </button>
+          </Button>
         ))}
         <span className="clients-group-count">
           {pageText(locale, `${rows.length} rows, same ledger`, `${isolate(rows.length)} שורות, אותו ספר`)}
@@ -221,10 +222,10 @@ export default function MoneyBoard({
 
       {open ? (
         <div className="clients-drill">
-          <button type="button" className="clients-back" onClick={() => onDrill({ group, key: '' })}>
+          <Button type="button" className="clients-back" onClick={() => onDrill({ group, key: '' })}>
             <ArrowLeft size={14} aria-hidden="true" />
             {pageText(locale, 'All rows', 'כל השורות')}
-          </button>
+          </Button>
           <MoneyDetail
             money={money}
             row={open}
@@ -241,10 +242,10 @@ export default function MoneyBoard({
 
       {!open && openKey ? (
         <div className="clients-drill clients-drill-missing">
-          <button type="button" className="clients-back" onClick={() => onDrill({ group, key: '' })}>
+          <Button type="button" className="clients-back" onClick={() => onDrill({ group, key: '' })}>
             <ArrowLeft size={14} aria-hidden="true" />
             {pageText(locale, 'All rows', 'כל השורות')}
-          </button>
+          </Button>
           <p className="clients-reason">
             {pageText(
               locale,
@@ -274,9 +275,9 @@ export default function MoneyBoard({
               <tr key={String(row[definition.field])}>
                 <td className="numeric"><Figure>{row.rank}</Figure></td>
                 <td>
-                  <button type="button" className="clients-link" onClick={() => onDrill({ group, key: String(row[definition.field]) })}>
+                  <Button type="button" className="clients-link" onClick={() => onDrill({ group, key: String(row[definition.field]) })}>
                     {String(row[definition.field]) || pageText(locale, 'Unnamed', 'ללא שם')}
-                  </button>
+                  </Button>
                 </td>
                 <td className="numeric"><Figure>{exactMoney(row.gross, locale)}</Figure></td>
                 <td className="numeric"><Figure>{exactMoney(row.rebates, locale)}</Figure></td>

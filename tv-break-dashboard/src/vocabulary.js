@@ -120,8 +120,8 @@ export const WORDS = {
     he: 'מקורות',
   },
   'place.kai': {
-    en: 'Kai',
-    he: 'קאי',
+    en: 'Mabat',
+    he: 'מבט',
   },
   'place.history': {
     en: 'History',

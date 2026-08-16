@@ -1,0 +1,290 @@
+/* Studio Ledger — Mabat is a contextual work surface: clear focus entry/return,
+   quiet warm transcript, and action/state controls at accessible sizes. */
+.kairos-shell.assistant-open {
+  grid-template-columns: var(--rail-expanded) minmax(0, 1fr) auto;
+}
+
+/* Mabat only shares the operational body. The persistent orientation row
+   continues from the navigation rail to the far viewport edge, while the
+   workspace keeps the same block-start position when that row becomes fixed. */
+.kairos-shell.assistant-open .workspace {
+  padding-block-start: var(--shell-header-height);
+}
+
+.kairos-shell.assistant-open .top-bar {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: var(--rail-expanded) 0;
+  inline-size: auto;
+  margin-inline: 0;
+}
+
+.asst-workspace {
+  gap: var(--space-6);
+  padding-block: var(--space-6) var(--space-10);
+}
+
+.asst-layout {
+  grid-template-columns: minmax(520px, 1.45fr) minmax(340px, .75fr);
+  gap: var(--space-5);
+}
+
+.asst-chat,
+.asst-rail {
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  box-shadow: var(--shadow-0);
+}
+
+.asst-thread {
+  background: var(--canvas);
+}
+
+.asst-q {
+  border-radius: var(--radius-surface);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.asst-a {
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+}
+
+.asst-rail-tablist {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.asst-tab {
+  min-block-size: var(--control-height);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+}
+
+.asst-tab.active {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.asst-dock-body {
+  overflow: hidden;
+}
+
+.asst-in-dock {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  gap: var(--space-2);
+}
+
+.asst-dock-view-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+.asst-dock-view-tabs button {
+  min-block-size: var(--control-height);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-medium);
+}
+
+.asst-dock-view-tabs button:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.asst-dock-view-tabs button.active {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.asst-in-dock .asst-layout {
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+.asst-in-dock :is(.asst-chat, .asst-rail) {
+  block-size: 100%;
+  min-block-size: 0;
+}
+
+.asst-in-dock :is(.asst-chat, .asst-rail)[hidden] {
+  display: none !important;
+}
+
+.asst-in-dock .asst-thread {
+  flex: 1 1 auto;
+  min-block-size: 140px;
+  max-block-size: none;
+}
+
+.asst-in-dock .asst-rail {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.asst-in-dock .asst-rail-body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  max-block-size: none;
+  overflow-y: auto;
+}
+
+.asst-in-dock .asst-conv-list {
+  max-block-size: 22vh;
+}
+
+.asst-chat > .panel-head {
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.asst-in-dock .asst-chat > .panel-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.asst-in-dock .asst-conversation-actions {
+  inline-size: 100%;
+  min-inline-size: 0;
+  justify-content: flex-start;
+}
+
+.asst-conversation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.asst-conversation-action,
+.asst-clear-btn {
+  min-block-size: var(--control-height);
+  padding-inline: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.asst-conversation-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+}
+
+.asst-conversation-action:hover,
+.asst-conversation-action.active {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.asst-conversation-history {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.asst-conversation-history[hidden] {
+  display: none !important;
+}
+
+.asst-conversation-history .asst-conv-section {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  min-inline-size: 0;
+  inline-size: 100%;
+  border-block-end: 0;
+}
+
+.asst-conversation-history .asst-conv-list,
+.asst-in-dock .asst-conversation-history .asst-conv-list {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  inline-size: 100%;
+  max-block-size: none;
+}
+
+.asst-conversation-history :is(.asst-conv-row, .asst-conv-line) {
+  min-inline-size: 0;
+  inline-size: 100%;
+}
+
+.asst-dock-mark {
+  background: var(--chrome-hover);
+  color: var(--on-chrome-detail);
+}
+
+.side-rail .assistant-entry.active {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--accent-strong);
+}
+
+.asst-rail-body:focus-visible,
+.asst-dock:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -4px;
+}
+
+.asst-dock-head {
+  min-block-size: var(--data-row-height);
+  background: var(--chrome);
+  color: var(--on-chrome-detail);
+}
+
+.asst-dock-head #assistant-dock-title { color: var(--on-chrome-detail); }
+.asst-dock-head .asst-dock-title small { color: var(--on-chrome-meta); }
+.asst-dock-head .asst-dock-close { color: var(--on-chrome-meta); }
+.asst-dock-head .asst-dock-close:hover { background: var(--chrome-hover); color: var(--on-chrome-detail); }
+.asst-dock .asst-conv-actions button { min-inline-size: var(--icon-action-size); }
+
+.asst-workspace :is(button, .MuiButton-root, .MuiIconButton-root),
+.asst-dock :is(button, .MuiButton-root, .MuiIconButton-root) {
+  min-block-size: var(--control-height);
+}
+
+.asst-workspace :is(.asst-refresh, .asst-dock-close, .asst-upload-btn, .asst-upload-del, .asst-ver-rename-ok, .asst-ver-rename-x, .MuiIconButton-root),
+.asst-dock :is(.asst-refresh, .asst-dock-close, .asst-upload-btn, .asst-upload-del, .asst-ver-rename-ok, .asst-ver-rename-x, .MuiIconButton-root) {
+  min-inline-size: var(--icon-action-size);
+}
+
+.asst-workspace :is(input:not([type='checkbox']):not([type='radio']), select, textarea, .MuiInputBase-root),
+.asst-dock :is(input:not([type='checkbox']):not([type='radio']), select, textarea, .MuiInputBase-root) {
+  min-block-size: var(--control-height);
+  box-sizing: border-box;
+}
+
+.asst-conv-row,
+.asst-ver-row,
+.asst-restore-row,
+.asst-item {
+  min-block-size: var(--data-row-height);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asst-workspace *,
+  .asst-dock * {
+    animation-duration: 1ms;
+    transition-duration: 1ms;
+  }
+}

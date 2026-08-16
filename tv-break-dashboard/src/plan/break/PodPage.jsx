@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable } from '../../studio/dom-controls';
 import { pageText } from '../../shell/format';
 import { Figure, Name, Prose } from '../../shell/bidi';
 import { formatDay, todayIso } from '../../shell/dates';
@@ -7,6 +8,7 @@ import PreferredPositionRate from './PreferredPositionRate';
 import { countLabel, figureText, podAttentionScore } from './pod-model';
 import './break-pod.css';
 import './break-pod-list.css';
+import '../day/master-control-broadcast.css';
 
 const API_BASE = import.meta.env.VITE_KAIROS_API_URL || '';
 
@@ -25,13 +27,13 @@ function readParam(name) {
 // workspace hash a click here did not change. A bookmark or a paste of the URL
 // reopens the same pod, and the covered-days line elsewhere in the product can
 // link straight to it.
-function writeParams(day, podId) {
+function writeParams(day, podId, method = 'replaceState') {
   if (typeof window === 'undefined') return;
   const params = new URLSearchParams(window.location.search);
   if (day) params.set('day', day); else params.delete('day');
   if (podId) params.set('pod', podId); else params.delete('pod');
   const query = params.toString();
-  window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+  window.history[method]({ ...(window.history.state || {}), day, pod: podId }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
 }
 
 // The break contents surface: every pod a traffic file declares on one day.
@@ -84,12 +86,26 @@ function PodPage({ locale, notify, requestedDay }) {
     load(wanted).then((body) => {
       // Today's date named nothing a traffic file covers, so the fallback is
       // the first covered day rather than a blank page.
-      if (body && !body.available && !readParam('day')) load('');
+      if (body && !body.available && !readParam('day')) {
+        load('').then((fallback) => {
+          if (fallback) writeParams(fallback.day || '', readParam('pod'), 'replaceState');
+        });
+      } else if (body) {
+        writeParams(body.day || wanted, readParam('pod'), 'replaceState');
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
-  useEffect(() => { writeParams(day, openId); }, [day, openId]);
+  useEffect(() => {
+    function restoreAddress() {
+      const addressedDay = readParam('day') || todayIso();
+      setOpenId(readParam('pod'));
+      load(addressedDay);
+    }
+    window.addEventListener('popstate', restoreAddress);
+    return () => window.removeEventListener('popstate', restoreAddress);
+  }, [load]);
 
   // Opening a pod low in the day list put its arithmetic below the fold and
   // scrolled nothing, so the three figures the whole surface exists for were off
@@ -105,6 +121,7 @@ function PodPage({ locale, notify, requestedDay }) {
   useEffect(() => {
     if (!requestedDay || !requestedDay.day) return;
     setOpenId('');
+    writeParams(requestedDay.day, '', 'replaceState');
     load(requestedDay.day);
     if (sectionRef.current) sectionRef.current.scrollIntoView({ block: 'start' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,9 +165,9 @@ function PodPage({ locale, notify, requestedDay }) {
   const tonightCovered = covered.includes(tonight);
 
   return (
-    <section className="pod-page" ref={sectionRef}>
+    <section className="pod-page broadcast-pods" ref={sectionRef}>
       <header className="pod-page-head">
-        <h2>{pageText(locale, "Break contents, tonight's breaks", 'תוכן הברייק, הברייקים של הערב')}</h2>
+        <h1>{pageText(locale, "Break contents, tonight's breaks", 'תוכן הברייק, הברייקים של הערב')}</h1>
         <p>
           {label(
             'The spots inside each break, read from the daily traffic file, with the arithmetic between what they declare and how long the break runs.',
@@ -176,15 +193,19 @@ function PodPage({ locale, notify, requestedDay }) {
         <div className="pod-days">
           <span>{label('Days a traffic file covers', 'ימים שקובץ טראפיק מכסה')}</span>
           {covered.map((covering) => (
-            <button
+            <Pressable
               key={covering}
               type="button"
               className={`pod-day${covering === day ? ' pod-day-open' : ''}`}
               aria-pressed={covering === day}
-              onClick={() => { setOpenId(''); load(covering); }}
+              onClick={() => {
+                setOpenId('');
+                writeParams(covering, '', 'pushState');
+                load(covering);
+              }}
             >
               <Figure>{formatDay(covering)}</Figure>
-            </button>
+            </Pressable>
           ))}
         </div>
       )}
@@ -198,35 +219,38 @@ function PodPage({ locale, notify, requestedDay }) {
 
       {payload && payload.available && (
         <>
-          <PreferredPositionRate day={day} locale={locale} />
           <div className="pod-list-tools">
-            <button
+            <Pressable
               type="button"
               className={`pod-sort-act${!sortByAttention ? ' pod-sort-act-active' : ''}`}
               aria-pressed={!sortByAttention}
               onClick={() => setSortByAttention(false)}
             >
               {label('Time order', 'סדר שידור')}
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               type="button"
               className={`pod-sort-act${sortByAttention ? ' pod-sort-act-active' : ''}`}
               aria-pressed={sortByAttention}
               onClick={() => setSortByAttention(true)}
             >
               {label('Needs attention first', 'דורש תשומת לב קודם')}
-            </button>
+            </Pressable>
           </div>
           <ol className="pod-list">
             {sorted.map((pod) => {
               const attention = Number(pod.verification && pod.verification.count) || 0;
               return (
                 <li key={pod.pod_id} data-pod={pod.pod_id}>
-                  <button
+                  <Pressable
                     type="button"
                     className={`pod-row${pod.pod_id === openId ? ' pod-row-open' : ''}${attention > 0 ? ' pod-row-attention' : ''}`}
                     aria-expanded={pod.pod_id === openId}
-                    onClick={() => setOpenId(pod.pod_id === openId ? '' : pod.pod_id)}
+                    onClick={() => {
+                      const next = pod.pod_id === openId ? '' : pod.pod_id;
+                      setOpenId(next);
+                      writeParams(day, next, 'pushState');
+                    }}
                   >
                     <Figure>{pod.break_start_clock}</Figure>
                     <span><Name>{pod.programme && pod.programme.value ? pod.programme.value : label('no programme named', 'לא צוינה תוכנית')}</Name></span>
@@ -244,7 +268,7 @@ function PodPage({ locale, notify, requestedDay }) {
                     {pod.order && pod.order.locked && (
                       <span className="pod-tag">{label('locked', 'נעול')}</span>
                     )}
-                  </button>
+                  </Pressable>
                   {pod.pod_id === openId && (
                     <PodBoard
                       pod={pod}
@@ -260,6 +284,7 @@ function PodPage({ locale, notify, requestedDay }) {
               );
             })}
           </ol>
+          <PreferredPositionRate day={day} locale={locale} />
         </>
       )}
     </section>

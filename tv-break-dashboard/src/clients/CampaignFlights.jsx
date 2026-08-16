@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Button, MenuItem, Select, TextField } from '@mui/material';
+import { MenuItem, Select, TextField } from '@mui/material';
+import { Button } from '../studio/actions';
+import { InputControl } from '../studio/dom-controls';
 import { Figure } from '../shell/bidi';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
@@ -45,17 +47,11 @@ function FlightFields({ draft, onChange, goalKinds, goalWords, locale }) {
       </div>
       <label className="clients-field">
         <span>{pageText(locale, 'From', 'מתאריך')}</span>
-        {/* Native on purpose: type="date" keeps the browser's own picker, and
-            scripts/verify-direction-rules.mjs (frozen, not owned here) budgets
-            this file at exactly 3 literal dir= attributes across the two
-            dates and the goal below. Moving dir onto TextField's slotProps
-            would change that literal count and the guard cannot be lowered. */}
-        <input type="date" dir="ltr" value={draft.starts_on} onChange={(event) => onChange('starts_on', event.target.value)} />
+        <InputControl type="date" dir="ltr" value={draft.starts_on} onChange={(event) => onChange('starts_on', event.target.value)} />
       </label>
       <label className="clients-field">
         <span>{pageText(locale, 'To', 'עד תאריך')}</span>
-        {/* Native: same reason as "From" above. */}
-        <input type="date" dir="ltr" value={draft.ends_on} onChange={(event) => onChange('ends_on', event.target.value)} />
+        <InputControl type="date" dir="ltr" value={draft.ends_on} onChange={(event) => onChange('ends_on', event.target.value)} />
       </label>
       <div className="clients-field">
         <span>{pageText(locale, 'Goal unit', 'יחידת יעד')}</span>
@@ -71,9 +67,7 @@ function FlightFields({ draft, onChange, goalKinds, goalWords, locale }) {
       </div>
       <label className="clients-field">
         <span>{pageText(locale, 'Booked goal', 'יעד שהוזמן')}</span>
-        {/* Native: type="number" keeps the browser's stepper and numeric
-            keyboard, and the dir attribute budget noted above applies here too. */}
-        <input type="number" dir="ltr" value={draft.goal_value} onChange={(event) => onChange('goal_value', event.target.value)} />
+        <InputControl type="number" dir="ltr" value={draft.goal_value} onChange={(event) => onChange('goal_value', event.target.value)} />
       </label>
     </div>
   );

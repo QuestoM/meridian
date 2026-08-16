@@ -393,6 +393,7 @@ def _warm_overview_cache() -> None:
                     SETTINGS_PATH,
                     DATA_DIR / "reference" / "Programmes.xlsx",
                     DATA_DIR / "Programmes.csv",
+                    DATA_DIR / "Spots - inventory.csv",
                 ])
             )),
             ("campaigns", lambda: _campaigns_cached(_signature([

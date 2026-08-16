@@ -251,6 +251,20 @@ def _save_settings(settings: KairosSettings) -> KairosSettings:
     return settings
 
 
+def _mutate_settings(mutator: Any) -> KairosSettings:
+    """Atomically load, mutate and replace the shared settings document.
+
+    Domain routes own validation and permission, but they must not each invent
+    their own read-modify-write window. Holding the re-entrant lock across the
+    callback preserves unrelated edits when two canonical controls land at the
+    same time; an exception leaves the file untouched.
+    """
+    with _SETTINGS_LOCK:
+        settings = _load_settings()
+        mutator(settings)
+        return _save_settings(settings)
+
+
 def _settings_to_guardrails(settings: KairosSettings) -> Guardrails:
     return Guardrails(
         max_ad_seconds_per_hour=settings.max_ad_minutes_per_hour * 60,

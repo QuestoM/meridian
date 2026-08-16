@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { pageText } from '../shell/format';
-import { formatDay } from '../shell/dates';
-import { PageHeader } from '../shell/primitives';
+import { Button } from '../studio/actions';
+import { Numeric, formatCurrency, pageText } from '../shell/format';
 import { fetchSession, needsJobPicker } from '../session.js';
-import { word } from '../vocabulary.js';
 import SummaryMetrics from './SummaryMetrics';
 import YieldView from './YieldView';
 import { YieldMoneyPanel } from './MoneyWaterfall';
@@ -12,22 +10,33 @@ import FrontierScopeChart from '../plan/week/FrontierScopeChart';
 import TodayMoney from './TodayMoney';
 import TodayHealth from './TodayHealth';
 import TodayDecisions from './TodayDecisions';
+import TransmissionRibbon from './TransmissionRibbon';
 import JobPicker from './JobPicker';
-import { isolate } from '../shell/bidi';
 import { attributed, overviewScope } from './today-scope';
 import { clearTarget, fetchToday, saveTarget, takePrimedToday, todayFromOverview } from './today-data';
 import './today.css';
 import './today-controls.css';
+import './studio-ledger-today.css';
 
 // Today: three answers, one screen, no clicks.
 //
-// The answers come from this surface's own read, which was started while the
-// bundle was still booting, so they do not wait for the ten other endpoints the
-// shell loads for the rest of the app. When that read is unavailable the same
-// three answers are derived from the payload the shell already holds, so an
-// older backend loses the target and the per-day rows and keeps everything else.
+// The answers come from this surface's own primed read. When it is unavailable,
+// the same three answers are derived from Today's route-scoped shell payload, so
+// an older backend loses the target and per-day rows but keeps everything else.
 
 const HEALTH_VIEWS = { plan: 'Schedule', sources: 'Data', settings: 'Settings' };
+const TODAY_DETAIL_SECTIONS = [
+  { id: 'economics', en: 'Money and pacing', he: 'כסף וקצב' },
+  { id: 'guardrails', en: 'Licence and trade-offs', he: 'רישיון ושקלולים' },
+  { id: 'yield', en: 'Yield diagnostics', he: 'אבחון תשואה' },
+];
+const TODAY_SECTION_PARAM = 'todaySection';
+
+function detailSectionFromLocation() {
+  if (typeof window === 'undefined') return 'economics';
+  const requested = new URLSearchParams(window.location.search).get(TODAY_SECTION_PARAM);
+  return TODAY_DETAIL_SECTIONS.some((section) => section.id === requested) ? requested : 'economics';
+}
 
 // The run control lives in the staleness strip the shell renders above every
 // workspace. A row that reports an out-of-date plan reaches that one control
@@ -71,11 +80,13 @@ export function useTodayData(refreshKey, overview) {
   return { ...state, today, answered: Boolean(state.data) || today.answered === true };
 }
 
-export function OverviewPage({ overview, compliance, files, copy, locale, setActiveView, onOpenRecommendation, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey, planEvents, notify }) {
+export function OverviewPage({ overview, schedule, compliance, files, copy, locale, setActiveView, onOpenRecommendation, loading, operatorChannel, savedRetentionFloor, onApplyFrontierFloor, applyWeightState, refreshKey, planEvents, notify }) {
   const [localKey, setLocalKey] = useState(0);
   const { status, error, today, answered } = useTodayData(refreshKey + localKey, overview);
   const [saveState, setSaveState] = useState('idle');
   const [session, setSession] = useState(null);
+  const [detailSection, setDetailSection] = useState(detailSectionFromLocation);
+  const detailTabsRef = React.useRef([]);
 
   useEffect(() => {
     let active = true;
@@ -86,6 +97,35 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
       active = false;
     };
   }, [refreshKey]);
+
+  useEffect(() => {
+    function syncFromAddress() {
+      setDetailSection(detailSectionFromLocation());
+    }
+    window.addEventListener('popstate', syncFromAddress);
+    return () => window.removeEventListener('popstate', syncFromAddress);
+  }, []);
+
+  function openDetailSection(next) {
+    if (!TODAY_DETAIL_SECTIONS.some((section) => section.id === next)) return;
+    setDetailSection(next);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    params.set(TODAY_SECTION_PARAM, next);
+    window.history.pushState({ workspace: 'today', section: next }, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+  }
+
+  function onDetailTabKeyDown(event, index) {
+    let next = index;
+    if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = TODAY_DETAIL_SECTIONS.length - 1;
+    else if (event.key === 'ArrowRight') next = (index + (locale === 'he' ? -1 : 1) + TODAY_DETAIL_SECTIONS.length) % TODAY_DETAIL_SECTIONS.length;
+    else if (event.key === 'ArrowLeft') next = (index + (locale === 'he' ? 1 : -1) + TODAY_DETAIL_SECTIONS.length) % TODAY_DETAIL_SECTIONS.length;
+    else return;
+    event.preventDefault();
+    openDetailSection(TODAY_DETAIL_SECTIONS[next].id);
+    detailTabsRef.current[next]?.focus();
+  }
 
   async function persistTarget(values) {
     setSaveState('saving');
@@ -115,8 +155,11 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
 
   function openHealth(check) {
     if (check.opens === 'licence') {
-      const ledger = document.getElementById('today-licence');
-      if (ledger && ledger.scrollIntoView) ledger.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      openDetailSection('guardrails');
+      window.requestAnimationFrame(() => {
+        const ledger = document.getElementById('today-licence');
+        if (ledger?.scrollIntoView) ledger.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
       return;
     }
     if (check.id === 'plan_out_of_date' || check.id === 'newer_model_version') {
@@ -129,8 +172,6 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
   // The channel name is data. It is isolated where it is placed inside the
   // heading rather than here, so the raw name stays available to anything that
   // has to compare it, and only the printed copy carries the marks.
-  const channel = today.channel || operatorChannel || '';
-  const planRunAt = today.plan_run_at ? formatDay(String(today.plan_run_at).slice(0, 10)) : '';
   // The source-file count the control-room panel used to carry, kept on the
   // input row it belongs to rather than lost with the panel.
   const fileRows = Array.isArray(files && files.files) ? files.files : [];
@@ -151,20 +192,7 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
 
   return (
     <section className="page-workspace today-workspace">
-      <PageHeader
-        locale={locale}
-        titleEn={`Today${channel ? `, ${isolate(channel)}` : ''}`}
-        titleHe={`${word('place.today', 'he')}${channel ? `, ${isolate(channel)}` : ''}`}
-        bodyEn="On plan, anything broken, what needs a decision. Three answers, no clicks."
-        bodyHe="ביעד, משהו לא תקין, מה דורש החלטה. שלוש תשובות, בלי קליקים."
-        action={
-          planRunAt ? (
-            <span className="today-plan-stamp">
-              {pageText(locale, `${word('state.plan_current', 'en')} ${planRunAt}`, `${word('state.plan_current', 'he')}־${planRunAt}`)}
-            </span>
-          ) : null
-        }
-      />
+      <TransmissionRibbon today={today} schedule={schedule} locale={locale} onOpenPlan={openPlan} />
 
       {status === 'error' && answered ? (
         <p className="today-degraded">
@@ -187,7 +215,24 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
 
       {answered ? (
         <>
-          <div className="today-answers">
+          <div className="today-control-grid">
+            <TodayDecisions
+              today={today}
+              locale={locale}
+              onOpenInOptimizer={(item) => (item.id && onOpenRecommendation ? onOpenRecommendation(item.id) : setActiveView && setActiveView('Optimizer'))}
+              onOpenSettings={openSettings}
+            />
+            <TodayHealth today={today} locale={locale} sourceFiles={sourceFiles} onOpen={openHealth} />
+          </div>
+
+          <details className="card today-revenue-disclosure">
+            <summary>
+              <span>
+                <strong>{pageText(locale, 'Revenue target and daily reconciliation', 'יעד הכנסה והתאמה יומית')}</strong>
+                <small>{pageText(locale, 'Open the target, source window and rows behind the total', 'פתיחת היעד, חלון המקור והשורות שמאחורי הסכום')}</small>
+              </span>
+              <Numeric>{formatCurrency(today?.money?.amount_ils, locale)}</Numeric>
+            </summary>
             <TodayMoney
               today={today}
               locale={locale}
@@ -197,15 +242,7 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
               onOpenPlan={openPlan}
               onOpenSettings={openSettings}
             />
-            <TodayHealth today={today} locale={locale} sourceFiles={sourceFiles} onOpen={openHealth} />
-          </div>
-
-          <TodayDecisions
-            today={today}
-            locale={locale}
-            onOpenInOptimizer={(item) => (item.id && onOpenRecommendation ? onOpenRecommendation(item.id) : setActiveView && setActiveView('Optimizer'))}
-            onOpenSettings={openSettings}
-          />
+          </details>
         </>
       ) : status === 'error' ? null : (
         <p className="today-reading" role="status">
@@ -230,34 +267,61 @@ export function OverviewPage({ overview, compliance, files, copy, locale, setAct
         />
       ) : null}
 
-      {summaryAttributed ? (
-        <p className="today-basis">
-          {pageText(
-            locale,
-            'The same window, in four more figures. Every one is the saved plan for your channel over the window named above.',
-            'אותו חלון, בארבעה מספרים נוספים. כולם מהתוכנית השמורה של הערוץ שלכם, על החלון שנקוב למעלה.',
-          )}
-        </p>
-      ) : null}
-      <SummaryMetrics overview={overview} copy={copy} locale={locale} planEvents={planEvents} onOpenSettings={openSettings} />
-      <YieldMoneyPanel locale={locale} refreshKey={refreshKey} onOpenSettings={openSettings} />
-      <div className="page-grid even">
-        <div id="today-licence">
-          <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
-        </div>
-        <FrontierScopeChart
-          initialData={overview.frontier || []}
-          copy={copy}
-          locale={locale}
-          loading={loading}
-          operatorChannel={operatorChannel}
-          savedRetentionFloor={savedRetentionFloor}
-          onApplyFloor={onApplyFrontierFloor}
-          applyState={applyWeightState}
-          status={overview.frontier_status || ''}
-        />
+      <nav className="today-detail-tabs" role="tablist" aria-label={pageText(locale, 'Today analysis', 'ניתוח היום')}>
+        {TODAY_DETAIL_SECTIONS.map((section, index) => (
+          <Button
+            ref={(node) => { detailTabsRef.current[index] = node; }}
+            type="button"
+            role="tab"
+            id={`today-tab-${section.id}`}
+            key={section.id}
+            className={`today-detail-tab${detailSection === section.id ? ' active' : ''}`}
+            aria-selected={detailSection === section.id}
+            aria-controls={`today-panel-${section.id}`}
+            tabIndex={detailSection === section.id ? 0 : -1}
+            onClick={() => openDetailSection(section.id)}
+            onKeyDown={(event) => onDetailTabKeyDown(event, index)}
+          >
+            {locale === 'he' ? section.he : section.en}
+          </Button>
+        ))}
+      </nav>
+      <div className="today-detail-panel" id={`today-panel-${detailSection}`} role="tabpanel" aria-labelledby={`today-tab-${detailSection}`} tabIndex={0}>
+        {detailSection === 'economics' ? (
+          <>
+            {summaryAttributed ? (
+              <p className="today-basis">
+                {pageText(
+                  locale,
+                  'The same window, in four more figures. Every one is the saved plan for your channel over the window named above.',
+                  'אותו חלון, בארבעה מספרים נוספים. כולם מהתוכנית השמורה של הערוץ שלכם, על החלון שנקוב למעלה.',
+                )}
+              </p>
+            ) : null}
+            <SummaryMetrics overview={overview} copy={copy} locale={locale} planEvents={planEvents} onOpenSettings={openSettings} />
+            <YieldMoneyPanel locale={locale} refreshKey={refreshKey} onOpenSettings={openSettings} />
+          </>
+        ) : null}
+        {detailSection === 'guardrails' ? (
+          <div className="page-grid even">
+            <div id="today-licence">
+              <ComplianceLedger compliance={compliance} copy={copy} locale={locale} />
+            </div>
+            <FrontierScopeChart
+              initialData={overview.frontier || []}
+              copy={copy}
+              locale={locale}
+              loading={loading}
+              operatorChannel={operatorChannel}
+              savedRetentionFloor={savedRetentionFloor}
+              onApplyFloor={onApplyFrontierFloor}
+              applyState={applyWeightState}
+              status={overview.frontier_status || ''}
+            />
+          </div>
+        ) : null}
+        {detailSection === 'yield' ? <YieldView locale={locale} refreshKey={refreshKey} onOpenSettings={openSettings} /> : null}
       </div>
-      <YieldView locale={locale} refreshKey={refreshKey} onOpenSettings={openSettings} />
     </section>
   );
 }

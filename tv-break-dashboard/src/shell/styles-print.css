@@ -1,0 +1,23 @@
+/* Print-only shell suppression and document flow.
+   Loaded in source order from index.jsx; keep feature overrides in their owning sheets. */
+/* Accessible print layout for the Schedule page */
+@media print {
+  .side-rail,
+.top-bar,
+.surface-toolbar,
+.toast,
+.no-print {
+    display: none !important;
+  }
+
+  .kairos-shell,
+  .workspace,
+  .page-workspace {
+    display: block !important;
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

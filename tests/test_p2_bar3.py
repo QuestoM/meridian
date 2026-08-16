@@ -163,10 +163,16 @@ def test_the_week_board_offers_no_download_of_the_export_that_carries_every_chan
     }
     assert offenders == {}, offenders
 
-    # And nothing in the tree reaches the shell's downloader at all, which is the
-    # rule in one line: this destination performs no file download.
-    reaching = [path.name for path in WEEK.glob("*.js*") if "shell/downloads" in path.read_text(encoding="utf-8")]
-    assert reaching == [], reaching
+    # A recommendation may export its own evidence JSON. The forbidden act is
+    # downloading the all-channel saved-plan export from this operator surface.
+    reaching = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in WEEK.glob("*.js*")
+        if "shell/downloads" in path.read_text(encoding="utf-8")
+    }
+    assert set(reaching) <= {"RecommendationDecisionPanel.jsx"}, sorted(reaching)
+    if reaching:
+        assert "downloadJson('kairos-recommendation-detail.json'" in reaching["RecommendationDecisionPanel.jsx"]
 
 
 def test_the_board_names_what_the_plan_file_holds_and_points_at_the_door():

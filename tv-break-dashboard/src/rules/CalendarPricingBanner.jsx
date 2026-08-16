@@ -1,5 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
+import { Pressable } from '../studio/dom-controls';
 import { calendarPricingBannerSentence, rateCardTabLinkLabel } from './rules-lib';
 
 // The calendar's price-multiplier banner. Its control used to be gated on
@@ -15,9 +16,9 @@ function CalendarPricingBanner({ locale, eventsPricing, onOpenRateCard }) {
       <Info size={16} aria-hidden="true" />
       <p>
         {calendarPricingBannerSentence(locale, eventsPricing)}{' '}
-        <button type="button" className="cal-banner-link" onClick={() => onOpenRateCard?.()}>
+        <Pressable type="button" className="cal-banner-link" onClick={() => onOpenRateCard?.()}>
           {rateCardTabLinkLabel(locale)}
-        </button>
+        </Pressable>
       </p>
     </div>
   );
