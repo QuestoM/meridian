@@ -71,7 +71,8 @@ MAX_VERSIONS = 200
 # that version restores only that file.
 _LOGICAL_ORDER = ("settings", "constraints", "overrides", "advertisers", "conditions",
                   "events", "agencies", "agency_links", "agency_conditions")
-_KNOWN_LOGICAL = _LOGICAL_ORDER + ("campaigns", "plan_targets", "make_goods")
+_KNOWN_LOGICAL = _LOGICAL_ORDER + ("campaigns", "plan_targets", "make_goods",
+                                   "frequency_rules")
 
 
 def _now_iso() -> str:
@@ -125,6 +126,9 @@ def _logical_path(logical: str) -> Path:
     if logical == "make_goods":
         from kairos_api import makegood_store
         return Path(makegood_store.MAKE_GOODS_PATH)
+    if logical == "frequency_rules":
+        from kairos.optimize._frequency_rules import DEFAULT_FREQUENCY_PATH
+        return Path(DEFAULT_FREQUENCY_PATH)
     raise ValueError(f"unknown logical file {logical!r}")
 
 

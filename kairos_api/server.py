@@ -235,6 +235,13 @@ from kairos_api.version_store import router as version_store_router  # noqa: E40
 
 app.include_router(version_store_router)
 
+# The trade-agreement engine: signed agreements read into reviewable rule
+# proposals, approved into immutable versions, compiled into the live rule
+# stores, and measured as living obligations.
+from kairos_api.trade_api import router as trade_router  # noqa: E402
+
+app.include_router(trade_router)
+
 # Catalog and scenario endpoints live in their own domain routers. The moved
 # builders are imported back under their original names so existing references
 # (tests, the startup warm-up below) keep working against the SAME objects,
