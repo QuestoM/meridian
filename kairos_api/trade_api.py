@@ -179,8 +179,12 @@ def _run_extraction_job(agreement_id: str, document_id: str, actor: str) -> dict
     from kairos.trade import extract_provider, extract_run
 
     path = trade_store.document_path(agreement_id, document_id)
-    client = extract_provider.build_client()  # raises ProviderUnavailable honestly
-    caller = extract_provider.StageCaller(client=client, stats=extract_provider.RunStats())
+    # raises ProviderUnavailable honestly; the auth mode decides whether the
+    # Claude Code identity block must lead every call (OAuth gates Sonnet/Opus)
+    client, auth_mode = extract_provider.build_client()
+    caller = extract_provider.StageCaller(
+        client=client, stats=extract_provider.RunStats(), auth_mode=auth_mode,
+    )
     extraction = extract_run.run_pdf(
         path, caller, document_id=document_id, agreement_id=agreement_id,
     )

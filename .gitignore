@@ -87,3 +87,9 @@ tv-break-dashboard/.probe-shell/
 
 # Local reading aid built from docs/research (owner-only, never committed)
 guide/
+
+# Trade-agreement store: operator documents at runtime, and a reproducible
+# corpus-derived dev fixture in development. scripts/seed_trade_agreements.py
+# regenerates the fixture; real signed agreements must never enter git.
+data/agreements/
+data/trade_credit_ledger.csv

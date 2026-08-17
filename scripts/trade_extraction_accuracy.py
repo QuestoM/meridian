@@ -306,7 +306,7 @@ def main() -> None:
     if dry_run:
         print("corpus loaded:", ", ".join(sorted(truths)))
         return
-    client = extract_provider.build_client()
+    client, auth_mode = extract_provider.build_client()
     records: dict[str, dict[str, Any]] = {}
     for doc_id in wanted:
         truth = truths[doc_id]
@@ -316,7 +316,8 @@ def main() -> None:
             print(f"skip {doc_id}: no rendered PDF")
             continue
         stats = extract_provider.RunStats()
-        caller = extract_provider.StageCaller(client=client, stats=stats)
+        caller = extract_provider.StageCaller(client=client, stats=stats,
+                                             auth_mode=auth_mode)
         started = time.monotonic()
         print(f"running {doc_id} ...", flush=True)
         got = extract_run.run_pdf(pdf, caller, document_id=doc_id, agreement_id=doc_id)

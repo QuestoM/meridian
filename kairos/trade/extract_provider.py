@@ -97,14 +97,37 @@ class ProviderUnavailable(RuntimeError):
     """No credentials resolve; the caller surfaces this honestly."""
 
 
-def build_client() -> Any:
-    """One client, through the assistant's credential seam."""
+def build_client() -> tuple[Any, Optional[str]]:
+    """One client through the assistant's credential seam, plus its auth mode.
+
+    The mode matters and is not cosmetic: Anthropic gates Sonnet and Opus on a
+    Claude Max OAuth token behind the official client identity, so the caller
+    must know to prepend it (see ``system_prefix``). Measured here the hard
+    way — a first live corpus run lost 116 of 116 parameterise calls to
+    authentication and rate errors while the Haiku classification stage, which
+    is not gated, passed clean.
+    """
     from kairos_api import assistant
 
     auth = assistant._resolve_auth()
     if auth is None:
         raise ProviderUnavailable(assistant.AUTH_MISSING_REASON)
-    return assistant._client_from_auth(auth)
+    return assistant._client_from_auth(auth), getattr(auth, "mode", None)
+
+
+def system_prefix(auth_mode: Optional[str]) -> list[dict[str, Any]]:
+    """The leading system blocks a call needs before its own instruction.
+
+    On the OAuth subscription path the Claude Code identity line comes first or
+    premium models refuse the call; on an API key it is absent. The identity
+    text itself is imported from the assistant so there is exactly one copy of
+    it in the product.
+    """
+    if auth_mode != "oauth":
+        return []
+    from kairos_api.assistant_prompt import CLAUDE_CODE_OAUTH_IDENTITY
+
+    return [{"type": "text", "text": CLAUDE_CODE_OAUTH_IDENTITY}]
 
 
 def _usage(response: Any) -> tuple[Optional[int], Optional[int]]:
@@ -153,6 +176,10 @@ class StageCaller:
     attempts: int = 5
     backoff_seconds: tuple[float, ...] = (5.0, 15.0, 40.0, 90.0)
     pace_seconds: float = 0.6
+    # The credential mode this caller was built for. On the OAuth subscription
+    # path every call carries the Claude Code identity block first, or Sonnet
+    # and Opus refuse it.
+    auth_mode: Optional[str] = None
     _last_call_at: float = field(default=0.0, repr=False)
 
     def call(self, stage: str, tier: str, system: str, content: Any,
@@ -168,7 +195,8 @@ class StageCaller:
                 response = self.client.messages.create(
                     model=model,
                     max_tokens=self.max_tokens,
-                    system=system,
+                    system=[*system_prefix(self.auth_mode),
+                            {"type": "text", "text": system}],
                     messages=[{"role": "user", "content": content}],
                     tools=[{
                         "name": tool_name,
