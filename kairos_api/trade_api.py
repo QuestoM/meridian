@@ -221,14 +221,44 @@ def _seed_conflicts(agreement_id: str, document_id: str, payload: dict[str, Any]
 
 @router.get("/agreements/{agreement_id}/documents/{document_id}/proposal")
 def document_proposal(agreement_id: str, document_id: str) -> dict[str, Any]:
-    _head_or_404(agreement_id)
+    """The proposal a reviewer works through, with what each term WILL DO.
+
+    The effect sentences come from the engine's own compiler verdict
+    (kairos.trade.explain), so the review screen never has to re-derive an
+    effect the backend already decided — and a term the compiler cannot bind
+    reads as "will not act automatically" with the reason, before approval
+    rather than after.
+    """
+    head = _head_or_404(agreement_id)
     try:
         extraction = trade_store.load_extraction(agreement_id, document_id)
         review = trade_store.load_review(agreement_id, document_id)
         gate = trade_review.document_gate(agreement_id, document_id)
     except KeyError as exc:
         raise _fail(exc) from exc
-    return {"extraction": extraction, "review": review, "gate": gate}
+    from kairos.trade import explain
+
+    # Explain the CURRENT reviewed state: a reviewer's edit changes what the
+    # rule will do, so the sentence must follow the edit, not the extraction.
+    states = review.get("instances", {})
+    effective = []
+    for inst in extraction.get("instances", []):
+        entry = states.get(inst["instance_id"], {})
+        if entry.get("state") == trade_store.REJECTED:
+            continue
+        effective.append({
+            **inst,
+            "params": entry.get("edited_params", inst.get("params", {})),
+            "scope": entry.get("edited_scope", inst.get("scope", {})),
+        })
+    effective.extend(review.get("reviewer_added", []))
+    explained = explain.explain_termset(
+        {"version_id": "draft", "agreement_id": agreement_id,
+         "instances": effective},
+        head,
+    )
+    return {"extraction": extraction, "review": review, "gate": gate,
+            "effects": explained}
 
 
 # --------------------------------------------------------------- review actions
@@ -410,6 +440,59 @@ def obligations(agreement_id: str) -> dict[str, Any]:
         alarms[snap.get("alarm", "unknown")] = alarms.get(snap.get("alarm", "unknown"), 0) + 1
     return {"available": True, "obligations": snapshots, "alarm_counts": alarms,
             "evaluated_at": inputs.today.isoformat()}
+
+
+# ----------------------------------------------------------------- simulation
+
+class SimulateBody(BaseModel):
+    """Simulate a proposed or approved version against real activity."""
+
+    version_id: str | None = None
+    window: dict[str, str] | None = None
+
+
+def _obligation_inputs(today: date):
+    import pandas as pd
+
+    from kairos_api import agency_conditions, campaigns_api_store, campaigns_delivery
+
+    links_path = Path(agency_conditions.LINKS_PATH)
+    links = (
+        pd.read_csv(links_path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+        if links_path.exists() else pd.DataFrame(columns=["agency_id", "advertiser"])
+    )
+    return campaigns_delivery.load_frame(), campaigns_api_store.load_frame(), links
+
+
+@router.post("/agreements/{agreement_id}/simulate")
+def simulate_agreement(agreement_id: str, body: SimulateBody) -> dict[str, Any]:
+    """What this agreement WOULD do to real activity. Writes nothing.
+
+    Without a version_id the newest version is used; a draft agreement with no
+    version yet says so rather than simulating an empty termset.
+    """
+    head = _head_or_404(agreement_id)
+    version_id = body.version_id or head.get("current_version_id")
+    if not version_id:
+        versions = trade_store.list_versions(agreement_id)
+        version_id = versions[0]["version_id"] if versions else None
+    if not version_id:
+        return {"available": False,
+                "reason": "אין עדיין גרסה לסימולציה; יש להשלים סקירה ואישור, "
+                          "או לשמור גרסת טיוטה"}
+    try:
+        termset = trade_store.load_termset(agreement_id, version_id)
+    except KeyError as exc:
+        raise _fail(exc) from exc
+    from kairos.trade import simulate as trade_simulate
+
+    delivery, campaigns, links = _obligation_inputs(date.today())
+    inputs = trade_simulate.SimulationInputs(
+        delivery=delivery, campaigns=campaigns, agency_links=links,
+        today=date.today(), window=body.window,
+    )
+    result = trade_simulate.simulate(termset, head, inputs)
+    return {"available": True, "version_id": version_id, **result}
 
 
 # ----------------------------------------------------------------- attribution

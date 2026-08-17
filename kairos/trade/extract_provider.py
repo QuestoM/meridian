@@ -114,6 +114,22 @@ def _usage(response: Any) -> tuple[Optional[int], Optional[int]]:
     return (getattr(usage, "input_tokens", None), getattr(usage, "output_tokens", None))
 
 
+def _retry_after_seconds(exc: Exception) -> Optional[float]:
+    """The provider's own instruction, when it sends one."""
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if not headers:
+        return None
+    for key in ("retry-after", "anthropic-ratelimit-requests-reset"):
+        raw = headers.get(key) if hasattr(headers, "get") else None
+        if raw:
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
 @dataclass
 class StageCaller:
     """The live ``call`` implementation handed to the pure stage functions.
@@ -121,19 +137,32 @@ class StageCaller:
     ``call(stage, tier, system, content, tool_name, tool_schema)`` issues one
     forced-tool call and returns the tool input dict. ``content`` is either a
     string (text prompt) or a prebuilt content-block list (vision pages).
-    Raises on terminal failure after one schema-retry; the runner catches per
-    unit of work and converts the failure into an honest unmapped clause.
+
+    Rate limits are the expected failure of a long extraction run, not an
+    exception: a full agreement is dozens of sequential calls on the heavy
+    tiers. The retry ladder is therefore exponential and patient (it honours
+    the provider's own retry-after when present), and ``pace_seconds`` puts a
+    floor between calls so a run does not sprint into its own ceiling.
+    A terminal failure still raises; the runner turns it into an honest
+    incomplete instance rather than losing the clause.
     """
 
     client: Any
     stats: RunStats
     max_tokens: int = 4000
+    attempts: int = 5
+    backoff_seconds: tuple[float, ...] = (5.0, 15.0, 40.0, 90.0)
+    pace_seconds: float = 0.6
+    _last_call_at: float = field(default=0.0, repr=False)
 
     def call(self, stage: str, tier: str, system: str, content: Any,
              tool_name: str, tool_schema: dict[str, Any]) -> dict[str, Any]:
         model = model_for(tier)
         last_error: Optional[Exception] = None
-        for attempt in (1, 2):
+        for attempt in range(1, self.attempts + 1):
+            gap = time.monotonic() - self._last_call_at
+            if gap < self.pace_seconds:
+                time.sleep(self.pace_seconds - gap)
             started = time.monotonic()
             try:
                 response = self.client.messages.create(
@@ -149,6 +178,7 @@ class StageCaller:
                     tool_choice={"type": "tool", "name": tool_name},
                 )
             except Exception as exc:  # noqa: BLE001 - recorded, then decided
+                self._last_call_at = time.monotonic()
                 self.stats.record(CallRecord(
                     stage=stage, tier=tier, model=model,
                     latency_seconds=round(time.monotonic() - started, 2),
@@ -156,10 +186,13 @@ class StageCaller:
                     error=type(exc).__name__,
                 ))
                 last_error = exc
-                if attempt == 1 and _retryable(exc):
-                    time.sleep(2.0)
+                if attempt < self.attempts and _retryable(exc):
+                    index = min(attempt - 1, len(self.backoff_seconds) - 1)
+                    wait = _retry_after_seconds(exc) or self.backoff_seconds[index]
+                    time.sleep(min(wait, 120.0))
                     continue
                 raise
+            self._last_call_at = time.monotonic()
             latency = round(time.monotonic() - started, 2)
             input_tokens, output_tokens = _usage(response)
             block = next(
