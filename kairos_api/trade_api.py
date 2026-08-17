@@ -191,6 +191,13 @@ def _run_extraction_job(agreement_id: str, document_id: str, actor: str) -> dict
     payload = extraction.to_payload()
     trade_store.save_extraction(agreement_id, document_id, payload, actor)
     _seed_conflicts(agreement_id, document_id, payload)
+    # A finished reading is what makes a draft reviewable: without this move
+    # the agreement stayed a draft after a live upload, and the panel opened
+    # the record instead of the review the extraction just prepared. An
+    # agreement already in review (a re-extraction) keeps its state.
+    if trade_store.load_head(agreement_id).get("status") == trade_store.DRAFT:
+        trade_store.set_status(agreement_id, trade_store.IN_REVIEW, actor,
+                               note="הצעת מיפוי מוכנה לסקירה")
     coverage = payload["coverage"]
     return {
         "document_id": document_id,
