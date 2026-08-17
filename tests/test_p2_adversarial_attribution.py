@@ -339,15 +339,117 @@ def test_an_adoption_that_beat_the_race_still_refuses_a_second_one(scoped):
 
 # ---------------------------------------- the dimension against the REAL store
 
-@pytest.mark.realdata
-def test_the_real_approved_agreement_can_only_report_unknown_today():
-    """What the commitments dimension actually says on the seeded data.
+def _resolvable_world(head: dict, today: datetime.date) -> tuple:
+    """A ledger the obligations engine can actually resolve for THIS agreement.
 
-    Not a defect in this surface and recorded so nobody mistakes it for one: the
-    single approved agreement on disk carries exactly one obliging term, and it is
-    one the obligations engine deliberately does not measure. So the dimension is
-    correct and honest here and still cannot demonstrate itself. The demonstration
-    needs an approved agreement carrying a budget commitment or a TRP guarantee.
+    Deliberately not empty frames. The engine now answers ``unknown`` for a world
+    with no delivery rows in the measurement window - correctly, since an absent
+    source is not a zero - which means an empty world reports ``unknown`` for a
+    budget commitment and for a term nobody measures alike. A tripwire built on
+    empty frames therefore cannot tell those two apart, and the one below has to.
+
+    So the campaign is named after the agreement's own counterparty and the
+    delivery row is placed inside its window, which is what makes a continuously
+    measured term come back measured.
+    """
+    counterparty = head.get("counterparty") or {}
+    advertiser = str(counterparty.get("advertiser") or "").strip()
+    agency = str(counterparty.get("agency") or "").strip()
+    subject = advertiser or agency or "probe-advertiser"
+    window = head.get("window") or {}
+    start = str(window.get("starts_on") or "")[:10]
+    try:
+        aired_on = datetime.date.fromisoformat(start)
+    except ValueError:
+        aired_on = today - datetime.timedelta(days=30)
+
+    campaigns = pd.DataFrame([("PROBE1", subject)],
+                             columns=["campaign_id", "advertiser"])
+    links = pd.DataFrame(
+        [(agency, agency, subject)] if agency else [],
+        columns=["agency_id", "agency_name", "advertiser"])
+    delivery = pd.DataFrame([
+        ("PROBE1", aired_on.isoformat(), "aired", "רשת 13", 20, 600, 40.0, 400_000),
+    ], columns=["campaign_id", "broadcast_date", "air_state", "channel", "spots",
+                "seconds", "rating_points_planned", "spend_ils"])
+    return campaigns, links, delivery
+
+
+def _measured_terms(heads: list[dict], today: datetime.date) -> list[str]:
+    """Which obliging terms in these agreements come back with a real alarm."""
+    from kairos.trade import obligations as obligation_engine
+    from kairos_api import trade_store
+
+    measured: list[str] = []
+    for head in heads:
+        campaigns, links, delivery = _resolvable_world(head, today)
+        inputs = obligation_engine.Inputs(
+            delivery=delivery, campaigns=campaigns, agency_links=links, today=today)
+        termset = trade_store.load_termset(str(head["agreement_id"]),
+                                          str(head["current_version_id"]))
+        for snapshot in obligation_engine.evaluate_all(termset, head, inputs):
+            if snapshot["alarm"] != obligation_engine.UNKNOWN:
+                measured.append(str(snapshot["term_id"]))
+    return measured
+
+
+def test_the_tripwire_below_can_actually_trip():
+    """The control that keeps the next test from passing for the wrong reason.
+
+    A detector nobody has seen fire is not a detector. This seeds a budget
+    commitment into the same evaluation path the next test uses and proves it
+    comes back MEASURED, so a green result there means "nothing measurable is on
+    disk" rather than "the probe was blind".
+
+    Written after the probe below WAS blind: it used empty frames, and once the
+    engine started answering unknown for an unresolvable world - the right
+    behaviour - a seeded budget commitment would have slipped past it silently.
+    """
+    from kairos.trade import obligations as obligation_engine
+
+    head = {
+        "agreement_id": "agr-probe", "title": "probe",
+        "counterparty": {"advertiser": "probe-advertiser"},
+        "window": {"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
+    }
+    termset = {
+        "version_id": "v-probe", "agreement_id": "agr-probe",
+        "instances": [{
+            "instance_id": "i-budget", "term_id": "budget-commitment",
+            "params": {"amount": {"amount": 1_000_000, "basis": "ratecard"}},
+            "scope": {}, "window": {},
+        }],
+    }
+    today = datetime.date(2026, 6, 15)
+    campaigns, links, delivery = _resolvable_world(head, today)
+    inputs = obligation_engine.Inputs(delivery=delivery, campaigns=campaigns,
+                                      agency_links=links, today=today)
+    (snapshot,) = obligation_engine.evaluate_all(termset, head, inputs)
+    assert snapshot["alarm"] != obligation_engine.UNKNOWN, (
+        "the probe world cannot measure even a budget commitment, so the tripwire "
+        "below would never fire")
+    assert snapshot["standing"]["counted"] == 400_000.0
+
+    # And the same world still answers unknown for a term nobody measures, which
+    # is the discrimination the tripwire depends on.
+    untracked = dict(termset, instances=[{
+        "instance_id": "i-av", "term_id": "added-value-media",
+        "params": {"percent": 8}, "scope": {}, "window": {}}])
+    (unmeasured,) = obligation_engine.evaluate_all(untracked, head, inputs)
+    assert unmeasured["alarm"] == obligation_engine.UNKNOWN
+
+
+@pytest.mark.realdata
+def test_the_seed_carries_a_commitment_the_dimension_can_actually_measure():
+    """The seed must keep an agreement whose standing a version can move.
+
+    This began life as the opposite assertion. When it was first written the only
+    approved agreement carried one obliging term - added-value-media - which the
+    engine routes to the untracked path, so the commitments dimension was correct,
+    honest and unable to demonstrate itself on real data. A second agreement has
+    since been approved carrying a budget commitment and a TRP guarantee, so the
+    dimension can now show a real commitment moving, and the useful assertion is
+    the one that stops that capability from being deleted by accident.
     """
     from kairos_api import trade_store
 
@@ -356,28 +458,82 @@ def test_the_real_approved_agreement_can_only_report_unknown_today():
     if not approved:
         pytest.skip("no approved agreement is seeded on this tree")
 
-    from kairos.trade import obligations as obligation_engine
+    measured = _measured_terms(approved, datetime.date(2026, 6, 15))
+    assert measured, (
+        "no approved agreement carries a continuously measured obligation any more, "
+        "so the day comparison can no longer demonstrate a commitment moving")
 
-    # Asked of the engine by evaluating, not by reading its dispatch table: the
-    # table has already moved module once during this build, and what matters is
-    # the verdict a side would carry rather than where the registry happens to live.
-    empty = pd.DataFrame()
-    inputs = obligation_engine.Inputs(
-        delivery=empty, campaigns=empty, agency_links=empty,
-        today=datetime.date(2026, 6, 15))
-    measured: list[str] = []
-    seen: list[str] = []
-    for head in approved:
-        termset = trade_store.load_termset(str(head["agreement_id"]),
-                                          str(head["current_version_id"]))
-        for snapshot in obligation_engine.evaluate_all(termset, head, inputs):
-            seen.append(str(snapshot["term_id"]))
-            if snapshot["alarm"] != obligation_engine.UNKNOWN:
-                measured.append(str(snapshot["term_id"]))
-    assert seen, "the approved agreement carries no obliging term at all"
-    assert not measured, (
-        "a continuously measured obligation is now seeded, so the day-comparison "
-        f"commitments dimension can demonstrate itself on real data: {measured}")
+
+@pytest.mark.realdata
+def test_a_real_agreement_shows_commitments_advancing_and_endangered(scoped):
+    """The demonstration itself, end to end, on a real approved agreement.
+
+    One day, two versions of it, and the signed commitments of a real counterparty
+    behind them: the version that starves the day endangers what it was carrying and
+    the version that carries it advances the same commitments. This is the claim the
+    comparison surface exists to make, so it is measured against the real agreement
+    store rather than against a fixture.
+
+    ``scoped`` is not optional decoration. Written without it, this test created
+    two proposals under ``data/day_proposals`` on the real tree, one directory away
+    from the seeded demo versions of 2024-11-01. The agreements are read from the
+    real store on purpose; everything this test WRITES goes to ``tmp_path``.
+    """
+    from kairos_api import trade_store
+
+    head = next((item for item in trade_store.list_agreements()
+                 if item.get("current_version_id")
+                 and _measured_terms([item], datetime.date(2026, 6, 15))), None)
+    if head is None:
+        pytest.skip("no approved agreement carries a measurable obligation")
+    termset = trade_store.load_termset(str(head["agreement_id"]),
+                                       str(head["current_version_id"]))
+    day = "2026-03-10"
+    advertiser = (head.get("counterparty") or {}).get("advertiser") or "probe"
+    delivery = pd.DataFrame([
+        ("CS1", "2026-02-01", "aired", CHANNEL, 40, 1200, 60.0, 900_000),
+        ("CS1", day, "scheduled", CHANNEL, 50, 1500, 70.0, 400_000),
+    ], columns=["campaign_id", "broadcast_date", "air_state", "channel", "spots",
+                "seconds", "rating_points_planned", "spend_ils"])
+    context = {
+        "approved": [(head, termset)],
+        "delivery": delivery,
+        "campaigns": pd.DataFrame([("CS1", advertiser)],
+                                  columns=["campaign_id", "advertiser"]),
+        "links": pd.DataFrame(columns=["agency_id", "agency_name", "advertiser"]),
+        "today": datetime.date(2026, 6, 15),
+    }
+    baseline = frame(BASE_ROWS, day=day)
+    ref = ref_for(baseline)
+    ids = []
+    for name, factor in (("מצמצם את היום", 0.7), ("נושא את היום", 1.4)):
+        rows = frame([(row[0], row[1], row[2], row[3] * factor, row[4], row[5])
+                      for row in BASE_ROWS], day=day)
+        ids.append(store.create_proposal(
+            channel=CHANNEL, date=day, name=name, author="probe", rows=rows,
+            baseline_ref=ref, rows_source="engine-day-plan-with-edits")["proposal_id"])
+
+    payload = day_compare.compare(
+        CHANNEL, day, ids, baseline_rows=baseline, baseline_ref=ref,
+        caps={"max_daily_ad_seconds": 3000.0}, trade_context=context)
+    starved, carried = payload["sides"][0], payload["sides"][1]
+
+    assert starved["commitments"]["counts"][standing.ENDANGERS] >= 1
+    assert "בסיכון" in starved["headline"]
+    assert carried["commitments"]["counts"][standing.ADVANCES] >= 1
+    assert "מתקדמות" in carried["headline"] or "מתקדמת" in carried["headline"]
+
+    # The same commitment, moved in both directions by the two versions.
+    def projection(side, term):
+        return next(item for item in side["commitments"]["obligations"]
+                    if item["term_id"] == term)
+
+    budget_down = projection(starved, "budget-commitment")
+    budget_up = projection(carried, "budget-commitment")
+    assert budget_down["side"]["projection"] < budget_down["baseline"]["projection"]
+    assert budget_up["side"]["projection"] > budget_up["baseline"]["projection"]
+    assert budget_down["verdict"] == standing.ENDANGERS
+    assert budget_up["verdict"] == standing.ADVANCES
 
 
 @pytest.mark.realdata

@@ -323,7 +323,7 @@ export default function DayVersionsWorkspace({ locale = 'he', notify, refreshKey
                   {decision.verdict === 'adopt'
                     ? pageText(locale, 'Adopting a version', 'אימוץ גרסה')
                     : pageText(locale, 'Rejecting a version', 'דחיית גרסה')}
-                  {' — '}
+                  {' - '}
                   <Name>{decision.label}</Name>
                 </h4>
                 <p>

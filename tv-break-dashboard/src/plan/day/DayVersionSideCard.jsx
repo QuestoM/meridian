@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber, pageText } from '../../shell/surface-help
 // One side of the day comparison: the headline, the deltas, the attributed
 // reasons, the commitments line, the guardrail verdict and the decision
 // actions. Split out of DayVersionsWorkspace to keep that file inside the
-// project's file-size law; this half holds no state and makes no request —
+// project's file-size law; this half holds no state and makes no request;
 // everything it shows arrives as a prop from the compare payload.
 
 function signed(value, formatter) {

@@ -10,7 +10,7 @@ import './forecast-stage.css';
 
 // The rating forecast as a first-class stage: every programme of the day, the
 // expected rating with its honest range, the drivers behind the number, and
-// the historical mean beside it — because that mean is what this product
+// the historical mean beside it, because that mean is what this product
 // priced on before the model existed, and the backtest's verdict on which of
 // the two is more accurate is printed at the top rather than implied.
 
@@ -35,12 +35,12 @@ function loadAccuracy() {
 }
 
 function tvr(value, locale) {
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return '-';
   return formatNumber(Math.round(Number(value) * 100) / 100, locale);
 }
 
 function AccuracyStrip({ accuracy, locale }) {
-  // 403 means the measurement rides the model console's company wall — a
+  // 403 means the measurement rides the model console's company wall, a
   // stated boundary, not an error.
   if (accuracy && accuracy.walled) {
     return (
@@ -264,7 +264,7 @@ export default function ForecastStageWorkspace({ locale = 'he', refreshKey = 0 }
                           <td>
                             {row.interval && row.interval.available
                               ? <Figure>{`${tvr(row.interval.low, locale)}–${tvr(row.interval.high, locale)}`}</Figure>
-                              : <span className="fcs-quiet">—</span>}
+                              : <span className="fcs-quiet">-</span>}
                           </td>
                           <td><Figure>{tvr(row.history && row.history.historical_tvr, locale)}</Figure></td>
                         </tr>

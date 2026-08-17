@@ -29,9 +29,12 @@ honest uncertainty and a published backtest.
 
 ## The demonstration, step by step
 
-Have two terminals: `uvicorn kairos_api.server:app` from the repo root, and
-`npm run preview` in `tv-break-dashboard` (or the deployed equivalent). The
-demo store already holds six agreements in every lifecycle state.
+Have two terminals: `KAIROS_AUTH_DISABLED=1 python -m uvicorn
+kairos_api.server:app --port 8000` from the repo root (the venv is
+`~/.venvs/meridian`; leave `KAIROS_PLAN_READONLY` unset so the recompute
+button works), and `npm run preview` in `tv-break-dashboard`. The demo store
+already holds six agreements in every lifecycle state, three competing
+versions of 2024-11-01, and the recomputed plan of record.
 
 1. **The agreements shelf** — מסחרי → הסכמי סחר. Six cards: draft, three in
    review with their blocker counts, and two approved. Point at the one card
@@ -97,11 +100,14 @@ demo store already holds six agreements in every lifecycle state.
    0.707) and loses in arithmetic rating points (1.188 vs 0.898), which is
    exactly why activation is gated and the number ships with its uncertainty.
 
-7. **Live extraction, if there is time** — upload the סנו PDF to a fresh
-   agreement and let the pipeline run while talking; it takes minutes, not
-   seconds, and the progress is visible. Come back to a full proposal with
-   citations. (If the room is impatient, the six seeded agreements ARE the
-   result of this pipeline's corpus.)
+7. **Live extraction, if there is time** — press הוספת הסכם, create a fresh
+   agreement, upload one of the corpus PDFs and start the reading; keep
+   talking while it runs. Measured on this machine: a 12-clause amendment
+   reads in about two and a half minutes, ends with every clause accounted
+   for, and the agreement moves itself into review — the review screen with
+   the full proposal, citations and one open conflict is one click away.
+   (Proven end to end against the running server on 2026-08-17; if the room
+   is impatient, the six seeded agreements ARE this pipeline's output.)
 
 ## The numbers we publish
 
@@ -161,8 +167,8 @@ ground truth authored independently of it — nothing asserted by hand:
 
 ## Honest limits to say before they ask
 
-- Parameter accuracy is the weakest number (64.3% overall; family G —
-  process/legal — is the worst at 16.0%). The completeness guarantee is what
+- Parameter accuracy is the weakest number (65.1% overall; family G —
+  process/legal — is the worst at 17.0%). The completeness guarantee is what
   makes this safe: wrong or thin parameters arrive as reviewable proposals
   with the source beside them, never as silently applied rules.
 - Delivery standing is engine-priced from the As-Run book and says so; it is
@@ -187,3 +193,6 @@ ground truth authored independently of it — nothing asserted by hand:
 | Corpus + accuracy harness | `tests/trade_corpus/`, `scripts/trade_extraction_accuracy.py` |
 | End-to-end proof | `scripts/trade_end_to_end_proof.py` |
 | Evidence harness | `tv-break-dashboard/scripts/capture-trade-evidence.mjs` |
+| Visual evidence, curated | `docs/trade/evidence.md` + `docs/trade/evidence/` |
+| Day versions surface | `tv-break-dashboard/src/plan/day/DayVersionsWorkspace.jsx` |
+| Forecast stage | `tv-break-dashboard/src/plan/week/ForecastStageWorkspace.jsx` |
