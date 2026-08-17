@@ -53,14 +53,29 @@ WHOLEDOC_SYSTEM = """אתה קורא הסכם מסחרי חתום בשוק הט�
 - params חייב להתאים לסכמה של אותו מונח. שדה שהמסמך אינו נותן - רשום ב-missing
   ואל תמציא ערך.
 - אם סעיף אינו מסחרי (כותרת, חתימות, מבוא, כתובות), פשוט אל תפיק ממנו מונח.
-- עדיף מונח אחד מדויק על שלושה משוערים."""
+- עדיף מונח אחד מדויק על שלושה משוערים.
+- קודם כל המונחים. document_notes הוא משפט אחד לכל היותר ואינו התוצר: תקציב
+  הפלט שייך למונחים, ותקציר ארוך שדוחק אותם החוצה מבטל את כל הקריאה."""
 
 
 def _term_catalogue() -> str:
-    """The taxonomy as the reader sees it: id, both names, one line of behaviour."""
+    """The taxonomy as the reader sees it, INCLUDING each term's schema.
+
+    The schemas are here because their absence made the first reading unfair to
+    judge: it produced sound readings in its own shape - ``{from, to}`` for a
+    window the schema calls ``starts_on/ends_on``, a flat amount where the
+    schema wants ``{amount, currency, basis}`` - and every one of those scored
+    as a parameter miss. A reader marked down for a format nobody showed it is
+    not a measurement of the reader. All sixty-four schemas cost about eight
+    thousand input tokens on one call, which is the cheapest part of it.
+    """
     lines = []
     for term_id, spec in sorted(taxonomy.TERMS.items()):
-        lines.append(f"{term_id} | {spec.name_he} | {spec.name_en} | {', '.join(spec.behaviours)}")
+        schema = json.dumps(taxonomy_schemas.schema_for(term_id), ensure_ascii=False)
+        lines.append(
+            f"{term_id} | {spec.name_he} | {spec.name_en} | "
+            f"{', '.join(spec.behaviours)}\n    params schema: {schema}"
+        )
     return "\n".join(lines)
 
 
@@ -95,7 +110,12 @@ def _wholedoc_schema() -> dict[str, Any]:
                     "additionalProperties": False,
                 },
             },
-            "document_notes": {"type": "string"},
+            # CAPPED ON PURPOSE. An uncapped notes field is a budget footgun:
+            # the first live run wrote a long, genuinely insightful summary and
+            # was truncated before the instances array ever arrived, so the
+            # reading returned nothing at all. One sentence is all any caller
+            # downstream reads.
+            "document_notes": {"type": "string", "maxLength": 400},
         },
         "required": ["instances"],
         "additionalProperties": False,
@@ -122,7 +142,8 @@ def read_whole_document(
         f'<סעיף id="{c.clause_id}">\n{c.text}\n</סעיף>' for c in clauses
     )
     content: Any = (
-        "רשימת המונחים בטקסונומיה (מזהה | שם | שם באנגלית | התנהגות):\n"
+        "רשימת המונחים בטקסונומיה (מזהה | שם | שם באנגלית | התנהגות), ומתחת לכל אחד\n"
+        "הסכמה המדויקת ש-params חייב לציית לה. השתמש בשמות השדות של הסכמה בדיוק:\n"
         f"{_term_catalogue()}\n\n"
         "ההסכם המלא, סעיף אחר סעיף:\n\n"
         f"{body}"

@@ -173,6 +173,15 @@ class StageCaller:
     client: Any
     stats: RunStats
     max_tokens: int = 4000
+    # Per-stage output ceilings, because the stages are not the same shape. A
+    # clause-level stage answers with ONE small object and 4000 is generous. A
+    # stage that answers for a WHOLE DOCUMENT - the second reader, the arbiter -
+    # must emit dozens of objects in one response, and 4000 truncates it. That
+    # failure is silent and expensive: the first whole-document run spent its
+    # entire budget on a prose summary, was cut off before the instances array,
+    # and returned zero terms with zero errors. Measured: output_tokens 4000 of
+    # 4000, instances absent from the tool input.
+    max_tokens_by_stage: dict[str, int] = field(default_factory=dict)
     attempts: int = 5
     backoff_seconds: tuple[float, ...] = (5.0, 15.0, 40.0, 90.0)
     pace_seconds: float = 0.6
@@ -194,7 +203,7 @@ class StageCaller:
             try:
                 response = self.client.messages.create(
                     model=model,
-                    max_tokens=self.max_tokens,
+                    max_tokens=self.max_tokens_by_stage.get(stage, self.max_tokens),
                     system=[*system_prefix(self.auth_mode),
                             {"type": "text", "text": system}],
                     messages=[{"role": "user", "content": content}],

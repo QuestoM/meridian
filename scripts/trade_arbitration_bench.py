@@ -57,21 +57,34 @@ def _as_extraction(base: DocumentExtraction, instances: list[Any]) -> DocumentEx
     for inst in instances:
         for cite in inst.citations:
             cited.setdefault(cite.clause_id, []).append(inst.instance_id)
+    base_by_clause = {d.clause_id: d for d in base.dispositions}
     dispositions = []
     for clause in base.clauses:
         ids = cited.get(clause.clause_id, [])
         if ids:
             dispositions.append(ClauseDisposition(
-                clause_id=clause.clause_id, disposition="mapped", instance_ids=ids))
+                clause_id=clause.clause_id, disposition="mapped",
+                instance_ids=tuple(ids)))
+            continue
+        # A clause this reading produced nothing for is UNMAPPED for this
+        # reading, even if the pipeline mapped it. Inheriting "mapped" from the
+        # pipeline would let readings B and C borrow the pipeline's disposition
+        # score for clauses they never placed - a bias in favour of exactly the
+        # architecture being tested. "irrelevant" is inherited, because a
+        # signature block is not commercial no matter who reads it.
+        old = base_by_clause.get(clause.clause_id)
+        if old is not None and old.disposition == "irrelevant":
+            dispositions.append(old)
         else:
-            old = next((d for d in base.dispositions if d.clause_id == clause.clause_id), None)
-            dispositions.append(old if old is not None else ClauseDisposition(
+            dispositions.append(ClauseDisposition(
                 clause_id=clause.clause_id, disposition="unmapped",
-                reason="לא הופק ממנו מונח בקריאה הזאת"))
+                reason="הקריאה הזאת לא הפיקה מסעיף זה מונח"))
     return DocumentExtraction(
-        document_id=base.document_id, agreement_id=base.agreement_id,
+        document_id=base.document_id,
         clauses=base.clauses, instances=list(instances),
-        dispositions=dispositions, stats=dict(base.stats),
+        dispositions=dispositions,
+        source_language=base.source_language, ingest_route=base.ingest_route,
+        stats=dict(base.stats),
     )
 
 
@@ -94,7 +107,14 @@ def main() -> None:
         truth = truths[doc_id]
 
         stats = extract_provider.RunStats()
-        caller = extract_provider.StageCaller(client=client, stats=stats, auth_mode=auth_mode)
+        # The whole-document reader and the arbiter answer for an entire
+        # agreement in one response, so they get room for it. 4000 - fine for a
+        # clause-level answer - truncated the first run before its instances
+        # array and returned a reading of nothing.
+        caller = extract_provider.StageCaller(
+            client=client, stats=stats, auth_mode=auth_mode,
+            max_tokens_by_stage={"wholedoc": 16000, "arbitrate": 16000},
+        )
         print(f"\n=== {doc_id} ({route})", flush=True)
 
         # ---- A: the shipped clause-by-clause pipeline -----------------------

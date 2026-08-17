@@ -1,0 +1,266 @@
+{
+ "run_at": "2026-08-17T20:30:09+00:00",
+ "documents": {
+  "heb-amendment-q4-2026": {
+   "route": "digital",
+   "alignment": {
+    "agreed": 0,
+    "params_differ": 0,
+    "pipeline_only": 18,
+    "whole_only": 0
+   },
+   "whole_dropped": [],
+   "rulings": [],
+   "scores": {
+    "pipeline": {
+     "clauses_truth": 12,
+     "clauses_pipeline": 12,
+     "clauses_accounted": 12,
+     "disposition_class_hits": 10,
+     "instances_truth": 7,
+     "instances_found": 18,
+     "matched": 7,
+     "missed": [],
+     "spurious": [
+      {
+       "instance_id": "x-001",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "x-003",
+       "term_id": "agreement-level"
+      },
+      {
+       "instance_id": "x-004",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "x-005",
+       "term_id": "effective-window"
+      },
+      {
+       "instance_id": "x-008",
+       "term_id": "brand-scope"
+      },
+      {
+       "instance_id": "x-009",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "x-010",
+       "term_id": "precedence-clause"
+      },
+      {
+       "instance_id": "x-012",
+       "term_id": "payment-indexation"
+      },
+      {
+       "instance_id": "x-015",
+       "term_id": "volume-discount-ladder"
+      },
+      {
+       "instance_id": "x-016",
+       "term_id": "term-effective-windows"
+      },
+      {
+       "instance_id": "x-018",
+       "term_id": "programme-daypart-restrictions"
+      }
+     ],
+     "recall": 1.0,
+     "precision": 0.3889,
+     "param_hits": 13,
+     "param_total": 29,
+     "param_accuracy": 0.4483,
+     "by_family": {
+      "A": {
+       "hits": 5,
+       "total": 16,
+       "instances": 3,
+       "accuracy": 0.3125
+      },
+      "B": {
+       "hits": 4,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 1.0
+      },
+      "D": {
+       "hits": 3,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 0.75
+      },
+      "F": {
+       "hits": 1,
+       "total": 3,
+       "instances": 1,
+       "accuracy": 0.3333
+      },
+      "H": {
+       "hits": 0,
+       "total": 2,
+       "instances": 1,
+       "accuracy": 0.0
+      }
+     },
+     "citation_failures": [],
+     "conflicts_expected": 0,
+     "conflicts_found": 0,
+     "unmapped_found": 0,
+     "unmapped_truth": 0
+    },
+    "whole": {
+     "clauses_truth": 12,
+     "clauses_pipeline": 12,
+     "clauses_accounted": 12,
+     "disposition_class_hits": 1,
+     "instances_truth": 7,
+     "instances_found": 0,
+     "matched": 0,
+     "missed": [
+      {
+       "instance_id": "am-parties",
+       "term_id": "agreement-parties"
+      },
+      {
+       "instance_id": "am-layer",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "am-precedence",
+       "term_id": "precedence-clause"
+      },
+      {
+       "instance_id": "am-budget",
+       "term_id": "budget-commitment"
+      },
+      {
+       "instance_id": "am-q4-cpp",
+       "term_id": "cpp-daypart-table"
+      },
+      {
+       "instance_id": "am-q4-window",
+       "term_id": "term-effective-windows"
+      },
+      {
+       "instance_id": "am-exclusivity",
+       "term_id": "category-exclusivity"
+      }
+     ],
+     "spurious": [],
+     "recall": 0.0,
+     "precision": null,
+     "param_hits": 0,
+     "param_total": 0,
+     "param_accuracy": null,
+     "by_family": {},
+     "citation_failures": [],
+     "conflicts_expected": 0,
+     "conflicts_found": 0,
+     "unmapped_found": 11,
+     "unmapped_truth": 0
+    },
+    "arbitrated": {
+     "clauses_truth": 12,
+     "clauses_pipeline": 12,
+     "clauses_accounted": 12,
+     "disposition_class_hits": 1,
+     "instances_truth": 7,
+     "instances_found": 0,
+     "matched": 0,
+     "missed": [
+      {
+       "instance_id": "am-parties",
+       "term_id": "agreement-parties"
+      },
+      {
+       "instance_id": "am-layer",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "am-precedence",
+       "term_id": "precedence-clause"
+      },
+      {
+       "instance_id": "am-budget",
+       "term_id": "budget-commitment"
+      },
+      {
+       "instance_id": "am-q4-cpp",
+       "term_id": "cpp-daypart-table"
+      },
+      {
+       "instance_id": "am-q4-window",
+       "term_id": "term-effective-windows"
+      },
+      {
+       "instance_id": "am-exclusivity",
+       "term_id": "category-exclusivity"
+      }
+     ],
+     "spurious": [],
+     "recall": 0.0,
+     "precision": null,
+     "param_hits": 0,
+     "param_total": 0,
+     "param_accuracy": null,
+     "by_family": {},
+     "citation_failures": [],
+     "conflicts_expected": 0,
+     "conflicts_found": 0,
+     "unmapped_found": 11,
+     "unmapped_truth": 0
+    }
+   },
+   "seconds": {
+    "pipeline": 255.07243516699236,
+    "whole": 58.64211545800208,
+    "arbitrated": 63.70275341600063
+   },
+   "provider": {
+    "classify": {
+     "calls": 2,
+     "failed": 0,
+     "input_tokens": 11516,
+     "output_tokens": 1215,
+     "latency_seconds": 14.52,
+     "models": [
+      "claude-haiku-4-5-20251001"
+     ]
+    },
+    "parameterise": {
+     "calls": 18,
+     "failed": 0,
+     "input_tokens": 37166,
+     "output_tokens": 13634,
+     "latency_seconds": 229.0,
+     "models": [
+      "claude-opus-5",
+      "claude-sonnet-5"
+     ]
+    },
+    "wholedoc": {
+     "calls": 1,
+     "failed": 0,
+     "input_tokens": 5347,
+     "output_tokens": 4000,
+     "latency_seconds": 58.03,
+     "models": [
+      "claude-opus-5"
+     ]
+    },
+    "arbitrate": {
+     "calls": 1,
+     "failed": 0,
+     "input_tokens": 15464,
+     "output_tokens": 4000,
+     "latency_seconds": 63.09,
+     "models": [
+      "claude-opus-5"
+     ]
+    }
+   }
+  }
+ }
+}
