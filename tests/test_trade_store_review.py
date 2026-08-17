@@ -52,7 +52,10 @@ def _extraction_payload(doc_id="doc-x"):
 
 
 def _agreement_in_review(actor="dana"):
-    head = trade_store.create(title="הסכם בדיקה", level="advertiser", actor=actor)
+    head = trade_store.create(
+        title="הסכם בדיקה", level="advertiser", actor=actor,
+        window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
+    )
     aid = head["agreement_id"]
     doc = trade_store.attach_document(
         aid, filename="deal.pdf", payload=b"%PDF-1.4 fake", actor=actor

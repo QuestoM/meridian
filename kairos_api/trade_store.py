@@ -60,6 +60,18 @@ TRANSITIONS: dict[str, frozenset[str]] = {
 
 LEVELS = ("agency_framework", "advertiser", "campaign")
 
+# EVERY AGREEMENT HAS AN END DATE. Owner rule, and it is a modelling rule
+# rather than a formality: an obligation with no closing date has no
+# measurement window, so its pace, its projection and its alarm are all
+# undefined — the commitment silently stops being tracked, which is the exact
+# failure this engine exists to prevent. An agreement the parties intend to run
+# until somebody cancels it is therefore recorded with the FOREVER date below,
+# and every surface prints that as open-ended rather than as a real 2099
+# deadline.
+FOREVER = "2099-12-31"
+FOREVER_LABEL_HE = "ללא מועד סיום (נרשם עד 2099)"
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
 # Reviewer verdicts on one proposed instance. ``edited`` keeps BOTH the
 # extraction's params and the reviewer's; the diff is part of the record.
 PROPOSED = "proposed"
@@ -114,6 +126,39 @@ def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def normalise_window(window: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Every agreement window carries a start and an end, or this raises.
+
+    ``ends_on`` may be given as ``None``/``""``/``"indefinite"``/``"forever"``
+    to mean "until one side cancels"; that is stored as ``FOREVER`` with
+    ``open_ended: true`` so the intent survives and the measurement window
+    still exists. A start date is never invented: an agreement whose own start
+    nobody knows is a document that has not been read yet.
+    """
+    window = dict(window or {})
+    start = str(window.get("starts_on") or "").strip()
+    if not _DATE_RE.match(start):
+        raise ValueError(
+            "an agreement needs a start date in YYYY-MM-DD form; "
+            f"got {window.get('starts_on')!r}"
+        )
+    raw_end = str(window.get("ends_on") or "").strip().lower()
+    open_ended = raw_end in ("", "none", "indefinite", "forever", "ללא", "פתוח")
+    end = FOREVER if open_ended else str(window.get("ends_on")).strip()
+    if not _DATE_RE.match(end):
+        raise ValueError(
+            "an agreement needs an end date in YYYY-MM-DD form, or an "
+            "explicitly open-ended marker; got "
+            f"{window.get('ends_on')!r}"
+        )
+    if end < start:
+        raise ValueError(f"the agreement ends ({end}) before it starts ({start})")
+    out = {**window, "starts_on": start, "ends_on": end, "open_ended": open_ended}
+    if open_ended:
+        out["open_ended_label_he"] = FOREVER_LABEL_HE
+    return out
+
+
 # ---------------------------------------------------------------- agreement head
 
 def new_agreement_id() -> str:
@@ -138,6 +183,7 @@ def create(
         raise ValueError(f"level must be one of {LEVELS}, got {level!r}")
     if parent_agreement_id is not None:
         load_head(parent_agreement_id)  # raises when the parent does not exist
+    window = normalise_window(window)
     agreement_id = new_agreement_id()
     head = {
         "agreement_id": agreement_id,
@@ -145,7 +191,7 @@ def create(
         "level": level,
         "status": DRAFT,
         "counterparty": counterparty or {},
-        "window": window or {},
+        "window": window,
         "parent_agreement_id": parent_agreement_id,
         "note": str(note or ""),
         "created_at": now_stamp(),
