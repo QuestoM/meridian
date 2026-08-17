@@ -74,6 +74,55 @@ def test_retroactive_and_marginal_ladders_differ_on_the_same_spend():
     assert retro["money"]["discount_ladder"]["mechanics"] == "retroactive"
 
 
+def test_an_amended_ladder_keeps_the_tiers_the_amendment_never_mentioned():
+    """The measured bug this test exists for: the corpus flagship carries the
+    body's 12/15/18% ladder AND an appendix restating ONLY the top tier as 17%.
+    Keying settlement terms by kind let the appendix overwrite the body, so a
+    ₪3.84M spend reported NO discount at all — the worst class of error this
+    engine can make. Tiers merge by threshold instead."""
+    body = _ladder("retroactive")
+    body["params"]["tiers"] = [
+        {"threshold": 0, "discount_percent": 12},
+        {"threshold": 8_000_000, "discount_percent": 15},
+        {"threshold": 12_000_000, "discount_percent": 18},
+    ]
+    appendix = {
+        "instance_id": "i-ladder-appendix", "term_id": "volume-discount-ladder",
+        "params": {
+            "tiers": [{"threshold": 12_000_000, "discount_percent": 17}],
+            "basis": "ratecard_gross", "mechanics": "retroactive", "period": "year",
+        },
+        "scope": {}, "window": {}, "citations": [],
+    }
+    result = simulate.simulate(_termset([body, appendix]), _head(), _inputs(ROWS))
+    ladder = result["money"]["discount_ladder"]
+    # 1.2M of aired spend sits in the first tier, which the appendix never
+    # touched: 12% survives instead of vanishing.
+    assert ladder["tier_reached_percent"] == 12
+    assert ladder["discount_value"] == 144_000.0
+    assert ladder["merged_from"] == ["i-ladder", "i-ladder-appendix"]
+    # And the amendment's own tier is the one that binds at the top.
+    assert ladder["next_tier"]["threshold"] == 8_000_000
+    merged = simulate.merge_ladders([body["params"], appendix["params"]])
+    top = [t for t in merged["tiers"] if t["threshold"] == 12_000_000]
+    assert top == [{"threshold": 12_000_000, "discount_percent": 17}]
+    assert len(merged["tiers"]) == 3, "no threshold may be lost in the merge"
+
+
+def test_two_commission_percentages_refuse_to_merge():
+    first = {
+        "instance_id": "i-c1", "term_id": "agency-commission",
+        "params": {"percent": 15, "base": "gross", "form": "invoice_deduction"},
+        "scope": {}, "window": {}, "citations": [],
+    }
+    second = {**first, "instance_id": "i-c2",
+              "params": {"percent": 12, "base": "gross", "form": "invoice_deduction"}}
+    result = simulate.simulate(_termset([first, second]), _head(), _inputs(ROWS))
+    assert "agency_commission" not in result["money"]
+    reasons = [n["reason_he"] for n in result["not_simulated"]]
+    assert any("הכרעה אנושית" in r for r in reasons)
+
+
 def test_an_unstated_ladder_mechanic_is_refused_not_guessed():
     result = simulate.simulate(_termset([_ladder("unstated")]), _head(), _inputs(ROWS))
     assert result["money"]["discount_ladder"]["available"] is False

@@ -80,6 +80,48 @@ def _period_spend(inputs: SimulationInputs, campaign_ids: list[str]) -> dict[str
     }
 
 
+def merge_ladders(terms: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Several ladder instances describing ONE commercial ladder, merged.
+
+    An amendment or appendix routinely restates a single tier ("the top tier
+    shall be 17% rather than 18%"), which the taxonomy correctly extracts as a
+    second instance of the same term. Picking one instance wholesale would then
+    silently DELETE the tiers the amendment never mentioned — measured on the
+    corpus flagship, that reported no discount at all on ₪3.84M of real spend,
+    which is the worst class of error this engine can make.
+
+    So tiers are merged BY THRESHOLD: a later instance's tier replaces the
+    earlier one at the same threshold, and thresholds nobody restated survive.
+    Instances are taken in the order the caller supplies (compile order, which
+    follows the termset), so the last word wins per threshold. The merge is
+    reported on the result: a figure produced by combining documents must say
+    that it did.
+    """
+    by_threshold: dict[float, float] = {}
+    provenance: dict[float, str] = {}
+    mechanics = "unstated"
+    period = None
+    basis = None
+    for term in terms:
+        for tier in term.get("tiers", []):
+            threshold = float(tier.get("threshold") or 0)
+            by_threshold[threshold] = float(tier.get("discount_percent") or 0)
+            provenance[threshold] = str(term.get("instance_id") or "")
+        if str(term.get("mechanics") or "unstated") != "unstated":
+            mechanics = str(term["mechanics"])
+        period = term.get("period") or period
+        basis = term.get("basis") or basis
+    return {
+        "tiers": [{"threshold": t, "discount_percent": by_threshold[t]}
+                  for t in sorted(by_threshold)],
+        "mechanics": mechanics,
+        "period": period,
+        "basis": basis,
+        "merged_from": [str(t.get("instance_id") or "") for t in terms],
+        "tier_provenance": {str(t): provenance[t] for t in sorted(provenance)},
+    }
+
+
 def _ladder_effect(term: Mapping[str, Any], spend: float) -> dict[str, Any]:
     """What a ladder would take off the period's own spend."""
     tiers = sorted(
@@ -176,10 +218,25 @@ def simulate(termset: Mapping[str, Any], head: Mapping[str, Any],
         for s in artifacts.skipped
     ]
 
-    settlement_terms = {t["kind"]: t for t in artifacts.settlement.get("terms", [])}
+    # Group by kind rather than keying on it: several instances of one kind is
+    # the normal shape of an amended agreement, and the earlier dict-by-kind
+    # silently kept only the last one.
+    settlement_terms: dict[str, list[Mapping[str, Any]]] = {}
+    for term in artifacts.settlement.get("terms", []):
+        settlement_terms.setdefault(str(term["kind"]), []).append(term)
+
     discount_value = 0.0
-    if "discount_ladder" in settlement_terms:
-        ladder = _ladder_effect(settlement_terms["discount_ladder"], gross)
+    ladders = settlement_terms.get("discount_ladder", [])
+    if ladders:
+        merged = merge_ladders(ladders)
+        ladder = _ladder_effect(merged, gross)
+        if len(ladders) > 1:
+            ladder["merged_from"] = merged["merged_from"]
+            ladder["tier_provenance"] = merged["tier_provenance"]
+            ladder["merge_note_he"] = (
+                "מדרגות ההנחה מורכבות ממספר מופעים (גוף ההסכם ותיקוניו); "
+                "מדרגה שסעיף מאוחר נקב בה גוברת, ומדרגה שאיש לא שינה נשמרת"
+            )
         money["discount_ladder"] = ladder
         if ladder.get("available"):
             discount_value = ladder["discount_value"]
@@ -188,15 +245,24 @@ def simulate(termset: Mapping[str, Any], head: Mapping[str, Any],
                 "term_id": "volume-discount-ladder",
                 "reason_he": ladder.get("reason_he", ""),
             })
-    if "agency_commission" in settlement_terms:
-        commission = _commission_effect(
-            settlement_terms["agency_commission"], gross, discount_value)
-        money["agency_commission"] = commission
-        if not commission.get("available"):
+    commissions = settlement_terms.get("agency_commission", [])
+    if commissions:
+        if len(commissions) > 1:
             not_simulated.append({
                 "term_id": "agency-commission",
-                "reason_he": commission.get("reason_he", ""),
+                "reason_he": (
+                    f"נמצאו {len(commissions)} מופעים של עמלת סוכנות באותו היקף; "
+                    "אחוז עמלה אינו ניתן למיזוג אוטומטי ודורש הכרעה אנושית"
+                ),
             })
+        else:
+            commission = _commission_effect(commissions[0], gross, discount_value)
+            money["agency_commission"] = commission
+            if not commission.get("available"):
+                not_simulated.append({
+                    "term_id": "agency-commission",
+                    "reason_he": commission.get("reason_he", ""),
+                })
     money["net_after_simulated_terms"] = round(
         gross - discount_value - (money.get("agency_commission", {}).get("commission_value") or 0.0),
         2,
