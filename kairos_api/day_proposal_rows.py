@@ -220,14 +220,22 @@ def publish_day(channel: str, day: str, rows: pd.DataFrame, *, actor: str,
     named version before a byte moves and the adoption is reversible by the
     restore path that already exists.
 
-    The write goes through the shipped-plan guard, so a tree where the plan is
-    read-only refuses the publish and says so instead of quietly rewriting the
-    operator's artifact.
+    The read-only wall is checked FIRST, before the freeze and before a byte is
+    read, because a refusal that has already written something is not a refusal.
+    Measured the hard way while building this: with the guard after the freeze, a
+    single guard test on a read-only tree wrote twelve real ``pre_day_adoption``
+    versions of the operator's own plan into ``data/plan_versions`` before being
+    turned away. :mod:`kairos.export.plan_guard` states the rule in its own
+    docstring - the wall is the first shipped-path decision, ahead of any
+    provenance write - and this is what obeying it looks like.
     """
-    from kairos.export.plan_guard import authorize_shipped_plan_write
+    from kairos.export.plan_guard import (record_shipped_plan_write,
+                                          require_shipped_plan_writable)
     from kairos_api import plan_version_store
 
     target = plan_path()
+    shipped = shipped_plan_path()
+    require_shipped_plan_writable(target, shipped)
     if not target.exists():
         raise FileNotFoundError(str(target))
     safety = plan_version_store.freeze(
@@ -236,7 +244,7 @@ def publish_day(channel: str, day: str, rows: pd.DataFrame, *, actor: str,
         note=f"automatic freeze taken before publishing a day proposal for {channel} on {day}",
         source="pre_day_adoption",
     )
-    authorize_shipped_plan_write(target, shipped_plan_path())
+    record_shipped_plan_write(target, shipped)
     existing = pd.read_csv(target)
     keep = existing[~(
         (existing["channel"].astype(str).str.strip() == str(channel).strip())

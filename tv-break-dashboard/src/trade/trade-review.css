@@ -228,9 +228,17 @@
   padding-block-end: var(--space-2);
 }
 
+/* A clause row is a pressable whose CONTENT decides its height: the clause is two
+   words or it is a paragraph, and the row has to be as tall as the clause. The
+   shared pressable is sized for a control at exactly one row of text, so the fixed
+   height is released here and the 44px target floor is kept as a minimum.
+   Measured before this rule: 42px of visible box against 120px of content, so
+   three quarters of every clause was clipped. */
 .trd-clause {
   display: grid;
   gap: var(--space-1-5);
+  block-size: auto;
+  min-block-size: var(--control-height);
   padding: var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
@@ -340,6 +348,20 @@
   align-content: start;
 }
 
+/* A selected filter has to be visible as well as announced. aria-pressed carries
+   it to assistive technology; the surface and the boundary carry it to everyone
+   else, and neither is colour on its own. */
+.trd-filter[aria-pressed='true'] {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--surface);
+}
+
+.trd-filter[aria-pressed='true'] .trd-filter-count {
+  background: var(--on-strong-wash);
+  color: var(--surface);
+}
+
 .trd-filter {
   display: inline-flex;
   align-items: center;
@@ -369,73 +391,6 @@
   color: var(--info);
   font-size: var(--type-ui-size);
   line-height: var(--type-ui-line);
-}
-
-.trd-unmapped h4,
-.trd-family h5,
-.trd-bound-store h5,
-.trd-sim-line h5,
-.trd-sim-placement h5,
-.trd-sim-exposure h5,
-.trd-sim-skipped h5 {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-block: 0 var(--space-2);
-  font-size: var(--type-emphasis-size);
-  line-height: var(--type-emphasis-line);
-  text-wrap: balance;
-}
-
-.trd-unmapped-list,
-.trd-skipped-list,
-.trd-bound-list,
-.trd-term-rows {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.trd-unmapped-list li,
-.trd-skipped-list li,
-.trd-bound-list li,
-.trd-term-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  min-inline-size: 0;
-  padding-block-end: var(--space-2);
-  border-block-end: 1px solid var(--line);
-}
-
-.trd-unmapped-list li:last-child,
-.trd-skipped-list li:last-child,
-.trd-bound-list li:last-child,
-.trd-term-rows li:last-child {
-  padding-block-end: 0;
-  border-block-end: 0;
-}
-
-.trd-unmapped-text,
-.trd-skipped-reason,
-.trd-term-row-sentence {
-  flex: 1 1 20ch;
-  min-inline-size: 0;
-  color: var(--ink-muted);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  text-wrap: pretty;
-}
-
-.trd-term-row-inert {
-  flex: 1 1 100%;
-  color: var(--danger);
-  font-size: var(--type-data-size);
-  line-height: var(--type-data-line);
 }
 
 .trd-group {

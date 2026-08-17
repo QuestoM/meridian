@@ -397,8 +397,17 @@ def test_publishing_into_a_missing_plan_refuses(relocated, tmp_path, monkeypatch
                              proposal_name="x")
 
 
-def test_the_shipped_plan_guard_refuses_a_publish_on_a_read_only_tree(relocated, monkeypatch):
-    """The wall the whole test session runs behind is the one adoption goes through."""
+def test_the_shipped_plan_guard_refuses_a_publish_before_writing_anything(
+        relocated, tmp_path, monkeypatch):
+    """The wall the whole test session runs behind is the one adoption goes through.
+
+    And the refusal has to happen BEFORE the safety freeze, not after it. Written
+    the other way round, this very test wrote twelve real ``pre_day_adoption``
+    versions of the operator's own plan into ``data/plan_versions`` and only then
+    hit the wall, which is exactly the accident the wall exists to stop. So the
+    assertion is not only that it raises: it is that the version store is still
+    empty afterwards.
+    """
     from kairos.export.plan_guard import PlanArtifactProtected
     from kairos_api import day_proposal_rows as rows_api
     from kairos_api import plan_version_store
@@ -406,12 +415,17 @@ def test_the_shipped_plan_guard_refuses_a_publish_on_a_read_only_tree(relocated,
     shipped = rows_api.shipped_plan_path()
     if not shipped.exists():
         pytest.skip("this tree carries no shipped plan to protect")
+    versions = tmp_path / "versions"
+    monkeypatch.setenv(plan_version_store.PLAN_VERSIONS_DIR_ENV, str(versions))
+    monkeypatch.setattr(plan_version_store, "_settings_basis", lambda: dict(SETTINGS_BASIS))
     monkeypatch.setattr(rows_api, "plan_path", lambda: shipped)
     monkeypatch.setattr(plan_version_store, "plan_path", lambda: shipped)
     monkeypatch.setenv("KAIROS_PLAN_READONLY", "1")
     with pytest.raises(PlanArtifactProtected):
         rows_api.publish_day(CHANNEL, DAY, frame(BASE_ROWS), actor="miri",
                              proposal_name="x")
+    assert plan_version_store.all_manifests() == []
+    assert not versions.exists()
 
 
 # --------------------------------------------------- the surface, over HTTP

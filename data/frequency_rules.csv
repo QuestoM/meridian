@@ -1,2 +1,4 @@
-rule_id,limit_type,scope,advertiser_id,campaign,ad,pair_lead,pair_closer,competing_group,members,value,value_max,unit,enabled,notes
+﻿rule_id,limit_type,scope,advertiser_id,campaign,ad,pair_lead,pair_closer,competing_group,members,value,value_max,unit,enabled,notes
 DEFAULT_ONE_PER_BREAK,max_per_break,default,,,,,,,,1,,,True,Conservative explicit default: at most one spot per advertiser per break. Override with a finer advertiser/campaign/ad rule or disable this row.
+TRD:agr-d6b635efa9:v-8115f198a6:sc-freq-break,max_per_break,advertiser,מאפיית שדות,,,,,,,1,,,True,תקרת תדירות מכוח ההסכם [doc-86d16c15/6]
+TRD:agr-d6b635efa9:v-8115f198a6:sc-freq-day,max_per_day,advertiser,מאפיית שדות,,,,,,,3,,,True,תקרת תדירות מכוח ההסכם [doc-86d16c15/6]

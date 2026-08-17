@@ -1,24 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, CardBody, EmptyState, ErrorState, LoadingState, Status } from '../studio';
+import { EmptyState, ErrorState, LoadingState } from '../studio';
 import { Button } from '../studio/actions';
-import { ChevronLeft, ChevronRight, FilePlus2, Scale } from 'lucide-react';
-import { Code, Name, Prose } from '../shell/bidi';
-import { formatNumber, pageText } from '../shell/format';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Code, Name } from '../shell/bidi';
+import { pageText } from '../shell/format';
 import {
   acknowledgeClause, decideInstance, addInstance, approveAgreement, loadAgreement,
   loadProposal, markClausesSeen, refusalText, resolveConflict,
 } from './trade-api';
 import {
   buildClauses, buildConflicts, buildTerms, coverageOf, groupByMechanism,
-  isUndecided, termFilters, REJECTED_GROUP,
+  isUndecided, termFilters,
 } from './review-model';
-import { mechanismName, mechanismTone } from './trade-vocabulary';
 import ReviewCoverageHeader from './ReviewCoverageHeader';
 import ReviewDocumentPane from './ReviewDocumentPane';
 import ReviewDialogs from './ReviewDialogs';
-import ReviewTermCard from './ReviewTermCard';
+import ReviewProposalPane from './ReviewProposalPane';
 import './trade-agreements.css';
 import './trade-review.css';
+import './trade-lists.css';
 import './trade-term-card.css';
 
 // The review: the signed document beside what the engine proposes to do about it,
@@ -34,14 +34,6 @@ import './trade-term-card.css';
 // approval from its own arithmetic — `gate.ready` is server truth and the button
 // mirrors it. And it never reports a decision as saved before the server said so:
 // a refusal keeps the dialog open with the store's own sentence in it.
-
-const FILTERS = [
-  { key: 'all', en: 'All terms', he: 'כל המונחים' },
-  { key: 'undecided', en: 'Awaiting a decision', he: 'ממתינים להחלטה' },
-  { key: 'inert', en: 'Will not act', he: 'לא יפעלו' },
-  { key: 'incomplete', en: 'Missing fields', he: 'שדות חסרים' },
-  { key: 'conflicts', en: 'Open conflicts', he: 'סתירות פתוחות' },
-];
 
 export default function AgreementReviewScreen({
   agreementId, locale = 'he', notify = () => {}, canEdit = true, editRefusal = '',
@@ -353,150 +345,29 @@ export default function AgreementReviewScreen({
           marking={marking}
         />
 
-        <div className="trd-proposal">
-          <div className="trd-pane-head">
-            <h3>{pageText(locale, 'What the engine proposes to do', 'מה שהמנוע מציע לעשות')}</h3>
-            {canEdit ? (
-              <Button type="button" variant="outlined" onClick={() => setAction({ kind: 'add' })}>
-                <FilePlus2 size={14} aria-hidden="true" />
-                {pageText(locale, 'Add a missed term', 'הוספת מונח שהוחמץ')}
-              </Button>
-            ) : null}
-          </div>
-
-          <div
-            className="trd-filters"
-            role="group"
-            aria-label={pageText(locale, 'Filter the terms', 'סינון המונחים')}
-          >
-            {FILTERS.map((entry) => (
-              <Button
-                key={entry.key}
-                type="button"
-                className={filter === entry.key ? 'trd-filter active' : 'trd-filter'}
-                aria-pressed={filter === entry.key}
-                onClick={() => setFilter(entry.key)}
-              >
-                {pageText(locale, entry.en, entry.he)}
-                <span className="trd-filter-count">{formatNumber(counts[entry.key] || 0, locale)}</span>
-              </Button>
-            ))}
-          </div>
-
-          {selectedClause ? (
-            <p className="trd-selected-note" role="status">
-              <Code>{selectedClause}</Code>
-              {clauseTermIds.size > 0
-                ? pageText(
-                  locale,
-                  `is the evidence for ${formatNumber(clauseTermIds.size, locale)} terms, marked below.`,
-                  `הוא האסמכתא ל־${formatNumber(clauseTermIds.size, locale)} מונחים, המסומנים למטה.`,
-                )
-                : pageText(locale, 'is evidence for no term.', 'אינו אסמכתא לאף מונח.')}
-            </p>
-          ) : null}
-
-          {unacknowledged.length > 0 ? (
-            <Card className="trd-unmapped">
-              <CardBody>
-                <h4>
-                  {pageText(
-                    locale,
-                    `${formatNumber(unacknowledged.length, locale)} clauses map to no term at all`,
-                    `${formatNumber(unacknowledged.length, locale)} סעיפים אינם ממופים לשום מונח`,
-                  )}
-                </h4>
-                <p className="trd-field-hint">
-                  {pageText(
-                    locale,
-                    'The reading did not recognise these. Each one blocks approval until a person says what it is and takes ownership of it.',
-                    'הקריאה לא זיהתה אותם. כל אחד מהם חוסם את האישור עד שאדם יאמר מהו וייקח עליו אחריות.',
-                  )}
-                </p>
-                <ul className="trd-unmapped-list">
-                  {unacknowledged.map((clause) => (
-                    <li key={clause.clause_id}>
-                      <Code className="trd-id-chip">{clause.clause_id}</Code>
-                      <Prose as="span" className="trd-unmapped-text">{clause.text}</Prose>
-                      {canEdit ? (
-                        <Button
-                          type="button"
-                          variant="outlined"
-                          onClick={() => setAction({ kind: 'acknowledge', clause })}
-                        >
-                          {pageText(locale, 'Acknowledge it', 'אישור ידני')}
-                        </Button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </CardBody>
-            </Card>
-          ) : null}
-
-          {shown.length === 0 ? (
-            <EmptyState
-              title={pageText(locale, 'Nothing under this filter', 'אין דבר בסינון הזה')}
-              description={filter === 'undecided'
-                ? pageText(
-                  locale,
-                  'Every proposed term has been decided. What remains for approval, if anything, is named in the band above.',
-                  'כל מונח מוצע הוכרע. מה שנותר לאישור, אם נותר, מפורט ברצועה שלמעלה.',
-                )
-                : pageText(locale, 'Choose another filter to see the rest of the agreement.', 'בחרו סינון אחר כדי לראות את שאר ההסכם.')}
-              action={filter === 'all' ? null : (
-                <Button type="button" variant="outlined" onClick={() => setFilter('all')}>
-                  {pageText(locale, 'Show every term', 'הצגת כל המונחים')}
-                </Button>
-              )}
-            />
-          ) : null}
-
-          {groups.map((group) => (
-            <section key={group.key} className="trd-group">
-              <h4 className="trd-group-head">
-                <Status status={group.key === REJECTED_GROUP ? 'danger' : mechanismTone(group.key)}>
-                  {group.key === REJECTED_GROUP
-                    ? pageText(locale, 'Rejected', 'נדחו')
-                    : mechanismName(group.key, locale)}
-                </Status>
-                <span className="trd-group-count">
-                  {formatNumber(group.terms.length, locale)}
-                </span>
-              </h4>
-              {group.terms.map((term) => (
-                <ReviewTermCard
-                  key={term.instance_id}
-                  term={term}
-                  locale={locale}
-                  canEdit={canEdit}
-                  busy={busy}
-                  highlighted={clauseTermIds.has(term.instance_id)}
-                  onJumpToClause={setSelectedClause}
-                  onConfirm={confirm}
-                  onEdit={(target) => setAction({ kind: 'edit', term: target })}
-                  onReject={(target) => setAction({ kind: 'reject', term: target })}
-                  onResolveConflict={(conflict) => setAction({ kind: 'conflict', conflict })}
-                />
-              ))}
-            </section>
-          ))}
-
-          {conflicts.length > 0 ? (
-            <Card dense className="trd-conflict-summary">
-              <CardBody>
-                <Scale size={15} aria-hidden="true" />
-                <p>
-                  {pageText(
-                    locale,
-                    `This agreement contains ${formatNumber(conflicts.length, locale)} contradictions between its own clauses; ${formatNumber(conflicts.filter((c) => c.open).length, locale)} are still open.`,
-                    `ההסכם הזה מכיל ${formatNumber(conflicts.length, locale)} סתירות בין סעיפיו; ${formatNumber(conflicts.filter((c) => c.open).length, locale)} מהן פתוחות.`,
-                  )}
-                </p>
-              </CardBody>
-            </Card>
-          ) : null}
-        </div>
+        <ReviewProposalPane
+          locale={locale}
+          canEdit={canEdit}
+          busy={busy}
+          filter={filter}
+          counts={counts}
+          groups={groups}
+          shown={shown}
+          conflicts={conflicts}
+          unacknowledged={unacknowledged}
+          selectedClause={selectedClause}
+          clauseTermIds={clauseTermIds}
+          onFilter={setFilter}
+          onSelectClause={setSelectedClause}
+          onConfirm={confirm}
+          on={{
+            add: () => setAction({ kind: 'add' }),
+            acknowledge: (clause) => setAction({ kind: 'acknowledge', clause }),
+            edit: (target) => setAction({ kind: 'edit', term: target }),
+            reject: (target) => setAction({ kind: 'reject', term: target }),
+            resolveConflict: (conflict) => setAction({ kind: 'conflict', conflict }),
+          }}
+        />
       </div>
 
       {action ? (

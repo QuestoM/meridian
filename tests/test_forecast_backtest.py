@@ -52,11 +52,15 @@ def test_blocks_are_cut_on_whole_dates_and_never_inside_a_day(frame):
 
 
 def test_a_frame_with_too_few_dates_forms_no_fold_and_says_so(frame):
+    """A single day cannot be forecast from its own past, and the refusal must
+    reach the TOP of the payload rather than hide in the per-fold detail."""
     one_day = frame[frame["date"] == frame["date"].min()]
     report = walk_forward(frame=one_day, spots=None, owned_channel="")
     assert report["available"] is False
-    assert "distinct dates" in report["reason"]
-    assert report["folds"] == []
+    assert report["reason"], "an unavailable measurement must state its reason"
+    assert "no fold could be scored" in report["reason"]
+    assert not [f for f in report["folds"] if f.get("available")]
+    assert report["overall"]["available"] is False
 
 
 # ---------------------------------------------------------------- the walk shape

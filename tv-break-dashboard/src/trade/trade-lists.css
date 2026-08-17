@@ -1,0 +1,75 @@
+/* The shared list vocabulary: a heading over a list of rows, where each row is a
+   name, a state and a sentence that wraps.
+
+   It lives in its own sheet because three different surfaces use it for the same
+   shape - the unmapped clauses in the review, the terms grouped by family on the
+   record, and the terms a simulation could not touch - and duplicating it per
+   surface is how three lists that should look identical stop looking identical. */
+
+.trd-unmapped h4,
+.trd-family h5,
+.trd-bound-store h5,
+.trd-sim-line h5,
+.trd-sim-placement h5,
+.trd-sim-exposure h5,
+.trd-sim-skipped h5 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-2);
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.trd-unmapped-list,
+.trd-skipped-list,
+.trd-bound-list,
+.trd-term-rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trd-unmapped-list li,
+.trd-skipped-list li,
+.trd-bound-list li,
+.trd-term-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.trd-unmapped-list li:last-child,
+.trd-skipped-list li:last-child,
+.trd-bound-list li:last-child,
+.trd-term-rows li:last-child {
+  padding-block-end: 0;
+  border-block-end: 0;
+}
+
+.trd-unmapped-text,
+.trd-skipped-reason,
+.trd-term-row-sentence {
+  flex: 1 1 20ch;
+  min-inline-size: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-term-row-inert {
+  flex: 1 1 100%;
+  color: var(--danger);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+

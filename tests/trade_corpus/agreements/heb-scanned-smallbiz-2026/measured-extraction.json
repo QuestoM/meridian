@@ -1,0 +1,729 @@
+{
+ "document_id": "heb-scanned-smallbiz-2026",
+ "clauses": [
+  {
+   "clause_id": "pre-1",
+   "text": "הסכם פרסום – מאפיית הגליל\nהסכם שנערך ונחתם בנוף הגליל ביום 10.02.2026",
+   "pages": [
+    1
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "pre-2",
+   "text": "בין: רשת 13 בע״מ (להלן: ״הערוץ״) ובין: מאפיית הגליל בע״מ, מרחוב המלאכה 4, נוף הגליל (להלן: ״המפרסם״), לקוח ישיר ללא סוכנות מדיה.",
+   "pages": [
+    1
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "pre-3",
+   "text": "הואיל והמפרסם מבקש לפרסם את מוצרי המאפייה בשידורי הערוץ ברצועות היום, הוסכם בין הצדדים כדלקמן:",
+   "pages": [
+    1
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "1",
+   "text": "1. תוקף ההסכם: מיום 01.03.2026 ועד ליום 31.08.2026.",
+   "pages": [
+    1
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "2",
+   "text": "2. המחיר לתשדיר בודד באורך 20 שניות, מחיר קבוע וסופי שאינו תלוי בנתוני צפייה:\nרצועה | מחיר לתשדיר (₪)\nבוקר (07:00–12:00) | 850\nצהריים (12:00–17:00) | 1,050",
+   "pages": [
+    1
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "3",
+   "text": "3. אורך התשדיר: 20 שניות בלבד. תשדיר באורך אחר טעון אישור מראש של הערוץ ותמחור נפרד.",
+   "pages": [
+    2
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "4",
+   "text": "4. התשדירים ישודרו ברצועות היום בלבד (07:00–17:00), בימים א׳–ו׳. לא ישודרו תשדירים בפריים ולא במוצאי שבת.",
+   "pages": [
+    2
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "5",
+   "text": "5. המפרסם יהא זכאי לתוספת מדיה ללא חיוב בשיעור 10% מהיקף רכישותיו בפועל, בשידורים ברצועות היום לפי זמינות מלאי, עד תום תקופת ההסכם.\n[הערת שוליים] בכפוף לאישור מנהל המכירות – בתוקף עד 30.6 בלבד (בכתב יד בשולי העמוד, ליד סעיף 5)",
+   "pages": [
+    2
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "6",
+   "text": "6. לא ישודר יותר מתשדיר אחד של המפרסם באותו מקבץ, ולא יותר משלושה תשדירים ביממה.",
+   "pages": [
+    3
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "7",
+   "text": "7. תנאי תשלום: מזומן מראש. התמורה תשולם בהעברה בנקאית לפני תחילת כל חודש שידור, ולא יבוצע שידור בטרם נפרעה התמורה במלואה.",
+   "pages": [
+    3
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "8",
+   "text": "8. ביטול שיבוץ בהודעה של 2 ימי עסקים לפחות לפני השידור – ללא חיוב. בהודעה קצרה מכך – חיוב מלא של השיבוץ שבוטל.",
+   "pages": [
+    3
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "9",
+   "text": "9. הודעות בין הצדדים יימסרו בטלפון או בדוא״ל שבכותרת ההסכם.",
+   "pages": [
+    3
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "10",
+   "text": "10. סמכות השיפוט בכל מחלוקת נתונה לבית משפט השלום בנצרת, והדין החל הוא דין מדינת ישראל.",
+   "pages": [
+    4
+   ],
+   "heading": null,
+   "is_table": false
+  },
+  {
+   "clause_id": "sig-1",
+   "text": "ולראיה באו הצדדים על החתום:\nהערוץ: ______________     המפרסם: ______________",
+   "pages": [
+    4
+   ],
+   "heading": null,
+   "is_table": false
+  }
+ ],
+ "instances": [
+  {
+   "instance_id": "x-001",
+   "term_id": "agreement-parties",
+   "params": {
+    "advertiser": "מאפיית הגליל בע״מ",
+    "counterparty_type": "advertiser",
+    "direct_client": true
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "pre-2",
+     "quote": "בין: רשת 13 בע״מ (להלן: ״הערוץ״) ובין: מאפיית הגליל בע״מ, מרחוב המלאכה 4, נוף הגליל (להלן: ״המפרסם״), לקוח ישיר ללא סוכנות מדיה."
+    }
+   ],
+   "confidence": "high",
+   "scope": {},
+   "window": {},
+   "missing": [
+    "agency",
+    "represented_advertisers",
+    "signatories"
+   ],
+   "notes": "הצדדים להסכם הם רשת 13 בע״מ (״הערוץ״) ומאפיית הגליל בע״מ (״המפרסם״), המוגדר במפורש כלקוח ישיר ללא סוכנות מדיה. לא צוינו חתומים ספציפיים (שמות אנשים) בטקסט שסופק.\""
+  },
+  {
+   "instance_id": "x-002",
+   "term_id": "effective-window",
+   "params": {
+    "starts_on": "2026-03-01",
+    "ends_on": "2026-08-31"
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "1",
+     "quote": "תוקף ההסכם: מיום 01.03.2026 ועד ליום 31.08.2026."
+    }
+   ],
+   "confidence": "high",
+   "scope": {
+    "campaigns": [
+     "פרסום מוצרי המאפייה"
+    ],
+    "dayparts": [
+     "בוקר (07:00–12:00)",
+     "צהריים (12:00–17:00)"
+    ]
+   },
+   "window": {
+    "from": "2026-03-01",
+    "to": "2026-08-31"
+   },
+   "missing": [
+    "auto_renewal",
+    "renewal_notice_days"
+   ],
+   "notes": "הסעיף קובע במפורש תאריכי תחילה וסיום של תוקף ההסכם. לא צוינו פרטים בדבר חידוש אוטומטי או ימי הודעה מוקדמת לחידוש, ולכן שדות אלו לא חולצו."
+  },
+  {
+   "instance_id": "x-003",
+   "term_id": "fixed-spot-pricing",
+   "params": {
+    "rows": [
+     {
+      "length_seconds": 20,
+      "price": {
+       "amount": 850,
+       "basis": "unstated",
+       "currency": "ILS"
+      },
+      "slot_note": "בוקר (07:00–12:00)"
+     },
+     {
+      "length_seconds": 20,
+      "price": {
+       "amount": 1050,
+       "basis": "unstated",
+       "currency": "ILS"
+      },
+      "slot_note": "צהריים (12:00–17:00)"
+     }
+    ]
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "המחיר לתשדיר בודד באורך 20 שניות, מחיר קבוע וסופי שאינו תלוי בנתוני צפייה:"
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "בוקר (07:00–12:00) | 850"
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "צהריים (12:00–17:00) | 1,050"
+    }
+   ],
+   "confidence": "high",
+   "scope": {
+    "dayparts": [
+     "בוקר (07:00–12:00)",
+     "צהריים (12:00–17:00)"
+    ],
+    "lengths_seconds": [
+     20
+    ]
+   },
+   "window": {
+    "from": "2026-03-01",
+    "to": "2026-08-31"
+   },
+   "missing": [],
+   "notes": "המחיר מוגדר כ\"קבוע וסופי שאינו תלוי בנתוני צפייה\" אך אין ציון מפורש אם המחיר גולמי (gross) או נטו מעמלה, ולכן basis סומן כ-unstated. חלון התוקף נלקח מסעיף 1 הכללי של ההסכם. לא צוינו מפרסמים, מותגים, תוכניות, ז'אנרים, ימים או מיקומים ספציפיים בסעיף עצמו."
+  },
+  {
+   "instance_id": "x-004",
+   "term_id": "cpp-daypart-table",
+   "params": {
+    "rows": [],
+    "audience": "<UNKNOWN>"
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "המחיר לתשדיר בודד באורך 20 שניות, מחיר קבוע וסופי שאינו תלוי בנתוני צפייה:"
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "בוקר (07:00–12:00) | 850"
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 1,
+     "clause_id": "2",
+     "quote": "צהריים (12:00–17:00) | 1,050"
+    }
+   ],
+   "confidence": "low",
+   "scope": {
+    "dayparts": [
+     "בוקר (07:00–12:00)",
+     "צהריים (12:00–17:00)"
+    ]
+   },
+   "window": {
+    "from": "2026-03-01",
+    "to": "2026-08-31"
+   },
+   "missing": [
+    "params.audience (לא צוין קהל יעד או נתוני דירוג שעליהם מבוסס ה-CPP)",
+    "params.rows (אין נתוני CPP - הטבלה בסעיף 2 מציגה 'מחיר לתשדיר' קבוע (₪) ולא CPP - עלות לנקודת דירוג/GRP)"
+   ],
+   "notes": "הסעיף שסופק (מס' 2) מתאר טבלת מחירים קבועים לתשדיר (₪ לפי רצועה) ומצוין במפורש כי המחיר 'אינו תלוי בנתוני צפייה' — כלומר זהו לוח מחירים (rate card) ולא טבלת CPP (Cost Per Point/Point) שנגזרת מנתוני צפייה/דירוג. לכן לא ניתן לחלץ ערכי CPP בפועל מהטקסט הנתון; אין למלא נתונים שאינם קיימים בטקסט. שדה audience סומן כ-<UNKNOWN> ונרשם ב-missing בהתאם לכללים, שכן הוא שדה חובה בסכימה אך אינו מופיע בסעיף."
+  },
+  {
+   "instance_id": "x-005",
+   "term_id": "spot-length-constraints",
+   "params": {
+    "allowed_lengths_seconds": [
+     20
+    ],
+    "notes": "תשדיר באורך אחר טעון אישור מראש של הערוץ ותמחור נפרד."
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 2,
+     "clause_id": "3",
+     "quote": "אורך התשדיר: 20 שניות בלבד. תשדיר באורך אחר טעון אישור מראש של הערוץ ותמחור נפרד."
+    }
+   ],
+   "confidence": "high",
+   "scope": {
+    "dayparts": [
+     "בוקר (07:00–12:00)",
+     "צהריים (12:00–17:00)"
+    ],
+    "weekdays": [
+     "א׳–ו׳"
+    ]
+   },
+   "window": {},
+   "missing": [],
+   "notes": ""
+  },
+  {
+   "instance_id": "x-006",
+   "term_id": "programme-daypart-restrictions",
+   "params": {
+    "mode": "forbid",
+    "hard": true
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 2,
+     "clause_id": "4",
+     "quote": "4. התשדירים ישודרו ברצועות היום בלבד (07:00–17:00), בימים א׳–ו׳. לא ישודרו תשדירים בפריים ולא במוצאי שבת."
+    }
+   ],
+   "confidence": "high",
+   "scope": {
+    "dayparts": [
+     "רצועות היום (07:00–17:00)",
+     "פריים",
+     "מוצאי שבת"
+    ],
+    "weekdays": [
+     "א׳",
+     "ב׳",
+     "ג׳",
+     "ד׳",
+     "ה׳",
+     "ו׳"
+    ]
+   },
+   "window": {},
+   "missing": [
+    "advertisers",
+    "brands",
+    "campaigns",
+    "channels",
+    "genres",
+    "positions",
+    "programmes",
+    "window"
+   ],
+   "notes": "הסעיף קובע הגבלה חיובית (allow) על רצועות היום בשעות 07:00–17:00 בימים א׳-ו׳ בלבד, תוך איסור מפורש (forbid) על שידור בפריים ובמוצאי שבת. נבחר mode=forbid מכיוון שהניסוח המרכזי הוא איסור ('לא ישודרו'), אך בפועל מדובר בהגבלה דו-כיוונית: היתר לרצועת יום מוגדרת + איסור על פריים/מוצ״ש. אין אזכור לתוכניות/ז'אנרים/מפרסמים/מותגים ספציפיים בסעיף זה, ולכן לא נכללו בשדה scope."
+  },
+  {
+   "instance_id": "x-007",
+   "term_id": "added-value-media",
+   "params": {
+    "percent": 10,
+    "basis": "מהיקף רכישותיו בפועל"
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 2,
+     "clause_id": "5",
+     "quote": "המפרסם יהא זכאי לתוספת מדיה ללא חיוב בשיעור 10% מהיקף רכישותיו בפועל, בשידורים ברצועות היום לפי זמינות מלאי, עד תום תקופת ההסכם."
+    }
+   ],
+   "confidence": "medium",
+   "scope": {
+    "dayparts": [
+     "רצועות היום"
+    ]
+   },
+   "window": {},
+   "missing": [
+    "window.from",
+    "window.to (תאריך קונקרטי של תום תקופת ההסכם)",
+    "האם הערת השוליים בכתב יד (עד 30.6) מהווה תנאי מחייב בגוף המונח"
+   ],
+   "notes": "בסעיף מצוינת תוספת מדיה בשיעור 10% מרכישות בפועל, בשידורי יום, בכפוף לזמינות מלאי, עד תום תקופת ההסכם (ללא תאריך סיום מפורש בגוף הסעיף). הערת שוליים בכתב יד ליד הסעיף מציינת \\\"בכפוף לאישור מנהל המכירות – בתוקף עד 30.6 בלבד\\\", אך מדובר בהערה נפרדת שאינה חלק מגוף הסעיף המודפס, ולכן לא נכללה כחלון תוקף רשמי (window) אלא צוינה בהערות בלבד מתוך זהירות פרשנית. לא צוין תאריך התחלה של ההסכם או תאריך 'עד תום תקופת ההסכם' הקונקרטי בטקסט שסופק, ולכן שדה window נותר ריק ומופיע ב-missing."
+  },
+  {
+   "instance_id": "x-008",
+   "term_id": "frequency-caps",
+   "params": {
+    "unit": "break",
+    "cap": 1
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "6",
+     "quote": "לא ישודר יותר מתשדיר אחד של המפרסם באותו מקבץ"
+    }
+   ],
+   "confidence": "high",
+   "scope": {
+    "advertisers": [
+     "המפרסם"
+    ]
+   },
+   "window": {},
+   "missing": [
+    "window"
+   ],
+   "notes": "בסעיף מופיעה תקרת תדירות נוספת ביחידת יום (עד שלושה תשדירים ביממה), אך פרמטר יחיד יכול לתעד יחידה אחת בלבד - נדרש רישום נפרד עבור תקרת היום.\""
+  },
+  {
+   "instance_id": "x-009",
+   "term_id": "payment-terms",
+   "params": {
+    "terms": "מזומן מראש. התמורה תשולם בהעברה בנקאית לפני תחילת כל חודש שידור, ולא יבוצע שידור בטרם נפרעה התמורה במלואה."
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "7",
+     "quote": "תנאי תשלום: מזומן מראש. התמורה תשולם בהעברה בנקאית לפני תחילת כל חודש שידור, ולא יבוצע שידור בטרם נפרעה התמורה במלואה."
+    }
+   ],
+   "confidence": "high",
+   "scope": {},
+   "window": {},
+   "missing": [
+    "billing_cycle"
+   ],
+   "notes": "הסעיף מציין תנאי תשלום מפורשים: מזומן מראש, תשלום בהעברה בנקאית לפני תחילת כל חודש שידור, ותנאי שלא יבוצע שידור בטרם נפרעה התמורה במלואה. לא צוין מפורשות מחזור חיוב (billing_cycle) בפורמט קבוע (כגון חודשי/שבועי) - רק ההתייחסות ל'לפני תחילת כל חודש שידור', ולכן לא חולץ כשדה נפרד.\""
+  },
+  {
+   "instance_id": "x-010",
+   "term_id": "credit-security",
+   "params": {
+    "summary": "תנאי תשלום: מזומן מראש – התמורה תשולם בהעברה בנקאית לפני תחילת כל חודש שידור, ולא יבוצע שידור בטרם נפרעה התמורה במלואה.",
+    "details": "הסעיף קובע חובת תשלום מראש במזומן (העברה בנקאית) כתנאי מקדים לשידור, כאשר החיוב חל לפני תחילת כל חודש שידור, ותנאי לשידור בפועל הוא פירעון מלוא התמורה מראש."
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "7",
+     "quote": "תנאי תשלום: מזומן מראש."
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "7",
+     "quote": "התמורה תשולם בהעברה בנקאית לפני תחילת כל חודש שידור, ולא יבוצע שידור בטרם נפרעה התמורה במלואה."
+    }
+   ],
+   "confidence": "high",
+   "scope": {},
+   "window": {},
+   "missing": [
+    "אחוז/סכום ערבות או בטוחה כספית",
+    "ריבית פיגורים",
+    "תנאי אשראי חריגים למפרסם ספציפי"
+   ],
+   "notes": "הסעיף עוסק בתנאי תשלום מראש (מזומן) ולא מזכיר בטוחות פיננסיות נוספות כגון ערבות בנקאית, ריבית פיגורים או מגבלת אשראי מספרית. אין תאריך/חלון תוקף ספציפי לסעיף עצמו, ואין היקף (scope) מוגדר במונחי מפרסמים/מותגים/תוכניות וכו' - הסעיף חל באופן כללי על תנאי התשלום בהסכם."
+  },
+  {
+   "instance_id": "x-011",
+   "term_id": "cancellation-terms",
+   "params": {
+    "windows": [
+     {
+      "days_before_air": 2,
+      "fee_percent": 0,
+      "allowed": true
+     },
+     {
+      "days_before_air": 0,
+      "fee_percent": 100,
+      "allowed": true
+     }
+    ],
+    "notes": "עד 2 ימי עסקים לפני השידור – ביטול ללא חיוב; פחות מכך – חיוב מלא (100%) של השיבוץ שבוטל."
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "8",
+     "quote": "ביטול שיבוץ בהודעה של 2 ימי עסקים לפחות לפני השידור – ללא חיוב."
+    },
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 3,
+     "clause_id": "8",
+     "quote": "בהודעה קצרה מכך – חיוב מלא של השיבוץ שבוטל."
+    }
+   ],
+   "confidence": "high",
+   "scope": {},
+   "window": {},
+   "missing": [
+    "scope.advertisers",
+    "scope.brands",
+    "scope.campaigns",
+    "scope.channels",
+    "scope.dayparts",
+    "scope.genres",
+    "scope.lengths_seconds",
+    "scope.positions",
+    "scope.programmes",
+    "scope.weekdays",
+    "window.from",
+    "window.to"
+   ],
+   "notes": "הסעיף אינו מגדיר scope ספציפי (מפרסם/ערוץ/תוכנית וכו') ואינו מגדיר חלון תוקף (from/to) למונח עצמו — הוא חל באופן כללי על כל שיבוץ.\""
+  },
+  {
+   "instance_id": "x-012",
+   "term_id": "dispute-resolution",
+   "params": {
+    "summary": "סמכות שיפוט ייחודית לבית משפט השלום בנצרת ליישוב מחלוקות בין הצדדים, בהתאם לדין מדינת ישראל.",
+    "details": "הסעיף קובע כי כל מחלוקת בין הצדדים תידון בבית משפט השלום בנצרת, וכי הדין החל על ההסכם הוא דין מדינת ישראל."
+   },
+   "citations": [
+    {
+     "document_id": "heb-scanned-smallbiz-2026",
+     "page": 4,
+     "clause_id": "10",
+     "quote": "סמכות השיפוט בכל מחלוקת נתונה לבית משפט השלום בנצרת, והדין החל הוא דין מדינת ישראל."
+    }
+   ],
+   "confidence": "high",
+   "scope": {},
+   "window": {},
+   "missing": [
+    "מנגנון יישוב מחלוקות חלופי (בוררות/גישור) - לא צוין",
+    "תקופת התיישנות/מגבלת זמן להגשת תביעות - לא צוין"
+   ],
+   "notes": "הסעיף עוסק בסמכות שיפוט ודין חל, ולא כולל פרטים נוספים על הליך יישוב מחלוקות כגון בוררות או גישור מוקדם.\""
+  }
+ ],
+ "dispositions": [
+  {
+   "clause_id": "pre-1",
+   "disposition": "irrelevant",
+   "instance_ids": [],
+   "irrelevant_class": "preamble-recitals",
+   "reason": "כותרת ומבוא ללא תוכן מסחרי"
+  },
+  {
+   "clause_id": "pre-2",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-001"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "pre-3",
+   "disposition": "irrelevant",
+   "instance_ids": [],
+   "irrelevant_class": "preamble-recitals",
+   "reason": "הואיל וטקסט מבואי בלבד"
+  },
+  {
+   "clause_id": "1",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-002"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "2",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-003",
+    "x-004"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "3",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-005"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "4",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-006"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "5",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-007"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "6",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-008"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "7",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-009",
+    "x-010"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "8",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-011"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "9",
+   "disposition": "irrelevant",
+   "instance_ids": [],
+   "irrelevant_class": "notice-addresses",
+   "reason": "כתובות למשלוח הודעות"
+  },
+  {
+   "clause_id": "10",
+   "disposition": "mapped",
+   "instance_ids": [
+    "x-012"
+   ],
+   "irrelevant_class": null,
+   "reason": ""
+  },
+  {
+   "clause_id": "sig-1",
+   "disposition": "irrelevant",
+   "instance_ids": [],
+   "irrelevant_class": "signature-block",
+   "reason": "בלוק חתימות"
+  }
+ ],
+ "source_language": "he",
+ "ingest_route": "scanned-vision",
+ "stats": {
+  "elapsed_seconds": 238.88,
+  "work_units": 12,
+  "failures": [],
+  "conflicts": [],
+  "provider": {
+   "transcribe": {
+    "calls": 4,
+    "failed": 0,
+    "input_tokens": 11708,
+    "output_tokens": 1360,
+    "latency_seconds": 48.36,
+    "models": [
+     "claude-opus-5"
+    ]
+   },
+   "classify": {
+    "calls": 2,
+    "failed": 0,
+    "input_tokens": 10974,
+    "output_tokens": 899,
+    "latency_seconds": 129.88,
+    "models": [
+     "claude-haiku-4-5-20251001"
+    ]
+   },
+   "parameterise": {
+    "calls": 12,
+    "failed": 0,
+    "input_tokens": 23579,
+    "output_tokens": 6469,
+    "latency_seconds": 100.53,
+    "models": [
+     "claude-sonnet-5"
+    ]
+   }
+  },
+  "document_sha256": "dc3e30e314d99a85d656b72a93fa2cac16fd45cc71ba7d9fe9f3bee00ae3c30c"
+ },
+ "coverage": {
+  "total_clauses": 14,
+  "mapped": 10,
+  "irrelevant": 4,
+  "unmapped": 0,
+  "complete": true
+ }
+}

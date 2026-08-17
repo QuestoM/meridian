@@ -46,7 +46,7 @@ export const CONTEXT_ITEMS = {
     { id: 'pacing', en: 'Delivery', he: 'אספקה', target: { view: 'Commercial', params: { clients: 'pacing' } } },
     { id: 'advertisers', en: 'Advertisers', he: 'מפרסמים', target: { view: 'Commercial', params: { clients: 'advertisers' } } },
     { id: 'agencies', en: 'Agencies', he: 'סוכנויות', target: { view: 'Commercial', params: { clients: 'agencies' } } },
-    { id: 'agreements', en: 'Trade agreements', he: 'הסכמי סחר', target: { view: 'Commercial', params: { clients: 'agreements' } } },
+    { id: 'agreements', en: 'Agreements', he: 'הסכמי סחר', target: { view: 'Commercial', params: { clients: 'agreements' } } },
   ],
   Sources: [
     { id: 'inputs', en: 'Inputs', he: 'קלטים', target: { view: 'Sources', params: { sources: 'inputs' } } },

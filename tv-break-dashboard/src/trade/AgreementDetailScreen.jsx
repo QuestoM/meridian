@@ -20,6 +20,7 @@ import SimulationPanel from './SimulationPanel';
 import './trade-agreements.css';
 import './trade-review.css';
 import './trade-record.css';
+import './trade-lists.css';
 import './trade-term-card.css';
 
 // The agreement record: what was signed, what was approved, what is live, what it

@@ -154,33 +154,37 @@ def _compile_and_bind(agreement_id: str, manifest: dict) -> None:
 
 def main() -> None:
     print(f"Seeding into {trade_store.agreements_root()}")
+    # Windows use starts_on/ends_on because that is what the store normalises
+    # and what every agreement created through the API carries. One agreement
+    # below is deliberately open-ended, so the surface is exercised against the
+    # FOREVER marker rather than only against closed windows.
     seed(
         corpus_id="heb-annual-framework-2026",
         title="הסכם מסגרת שנתי — אופק מדיה 2026",
         level="agency_framework",
-        counterparty={"kind": "agency", "name": "אופק מדיה בע\"מ"},
-        window={"from": "2026-01-01", "to": "2026-12-31"},
+        counterparty={"counterparty_type": "agency", "agency": "אופק מדיה בע\"מ"},
+        window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
     )
     seed(
         corpus_id="heb-contradictory-2026",
         title="הסכם מסגרת — קבוצת ריטייל 2026",
         level="agency_framework",
-        counterparty={"kind": "agency", "name": "קבוצת ריטייל מדיה"},
-        window={"from": "2026-01-01", "to": "2026-12-31"},
+        counterparty={"counterparty_type": "agency", "agency": "קבוצת ריטייל מדיה"},
+        window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
     )
     seed(
         corpus_id="heb-edge-stress-2026",
         title="הסכם מפרסם — נובה פארם 2026",
         level="advertiser",
-        counterparty={"kind": "advertiser", "name": "Nova Pharm בע\"מ"},
-        window={"from": "2026-03-01", "to": "2027-02-28"},
+        counterparty={"counterparty_type": "advertiser", "advertiser": "Nova Pharm בע\"מ"},
+        window={"starts_on": "2026-03-01", "ends_on": "2027-02-28"},
     )
     seed(
         corpus_id="heb-scanned-smallbiz-2026",
         title="הסכם מפרסם — מאפיית שדות 2026",
         level="advertiser",
-        counterparty={"kind": "advertiser", "name": "מאפיית שדות"},
-        window={"from": "2026-04-01", "to": "2026-09-30"},
+        counterparty={"counterparty_type": "advertiser", "advertiser": "מאפיית שדות"},
+        window={"starts_on": "2026-04-01", "ends_on": "2026-09-30"},
         review_all=True,
         approve=True,
     )
@@ -188,8 +192,8 @@ def main() -> None:
         corpus_id="heb-sponsorship-bundle-2026",
         title="חבילת חסויות — בנק הבירה 2026",
         level="advertiser",
-        counterparty={"kind": "advertiser", "name": "בנק הבירה בע\"מ"},
-        window={"from": "2026-05-01", "to": "2026-12-31"},
+        counterparty={"counterparty_type": "advertiser", "advertiser": "בנק הבירה בע\"מ"},
+        window={"starts_on": "2026-05-01", "ends_on": None},
         extract=False,
     )
 

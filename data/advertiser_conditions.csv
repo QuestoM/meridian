@@ -1,1 +1,2 @@
-advertiser_id,rule_id,scope_positions,scope_genres,scope_dayparts,effect,value,notes
+﻿advertiser_id,rule_id,scope_positions,scope_genres,scope_dayparts,scope_programmes,scope_weekdays,effect,value,mode,notes
+מאפיית שדות,TRD:agr-d6b635efa9:v-8115f198a6:sc-daypart,ANY,ANY,רצועות היום (07:00—17:00),ANY,"א',ב',ג',ד',ה',ו'",require,1.0,multiplier,שיבוץ רק בהיקף המותר על פי ההסכם [doc-86d16c15/4]

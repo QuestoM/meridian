@@ -8,11 +8,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Code, Figure, Name } from '../shell/bidi';
-import { formatSpan } from '../shell/dates';
+import { formatDay, formatSpan } from '../shell/dates';
 import { formatNumber, pageText } from '../shell/format';
 import {
   alarmLabel, alarmTone, ALARM_ORDER, counterpartyKind, counterpartyKindOf,
-  counterpartyName, levelLabel, statusLabel, statusTone,
+  counterpartyName, levelLabel, statusLabel, statusTone, windowOf,
 } from './trade-vocabulary';
 import { loadAgreements, loadObligations, refusalText } from './trade-api';
 import AgreementCreateFlow from './AgreementCreateFlow';
@@ -68,7 +68,33 @@ function alarmChips(counts, locale) {
     }));
 }
 
+// What this card says about whether the agreement is acting on the business.
+//
+// THE COMPLETENESS GATE IS ONLY A QUESTION BEFORE APPROVAL. Past it, the gate
+// stops applying — it requires the in-review status — and it reports not-ready
+// with nothing blocking. Printing that as "0 blockers for approval" on an
+// agreement that is already governing is worse than useless: it implies the
+// agreement is waiting for something. So the status is read first, and the gate
+// is only consulted for an agreement that could still be approved.
 function GateLine({ row, locale }) {
+  if (row.status === 'approved') {
+    return (
+      <Status status="positive" icon={<ShieldCheck size={14} aria-hidden="true" />}>
+        {pageText(locale, 'Approved and governing', 'מאושר וקובע')}
+      </Status>
+    );
+  }
+  if (['superseded', 'expired', 'withdrawn'].includes(row.status)) {
+    return (
+      <Status status="neutral" icon={<ShieldAlert size={14} aria-hidden="true" />}>
+        {pageText(
+          locale,
+          'No longer governing; its live rules were withdrawn',
+          'אינו קובע עוד; הכללים הפעילים שלו הוסרו',
+        )}
+      </Status>
+    );
+  }
   if (row.gate_blockers === null || row.gate_blockers === undefined) {
     return (
       <Status status="warning" icon={<ShieldAlert size={14} aria-hidden="true" />}>
@@ -99,6 +125,7 @@ function AgreementCard({ row, locale, alarms, onOpen }) {
   const party = counterpartyName(row.counterparty);
   const kind = counterpartyKindOf(row.counterparty);
   const chips = alarmChips(alarms, locale);
+  const span = windowOf(row.window);
   const opensReview = row.status === 'in_review' && Number(row.documents) > 0;
   return (
     <Button
@@ -123,10 +150,20 @@ function AgreementCard({ row, locale, alarms, onOpen }) {
             <Name className="trd-card-value">{party}</Name>
           </span>
         ) : null}
-        {row.window ? (
+        {/* An open-ended agreement is stored against a far-future sentinel so its
+            commitments still have a measurement window. It reads as open-ended
+            here, never as a real 2099 deadline. */}
+        {span.from ? (
           <span className="trd-card-row">
             <span className="trd-card-label">{pageText(locale, 'Effective window', 'תקופת תוקף')}</span>
-            <Figure className="trd-card-value">{formatSpan(row.window.from, row.window.to, locale)}</Figure>
+            {span.openEnded ? (
+              <span className="trd-card-value">
+                <Figure>{formatDay(span.from)}</Figure>
+                <span className="trd-chip-quiet">{pageText(locale, 'open-ended', 'ללא מועד סיום')}</span>
+              </span>
+            ) : (
+              <Figure className="trd-card-value">{formatSpan(span.from, span.to, locale)}</Figure>
+            )}
           </span>
         ) : null}
         <span className="trd-card-row">
@@ -167,7 +204,9 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
   const [alarms, setAlarms] = useState({});
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(() => readParam(AGREEMENT_PARAM));
-  const [mode, setMode] = useState('detail');
+  // Null until an address or a press decides it, so an agreement restored from the
+  // URL is not shown on the record for one frame before its own status is known.
+  const [mode, setMode] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
@@ -208,6 +247,14 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
     [rows, open],
   );
 
+  // Which screen an agreement opens on: the review while it can still be
+  // reviewed, the record once it governs. A card and a pasted address resolve it
+  // the same way, so a link shared in a meeting lands where the person who sent
+  // it was looking.
+  function modeFor(row) {
+    return row && row.status === 'in_review' && Number(row.documents) > 0 ? 'review' : 'detail';
+  }
+
   function openAgreement(agreementId, nextMode) {
     setMode(nextMode);
     setOpen(agreementId);
@@ -239,7 +286,10 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
     );
   }
 
-  if (openRow && mode === 'review') {
+  // A press names the screen; an address does not, so the status decides for it.
+  const openMode = mode || modeFor(openRow);
+
+  if (openRow && openMode === 'review') {
     return (
       <AgreementReviewScreen
         agreementId={openRow.agreement_id}
@@ -269,17 +319,21 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
 
   return (
     <section className="trd-panel" aria-busy={rows === null}>
-      <header className="page-header">
-        <div>
-          <h2>{pageText(locale, 'Trade agreements', 'הסכמי סחר')}</h2>
-          <p>
-            {pageText(
+      {/* No title and no description here. The Commercial workspace chrome
+          already states both for this view, and a panel that repeats its own
+          destination's heading reads as two screens stacked by mistake. What this
+          band owns is the count and the two actions. */}
+      <header className="trd-panel-bar">
+        <p className="trd-count" role="status">
+          <Handshake size={14} aria-hidden="true" />
+          {rows
+            ? pageText(
               locale,
-              'Every framework, advertiser agreement and amendment the channel has signed, with what each one will do to pricing, placement and settlement once it is approved.',
-              'כל הסכם מסגרת, הסכם מפרסם ותיקון שהערוץ חתם עליהם, ולצידם מה כל אחד מהם יעשה לתמחור, לשיבוץ ולהתחשבנות ברגע שיאושר.',
-            )}
-          </p>
-        </div>
+              `${formatNumber(rows.length, locale)} agreements on file`,
+              `${formatNumber(rows.length, locale)} הסכמים במאגר`,
+            )
+            : pageText(locale, 'Reading the agreements', 'קורא את ההסכמים')}
+        </p>
         <div className="trd-header-actions">
           <Button type="button" variant="outlined" onClick={reload}>
             <RefreshCcw size={14} aria-hidden="true" />
@@ -341,27 +395,17 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
       ) : null}
 
       {rows && rows.length > 0 ? (
-        <>
-          <p className="trd-count" role="status">
-            <Handshake size={14} aria-hidden="true" />
-            {pageText(
-              locale,
-              `${formatNumber(rows.length, locale)} agreements on file`,
-              `${formatNumber(rows.length, locale)} הסכמים במאגר`,
-            )}
-          </p>
-          <div className="trd-grid">
-            {rows.map((row) => (
-              <AgreementCard
-                key={row.agreement_id}
-                row={row}
-                locale={locale}
-                alarms={alarms[row.agreement_id]}
-                onOpen={openAgreement}
-              />
-            ))}
-          </div>
-        </>
+        <div className="trd-grid">
+          {rows.map((row) => (
+            <AgreementCard
+              key={row.agreement_id}
+              row={row}
+              locale={locale}
+              alarms={alarms[row.agreement_id]}
+              onOpen={openAgreement}
+            />
+          ))}
+        </div>
       ) : null}
 
       <Card dense className="trd-boundary">

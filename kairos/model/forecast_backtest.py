@@ -52,20 +52,34 @@ import numpy as np
 import pandas as pd
 
 from kairos.model.audience_frame import PREDICTION_COLUMNS, build_training_frame
-from kairos.model.audience_model import TVR_FLOOR, fit_audience_model, load_audience_model
+from kairos.model.audience_model import fit_audience_model, load_audience_model
 from kairos.model.forecast import ForecastService
+from kairos.model.forecast_accuracy import (
+    MAPE_TVR_FLOOR,
+    breakdown_for,
+    metrics_for,
+    unavailable,
+    verdict_for,
+)
 from kairos.model.forecast_basis import DEFAULT_LEVEL
 from kairos.model.forecast_dispersion import build_dispersion
+
+# Re-exported so a caller needs one import for the measurement and its scoring.
+__all__ = [
+    "DEFAULT_BLOCKS",
+    "MAPE_TVR_FLOOR",
+    "MIN_TEST_OBSERVATIONS",
+    "MIN_TRAIN_OBSERVATIONS",
+    "date_blocks",
+    "verdict_for",
+    "walk_forward",
+]
 
 logger = logging.getLogger(__name__)
 
 # How many contiguous date blocks the window is cut into. The first is training
 # seed only and is reported UNAVAILABLE, so this yields ``n - 1`` scored folds.
 DEFAULT_BLOCKS = 6
-
-# Observations below this measured rating are excluded from MAPE (a percentage
-# error against a measured 0.0 is unbounded), counted, and named on the payload.
-MAPE_TVR_FLOOR = 0.05
 
 # Fewest training observations a fold will fit on. Below this the base's own
 # pooling has nothing to pool and the fold reports UNAVAILABLE.
@@ -82,10 +96,6 @@ _COMPETITOR_NOTE = (
 )
 
 
-def _unavailable(reason: str, **extra: Any) -> dict[str, Any]:
-    return {"available": False, "reason": reason, **extra}
-
-
 # ------------------------------------------------------------------- the blocks
 
 def date_blocks(frame: pd.DataFrame, n_blocks: int) -> list[list[pd.Timestamp]]:
@@ -93,7 +103,7 @@ def date_blocks(frame: pd.DataFrame, n_blocks: int) -> list[list[pd.Timestamp]]:
 
     Split on DATES, not rows, so no fold is ever trained on part of a day and
     tested on the rest of it -- the same day's observations share a calendar
-    context and a lineup, and splitting inside one would leak both.
+    context and a competitor lineup, and splitting inside one would leak both.
     """
     days = sorted(pd.to_datetime(frame["date"], errors="coerce").dropna().unique())
     if not days or n_blocks < 2:
@@ -101,137 +111,6 @@ def date_blocks(frame: pd.DataFrame, n_blocks: int) -> list[list[pd.Timestamp]]:
     n_blocks = min(int(n_blocks), len(days))
     edges = np.array_split(np.arange(len(days)), n_blocks)
     return [[days[i] for i in block] for block in edges if len(block)]
-
-
-# ------------------------------------------------------------------ the metrics
-
-def _metrics(
-    observed: np.ndarray, predicted: np.ndarray, historical: np.ndarray,
-    low: np.ndarray, high: np.ndarray, level: float,
-) -> dict[str, Any]:
-    """Point error, bias, MAPE with its exclusions, and interval coverage."""
-    n = int(len(observed))
-    if n == 0:
-        return _unavailable("no scored observations in this cell", n=0)
-    error = predicted - observed
-    hist_error = historical - observed
-    scorable = observed >= MAPE_TVR_FLOOR
-    banded = np.isfinite(low) & np.isfinite(high)
-    inside = banded & (observed >= low) & (observed <= high)
-    # The gates admitted each family on held-out RMSE IN LOG SPACE, so the
-    # comparison against the pre-model historical mean is reported on BOTH
-    # objectives. They can disagree, and on this window they do: see the module
-    # docstring. Reporting only the one the model was tuned on would be picking
-    # the scoreboard after the game.
-    log_observed = np.log(np.maximum(observed, TVR_FLOOR))
-    log_error = np.log(np.maximum(predicted, TVR_FLOOR)) - log_observed
-    log_hist_error = np.log(np.maximum(historical, TVR_FLOOR)) - log_observed
-    out: dict[str, Any] = {
-        "available": True,
-        "n": n,
-        "mae": round(float(np.mean(np.abs(error))), 4),
-        "rmse": round(float(np.sqrt(np.mean(error**2))), 4),
-        "bias": round(float(np.mean(error)), 4),
-        "mean_observed": round(float(np.mean(observed)), 4),
-        "historical_mae": round(float(np.mean(np.abs(hist_error))), 4),
-        "historical_rmse": round(float(np.sqrt(np.mean(hist_error**2))), 4),
-        "historical_bias": round(float(np.mean(hist_error)), 4),
-        "log_rmse": round(float(np.sqrt(np.mean(log_error**2))), 4),
-        "historical_log_rmse": round(float(np.sqrt(np.mean(log_hist_error**2))), 4),
-        "mape": None,
-        "mape_n": int(scorable.sum()),
-        "mape_excluded_n": int(n - scorable.sum()),
-        "mape_excluded_reason": (
-            f"observations with a measured rating below {MAPE_TVR_FLOOR} points are "
-            "excluded from MAPE because a percentage error against them is unbounded"
-        ),
-        "interval_level": round(float(level), 4),
-        "interval_n": int(banded.sum()),
-        "interval_missing_n": int(n - banded.sum()),
-        "interval_coverage": None,
-    }
-    if int(scorable.sum()):
-        out["mape"] = round(float(
-            100.0 * np.mean(np.abs(error[scorable]) / observed[scorable])
-        ), 3)
-    if int(banded.sum()):
-        out["interval_coverage"] = round(float(inside.sum() / banded.sum()), 4)
-        out["interval_mean_width"] = round(
-            float(np.mean(high[banded] - low[banded])), 4
-        )
-    return out
-
-
-def verdict_for(overall: dict[str, Any]) -> dict[str, Any]:
-    """Where the model beats the pre-model historical mean, and where it does not.
-
-    Two objectives, reported side by side because they can disagree and on the
-    real window they DO. The gates admitted families on held-out RMSE in log
-    space; the plan prices in arithmetic rating points. A log-space win does not
-    carry over: ``exp`` of a mean of logs estimates the geometric centre, which
-    sits below the arithmetic mean of a right-skewed rating distribution, so a
-    model fitted and gated in logs can be honest in logs and systematically low
-    in points. A negative ``bias`` beside a log-space win is the signature of
-    exactly that, and this block names it rather than reporting only the
-    objective the model was tuned on.
-    """
-    if not overall.get("available"):
-        return {"available": False, "reason": overall.get("reason", "nothing scored")}
-    log_gain = overall["historical_log_rmse"] - overall["log_rmse"]
-    points_gain = overall["historical_mae"] - overall["mae"]
-    beats_log = log_gain > 0
-    beats_points = points_gain > 0
-    return {
-        "available": True,
-        "beats_historical_in_log_space": bool(beats_log),
-        "beats_historical_in_points": bool(beats_points),
-        "log_rmse_gain": round(float(log_gain), 4),
-        "log_rmse_gain_pct": round(
-            100.0 * log_gain / overall["historical_log_rmse"], 2
-        ) if overall["historical_log_rmse"] else None,
-        "points_mae_gain": round(float(points_gain), 4),
-        "points_mae_gain_pct": round(
-            100.0 * points_gain / overall["historical_mae"], 2
-        ) if overall["historical_mae"] else None,
-        "interval_is_conservative": bool(
-            overall.get("interval_coverage") is not None
-            and overall["interval_coverage"] > overall["interval_level"]
-        ),
-        "headline_en": (
-            ("the model beats" if beats_log else "the model does not beat")
-            + " the pre-model historical mean on the log-space objective its gates "
-            + "were measured on, and "
-            + ("beats" if beats_points else "does NOT beat")
-            + " it in arithmetic rating points, the unit the plan prices in"
-        ),
-        "headline_he": (
-            ("המודל מנצח את" if beats_log else "המודל אינו מנצח את")
-            + " הממוצע ההיסטורי במרחב הלוג, המדד שעל פיו נמדדו השערים, ו"
-            + ("מנצח" if beats_points else "אינו מנצח")
-            + " אותו בנקודות רייטינג, היחידה שבה התוכנית מתומחרת"
-        ),
-        "mechanism_note_en": (
-            "a negative bias beside a log-space win is the retransformation "
-            "shortfall: the exponential of a log-space level estimates the "
-            "geometric centre, which sits below the arithmetic mean of a "
-            "right-skewed rating distribution"
-        ) if (beats_log and not beats_points and overall["bias"] < 0) else None,
-    }
-
-
-def _breakdown(
-    keys: np.ndarray, observed: np.ndarray, predicted: np.ndarray,
-    historical: np.ndarray, low: np.ndarray, high: np.ndarray, level: float,
-) -> dict[str, Any]:
-    """Per-cell metrics, ``n`` always reported, thin cells never hidden."""
-    out: dict[str, Any] = {}
-    for key in sorted({str(k) for k in keys}):
-        mask = keys == key
-        out[key] = _metrics(
-            observed[mask], predicted[mask], historical[mask],
-            low[mask], high[mask], level,
-        )
-    return out
 
 
 # --------------------------------------------------------------------- the walk
@@ -418,19 +297,19 @@ def walk_forward(
         head = {"fold": index + 1, "n_train": int(len(train)), "n_test": int(len(test)),
                 **window}
         if len(train) == 0:
-            folds.append({**head, **_unavailable(
+            folds.append({**head, **unavailable(
                 "the first block has no prior observations to fit on; it is the "
                 "training seed and is never scored"
             )})
             continue
         if len(train) < MIN_TRAIN_OBSERVATIONS:
-            folds.append({**head, **_unavailable(
+            folds.append({**head, **unavailable(
                 f"only {len(train)} prior observations, fewer than the "
                 f"{MIN_TRAIN_OBSERVATIONS} a fold will fit on; no figure is reported"
             )})
             continue
         if len(test) < MIN_TEST_OBSERVATIONS:
-            folds.append({**head, **_unavailable(
+            folds.append({**head, **unavailable(
                 f"only {len(test)} observations in this block, fewer than the "
                 f"{MIN_TEST_OBSERVATIONS} needed to score a fold"
             )})
@@ -443,20 +322,20 @@ def walk_forward(
         observed, predicted, historical, low, high, _genre, _slot = scored.arrays()
         folds.append({
             **head, **detail,
-            **_metrics(observed, predicted, historical, low, high, level),
+            **metrics_for(observed, predicted, historical, low, high, level),
         })
 
     observed, predicted, historical, low, high, genre, slot = pooled.arrays()
-    overall = _metrics(observed, predicted, historical, low, high, level)
+    overall = metrics_for(observed, predicted, historical, low, high, level)
     scored_folds = [f for f in folds if f.get("available")]
-    return {
+    result: dict[str, Any] = {
         "available": bool(scored_folds) and bool(overall.get("available")),
         "method": method,
         "overall": overall,
         "verdict": verdict_for(overall),
         "folds": folds,
-        "by_genre": _breakdown(genre, observed, predicted, historical, low, high, level),
-        "by_slot": _breakdown(slot, observed, predicted, historical, low, high, level),
+        "by_genre": breakdown_for(genre, observed, predicted, historical, low, high, level),
+        "by_slot": breakdown_for(slot, observed, predicted, historical, low, high, level),
         "gaps": [
             {"kind": "fold_unavailable", "fold": f["fold"], "reason": f["reason"]}
             for f in folds if not f.get("available")
@@ -470,3 +349,14 @@ def walk_forward(
             "n_observations": int(len(work)),
         },
     }
+    if not result["available"]:
+        # A measurement that scored nothing must say why on its face, not only
+        # inside the per-fold detail a caller may never open.
+        reasons = [f["reason"] for f in folds if not f.get("available") and f.get("reason")]
+        result["reason"] = (
+            "no fold could be scored out of sample: "
+            + "; ".join(dict.fromkeys(reasons))
+        ) if reasons else str(
+            overall.get("reason", "the walk produced no scored observations")
+        )
+    return result
